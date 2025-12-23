@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Car, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Auth = () => {
@@ -14,7 +15,7 @@ const Auth = () => {
   const { user, loading: authLoading, signIn } = useAuth();
   
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const returnTo = searchParams.get('returnTo') || '/';
@@ -28,7 +29,7 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!username || !password) {
       toast.error('Wypełnij wszystkie pola');
       return;
     }
@@ -36,10 +37,23 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      // Look up email by username
+      const { data: profile, error: lookupError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', username)
+        .single();
+
+      if (lookupError || !profile?.email) {
+        toast.error('Nieprawidłowy login lub hasło');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await signIn(profile.email, password);
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Nieprawidłowy email lub hasło');
+          toast.error('Nieprawidłowy login lub hasło');
         } else {
           toast.error(error.message);
         }
@@ -91,15 +105,15 @@ const Auth = () => {
             {/* Form */}
             <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Login</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="username"
+                    type="text"
+                    placeholder="Twój login"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                   />
                 </div>

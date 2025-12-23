@@ -80,6 +80,7 @@ export type Database = {
           instance_id: string | null
           phone: string | null
           updated_at: string | null
+          username: string | null
         }
         Insert: {
           created_at?: string | null
@@ -89,6 +90,7 @@ export type Database = {
           instance_id?: string | null
           phone?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
           created_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           instance_id?: string | null
           phone?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Relationships: [
           {
