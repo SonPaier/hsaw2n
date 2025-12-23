@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Calendar, CheckCircle2, XCircle, PlayCircle, Save, Loader2 } from 'lucide-react';
+import { User, Phone, Car, Clock, CheckCircle2, XCircle, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -295,15 +295,6 @@ const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave
                 </Button>
               )}
               {reservation.status === 'confirmed' && (
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={() => onStatusChange(reservation.id, 'in_progress')}
-                >
-                  <PlayCircle className="w-4 h-4" />
-                  Rozpocznij
-                </Button>
-              )}
-              {reservation.status === 'in_progress' && (
                 <Button
                   className="flex-1 gap-2"
                   onClick={() => onStatusChange(reservation.id, 'completed')}
