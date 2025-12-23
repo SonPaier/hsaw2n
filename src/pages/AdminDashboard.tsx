@@ -20,6 +20,7 @@ const mockStations = [
   { id: 'st1', name: 'Stanowisko 1', type: 'washing' },
   { id: 'st2', name: 'Stanowisko 2', type: 'washing' },
   { id: 'st3', name: 'Stanowisko 3', type: 'ppf' },
+  { id: 'st4', name: 'Stanowisko 4', type: 'detailing' },
 ];
 
 const mockReservations = [
