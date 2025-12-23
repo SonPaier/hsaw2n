@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, DragEvent } from 'react';
 import { format, addDays, subDays, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff } from 'lucide-react';
@@ -31,6 +31,7 @@ interface AdminCalendarProps {
   reservations: Reservation[];
   onReservationClick?: (reservation: Reservation) => void;
   onAddReservation?: (stationId: string, date: string, time: string) => void;
+  onReservationMove?: (reservationId: string, newStationId: string, newTime?: string) => void;
 }
 
 // Hours from 8:00 to 18:00
@@ -65,9 +66,11 @@ const formatTimeSlot = (hour: number, quarter: number): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReservation }: AdminCalendarProps) => {
+const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReservation, onReservationMove }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showPpfStations, setShowPpfStations] = useState(false);
+  const [draggedReservation, setDraggedReservation] = useState<Reservation | null>(null);
+  const [dragOverStation, setDragOverStation] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const handlePrev = () => setCurrentDate(subDays(currentDate, 1));
@@ -107,6 +110,41 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   const handleSlotClick = (stationId: string, hour: number, quarter: number) => {
     const time = formatTimeSlot(hour, quarter);
     onAddReservation?.(stationId, currentDateStr, time);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, reservation: Reservation) => {
+    setDraggedReservation(reservation);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', reservation.id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedReservation(null);
+    setDragOverStation(null);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, stationId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStation(stationId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStation(null);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, hour?: number, quarter?: number) => {
+    e.preventDefault();
+    setDragOverStation(null);
+    
+    if (draggedReservation && draggedReservation.station_id !== stationId) {
+      const newTime = hour !== undefined && quarter !== undefined 
+        ? formatTimeSlot(hour, quarter) 
+        : undefined;
+      onReservationMove?.(draggedReservation.id, stationId, newTime);
+    }
+    setDraggedReservation(null);
   };
 
   // Current time indicator position
@@ -206,9 +244,13 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
             <div 
               key={station.id}
               className={cn(
-                "flex-1 relative min-w-[80px]",
-                idx < visibleStations.length - 1 && "border-r border-border"
+                "flex-1 relative min-w-[80px] transition-colors duration-150",
+                idx < visibleStations.length - 1 && "border-r border-border",
+                dragOverStation === station.id && "bg-primary/10"
               )}
+              onDragOver={(e) => handleDragOver(e, station.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, station.id)}
             >
               {/* 15-minute grid lines with click handlers */}
               {HOURS.map((hour) => (
@@ -223,6 +265,10 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                         (quarter === 1 || quarter === 3) && "border-border/30"
                       )}
                       onClick={() => handleSlotClick(station.id, hour, quarter)}
+                      onDrop={(e) => {
+                        e.stopPropagation();
+                        handleDrop(e, station.id, hour, quarter);
+                      }}
                     >
                       <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Plus className="w-4 h-4 text-primary/50" />
@@ -235,15 +281,20 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
               {/* Reservations */}
               {getReservationsForStation(station.id).map((reservation) => {
                 const style = getReservationStyle(reservation.start_time, reservation.end_time);
+                const isDragging = draggedReservation?.id === reservation.id;
                 
                 return (
                   <div
                     key={reservation.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, reservation)}
+                    onDragEnd={handleDragEnd}
                     className={cn(
-                      "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 cursor-pointer",
+                      "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 cursor-grab active:cursor-grabbing",
                       "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                       "overflow-hidden",
-                      getStatusColor(reservation.status)
+                      getStatusColor(reservation.status),
+                      isDragging && "opacity-50 scale-95"
                     )}
                     style={style}
                     onClick={(e) => {
