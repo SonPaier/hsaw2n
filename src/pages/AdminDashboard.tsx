@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
+import MobileBottomNav from '@/components/admin/MobileBottomNav';
 import { toast } from 'sonner';
 
 // Mock data for demo - will be replaced with real data
@@ -294,7 +295,7 @@ const AdminDashboard = () => {
           </header>
 
           {/* Content */}
-          <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto">
+          <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
             {/* Header */}
             <div>
               <h1 className="text-2xl font-bold text-foreground">
@@ -426,6 +427,15 @@ const AdminDashboard = () => {
           onSuccess={handleReservationAdded}
         />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        stations={mockStations}
+        reservations={reservations}
+        currentDate={format(new Date(), 'yyyy-MM-dd')}
+      />
     </>
   );
 };
