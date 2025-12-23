@@ -306,10 +306,12 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                       <User className="w-3 h-3 shrink-0" />
                       {reservation.customer_name}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
-                      <Car className="w-3 h-3 shrink-0" />
-                      {reservation.vehicle_plate}
-                    </div>
+                    {reservation.vehicle_plate && (
+                      <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
+                        <Car className="w-3 h-3 shrink-0" />
+                        {reservation.vehicle_plate}
+                      </div>
+                    )}
                     <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5 hidden md:block">
                       {reservation.start_time} - {reservation.end_time}
                     </div>
