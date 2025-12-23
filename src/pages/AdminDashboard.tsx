@@ -146,6 +146,14 @@ const AdminDashboard = () => {
     toast.success(`Status rezerwacji zmieniony na: ${newStatus}`);
   };
 
+  const handleReservationSave = (reservationId: string, data: Partial<typeof mockReservations[0]>) => {
+    setReservations(prev => 
+      prev.map(r => r.id === reservationId ? { ...r, ...data } : r)
+    );
+    setSelectedReservation(null);
+    toast.success('Rezerwacja została zaktualizowana');
+  };
+
   const handleAddReservation = (stationId: string, date: string, time: string) => {
     setNewReservationData({ stationId, date, time });
     setAddReservationOpen(true);
@@ -403,6 +411,7 @@ const AdminDashboard = () => {
         open={!!selectedReservation}
         onClose={() => setSelectedReservation(null)}
         onStatusChange={handleStatusChange}
+        onSave={handleReservationSave}
       />
 
       {/* Add Reservation Dialog */}

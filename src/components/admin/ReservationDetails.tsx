@@ -1,14 +1,28 @@
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, User, Phone, Car, Clock, Calendar, CheckCircle2, XCircle, PlayCircle } from 'lucide-react';
+import { User, Phone, Car, Clock, Calendar, CheckCircle2, XCircle, PlayCircle, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type CarSize = 'small' | 'medium' | 'large';
 
 interface Reservation {
   id: string;
@@ -16,6 +30,7 @@ interface Reservation {
   customer_phone: string;
   customer_email?: string;
   vehicle_plate: string;
+  car_size?: CarSize | null;
   reservation_date: string;
   start_time: string;
   end_time: string;
@@ -37,7 +52,14 @@ interface ReservationDetailsProps {
   open: boolean;
   onClose: () => void;
   onStatusChange?: (reservationId: string, newStatus: string) => void;
+  onSave?: (reservationId: string, data: Partial<Reservation>) => void;
 }
+
+const CAR_SIZE_LABELS: Record<CarSize, string> = {
+  small: 'Mały',
+  medium: 'Średni',
+  large: 'Duży',
+};
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -56,109 +78,211 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const ReservationDetails = ({ reservation, open, onClose, onStatusChange }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave }: ReservationDetailsProps) => {
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Editable fields
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [carModel, setCarModel] = useState('');
+  const [carSize, setCarSize] = useState<CarSize | ''>('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [price, setPrice] = useState('');
+
+  // Reset form when reservation changes
+  useEffect(() => {
+    if (reservation) {
+      setCustomerName(reservation.customer_name || '');
+      setCustomerPhone(reservation.customer_phone || '');
+      setCarModel(reservation.vehicle_plate || '');
+      setCarSize(reservation.car_size || '');
+      setStartTime(reservation.start_time || '');
+      setEndTime(reservation.end_time || '');
+      setNotes(reservation.notes || '');
+      setPrice(reservation.price?.toString() || '');
+      setHasChanges(false);
+    }
+  }, [reservation]);
+
+  const handleFieldChange = (setter: (value: any) => void, value: any) => {
+    setter(value);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    if (!reservation || !onSave) return;
+    
+    setSaving(true);
+    try {
+      await onSave(reservation.id, {
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        vehicle_plate: carModel,
+        car_size: carSize || null,
+        start_time: startTime,
+        end_time: endTime,
+        notes: notes || undefined,
+        price: price ? parseFloat(price) : undefined,
+      });
+      setHasChanges(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!reservation) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Szczegóły rezerwacji</span>
+            <span>Edytuj rezerwację</span>
             {getStatusBadge(reservation.status)}
           </DialogTitle>
+          <DialogDescription>
+            {format(new Date(reservation.reservation_date), 'd MMMM yyyy (EEEE)', { locale: pl })}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Customer Info */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Dane klienta
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground">{reservation.customer_name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <a 
-                  href={`tel:${reservation.customer_phone}`}
-                  className="text-primary hover:underline"
-                >
-                  {reservation.customer_phone}
-                </a>
-              </div>
-              <div className="flex items-center gap-3">
-                <Car className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground font-mono">{reservation.vehicle_plate}</span>
-              </div>
-            </div>
+        <div className="space-y-4">
+          {/* Customer Name */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-name" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Imię i nazwisko
+            </Label>
+            <Input
+              id="edit-name"
+              value={customerName}
+              onChange={(e) => handleFieldChange(setCustomerName, e.target.value)}
+            />
           </div>
 
-          {/* Reservation Info */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Szczegóły wizyty
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground">
-                  {format(new Date(reservation.reservation_date), 'd MMMM yyyy (EEEE)', { locale: pl })}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-foreground">
-                  {reservation.start_time} - {reservation.end_time}
-                </span>
-              </div>
-              {reservation.service && (
-                <div className="flex items-start gap-3">
-                  <div className="w-4 h-4" />
-                  <div>
-                    <div className="text-foreground">{reservation.service.name}</div>
-                    {reservation.price && (
-                      <div className="text-sm text-muted-foreground">
-                        {reservation.price.toFixed(2)} PLN
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {reservation.station && (
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4" />
-                  <span className="text-muted-foreground">
-                    {reservation.station.name}
-                  </span>
-                </div>
-              )}
-            </div>
+          {/* Phone */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-phone" className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Telefon
+            </Label>
+            <Input
+              id="edit-phone"
+              value={customerPhone}
+              onChange={(e) => handleFieldChange(setCustomerPhone, e.target.value)}
+            />
           </div>
 
-          {/* Confirmation Code */}
-          <div className="p-3 bg-secondary/50 rounded-lg text-center">
-            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-              Kod potwierdzenia
-            </div>
-            <div className="text-2xl font-mono font-bold text-primary">
-              {reservation.confirmation_code}
-            </div>
+          {/* Car Model */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-car" className="flex items-center gap-2">
+              <Car className="w-4 h-4" />
+              Model samochodu
+            </Label>
+            <Input
+              id="edit-car"
+              value={carModel}
+              onChange={(e) => handleFieldChange(setCarModel, e.target.value)}
+            />
           </div>
 
-          {/* Notes */}
-          {reservation.notes && (
+          {/* Car Size */}
+          <div className="space-y-2">
+            <Label>Wielkość samochodu</Label>
+            <Select 
+              value={carSize} 
+              onValueChange={(v) => handleFieldChange(setCarSize, v as CarSize)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz wielkość" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
+                <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
+                <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Service (read-only) */}
+          {reservation.service && (
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Notatki
-              </h3>
-              <p className="text-sm text-foreground">{reservation.notes}</p>
+              <Label>Usługa</Label>
+              <div className="p-2 bg-muted/50 rounded-md text-sm">
+                {reservation.service.name}
+              </div>
             </div>
           )}
 
-          {/* Actions */}
+          {/* Time Range */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-start" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Początek
+              </Label>
+              <Input
+                id="edit-start"
+                type="time"
+                value={startTime}
+                onChange={(e) => handleFieldChange(setStartTime, e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-end">Koniec</Label>
+              <Input
+                id="edit-end"
+                type="time"
+                value={endTime}
+                onChange={(e) => handleFieldChange(setEndTime, e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-price">Cena (PLN)</Label>
+            <Input
+              id="edit-price"
+              type="number"
+              step="0.01"
+              value={price}
+              onChange={(e) => handleFieldChange(setPrice, e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-notes">Notatki</Label>
+            <Textarea
+              id="edit-notes"
+              value={notes}
+              onChange={(e) => handleFieldChange(setNotes, e.target.value)}
+              placeholder="Dodatkowe uwagi..."
+              rows={3}
+            />
+          </div>
+
+          {/* Save Button */}
+          {onSave && hasChanges && (
+            <Button 
+              className="w-full gap-2" 
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Zapisz zmiany
+            </Button>
+          )}
+
+          {/* Status Actions */}
           {onStatusChange && reservation.status !== 'completed' && reservation.status !== 'cancelled' && (
             <div className="flex gap-2 pt-4 border-t border-border/50">
               {reservation.status === 'pending' && (
