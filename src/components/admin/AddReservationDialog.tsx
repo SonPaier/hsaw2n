@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Car, Clock, Loader2, Sparkles } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Sparkles, Check, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -75,10 +81,11 @@ const AddReservationDialog = ({
   const [phone, setPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [carSize, setCarSize] = useState<CarSize | ''>('');
-  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [startTime, setStartTime] = useState(time);
   const [endTime, setEndTime] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [servicesOpen, setServicesOpen] = useState(false);
 
   // Fetch services on mount
   useEffect(() => {
@@ -92,11 +99,6 @@ const AddReservationDialog = ({
       
       if (!error && data) {
         setServices(data);
-        // Set default service to first "mycie" service
-        const defaultService = data.find(s => s.name.toLowerCase().includes('mycie'));
-        if (defaultService) {
-          setSelectedService(defaultService.id);
-        }
       }
     };
     
@@ -112,28 +114,41 @@ const AddReservationDialog = ({
       setPhone('');
       setCarModel('');
       setCarSize('');
-      setSelectedService('');
+      setSelectedServices([]);
       setStartTime(time);
       setEndTime('');
       setFoundCustomers([]);
       setSelectedCustomerId(null);
       setShowCustomerDropdown(false);
+      setServicesOpen(false);
     }
   }, [open, time]);
 
-  // Calculate end time based on service duration
+  // Calculate total duration from selected services
+  const totalDurationMinutes = selectedServices.reduce((total, serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    return total + (service?.duration_minutes || 0);
+  }, 0);
+
+  // Calculate end time based on selected services total duration
   useEffect(() => {
-    if (selectedService && startTime) {
-      const service = services.find(s => s.id === selectedService);
-      if (service?.duration_minutes) {
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const totalMinutes = hours * 60 + minutes + service.duration_minutes;
-        const endHours = Math.floor(totalMinutes / 60);
-        const endMins = totalMinutes % 60;
-        setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
-      }
+    if (selectedServices.length > 0 && startTime) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMins = totalMinutes % 60;
+      setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
     }
-  }, [selectedService, startTime, services]);
+  }, [selectedServices, startTime, services, totalDurationMinutes]);
+
+  // Toggle service selection
+  const toggleService = (serviceId: string) => {
+    setSelectedServices(prev => 
+      prev.includes(serviceId) 
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
 
   // AI suggestion for car size
   const suggestCarSize = useCallback(async (model: string) => {
@@ -220,17 +235,14 @@ const AddReservationDialog = ({
       return;
     }
 
-    // Calculate end time if not set but service is selected
+    // Calculate end time if not set but services are selected
     let finalEndTime = endTime;
-    if (!finalEndTime && selectedService && startTime) {
-      const service = services.find(s => s.id === selectedService);
-      if (service?.duration_minutes) {
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const totalMinutes = hours * 60 + minutes + service.duration_minutes;
-        const endHours = Math.floor(totalMinutes / 60);
-        const endMins = totalMinutes % 60;
-        finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-      }
+    if (!finalEndTime && selectedServices.length > 0 && startTime) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMins = totalMinutes % 60;
+      finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
     }
     
     // Default end time if still not set (1 hour from start)
@@ -308,8 +320,9 @@ const AddReservationDialog = ({
         status: 'confirmed',
       };
 
-      if (selectedService) {
-        reservationData.service_id = selectedService;
+      // Use first selected service as main service (for now - can extend later)
+      if (selectedServices.length > 0) {
+        reservationData.service_id = selectedServices[0];
       }
 
       const { error: reservationError } = await supabase
@@ -453,27 +466,60 @@ const AddReservationDialog = ({
             </Select>
           </div>
 
-          {/* Service */}
+          {/* Services Multi-Select */}
           <div className="space-y-2">
-            <Label>Usługa</Label>
-            <Select value={selectedService} onValueChange={setSelectedService}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz usługę" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={service.id}>
-                    <div className="flex items-center justify-between gap-4 w-full">
-                      <span>{service.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {service.duration_minutes}min
-                        {service.price_from && ` • od ${service.price_from} zł`}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="flex items-center justify-between">
+              <span>Usługi</span>
+              {selectedServices.length > 0 && (
+                <span className="text-sm font-normal text-primary">
+                  Suma: {totalDurationMinutes} min
+                </span>
+              )}
+            </Label>
+            <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={servicesOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedServices.length === 0 
+                    ? "Wybierz usługi..." 
+                    : `Wybrano ${selectedServices.length} usług`}
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0 bg-popover" align="start">
+                <div className="max-h-60 overflow-auto p-2 space-y-1">
+                  {services.map((service) => {
+                    const isSelected = selectedServices.includes(service.id);
+                    return (
+                      <div
+                        key={service.id}
+                        className={cn(
+                          "flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
+                          isSelected && "bg-primary/10"
+                        )}
+                        onClick={() => toggleService(service.id)}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleService(service.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{service.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {service.duration_minutes} min
+                            {service.price_from && ` • od ${service.price_from} zł`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Time Range */}
