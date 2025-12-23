@@ -19,76 +19,27 @@ import PriceListSettings from '@/components/admin/PriceListSettings';
 import StationsSettings from '@/components/admin/StationsSettings';
 import { toast } from 'sonner';
 
-// Mock data for demo - will be replaced with real data
-const mockStations = [
-  { id: 'st1', name: 'Stanowisko 1', type: 'washing' },
-  { id: 'st2', name: 'Stanowisko 2', type: 'washing' },
-  { id: 'st3', name: 'Stanowisko 3', type: 'ppf' },
-  { id: 'st4', name: 'Stanowisko 4', type: 'detailing' },
-];
+interface Station {
+  id: string;
+  name: string;
+  type: string;
+}
 
-const mockReservations = [
-  {
-    id: 'res1',
-    instance_id: 'mock-instance',
-    customer_name: 'Jan Kowalski',
-    customer_phone: '123 456 789',
-    vehicle_plate: 'GD 12345',
-    reservation_date: format(new Date(), 'yyyy-MM-dd'),
-    start_time: '09:00',
-    end_time: '10:30',
-    station_id: 'st1',
-    status: 'confirmed',
-    confirmation_code: '123',
-    service: { name: 'Mycie premium' },
-    price: 120,
-  },
-  {
-    id: 'res2',
-    instance_id: 'mock-instance',
-    customer_name: 'Anna Nowak',
-    customer_phone: '987 654 321',
-    vehicle_plate: 'GD 54321',
-    reservation_date: format(new Date(), 'yyyy-MM-dd'),
-    start_time: '10:00',
-    end_time: '11:00',
-    station_id: 'st2',
-    status: 'confirmed',
-    confirmation_code: '456',
-    service: { name: 'Mycie podstawowe' },
-    price: 50,
-  },
-  {
-    id: 'res3',
-    instance_id: 'mock-instance',
-    customer_name: 'Piotr Wiśniewski',
-    customer_phone: '555 666 777',
-    vehicle_plate: 'GDA 9999',
-    reservation_date: format(new Date(), 'yyyy-MM-dd'),
-    start_time: '11:30',
-    end_time: '15:30',
-    station_id: 'st3',
-    status: 'confirmed',
-    confirmation_code: '789',
-    service: { name: 'Folia PPF Full Front' },
-    price: 5000,
-  },
-  {
-    id: 'res4',
-    instance_id: 'mock-instance',
-    customer_name: 'Maria Dąbrowska',
-    customer_phone: '111 222 333',
-    vehicle_plate: 'GD 77777',
-    reservation_date: format(new Date(), 'yyyy-MM-dd'),
-    start_time: '14:00',
-    end_time: '15:00',
-    station_id: 'st1',
-    status: 'confirmed',
-    confirmation_code: '101',
-    service: { name: 'Mycie detailingowe' },
-    price: 350,
-  },
-];
+interface Reservation {
+  id: string;
+  instance_id: string;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+  station_id: string;
+  status: string;
+  confirmation_code: string;
+  service?: { name: string };
+  price: number | null;
+}
 
 type ViewType = 'calendar' | 'reservations' | 'settings';
 
@@ -97,8 +48,9 @@ const AdminDashboard = () => {
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('calendar');
-  const [selectedReservation, setSelectedReservation] = useState<typeof mockReservations[0] | null>(null);
-  const [reservations, setReservations] = useState(mockReservations);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [stations, setStations] = useState<Station[]>([]);
   
   // Add reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
@@ -149,6 +101,62 @@ const AdminDashboard = () => {
     fetchUserInstanceId();
   }, [user]);
 
+  // Fetch stations from database
+  useEffect(() => {
+    const fetchStations = async () => {
+      if (!instanceId) return;
+      
+      const { data, error } = await supabase
+        .from('stations')
+        .select('id, name, type')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order');
+      
+      if (!error && data) {
+        setStations(data);
+      }
+    };
+    
+    fetchStations();
+  }, [instanceId]);
+
+  // Fetch reservations from database
+  const fetchReservations = async () => {
+    if (!instanceId) return;
+    
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        instance_id,
+        customer_name,
+        customer_phone,
+        vehicle_plate,
+        reservation_date,
+        start_time,
+        end_time,
+        station_id,
+        status,
+        confirmation_code,
+        price,
+        services:service_id (name)
+      `)
+      .eq('instance_id', instanceId);
+    
+    if (!error && data) {
+      setReservations(data.map(r => ({
+        ...r,
+        status: r.status || 'pending',
+        service: r.services ? { name: (r.services as any).name } : undefined,
+      })));
+    }
+  };
+
+  useEffect(() => {
+    fetchReservations();
+  }, [instanceId]);
+
   // Calculate free time ranges (gaps) per station
   const getFreeRangesPerStation = () => {
     const now = new Date();
@@ -161,7 +169,7 @@ const AdminDashboard = () => {
     const workStart = 8 * 60; // 8:00 in minutes
     const workEnd = 18 * 60;  // 18:00 in minutes
     
-    return mockStations.map(station => {
+    return stations.map(station => {
       const stationReservations = reservations
         .filter(r => r.station_id === station.id && r.reservation_date === today)
         .map(r => ({
@@ -221,7 +229,7 @@ const AdminDashboard = () => {
     navigate('/auth');
   };
 
-  const handleReservationClick = (reservation: typeof mockReservations[0]) => {
+  const handleReservationClick = (reservation: Reservation) => {
     setSelectedReservation(reservation);
   };
 
@@ -273,7 +281,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleReservationSave = (reservationId: string, data: Partial<typeof mockReservations[0]>) => {
+  const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
     setReservations(prev => 
       prev.map(r => r.id === reservationId ? { ...r, ...data } : r)
     );
@@ -287,9 +295,9 @@ const AdminDashboard = () => {
   };
 
   const handleReservationAdded = () => {
-    // For now, just close the dialog
-    // In the future, this will refresh the reservations from the database
-    toast.info('Rezerwacja dodana - odśwież aby zobaczyć');
+    // Refresh reservations from database
+    fetchReservations();
+    toast.success('Rezerwacja została dodana');
   };
 
   const handleReservationMove = (reservationId: string, newStationId: string, newTime?: string) => {
@@ -316,7 +324,7 @@ const AdminDashboard = () => {
         return r;
       })
     );
-    const station = mockStations.find(s => s.id === newStationId);
+    const station = stations.find(s => s.id === newStationId);
     toast.success(`Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`);
   };
 
@@ -439,7 +447,7 @@ const AdminDashboard = () => {
             {currentView === 'calendar' && (
               <div className="flex-1 min-h-[600px]">
                 <AdminCalendar 
-                  stations={mockStations}
+                  stations={stations}
                   reservations={reservations}
                   onReservationClick={handleReservationClick}
                   onAddReservation={handleAddReservation}
@@ -536,7 +544,7 @@ const AdminDashboard = () => {
       <MobileBottomNav
         currentView={currentView}
         onViewChange={setCurrentView}
-        stations={mockStations}
+        stations={stations}
         reservations={reservations}
         currentDate={format(new Date(), 'yyyy-MM-dd')}
       />
