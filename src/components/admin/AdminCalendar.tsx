@@ -96,7 +96,10 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
     }
   };
   
-  const handleToday = () => setCurrentDate(new Date());
+  const handleToday = () => {
+    setCurrentDate(new Date());
+    setViewMode('day');
+  };
 
   // Get week days for week view
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
