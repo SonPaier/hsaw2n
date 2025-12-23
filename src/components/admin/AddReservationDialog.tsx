@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, User, Phone, Car, Clock, Loader2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-interface Station {
-  id: string;
-  name: string;
-  type: string;
-}
-
 interface Service {
   id: string;
   name: string;
@@ -45,10 +39,9 @@ interface Customer {
 interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
-  stationId: string | null;
+  stationId: string;
   date: string;
   time: string;
-  stations: Station[];
   instanceId: string;
   onSuccess: () => void;
 }
@@ -59,7 +52,6 @@ const AddReservationDialog = ({
   stationId,
   date,
   time,
-  stations,
   instanceId,
   onSuccess,
 }: AddReservationDialogProps) => {
@@ -67,13 +59,13 @@ const AddReservationDialog = ({
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   
   // Form state
-  const [phone, setPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [phone, setPhone] = useState('');
+  const [carModel, setCarModel] = useState('');
   const [selectedService, setSelectedService] = useState<string>('');
-  const [selectedStation, setSelectedStation] = useState<string>(stationId || '');
   const [startTime, setStartTime] = useState(time);
   const [endTime, setEndTime] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -101,17 +93,17 @@ const AddReservationDialog = ({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setPhone('');
       setCustomerName('');
-      setVehiclePlate('');
+      setPhone('');
+      setCarModel('');
       setSelectedService('');
-      setSelectedStation(stationId || '');
       setStartTime(time);
       setEndTime('');
       setFoundCustomers([]);
       setSelectedCustomerId(null);
+      setShowCustomerDropdown(false);
     }
-  }, [open, stationId, time]);
+  }, [open, time]);
 
   // Calculate end time based on service duration
   useEffect(() => {
@@ -127,10 +119,11 @@ const AddReservationDialog = ({
     }
   }, [selectedService, startTime, services]);
 
-  // Search customer by phone
-  const searchCustomer = useCallback(async (phoneNumber: string) => {
-    if (phoneNumber.length < 3) {
+  // Search customer by name
+  const searchCustomer = useCallback(async (searchName: string) => {
+    if (searchName.length < 2) {
       setFoundCustomers([]);
+      setShowCustomerDropdown(false);
       return;
     }
     
@@ -140,30 +133,34 @@ const AddReservationDialog = ({
         .from('customers')
         .select('id, phone, name, email')
         .eq('instance_id', instanceId)
-        .ilike('phone', `%${phoneNumber}%`)
+        .ilike('name', `%${searchName}%`)
         .limit(5);
       
       if (!error && data) {
         setFoundCustomers(data);
+        setShowCustomerDropdown(data.length > 0);
       }
     } finally {
       setSearchingCustomer(false);
     }
   }, [instanceId]);
 
-  // Debounced phone search
+  // Debounced name search
   useEffect(() => {
+    if (selectedCustomerId) return; // Don't search if customer already selected
+    
     const timer = setTimeout(() => {
-      searchCustomer(phone);
+      searchCustomer(customerName);
     }, 300);
     return () => clearTimeout(timer);
-  }, [phone, searchCustomer]);
+  }, [customerName, searchCustomer, selectedCustomerId]);
 
   const selectCustomer = (customer: Customer) => {
-    setPhone(customer.phone);
     setCustomerName(customer.name);
+    setPhone(customer.phone);
     setSelectedCustomerId(customer.id);
     setFoundCustomers([]);
+    setShowCustomerDropdown(false);
   };
 
   const generateConfirmationCode = () => {
@@ -171,34 +168,74 @@ const AddReservationDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (!phone || !customerName || !vehiclePlate || !selectedService || !selectedStation || !startTime || !endTime) {
-      toast.error('Wypełnij wszystkie wymagane pola');
+    // Only stationId is required (from context), rest is optional
+    if (!stationId) {
+      toast.error('Brak stanowiska');
       return;
+    }
+
+    // Calculate end time if not set but service is selected
+    let finalEndTime = endTime;
+    if (!finalEndTime && selectedService && startTime) {
+      const service = services.find(s => s.id === selectedService);
+      if (service?.duration_minutes) {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + service.duration_minutes;
+        const endHours = Math.floor(totalMinutes / 60);
+        const endMins = totalMinutes % 60;
+        finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      }
+    }
+    
+    // Default end time if still not set (1 hour from start)
+    if (!finalEndTime && startTime) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + 60;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMins = totalMinutes % 60;
+      finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
     }
 
     setLoading(true);
     try {
-      // First, check if customer exists or create new one
+      // Create customer if name provided and not already selected
       let customerId = selectedCustomerId;
       
-      if (!customerId) {
-        // Check if customer with this phone exists
-        const { data: existingCustomer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('instance_id', instanceId)
-          .eq('phone', phone)
-          .maybeSingle();
-        
-        if (existingCustomer) {
-          customerId = existingCustomer.id;
+      if (customerName && !customerId) {
+        // Check if customer with this phone exists (if phone provided)
+        if (phone) {
+          const { data: existingCustomer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('instance_id', instanceId)
+            .eq('phone', phone)
+            .maybeSingle();
+          
+          if (existingCustomer) {
+            customerId = existingCustomer.id;
+          } else {
+            // Create new customer
+            const { data: newCustomer, error: customerError } = await supabase
+              .from('customers')
+              .insert({
+                instance_id: instanceId,
+                phone,
+                name: customerName,
+              })
+              .select('id')
+              .single();
+            
+            if (customerError) throw customerError;
+            customerId = newCustomer.id;
+            toast.success('Dodano nowego klienta do bazy');
+          }
         } else {
-          // Create new customer
+          // Create customer without phone
           const { data: newCustomer, error: customerError } = await supabase
             .from('customers')
             .insert({
               instance_id: instanceId,
-              phone,
+              phone: '', // Empty phone
               name: customerName,
             })
             .select('id')
@@ -211,21 +248,26 @@ const AddReservationDialog = ({
       }
 
       // Create reservation
+      const reservationData: any = {
+        instance_id: instanceId,
+        station_id: stationId,
+        reservation_date: date,
+        start_time: startTime,
+        end_time: finalEndTime,
+        customer_name: customerName || 'Bez nazwy',
+        customer_phone: phone || '',
+        vehicle_plate: carModel || '', // Using vehicle_plate field for car model temporarily
+        confirmation_code: generateConfirmationCode(),
+        status: 'confirmed',
+      };
+
+      if (selectedService) {
+        reservationData.service_id = selectedService;
+      }
+
       const { error: reservationError } = await supabase
         .from('reservations')
-        .insert({
-          instance_id: instanceId,
-          station_id: selectedStation,
-          service_id: selectedService,
-          reservation_date: date,
-          start_time: startTime,
-          end_time: endTime,
-          customer_name: customerName,
-          customer_phone: phone,
-          vehicle_plate: vehiclePlate.toUpperCase(),
-          confirmation_code: generateConfirmationCode(),
-          status: 'confirmed',
-        });
+        .insert(reservationData);
 
       if (reservationError) throw reservationError;
 
@@ -263,31 +305,32 @@ const AddReservationDialog = ({
             </div>
           </div>
 
-          {/* Phone search */}
+          {/* Customer Name / Alias - Autocomplete */}
           <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Numer telefonu *
+            <Label htmlFor="name" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Imię i nazwisko / Alias
             </Label>
             <div className="relative">
               <Input
-                id="phone"
-                value={phone}
+                id="name"
+                value={customerName}
                 onChange={(e) => {
-                  setPhone(e.target.value);
+                  setCustomerName(e.target.value);
                   setSelectedCustomerId(null);
                 }}
-                placeholder="+48 123 456 789"
+                placeholder="Jan Kowalski"
                 className="pr-10"
+                autoComplete="off"
               />
               {searchingCustomer && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
               )}
             </div>
             
-            {/* Customer suggestions */}
-            {foundCustomers.length > 0 && (
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
+            {/* Customer suggestions dropdown */}
+            {showCustomerDropdown && foundCustomers.length > 0 && (
+              <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-50">
                 {foundCustomers.map((customer) => (
                   <button
                     key={customer.id}
@@ -299,8 +342,9 @@ const AddReservationDialog = ({
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <div className="font-medium text-sm">{customer.name}</div>
-                      <div className="text-xs text-muted-foreground">{customer.phone}</div>
+                      <div className="font-medium text-sm">
+                        {customer.name} <span className="text-muted-foreground">[{customer.phone}]</span>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -308,43 +352,42 @@ const AddReservationDialog = ({
             )}
           </div>
 
-          {/* Customer Name */}
+          {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Imię i nazwisko / Alias *
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Numer telefonu
             </Label>
             <Input
-              id="name"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Jan Kowalski"
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+48 123 456 789"
             />
           </div>
 
-          {/* Vehicle Plate */}
+          {/* Car Model */}
           <div className="space-y-2">
-            <Label htmlFor="plate" className="flex items-center gap-2">
+            <Label htmlFor="carModel" className="flex items-center gap-2">
               <Car className="w-4 h-4" />
-              Numer rejestracyjny *
+              Model samochodu
             </Label>
             <Input
-              id="plate"
-              value={vehiclePlate}
-              onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-              placeholder="GD 12345"
-              className="uppercase"
+              id="carModel"
+              value={carModel}
+              onChange={(e) => setCarModel(e.target.value)}
+              placeholder="np. BMW X5, Audi A4"
             />
           </div>
 
           {/* Service */}
           <div className="space-y-2">
-            <Label>Usługa *</Label>
+            <Label>Usługa</Label>
             <Select value={selectedService} onValueChange={setSelectedService}>
               <SelectTrigger>
                 <SelectValue placeholder="Wybierz usługę" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover">
                 {services.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
                     <div className="flex items-center justify-between gap-4 w-full">
@@ -360,28 +403,10 @@ const AddReservationDialog = ({
             </Select>
           </div>
 
-          {/* Station */}
-          <div className="space-y-2">
-            <Label>Stanowisko *</Label>
-            <Select value={selectedStation} onValueChange={setSelectedStation}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz stanowisko" />
-              </SelectTrigger>
-              <SelectContent>
-                {stations.map((station) => (
-                  <SelectItem key={station.id} value={station.id}>
-                    {station.name}
-                    <span className="text-xs text-muted-foreground ml-2">({station.type})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime">Godzina rozpoczęcia *</Label>
+              <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
               <Input
                 id="startTime"
                 type="time"
@@ -390,12 +415,13 @@ const AddReservationDialog = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">Godzina zakończenia *</Label>
+              <Label htmlFor="endTime">Godzina zakończenia</Label>
               <Input
                 id="endTime"
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                placeholder="Automatycznie"
               />
             </div>
           </div>

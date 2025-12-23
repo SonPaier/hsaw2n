@@ -394,7 +394,6 @@ const AdminDashboard = () => {
         stationId={newReservationData.stationId}
         date={newReservationData.date}
         time={newReservationData.time}
-        stations={mockStations}
         instanceId={instanceId}
         onSuccess={handleReservationAdded}
       />
