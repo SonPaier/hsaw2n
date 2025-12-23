@@ -36,8 +36,10 @@ interface AdminCalendarProps {
 
 // Hours from 8:00 to 18:00
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
-const QUARTER_HEIGHT = 20; // pixels per 15 minutes
-const HOUR_HEIGHT = QUARTER_HEIGHT * 4; // 80px per hour
+const SLOT_MINUTES = 5; // 5-minute slots for precise drag & drop
+const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 12 slots per hour
+const SLOT_HEIGHT = 10; // pixels per 5 minutes
+const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 120px per hour
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -61,8 +63,8 @@ const parseTime = (time: string): number => {
   return hours + minutes / 60;
 };
 
-const formatTimeSlot = (hour: number, quarter: number): string => {
-  const minutes = quarter * 15;
+const formatTimeSlot = (hour: number, slotIndex: number): string => {
+  const minutes = slotIndex * SLOT_MINUTES;
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -107,8 +109,8 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   };
 
   // Handle click on empty time slot
-  const handleSlotClick = (stationId: string, hour: number, quarter: number) => {
-    const time = formatTimeSlot(hour, quarter);
+  const handleSlotClick = (stationId: string, hour: number, slotIndex: number) => {
+    const time = formatTimeSlot(hour, slotIndex);
     onAddReservation?.(stationId, currentDateStr, time);
   };
 
@@ -134,13 +136,13 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
     setDragOverStation(null);
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, hour?: number, quarter?: number) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, hour?: number, slotIndex?: number) => {
     e.preventDefault();
     setDragOverStation(null);
     
     if (draggedReservation && draggedReservation.station_id !== stationId) {
-      const newTime = hour !== undefined && quarter !== undefined 
-        ? formatTimeSlot(hour, quarter) 
+      const newTime = hour !== undefined && slotIndex !== undefined 
+        ? formatTimeSlot(hour, slotIndex) 
         : undefined;
       onReservationMove?.(draggedReservation.id, stationId, newTime);
     }
@@ -228,12 +230,15 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                 <span className="absolute -top-2.5 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-card px-1">
                   {`${hour.toString().padStart(2, '0')}:00`}
                 </span>
-                {/* 15-minute marks in time column */}
+                {/* Time marks in time column - every 15 minutes */}
                 <div className="absolute left-0 right-0 top-0 h-full">
-                  <div className="h-1/4 border-b border-border" />
-                  <div className="h-1/4 border-b border-border/60" />
-                  <div className="h-1/4 border-b border-border" />
-                  <div className="h-1/4 border-b border-border/60" />
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div 
+                      key={i} 
+                      className="border-b border-border/60"
+                      style={{ height: `${SLOT_HEIGHT * 3}px` }}
+                    />
+                  ))}
                 </div>
               </div>
             ))}
@@ -252,26 +257,26 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, station.id)}
             >
-              {/* 15-minute grid lines with click handlers */}
+              {/* 5-minute grid slots with click handlers */}
               {HOURS.map((hour) => (
                 <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                  {[0, 1, 2, 3].map((quarter) => (
+                  {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => (
                     <div
-                      key={quarter}
+                      key={slotIndex}
                       className={cn(
-                        "h-1/4 border-b group cursor-pointer transition-colors hover:bg-primary/5",
-                        quarter === 0 && "border-border",
-                        quarter === 2 && "border-border/60",
-                        (quarter === 1 || quarter === 3) && "border-border/30"
+                        "border-b group cursor-pointer transition-colors hover:bg-primary/5",
+                        slotIndex % 3 === 0 && "border-border/50", // every 15 min
+                        slotIndex % 3 !== 0 && "border-border/20"  // every 5 min
                       )}
-                      onClick={() => handleSlotClick(station.id, hour, quarter)}
+                      style={{ height: SLOT_HEIGHT }}
+                      onClick={() => handleSlotClick(station.id, hour, slotIndex)}
                       onDrop={(e) => {
                         e.stopPropagation();
-                        handleDrop(e, station.id, hour, quarter);
+                        handleDrop(e, station.id, hour, slotIndex);
                       }}
                     >
                       <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Plus className="w-4 h-4 text-primary/50" />
+                        <Plus className="w-3 h-3 text-primary/50" />
                       </div>
                     </div>
                   ))}
