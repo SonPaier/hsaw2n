@@ -562,26 +562,6 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
         </>
       )}
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 md:gap-6 p-2 md:p-3 border-t border-border bg-muted/20 flex-wrap">
-        <span className="text-[10px] md:text-xs font-medium text-muted-foreground">Status:</span>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-sm bg-amber-500" />
-          <span className="text-[10px] md:text-xs text-muted-foreground">Oczekujące</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-sm bg-emerald-500" />
-          <span className="text-[10px] md:text-xs text-muted-foreground">Potwierdzone</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-sm bg-blue-500" />
-          <span className="text-[10px] md:text-xs text-muted-foreground">W trakcie</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-sm bg-slate-400" />
-          <span className="text-[10px] md:text-xs text-muted-foreground">Zakończone</span>
-        </div>
-      </div>
     </div>
   );
 };
