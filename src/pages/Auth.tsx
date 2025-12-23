@@ -12,13 +12,21 @@ import { toast } from 'sonner';
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: authLoading, signIn } = useAuth();
+  const { user, loading: authLoading, signIn, hasRole } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const returnTo = searchParams.get('returnTo') || '/';
+  // Determine where to redirect after login
+  const getDefaultRedirect = () => {
+    const path = window.location.pathname;
+    if (path.includes('/admin')) return '/admin';
+    if (path.includes('/super-admin')) return '/super-admin';
+    return '/';
+  };
+
+  const returnTo = searchParams.get('returnTo') || getDefaultRedirect();
 
   useEffect(() => {
     if (!authLoading && user) {
