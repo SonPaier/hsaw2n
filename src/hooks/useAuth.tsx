@@ -27,34 +27,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      // Fetch roles after auth state change
+
+      // Fetch roles after auth state change (deferred to avoid deadlocks)
       if (session?.user) {
+        setRolesLoading(true);
         setTimeout(() => {
-          fetchUserRoles(session.user.id);
+          fetchUserRoles(session.user.id).finally(() => {
+            setRolesLoading(false);
+          });
         }, 0);
       } else {
         setRoles([]);
+        setRolesLoading(false);
       }
     });
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserRoles(session.user.id);
-      }
-      setLoading(false);
-    });
+    // Then check for existing session (await roles before clearing loading)
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          setRolesLoading(true);
+          try {
+            await fetchUserRoles(session.user.id);
+          } finally {
+            setRolesLoading(false);
+          }
+        } else {
+          setRoles([]);
+          setRolesLoading(false);
+        }
+
+        setSessionLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error getting session:', err);
+        setSessionLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -122,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       roles,
-      loading,
+      loading: sessionLoading || rolesLoading,
       signIn,
       signUp,
       signOut,

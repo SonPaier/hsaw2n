@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading, signIn, hasRole } = useAuth();
   
@@ -18,21 +19,41 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  const pathname = location.pathname;
+
   // Determine where to redirect after login
   const getDefaultRedirect = () => {
-    const path = window.location.pathname;
-    if (path.includes('/admin')) return '/admin';
-    if (path.includes('/super-admin')) return '/super-admin';
+    if (pathname.includes('/super-admin')) return '/super-admin';
+    if (pathname.includes('/admin')) return '/admin';
     return '/';
   };
 
   const returnTo = searchParams.get('returnTo') || getDefaultRedirect();
 
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate(returnTo);
+    if (authLoading || !user) return;
+
+    const wantsSuperAdmin = returnTo.startsWith('/super-admin') || pathname.startsWith('/super-admin');
+    const wantsAdmin = returnTo.startsWith('/admin') || pathname.startsWith('/admin');
+
+    if (wantsSuperAdmin) {
+      if (hasRole('super_admin')) {
+        navigate('/super-admin', { replace: true });
+      }
+      return;
     }
-  }, [user, authLoading, navigate, returnTo]);
+
+    if (wantsAdmin) {
+      if (hasRole('admin')) {
+        navigate('/admin', { replace: true });
+      } else if (hasRole('super_admin')) {
+        navigate('/super-admin', { replace: true });
+      }
+      return;
+    }
+
+    navigate(returnTo, { replace: true });
+  }, [authLoading, user, hasRole, navigate, pathname, returnTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
