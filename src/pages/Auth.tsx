@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Car, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,13 +11,11 @@ import { toast } from 'sonner';
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: authLoading, signIn, signUp } = useAuth();
+  const { user, loading: authLoading, signIn } = useAuth();
   
-  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
 
   const returnTo = searchParams.get('returnTo') || '/';
 
@@ -35,38 +33,19 @@ const Auth = () => {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error('Hasło musi mieć minimum 6 znaków');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Nieprawidłowy email lub hasło');
-          } else {
-            toast.error(error.message);
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Nieprawidłowy email lub hasło');
         } else {
-          toast.success('Zalogowano pomyślnie');
-          navigate(returnTo);
+          toast.error(error.message);
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Ten email jest już zarejestrowany');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Konto utworzone! Możesz się teraz zalogować.');
-          setIsLogin(true);
-        }
+        toast.success('Zalogowano pomyślnie');
+        navigate(returnTo);
       }
     } catch (err) {
       toast.error('Wystąpił błąd. Spróbuj ponownie.');
@@ -86,7 +65,7 @@ const Auth = () => {
   return (
     <>
       <Helmet>
-        <title>{isLogin ? 'Logowanie' : 'Rejestracja'} - ARM CAR AUTO SPA</title>
+        <title>Logowanie - ARM CAR AUTO SPA</title>
         <meta name="description" content="Zaloguj się do systemu rezerwacji ARM CAR AUTO SPA" />
       </Helmet>
 
@@ -102,35 +81,15 @@ const Auth = () => {
                 <Car className="w-8 h-8 text-primary-foreground" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
-                {isLogin ? 'Zaloguj się' : 'Utwórz konto'}
+                Zaloguj się
               </h1>
               <p className="text-muted-foreground">
-                {isLogin 
-                  ? 'Zaloguj się do panelu administracyjnego' 
-                  : 'Zarejestruj się, aby zarządzać rezerwacjami'
-                }
+                Zaloguj się do panelu administracyjnego
               </p>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Imię i nazwisko</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="Jan Kowalski"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -170,24 +129,15 @@ const Auth = () => {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? 'Zaloguj się' : 'Zarejestruj się'}
+                    Zaloguj się
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </Button>
 
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {isLogin 
-                    ? 'Nie masz konta? Zarejestruj się' 
-                    : 'Masz już konto? Zaloguj się'
-                  }
-                </button>
-              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                Konta tworzone są przez administratora systemu
+              </p>
             </form>
 
             {/* Back to home */}
