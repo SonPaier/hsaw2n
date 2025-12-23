@@ -58,6 +58,7 @@ const CATEGORY_SECTIONS = [
   { key: 'washing', label: 'Mycie', stationType: 'washing' },
   { key: 'detailing', label: 'Detailing', stationType: 'detailing' },
   { key: 'ppf', label: 'Folia PPF', stationType: 'ppf' },
+  { key: 'universal', label: 'Pranie tapicerki', stationType: 'universal' },
 ];
 
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
