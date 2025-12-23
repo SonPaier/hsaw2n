@@ -15,6 +15,7 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
+import PriceListSettings from '@/components/admin/PriceListSettings';
 import { toast } from 'sonner';
 
 // Mock data for demo - will be replaced with real data
@@ -395,11 +396,15 @@ const AdminDashboard = () => {
             )}
 
             {currentView === 'settings' && (
-              <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold mb-4">Ustawienia instancji</h2>
-                <p className="text-muted-foreground">
-                  Tutaj będą dostępne ustawienia cennika, stanowisk i godzin pracy.
-                </p>
+              <div className="glass-card p-6 space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Ustawienia instancji</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Zarządzaj cennikiem, stanowiskami i godzinami pracy.
+                  </p>
+                </div>
+                
+                <PriceListSettings instanceId={instanceId} />
               </div>
             )}
           </div>
