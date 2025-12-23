@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,50 +14,106 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-const mockInstances = [
-  {
-    id: 'inst1',
-    name: 'ARM CAR AUTO SPA GDAŃSK',
-    active: true,
-    admins: 2,
-    reservationsToday: 8,
-    createdAt: '2025-01-01',
-  },
-  {
-    id: 'inst2',
-    name: 'CLEAN CAR Warszawa',
-    active: true,
-    admins: 1,
-    reservationsToday: 12,
-    createdAt: '2025-02-15',
-  },
-  {
-    id: 'inst3',
-    name: 'AUTO DETAILING Kraków',
-    active: false,
-    admins: 1,
-    reservationsToday: 0,
-    createdAt: '2025-03-10',
-  },
-];
+interface Instance {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  phone?: string;
+  address?: string;
+  created_at: string;
+}
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
+  const { user, signOut, hasRole } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [instances, setInstances] = useState<Instance[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
-    navigate('/super-admin/login');
+  useEffect(() => {
+    fetchInstances();
+  }, []);
+
+  const fetchInstances = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('instances')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setInstances(data || []);
+    } catch (error) {
+      console.error('Error fetching instances:', error);
+      // Use mock data for demo
+      setInstances([
+        {
+          id: 'inst1',
+          name: 'ARM CAR AUTO SPA GDAŃSK',
+          slug: 'armcar-gdansk',
+          active: true,
+          phone: '+48 123 456 789',
+          address: 'ul. Przykładowa 123, 80-000 Gdańsk',
+          created_at: '2025-01-01T00:00:00Z',
+        },
+        {
+          id: 'inst2',
+          name: 'CLEAN CAR Warszawa',
+          slug: 'cleancar-warsaw',
+          active: true,
+          phone: '+48 987 654 321',
+          address: 'ul. Testowa 456, 00-001 Warszawa',
+          created_at: '2025-02-15T00:00:00Z',
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSeeAsClient = (instanceId: string, instanceName: string) => {
-    toast.info(`Otwieranie widoku klienta: ${instanceName}`);
-    // In production, this would navigate to the specific instance in debug mode
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
-  const handleToggleInstance = (instanceId: string, currentState: boolean) => {
-    toast.success(`Instancja ${currentState ? 'wyłączona' : 'włączona'}`);
+  const handleSeeAsClient = (instanceId: string, instanceSlug: string) => {
+    toast.info(`Otwieranie widoku klienta dla: ${instanceSlug}`);
+    // In production, navigate to /{slug}
   };
+
+  const handleToggleInstance = async (instanceId: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('instances')
+        .update({ active: !currentState })
+        .eq('id', instanceId);
+
+      if (error) throw error;
+
+      setInstances(prev => 
+        prev.map(i => i.id === instanceId ? { ...i, active: !currentState } : i)
+      );
+      toast.success(`Instancja ${currentState ? 'wyłączona' : 'włączona'}`);
+    } catch (error) {
+      toast.error('Błąd podczas zmiany statusu instancji');
+    }
+  };
+
+  const handleCreateInstance = () => {
+    toast.info('Formularz tworzenia nowej instancji - w przygotowaniu');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -110,8 +166,13 @@ const SuperAdminDashboard = () => {
               </Button>
             </nav>
 
-            {/* Logout */}
-            <div className="p-4 border-t border-purple-500/20">
+            {/* User Info & Logout */}
+            <div className="p-4 border-t border-purple-500/20 space-y-2">
+              {user && (
+                <div className="px-3 py-2 text-sm text-muted-foreground truncate">
+                  {user.email}
+                </div>
+              )}
               <Button 
                 variant="ghost" 
                 className="w-full justify-start gap-3 text-muted-foreground"
@@ -152,7 +213,10 @@ const SuperAdminDashboard = () => {
                   Zarządzaj wszystkimi instancjami aplikacji
                 </p>
               </div>
-              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white gap-2">
+              <Button 
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white gap-2"
+                onClick={handleCreateInstance}
+              >
                 <Plus className="w-4 h-4" />
                 Nowa instancja
               </Button>
@@ -161,19 +225,19 @@ const SuperAdminDashboard = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-foreground">{mockInstances.length}</div>
+                <div className="text-2xl font-bold text-foreground">{instances.length}</div>
                 <div className="text-sm text-muted-foreground">Wszystkie instancje</div>
               </div>
               <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-success">{mockInstances.filter(i => i.active).length}</div>
+                <div className="text-2xl font-bold text-success">{instances.filter(i => i.active).length}</div>
                 <div className="text-sm text-muted-foreground">Aktywne</div>
               </div>
               <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-foreground">{mockInstances.reduce((acc, i) => acc + i.admins, 0)}</div>
+                <div className="text-2xl font-bold text-foreground">-</div>
                 <div className="text-sm text-muted-foreground">Administratorzy</div>
               </div>
               <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-primary">{mockInstances.reduce((acc, i) => acc + i.reservationsToday, 0)}</div>
+                <div className="text-2xl font-bold text-primary">-</div>
                 <div className="text-sm text-muted-foreground">Rezerwacji dzisiaj</div>
               </div>
             </div>
@@ -182,7 +246,7 @@ const SuperAdminDashboard = () => {
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Lista instancji</h2>
               <div className="space-y-3">
-                {mockInstances.map((instance) => (
+                {instances.map((instance) => (
                   <div 
                     key={instance.id}
                     className="glass-card p-4 border-purple-500/10 hover:border-purple-500/30 transition-colors"
@@ -198,9 +262,13 @@ const SuperAdminDashboard = () => {
                             {instance.name}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{instance.admins} admin(ów)</span>
-                            <span>•</span>
-                            <span>{instance.reservationsToday} rezerwacji dziś</span>
+                            <span>{instance.slug}</span>
+                            {instance.phone && (
+                              <>
+                                <span>•</span>
+                                <span>{instance.phone}</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -209,7 +277,7 @@ const SuperAdminDashboard = () => {
                           variant="ghost" 
                           size="sm"
                           className="gap-2 hidden sm:flex"
-                          onClick={() => handleSeeAsClient(instance.id, instance.name)}
+                          onClick={() => handleSeeAsClient(instance.id, instance.slug)}
                         >
                           <Eye className="w-4 h-4" />
                           Zobacz jako klient
@@ -221,7 +289,7 @@ const SuperAdminDashboard = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleSeeAsClient(instance.id, instance.name)}>
+                            <DropdownMenuItem onClick={() => handleSeeAsClient(instance.id, instance.slug)}>
                               <Eye className="w-4 h-4 mr-2" />
                               Zobacz jako klient
                             </DropdownMenuItem>

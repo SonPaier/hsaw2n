@@ -1,0 +1,143 @@
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+type AppRole = 'super_admin' | 'admin' | 'user';
+
+interface UserRole {
+  role: AppRole;
+  instance_id: string | null;
+}
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  roles: UserRole[];
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  hasRole: (role: AppRole) => boolean;
+  hasInstanceRole: (role: AppRole, instanceId: string) => boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Fetch roles after auth state change
+      if (session?.user) {
+        setTimeout(() => {
+          fetchUserRoles(session.user.id);
+        }, 0);
+      } else {
+        setRoles([]);
+      }
+    });
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserRoles(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role, instance_id')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error fetching roles:', error);
+        return;
+      }
+
+      setRoles(data?.map(r => ({
+        role: r.role as AppRole,
+        instance_id: r.instance_id
+      })) || []);
+    } catch (err) {
+      console.error('Error fetching roles:', err);
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error: error ? new Error(error.message) : null };
+  };
+
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: fullName || email,
+        },
+      },
+    });
+    return { error: error ? new Error(error.message) : null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setRoles([]);
+  };
+
+  const hasRole = (role: AppRole) => {
+    return roles.some(r => r.role === role);
+  };
+
+  const hasInstanceRole = (role: AppRole, instanceId: string) => {
+    return roles.some(r => r.role === role && (r.instance_id === instanceId || r.instance_id === null));
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      session,
+      roles,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      hasRole,
+      hasInstanceRole,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
