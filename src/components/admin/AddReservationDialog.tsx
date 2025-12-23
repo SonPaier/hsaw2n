@@ -84,6 +84,7 @@ const AddReservationDialog = ({
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [startTime, setStartTime] = useState(time);
   const [endTime, setEndTime] = useState('');
+  const [manualDuration, setManualDuration] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [servicesOpen, setServicesOpen] = useState(false);
 
@@ -117,6 +118,7 @@ const AddReservationDialog = ({
       setSelectedServices([]);
       setStartTime(time);
       setEndTime('');
+      setManualDuration(null);
       setFoundCustomers([]);
       setSelectedCustomerId(null);
       setShowCustomerDropdown(false);
@@ -130,21 +132,43 @@ const AddReservationDialog = ({
     return total + (service?.duration_minutes || 0);
   }, 0);
 
-  // Calculate end time based on selected services total duration
+  // Duration options for dropdown (15min increments from 30min to 4h)
+  const DURATION_OPTIONS = [
+    { value: 30, label: '30 min' },
+    { value: 45, label: '45 min' },
+    { value: 60, label: '1h' },
+    { value: 75, label: '1h 15min' },
+    { value: 90, label: '1h 30min' },
+    { value: 105, label: '1h 45min' },
+    { value: 120, label: '2h' },
+    { value: 135, label: '2h 15min' },
+    { value: 150, label: '2h 30min' },
+    { value: 180, label: '3h' },
+    { value: 210, label: '3h 30min' },
+    { value: 240, label: '4h' },
+  ];
+
+  // Effective duration: manual override or service-based
+  const effectiveDuration = manualDuration ?? (totalDurationMinutes > 0 ? totalDurationMinutes : null);
+
+  // Calculate end time based on effective duration
   useEffect(() => {
-    if (startTime) {
-      if (selectedServices.length > 0 && totalDurationMinutes > 0) {
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
-        const endHours = Math.floor(totalMinutes / 60);
-        const endMins = totalMinutes % 60;
-        setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
-      } else {
-        // Reset end time when no services selected
-        setEndTime('');
-      }
+    if (startTime && effectiveDuration && effectiveDuration > 0) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + effectiveDuration;
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMins = totalMinutes % 60;
+      setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
+    } else if (!effectiveDuration) {
+      setEndTime('');
     }
-  }, [selectedServices, startTime, totalDurationMinutes]);
+  }, [startTime, effectiveDuration]);
+
+  // Handle manual duration change
+  const handleDurationChange = (value: string) => {
+    const duration = parseInt(value);
+    setManualDuration(duration);
+  };
 
   // Toggle service selection
   const toggleService = (serviceId: string) => {
@@ -528,25 +552,58 @@ const AddReservationDialog = ({
           </div>
 
           {/* Time Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime">Godzina zakończenia</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => {
+                    setEndTime(e.target.value);
+                    setManualDuration(null); // Reset manual duration when end time is manually changed
+                  }}
+                  placeholder="Automatycznie"
+                />
+              </div>
             </div>
+            
+            {/* Duration Quick Select */}
             <div className="space-y-2">
-              <Label htmlFor="endTime">Godzina zakończenia</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                placeholder="Automatycznie"
-              />
+              <Label className="flex items-center justify-between">
+                <span>Czas trwania</span>
+                {effectiveDuration && (
+                  <span className="text-sm font-normal text-primary">
+                    {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
+                    {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
+                  </span>
+                )}
+              </Label>
+              <Select 
+                value={manualDuration?.toString() || ''} 
+                onValueChange={handleDurationChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz czas trwania..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {DURATION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
