@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, CheckCircle2, XCircle, Save, Loader2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -282,37 +282,6 @@ const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave
             </Button>
           )}
 
-          {/* Status Actions */}
-          {onStatusChange && reservation.status !== 'completed' && reservation.status !== 'cancelled' && (
-            <div className="flex gap-2 pt-4 border-t border-border/50">
-              {reservation.status === 'pending' && (
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={() => onStatusChange(reservation.id, 'confirmed')}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Potwierdź
-                </Button>
-              )}
-              {reservation.status === 'confirmed' && (
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={() => onStatusChange(reservation.id, 'completed')}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Zakończ
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                className="gap-2 text-destructive"
-                onClick={() => onStatusChange(reservation.id, 'cancelled')}
-              >
-                <XCircle className="w-4 h-4" />
-                Anuluj
-              </Button>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
