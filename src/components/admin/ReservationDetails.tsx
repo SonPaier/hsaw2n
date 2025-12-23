@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,17 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,6 +37,7 @@ type CarSize = 'small' | 'medium' | 'large';
 
 interface Reservation {
   id: string;
+  instance_id: string;
   customer_name: string;
   customer_phone: string;
   customer_email?: string;
@@ -51,7 +63,7 @@ interface ReservationDetailsProps {
   reservation: Reservation | null;
   open: boolean;
   onClose: () => void;
-  onStatusChange?: (reservationId: string, newStatus: string) => void;
+  onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
   onSave?: (reservationId: string, data: Partial<Reservation>) => void;
 }
 
@@ -78,8 +90,9 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: ReservationDetailsProps) => {
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
   // Editable fields
@@ -130,6 +143,23 @@ const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave
       setHasChanges(false);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!reservation || !onDelete) return;
+    
+    setDeleting(true);
+    try {
+      await onDelete(reservation.id, {
+        name: customerName,
+        phone: customerPhone,
+        email: reservation.customer_email,
+        instance_id: reservation.instance_id,
+      });
+      onClose();
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -266,22 +296,56 @@ const ReservationDetails = ({ reservation, open, onClose, onStatusChange, onSave
             />
           </div>
 
-          {/* Save Button */}
-          {onSave && hasChanges && (
-            <Button 
-              className="w-full gap-2" 
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Zapisz zmiany
-            </Button>
-          )}
-
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-border/50">
+            {onSave && hasChanges && (
+              <Button 
+                className="flex-1 gap-2" 
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Zapisz zmiany
+              </Button>
+            )}
+            
+            {onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    className="gap-2"
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    Anuluj
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Czy na pewno chcesz anulować rezerwację?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Rezerwacja zostanie usunięta z systemu. Dane klienta ({customerName}, {customerPhone}) zostaną zachowane w bazie klientów.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Nie, wróć</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Tak, usuń rezerwację
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
