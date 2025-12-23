@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
+import AddReservationDialog from '@/components/admin/AddReservationDialog';
 import { toast } from 'sonner';
 
 // Mock data for demo - will be replaced with real data
@@ -91,6 +92,17 @@ const AdminDashboard = () => {
   const [currentView, setCurrentView] = useState<ViewType>('calendar');
   const [selectedReservation, setSelectedReservation] = useState<typeof mockReservations[0] | null>(null);
   const [reservations, setReservations] = useState(mockReservations);
+  
+  // Add reservation dialog state
+  const [addReservationOpen, setAddReservationOpen] = useState(false);
+  const [newReservationData, setNewReservationData] = useState({
+    stationId: '',
+    date: '',
+    time: '',
+  });
+
+  // Mock instance ID - will be replaced with real data
+  const instanceId = 'mock-instance-id';
 
   const stats = [
     { label: 'Dzisiejsze rezerwacje', value: reservations.length.toString(), icon: <Calendar className="w-5 h-5" />, trend: '+2' },
@@ -114,6 +126,17 @@ const AdminDashboard = () => {
     );
     setSelectedReservation(null);
     toast.success(`Status rezerwacji zmieniony na: ${newStatus}`);
+  };
+
+  const handleAddReservation = (stationId: string, date: string, time: string) => {
+    setNewReservationData({ stationId, date, time });
+    setAddReservationOpen(true);
+  };
+
+  const handleReservationAdded = () => {
+    // For now, just close the dialog
+    // In the future, this will refresh the reservations from the database
+    toast.info('Rezerwacja dodana - odśwież aby zobaczyć');
   };
 
   return (
@@ -258,6 +281,7 @@ const AdminDashboard = () => {
                   stations={mockStations}
                   reservations={reservations}
                   onReservationClick={handleReservationClick}
+                  onAddReservation={handleAddReservation}
                 />
               </div>
             )}
@@ -332,6 +356,18 @@ const AdminDashboard = () => {
         open={!!selectedReservation}
         onClose={() => setSelectedReservation(null)}
         onStatusChange={handleStatusChange}
+      />
+
+      {/* Add Reservation Dialog */}
+      <AddReservationDialog
+        open={addReservationOpen}
+        onClose={() => setAddReservationOpen(false)}
+        stationId={newReservationData.stationId}
+        date={newReservationData.date}
+        time={newReservationData.time}
+        stations={mockStations}
+        instanceId={instanceId}
+        onSuccess={handleReservationAdded}
       />
     </>
   );

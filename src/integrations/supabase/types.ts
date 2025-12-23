@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          instance_id: string
+          name: string
+          notes: string | null
+          phone: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          notes?: string | null
+          phone: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instances: {
         Row: {
           active: boolean | null
