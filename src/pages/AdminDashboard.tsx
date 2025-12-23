@@ -412,37 +412,7 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            {/* Free Time Ranges Per Station */}
-            <div className="glass-card p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Wolne terminy na dziś</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{format(new Date(), 'HH:mm')}</span>
-              </div>
-              <div className="space-y-3">
-                {stationsWithRanges.map(station => (
-                  <div key={station.id} className="bg-secondary/30 rounded-lg p-3">
-                    <div className="text-sm font-medium mb-2">{station.name}</div>
-                    {station.freeRanges.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {station.freeRanges.map((range, idx) => (
-                          <span 
-                            key={idx} 
-                            className="text-xs bg-success/20 text-success px-2 py-1 rounded"
-                          >
-                            {range.label} <span className="opacity-70">({range.duration})</span>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Brak wolnych terminów</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
             {/* View Content */}
             {currentView === 'calendar' && (

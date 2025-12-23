@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Calendar, List, Clock, X } from 'lucide-react';
+import { Calendar, List, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { format, addDays, subDays, isToday } from 'date-fns';
+import { pl } from 'date-fns/locale';
 import {
   Sheet,
   SheetContent,
@@ -35,56 +37,85 @@ interface MobileBottomNavProps {
 // Working hours
 const START_HOUR = 8;
 const END_HOUR = 18;
-const SLOT_DURATION = 30; // minutes
-
-const generateTimeSlots = () => {
-  const slots: string[] = [];
-  for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-    slots.push(`${hour.toString().padStart(2, '0')}:00`);
-    slots.push(`${hour.toString().padStart(2, '0')}:30`);
-  }
-  return slots;
-};
-
-const parseTimeToMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-};
 
 const MobileBottomNav = ({
   currentView,
   onViewChange,
   stations,
   reservations,
-  currentDate,
 }: MobileBottomNavProps) => {
   const [freeSlotsOpen, setFreeSlotsOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const allSlots = generateTimeSlots();
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
 
-  // Get free slots for a specific station
-  const getFreeSlotsForStation = (stationId: string) => {
-    const stationReservations = reservations.filter(
-      r => r.reservation_date === currentDate && 
-           r.station_id === stationId &&
-           r.status !== 'cancelled'
-    );
-
-    return allSlots.filter(slot => {
-      const slotStart = parseTimeToMinutes(slot);
-      const slotEnd = slotStart + SLOT_DURATION;
-
-      // Check if this slot overlaps with any reservation
-      return !stationReservations.some(res => {
-        const resStart = parseTimeToMinutes(res.start_time);
-        const resEnd = parseTimeToMinutes(res.end_time);
-        return slotStart < resEnd && slotEnd > resStart;
+  // Calculate free time ranges (gaps) per station for selected date
+  const getFreeRangesForDate = (dateStr: string) => {
+    const now = new Date();
+    const isViewingToday = dateStr === format(now, 'yyyy-MM-dd');
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeMinutes = currentHour * 60 + currentMinutes;
+    
+    const workStart = START_HOUR * 60;
+    const workEnd = END_HOUR * 60;
+    
+    return stations.map(station => {
+      const stationReservations = reservations
+        .filter(r => r.station_id === station.id && r.reservation_date === dateStr && r.status !== 'cancelled')
+        .map(r => ({
+          start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
+          end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]),
+        }))
+        .sort((a, b) => a.start - b.start);
+      
+      // Find gaps
+      const gaps: { start: number; end: number }[] = [];
+      let searchStart = isViewingToday ? Math.max(workStart, currentTimeMinutes) : workStart;
+      
+      for (const res of stationReservations) {
+        if (res.start > searchStart) {
+          gaps.push({ start: searchStart, end: res.start });
+        }
+        searchStart = Math.max(searchStart, res.end);
+      }
+      
+      if (searchStart < workEnd) {
+        gaps.push({ start: searchStart, end: workEnd });
+      }
+      
+      // Format gaps as readable strings
+      const freeRanges = gaps.map(gap => {
+        const startHour = Math.floor(gap.start / 60);
+        const startMin = gap.start % 60;
+        const endHour = Math.floor(gap.end / 60);
+        const endMin = gap.end % 60;
+        const durationHours = (gap.end - gap.start) / 60;
+        
+        const startStr = `${startHour}:${startMin.toString().padStart(2, '0')}`;
+        const endStr = `${endHour}:${endMin.toString().padStart(2, '0')}`;
+        const durationStr = durationHours >= 1 
+          ? `${Math.floor(durationHours)}h${durationHours % 1 > 0 ? ` ${Math.round((durationHours % 1) * 60)}min` : ''}`
+          : `${Math.round(durationHours * 60)}min`;
+        
+        return {
+          label: `${startStr} - ${endStr}`,
+          duration: durationStr,
+        };
       });
+      
+      return {
+        ...station,
+        freeRanges,
+      };
     });
   };
 
-  // Filter only washing stations (not PPF/detailing for quick view)
-  const washingStations = stations.filter(s => s.type === 'washing' || s.type === 'universal');
+  const stationsWithRanges = getFreeRangesForDate(selectedDateStr);
+
+  const goToPrevDay = () => setSelectedDate(prev => subDays(prev, 1));
+  const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
+  const goToToday = () => setSelectedDate(new Date());
 
   return (
     <>
@@ -135,68 +166,52 @@ const MobileBottomNav = ({
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              Wolne sloty na dziś
+              Wolne terminy
             </SheetTitle>
           </SheetHeader>
 
-          <div className="space-y-6 overflow-y-auto pb-8">
-            {washingStations.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                Brak stanowisk do wyświetlenia
-              </p>
-            ) : (
-              washingStations.map(station => {
-                const freeSlots = getFreeSlotsForStation(station.id);
-                
-                return (
-                  <div key={station.id} className="space-y-3">
-                    <h3 className="font-semibold text-foreground flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      {station.name}
-                    </h3>
-                    
-                    {freeSlots.length === 0 ? (
-                      <p className="text-sm text-muted-foreground pl-4">
-                        Brak wolnych slotów
-                      </p>
-                    ) : (
-                      <ul className="grid grid-cols-4 gap-2 pl-4">
-                        {freeSlots.map(slot => (
-                          <li
-                            key={slot}
-                            className="text-sm bg-success/10 text-success px-2 py-1 rounded-md text-center font-mono"
-                          >
-                            {slot}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })
-            )}
+          {/* Date Navigation */}
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50">
+            <Button variant="ghost" size="icon" onClick={goToPrevDay}>
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <span className="font-medium">
+                {format(selectedDate, 'd MMMM yyyy', { locale: pl })}
+              </span>
+              {!isToday(selectedDate) && (
+                <Button variant="outline" size="sm" onClick={goToToday}>
+                  Dziś
+                </Button>
+              )}
+            </div>
+            
+            <Button variant="ghost" size="icon" onClick={goToNextDay}>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
 
-            {/* Show all stations summary */}
-            {stations.filter(s => s.type !== 'washing' && s.type !== 'universal').length > 0 && (
-              <div className="pt-4 border-t border-border/50">
-                <h3 className="font-semibold text-muted-foreground text-sm mb-3">
-                  Inne stanowiska
-                </h3>
-                {stations
-                  .filter(s => s.type !== 'washing' && s.type !== 'universal')
-                  .map(station => {
-                    const freeSlots = getFreeSlotsForStation(station.id);
-                    return (
-                      <div key={station.id} className="flex items-center justify-between py-2">
-                        <span className="text-sm">{station.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {freeSlots.length} wolnych
-                        </span>
-                      </div>
-                    );
-                  })}
+          <div className="space-y-4 overflow-y-auto pb-8">
+            {stationsWithRanges.map(station => (
+              <div key={station.id} className="bg-secondary/30 rounded-lg p-3">
+                <div className="text-sm font-medium mb-2">{station.name}</div>
+                {station.freeRanges.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {station.freeRanges.map((range, idx) => (
+                      <span 
+                        key={idx} 
+                        className="text-xs bg-success/20 text-success px-2 py-1 rounded"
+                      >
+                        {range.label} <span className="opacity-70">({range.duration})</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Brak wolnych terminów</span>
+                )}
               </div>
-            )}
+            ))}
           </div>
         </SheetContent>
       </Sheet>
