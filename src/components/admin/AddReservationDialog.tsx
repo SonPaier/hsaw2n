@@ -409,7 +409,7 @@ const AddReservationDialog = ({
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+48 123 456 789"
+              placeholder="123 456 789"
             />
           </div>
 
