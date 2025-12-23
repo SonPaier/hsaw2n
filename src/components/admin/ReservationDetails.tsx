@@ -298,7 +298,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4 border-t border-border/50">
-            {onSave && hasChanges && (
+            {onSave && (
               <Button 
                 className="flex-1 gap-2" 
                 onClick={handleSave}
