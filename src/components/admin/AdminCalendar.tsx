@@ -1,7 +1,7 @@
 import { useState, DragEvent } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,6 +17,7 @@ interface Station {
 interface Reservation {
   id: string;
   customer_name: string;
+  customer_phone?: string;
   vehicle_plate: string;
   reservation_date: string;
   start_time: string;
@@ -373,9 +374,21 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                           onReservationClick?.(reservation);
                         }}
                       >
-                        <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
-                          <User className="w-3 h-3 shrink-0" />
-                          {reservation.customer_name}
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
+                            <User className="w-3 h-3 shrink-0" />
+                            {reservation.customer_name}
+                          </div>
+                          {reservation.customer_phone && (
+                            <a
+                              href={`tel:${reservation.customer_phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                              title={reservation.customer_phone}
+                            >
+                              <Phone className="w-3 h-3" />
+                            </a>
+                          )}
                         </div>
                         {reservation.vehicle_plate && (
                           <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
@@ -533,8 +546,20 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                             onReservationClick?.(reservation);
                           }}
                         >
-                          <div className="font-semibold truncate">
-                            {reservation.customer_name}
+                          <div className="flex items-center justify-between gap-0.5">
+                            <div className="font-semibold truncate">
+                              {reservation.customer_name}
+                            </div>
+                            {reservation.customer_phone && (
+                              <a
+                                href={`tel:${reservation.customer_phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                title={reservation.customer_phone}
+                              >
+                                <Phone className="w-2.5 h-2.5" />
+                              </a>
+                            )}
                           </div>
                           <div className="truncate opacity-80">
                             {reservation.start_time}
