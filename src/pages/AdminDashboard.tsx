@@ -1,29 +1,118 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Car, Calendar, Users, TrendingUp, LogOut, 
-  Menu, X, Clock, CheckCircle2, AlertCircle, Settings
+  Menu, Clock, CheckCircle2, AlertCircle, Settings, DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { mockReservations } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import AdminCalendar from '@/components/admin/AdminCalendar';
+import ReservationDetails from '@/components/admin/ReservationDetails';
+import { toast } from 'sonner';
 
-const stats = [
-  { label: 'Dzisiejsze rezerwacje', value: '8', icon: <Calendar className="w-5 h-5" />, trend: '+2' },
-  { label: 'Oczekujące', value: '3', icon: <Clock className="w-5 h-5" />, color: 'text-warning' },
-  { label: 'Potwierdzone', value: '5', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-success' },
-  { label: 'Ten tydzień', value: '34', icon: <TrendingUp className="w-5 h-5" /> },
+// Mock data for demo - will be replaced with real data
+const mockStations = [
+  { id: 'st1', name: 'Stanowisko 1', type: 'washing' },
+  { id: 'st2', name: 'Stanowisko 2', type: 'washing' },
+  { id: 'st3', name: 'Stanowisko 3', type: 'ppf' },
 ];
+
+const mockReservations = [
+  {
+    id: 'res1',
+    customer_name: 'Jan Kowalski',
+    customer_phone: '+48 123 456 789',
+    vehicle_plate: 'GD 12345',
+    reservation_date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '09:00',
+    end_time: '10:30',
+    station_id: 'st1',
+    status: 'confirmed',
+    confirmation_code: '123',
+    service: { name: 'Mycie premium' },
+    price: 120,
+  },
+  {
+    id: 'res2',
+    customer_name: 'Anna Nowak',
+    customer_phone: '+48 987 654 321',
+    vehicle_plate: 'GD 54321',
+    reservation_date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '10:00',
+    end_time: '11:00',
+    station_id: 'st2',
+    status: 'pending',
+    confirmation_code: '456',
+    service: { name: 'Mycie podstawowe' },
+    price: 50,
+  },
+  {
+    id: 'res3',
+    customer_name: 'Piotr Wiśniewski',
+    customer_phone: '+48 555 666 777',
+    vehicle_plate: 'GDA 9999',
+    reservation_date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '11:30',
+    end_time: '15:30',
+    station_id: 'st3',
+    status: 'in_progress',
+    confirmation_code: '789',
+    service: { name: 'Folia PPF Full Front' },
+    price: 5000,
+  },
+  {
+    id: 'res4',
+    customer_name: 'Maria Dąbrowska',
+    customer_phone: '+48 111 222 333',
+    vehicle_plate: 'GD 77777',
+    reservation_date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '14:00',
+    end_time: '15:00',
+    station_id: 'st1',
+    status: 'confirmed',
+    confirmation_code: '101',
+    service: { name: 'Mycie detailingowe' },
+    price: 350,
+  },
+];
+
+type ViewType = 'calendar' | 'reservations' | 'settings';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>('calendar');
+  const [selectedReservation, setSelectedReservation] = useState<typeof mockReservations[0] | null>(null);
+  const [reservations, setReservations] = useState(mockReservations);
 
-  const handleLogout = () => {
-    navigate('/admin/login');
+  const stats = [
+    { label: 'Dzisiejsze rezerwacje', value: reservations.length.toString(), icon: <Calendar className="w-5 h-5" />, trend: '+2' },
+    { label: 'Oczekujące', value: reservations.filter(r => r.status === 'pending').length.toString(), icon: <Clock className="w-5 h-5" />, color: 'text-warning' },
+    { label: 'Potwierdzone', value: reservations.filter(r => r.status === 'confirmed').length.toString(), icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-success' },
+    { label: 'Przychód dziś', value: `${reservations.reduce((acc, r) => acc + (r.price || 0), 0)} zł`, icon: <DollarSign className="w-5 h-5" /> },
+  ];
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const handleReservationClick = (reservation: typeof mockReservations[0]) => {
+    setSelectedReservation(reservation);
+  };
+
+  const handleStatusChange = (reservationId: string, newStatus: string) => {
+    setReservations(prev => 
+      prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r)
+    );
+    setSelectedReservation(null);
+    toast.success(`Status rezerwacji zmieniony na: ${newStatus}`);
   };
 
   return (
@@ -63,22 +152,39 @@ const AdminDashboard = () => {
 
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-2">
-              <Button variant="secondary" className="w-full justify-start gap-3">
+              <Button 
+                variant={currentView === 'calendar' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setCurrentView('calendar')}
+              >
                 <Calendar className="w-4 h-4" />
                 Kalendarz
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button 
+                variant={currentView === 'reservations' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setCurrentView('reservations')}
+              >
                 <Users className="w-4 h-4" />
                 Rezerwacje
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button 
+                variant={currentView === 'settings' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setCurrentView('settings')}
+              >
                 <Settings className="w-4 h-4" />
                 Ustawienia
               </Button>
             </nav>
 
-            {/* Logout */}
-            <div className="p-4 border-t border-border/50">
+            {/* User Info & Logout */}
+            <div className="p-4 border-t border-border/50 space-y-2">
+              {user && (
+                <div className="px-3 py-2 text-sm text-muted-foreground truncate">
+                  {user.email}
+                </div>
+              )}
               <Button 
                 variant="ghost" 
                 className="w-full justify-start gap-3 text-muted-foreground"
@@ -110,10 +216,13 @@ const AdminDashboard = () => {
           </header>
 
           {/* Content */}
-          <div className="flex-1 p-4 lg:p-8 space-y-8">
+          <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto">
             {/* Header */}
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                {currentView === 'calendar' ? 'Kalendarz rezerwacji' : 
+                 currentView === 'reservations' ? 'Lista rezerwacji' : 'Ustawienia'}
+              </h1>
               <p className="text-muted-foreground">
                 {format(new Date(), 'd MMMM yyyy', { locale: pl })}
               </p>
@@ -141,53 +250,88 @@ const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* Recent Reservations */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Ostatnie rezerwacje</h2>
-              <div className="glass-card overflow-hidden">
-                <div className="divide-y divide-border/50">
-                  {mockReservations.map((reservation) => (
-                    <div 
-                      key={reservation.id}
-                      className="p-4 flex items-center justify-between gap-4 hover:bg-secondary/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                          reservation.status === 'confirmed' 
-                            ? "bg-success/10 text-success" 
-                            : "bg-warning/10 text-warning"
-                        )}>
-                          {reservation.status === 'confirmed' 
-                            ? <CheckCircle2 className="w-5 h-5" /> 
-                            : <AlertCircle className="w-5 h-5" />
-                          }
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground truncate">
-                            {reservation.customerName}
+            {/* View Content */}
+            {currentView === 'calendar' && (
+              <div className="flex-1 min-h-[600px]">
+                <AdminCalendar 
+                  stations={mockStations}
+                  reservations={reservations}
+                  onReservationClick={handleReservationClick}
+                />
+              </div>
+            )}
+
+            {currentView === 'reservations' && (
+              <div className="space-y-4">
+                <div className="glass-card overflow-hidden">
+                  <div className="divide-y divide-border/50">
+                    {reservations.map((reservation) => (
+                      <div 
+                        key={reservation.id}
+                        className="p-4 flex items-center justify-between gap-4 hover:bg-secondary/30 transition-colors cursor-pointer"
+                        onClick={() => handleReservationClick(reservation)}
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className={cn(
+                            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                            reservation.status === 'confirmed' 
+                              ? "bg-success/10 text-success" 
+                              : reservation.status === 'pending'
+                              ? "bg-warning/10 text-warning"
+                              : reservation.status === 'in_progress'
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          )}>
+                            {reservation.status === 'confirmed' 
+                              ? <CheckCircle2 className="w-5 h-5" /> 
+                              : reservation.status === 'in_progress'
+                              ? <Clock className="w-5 h-5" />
+                              : <AlertCircle className="w-5 h-5" />
+                            }
                           </div>
-                          <div className="text-sm text-muted-foreground truncate">
-                            {reservation.serviceName} • {reservation.vehiclePlate}
+                          <div className="min-w-0">
+                            <div className="font-medium text-foreground truncate">
+                              {reservation.customer_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {reservation.service?.name} • {reservation.vehicle_plate}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-medium text-foreground">
+                            {reservation.start_time}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-medium text-foreground">
-                          {reservation.time}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(reservation.date), 'd MMM', { locale: pl })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {currentView === 'settings' && (
+              <div className="glass-card p-6">
+                <h2 className="text-lg font-semibold mb-4">Ustawienia instancji</h2>
+                <p className="text-muted-foreground">
+                  Tutaj będą dostępne ustawienia cennika, stanowisk i godzin pracy.
+                </p>
+              </div>
+            )}
           </div>
         </main>
       </div>
+
+      {/* Reservation Details Modal */}
+      <ReservationDetails
+        reservation={selectedReservation}
+        open={!!selectedReservation}
+        onClose={() => setSelectedReservation(null)}
+        onStatusChange={handleStatusChange}
+      />
     </>
   );
 };
