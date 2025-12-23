@@ -490,8 +490,8 @@ const AddReservationDialog = ({
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0 bg-popover" align="start">
-                <div className="max-h-60 overflow-auto p-2 space-y-1">
+              <PopoverContent className="w-full p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
+                <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
                   {services.map((service) => {
                     const isSelected = selectedServices.includes(service.id);
                     return (
