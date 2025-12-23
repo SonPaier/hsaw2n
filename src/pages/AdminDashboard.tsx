@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
-  Car, Calendar, Users, TrendingUp, LogOut, 
-  Menu, Clock, CheckCircle2, AlertCircle, Settings, DollarSign
+  Car, Calendar, Users, LogOut, 
+  Menu, Clock, CheckCircle2, Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ const mockReservations = [
     start_time: '10:00',
     end_time: '11:00',
     station_id: 'st2',
-    status: 'pending',
+    status: 'confirmed',
     confirmation_code: '456',
     service: { name: 'Mycie podstawowe' },
     price: 50,
@@ -67,7 +67,7 @@ const mockReservations = [
     start_time: '11:30',
     end_time: '15:30',
     station_id: 'st3',
-    status: 'in_progress',
+    status: 'confirmed',
     confirmation_code: '789',
     service: { name: 'Folia PPF Full Front' },
     price: 5000,
@@ -128,12 +128,21 @@ const AdminDashboard = () => {
     fetchUserInstanceId();
   }, [user]);
 
-  const stats = [
-    { label: 'Dzisiejsze rezerwacje', value: reservations.length.toString(), icon: <Calendar className="w-5 h-5" />, trend: '+2' },
-    { label: 'Oczekujące', value: reservations.filter(r => r.status === 'pending').length.toString(), icon: <Clock className="w-5 h-5" />, color: 'text-warning' },
-    { label: 'Potwierdzone', value: reservations.filter(r => r.status === 'confirmed').length.toString(), icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-success' },
-    { label: 'Przychód dziś', value: `${reservations.reduce((acc, r) => acc + (r.price || 0), 0)} zł`, icon: <DollarSign className="w-5 h-5" /> },
-  ];
+  // Calculate remaining clients based on current time
+  const getRemainingClientsCount = () => {
+    const now = new Date();
+    const currentTime = format(now, 'HH:mm');
+    const today = format(now, 'yyyy-MM-dd');
+    
+    return reservations.filter(r => 
+      r.reservation_date === today && 
+      r.start_time > currentTime &&
+      r.status !== 'cancelled' &&
+      r.status !== 'completed'
+    ).length;
+  };
+
+  const remainingClients = getRemainingClientsCount();
 
   const handleLogout = async () => {
     await signOut();
@@ -352,26 +361,21 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {stats.map((stat, index) => (
-                <div key={index} className="glass-card p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className={cn("text-muted-foreground", stat.color)}>
-                      {stat.icon}
-                    </div>
-                    {stat.trend && (
-                      <span className="text-xs text-success font-medium bg-success/10 px-2 py-0.5 rounded-full">
-                        {stat.trend}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                    <div className="text-xs text-muted-foreground">{stat.label}</div>
-                  </div>
+            {/* Remaining Clients Counter */}
+            <div className="glass-card p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary" />
                 </div>
-              ))}
+                <div>
+                  <div className="text-sm text-muted-foreground">Pozostało klientów do obsługi</div>
+                  <div className="text-2xl font-bold text-foreground">{remainingClients}</div>
+                </div>
+              </div>
+              <div className="text-right text-sm text-muted-foreground">
+                <Clock className="w-4 h-4 inline mr-1" />
+                {format(new Date(), 'HH:mm')}
+              </div>
             </div>
 
             {/* View Content */}
@@ -398,22 +402,8 @@ const AdminDashboard = () => {
                         onClick={() => handleReservationClick(reservation)}
                       >
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                            reservation.status === 'confirmed' 
-                              ? "bg-success/10 text-success" 
-                              : reservation.status === 'pending'
-                              ? "bg-warning/10 text-warning"
-                              : reservation.status === 'in_progress'
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          )}>
-                            {reservation.status === 'confirmed' 
-                              ? <CheckCircle2 className="w-5 h-5" /> 
-                              : reservation.status === 'in_progress'
-                              ? <Clock className="w-5 h-5" />
-                              : <AlertCircle className="w-5 h-5" />
-                            }
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-success/10 text-success">
+                            <CheckCircle2 className="w-5 h-5" />
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground truncate">
