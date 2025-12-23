@@ -296,6 +296,7 @@ export type Database = {
           requires_size: boolean | null
           sort_order: number | null
           station_type: Database["public"]["Enums"]["station_type"] | null
+          subcategory: string | null
           updated_at: string | null
         }
         Insert: {
@@ -314,6 +315,7 @@ export type Database = {
           requires_size?: boolean | null
           sort_order?: number | null
           station_type?: Database["public"]["Enums"]["station_type"] | null
+          subcategory?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -332,6 +334,7 @@ export type Database = {
           requires_size?: boolean | null
           sort_order?: number | null
           station_type?: Database["public"]["Enums"]["station_type"] | null
+          subcategory?: string | null
           updated_at?: string | null
         }
         Relationships: [
