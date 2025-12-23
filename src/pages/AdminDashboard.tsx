@@ -128,44 +128,72 @@ const AdminDashboard = () => {
     fetchUserInstanceId();
   }, [user]);
 
-  // Generate time slots and check availability per station
-  const getFreeSlotsPerStation = () => {
+  // Calculate free time ranges (gaps) per station
+  const getFreeRangesPerStation = () => {
     const now = new Date();
-    const currentTime = format(now, 'HH:mm');
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeMinutes = currentHour * 60 + currentMinutes;
     const today = format(now, 'yyyy-MM-dd');
     
-    // Working hours 8:00 - 18:00, 1-hour slots
-    const workingHours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    // Working hours 8:00 - 18:00
+    const workStart = 8 * 60; // 8:00 in minutes
+    const workEnd = 18 * 60;  // 18:00 in minutes
     
     return mockStations.map(station => {
-      const stationReservations = reservations.filter(r => 
-        r.station_id === station.id && 
-        r.reservation_date === today
-      );
+      const stationReservations = reservations
+        .filter(r => r.station_id === station.id && r.reservation_date === today)
+        .map(r => ({
+          start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
+          end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]),
+        }))
+        .sort((a, b) => a.start - b.start);
       
-      const freeSlots = workingHours.filter(slot => {
-        // Skip past slots
-        if (slot < currentTime) return false;
+      // Find gaps
+      const gaps: { start: number; end: number }[] = [];
+      let searchStart = Math.max(workStart, currentTimeMinutes);
+      
+      for (const res of stationReservations) {
+        if (res.start > searchStart) {
+          gaps.push({ start: searchStart, end: res.start });
+        }
+        searchStart = Math.max(searchStart, res.end);
+      }
+      
+      // Add gap at the end if there's time left
+      if (searchStart < workEnd) {
+        gaps.push({ start: searchStart, end: workEnd });
+      }
+      
+      // Format gaps as readable strings
+      const freeRanges = gaps.map(gap => {
+        const startHour = Math.floor(gap.start / 60);
+        const startMin = gap.start % 60;
+        const endHour = Math.floor(gap.end / 60);
+        const endMin = gap.end % 60;
+        const durationHours = (gap.end - gap.start) / 60;
         
-        // Check if slot is occupied
-        const isOccupied = stationReservations.some(r => {
-          const startMinutes = parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]);
-          const endMinutes = parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]);
-          const slotMinutes = parseInt(slot.split(':')[0]) * 60;
-          return slotMinutes >= startMinutes && slotMinutes < endMinutes;
-        });
+        const startStr = `${startHour}:${startMin.toString().padStart(2, '0')}`;
+        const endStr = `${endHour}:${endMin.toString().padStart(2, '0')}`;
+        const durationStr = durationHours >= 1 
+          ? `${Math.floor(durationHours)}h${durationHours % 1 > 0 ? ` ${Math.round((durationHours % 1) * 60)}min` : ''}`
+          : `${Math.round(durationHours * 60)}min`;
         
-        return !isOccupied;
+        return {
+          label: `${startStr} - ${endStr}`,
+          duration: durationStr,
+          durationMinutes: gap.end - gap.start,
+        };
       });
       
       return {
         ...station,
-        freeSlots,
+        freeRanges,
       };
     });
   };
 
-  const stationsWithSlots = getFreeSlotsPerStation();
+  const stationsWithRanges = getFreeRangesPerStation();
 
   const handleLogout = async () => {
     await signOut();
@@ -384,32 +412,32 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            {/* Free Slots Per Station */}
+            {/* Free Time Ranges Per Station */}
             <div className="glass-card p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Wolne sloty na dziś</span>
+                  <span className="text-sm font-medium">Wolne terminy na dziś</span>
                 </div>
                 <span className="text-xs text-muted-foreground">{format(new Date(), 'HH:mm')}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {stationsWithSlots.map(station => (
+              <div className="space-y-3">
+                {stationsWithRanges.map(station => (
                   <div key={station.id} className="bg-secondary/30 rounded-lg p-3">
                     <div className="text-sm font-medium mb-2">{station.name}</div>
-                    {station.freeSlots.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {station.freeSlots.map(slot => (
+                    {station.freeRanges.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {station.freeRanges.map((range, idx) => (
                           <span 
-                            key={slot} 
-                            className="text-xs bg-success/20 text-success px-2 py-0.5 rounded"
+                            key={idx} 
+                            className="text-xs bg-success/20 text-success px-2 py-1 rounded"
                           >
-                            {slot}
+                            {range.label} <span className="opacity-70">({range.duration})</span>
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Brak wolnych</span>
+                      <span className="text-xs text-muted-foreground">Brak wolnych terminów</span>
                     )}
                   </div>
                 ))}
