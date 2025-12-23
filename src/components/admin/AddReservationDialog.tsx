@@ -132,14 +132,19 @@ const AddReservationDialog = ({
 
   // Calculate end time based on selected services total duration
   useEffect(() => {
-    if (selectedServices.length > 0 && startTime) {
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
-      const endHours = Math.floor(totalMinutes / 60);
-      const endMins = totalMinutes % 60;
-      setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
+    if (startTime) {
+      if (selectedServices.length > 0 && totalDurationMinutes > 0) {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
+        const endHours = Math.floor(totalMinutes / 60);
+        const endMins = totalMinutes % 60;
+        setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`);
+      } else {
+        // Reset end time when no services selected
+        setEndTime('');
+      }
     }
-  }, [selectedServices, startTime, services, totalDurationMinutes]);
+  }, [selectedServices, startTime, totalDurationMinutes]);
 
   // Toggle service selection
   const toggleService = (serviceId: string) => {
