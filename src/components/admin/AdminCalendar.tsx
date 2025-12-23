@@ -140,11 +140,18 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
     e.preventDefault();
     setDragOverStation(null);
     
-    if (draggedReservation && draggedReservation.station_id !== stationId) {
+    if (draggedReservation) {
       const newTime = hour !== undefined && slotIndex !== undefined 
         ? formatTimeSlot(hour, slotIndex) 
         : undefined;
-      onReservationMove?.(draggedReservation.id, stationId, newTime);
+      
+      // Allow drop if station changed OR if time changed within same station
+      const stationChanged = draggedReservation.station_id !== stationId;
+      const timeChanged = newTime && newTime !== draggedReservation.start_time;
+      
+      if (stationChanged || timeChanged) {
+        onReservationMove?.(draggedReservation.id, stationId, newTime);
+      }
     }
     setDraggedReservation(null);
   };
