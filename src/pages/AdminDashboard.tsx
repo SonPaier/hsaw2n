@@ -101,8 +101,26 @@ const AdminDashboard = () => {
     time: '',
   });
 
-  // Mock instance ID - will be replaced with real data
-  const instanceId = 'mock-instance-id';
+  // Get user's instance ID from user_roles
+  const [instanceId, setInstanceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserInstanceId = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('instance_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!error && data?.instance_id) {
+        setInstanceId(data.instance_id);
+      }
+    };
+    
+    fetchUserInstanceId();
+  }, [user]);
 
   const stats = [
     { label: 'Dzisiejsze rezerwacje', value: reservations.length.toString(), icon: <Calendar className="w-5 h-5" />, trend: '+2' },
@@ -388,15 +406,17 @@ const AdminDashboard = () => {
       />
 
       {/* Add Reservation Dialog */}
-      <AddReservationDialog
-        open={addReservationOpen}
-        onClose={() => setAddReservationOpen(false)}
-        stationId={newReservationData.stationId}
-        date={newReservationData.date}
-        time={newReservationData.time}
-        instanceId={instanceId}
-        onSuccess={handleReservationAdded}
-      />
+      {instanceId && (
+        <AddReservationDialog
+          open={addReservationOpen}
+          onClose={() => setAddReservationOpen(false)}
+          stationId={newReservationData.stationId}
+          date={newReservationData.date}
+          time={newReservationData.time}
+          instanceId={instanceId}
+          onSuccess={handleReservationAdded}
+        />
+      )}
     </>
   );
 };
