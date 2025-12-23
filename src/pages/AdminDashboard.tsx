@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
-  Car, Calendar, Users, LogOut, 
-  Menu, Clock, CheckCircle2, Settings
+  Car, Calendar, LogOut, 
+  Menu, Clock, CheckCircle2, Settings, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -128,21 +128,44 @@ const AdminDashboard = () => {
     fetchUserInstanceId();
   }, [user]);
 
-  // Calculate remaining clients based on current time
-  const getRemainingClientsCount = () => {
+  // Generate time slots and check availability per station
+  const getFreeSlotsPerStation = () => {
     const now = new Date();
     const currentTime = format(now, 'HH:mm');
     const today = format(now, 'yyyy-MM-dd');
     
-    return reservations.filter(r => 
-      r.reservation_date === today && 
-      r.start_time > currentTime &&
-      r.status !== 'cancelled' &&
-      r.status !== 'completed'
-    ).length;
+    // Working hours 8:00 - 18:00, 1-hour slots
+    const workingHours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+    
+    return mockStations.map(station => {
+      const stationReservations = reservations.filter(r => 
+        r.station_id === station.id && 
+        r.reservation_date === today
+      );
+      
+      const freeSlots = workingHours.filter(slot => {
+        // Skip past slots
+        if (slot < currentTime) return false;
+        
+        // Check if slot is occupied
+        const isOccupied = stationReservations.some(r => {
+          const startMinutes = parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]);
+          const endMinutes = parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]);
+          const slotMinutes = parseInt(slot.split(':')[0]) * 60;
+          return slotMinutes >= startMinutes && slotMinutes < endMinutes;
+        });
+        
+        return !isOccupied;
+      });
+      
+      return {
+        ...station,
+        freeSlots,
+      };
+    });
   };
 
-  const remainingClients = getRemainingClientsCount();
+  const stationsWithSlots = getFreeSlotsPerStation();
 
   const handleLogout = async () => {
     await signOut();
@@ -361,20 +384,35 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            {/* Remaining Clients Counter */}
-            <div className="glass-card p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-primary" />
+            {/* Free Slots Per Station */}
+            <div className="glass-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Wolne sloty na dziś</span>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Pozostało klientów do obsługi</div>
-                  <div className="text-2xl font-bold text-foreground">{remainingClients}</div>
-                </div>
+                <span className="text-xs text-muted-foreground">{format(new Date(), 'HH:mm')}</span>
               </div>
-              <div className="text-right text-sm text-muted-foreground">
-                <Clock className="w-4 h-4 inline mr-1" />
-                {format(new Date(), 'HH:mm')}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {stationsWithSlots.map(station => (
+                  <div key={station.id} className="bg-secondary/30 rounded-lg p-3">
+                    <div className="text-sm font-medium mb-2">{station.name}</div>
+                    {station.freeSlots.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {station.freeSlots.map(slot => (
+                          <span 
+                            key={slot} 
+                            className="text-xs bg-success/20 text-success px-2 py-0.5 rounded"
+                          >
+                            {slot}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Brak wolnych</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
