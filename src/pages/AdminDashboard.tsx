@@ -29,6 +29,7 @@ const mockStations = [
 const mockReservations = [
   {
     id: 'res1',
+    instance_id: 'mock-instance',
     customer_name: 'Jan Kowalski',
     customer_phone: '+48 123 456 789',
     vehicle_plate: 'GD 12345',
@@ -43,6 +44,7 @@ const mockReservations = [
   },
   {
     id: 'res2',
+    instance_id: 'mock-instance',
     customer_name: 'Anna Nowak',
     customer_phone: '+48 987 654 321',
     vehicle_plate: 'GD 54321',
@@ -57,6 +59,7 @@ const mockReservations = [
   },
   {
     id: 'res3',
+    instance_id: 'mock-instance',
     customer_name: 'Piotr Wiśniewski',
     customer_phone: '+48 555 666 777',
     vehicle_plate: 'GDA 9999',
@@ -71,6 +74,7 @@ const mockReservations = [
   },
   {
     id: 'res4',
+    instance_id: 'mock-instance',
     customer_name: 'Maria Dąbrowska',
     customer_phone: '+48 111 222 333',
     vehicle_plate: 'GD 77777',
@@ -140,12 +144,52 @@ const AdminDashboard = () => {
     setSelectedReservation(reservation);
   };
 
-  const handleStatusChange = (reservationId: string, newStatus: string) => {
-    setReservations(prev => 
-      prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r)
-    );
-    setSelectedReservation(null);
-    toast.success(`Status rezerwacji zmieniony na: ${newStatus}`);
+  const handleDeleteReservation = async (
+    reservationId: string, 
+    customerData: { name: string; phone: string; email?: string; instance_id: string }
+  ) => {
+    try {
+      // First, save the customer to customers table (upsert by phone)
+      const { error: customerError } = await supabase
+        .from('customers')
+        .upsert(
+          {
+            instance_id: customerData.instance_id,
+            name: customerData.name,
+            phone: customerData.phone,
+            email: customerData.email,
+          },
+          { 
+            onConflict: 'instance_id,phone',
+            ignoreDuplicates: false 
+          }
+        );
+      
+      if (customerError) {
+        console.error('Error saving customer:', customerError);
+        // Continue with deletion even if customer save fails
+      }
+      
+      // Delete the reservation from database
+      const { error: deleteError } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('id', reservationId);
+      
+      if (deleteError) {
+        toast.error('Błąd podczas usuwania rezerwacji');
+        console.error('Error deleting reservation:', deleteError);
+        return;
+      }
+      
+      // Remove from local state
+      setReservations(prev => prev.filter(r => r.id !== reservationId));
+      setSelectedReservation(null);
+      toast.success('Rezerwacja została anulowana, dane klienta zachowane');
+    } catch (error) {
+      console.error('Error in delete operation:', error);
+      toast.error('Wystąpił błąd');
+    }
   };
 
   const handleReservationSave = (reservationId: string, data: Partial<typeof mockReservations[0]>) => {
@@ -416,7 +460,7 @@ const AdminDashboard = () => {
         reservation={selectedReservation}
         open={!!selectedReservation}
         onClose={() => setSelectedReservation(null)}
-        onStatusChange={handleStatusChange}
+        onDelete={handleDeleteReservation}
         onSave={handleReservationSave}
       />
 
