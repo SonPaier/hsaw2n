@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Car, Clock, Loader2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Sparkles } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+type CarSize = 'small' | 'medium' | 'large';
 
 interface Service {
   id: string;
@@ -46,6 +48,12 @@ interface AddReservationDialogProps {
   onSuccess: () => void;
 }
 
+const CAR_SIZE_LABELS: Record<CarSize, string> = {
+  small: 'Mały (np. Fiat 500, VW Polo)',
+  medium: 'Średni (np. VW Golf, BMW 3)',
+  large: 'Duży (np. BMW X5, Audi Q7)',
+};
+
 const AddReservationDialog = ({
   open,
   onClose,
@@ -57,6 +65,7 @@ const AddReservationDialog = ({
 }: AddReservationDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
+  const [suggestingSize, setSuggestingSize] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -65,6 +74,7 @@ const AddReservationDialog = ({
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [carModel, setCarModel] = useState('');
+  const [carSize, setCarSize] = useState<CarSize | ''>('');
   const [selectedService, setSelectedService] = useState<string>('');
   const [startTime, setStartTime] = useState(time);
   const [endTime, setEndTime] = useState('');
@@ -82,6 +92,11 @@ const AddReservationDialog = ({
       
       if (!error && data) {
         setServices(data);
+        // Set default service to first "mycie" service
+        const defaultService = data.find(s => s.name.toLowerCase().includes('mycie'));
+        if (defaultService) {
+          setSelectedService(defaultService.id);
+        }
       }
     };
     
@@ -96,6 +111,7 @@ const AddReservationDialog = ({
       setCustomerName('');
       setPhone('');
       setCarModel('');
+      setCarSize('');
       setSelectedService('');
       setStartTime(time);
       setEndTime('');
@@ -118,6 +134,36 @@ const AddReservationDialog = ({
       }
     }
   }, [selectedService, startTime, services]);
+
+  // AI suggestion for car size
+  const suggestCarSize = useCallback(async (model: string) => {
+    if (model.trim().length < 3) return;
+    
+    setSuggestingSize(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('suggest-car-size', {
+        body: { carModel: model }
+      });
+      
+      if (!error && data?.size) {
+        setCarSize(data.size);
+      }
+    } catch (err) {
+      console.error('Error suggesting car size:', err);
+    } finally {
+      setSuggestingSize(false);
+    }
+  }, []);
+
+  // Debounced car model change for AI suggestion
+  useEffect(() => {
+    if (!carModel || carModel.length < 3) return;
+    
+    const timer = setTimeout(() => {
+      suggestCarSize(carModel);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [carModel, suggestCarSize]);
 
   // Search customer by name
   const searchCustomer = useCallback(async (searchName: string) => {
@@ -257,6 +303,7 @@ const AddReservationDialog = ({
         customer_name: customerName || 'Bez nazwy',
         customer_phone: phone || '',
         vehicle_plate: carModel || '', // Using vehicle_plate field for car model temporarily
+        car_size: carSize || null,
         confirmation_code: generateConfirmationCode(),
         status: 'confirmed',
       };
@@ -372,12 +419,38 @@ const AddReservationDialog = ({
               <Car className="w-4 h-4" />
               Model samochodu
             </Label>
-            <Input
-              id="carModel"
-              value={carModel}
-              onChange={(e) => setCarModel(e.target.value)}
-              placeholder="np. BMW X5, Audi A4"
-            />
+            <div className="relative">
+              <Input
+                id="carModel"
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                placeholder="np. BMW X5, Audi A4"
+                className="pr-10"
+              />
+              {suggestingSize && (
+                <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
+              )}
+            </div>
+          </div>
+
+          {/* Car Size */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              Wielkość samochodu
+              {suggestingSize && (
+                <span className="text-xs text-muted-foreground">(AI sugeruje...)</span>
+              )}
+            </Label>
+            <Select value={carSize} onValueChange={(v) => setCarSize(v as CarSize)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Wybierz wielkość" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
+                <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
+                <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Service */}
