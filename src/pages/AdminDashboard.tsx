@@ -114,14 +114,27 @@ const AdminDashboard = () => {
     const fetchUserInstanceId = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
+      // First try to get instance_id from user_roles
+      const { data: roleData } = await supabase
         .from('user_roles')
-        .select('instance_id')
+        .select('instance_id, role')
         .eq('user_id', user.id)
         .maybeSingle();
       
-      if (!error && data?.instance_id) {
-        setInstanceId(data.instance_id);
+      if (roleData?.instance_id) {
+        setInstanceId(roleData.instance_id);
+      } else if (roleData?.role === 'super_admin') {
+        // Super admin without instance - get first available instance
+        const { data: instances } = await supabase
+          .from('instances')
+          .select('id')
+          .eq('active', true)
+          .limit(1)
+          .maybeSingle();
+        
+        if (instances?.id) {
+          setInstanceId(instances.id);
+        }
       }
     };
     
