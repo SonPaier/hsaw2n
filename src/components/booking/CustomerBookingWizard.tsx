@@ -20,8 +20,6 @@ interface Service {
   price_medium: number | null;
   price_large: number | null;
   requires_size: boolean | null;
-  category_id: string | null;
-  subcategory: string | null;
 }
 
 interface Station {
@@ -33,7 +31,6 @@ interface Station {
 interface TimeSlot {
   time: string;
   stationId: string;
-  stationName: string;
 }
 
 interface AvailableDay {
@@ -60,13 +57,13 @@ interface Reservation {
 const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
 
 const features = [
-  { icon: <Sparkles className="w-5 h-5" />, title: 'Profesjonalna obsługa' },
-  { icon: <Shield className="w-5 h-5" />, title: 'Gwarancja jakości' },
-  { icon: <Clock className="w-5 h-5" />, title: 'Szybka rezerwacja' },
-  { icon: <Star className="w-5 h-5" />, title: 'Zadowoleni klienci' },
+  { icon: <Sparkles className="w-4 h-4" />, title: 'Profesjonalna obsługa' },
+  { icon: <Shield className="w-4 h-4" />, title: 'Gwarancja jakości' },
+  { icon: <Clock className="w-4 h-4" />, title: 'Szybka rezerwacja' },
+  { icon: <Star className="w-4 h-4" />, title: 'Zadowoleni klienci' },
 ];
 
-type Step = 'service' | 'date' | 'addons' | 'info' | 'verify' | 'success';
+type Step = 'service' | 'datetime' | 'summary' | 'success';
 
 export default function CustomerBookingWizard() {
   const [step, setStep] = useState<Step>('service');
@@ -82,7 +79,6 @@ export default function CustomerBookingWizard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [carSize, setCarSize] = useState<'small' | 'medium' | 'large'>('medium');
 
   // Customer info
@@ -93,6 +89,7 @@ export default function CustomerBookingWizard() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsSent, setSmsSent] = useState(false);
 
   // Success
   const [confirmationData, setConfirmationData] = useState<{
@@ -108,7 +105,6 @@ export default function CustomerBookingWizard() {
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch first active instance
       const { data: instanceData } = await supabase
         .from('instances')
         .select('*')
@@ -117,7 +113,6 @@ export default function CustomerBookingWizard() {
         .maybeSingle();
 
       if (instanceData) {
-        // Parse working hours properly
         const parsedInstance: Instance = {
           id: instanceData.id,
           name: instanceData.name,
@@ -127,7 +122,6 @@ export default function CustomerBookingWizard() {
         };
         setInstance(parsedInstance);
 
-        // Fetch services
         const { data: servicesData } = await supabase
           .from('services')
           .select('*')
@@ -137,7 +131,6 @@ export default function CustomerBookingWizard() {
 
         setServices((servicesData as Service[]) || []);
 
-        // Fetch stations
         const { data: stationsData } = await supabase
           .from('stations')
           .select('*')
@@ -147,7 +140,6 @@ export default function CustomerBookingWizard() {
 
         setStations((stationsData as Station[]) || []);
 
-        // Fetch reservations for next 14 days
         const today = new Date();
         const endDate = addDays(today, 14);
 
@@ -168,14 +160,12 @@ export default function CustomerBookingWizard() {
     fetchData();
   }, []);
 
-  // Split services into popular and other
   const popularServices = services.filter((s) =>
     POPULAR_KEYWORDS.some((k) => s.name.toLowerCase().includes(k))
   ).slice(0, 3);
 
   const otherServices = services.filter((s) => !popularServices.includes(s));
 
-  // Get price for service
   const getServicePrice = (service: Service): number => {
     if (service.requires_size) {
       if (carSize === 'small') return service.price_small || service.price_from || 0;
@@ -185,7 +175,7 @@ export default function CustomerBookingWizard() {
     return service.price_from || 0;
   };
 
-  // Calculate available slots for each day
+  // Calculate available slots
   const getAvailableDays = (): AvailableDay[] => {
     if (!selectedService || !instance?.working_hours) return [];
 
@@ -208,13 +198,11 @@ export default function CustomerBookingWizard() {
       for (const station of stations) {
         const stationReservations = dayReservations.filter((r) => r.station_id === station.id);
 
-        // Calculate free ranges
         const [openH, openM] = workingHours.open.split(':').map(Number);
         const [closeH, closeM] = workingHours.close.split(':').map(Number);
         const openMinutes = openH * 60 + openM;
         const closeMinutes = closeH * 60 + closeM;
 
-        // Sort reservations
         const sortedRes = stationReservations
           .map((r) => ({
             start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
@@ -222,13 +210,11 @@ export default function CustomerBookingWizard() {
           }))
           .sort((a, b) => a.start - b.start);
 
-        // Find free slots
         let currentTime = openMinutes;
         
-        // Skip past time if today
         if (i === 0) {
           const now = new Date();
-          const nowMinutes = now.getHours() * 60 + now.getMinutes() + 30; // Add 30 min buffer
+          const nowMinutes = now.getHours() * 60 + now.getMinutes() + 30;
           currentTime = Math.max(currentTime, Math.ceil(nowMinutes / 15) * 15);
         }
 
@@ -237,19 +223,16 @@ export default function CustomerBookingWizard() {
             slots.push({
               time: `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`,
               stationId: station.id,
-              stationName: station.name,
             });
             currentTime += 15;
           }
           currentTime = Math.max(currentTime, res.end);
         }
 
-        // Fill remaining time
         while (currentTime + serviceDuration <= closeMinutes) {
           slots.push({
             time: `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`,
             stationId: station.id,
-            stationName: station.name,
           });
           currentTime += 15;
         }
@@ -263,59 +246,39 @@ export default function CustomerBookingWizard() {
     return days;
   };
 
-  // Group slots by station for selected date
-  const getSlotsByStation = (): Record<string, TimeSlot[]> => {
-    if (!selectedDate) return {};
+  // Get unique times for selected date (hide station complexity from user)
+  const getAvailableTimesForDate = (): { time: string; stationId: string }[] => {
+    if (!selectedDate) return [];
 
     const days = getAvailableDays();
     const selectedDay = days.find((d) => isSameDay(d.date, selectedDate));
-    if (!selectedDay) return {};
+    if (!selectedDay) return [];
 
-    const grouped: Record<string, TimeSlot[]> = {};
+    // Group by time, pick first available station
+    const timeMap = new Map<string, string>();
     for (const slot of selectedDay.slots) {
-      if (!grouped[slot.stationId]) {
-        grouped[slot.stationId] = [];
+      if (!timeMap.has(slot.time)) {
+        timeMap.set(slot.time, slot.stationId);
       }
-      grouped[slot.stationId].push(slot);
     }
 
-    return grouped;
+    return Array.from(timeMap.entries())
+      .map(([time, stationId]) => ({ time, stationId }))
+      .sort((a, b) => a.time.localeCompare(b.time));
   };
 
-  // Handle service selection
   const handleSelectService = (service: Service) => {
     setSelectedService(service);
-    setStep('date');
+    setStep('datetime');
   };
 
-  // Handle time slot selection
-  const handleSelectSlot = (slot: TimeSlot) => {
-    setSelectedTime(slot.time);
-    setSelectedStationId(slot.stationId);
-    setStep('addons');
+  const handleSelectTime = (time: string, stationId: string) => {
+    setSelectedTime(time);
+    setSelectedStationId(stationId);
+    setStep('summary');
   };
 
-  // Calculate total price
-  const getTotalPrice = (): number => {
-    let total = selectedService ? getServicePrice(selectedService) : 0;
-    for (const addonId of selectedAddons) {
-      const addon = services.find((s) => s.id === addonId);
-      if (addon) {
-        total += getServicePrice(addon);
-      }
-    }
-    return total;
-  };
-
-  // Toggle addon
-  const toggleAddon = (serviceId: string) => {
-    setSelectedAddons((prev) =>
-      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
-    );
-  };
-
-  // Submit reservation
-  const handleSubmitReservation = async () => {
+  const handleSendSms = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({ title: 'Uzupełnij dane', description: 'Podaj imię i numer telefonu', variant: 'destructive' });
       return;
@@ -335,7 +298,7 @@ export default function CustomerBookingWizard() {
           instanceId: instance.id,
           reservationData: {
             serviceId: selectedService.id,
-            addons: selectedAddons,
+            addons: [],
             date: format(selectedDate, 'yyyy-MM-dd'),
             time: selectedTime,
             customerName: customerName.trim(),
@@ -350,8 +313,8 @@ export default function CustomerBookingWizard() {
         throw new Error(response.error.message);
       }
 
-      toast({ title: 'Kod wysłany', description: 'Sprawdź SMS i wpisz kod weryfikacyjny' });
-      setStep('verify');
+      toast({ title: 'Kod wysłany', description: 'Wpisz 4-cyfrowy kod z SMS' });
+      setSmsSent(true);
 
     } catch (error) {
       console.error('Error sending SMS:', error);
@@ -361,7 +324,6 @@ export default function CustomerBookingWizard() {
     }
   };
 
-  // Verify code
   const handleVerifyCode = async () => {
     if (verificationCode.length !== 4) {
       toast({ title: 'Nieprawidłowy kod', description: 'Wpisz 4-cyfrowy kod z SMS', variant: 'destructive' });
@@ -415,8 +377,7 @@ export default function CustomerBookingWizard() {
   };
 
   const availableDays = getAvailableDays();
-  const slotsByStation = getSlotsByStation();
-  const addonServices = services.filter((s) => s.id !== selectedService?.id);
+  const availableTimes = getAvailableTimesForDate();
 
   if (loading) {
     return (
@@ -426,24 +387,23 @@ export default function CustomerBookingWizard() {
     );
   }
 
-  // STEP: SERVICE SELECTION
+  // STEP 1: SERVICE SELECTION
   if (step === 'service') {
     return (
       <div className="animate-fade-in">
         {/* Mini Hero */}
-        <section className="relative overflow-hidden hero-gradient py-6 md:py-10">
-          <div className="container text-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+        <section className="py-6 md:py-8 text-center">
+          <div className="container">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">
               Zarezerwuj wizytę w <span className="gradient-text">ARM CAR AUTO SPA</span>
             </h1>
           </div>
         </section>
 
         {/* Services */}
-        <section className="container py-8">
-          <h2 className="text-lg font-semibold mb-4">Wybierz usługę</h2>
+        <section className="container pb-6">
+          <h2 className="text-base font-semibold mb-4">Wybierz usługę</h2>
 
-          {/* Popular Services */}
           <div className="grid gap-3 mb-4">
             {popularServices.map((service) => (
               <button
@@ -457,23 +417,18 @@ export default function CustomerBookingWizard() {
                       {service.name}
                     </h3>
                     {service.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {service.duration_minutes} min
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">{service.duration_minutes} min</p>
                   </div>
-                  <div className="text-right">
-                    <span className="font-bold text-primary">
-                      od {service.price_from || service.price_small || 0} zł
-                    </span>
-                  </div>
+                  <span className="font-bold text-primary whitespace-nowrap ml-4">
+                    od {service.price_from || service.price_small || 0} zł
+                  </span>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Other Services Toggle */}
           {otherServices.length > 0 && (
             <>
               <button
@@ -481,7 +436,7 @@ export default function CustomerBookingWizard() {
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
               >
                 {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showAllServices ? 'Zwiń' : 'Pokaż więcej usług'}
+                {showAllServices ? 'Zwiń' : `Pokaż więcej (${otherServices.length})`}
               </button>
 
               {showAllServices && (
@@ -498,17 +453,13 @@ export default function CustomerBookingWizard() {
                             {service.name}
                           </h3>
                           {service.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
                           )}
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {service.duration_minutes} min
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">{service.duration_minutes} min</p>
                         </div>
-                        <div className="text-right">
-                          <span className="font-bold text-primary">
-                            od {service.price_from || service.price_small || 0} zł
-                          </span>
-                        </div>
+                        <span className="font-bold text-primary whitespace-nowrap ml-4">
+                          od {service.price_from || service.price_small || 0} zł
+                        </span>
                       </div>
                     </button>
                   ))}
@@ -518,11 +469,11 @@ export default function CustomerBookingWizard() {
           )}
         </section>
 
-        {/* Features at bottom */}
+        {/* Features */}
         <section className="container pb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="flex flex-wrap gap-4 justify-center">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <div className="text-primary">{feature.icon}</div>
                 <span>{feature.title}</span>
               </div>
@@ -533,12 +484,12 @@ export default function CustomerBookingWizard() {
     );
   }
 
-  // STEP: DATE & TIME SELECTION
-  if (step === 'date') {
+  // STEP 2: DATE & TIME SELECTION
+  if (step === 'datetime') {
     return (
       <div className="container py-6 animate-fade-in">
         <button
-          onClick={() => setStep('service')}
+          onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); }}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -552,15 +503,17 @@ export default function CustomerBookingWizard() {
           </p>
         </div>
 
-        {/* Days */}
-        <div className="space-y-6">
-          {availableDays.slice(0, 7).map((day) => (
-            <div key={day.date.toISOString()} className="glass-card p-4">
-              <button
-                onClick={() => setSelectedDate(isSameDay(selectedDate || new Date(0), day.date) ? null : day.date)}
-                className="w-full text-left"
-              >
-                <div className="flex justify-between items-center">
+        {/* Days list */}
+        <div className="space-y-3">
+          {availableDays.slice(0, 7).map((day) => {
+            const isSelected = selectedDate && isSameDay(selectedDate, day.date);
+            
+            return (
+              <div key={day.date.toISOString()} className="glass-card overflow-hidden">
+                <button
+                  onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                  className="w-full p-4 text-left flex justify-between items-center"
+                >
                   <div>
                     <h3 className="font-semibold capitalize">
                       {format(day.date, 'EEEE', { locale: pl })}
@@ -570,57 +523,37 @@ export default function CustomerBookingWizard() {
                     </p>
                   </div>
                   <span className="text-sm text-primary">{day.slots.length} wolnych</span>
-                </div>
-              </button>
+                </button>
 
-              {selectedDate && isSameDay(selectedDate, day.date) && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Object.entries(slotsByStation).map(([stationId, slots]) => {
-                      const station = stations.find((s) => s.id === stationId);
-                      return (
-                        <div key={stationId} className="space-y-2">
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Stanowisko {station?.name || stationId.slice(0, 4)}
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {slots.slice(0, 12).map((slot) => (
-                              <button
-                                key={`${slot.stationId}-${slot.time}`}
-                                onClick={() => handleSelectSlot(slot)}
-                                className={cn(
-                                  'px-3 py-1.5 text-sm rounded-lg border transition-all',
-                                  'hover:border-primary hover:bg-primary/10'
-                                )}
-                              >
-                                {slot.time}
-                              </button>
-                            ))}
-                            {slots.length > 12 && (
-                              <span className="text-xs text-muted-foreground self-center">
-                                +{slots.length - 12} więcej
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                {isSelected && (
+                  <div className="px-4 pb-4 pt-2 border-t border-border">
+                    <div className="flex flex-wrap gap-2">
+                      {availableTimes.map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => handleSelectTime(slot.time, slot.stationId)}
+                          className="px-3 py-2 text-sm rounded-lg border border-border hover:border-primary hover:bg-primary/10 transition-all"
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  // STEP: ADDONS
-  if (step === 'addons') {
+  // STEP 3: SUMMARY WITH DATA & VERIFICATION
+  if (step === 'summary') {
     return (
       <div className="container py-6 animate-fade-in">
         <button
-          onClick={() => setStep('date')}
+          onClick={() => { setStep('datetime'); setSmsSent(false); setVerificationCode(''); }}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -628,11 +561,35 @@ export default function CustomerBookingWizard() {
         </button>
 
         <div className="mb-6">
-          <h2 className="text-lg font-semibold">Dodatkowe usługi</h2>
-          <p className="text-sm text-muted-foreground">Opcjonalnie wybierz dodatkowe usługi</p>
+          <h2 className="text-lg font-semibold">Podsumowanie</h2>
         </div>
 
-        {/* Car size selector if needed */}
+        {/* Booking summary */}
+        <div className="glass-card p-4 mb-4 space-y-2">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Usługa</span>
+            <span className="font-medium">{selectedService?.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Data</span>
+            <span className="font-medium">
+              {selectedDate && format(selectedDate, 'd MMMM yyyy', { locale: pl })}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Godzina</span>
+            <span className="font-medium">{selectedTime}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-border">
+            <span className="text-muted-foreground">Cena</span>
+            <span className="font-bold text-primary">{selectedService && getServicePrice(selectedService)} zł</span>
+          </div>
+          <p className="text-xs text-muted-foreground pt-1">
+            * Cena może ulec zmianie w zależności od stanu samochodu
+          </p>
+        </div>
+
+        {/* Car size if needed */}
         {selectedService?.requires_size && (
           <div className="glass-card p-4 mb-4">
             <Label className="text-sm font-medium mb-3 block">Rozmiar samochodu</Label>
@@ -653,83 +610,17 @@ export default function CustomerBookingWizard() {
           </div>
         )}
 
-        {/* Addons */}
-        <div className="grid gap-3 mb-6">
-          {addonServices.slice(0, 6).map((service) => (
-            <button
-              key={service.id}
-              onClick={() => toggleAddon(service.id)}
-              className={cn(
-                'glass-card p-4 text-left transition-all',
-                selectedAddons.includes(service.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-5 h-5 rounded border flex items-center justify-center',
-                  selectedAddons.includes(service.id) ? 'border-primary bg-primary' : 'border-muted-foreground'
-                )}>
-                  {selectedAddons.includes(service.id) && <Check className="w-3 h-3 text-primary-foreground" />}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">{service.name}</h3>
-                  {service.description && (
-                    <p className="text-sm text-muted-foreground">{service.description}</p>
-                  )}
-                </div>
-                <span className="font-semibold text-primary">
-                  +{service.price_from || 0} zł
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Summary & Continue */}
-        <div className="glass-card p-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-muted-foreground">Suma</span>
-            <span className="text-xl font-bold text-primary">{getTotalPrice()} zł</span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            * Cena może ulec zmianie w zależności od stanu samochodu
-          </p>
-          <Button onClick={() => setStep('info')} className="w-full">
-            Dalej
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // STEP: CUSTOMER INFO
-  if (step === 'info') {
-    return (
-      <div className="container py-6 animate-fade-in">
-        <button
-          onClick={() => setStep('addons')}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Wróć
-        </button>
-
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Twoje dane</h2>
-          <p className="text-sm text-muted-foreground">
-            {selectedService?.name} • {selectedDate && format(selectedDate, 'd MMMM', { locale: pl })} • {selectedTime}
-          </p>
-        </div>
-
-        <div className="glass-card p-4 space-y-4 mb-6">
+        {/* Customer data */}
+        <div className="glass-card p-4 mb-4 space-y-4">
           <div>
-            <Label htmlFor="name">Imię / Nazwisko / Ksywka</Label>
+            <Label htmlFor="name">Imię / Nazwa</Label>
             <Input
               id="name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="np. Jan lub AutoMax"
               className="mt-1"
+              disabled={smsSent}
             />
           </div>
           <div>
@@ -742,67 +633,50 @@ export default function CustomerBookingWizard() {
               placeholder="np. 600 123 456"
               className="mt-1"
               required
+              disabled={smsSent}
             />
           </div>
         </div>
 
-        {/* Summary */}
-        <div className="glass-card p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-muted-foreground">Do zapłaty</span>
-            <span className="text-xl font-bold text-primary">{getTotalPrice()} zł</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            * Cena może ulec zmianie w zależności od stanu samochodu
-          </p>
-        </div>
-
-        <Button 
-          onClick={handleSubmitReservation} 
-          className="w-full" 
-          disabled={isSendingSms || !customerName.trim() || !customerPhone.trim()}
-        >
-          {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-          Rezerwuj
-        </Button>
-      </div>
-    );
-  }
-
-  // STEP: SMS VERIFICATION
-  if (step === 'verify') {
-    return (
-      <div className="container py-6 animate-fade-in">
-        <div className="max-w-sm mx-auto text-center">
-          <h2 className="text-lg font-semibold mb-2">Weryfikacja SMS</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Wpisz 4-cyfrowy kod wysłany na numer {customerPhone}
-          </p>
-
-          <div className="flex justify-center mb-6">
-            <InputOTP
-              maxLength={4}
-              value={verificationCode}
-              onChange={setVerificationCode}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          <Button
-            onClick={handleVerifyCode}
-            className="w-full"
-            disabled={isVerifying || verificationCode.length !== 4}
+        {/* SMS verification */}
+        {!smsSent ? (
+          <Button 
+            onClick={handleSendSms} 
+            className="w-full" 
+            disabled={isSendingSms || !customerName.trim() || !customerPhone.trim()}
           >
-            {isVerifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Potwierdź
+            {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Rezerwuj
           </Button>
-        </div>
+        ) : (
+          <div className="glass-card p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-4">
+              Wpisz 4-cyfrowy kod z SMS
+            </p>
+            <div className="flex justify-center mb-4">
+              <InputOTP
+                maxLength={4}
+                value={verificationCode}
+                onChange={setVerificationCode}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button
+              onClick={handleVerifyCode}
+              className="w-full"
+              disabled={isVerifying || verificationCode.length !== 4}
+            >
+              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Potwierdź
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -817,9 +691,7 @@ export default function CustomerBookingWizard() {
           </div>
 
           <h2 className="text-xl font-semibold mb-2">Rezerwacja potwierdzona!</h2>
-          <p className="text-muted-foreground mb-6">
-            Twój kod rezerwacji:
-          </p>
+          <p className="text-muted-foreground mb-4">Twój kod rezerwacji:</p>
 
           <div className="glass-card p-4 mb-6">
             <span className="text-3xl font-mono font-bold text-primary tracking-wider">
@@ -844,7 +716,6 @@ export default function CustomerBookingWizard() {
             </div>
           </div>
 
-          {/* Social Links */}
           {(socialLinks.facebook || socialLinks.instagram) && (
             <div className="mb-6">
               <p className="text-sm text-muted-foreground mb-3">Obserwuj nas</p>
