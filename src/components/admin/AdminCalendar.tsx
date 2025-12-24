@@ -486,8 +486,8 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                               {reservation.vehicle_plate}
                             </div>
                           )}
-                          <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5 hidden md:block">
-                            {reservation.start_time} - {reservation.end_time}
+                          <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5">
+                            {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
                           </div>
                           {reservation.service && (
                             <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">

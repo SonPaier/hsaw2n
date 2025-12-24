@@ -89,6 +89,8 @@ serve(async (req: Request): Promise<Response> => {
       customerPhone: string;
       carSize?: string;
       stationId?: string;
+      vehiclePlate?: string;
+      notes?: string;
     };
 
     // Calculate end time based on service duration
@@ -118,7 +120,8 @@ serve(async (req: Request): Promise<Response> => {
         end_time: endTime,
         customer_name: reservationData.customerName,
         customer_phone: normalizedPhone,
-        vehicle_plate: "BRAK",
+        vehicle_plate: reservationData.vehiclePlate || "BRAK",
+        notes: reservationData.notes || null,
         confirmation_code: confirmationCode,
         car_size: reservationData.carSize || null,
         status: "confirmed",

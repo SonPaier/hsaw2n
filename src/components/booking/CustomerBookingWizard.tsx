@@ -92,6 +92,8 @@ export default function CustomerBookingWizard() {
   // Customer info
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [carModel, setCarModel] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
 
   // Verification
   const [verificationCode, setVerificationCode] = useState('');
@@ -334,6 +336,8 @@ export default function CustomerBookingWizard() {
             customerPhone: customerPhone.trim(),
             carSize: selectedService.requires_size ? carSize : undefined,
             stationId: selectedStationId,
+            vehiclePlate: carModel.trim() || 'BRAK',
+            notes: customerNotes.trim() || null,
           },
         },
       });
@@ -740,6 +744,28 @@ export default function CustomerBookingWizard() {
               placeholder="np. 600 123 456"
               className="mt-1 h-9 text-sm"
               required
+              disabled={smsSent}
+            />
+          </div>
+          <div>
+            <Label htmlFor="carModel" className="text-xs">Marka i model samochodu</Label>
+            <Input
+              id="carModel"
+              value={carModel}
+              onChange={(e) => setCarModel(e.target.value)}
+              placeholder="np. Audi Q8"
+              className="mt-1 h-9 text-sm"
+              disabled={smsSent}
+            />
+          </div>
+          <div>
+            <Label htmlFor="notes" className="text-xs">Uwagi (opcjonalnie)</Label>
+            <Input
+              id="notes"
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value)}
+              placeholder="np. bardzo brudne felgi"
+              className="mt-1 h-9 text-sm"
               disabled={smsSent}
             />
           </div>
