@@ -166,9 +166,8 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const handlePrev = () => {
     if (viewMode === 'week') {
       setCurrentDate(subWeeks(currentDate, 1));
-    } else if (viewMode === 'two-days') {
-      setCurrentDate(subDays(currentDate, 2));
     } else {
+      // Both day and two-days view move by 1 day
       setCurrentDate(subDays(currentDate, 1));
     }
   };
@@ -176,9 +175,8 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const handleNext = () => {
     if (viewMode === 'week') {
       setCurrentDate(addWeeks(currentDate, 1));
-    } else if (viewMode === 'two-days') {
-      setCurrentDate(addDays(currentDate, 2));
     } else {
+      // Both day and two-days view move by 1 day
       setCurrentDate(addDays(currentDate, 1));
     }
   };
