@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 
 interface Instance {
   id: string;
@@ -23,7 +24,15 @@ interface Instance {
   slug: string;
   active: boolean;
   phone?: string;
+  email?: string;
   address?: string;
+  website?: string;
+  nip?: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  social_facebook?: string;
+  social_instagram?: string;
   created_at: string;
 }
 
@@ -33,6 +42,8 @@ const SuperAdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
     fetchInstances();
@@ -105,6 +116,17 @@ const SuperAdminDashboard = () => {
 
   const handleCreateInstance = () => {
     toast.info('Formularz tworzenia nowej instancji - w przygotowaniu');
+  };
+
+  const handleOpenSettings = (instance: Instance) => {
+    setSelectedInstance(instance);
+    setSettingsOpen(true);
+  };
+
+  const handleInstanceUpdate = (updatedInstance: Instance) => {
+    setInstances(prev => 
+      prev.map(i => i.id === updatedInstance.id ? updatedInstance : i)
+    );
   };
 
   if (loading) {
@@ -253,10 +275,24 @@ const SuperAdminDashboard = () => {
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className={cn(
-                          "w-3 h-3 rounded-full shrink-0",
-                          instance.active ? "bg-success" : "bg-muted-foreground"
-                        )} />
+                        {/* Logo or status indicator */}
+                        {instance.logo_url ? (
+                          <img 
+                            src={instance.logo_url} 
+                            alt={instance.name} 
+                            className="w-10 h-10 rounded-lg object-contain bg-white/10 shrink-0"
+                          />
+                        ) : (
+                          <div className={cn(
+                            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                            instance.active ? "bg-success/20" : "bg-muted"
+                          )}>
+                            <Building2 className={cn(
+                              "w-5 h-5",
+                              instance.active ? "text-success" : "text-muted-foreground"
+                            )} />
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <h3 className="font-semibold text-foreground truncate">
                             {instance.name}
@@ -297,7 +333,7 @@ const SuperAdminDashboard = () => {
                               <ExternalLink className="w-4 h-4 mr-2" />
                               Otwórz panel admina
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenSettings(instance)}>
                               <Settings className="w-4 h-4 mr-2" />
                               Ustawienia whitelabel
                             </DropdownMenuItem>
@@ -319,6 +355,14 @@ const SuperAdminDashboard = () => {
           </div>
         </main>
       </div>
+
+      {/* Instance Settings Dialog */}
+      <InstanceSettingsDialog 
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        instance={selectedInstance}
+        onUpdate={handleInstanceUpdate}
+      />
     </>
   );
 };
