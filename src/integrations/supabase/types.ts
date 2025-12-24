@@ -113,6 +113,7 @@ export type Database = {
         Row: {
           active: boolean | null
           address: string | null
+          background_color: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -132,6 +133,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           address?: string | null
+          background_color?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -151,6 +153,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           address?: string | null
+          background_color?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
