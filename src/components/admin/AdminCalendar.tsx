@@ -42,6 +42,7 @@ interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
   breaks?: Break[];
+  workingHours?: Record<string, { open: string; close: string } | null> | null;
   onReservationClick?: (reservation: Reservation) => void;
   onAddReservation?: (stationId: string, date: string, time: string) => void;
   onAddBreak?: (stationId: string, date: string, time: string) => void;
@@ -49,8 +50,9 @@ interface AdminCalendarProps {
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
 }
 
-// Hours from 8:00 to 18:00
-const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
+// Default hours from 9:00 to 19:00
+const DEFAULT_START_HOUR = 9;
+const DEFAULT_END_HOUR = 19;
 const SLOT_MINUTES = 15; // 15-minute slots
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 4 slots per hour
 const SLOT_HEIGHT = 20; // pixels per 15 minutes
@@ -83,7 +85,7 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove }: AdminCalendarProps) => {
+const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [showPpfStations, setShowPpfStations] = useState(false);
@@ -92,6 +94,28 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const isMobile = useIsMobile();
+  
+  // Calculate hours based on working hours for current day
+  const getHoursForDate = (date: Date): number[] => {
+    if (!workingHours) {
+      return Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR + 1 }, (_, i) => i + DEFAULT_START_HOUR);
+    }
+    
+    const dayName = format(date, 'EEEE').toLowerCase();
+    const dayHours = workingHours[dayName];
+    
+    if (!dayHours) {
+      // Day is closed - show minimal hours
+      return Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR + 1 }, (_, i) => i + DEFAULT_START_HOUR);
+    }
+    
+    const startHour = parseInt(dayHours.open.split(':')[0]);
+    const endHour = parseInt(dayHours.close.split(':')[0]);
+    
+    return Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
+  };
+  
+  const HOURS = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
