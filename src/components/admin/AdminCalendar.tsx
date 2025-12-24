@@ -96,9 +96,14 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const isMobile = useIsMobile();
   
   // Calculate hours based on working hours for current day
-  const getHoursForDate = (date: Date): number[] => {
+  const getHoursForDate = (date: Date): { hours: number[]; startHour: number; endHour: number; closeTime: string } => {
     if (!workingHours) {
-      return Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR + 1 }, (_, i) => i + DEFAULT_START_HOUR);
+      return {
+        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
+        startHour: DEFAULT_START_HOUR,
+        endHour: DEFAULT_END_HOUR,
+        closeTime: `${DEFAULT_END_HOUR}:00`
+      };
     }
     
     const dayName = format(date, 'EEEE').toLowerCase();
@@ -106,16 +111,27 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     
     if (!dayHours) {
       // Day is closed - show minimal hours
-      return Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR + 1 }, (_, i) => i + DEFAULT_START_HOUR);
+      return {
+        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
+        startHour: DEFAULT_START_HOUR,
+        endHour: DEFAULT_END_HOUR,
+        closeTime: `${DEFAULT_END_HOUR}:00`
+      };
     }
     
     const startHour = parseInt(dayHours.open.split(':')[0]);
     const endHour = parseInt(dayHours.close.split(':')[0]);
     
-    return Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
+    // Show hours from open to close-1 (the last hour row shows slots up to close time)
+    return {
+      hours: Array.from({ length: endHour - startHour }, (_, i) => i + startHour),
+      startHour,
+      endHour,
+      closeTime: dayHours.close
+    };
   };
   
-  const HOURS = getHoursForDate(currentDate);
+  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME } = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -220,7 +236,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const getReservationStyle = (startTime: string, endTime: string) => {
     const start = parseTime(startTime);
     const end = parseTime(endTime);
-    const top = (start - 8) * HOUR_HEIGHT;
+    const top = (start - DAY_START_HOUR) * HOUR_HEIGHT;
     const height = (end - start) * HOUR_HEIGHT;
     return { top: `${top}px`, height: `${Math.max(height, 30)}px` };
   };
@@ -288,6 +304,20 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     }
   };
 
+  // Get working hours for a specific date
+  const getWorkingHoursForDate = (dateStr: string): { closeTime: string; startTime: string } => {
+    if (!workingHours) {
+      return { startTime: `${DEFAULT_START_HOUR}:00`, closeTime: `${DEFAULT_END_HOUR}:00` };
+    }
+    const date = new Date(dateStr);
+    const dayName = format(date, 'EEEE').toLowerCase();
+    const dayHours = workingHours[dayName];
+    if (!dayHours) {
+      return { startTime: `${DEFAULT_START_HOUR}:00`, closeTime: `${DEFAULT_END_HOUR}:00` };
+    }
+    return { startTime: dayHours.open, closeTime: dayHours.close };
+  };
+
   const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr: string, hour?: number, slotIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -299,6 +329,33 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
       const newTime = hour !== undefined && slotIndex !== undefined 
         ? formatTimeSlot(hour, slotIndex) 
         : undefined;
+      
+      // Validate that reservation fits within working hours
+      if (newTime) {
+        const { startTime: dayStartTime, closeTime: dayCloseTime } = getWorkingHoursForDate(dateStr);
+        const newStartNum = parseTime(newTime);
+        const dayStartNum = parseTime(dayStartTime);
+        
+        // Check if start time is before opening
+        if (newStartNum < dayStartNum) {
+          console.warn('Cannot drop reservation before opening time');
+          setDraggedReservation(null);
+          return;
+        }
+        
+        // Calculate end time of reservation
+        const originalStart = parseTime(draggedReservation.start_time);
+        const originalEnd = parseTime(draggedReservation.end_time);
+        const duration = originalEnd - originalStart;
+        const newEndNum = newStartNum + duration;
+        const closeNum = parseTime(dayCloseTime);
+        
+        if (newEndNum > closeNum) {
+          console.warn('Reservation would end after closing time');
+          setDraggedReservation(null);
+          return;
+        }
+      }
       
       // Allow drop if station changed OR date changed OR time changed
       const stationChanged = draggedReservation.station_id !== stationId;
@@ -321,7 +378,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     const duration = end - start;
     
     const newStartTime = dragOverSlot.hour + (dragOverSlot.slotIndex * SLOT_MINUTES) / 60;
-    const top = (newStartTime - 8) * HOUR_HEIGHT;
+    const top = (newStartTime - DAY_START_HOUR) * HOUR_HEIGHT;
     const height = duration * HOUR_HEIGHT;
     
     return { 
@@ -336,8 +393,8 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   // Current time indicator position
   const now = new Date();
   const currentHour = now.getHours() + now.getMinutes() / 60;
-  const showCurrentTime = isToday && currentHour >= 8 && currentHour <= 18;
-  const currentTimeTop = (currentHour - 8) * HOUR_HEIGHT;
+  const showCurrentTime = isToday && currentHour >= DAY_START_HOUR && currentHour <= parseTime(DAY_CLOSE_TIME);
+  const currentTimeTop = (currentHour - DAY_START_HOUR) * HOUR_HEIGHT;
 
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden">
