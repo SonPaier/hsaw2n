@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2 } from 'lucide-react';
+import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Service {
   id: string;
@@ -104,6 +105,10 @@ export default function CustomerBookingWizard() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
+  
+  // Dev mode
+  const [devMode, setDevMode] = useState(false);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Success
   const [confirmationData, setConfirmationData] = useState<{
@@ -488,6 +493,11 @@ export default function CustomerBookingWizard() {
         throw new Error(response.error.message);
       }
 
+      // In dev mode, capture the dev code from response
+      if (devMode && response.data?.devCode) {
+        setDevCode(response.data.devCode);
+      }
+
       toast({ title: 'Kod wysłany', description: 'Wpisz 4-cyfrowy kod z SMS' });
       setSmsSent(true);
 
@@ -554,6 +564,12 @@ export default function CustomerBookingWizard() {
   };
 
   const handleReservationClick = () => {
+    // In dev mode, always require SMS verification
+    if (devMode) {
+      handleSendSms();
+      return;
+    }
+    
     if (isVerifiedCustomer) {
       handleDirectReservation();
     } else {
@@ -848,7 +864,20 @@ export default function CustomerBookingWizard() {
           Wróć
         </button>
 
-        <h2 className="text-base font-semibold mb-4">Podsumowanie</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold">Podsumowanie</h2>
+          
+          {/* Dev Mode Checkbox */}
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <Checkbox
+              checked={devMode}
+              onCheckedChange={(checked) => setDevMode(checked === true)}
+              className="h-3.5 w-3.5"
+            />
+            <Bug className="w-3 h-3" />
+            <span>Dev</span>
+          </label>
+        </div>
 
         {/* Booking summary */}
         <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
@@ -943,19 +972,36 @@ export default function CustomerBookingWizard() {
 
         {/* SMS verification or direct booking */}
         {!smsSent ? (
-          <Button 
-            onClick={handleReservationClick} 
-            className="w-full" 
-            disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
-          >
-            {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            {isVerifiedCustomer ? 'Rezerwuj' : 'Wyślij kod SMS'}
-          </Button>
+          <>
+            {devMode && (
+              <div className="mb-3 p-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
+                <Bug className="w-3 h-3 inline-block mr-1" />
+                Dev Mode: wymuszono weryfikację SMS
+              </div>
+            )}
+            <Button 
+              onClick={handleReservationClick} 
+              className="w-full" 
+              disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
+            >
+              {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Wyślij kod SMS'}
+            </Button>
+          </>
         ) : (
           <div className="glass-card p-4 text-center">
             <p className="text-xs text-muted-foreground mb-3">
               Wpisz 4-cyfrowy kod z SMS
             </p>
+            
+            {/* Show dev code when in dev mode */}
+            {devMode && devCode && (
+              <div className="mb-3 p-2 rounded-md bg-green-500/10 border border-green-500/30 text-sm font-mono text-green-600 dark:text-green-400">
+                <Bug className="w-3 h-3 inline-block mr-1" />
+                Kod: <strong>{devCode}</strong>
+              </div>
+            )}
+            
             <div className="flex justify-center mb-3">
               <InputOTP
                 maxLength={4}
