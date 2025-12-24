@@ -209,7 +209,7 @@ const MobileBottomNav = ({
 
           <div className="space-y-4 overflow-y-auto pb-8">
             {stationsWithRanges.map(station => (
-              <div key={station.id} className="bg-secondary/30 rounded-lg p-3">
+              <div key={station.id} className="bg-muted/20 rounded-lg p-3 border border-border/50">
                 <div className="text-sm font-medium mb-2">{station.name}</div>
                 {station.freeRanges.length > 0 ? (
                   <div className="flex flex-wrap gap-2">

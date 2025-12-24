@@ -159,7 +159,7 @@
   }
 
   .glass-button {
-    @apply bg-secondary/80 backdrop-blur-md border border-border/50 hover:bg-secondary transition-all duration-300;
+    @apply bg-card/80 backdrop-blur-md border border-border hover:bg-card transition-all duration-300;
   }
 
   .gradient-text {
