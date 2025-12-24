@@ -85,9 +85,20 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Simple SMS format - SMSAPI blocks messages with links/domains
-    // iOS autocomplete="one-time-code" still works with this format
-    const smsMessage = `ARM CAR: ${code} - Twoj kod weryfikacyjny`;
+    // WebOTP format - must be short and domain must match PWA exactly
+    // Format: "Message\n@domain #code"
+    const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://armcar.lovable.app";
+    let domain = "armcar.lovable.app";
+    try {
+      const url = new URL(frontendUrl);
+      domain = url.hostname;
+    } catch {
+      // Use default domain
+    }
+
+    // Keep SMS very short (<160 chars) for WebOTP compatibility
+    const smsMessage = `Kod: ${code}\n@${domain} #${code}`;
+    console.log("Sending SMS with WebOTP format:", smsMessage);
     
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
