@@ -85,20 +85,10 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // WebOTP format - must be short and domain must match PWA exactly
-    // Format: "Message\n@domain #code"
-    const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://armcar.lovable.app";
-    let domain = "armcar.lovable.app";
-    try {
-      const url = new URL(frontendUrl);
-      domain = url.hostname;
-    } catch {
-      // Use default domain
-    }
-
-    // Keep SMS very short (<160 chars) for WebOTP compatibility
-    const smsMessage = `Kod: ${code}\n@${domain} #${code}`;
-    console.log("Sending SMS with WebOTP format:", smsMessage);
+    // Simple SMS format until SMSAPI link restriction is removed
+    // TODO: After SMSAPI unblocks links, use WebOTP format:
+    // const smsMessage = `Kod: ${code}\n@${domain} #${code}`;
+    const smsMessage = `ARM CAR kod: ${code}`;
     
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
