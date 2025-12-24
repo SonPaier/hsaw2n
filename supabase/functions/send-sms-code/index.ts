@@ -85,20 +85,9 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get the frontend URL for WebOTP domain binding
-    // WebOTP format: "Your code is 1234.\n\n@domain.com #1234"
-    const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://armcar.lovable.app";
-    let domain = "armcar.lovable.app";
-    try {
-      const url = new URL(frontendUrl);
-      domain = url.hostname;
-    } catch {
-      // Use default domain
-    }
-
-    // SMS message formatted for WebOTP API compatibility
-    // The last line must be: @origin #code
-    const smsMessage = `ARM CAR AUTO SPA\nTwój kod: ${code}\n\n@${domain} #${code}`;
+    // Simple SMS format - SMSAPI blocks messages with links/domains
+    // iOS autocomplete="one-time-code" still works with this format
+    const smsMessage = `ARM CAR: ${code} - Twoj kod weryfikacyjny`;
     
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
