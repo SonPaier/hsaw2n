@@ -6,10 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface VerifySmsRequest {
-  phone: string;
-  code: string;
+interface DirectReservationRequest {
   instanceId: string;
+  phone: string;
+  reservationData: {
+    serviceId: string;
+    addons: string[];
+    date: string;
+    time: string;
+    customerName: string;
+    customerPhone: string;
+    carSize?: string;
+    stationId?: string;
+    vehiclePlate?: string;
+    notes?: string;
+  };
 }
 
 const generateConfirmationCode = (): string => {
@@ -27,9 +38,9 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { phone, code, instanceId }: VerifySmsRequest = await req.json();
+    const { instanceId, phone, reservationData }: DirectReservationRequest = await req.json();
 
-    if (!phone || !code || !instanceId) {
+    if (!instanceId || !phone || !reservationData) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -46,54 +57,31 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find verification code
-    const { data: verificationData, error: verifyError } = await supabase
-      .from("sms_verification_codes")
-      .select("*")
+    // Check if customer exists and is verified
+    const { data: customer, error: customerError } = await supabase
+      .from("customers")
+      .select("id, phone_verified, name")
       .eq("phone", normalizedPhone)
-      .eq("code", code)
       .eq("instance_id", instanceId)
-      .eq("verified", false)
-      .gte("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
 
-    if (verifyError) {
-      console.error("Database error:", verifyError);
+    if (customerError) {
+      console.error("Customer lookup error:", customerError);
       return new Response(
-        JSON.stringify({ error: "Verification failed" }),
+        JSON.stringify({ error: "Failed to check customer" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    if (!verificationData) {
+    if (!customer || !customer.phone_verified) {
+      console.log("Customer not verified:", { customer, normalizedPhone, instanceId });
       return new Response(
-        JSON.stringify({ error: "Invalid or expired code" }),
+        JSON.stringify({ error: "Customer not verified", requiresVerification: true }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Mark as verified
-    await supabase
-      .from("sms_verification_codes")
-      .update({ verified: true })
-      .eq("id", verificationData.id);
-
-    const reservationData = verificationData.reservation_data as {
-      serviceId: string;
-      addons: string[];
-      date: string;
-      time: string;
-      customerName: string;
-      customerPhone: string;
-      carSize?: string;
-      stationId?: string;
-      vehiclePlate?: string;
-      notes?: string;
-    };
-
-    // Calculate end time based on service duration
+    // Customer is verified - create reservation directly
     const { data: serviceData } = await supabase
       .from("services")
       .select("duration_minutes, name")
@@ -108,7 +96,6 @@ serve(async (req: Request): Promise<Response> => {
 
     const confirmationCode = generateConfirmationCode();
 
-    // Create reservation
     const { data: reservation, error: reservationError } = await supabase
       .from("reservations")
       .insert({
@@ -137,41 +124,22 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create or update customer with phone_verified = true
-    const { data: existingCustomer } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("phone", normalizedPhone)
-      .eq("instance_id", instanceId)
-      .maybeSingle();
-
-    if (existingCustomer) {
-      // Update existing customer - mark as verified
+    // Update customer name if changed
+    if (customer.name !== reservationData.customerName) {
       await supabase
         .from("customers")
-        .update({ 
-          phone_verified: true,
-          name: reservationData.customerName,
-        })
-        .eq("id", existingCustomer.id);
-    } else {
-      // Create new customer with verified phone
-      await supabase
-        .from("customers")
-        .insert({
-          instance_id: instanceId,
-          phone: normalizedPhone,
-          name: reservationData.customerName,
-          phone_verified: true,
-        });
+        .update({ name: reservationData.customerName })
+        .eq("id", customer.id);
     }
 
-    // Fetch instance info for social links
+    // Fetch instance info
     const { data: instanceData } = await supabase
       .from("instances")
       .select("social_facebook, social_instagram, name")
       .eq("id", instanceId)
       .single();
+
+    console.log("Direct reservation created:", reservation.id);
 
     return new Response(
       JSON.stringify({
@@ -190,7 +158,7 @@ serve(async (req: Request): Promise<Response> => {
     );
 
   } catch (error: unknown) {
-    console.error("Error in verify-sms-code:", error);
+    console.error("Error in create-reservation-direct:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),

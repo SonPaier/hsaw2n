@@ -95,6 +95,10 @@ export default function CustomerBookingWizard() {
   const [carModel, setCarModel] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
 
+  // Verified customer state
+  const [isVerifiedCustomer, setIsVerifiedCustomer] = useState(false);
+  const [isCheckingCustomer, setIsCheckingCustomer] = useState(false);
+
   // Verification
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -109,6 +113,69 @@ export default function CustomerBookingWizard() {
     serviceName: string;
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{ facebook: string | null; instagram: string | null }>({ facebook: null, instagram: null });
+
+  // Load customer data from localStorage on mount
+  useEffect(() => {
+    const savedCustomer = localStorage.getItem('bookingCustomerData');
+    if (savedCustomer) {
+      try {
+        const data = JSON.parse(savedCustomer);
+        if (data.phone) setCustomerPhone(data.phone);
+        if (data.name) setCustomerName(data.name);
+        if (data.carModel) setCarModel(data.carModel);
+      } catch (e) {
+        console.log('Failed to parse saved customer data');
+      }
+    }
+  }, []);
+
+  // Check if customer is verified when phone changes
+  useEffect(() => {
+    const checkCustomer = async () => {
+      if (!instance || customerPhone.length < 9) {
+        setIsVerifiedCustomer(false);
+        return;
+      }
+
+      let normalizedPhone = customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+48' + normalizedPhone;
+      }
+
+      setIsCheckingCustomer(true);
+
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('id, name, phone_verified')
+        .eq('phone', normalizedPhone)
+        .eq('instance_id', instance.id)
+        .maybeSingle();
+
+      if (customer) {
+        setIsVerifiedCustomer(customer.phone_verified === true);
+        // Pre-fill name if empty
+        if (customer.name && !customerName) {
+          setCustomerName(customer.name);
+        }
+      } else {
+        setIsVerifiedCustomer(false);
+      }
+
+      setIsCheckingCustomer(false);
+    };
+
+    const timeoutId = setTimeout(checkCustomer, 500);
+    return () => clearTimeout(timeoutId);
+  }, [customerPhone, instance]);
+
+  // Save customer data to localStorage after successful reservation
+  const saveCustomerToLocalStorage = () => {
+    localStorage.setItem('bookingCustomerData', JSON.stringify({
+      phone: customerPhone,
+      name: customerName,
+      carModel: carModel,
+    }));
+  };
 
   // Fetch initial data
   useEffect(() => {
@@ -309,6 +376,81 @@ export default function CustomerBookingWizard() {
     return total;
   };
 
+  // Handle direct reservation for verified customers
+  const handleDirectReservation = async () => {
+    if (!customerName.trim() || !customerPhone.trim()) {
+      toast({ title: 'Uzupełnij dane', description: 'Podaj imię i numer telefonu', variant: 'destructive' });
+      return;
+    }
+
+    if (!selectedService || !selectedDate || !selectedTime || !instance) {
+      toast({ title: 'Błąd', description: 'Brak wymaganych danych', variant: 'destructive' });
+      return;
+    }
+
+    setIsSendingSms(true);
+
+    try {
+      const response = await supabase.functions.invoke('create-reservation-direct', {
+        body: {
+          instanceId: instance.id,
+          phone: customerPhone,
+          reservationData: {
+            serviceId: selectedService.id,
+            addons: selectedAddons,
+            date: format(selectedDate, 'yyyy-MM-dd'),
+            time: selectedTime,
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            carSize: selectedService.requires_size ? carSize : undefined,
+            stationId: selectedStationId,
+            vehiclePlate: carModel.trim() || 'BRAK',
+            notes: customerNotes.trim() || null,
+          },
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+
+      if (!data.success) {
+        // Customer not verified - fall back to SMS flow
+        if (data.requiresVerification) {
+          setIsVerifiedCustomer(false);
+          handleSendSms();
+          return;
+        }
+        toast({ title: 'Błąd', description: data.error || 'Nie udało się utworzyć rezerwacji', variant: 'destructive' });
+        return;
+      }
+
+      saveCustomerToLocalStorage();
+
+      setConfirmationData({
+        confirmationCode: data.reservation.confirmationCode,
+        date: data.reservation.date,
+        time: data.reservation.time,
+        serviceName: data.reservation.serviceName,
+      });
+
+      setSocialLinks({
+        facebook: data.instance?.social_facebook || null,
+        instagram: data.instance?.social_instagram || null,
+      });
+
+      setStep('success');
+
+    } catch (error) {
+      console.error('Error creating direct reservation:', error);
+      toast({ title: 'Błąd', description: 'Nie udało się utworzyć rezerwacji', variant: 'destructive' });
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
   const handleSendSms = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({ title: 'Uzupełnij dane', description: 'Podaj imię i numer telefonu', variant: 'destructive' });
@@ -387,6 +529,8 @@ export default function CustomerBookingWizard() {
         return;
       }
 
+      saveCustomerToLocalStorage();
+
       setConfirmationData({
         confirmationCode: data.reservation.confirmationCode,
         date: data.reservation.date,
@@ -406,6 +550,14 @@ export default function CustomerBookingWizard() {
       toast({ title: 'Błąd weryfikacji', description: 'Sprawdź kod i spróbuj ponownie', variant: 'destructive' });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleReservationClick = () => {
+    if (isVerifiedCustomer) {
+      handleDirectReservation();
+    } else {
+      handleSendSms();
     }
   };
 
@@ -721,8 +873,31 @@ export default function CustomerBookingWizard() {
           </p>
         </div>
 
-        {/* Customer data */}
+        {/* Customer data - phone first */}
         <div className="glass-card p-3 mb-3 space-y-3">
+          <div>
+            <Label htmlFor="phone" className="text-xs">Telefon *</Label>
+            <div className="relative">
+              <Input
+                id="phone"
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="np. 600 123 456"
+                className="mt-1 h-9 text-sm pr-8"
+                required
+                disabled={smsSent}
+              />
+              {isCheckingCustomer && (
+                <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              )}
+            </div>
+            {isVerifiedCustomer && (
+              <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Rozpoznany numer - rezerwacja bez kodu SMS
+              </p>
+            )}
+          </div>
           <div>
             <Label htmlFor="name" className="text-xs">Imię / Nazwa</Label>
             <Input
@@ -731,19 +906,6 @@ export default function CustomerBookingWizard() {
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="np. Jan lub AutoMax"
               className="mt-1 h-9 text-sm"
-              disabled={smsSent}
-            />
-          </div>
-          <div>
-            <Label htmlFor="phone" className="text-xs">Telefon *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="np. 600 123 456"
-              className="mt-1 h-9 text-sm"
-              required
               disabled={smsSent}
             />
           </div>
@@ -771,15 +933,15 @@ export default function CustomerBookingWizard() {
           </div>
         </div>
 
-        {/* SMS verification */}
+        {/* SMS verification or direct booking */}
         {!smsSent ? (
           <Button 
-            onClick={handleSendSms} 
+            onClick={handleReservationClick} 
             className="w-full" 
-            disabled={isSendingSms || !customerName.trim() || !customerPhone.trim()}
+            disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
           >
             {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Rezerwuj
+            {isVerifiedCustomer ? 'Rezerwuj' : 'Wyślij kod SMS'}
           </Button>
         ) : (
           <div className="glass-card p-4 text-center">
