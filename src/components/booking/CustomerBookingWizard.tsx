@@ -1011,6 +1011,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 maxLength={4}
                 value={verificationCode}
                 onChange={setVerificationCode}
+                onComplete={handleVerifyCode}
+                autoComplete="one-time-code"
               >
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
@@ -1020,15 +1022,12 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 </InputOTPGroup>
               </InputOTP>
             </div>
-            <Button
-              onClick={handleVerifyCode}
-              className="w-full"
-              size="sm"
-              disabled={isVerifying || verificationCode.length !== 4}
-            >
-              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Potwierdź
-            </Button>
+            {isVerifying && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Weryfikacja...
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1068,36 +1067,25 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
             Wyslemy Ci przypomnienie SMS dzien przed oraz godzine przed wizyta
           </div>
 
-          {(socialLinks.facebook || socialLinks.instagram) && (
-            <div className="mb-4">
-              <p className="text-xs text-muted-foreground mb-2">Obserwuj nas</p>
-              <div className="flex justify-center gap-3">
-                {socialLinks.facebook && (
-                  <a
-                    href={socialLinks.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center hover:bg-blue-600/30 transition-colors"
-                  >
-                    <Facebook className="w-4 h-4 text-blue-500" />
-                  </a>
-                )}
-                {socialLinks.instagram && (
-                  <a
-                    href={socialLinks.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-pink-600/20 flex items-center justify-center hover:bg-pink-600/30 transition-colors"
-                  >
-                    <Instagram className="w-4 h-4 text-pink-500" />
-                  </a>
-                )}
+          {socialLinks.instagram && (
+            <a
+              href={socialLinks.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center flex-shrink-0">
+                <Instagram className="w-5 h-5 text-white" />
               </div>
-            </div>
+              <div className="text-left">
+                <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">Zaobserwuj nas na Instagramie!</p>
+                <p className="text-xs text-muted-foreground">Bądź na bieżąco z naszymi realizacjami</p>
+              </div>
+            </a>
           )}
 
-          <Button variant="outline" onClick={() => window.location.reload()} className="w-full" size="sm">
-            Nowa rezerwacja
+          <Button variant="ghost" onClick={() => window.location.reload()} className="w-full text-muted-foreground" size="sm">
+            Zarezerwuj kolejną wizytę
           </Button>
         </div>
       </div>
