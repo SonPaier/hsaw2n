@@ -1,4 +1,4 @@
-import { useState, DragEvent } from 'react';
+import { useState, DragEvent, useRef, useCallback } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical, Coffee, X } from 'lucide-react';
@@ -92,6 +92,35 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const isMobile = useIsMobile();
+  
+  // Long-press handling for mobile
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  const longPressTriggered = useRef(false);
+  const LONG_PRESS_DURATION = 500; // ms
+
+  const handleTouchStart = useCallback((stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
+    longPressTriggered.current = false;
+    longPressTimeout.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      const time = formatTimeSlot(hour, slotIndex);
+      const targetDate = dateStr || format(currentDate, 'yyyy-MM-dd');
+      onAddBreak?.(stationId, targetDate, time);
+    }, LONG_PRESS_DURATION);
+  }, [currentDate, onAddBreak]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  }, []);
 
   // Navigation handlers
   const handlePrev = () => {
@@ -174,6 +203,11 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
 
   // Handle click on empty time slot - show context menu or default to reservation
   const handleSlotClick = (stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
+    // Prevent click if long-press was triggered
+    if (longPressTriggered.current) {
+      longPressTriggered.current = false;
+      return;
+    }
     const time = formatTimeSlot(hour, slotIndex);
     const targetDate = dateStr || currentDateStr;
     onAddReservation?.(stationId, targetDate, time);
@@ -355,6 +389,13 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
           )}
         </div>
       </div>
+      
+      {/* Mobile hint for adding breaks */}
+      {isMobile && (viewMode === 'day' || viewMode === 'two-days') && (
+        <div className="px-4 py-1 bg-muted/30 border-b border-border text-xs text-muted-foreground text-center">
+          💡 Przytrzymaj dłużej slot, aby dodać przerwę
+        </div>
+      )}
 
       {/* DAY VIEW */}
       {viewMode === 'day' && (
@@ -444,6 +485,9 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
                             style={{ height: SLOT_HEIGHT }}
                             onClick={() => handleSlotClick(station.id, hour, slotIndex)}
                             onContextMenu={(e) => handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
+                            onTouchStart={() => handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
+                            onTouchEnd={handleTouchEnd}
+                            onTouchMove={handleTouchMove}
                             onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
                             onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
@@ -713,6 +757,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick
                                   )}
                                   style={{ height: SLOT_HEIGHT }}
                                   onClick={() => handleSlotClick(station.id, hour, slotIndex, dayStr)}
+                                  onContextMenu={(e) => handleSlotContextMenu(e, station.id, hour, slotIndex, dayStr)}
+                                  onTouchStart={() => handleTouchStart(station.id, hour, slotIndex, dayStr)}
+                                  onTouchEnd={handleTouchEnd}
+                                  onTouchMove={handleTouchMove}
                                   onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
                                   onDrop={(e) => handleDrop(e, station.id, dayStr, hour, slotIndex)}
                                 >
