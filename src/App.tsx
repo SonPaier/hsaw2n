@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <IOSInstallPrompt />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
