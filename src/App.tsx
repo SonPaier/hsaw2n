@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import Rezerwacje from "./pages/Rezerwacje";
+import MojaRezerwacja from "./pages/MojaRezerwacja";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -27,6 +28,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
               <Route path="/rezerwacje" element={<Rezerwacje />} />
+              <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
               <Route path="/auth" element={<Auth />} />
               <Route 
                 path="/admin" 

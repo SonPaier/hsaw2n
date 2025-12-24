@@ -169,9 +169,51 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch instance info for social links
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("social_facebook, social_instagram, name")
+      .select("social_facebook, social_instagram, name, slug")
       .eq("id", instanceId)
       .single();
+
+    // Send confirmation SMS with reservation link
+    const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
+    const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://armcar.pl";
+    const reservationUrl = `${FRONTEND_URL}/moja-rezerwacja?code=${confirmationCode}`;
+    
+    // Format date for SMS
+    const dateObj = new Date(reservationData.date);
+    const dayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+    const monthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+    const dayName = dayNames[dateObj.getDay()];
+    const dayNum = dateObj.getDate();
+    const monthName = monthNames[dateObj.getMonth()];
+    
+    const confirmationMessage = `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Szczegóły i anulowanie: ${reservationUrl}`;
+    
+    if (SMSAPI_TOKEN) {
+      try {
+        const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SMSAPI_TOKEN}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            to: normalizedPhone,
+            message: confirmationMessage,
+            from: "ARMCAR",
+            format: "json",
+            encoding: "utf-8",
+          }),
+        });
+        
+        const smsResult = await smsResponse.json();
+        console.log("Confirmation SMS sent:", smsResult);
+      } catch (smsError) {
+        console.error("Failed to send confirmation SMS:", smsError);
+        // Don't fail the reservation if SMS fails
+      }
+    } else {
+      console.log(`[DEV MODE] Would send confirmation SMS to ${normalizedPhone}: ${confirmationMessage}`);
+    }
 
     return new Response(
       JSON.stringify({
@@ -183,6 +225,7 @@ serve(async (req: Request): Promise<Response> => {
           time: reservationData.time,
           endTime,
           serviceName: serviceData?.name,
+          reservationUrl,
         },
         instance: instanceData,
       }),
