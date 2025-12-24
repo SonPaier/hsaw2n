@@ -25,6 +25,7 @@ interface Instance {
   logo_url?: string;
   primary_color?: string;
   secondary_color?: string;
+  background_color?: string;
   social_facebook?: string;
   social_instagram?: string;
 }
@@ -57,6 +58,7 @@ const InstanceSettingsDialog = ({
     logo_url: '',
     primary_color: '#0ea5e9',
     secondary_color: '#06b6d4',
+    background_color: '#ffffff',
     social_facebook: '',
     social_instagram: '',
   });
@@ -74,6 +76,7 @@ const InstanceSettingsDialog = ({
         logo_url: instance.logo_url || '',
         primary_color: instance.primary_color || '#0ea5e9',
         secondary_color: instance.secondary_color || '#06b6d4',
+        background_color: instance.background_color || '#ffffff',
         social_facebook: instance.social_facebook || '',
         social_instagram: instance.social_instagram || '',
       });
@@ -168,6 +171,7 @@ const InstanceSettingsDialog = ({
           logo_url: formData.logo_url || null,
           primary_color: formData.primary_color,
           secondary_color: formData.secondary_color,
+          background_color: formData.background_color,
           social_facebook: formData.social_facebook || null,
           social_instagram: formData.social_instagram || null,
         })
@@ -315,7 +319,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             {/* Colors */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="primary_color">Kolor główny</Label>
                 <div className="flex gap-2">
@@ -353,11 +357,35 @@ const InstanceSettingsDialog = ({
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="background_color">Kolor tła</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="background_color"
+                    type="color"
+                    value={formData.background_color}
+                    onChange={(e) => handleInputChange('background_color', e.target.value)}
+                    className="w-14 h-10 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={formData.background_color}
+                    onChange={(e) => handleInputChange('background_color', e.target.value)}
+                    placeholder="#ffffff"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Preview */}
-            <div className="p-4 rounded-xl border border-border bg-card">
-              <p className="text-sm text-muted-foreground mb-3">Podgląd kolorów:</p>
+            <div 
+              className="p-4 rounded-xl border border-border"
+              style={{ backgroundColor: formData.background_color }}
+            >
+              <p className="text-sm mb-3" style={{ color: formData.background_color === '#ffffff' || formData.background_color.toLowerCase() === '#fff' ? '#666' : '#fff' }}>
+                Podgląd kolorów:
+              </p>
               <div className="flex gap-3">
                 <div 
                   className="h-10 flex-1 rounded-lg flex items-center justify-center text-white font-medium text-sm"
