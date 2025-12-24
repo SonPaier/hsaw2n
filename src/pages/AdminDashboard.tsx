@@ -18,6 +18,7 @@ import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
 import PriceListSettings from '@/components/admin/PriceListSettings';
 import StationsSettings from '@/components/admin/StationsSettings';
+import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import { toast } from 'sonner';
 
 interface Station {
@@ -82,6 +83,9 @@ const AdminDashboard = () => {
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  
+  // Working hours for calendar
+  const [workingHours, setWorkingHours] = useState<Record<string, { open: string; close: string } | null> | null>(null);
 
   useEffect(() => {
     const fetchUserInstanceId = async () => {
@@ -137,8 +141,24 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fetch working hours from database
+  const fetchWorkingHours = async () => {
+    if (!instanceId) return;
+    
+    const { data } = await supabase
+      .from('instances')
+      .select('working_hours')
+      .eq('id', instanceId)
+      .maybeSingle();
+    
+    if (data?.working_hours) {
+      setWorkingHours(data.working_hours as unknown as Record<string, { open: string; close: string } | null>);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
+    fetchWorkingHours();
   }, [instanceId]);
 
   // Refetch stations when switching to calendar view
@@ -609,6 +629,7 @@ const AdminDashboard = () => {
                   stations={stations}
                   reservations={reservations}
                   breaks={breaks}
+                  workingHours={workingHours}
                   onReservationClick={handleReservationClick}
                   onAddReservation={handleAddReservation}
                   onAddBreak={handleAddBreak}
@@ -662,9 +683,13 @@ const AdminDashboard = () => {
                   <div>
                     <h2 className="text-lg font-semibold mb-2">Ustawienia instancji</h2>
                     <p className="text-muted-foreground text-sm">
-                      Zarządzaj stanowiskami i cennikiem usług.
+                      Zarządzaj stanowiskami, cennikiem usług i godzinami pracy.
                     </p>
                   </div>
+                </div>
+                
+                <div className="glass-card p-6">
+                  <WorkingHoursSettings instanceId={instanceId} />
                 </div>
                 
                 <div className="glass-card p-6">
