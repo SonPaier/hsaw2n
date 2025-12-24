@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Car, Calendar, LogOut, 
-  Menu, Clock, CheckCircle2, Settings, Users
+  Menu, Clock, CheckCircle2, Settings, Users, UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import MobileBottomNav from '@/components/admin/MobileBottomNav';
 import PriceListSettings from '@/components/admin/PriceListSettings';
 import StationsSettings from '@/components/admin/StationsSettings';
 import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
+import CustomersView from '@/components/admin/CustomersView';
 import { toast } from 'sonner';
 
 interface Station {
@@ -53,7 +54,7 @@ interface Break {
   note: string | null;
 }
 
-type ViewType = 'calendar' | 'reservations' | 'settings';
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -561,6 +562,14 @@ const AdminDashboard = () => {
                 Rezerwacje
               </Button>
               <Button 
+                variant={currentView === 'customers' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setCurrentView('customers')}
+              >
+                <UserCircle className="w-4 h-4" />
+                Klienci
+              </Button>
+              <Button 
                 variant={currentView === 'settings' ? 'secondary' : 'ghost'} 
                 className="w-full justify-start gap-3"
                 onClick={() => setCurrentView('settings')}
@@ -613,7 +622,8 @@ const AdminDashboard = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">
                 {currentView === 'calendar' ? 'Kalendarz rezerwacji' : 
-                 currentView === 'reservations' ? 'Lista rezerwacji' : 'Ustawienia'}
+                 currentView === 'reservations' ? 'Lista rezerwacji' : 
+                 currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
               </h1>
               <p className="text-muted-foreground">
                 {format(new Date(), 'd MMMM yyyy', { locale: pl })}
@@ -675,6 +685,10 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {currentView === 'customers' && (
+              <CustomersView instanceId={instanceId} />
             )}
 
             {currentView === 'settings' && (

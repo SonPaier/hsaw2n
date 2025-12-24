@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, List, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, List, Clock, ChevronLeft, ChevronRight, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format, addDays, subDays, isToday } from 'date-fns';
@@ -26,9 +26,11 @@ interface Reservation {
   status: string;
 }
 
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
+
 interface MobileBottomNavProps {
-  currentView: 'calendar' | 'reservations' | 'settings';
-  onViewChange: (view: 'calendar' | 'reservations' | 'settings') => void;
+  currentView: ViewType;
+  onViewChange: (view: ViewType) => void;
   stations: Station[];
   reservations: Reservation[];
   currentDate: string;
@@ -143,6 +145,19 @@ const MobileBottomNav = ({
           >
             <Clock className="w-5 h-5" />
             <span className="text-[10px]">Wolne</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "flex-col gap-1 h-auto py-2 px-4",
+              currentView === 'customers' && "text-primary"
+            )}
+            onClick={() => onViewChange('customers')}
+          >
+            <UserCircle className="w-5 h-5" />
+            <span className="text-[10px]">Klienci</span>
           </Button>
 
           <Button
