@@ -33,9 +33,16 @@ interface TimeSlot {
   stationId: string;
 }
 
+interface AvailabilityRange {
+  stationId: string;
+  slots: TimeSlot[];
+  startTime: string;
+  endTime: string;
+}
+
 interface AvailableDay {
   date: Date;
-  slots: TimeSlot[];
+  ranges: AvailabilityRange[];
 }
 
 interface Instance {
@@ -63,7 +70,7 @@ const features = [
   { icon: <Star className="w-4 h-4" />, title: 'Zadowoleni klienci' },
 ];
 
-type Step = 'service' | 'datetime' | 'summary' | 'success';
+type Step = 'service' | 'datetime' | 'addons' | 'summary' | 'success';
 
 export default function CustomerBookingWizard() {
   const [step, setStep] = useState<Step>('service');
@@ -79,6 +86,7 @@ export default function CustomerBookingWizard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [carSize, setCarSize] = useState<'small' | 'medium' | 'large'>('medium');
 
   // Customer info
@@ -175,7 +183,7 @@ export default function CustomerBookingWizard() {
     return service.price_from || 0;
   };
 
-  // Calculate available slots
+  // Calculate available days with ranges per station
   const getAvailableDays = (): AvailableDay[] => {
     if (!selectedService || !instance?.working_hours) return [];
 
@@ -193,7 +201,7 @@ export default function CustomerBookingWizard() {
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayReservations = reservations.filter((r) => r.reservation_date === dateStr);
 
-      const slots: TimeSlot[] = [];
+      const ranges: AvailabilityRange[] = [];
 
       for (const station of stations) {
         const stationReservations = dayReservations.filter((r) => r.station_id === station.id);
@@ -210,6 +218,7 @@ export default function CustomerBookingWizard() {
           }))
           .sort((a, b) => a.start - b.start);
 
+        // Find continuous free ranges
         let currentTime = openMinutes;
         
         if (i === 0) {
@@ -218,53 +227,56 @@ export default function CustomerBookingWizard() {
           currentTime = Math.max(currentTime, Math.ceil(nowMinutes / 15) * 15);
         }
 
-        for (const res of sortedRes) {
-          while (currentTime + serviceDuration <= res.start && currentTime + serviceDuration <= closeMinutes) {
-            slots.push({
-              time: `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`,
+        let rangeStart: number | null = null;
+        const stationSlots: TimeSlot[] = [];
+
+        const checkAndAddSlot = (time: number) => {
+          if (time + serviceDuration <= closeMinutes) {
+            if (rangeStart === null) rangeStart = time;
+            stationSlots.push({
+              time: `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`,
               stationId: station.id,
             });
+            return true;
+          }
+          return false;
+        };
+
+        for (const res of sortedRes) {
+          while (currentTime + serviceDuration <= res.start && currentTime + serviceDuration <= closeMinutes) {
+            checkAndAddSlot(currentTime);
             currentTime += 15;
           }
           currentTime = Math.max(currentTime, res.end);
         }
 
         while (currentTime + serviceDuration <= closeMinutes) {
-          slots.push({
-            time: `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`,
-            stationId: station.id,
-          });
+          checkAndAddSlot(currentTime);
           currentTime += 15;
+        }
+
+        if (stationSlots.length > 0) {
+          const firstSlot = stationSlots[0].time;
+          const lastSlotTime = stationSlots[stationSlots.length - 1].time;
+          const [lastH, lastM] = lastSlotTime.split(':').map(Number);
+          const endMinutes = lastH * 60 + lastM + serviceDuration;
+          const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+
+          ranges.push({
+            stationId: station.id,
+            slots: stationSlots,
+            startTime: firstSlot,
+            endTime: endTime,
+          });
         }
       }
 
-      if (slots.length > 0) {
-        days.push({ date, slots });
+      if (ranges.length > 0) {
+        days.push({ date, ranges });
       }
     }
 
     return days;
-  };
-
-  // Get unique times for selected date (hide station complexity from user)
-  const getAvailableTimesForDate = (): { time: string; stationId: string }[] => {
-    if (!selectedDate) return [];
-
-    const days = getAvailableDays();
-    const selectedDay = days.find((d) => isSameDay(d.date, selectedDate));
-    if (!selectedDay) return [];
-
-    // Group by time, pick first available station
-    const timeMap = new Map<string, string>();
-    for (const slot of selectedDay.slots) {
-      if (!timeMap.has(slot.time)) {
-        timeMap.set(slot.time, slot.stationId);
-      }
-    }
-
-    return Array.from(timeMap.entries())
-      .map(([time, stationId]) => ({ time, stationId }))
-      .sort((a, b) => a.time.localeCompare(b.time));
   };
 
   const handleSelectService = (service: Service) => {
@@ -272,10 +284,27 @@ export default function CustomerBookingWizard() {
     setStep('datetime');
   };
 
-  const handleSelectTime = (time: string, stationId: string) => {
-    setSelectedTime(time);
-    setSelectedStationId(stationId);
-    setStep('summary');
+  const handleSelectTime = (slot: TimeSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedStationId(slot.stationId);
+    setStep('addons');
+  };
+
+  const toggleAddon = (serviceId: string) => {
+    setSelectedAddons((prev) =>
+      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  const getTotalPrice = (): number => {
+    let total = selectedService ? getServicePrice(selectedService) : 0;
+    for (const addonId of selectedAddons) {
+      const addon = services.find((s) => s.id === addonId);
+      if (addon) {
+        total += getServicePrice(addon);
+      }
+    }
+    return total;
   };
 
   const handleSendSms = async () => {
@@ -298,7 +327,7 @@ export default function CustomerBookingWizard() {
           instanceId: instance.id,
           reservationData: {
             serviceId: selectedService.id,
-            addons: [],
+            addons: selectedAddons,
             date: format(selectedDate, 'yyyy-MM-dd'),
             time: selectedTime,
             customerName: customerName.trim(),
@@ -377,7 +406,7 @@ export default function CustomerBookingWizard() {
   };
 
   const availableDays = getAvailableDays();
-  const availableTimes = getAvailableTimesForDate();
+  const addonServices = services.filter((s) => s.id !== selectedService?.id);
 
   if (loading) {
     return (
@@ -391,37 +420,32 @@ export default function CustomerBookingWizard() {
   if (step === 'service') {
     return (
       <div className="animate-fade-in">
-        {/* Mini Hero */}
-        <section className="py-6 md:py-8 text-center">
+        <section className="py-4 md:py-6 text-center">
           <div className="container">
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">
-              Zarezerwuj wizytę w <span className="gradient-text">ARM CAR AUTO SPA</span>
+            <h1 className="text-lg md:text-xl font-bold text-foreground">
+              Zarezerwuj wizytę
             </h1>
           </div>
         </section>
 
-        {/* Services */}
         <section className="container pb-6">
-          <h2 className="text-base font-semibold mb-4">Wybierz usługę</h2>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">Wybierz usługę</h2>
 
-          <div className="grid gap-3 mb-4">
+          <div className="grid gap-2 mb-3">
             {popularServices.map((service) => (
               <button
                 key={service.id}
                 onClick={() => handleSelectService(service)}
-                className="glass-card p-4 text-left hover:border-primary/50 transition-all group"
+                className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
                       {service.name}
                     </h3>
-                    {service.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">{service.duration_minutes} min</p>
+                    <p className="text-xs text-muted-foreground">{service.duration_minutes} min</p>
                   </div>
-                  <span className="font-bold text-primary whitespace-nowrap ml-4">
+                  <span className="font-semibold text-primary whitespace-nowrap ml-3">
                     od {service.price_from || service.price_small || 0} zł
                   </span>
                 </div>
@@ -433,31 +457,28 @@ export default function CustomerBookingWizard() {
             <>
               <button
                 onClick={() => setShowAllServices(!showAllServices)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
               >
-                {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showAllServices ? 'Zwiń' : `Pokaż więcej (${otherServices.length})`}
+                {showAllServices ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                {showAllServices ? 'Zwiń' : `Więcej usług (${otherServices.length})`}
               </button>
 
               {showAllServices && (
-                <div className="grid gap-3 animate-fade-in">
+                <div className="grid gap-2 animate-fade-in">
                   {otherServices.map((service) => (
                     <button
                       key={service.id}
                       onClick={() => handleSelectService(service)}
-                      className="glass-card p-4 text-left hover:border-primary/50 transition-all group"
+                      className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
                             {service.name}
                           </h3>
-                          {service.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-2">{service.duration_minutes} min</p>
+                          <p className="text-xs text-muted-foreground">{service.duration_minutes} min</p>
                         </div>
-                        <span className="font-bold text-primary whitespace-nowrap ml-4">
+                        <span className="font-semibold text-primary whitespace-nowrap ml-3">
                           od {service.price_from || service.price_small || 0} zł
                         </span>
                       </div>
@@ -469,12 +490,11 @@ export default function CustomerBookingWizard() {
           )}
         </section>
 
-        {/* Features */}
-        <section className="container pb-8">
-          <div className="flex flex-wrap gap-4 justify-center">
+        <section className="container pb-6">
+          <div className="flex flex-wrap gap-3 justify-center pt-4 border-t border-border">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="text-primary">{feature.icon}</div>
+              <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="text-primary">{feature.icon}</span>
                 <span>{feature.title}</span>
               </div>
             ))}
@@ -486,120 +506,118 @@ export default function CustomerBookingWizard() {
 
   // STEP 2: DATE & TIME SELECTION
   if (step === 'datetime') {
+    const selectedDay = selectedDate ? availableDays.find((d) => isSameDay(d.date, selectedDate)) : null;
+
     return (
-      <div className="container py-6 animate-fade-in">
+      <div className="container py-4 animate-fade-in">
         <button
           onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
         >
           <ArrowLeft className="w-4 h-4" />
           Wróć
         </button>
 
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Wybierz termin</h2>
-          <p className="text-sm text-muted-foreground">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">Wybierz termin</h2>
+          <p className="text-xs text-muted-foreground">
             {selectedService?.name} • {selectedService?.duration_minutes} min
           </p>
         </div>
 
-        {/* Days list */}
-        <div className="space-y-3">
+        <div className="space-y-2 mb-4">
           {availableDays.slice(0, 7).map((day) => {
             const isSelected = selectedDate && isSameDay(selectedDate, day.date);
+            const totalSlots = day.ranges.reduce((acc, r) => acc + r.slots.length, 0);
             
             return (
-              <div key={day.date.toISOString()} className="glass-card overflow-hidden">
-                <button
-                  onClick={() => setSelectedDate(isSelected ? null : day.date)}
-                  className="w-full p-4 text-left flex justify-between items-center"
-                >
-                  <div>
-                    <h3 className="font-semibold capitalize">
-                      {format(day.date, 'EEEE', { locale: pl })}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {format(day.date, 'd MMMM', { locale: pl })}
-                    </p>
-                  </div>
-                  <span className="text-sm text-primary">{day.slots.length} wolnych</span>
-                </button>
-
-                {isSelected && (
-                  <div className="px-4 pb-4 pt-2 border-t border-border">
-                    <div className="flex flex-wrap gap-2">
-                      {availableTimes.map((slot) => (
-                        <button
-                          key={slot.time}
-                          onClick={() => handleSelectTime(slot.time, slot.stationId)}
-                          className="px-3 py-2 text-sm rounded-lg border border-border hover:border-primary hover:bg-primary/10 transition-all"
-                        >
-                          {slot.time}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <button
+                key={day.date.toISOString()}
+                onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                className={cn(
+                  "w-full glass-card p-3 text-left transition-all",
+                  isSelected && "border-primary"
                 )}
-              </div>
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium capitalize">
+                      {format(day.date, 'EEEE', { locale: pl })}
+                    </span>
+                    <span className="text-muted-foreground ml-2">
+                      {format(day.date, 'd MMM', { locale: pl })}
+                    </span>
+                  </div>
+                  <span className="text-xs text-primary">{totalSlots} wolnych</span>
+                </div>
+              </button>
             );
           })}
         </div>
+
+        {/* Selected day - show ranges as columns */}
+        {selectedDay && (
+          <div className="glass-card p-4 animate-fade-in">
+            <h3 className="text-sm font-medium mb-3">Dostępne godziny</h3>
+            <div className={cn(
+              "grid gap-4",
+              selectedDay.ranges.length === 1 && "grid-cols-1",
+              selectedDay.ranges.length === 2 && "grid-cols-2",
+              selectedDay.ranges.length >= 3 && "grid-cols-2 md:grid-cols-3"
+            )}>
+              {selectedDay.ranges.map((range, idx) => (
+                <div key={range.stationId} className="space-y-2">
+                  <div className="text-xs text-muted-foreground text-center pb-1 border-b border-border">
+                    {range.startTime} - {range.endTime}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {range.slots.map((slot) => (
+                      <button
+                        key={`${slot.stationId}-${slot.time}`}
+                        onClick={() => handleSelectTime(slot)}
+                        className="px-2.5 py-1.5 text-xs rounded-md border border-border hover:border-primary hover:bg-primary/10 transition-all"
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // STEP 3: SUMMARY WITH DATA & VERIFICATION
-  if (step === 'summary') {
+  // STEP 3: ADDONS
+  if (step === 'addons') {
     return (
-      <div className="container py-6 animate-fade-in">
+      <div className="container py-4 animate-fade-in">
         <button
-          onClick={() => { setStep('datetime'); setSmsSent(false); setVerificationCode(''); }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4"
+          onClick={() => setStep('datetime')}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
         >
           <ArrowLeft className="w-4 h-4" />
           Wróć
         </button>
 
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Podsumowanie</h2>
-        </div>
-
-        {/* Booking summary */}
-        <div className="glass-card p-4 mb-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Usługa</span>
-            <span className="font-medium">{selectedService?.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Data</span>
-            <span className="font-medium">
-              {selectedDate && format(selectedDate, 'd MMMM yyyy', { locale: pl })}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Godzina</span>
-            <span className="font-medium">{selectedTime}</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border">
-            <span className="text-muted-foreground">Cena</span>
-            <span className="font-bold text-primary">{selectedService && getServicePrice(selectedService)} zł</span>
-          </div>
-          <p className="text-xs text-muted-foreground pt-1">
-            * Cena może ulec zmianie w zależności od stanu samochodu
-          </p>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">Dodatkowe usługi</h2>
+          <p className="text-xs text-muted-foreground">Opcjonalnie dodaj usługi do rezerwacji</p>
         </div>
 
         {/* Car size if needed */}
         {selectedService?.requires_size && (
-          <div className="glass-card p-4 mb-4">
-            <Label className="text-sm font-medium mb-3 block">Rozmiar samochodu</Label>
+          <div className="glass-card p-3 mb-3">
+            <Label className="text-xs font-medium mb-2 block">Rozmiar samochodu</Label>
             <div className="grid grid-cols-3 gap-2">
               {(['small', 'medium', 'large'] as const).map((size) => (
                 <button
                   key={size}
                   onClick={() => setCarSize(size)}
                   className={cn(
-                    'py-2 px-3 rounded-lg border text-sm transition-all',
+                    'py-1.5 px-2 rounded-md border text-xs transition-all',
                     carSize === size ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'
                   )}
                 >
@@ -610,28 +628,117 @@ export default function CustomerBookingWizard() {
           </div>
         )}
 
+        {/* Addons */}
+        <div className="grid gap-2 mb-4">
+          {addonServices.slice(0, 6).map((service) => (
+            <button
+              key={service.id}
+              onClick={() => toggleAddon(service.id)}
+              className={cn(
+                'glass-card p-3 text-left transition-all',
+                selectedAddons.includes(service.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
+                  selectedAddons.includes(service.id) ? 'border-primary bg-primary' : 'border-muted-foreground'
+                )}>
+                  {selectedAddons.includes(service.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium truncate block">{service.name}</span>
+                </div>
+                <span className="text-sm font-semibold text-primary">+{service.price_from || 0} zł</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Summary & Continue */}
+        <div className="glass-card p-3">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm text-muted-foreground">Razem</span>
+            <span className="text-lg font-bold text-primary">{getTotalPrice()} zł</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            * Cena może ulec zmianie w zależności od stanu samochodu
+          </p>
+          <Button onClick={() => setStep('summary')} className="w-full" size="sm">
+            Dalej
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // STEP 4: SUMMARY WITH DATA & VERIFICATION
+  if (step === 'summary') {
+    return (
+      <div className="container py-4 animate-fade-in">
+        <button
+          onClick={() => { setStep('addons'); setSmsSent(false); setVerificationCode(''); }}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Wróć
+        </button>
+
+        <h2 className="text-base font-semibold mb-4">Podsumowanie</h2>
+
+        {/* Booking summary */}
+        <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Usługa</span>
+            <span className="font-medium">{selectedService?.name}</span>
+          </div>
+          {selectedAddons.length > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Dodatki</span>
+              <span className="font-medium">{selectedAddons.length}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Data</span>
+            <span className="font-medium">
+              {selectedDate && format(selectedDate, 'd MMMM', { locale: pl })}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Godzina</span>
+            <span className="font-medium">{selectedTime}</span>
+          </div>
+          <div className="flex justify-between pt-1.5 border-t border-border">
+            <span className="text-muted-foreground">Cena</span>
+            <span className="font-bold text-primary">{getTotalPrice()} zł</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            * Cena może ulec zmianie w zależności od stanu samochodu
+          </p>
+        </div>
+
         {/* Customer data */}
-        <div className="glass-card p-4 mb-4 space-y-4">
+        <div className="glass-card p-3 mb-3 space-y-3">
           <div>
-            <Label htmlFor="name">Imię / Nazwa</Label>
+            <Label htmlFor="name" className="text-xs">Imię / Nazwa</Label>
             <Input
               id="name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="np. Jan lub AutoMax"
-              className="mt-1"
+              className="mt-1 h-9 text-sm"
               disabled={smsSent}
             />
           </div>
           <div>
-            <Label htmlFor="phone">Telefon *</Label>
+            <Label htmlFor="phone" className="text-xs">Telefon *</Label>
             <Input
               id="phone"
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="np. 600 123 456"
-              className="mt-1"
+              className="mt-1 h-9 text-sm"
               required
               disabled={smsSent}
             />
@@ -650,10 +757,10 @@ export default function CustomerBookingWizard() {
           </Button>
         ) : (
           <div className="glass-card p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-xs text-muted-foreground mb-3">
               Wpisz 4-cyfrowy kod z SMS
             </p>
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-3">
               <InputOTP
                 maxLength={4}
                 value={verificationCode}
@@ -670,6 +777,7 @@ export default function CustomerBookingWizard() {
             <Button
               onClick={handleVerifyCode}
               className="w-full"
+              size="sm"
               disabled={isVerifying || verificationCode.length !== 4}
             >
               {isVerifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -686,20 +794,20 @@ export default function CustomerBookingWizard() {
     return (
       <div className="container py-6 animate-fade-in">
         <div className="max-w-sm mx-auto text-center">
-          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-500" />
+          <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+            <Check className="w-7 h-7 text-green-500" />
           </div>
 
-          <h2 className="text-xl font-semibold mb-2">Rezerwacja potwierdzona!</h2>
-          <p className="text-muted-foreground mb-4">Twój kod rezerwacji:</p>
+          <h2 className="text-lg font-semibold mb-1">Rezerwacja potwierdzona!</h2>
+          <p className="text-sm text-muted-foreground mb-4">Twój kod:</p>
 
-          <div className="glass-card p-4 mb-6">
-            <span className="text-3xl font-mono font-bold text-primary tracking-wider">
+          <div className="glass-card p-4 mb-4">
+            <span className="text-2xl font-mono font-bold text-primary tracking-wider">
               {confirmationData.confirmationCode}
             </span>
           </div>
 
-          <div className="glass-card p-4 mb-6 text-left space-y-2">
+          <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Usługa</span>
               <span className="font-medium">{confirmationData.serviceName}</span>
@@ -707,7 +815,7 @@ export default function CustomerBookingWizard() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Data</span>
               <span className="font-medium">
-                {format(parseISO(confirmationData.date), 'd MMMM yyyy', { locale: pl })}
+                {format(parseISO(confirmationData.date), 'd MMM yyyy', { locale: pl })}
               </span>
             </div>
             <div className="flex justify-between">
@@ -717,17 +825,17 @@ export default function CustomerBookingWizard() {
           </div>
 
           {(socialLinks.facebook || socialLinks.instagram) && (
-            <div className="mb-6">
-              <p className="text-sm text-muted-foreground mb-3">Obserwuj nas</p>
-              <div className="flex justify-center gap-4">
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-2">Obserwuj nas</p>
+              <div className="flex justify-center gap-3">
                 {socialLinks.facebook && (
                   <a
                     href={socialLinks.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center hover:bg-blue-600/30 transition-colors"
+                    className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center hover:bg-blue-600/30 transition-colors"
                   >
-                    <Facebook className="w-5 h-5 text-blue-500" />
+                    <Facebook className="w-4 h-4 text-blue-500" />
                   </a>
                 )}
                 {socialLinks.instagram && (
@@ -735,16 +843,16 @@ export default function CustomerBookingWizard() {
                     href={socialLinks.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12 h-12 rounded-full bg-pink-600/20 flex items-center justify-center hover:bg-pink-600/30 transition-colors"
+                    className="w-10 h-10 rounded-full bg-pink-600/20 flex items-center justify-center hover:bg-pink-600/30 transition-colors"
                   >
-                    <Instagram className="w-5 h-5 text-pink-500" />
+                    <Instagram className="w-4 h-4 text-pink-500" />
                   </a>
                 )}
               </div>
             </div>
           )}
 
-          <Button variant="outline" onClick={() => window.location.reload()} className="w-full">
+          <Button variant="outline" onClick={() => window.location.reload()} className="w-full" size="sm">
             Nowa rezerwacja
           </Button>
         </div>

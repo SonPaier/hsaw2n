@@ -165,6 +165,73 @@ const AdminDashboard = () => {
     fetchReservations();
   }, [instanceId]);
 
+  // Subscribe to realtime updates for reservations
+  useEffect(() => {
+    if (!instanceId) return;
+
+    const channel = supabase
+      .channel('reservations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `instance_id=eq.${instanceId}`,
+        },
+        (payload) => {
+          console.log('Realtime reservation update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Fetch the new reservation with service name
+            supabase
+              .from('reservations')
+              .select(`
+                id,
+                instance_id,
+                customer_name,
+                customer_phone,
+                vehicle_plate,
+                reservation_date,
+                start_time,
+                end_time,
+                station_id,
+                status,
+                confirmation_code,
+                price,
+                services:service_id (name)
+              `)
+              .eq('id', payload.new.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  const newReservation = {
+                    ...data,
+                    status: data.status || 'pending',
+                    service: data.services ? { name: (data.services as any).name } : undefined,
+                  };
+                  setReservations(prev => [...prev, newReservation as Reservation]);
+                  toast.success('Nowa rezerwacja!', {
+                    description: `${data.customer_name} - ${data.start_time}`,
+                  });
+                }
+              });
+          } else if (payload.eventType === 'UPDATE') {
+            setReservations(prev =>
+              prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
   // Calculate free time ranges (gaps) per station
   const getFreeRangesPerStation = () => {
     const now = new Date();
