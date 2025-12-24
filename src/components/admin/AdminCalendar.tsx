@@ -353,6 +353,31 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     return { startTime: dayHours.open, closeTime: dayHours.close };
   };
 
+  // Check if a time slot overlaps with existing reservations
+  const checkOverlap = (stationId: string, dateStr: string, startTime: string, endTime: string, excludeReservationId?: string): boolean => {
+    const stationReservations = reservations.filter(
+      r => r.reservation_date === dateStr && 
+           r.station_id === stationId && 
+           r.id !== excludeReservationId &&
+           r.status !== 'cancelled'
+    );
+    
+    const newStart = parseTime(startTime);
+    const newEnd = parseTime(endTime);
+    
+    for (const reservation of stationReservations) {
+      const resStart = parseTime(reservation.start_time);
+      const resEnd = parseTime(reservation.end_time);
+      
+      // Check if time ranges overlap
+      if (newStart < resEnd && newEnd > resStart) {
+        return true; // Overlap detected
+      }
+    }
+    
+    return false; // No overlap
+  };
+
   const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr: string, hour?: number, slotIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -387,6 +412,14 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
         
         if (newEndNum > closeNum) {
           console.warn('Reservation would end after closing time');
+          setDraggedReservation(null);
+          return;
+        }
+        
+        // Check for overlap with existing reservations
+        const newEndTime = `${Math.floor(newEndNum).toString().padStart(2, '0')}:${Math.round((newEndNum % 1) * 60).toString().padStart(2, '0')}`;
+        if (checkOverlap(stationId, dateStr, newTime, newEndTime, draggedReservation.id)) {
+          console.warn('Cannot drop reservation - overlaps with existing reservation');
           setDraggedReservation(null);
           return;
         }
