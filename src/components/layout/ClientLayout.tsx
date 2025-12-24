@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, forwardRef } from 'react';
 import { Car, Phone, MapPin, Facebook, Instagram } from 'lucide-react';
 import { mockInstance } from '@/data/mockData';
 
@@ -6,7 +6,7 @@ interface ClientLayoutProps {
   children: ReactNode;
 }
 
-const ClientLayout = ({ children }: ClientLayoutProps) => {
+const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children }, ref) => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -115,6 +115,8 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
       </footer>
     </div>
   );
-};
+});
+
+ClientLayout.displayName = 'ClientLayout';
 
 export default ClientLayout;
