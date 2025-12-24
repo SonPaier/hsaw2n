@@ -102,24 +102,32 @@ const AdminDashboard = () => {
   }, [user]);
 
   // Fetch stations from database
-  useEffect(() => {
-    const fetchStations = async () => {
-      if (!instanceId) return;
-      
-      const { data, error } = await supabase
-        .from('stations')
-        .select('id, name, type')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('sort_order');
-      
-      if (!error && data) {
-        setStations(data);
-      }
-    };
+  const fetchStations = async () => {
+    if (!instanceId) return;
     
+    const { data, error } = await supabase
+      .from('stations')
+      .select('id, name, type')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    
+    if (!error && data) {
+      setStations(data);
+    }
+  };
+
+  useEffect(() => {
     fetchStations();
   }, [instanceId]);
+
+  // Refetch stations when switching to calendar view
+  useEffect(() => {
+    if (currentView === 'calendar') {
+      fetchStations();
+      fetchReservations();
+    }
+  }, [currentView]);
 
   // Fetch reservations from database
   const fetchReservations = async () => {
