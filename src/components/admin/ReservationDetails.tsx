@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2, Trash2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -93,7 +93,7 @@ const getStatusBadge = (status: string) => {
 const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: ReservationDetailsProps) => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   // Editable fields
   const [customerName, setCustomerName] = useState('');
@@ -116,14 +116,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
       setPrice(reservation.price?.toString() || '');
-      setHasChanges(false);
+      setIsEditing(false);
     }
   }, [reservation]);
-
-  const handleFieldChange = (setter: (value: any) => void, value: any) => {
-    setter(value);
-    setHasChanges(true);
-  };
 
   const handleSave = async () => {
     if (!reservation || !onSave) return;
@@ -140,7 +135,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
         notes: notes || undefined,
         price: price ? parseFloat(price) : undefined,
       });
-      setHasChanges(false);
+      setIsEditing(false);
     } finally {
       setSaving(false);
     }
@@ -163,189 +158,338 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
     }
   };
 
+  const handleCall = () => {
+    if (customerPhone) {
+      window.location.href = `tel:${customerPhone}`;
+    }
+  };
+
+  const handleSMS = () => {
+    if (customerPhone) {
+      window.location.href = `sms:${customerPhone}`;
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (reservation) {
+      setCustomerName(reservation.customer_name || '');
+      setCustomerPhone(reservation.customer_phone || '');
+      setCarModel(reservation.vehicle_plate || '');
+      setCarSize(reservation.car_size || '');
+      setStartTime(reservation.start_time || '');
+      setEndTime(reservation.end_time || '');
+      setNotes(reservation.notes || '');
+      setPrice(reservation.price?.toString() || '');
+    }
+    setIsEditing(false);
+  };
+
   if (!reservation) return null;
+
+  const formatTime = (time: string) => {
+    return time?.substring(0, 5) || '';
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Edytuj rezerwację</span>
-            {getStatusBadge(reservation.status)}
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <span>{isEditing ? 'Edytuj rezerwację' : 'Szczegóły rezerwacji'}</span>
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              {getStatusBadge(reservation.status)}
+              {!isEditing && onSave && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edytuj
+                </Button>
+              )}
+            </div>
+          </div>
           <DialogDescription>
             {format(new Date(reservation.reservation_date), 'd MMMM yyyy (EEEE)', { locale: pl })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Customer Name */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-name" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Imię i nazwisko
-            </Label>
-            <Input
-              id="edit-name"
-              value={customerName}
-              onChange={(e) => handleFieldChange(setCustomerName, e.target.value)}
-            />
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Telefon
-            </Label>
-            <Input
-              id="edit-phone"
-              value={customerPhone}
-              onChange={(e) => handleFieldChange(setCustomerPhone, e.target.value)}
-            />
-          </div>
-
-          {/* Car Model */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-car" className="flex items-center gap-2">
-              <Car className="w-4 h-4" />
-              Model samochodu
-            </Label>
-            <Input
-              id="edit-car"
-              value={carModel}
-              onChange={(e) => handleFieldChange(setCarModel, e.target.value)}
-            />
-          </div>
-
-          {/* Car Size */}
-          <div className="space-y-2">
-            <Label>Wielkość samochodu</Label>
-            <Select 
-              value={carSize} 
-              onValueChange={(v) => handleFieldChange(setCarSize, v as CarSize)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz wielkość" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
-                <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
-                <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Service (read-only) */}
-          {reservation.service && (
-            <div className="space-y-2">
-              <Label>Usługa</Label>
-              <div className="p-2 bg-muted/50 rounded-md text-sm">
-                {reservation.service.name}
+          {isEditing ? (
+            <>
+              {/* Customer Name */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-name" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Imię i nazwisko
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
               </div>
-            </div>
-          )}
 
-          {/* Time Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-start" className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Początek
-              </Label>
-              <Input
-                id="edit-start"
-                type="time"
-                value={startTime}
-                onChange={(e) => handleFieldChange(setStartTime, e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-end">Koniec</Label>
-              <Input
-                id="edit-end"
-                type="time"
-                value={endTime}
-                onChange={(e) => handleFieldChange(setEndTime, e.target.value)}
-              />
-            </div>
-          </div>
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Telefon
+                </Label>
+                <Input
+                  id="edit-phone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+              </div>
 
-          {/* Price */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-price">Cena (PLN)</Label>
-            <Input
-              id="edit-price"
-              type="number"
-              step="0.01"
-              value={price}
-              onChange={(e) => handleFieldChange(setPrice, e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
+              {/* Car Model */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-car" className="flex items-center gap-2">
+                  <Car className="w-4 h-4" />
+                  Model samochodu
+                </Label>
+                <Input
+                  id="edit-car"
+                  value={carModel}
+                  onChange={(e) => setCarModel(e.target.value)}
+                />
+              </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notatki</Label>
-            <Textarea
-              id="edit-notes"
-              value={notes}
-              onChange={(e) => handleFieldChange(setNotes, e.target.value)}
-              placeholder="Dodatkowe uwagi..."
-              rows={3}
-            />
-          </div>
+              {/* Car Size */}
+              <div className="space-y-2">
+                <Label>Wielkość samochodu</Label>
+                <Select 
+                  value={carSize} 
+                  onValueChange={(v) => setCarSize(v as CarSize)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz wielkość" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
+                    <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
+                    <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4 border-t border-border/50">
-            {onSave && (
-              <Button 
-                className="flex-1 gap-2" 
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
+              {/* Service (read-only) */}
+              {reservation.service && (
+                <div className="space-y-2">
+                  <Label>Usługa</Label>
+                  <div className="p-2 bg-muted/50 rounded-md text-sm">
+                    {reservation.service.name}
+                  </div>
+                </div>
+              )}
+
+              {/* Time Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-start" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Początek
+                  </Label>
+                  <Input
+                    id="edit-start"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-end">Koniec</Label>
+                  <Input
+                    id="edit-end"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Cena (PLN)</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Notatki</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Dodatkowe uwagi..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Edit Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t border-border/50">
+                <Button 
+                  variant="outline"
+                  className="flex-1" 
+                  onClick={handleCancelEdit}
+                >
+                  Anuluj
+                </Button>
+                <Button 
+                  className="flex-1 gap-2" 
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Zapisz
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Read-only view */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Klient</div>
+                    <div className="font-medium">{customerName}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Telefon</div>
+                    <div className="font-medium">{customerPhone}</div>
+                  </div>
+                </div>
+
+                {carModel && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <Car className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-xs text-muted-foreground">Samochód</div>
+                      <div className="font-medium">
+                        {carModel}
+                        {carSize && <span className="text-muted-foreground ml-2">({CAR_SIZE_LABELS[carSize as CarSize]})</span>}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                Zapisz zmiany
-              </Button>
-            )}
-            
-            {onDelete && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+
+                {reservation.service && (
+                  <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg">
+                    <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm">U</div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Usługa</div>
+                      <div className="font-medium text-primary">{reservation.service.name}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Godzina</div>
+                    <div className="font-medium">{formatTime(startTime)} - {formatTime(endTime)}</div>
+                  </div>
+                </div>
+
+                {price && (
+                  <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg">
+                    <div className="w-5 h-5 flex items-center justify-center text-success font-bold text-sm">zł</div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Cena</div>
+                      <div className="font-medium text-success">{price} PLN</div>
+                    </div>
+                  </div>
+                )}
+
+                {notes && (
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">Notatki</div>
+                    <div className="text-sm">{notes}</div>
+                  </div>
+                )}
+
+                <div className="text-xs text-muted-foreground text-center">
+                  Kod potwierdzenia: <span className="font-mono font-medium">{reservation.confirmation_code}</span>
+                </div>
+              </div>
+
+              {/* Contact & Delete Buttons */}
+              <div className="space-y-2 pt-4 border-t border-border/50">
+                <div className="flex gap-2">
                   <Button 
-                    variant="destructive" 
-                    className="gap-2"
-                    disabled={deleting}
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    onClick={handleCall}
                   >
-                    {deleting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                    Anuluj
+                    <PhoneCall className="w-4 h-4" />
+                    Zadzwoń
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Czy na pewno chcesz anulować rezerwację?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Rezerwacja zostanie usunięta z systemu. Dane klienta ({customerName}, {customerPhone}) zostaną zachowane w bazie klientów.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Nie, wróć</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Tak, usuń rezerwację
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    onClick={handleSMS}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Wyślij SMS
+                  </Button>
+                </div>
+                
+                {onDelete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={deleting}
+                      >
+                        {deleting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Anuluj rezerwację
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Czy na pewno chcesz anulować rezerwację?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Rezerwacja zostanie usunięta z systemu. Dane klienta ({customerName}, {customerPhone}) zostaną zachowane w bazie klientów.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Nie, wróć</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Tak, usuń rezerwację
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
