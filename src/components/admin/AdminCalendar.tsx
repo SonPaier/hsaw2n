@@ -1,12 +1,12 @@
 import { useState, DragEvent } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-type ViewMode = 'day' | 'week';
+type ViewMode = 'day' | 'two-days' | 'week';
 
 interface Station {
   id: string;
@@ -84,6 +84,8 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   const handlePrev = () => {
     if (viewMode === 'week') {
       setCurrentDate(subWeeks(currentDate, 1));
+    } else if (viewMode === 'two-days') {
+      setCurrentDate(subDays(currentDate, 2));
     } else {
       setCurrentDate(subDays(currentDate, 1));
     }
@@ -92,10 +94,15 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   const handleNext = () => {
     if (viewMode === 'week') {
       setCurrentDate(addWeeks(currentDate, 1));
+    } else if (viewMode === 'two-days') {
+      setCurrentDate(addDays(currentDate, 2));
     } else {
       setCurrentDate(addDays(currentDate, 1));
     }
   };
+
+  // Get two days for two-days view
+  const twoDays = [currentDate, addDays(currentDate, 1)];
   
   const handleToday = () => {
     setCurrentDate(new Date());
@@ -217,6 +224,8 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
         )}>
           {viewMode === 'week' 
             ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM yyyy', { locale: pl })}`
+            : viewMode === 'two-days'
+            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM yyyy', { locale: pl })}`
             : format(currentDate, 'EEEE, d MMMM yyyy', { locale: pl })
           }
         </h2>
@@ -228,19 +237,28 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
               variant={viewMode === 'day' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('day')}
-              className="rounded-none border-0 px-3"
+              className="rounded-none border-0 px-2 md:px-3"
             >
-              <Calendar className="w-4 h-4 mr-1" />
-              Dzień
+              <Calendar className="w-4 h-4 md:mr-1" />
+              <span className="hidden md:inline">Dzień</span>
+            </Button>
+            <Button
+              variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('two-days')}
+              className="rounded-none border-0 px-2 md:px-3"
+            >
+              <Columns2 className="w-4 h-4 md:mr-1" />
+              <span className="hidden md:inline">2 dni</span>
             </Button>
             <Button
               variant={viewMode === 'week' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('week')}
-              className="rounded-none border-0 px-3"
+              className="rounded-none border-0 px-2 md:px-3"
             >
-              <CalendarDays className="w-4 h-4 mr-1" />
-              Tydzień
+              <CalendarDays className="w-4 h-4 md:mr-1" />
+              <span className="hidden md:inline">Tydzień</span>
             </Button>
           </div>
           
@@ -412,6 +430,212 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
 
               {/* Current time indicator */}
               {showCurrentTime && (
+                <div 
+                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  style={{ top: currentTimeTop }}
+                >
+                  <div className="flex items-center">
+                    <div className="w-14 md:w-16 flex justify-end pr-1">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                    <div className="flex-1 h-0.5 bg-red-500" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* TWO DAYS VIEW */}
+      {viewMode === 'two-days' && (
+        <>
+          {/* Day and Station Headers */}
+          <div className="flex border-b border-border bg-muted/20">
+            {/* Time column header */}
+            <div className="w-14 md:w-16 shrink-0 p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
+              <Clock className="w-4 h-4 mx-auto" />
+            </div>
+            
+            {/* Day + Station headers */}
+            {twoDays.map((day, dayIdx) => {
+              const dayStr = format(day, 'yyyy-MM-dd');
+              const isDayToday = isSameDay(day, new Date());
+              
+              return (
+                <div key={dayStr} className={cn("flex-1 flex flex-col", dayIdx < 1 && "border-r-2 border-border")}>
+                  {/* Day header */}
+                  <div 
+                    className={cn(
+                      "p-1 md:p-2 text-center font-medium text-xs border-b border-border cursor-pointer hover:bg-muted/50 transition-colors",
+                      isDayToday && "bg-primary/10"
+                    )}
+                    onClick={() => {
+                      setCurrentDate(day);
+                      setViewMode('day');
+                    }}
+                  >
+                    <span className={cn("font-bold", isDayToday && "text-primary")}>
+                      {format(day, 'EEEE d MMM', { locale: pl })}
+                    </span>
+                  </div>
+                  {/* Station headers for this day */}
+                  <div className="flex">
+                    {visibleStations.map((station, stationIdx) => (
+                      <div 
+                        key={`${dayStr}-${station.id}`}
+                        className={cn(
+                          "flex-1 p-1 md:p-2 text-center font-medium text-[10px] md:text-xs min-w-[60px]",
+                          stationIdx < visibleStations.length - 1 && "border-r border-border"
+                        )}
+                      >
+                        <div className="text-foreground truncate">{station.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Calendar Grid - Two Days View */}
+          <div className="flex-1 overflow-auto">
+            <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+              {/* Time column */}
+              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+                {HOURS.map((hour) => (
+                  <div 
+                    key={hour}
+                    className="relative"
+                    style={{ height: HOUR_HEIGHT }}
+                  >
+                    <span className="absolute -top-2.5 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-card px-1">
+                      {`${hour.toString().padStart(2, '0')}:00`}
+                    </span>
+                    <div className="absolute left-0 right-0 top-0 h-full">
+                      {Array.from({ length: 4 }, (_, i) => (
+                        <div 
+                          key={i} 
+                          className="border-b border-border/60"
+                          style={{ height: `${SLOT_HEIGHT * 3}px` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Day columns with stations */}
+              {twoDays.map((day, dayIdx) => {
+                const dayStr = format(day, 'yyyy-MM-dd');
+                const isDayToday = isSameDay(day, new Date());
+                
+                return (
+                  <div key={dayStr} className={cn("flex-1 flex", dayIdx < 1 && "border-r-2 border-border")}>
+                    {visibleStations.map((station, stationIdx) => (
+                      <div 
+                        key={`${dayStr}-${station.id}`}
+                        className={cn(
+                          "flex-1 relative min-w-[60px] transition-colors duration-150",
+                          stationIdx < visibleStations.length - 1 && "border-r border-border",
+                          isDayToday && "bg-primary/5",
+                          dragOverStation === `${dayStr}-${station.id}` && "bg-primary/10"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          setDragOverStation(`${dayStr}-${station.id}`);
+                          setDragOverDate(dayStr);
+                        }}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, station.id)}
+                      >
+                        {/* 5-minute grid slots */}
+                        {HOURS.map((hour) => (
+                          <div key={hour} style={{ height: HOUR_HEIGHT }}>
+                            {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => (
+                              <div
+                                key={slotIndex}
+                                className={cn(
+                                  "border-b group cursor-pointer transition-colors hover:bg-primary/5",
+                                  slotIndex % 3 === 0 && "border-border/50",
+                                  slotIndex % 3 !== 0 && "border-border/20"
+                                )}
+                                style={{ height: SLOT_HEIGHT }}
+                                onClick={() => handleSlotClick(station.id, hour, slotIndex, dayStr)}
+                                onDrop={(e) => {
+                                  e.stopPropagation();
+                                  handleDrop(e, station.id, hour, slotIndex);
+                                }}
+                              >
+                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Plus className="w-2 h-2 text-primary/50" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+
+                        {/* Reservations */}
+                        {getReservationsForStationAndDate(station.id, dayStr).map((reservation) => {
+                          const style = getReservationStyle(reservation.start_time, reservation.end_time);
+                          const isDragging = draggedReservation?.id === reservation.id;
+                          
+                          return (
+                            <div
+                              key={reservation.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, reservation)}
+                              onDragEnd={handleDragEnd}
+                              className={cn(
+                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5 cursor-grab active:cursor-grabbing",
+                                "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
+                                "overflow-hidden",
+                                getStatusColor(reservation.status),
+                                isDragging && "opacity-50 scale-95"
+                              )}
+                              style={style}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onReservationClick?.(reservation);
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-0.5">
+                                <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
+                                  <User className="w-2.5 h-2.5 shrink-0" />
+                                  {reservation.customer_name}
+                                </div>
+                                {reservation.customer_phone && (
+                                  <a
+                                    href={`tel:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                    title={reservation.customer_phone}
+                                  >
+                                    <Phone className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
+                              {reservation.vehicle_plate && (
+                                <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate opacity-90">
+                                  <Car className="w-2.5 h-2.5 shrink-0" />
+                                  {reservation.vehicle_plate}
+                                </div>
+                              )}
+                              <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
+                                {reservation.start_time} - {reservation.end_time}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+
+              {/* Current time indicator */}
+              {twoDays.some(d => isSameDay(d, new Date())) && currentHour >= 8 && currentHour <= 18 && (
                 <div 
                   className="absolute left-0 right-0 z-30 pointer-events-none"
                   style={{ top: currentTimeTop }}
