@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2, Bug } from 'lucide-react';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useWebOTP } from '@/hooks/useWebOTP';
 
 interface Service {
   id: string;
@@ -119,6 +120,23 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     serviceName: string;
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{ facebook: string | null; instagram: string | null }>({ facebook: null, instagram: null });
+
+  // WebOTP hook for automatic SMS code reading on Android/Chrome
+  const handleWebOTPCode = useCallback((code: string) => {
+    setVerificationCode(code);
+  }, []);
+
+  useWebOTP({
+    onCodeReceived: handleWebOTPCode,
+    enabled: smsSent && !isVerifying,
+    timeoutMs: 60000,
+  });
+
+  useWebOTP({
+    onCodeReceived: handleWebOTPCode,
+    enabled: smsSent && !isVerifying,
+    timeoutMs: 60000,
+  });
 
   // Notify parent about layout changes
   useEffect(() => {
@@ -523,8 +541,10 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (verificationCode.length !== 4) {
+  // Auto-verify when code is complete (from manual input or WebOTP)
+  const handleVerifyCode = useCallback(async (codeToVerify?: string) => {
+    const code = codeToVerify || verificationCode;
+    if (code.length !== 4) {
       toast({ title: 'Nieprawidłowy kod', description: 'Wpisz 4-cyfrowy kod z SMS', variant: 'destructive' });
       return;
     }
@@ -537,7 +557,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       const response = await supabase.functions.invoke('verify-sms-code', {
         body: {
           phone: customerPhone,
-          code: verificationCode,
+          code: code,
           instanceId: instance.id,
         },
       });
@@ -575,7 +595,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     } finally {
       setIsVerifying(false);
     }
-  };
+  }, [verificationCode, instance, customerPhone, saveCustomerToLocalStorage]);
 
   const handleReservationClick = () => {
     if (devMode) {
@@ -1006,19 +1026,21 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               </div>
             )}
             
-            <div className="flex justify-center mb-3">
+            <div className="flex justify-center mb-4">
               <InputOTP
                 maxLength={4}
                 value={verificationCode}
                 onChange={setVerificationCode}
                 onComplete={handleVerifyCode}
                 autoComplete="one-time-code"
+                inputMode="numeric"
+                className="gap-3"
               >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
+                <InputOTPGroup className="gap-3">
+                  <InputOTPSlot index={0} className="h-14 w-14 text-2xl font-bold border-2" />
+                  <InputOTPSlot index={1} className="h-14 w-14 text-2xl font-bold border-2" />
+                  <InputOTPSlot index={2} className="h-14 w-14 text-2xl font-bold border-2" />
+                  <InputOTPSlot index={3} className="h-14 w-14 text-2xl font-bold border-2" />
                 </InputOTPGroup>
               </InputOTP>
             </div>
