@@ -64,14 +64,13 @@ const AddBreakDialog = ({
   initialData,
   onBreakAdded,
 }: AddBreakDialogProps) => {
-  const [stationId, setStationId] = useState(initialData.stationId);
   const [startTime, setStartTime] = useState(initialData.time || '08:00');
   const [endTime, setEndTime] = useState('09:00');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!stationId || !startTime || !endTime) {
+    if (!initialData.stationId || !startTime || !endTime) {
       toast.error('Wypełnij wszystkie pola');
       return;
     }
@@ -86,7 +85,7 @@ const AddBreakDialog = ({
     try {
       const { error } = await supabase.from('breaks').insert({
         instance_id: instanceId,
-        station_id: stationId,
+        station_id: initialData.stationId,
         break_date: initialData.date,
         start_time: startTime,
         end_time: endTime,
@@ -113,7 +112,7 @@ const AddBreakDialog = ({
     }
   };
 
-  const selectedStation = stations.find(s => s.id === stationId);
+  const selectedStation = stations.find(s => s.id === initialData.stationId);
   const formattedDate = initialData.date 
     ? format(new Date(initialData.date), 'EEEE, d MMMM yyyy', { locale: pl })
     : '';
@@ -126,26 +125,12 @@ const AddBreakDialog = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Date display */}
-          <div className="text-sm text-muted-foreground text-center pb-2 border-b border-border">
-            {formattedDate}
-          </div>
-
-          {/* Station select */}
-          <div className="space-y-2">
-            <Label>Stanowisko</Label>
-            <Select value={stationId} onValueChange={setStationId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz stanowisko" />
-              </SelectTrigger>
-              <SelectContent>
-                {stations.map((station) => (
-                  <SelectItem key={station.id} value={station.id}>
-                    {station.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Date and station display */}
+          <div className="text-sm text-center pb-2 border-b border-border">
+            <div className="text-muted-foreground">{formattedDate}</div>
+            {selectedStation && (
+              <div className="font-medium mt-1">{selectedStation.name}</div>
+            )}
           </div>
 
           {/* Time range */}
