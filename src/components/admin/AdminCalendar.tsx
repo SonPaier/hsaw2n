@@ -39,10 +39,10 @@ interface AdminCalendarProps {
 
 // Hours from 8:00 to 18:00
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8);
-const SLOT_MINUTES = 5; // 5-minute slots for precise drag & drop
-const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 12 slots per hour
-const SLOT_HEIGHT = 10; // pixels per 5 minutes
-const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 120px per hour
+const SLOT_MINUTES = 15; // 15-minute slots
+const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 4 slots per hour
+const SLOT_HEIGHT = 20; // pixels per 15 minutes
+const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 80px per hour
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -364,11 +364,14 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                     <div className="absolute left-0 right-0 top-0 h-full">
-                      {Array.from({ length: 4 }, (_, i) => (
+                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
                         <div 
                           key={i} 
-                          className="border-b border-border/60"
-                          style={{ height: `${SLOT_HEIGHT * 3}px` }}
+                          className={cn(
+                            "border-b",
+                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                          )}
+                          style={{ height: SLOT_HEIGHT }}
                         />
                       ))}
                     </div>
@@ -402,10 +405,9 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                             key={slotIndex}
                             className={cn(
                               "border-b group cursor-pointer transition-colors",
-                              slotIndex % 3 === 0 && "border-border/50",
-                              slotIndex % 3 !== 0 && "border-border/20",
+                              slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
                               isDropTarget && "bg-primary/30 border-primary",
-                              !isDropTarget && "hover:bg-primary/5"
+                              !isDropTarget && "hover:bg-primary/10"
                             )}
                             style={{ height: SLOT_HEIGHT }}
                             onClick={() => handleSlotClick(station.id, hour, slotIndex)}
@@ -584,11 +586,14 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                     <div className="absolute left-0 right-0 top-0 h-full">
-                      {Array.from({ length: 4 }, (_, i) => (
+                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
                         <div 
                           key={i} 
-                          className="border-b border-border/60"
-                          style={{ height: `${SLOT_HEIGHT * 3}px` }}
+                          className={cn(
+                            "border-b",
+                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                          )}
+                          style={{ height: SLOT_HEIGHT }}
                         />
                       ))}
                     </div>
