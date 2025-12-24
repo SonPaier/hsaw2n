@@ -193,7 +193,7 @@ export default function CustomerBookingWizard() {
 
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
-      const dayName = format(date, 'EEEE', { locale: pl }).toLowerCase();
+      const dayName = format(date, 'EEEE').toLowerCase(); // English day name for DB lookup
       const workingHours = instance.working_hours[dayName];
 
       if (!workingHours) continue;
