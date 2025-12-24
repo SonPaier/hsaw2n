@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { 
-  Car, Calendar, LogOut, 
-  Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft
-} from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -21,13 +18,11 @@ import StationsSettings from '@/components/admin/StationsSettings';
 import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import CustomersView from '@/components/admin/CustomersView';
 import { toast } from 'sonner';
-
 interface Station {
   id: string;
   name: string;
   type: string;
 }
-
 interface Reservation {
   id: string;
   instance_id: string;
@@ -40,10 +35,11 @@ interface Reservation {
   station_id: string;
   status: string;
   confirmation_code: string;
-  service?: { name: string };
+  service?: {
+    name: string;
+  };
   price: number | null;
 }
-
 interface Break {
   id: string;
   instance_id: string;
@@ -53,12 +49,13 @@ interface Break {
   end_time: string;
   note: string | null;
 }
-
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -68,79 +65,70 @@ const AdminDashboard = () => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
-  
+
   // Add reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
   const [newReservationData, setNewReservationData] = useState({
     stationId: '',
     date: '',
-    time: '',
+    time: ''
   });
-  
+
   // Breaks state
   const [breaks, setBreaks] = useState<Break[]>([]);
   const [addBreakOpen, setAddBreakOpen] = useState(false);
   const [newBreakData, setNewBreakData] = useState({
     stationId: '',
     date: '',
-    time: '',
+    time: ''
   });
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
-  
-  // Working hours for calendar
-  const [workingHours, setWorkingHours] = useState<Record<string, { open: string; close: string } | null> | null>(null);
 
+  // Working hours for calendar
+  const [workingHours, setWorkingHours] = useState<Record<string, {
+    open: string;
+    close: string;
+  } | null> | null>(null);
   useEffect(() => {
     const fetchUserInstanceId = async () => {
       if (!user) return;
-      
+
       // Get all user roles
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('instance_id, role')
-        .eq('user_id', user.id);
-      
+      const {
+        data: rolesData
+      } = await supabase.from('user_roles').select('instance_id, role').eq('user_id', user.id);
       if (!rolesData || rolesData.length === 0) return;
-      
+
       // First check if user has admin role with instance_id
       const adminRole = rolesData.find(r => r.role === 'admin' && r.instance_id);
       if (adminRole?.instance_id) {
         setInstanceId(adminRole.instance_id);
         return;
       }
-      
+
       // Check for super_admin - get first available instance
       const isSuperAdmin = rolesData.some(r => r.role === 'super_admin');
       if (isSuperAdmin) {
-        const { data: instances } = await supabase
-          .from('instances')
-          .select('id')
-          .eq('active', true)
-          .limit(1)
-          .maybeSingle();
-        
+        const {
+          data: instances
+        } = await supabase.from('instances').select('id').eq('active', true).limit(1).maybeSingle();
         if (instances?.id) {
           setInstanceId(instances.id);
         }
       }
     };
-    
     fetchUserInstanceId();
   }, [user]);
 
   // Fetch stations from database
   const fetchStations = async () => {
     if (!instanceId) return;
-    
-    const { data, error } = await supabase
-      .from('stations')
-      .select('id, name, type')
-      .eq('instance_id', instanceId)
-      .eq('active', true)
-      .order('sort_order');
-    
+    const {
+      data,
+      error
+    } = await supabase.from('stations').select('id, name, type').eq('instance_id', instanceId).eq('active', true).order('sort_order');
     if (!error && data) {
       setStations(data);
     }
@@ -149,18 +137,16 @@ const AdminDashboard = () => {
   // Fetch working hours from database
   const fetchWorkingHours = async () => {
     if (!instanceId) return;
-    
-    const { data } = await supabase
-      .from('instances')
-      .select('working_hours')
-      .eq('id', instanceId)
-      .maybeSingle();
-    
+    const {
+      data
+    } = await supabase.from('instances').select('working_hours').eq('id', instanceId).maybeSingle();
     if (data?.working_hours) {
-      setWorkingHours(data.working_hours as unknown as Record<string, { open: string; close: string } | null>);
+      setWorkingHours(data.working_hours as unknown as Record<string, {
+        open: string;
+        close: string;
+      } | null>);
     }
   };
-
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
@@ -183,10 +169,10 @@ const AdminDashboard = () => {
   // Fetch reservations from database
   const fetchReservations = async () => {
     if (!instanceId) return;
-    
-    const { data, error } = await supabase
-      .from('reservations')
-      .select(`
+    const {
+      data,
+      error
+    } = await supabase.from('reservations').select(`
         id,
         instance_id,
         customer_name,
@@ -200,14 +186,14 @@ const AdminDashboard = () => {
         confirmation_code,
         price,
         services:service_id (name)
-      `)
-      .eq('instance_id', instanceId);
-    
+      `).eq('instance_id', instanceId);
     if (!error && data) {
       setReservations(data.map(r => ({
         ...r,
         status: r.status || 'pending',
-        service: r.services ? { name: (r.services as any).name } : undefined,
+        service: r.services ? {
+          name: (r.services as any).name
+        } : undefined
       })));
     }
   };
@@ -215,17 +201,14 @@ const AdminDashboard = () => {
   // Fetch breaks from database
   const fetchBreaks = async () => {
     if (!instanceId) return;
-    
-    const { data, error } = await supabase
-      .from('breaks')
-      .select('*')
-      .eq('instance_id', instanceId);
-    
+    const {
+      data,
+      error
+    } = await supabase.from('breaks').select('*').eq('instance_id', instanceId);
     if (!error && data) {
       setBreaks(data);
     }
   };
-
   useEffect(() => {
     fetchReservations();
     fetchBreaks();
@@ -234,25 +217,16 @@ const AdminDashboard = () => {
   // Subscribe to realtime updates for reservations
   useEffect(() => {
     if (!instanceId) return;
-
-    const channel = supabase
-      .channel('reservations-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reservations',
-          filter: `instance_id=eq.${instanceId}`,
-        },
-        (payload) => {
-          console.log('Realtime reservation update:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            // Fetch the new reservation with service name
-            supabase
-              .from('reservations')
-              .select(`
+    const channel = supabase.channel('reservations-changes').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'reservations',
+      filter: `instance_id=eq.${instanceId}`
+    }, payload => {
+      console.log('Realtime reservation update:', payload);
+      if (payload.eventType === 'INSERT') {
+        // Fetch the new reservation with service name
+        supabase.from('reservations').select(`
                 id,
                 instance_id,
                 customer_name,
@@ -266,33 +240,32 @@ const AdminDashboard = () => {
                 confirmation_code,
                 price,
                 services:service_id (name)
-              `)
-              .eq('id', payload.new.id)
-              .single()
-              .then(({ data }) => {
-                if (data) {
-                  const newReservation = {
-                    ...data,
-                    status: data.status || 'pending',
-                    service: data.services ? { name: (data.services as any).name } : undefined,
-                  };
-                  setReservations(prev => [...prev, newReservation as Reservation]);
-                  toast.success('Nowa rezerwacja!', {
-                    description: `${data.customer_name} - ${data.start_time}`,
-                  });
-                }
-              });
-          } else if (payload.eventType === 'UPDATE') {
-            setReservations(prev =>
-              prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r)
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+              `).eq('id', payload.new.id).single().then(({
+          data
+        }) => {
+          if (data) {
+            const newReservation = {
+              ...data,
+              status: data.status || 'pending',
+              service: data.services ? {
+                name: (data.services as any).name
+              } : undefined
+            };
+            setReservations(prev => [...prev, newReservation as Reservation]);
+            toast.success('Nowa rezerwacja!', {
+              description: `${data.customer_name} - ${data.start_time}`
+            });
           }
-        }
-      )
-      .subscribe();
-
+        });
+      } else if (payload.eventType === 'UPDATE') {
+        setReservations(prev => prev.map(r => r.id === payload.new.id ? {
+          ...r,
+          ...payload.new
+        } : r));
+      } else if (payload.eventType === 'DELETE') {
+        setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -305,36 +278,41 @@ const AdminDashboard = () => {
     const currentMinutes = now.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinutes;
     const today = format(now, 'yyyy-MM-dd');
-    
+
     // Working hours 8:00 - 18:00
     const workStart = 8 * 60; // 8:00 in minutes
-    const workEnd = 18 * 60;  // 18:00 in minutes
-    
+    const workEnd = 18 * 60; // 18:00 in minutes
+
     return stations.map(station => {
-      const stationReservations = reservations
-        .filter(r => r.station_id === station.id && r.reservation_date === today)
-        .map(r => ({
-          start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
-          end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]),
-        }))
-        .sort((a, b) => a.start - b.start);
-      
+      const stationReservations = reservations.filter(r => r.station_id === station.id && r.reservation_date === today).map(r => ({
+        start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
+        end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1])
+      })).sort((a, b) => a.start - b.start);
+
       // Find gaps
-      const gaps: { start: number; end: number }[] = [];
+      const gaps: {
+        start: number;
+        end: number;
+      }[] = [];
       let searchStart = Math.max(workStart, currentTimeMinutes);
-      
       for (const res of stationReservations) {
         if (res.start > searchStart) {
-          gaps.push({ start: searchStart, end: res.start });
+          gaps.push({
+            start: searchStart,
+            end: res.start
+          });
         }
         searchStart = Math.max(searchStart, res.end);
       }
-      
+
       // Add gap at the end if there's time left
       if (searchStart < workEnd) {
-        gaps.push({ start: searchStart, end: workEnd });
+        gaps.push({
+          start: searchStart,
+          end: workEnd
+        });
       }
-      
+
       // Format gaps as readable strings
       const freeRanges = gaps.map(gap => {
         const startHour = Math.floor(gap.start / 60);
@@ -342,76 +320,63 @@ const AdminDashboard = () => {
         const endHour = Math.floor(gap.end / 60);
         const endMin = gap.end % 60;
         const durationHours = (gap.end - gap.start) / 60;
-        
         const startStr = `${startHour}:${startMin.toString().padStart(2, '0')}`;
         const endStr = `${endHour}:${endMin.toString().padStart(2, '0')}`;
-        const durationStr = durationHours >= 1 
-          ? `${Math.floor(durationHours)}h${durationHours % 1 > 0 ? ` ${Math.round((durationHours % 1) * 60)}min` : ''}`
-          : `${Math.round(durationHours * 60)}min`;
-        
+        const durationStr = durationHours >= 1 ? `${Math.floor(durationHours)}h${durationHours % 1 > 0 ? ` ${Math.round(durationHours % 1 * 60)}min` : ''}` : `${Math.round(durationHours * 60)}min`;
         return {
           label: `${startStr} - ${endStr}`,
           duration: durationStr,
-          durationMinutes: gap.end - gap.start,
+          durationMinutes: gap.end - gap.start
         };
       });
-      
       return {
         ...station,
-        freeRanges,
+        freeRanges
       };
     });
   };
-
   const stationsWithRanges = getFreeRangesPerStation();
-
   const handleLogout = async () => {
     await signOut();
     navigate('/auth');
   };
-
   const handleReservationClick = (reservation: Reservation) => {
     setSelectedReservation(reservation);
   };
-
-  const handleDeleteReservation = async (
-    reservationId: string, 
-    customerData: { name: string; phone: string; email?: string; instance_id: string }
-  ) => {
+  const handleDeleteReservation = async (reservationId: string, customerData: {
+    name: string;
+    phone: string;
+    email?: string;
+    instance_id: string;
+  }) => {
     try {
       // First, save the customer to customers table (upsert by phone)
-      const { error: customerError } = await supabase
-        .from('customers')
-        .upsert(
-          {
-            instance_id: customerData.instance_id,
-            name: customerData.name,
-            phone: customerData.phone,
-            email: customerData.email,
-          },
-          { 
-            onConflict: 'instance_id,phone',
-            ignoreDuplicates: false 
-          }
-        );
-      
+      const {
+        error: customerError
+      } = await supabase.from('customers').upsert({
+        instance_id: customerData.instance_id,
+        name: customerData.name,
+        phone: customerData.phone,
+        email: customerData.email
+      }, {
+        onConflict: 'instance_id,phone',
+        ignoreDuplicates: false
+      });
       if (customerError) {
         console.error('Error saving customer:', customerError);
         // Continue with deletion even if customer save fails
       }
-      
+
       // Delete the reservation from database
-      const { error: deleteError } = await supabase
-        .from('reservations')
-        .delete()
-        .eq('id', reservationId);
-      
+      const {
+        error: deleteError
+      } = await supabase.from('reservations').delete().eq('id', reservationId);
       if (deleteError) {
         toast.error('Błąd podczas usuwania rezerwacji');
         console.error('Error deleting reservation:', deleteError);
         return;
       }
-      
+
       // Remove from local state
       setReservations(prev => prev.filter(r => r.id !== reservationId));
       setSelectedReservation(null);
@@ -421,81 +386,74 @@ const AdminDashboard = () => {
       toast.error('Wystąpił błąd');
     }
   };
-
   const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
-    setReservations(prev => 
-      prev.map(r => r.id === reservationId ? { ...r, ...data } : r)
-    );
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      ...data
+    } : r));
     setSelectedReservation(null);
     toast.success('Rezerwacja została zaktualizowana');
   };
-
   const handleAddReservation = (stationId: string, date: string, time: string) => {
-    setNewReservationData({ stationId, date, time });
+    setNewReservationData({
+      stationId,
+      date,
+      time
+    });
     setAddReservationOpen(true);
   };
-
   const handleReservationAdded = () => {
     // Refresh reservations from database
     fetchReservations();
     toast.success('Rezerwacja została dodana');
   };
-
   const handleAddBreak = (stationId: string, date: string, time: string) => {
-    setNewBreakData({ stationId, date, time });
+    setNewBreakData({
+      stationId,
+      date,
+      time
+    });
     setAddBreakOpen(true);
   };
-
   const handleBreakAdded = () => {
     fetchBreaks();
   };
-
   const handleDeleteBreak = async (breakId: string) => {
-    const { error } = await supabase
-      .from('breaks')
-      .delete()
-      .eq('id', breakId);
-
+    const {
+      error
+    } = await supabase.from('breaks').delete().eq('id', breakId);
     if (error) {
       toast.error('Błąd podczas usuwania przerwy');
       console.error('Error deleting break:', error);
       return;
     }
-
     setBreaks(prev => prev.filter(b => b.id !== breakId));
     toast.success('Przerwa została usunięta');
   };
-
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
-
-    const updates: any = { 
+    const updates: any = {
       station_id: newStationId,
       reservation_date: newDate
     };
-
     if (newTime) {
       // Calculate new end time based on duration
       const [startHours, startMinutes] = newTime.split(':').map(Number);
       const [endHours, endMinutes] = reservation.end_time.split(':').map(Number);
       const [origStartHours, origStartMinutes] = reservation.start_time.split(':').map(Number);
-      
-      const durationMinutes = (endHours * 60 + endMinutes) - (origStartHours * 60 + origStartMinutes);
+      const durationMinutes = endHours * 60 + endMinutes - (origStartHours * 60 + origStartMinutes);
       const newEndTotalMinutes = startHours * 60 + startMinutes + durationMinutes;
       const newEndHours = Math.floor(newEndTotalMinutes / 60);
       const newEndMins = newEndTotalMinutes % 60;
-      
       updates.start_time = newTime;
       updates.end_time = `${newEndHours.toString().padStart(2, '0')}:${newEndMins.toString().padStart(2, '0')}`;
     }
 
     // Update in database
-    const { error } = await supabase
-      .from('reservations')
-      .update(updates)
-      .eq('id', reservationId);
-
+    const {
+      error
+    } = await supabase.from('reservations').update(updates).eq('id', reservationId);
     if (error) {
       toast.error('Błąd podczas przenoszenia rezerwacji');
       console.error('Error moving reservation:', error);
@@ -503,22 +461,19 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => 
-      prev.map(r => r.id === reservationId ? { ...r, ...updates } : r)
-    );
-
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      ...updates
+    } : r));
     const station = stations.find(s => s.id === newStationId);
     const dateChanged = reservation.reservation_date !== newDate;
-    
     if (dateChanged) {
       toast.success(`Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})`);
     } else {
       toast.success(`Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`);
     }
   };
-
-  return (
-    <>
+  return <>
       <Helmet>
         <title>Panel Admina - ARM CAR AUTO SPA</title>
         <meta name="robots" content="noindex, nofollow" />
@@ -526,135 +481,58 @@ const AdminDashboard = () => {
 
       <div className="min-h-screen bg-background flex">
         {/* Sidebar - Mobile Overlay */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+        {sidebarOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
         {/* Sidebar */}
-        <aside className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 bg-card border-r border-border/50 transition-all duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          sidebarCollapsed ? "lg:w-16" : "w-64"
-        )}>
+        <aside className={cn("fixed lg:static inset-y-0 left-0 z-50 bg-card border-r border-border/50 transition-all duration-300", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64")}>
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className={cn(
-              "border-b border-border/50 flex items-center",
-              sidebarCollapsed ? "p-3 justify-center" : "p-6"
-            )}>
-              <div className={cn(
-                "flex items-center",
-                sidebarCollapsed ? "justify-center" : "gap-3"
-              )}>
+            <div className={cn("border-b border-border/50 flex items-center", sidebarCollapsed ? "p-3 justify-center" : "p-6")}>
+              <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "gap-3")}>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-primary-foreground" />
                 </div>
-                {!sidebarCollapsed && (
-                  <div>
+                {!sidebarCollapsed && <div>
                     <h1 className="font-bold text-foreground">ARM CAR</h1>
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
-                  </div>
-                )}
+                  </div>}
               </div>
             </div>
 
             {/* Navigation */}
-            <nav className={cn(
-              "flex-1 space-y-2",
-              sidebarCollapsed ? "p-2" : "p-4"
-            )}>
-              <Button 
-                variant={currentView === 'calendar' ? 'secondary' : 'ghost'} 
-                className={cn(
-                  "w-full gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={() => setCurrentView('calendar')}
-                title="Kalendarz"
-              >
+            <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
+              <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('calendar')} title="Kalendarz">
                 <Calendar className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Kalendarz"}
               </Button>
-              <Button 
-                variant={currentView === 'reservations' ? 'secondary' : 'ghost'} 
-                className={cn(
-                  "w-full gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={() => setCurrentView('reservations')}
-                title="Rezerwacje"
-              >
+              <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('reservations')} title="Rezerwacje">
                 <Users className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Rezerwacje"}
               </Button>
-              <Button 
-                variant={currentView === 'customers' ? 'secondary' : 'ghost'} 
-                className={cn(
-                  "w-full gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={() => setCurrentView('customers')}
-                title="Klienci"
-              >
+              <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('customers')} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
-              <Button 
-                variant={currentView === 'settings' ? 'secondary' : 'ghost'} 
-                className={cn(
-                  "w-full gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={() => setCurrentView('settings')}
-                title="Ustawienia"
-              >
+              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('settings')} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
               </Button>
             </nav>
 
             {/* Collapse toggle & User Info & Logout */}
-            <div className={cn(
-              "border-t border-border/50 space-y-2",
-              sidebarCollapsed ? "p-2" : "p-4"
-            )}>
+            <div className={cn("border-t border-border/50 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
               {/* Collapse button - desktop only */}
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full text-muted-foreground hidden lg:flex gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}
-              >
-                {sidebarCollapsed ? (
-                  <PanelLeft className="w-4 h-4 shrink-0" />
-                ) : (
-                  <>
+              <Button variant="ghost" className={cn("w-full text-muted-foreground hidden lg:flex gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}>
+                {sidebarCollapsed ? <PanelLeft className="w-4 h-4 shrink-0" /> : <>
                     <PanelLeftClose className="w-4 h-4 shrink-0" />
                     Zwiń menu
-                  </>
-                )}
+                  </>}
               </Button>
               
-              {!sidebarCollapsed && user && (
-                <div className="px-3 py-2 text-sm text-muted-foreground truncate">
+              {!sidebarCollapsed && user && <div className="px-3 py-2 text-sm text-muted-foreground truncate">
                   {user.email}
-                </div>
-              )}
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full text-muted-foreground gap-3",
-                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
-                )}
-                onClick={handleLogout}
-                title="Wyloguj się"
-              >
+                </div>}
+              <Button variant="ghost" className={cn("w-full text-muted-foreground gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={handleLogout} title="Wyloguj się">
                 <LogOut className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Wyloguj się"}
               </Button>
@@ -685,44 +563,26 @@ const AdminDashboard = () => {
             {/* Header */}
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                {currentView === 'calendar' ? 'Kalendarz rezerwacji' : 
-                 currentView === 'reservations' ? 'Lista rezerwacji' : 
-                 currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
+                {currentView === 'calendar' ? 'Kalendarz rezerwacji' : currentView === 'reservations' ? 'Lista rezerwacji' : currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
               </h1>
               <p className="text-muted-foreground">
-                {format(new Date(), 'd MMMM yyyy', { locale: pl })}
+                {format(new Date(), 'd MMMM yyyy', {
+                locale: pl
+              })}
               </p>
             </div>
 
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
             {/* View Content */}
-            {currentView === 'calendar' && (
-              <div className="flex-1 min-h-[600px]">
-                <AdminCalendar 
-                  stations={stations}
-                  reservations={reservations}
-                  breaks={breaks}
-                  workingHours={workingHours}
-                  onReservationClick={handleReservationClick}
-                  onAddReservation={handleAddReservation}
-                  onAddBreak={handleAddBreak}
-                  onDeleteBreak={handleDeleteBreak}
-                  onReservationMove={handleReservationMove}
-                />
-              </div>
-            )}
+            {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onReservationMove={handleReservationMove} />
+              </div>}
 
-            {currentView === 'reservations' && (
-              <div className="space-y-4">
+            {currentView === 'reservations' && <div className="space-y-4">
                 <div className="glass-card overflow-hidden">
                   <div className="divide-y divide-border/50">
-                    {reservations.map((reservation) => (
-                      <div 
-                        key={reservation.id}
-                        className="p-4 flex items-center justify-between gap-4 hover:bg-secondary/30 transition-colors cursor-pointer"
-                        onClick={() => handleReservationClick(reservation)}
-                      >
+                    {reservations.map(reservation => <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground">
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-success/10 text-success">
                             <CheckCircle2 className="w-5 h-5" />
@@ -741,22 +601,19 @@ const AdminDashboard = () => {
                             {reservation.start_time}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
+                            {format(new Date(reservation.reservation_date), 'd MMM', {
+                        locale: pl
+                      })}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
-              </div>
-            )}
+              </div>}
 
-            {currentView === 'customers' && (
-              <CustomersView instanceId={instanceId} />
-            )}
+            {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
-            {currentView === 'settings' && (
-              <div className="space-y-6">
+            {currentView === 'settings' && <div className="space-y-6">
                 <div className="glass-card p-6 space-y-6">
                   <div>
                     <h2 className="text-lg font-semibold mb-2">Ustawienia instancji</h2>
@@ -777,56 +634,22 @@ const AdminDashboard = () => {
                 <div className="glass-card p-6">
                   <PriceListSettings instanceId={instanceId} />
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
         </main>
       </div>
 
       {/* Reservation Details Modal */}
-      <ReservationDetails
-        reservation={selectedReservation}
-        open={!!selectedReservation}
-        onClose={() => setSelectedReservation(null)}
-        onDelete={handleDeleteReservation}
-        onSave={handleReservationSave}
-      />
+      <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} />
 
       {/* Add Reservation Dialog */}
-      {instanceId && (
-        <AddReservationDialog
-          open={addReservationOpen}
-          onClose={() => setAddReservationOpen(false)}
-          stationId={newReservationData.stationId}
-          date={newReservationData.date}
-          time={newReservationData.time}
-          instanceId={instanceId}
-          onSuccess={handleReservationAdded}
-        />
-      )}
+      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} />}
 
       {/* Add Break Dialog */}
-      {instanceId && (
-        <AddBreakDialog
-          open={addBreakOpen}
-          onOpenChange={setAddBreakOpen}
-          instanceId={instanceId}
-          stations={stations}
-          initialData={newBreakData}
-          onBreakAdded={handleBreakAdded}
-        />
-      )}
+      {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        stations={stations}
-        reservations={reservations}
-        currentDate={format(new Date(), 'yyyy-MM-dd')}
-      />
-    </>
-  );
+      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} stations={stations} reservations={reservations} currentDate={format(new Date(), 'yyyy-MM-dd')} />
+    </>;
 };
-
 export default AdminDashboard;
