@@ -86,15 +86,14 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
 
     setSaving(true);
     try {
-      console.log('[WorkingHoursSettings] Saving working hours:', workingHours);
+      console.log('[WorkingHoursSettings] Saving working hours via RPC:', workingHours);
       
-      const { data, error } = await supabase
-        .from('instances')
-        .update({ working_hours: JSON.parse(JSON.stringify(workingHours)) })
-        .eq('id', instanceId)
-        .select('working_hours');
+      const { data, error } = await supabase.rpc('update_instance_working_hours', {
+        _instance_id: instanceId,
+        _working_hours: JSON.parse(JSON.stringify(workingHours))
+      });
 
-      console.log('[WorkingHoursSettings] Save response:', { data, error });
+      console.log('[WorkingHoursSettings] RPC response:', { data, error });
 
       if (error) throw error;
       toast.success('Godziny pracy zostały zapisane');
