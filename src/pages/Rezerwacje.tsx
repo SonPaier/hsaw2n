@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import ClientLayout from '@/components/layout/ClientLayout';
 import CustomerBookingWizard from '@/components/booking/CustomerBookingWizard';
 
 const Rezerwacje = () => {
+  const [hideLayout, setHideLayout] = useState(false);
+
   return (
     <>
       <Helmet>
@@ -10,8 +13,8 @@ const Rezerwacje = () => {
         <meta name="description" content="Zarezerwuj wizytę w ARM CAR AUTO SPA Gdańsk. Mycie samochodowe, detailing, PPF - wybierz usługę i termin online." />
       </Helmet>
 
-      <ClientLayout>
-        <CustomerBookingWizard />
+      <ClientLayout hideHeader={hideLayout} hideFooter={hideLayout}>
+        <CustomerBookingWizard onLayoutChange={setHideLayout} />
       </ClientLayout>
     </>
   );

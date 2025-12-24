@@ -31,19 +31,12 @@ interface Station {
 
 interface TimeSlot {
   time: string;
-  stationId: string;
-}
-
-interface AvailabilityRange {
-  stationId: string;
-  slots: TimeSlot[];
-  startTime: string;
-  endTime: string;
+  availableStationIds: string[]; // List of stations available at this time
 }
 
 interface AvailableDay {
   date: Date;
-  ranges: AvailabilityRange[];
+  slots: TimeSlot[];
 }
 
 interface Instance {
@@ -62,7 +55,14 @@ interface Reservation {
   end_time: string;
 }
 
+interface CustomerBookingWizardProps {
+  onLayoutChange?: (hidden: boolean) => void;
+}
+
 const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
+const MIN_LEAD_TIME_MINUTES = 30; // Minimum time before booking (30 minutes)
+const SLOT_INTERVAL = 15; // Generate slots every 15 minutes
+const MAX_VISIBLE_SLOTS = 20; // Show max 20 slots initially
 
 const features = [
   { icon: <Sparkles className="w-4 h-4" />, title: 'Profesjonalna obsługa' },
@@ -73,7 +73,7 @@ const features = [
 
 type Step = 'service' | 'datetime' | 'addons' | 'summary' | 'success';
 
-export default function CustomerBookingWizard() {
+export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookingWizardProps) {
   const [step, setStep] = useState<Step>('service');
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -81,6 +81,7 @@ export default function CustomerBookingWizard() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [showAllServices, setShowAllServices] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showMoreSlots, setShowMoreSlots] = useState(false);
 
   // Selected values
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -118,6 +119,13 @@ export default function CustomerBookingWizard() {
     serviceName: string;
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{ facebook: string | null; instagram: string | null }>({ facebook: null, instagram: null });
+
+  // Notify parent about layout changes
+  useEffect(() => {
+    if (onLayoutChange) {
+      onLayoutChange(step === 'datetime');
+    }
+  }, [step, onLayoutChange]);
 
   // Load customer data from localStorage on mount
   useEffect(() => {
@@ -158,7 +166,6 @@ export default function CustomerBookingWizard() {
 
       if (customer) {
         setIsVerifiedCustomer(customer.phone_verified === true);
-        // Pre-fill name if empty
         if (customer.name && !customerName) {
           setCustomerName(customer.name);
         }
@@ -173,7 +180,6 @@ export default function CustomerBookingWizard() {
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
 
-  // Save customer data to localStorage after successful reservation
   const saveCustomerToLocalStorage = () => {
     localStorage.setItem('bookingCustomerData', JSON.stringify({
       phone: customerPhone,
@@ -257,9 +263,10 @@ export default function CustomerBookingWizard() {
     return service.price_from || 0;
   };
 
-  // Calculate available days with ranges per station
+  // NEW LOGIC: Calculate available time slots - shows only times, not stations
+  // Customer sees one unified list of possible arrival times
   const getAvailableDays = (): AvailableDay[] => {
-    if (!selectedService || !instance?.working_hours) return [];
+    if (!selectedService || !instance?.working_hours || stations.length === 0) return [];
 
     const days: AvailableDay[] = [];
     const today = new Date();
@@ -267,7 +274,7 @@ export default function CustomerBookingWizard() {
 
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
-      const dayName = format(date, 'EEEE').toLowerCase(); // English day name for DB lookup
+      const dayName = format(date, 'EEEE').toLowerCase();
       const workingHours = instance.working_hours[dayName];
 
       if (!workingHours) continue;
@@ -275,78 +282,58 @@ export default function CustomerBookingWizard() {
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayReservations = reservations.filter((r) => r.reservation_date === dateStr);
 
-      const ranges: AvailabilityRange[] = [];
+      const [openH, openM] = workingHours.open.split(':').map(Number);
+      const [closeH, closeM] = workingHours.close.split(':').map(Number);
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
 
-      for (const station of stations) {
-        const stationReservations = dayReservations.filter((r) => r.station_id === station.id);
+      // Calculate minimum start time (now + lead time for today)
+      let minStartTime = openMinutes;
+      if (i === 0) {
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes() + MIN_LEAD_TIME_MINUTES;
+        minStartTime = Math.max(openMinutes, Math.ceil(nowMinutes / SLOT_INTERVAL) * SLOT_INTERVAL);
+      }
 
-        const [openH, openM] = workingHours.open.split(':').map(Number);
-        const [closeH, closeM] = workingHours.close.split(':').map(Number);
-        const openMinutes = openH * 60 + openM;
-        const closeMinutes = closeH * 60 + closeM;
+      // Generate all possible slot times
+      const slotMap = new Map<string, string[]>(); // time -> available station IDs
 
-        const sortedRes = stationReservations
-          .map((r) => ({
-            start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
-            end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]),
-          }))
-          .sort((a, b) => a.start - b.start);
+      for (let time = minStartTime; time + serviceDuration <= closeMinutes; time += SLOT_INTERVAL) {
+        const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
+        const endTime = time + serviceDuration;
 
-        // Find continuous free ranges
-        let currentTime = openMinutes;
-        
-        if (i === 0) {
-          const now = new Date();
-          const nowMinutes = now.getHours() * 60 + now.getMinutes() + 30;
-          currentTime = Math.max(currentTime, Math.ceil(nowMinutes / 15) * 15);
-        }
+        // Check which stations are available for the full duration [time, time+duration)
+        const availableStations: string[] = [];
 
-        let rangeStart: number | null = null;
-        const stationSlots: TimeSlot[] = [];
-
-        const checkAndAddSlot = (time: number) => {
-          if (time + serviceDuration <= closeMinutes) {
-            if (rangeStart === null) rangeStart = time;
-            stationSlots.push({
-              time: `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`,
-              stationId: station.id,
-            });
-            return true;
-          }
-          return false;
-        };
-
-        for (const res of sortedRes) {
-          while (currentTime + serviceDuration <= res.start && currentTime + serviceDuration <= closeMinutes) {
-            checkAndAddSlot(currentTime);
-            currentTime += 15;
-          }
-          currentTime = Math.max(currentTime, res.end);
-        }
-
-        while (currentTime + serviceDuration <= closeMinutes) {
-          checkAndAddSlot(currentTime);
-          currentTime += 15;
-        }
-
-        if (stationSlots.length > 0) {
-          const firstSlot = stationSlots[0].time;
-          const lastSlotTime = stationSlots[stationSlots.length - 1].time;
-          const [lastH, lastM] = lastSlotTime.split(':').map(Number);
-          const endMinutes = lastH * 60 + lastM + serviceDuration;
-          const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-
-          ranges.push({
-            stationId: station.id,
-            slots: stationSlots,
-            startTime: firstSlot,
-            endTime: endTime,
+        for (const station of stations) {
+          const stationReservations = dayReservations.filter((r) => r.station_id === station.id);
+          
+          // Check if this station has any overlapping reservations
+          const hasConflict = stationReservations.some((r) => {
+            const resStart = parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]);
+            const resEnd = parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]);
+            // Overlap check: [time, endTime) overlaps with [resStart, resEnd)
+            return time < resEnd && endTime > resStart;
           });
+
+          if (!hasConflict) {
+            availableStations.push(station.id);
+          }
+        }
+
+        // Only add slot if at least one station is available
+        if (availableStations.length > 0) {
+          slotMap.set(timeStr, availableStations);
         }
       }
 
-      if (ranges.length > 0) {
-        days.push({ date, ranges });
+      // Convert map to sorted slots array
+      const slots: TimeSlot[] = Array.from(slotMap.entries())
+        .map(([time, availableStationIds]) => ({ time, availableStationIds }))
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      if (slots.length > 0) {
+        days.push({ date, slots });
       }
     }
 
@@ -360,7 +347,8 @@ export default function CustomerBookingWizard() {
 
   const handleSelectTime = (slot: TimeSlot) => {
     setSelectedTime(slot.time);
-    setSelectedStationId(slot.stationId);
+    // Automatically assign first available station (customer doesn't see this)
+    setSelectedStationId(slot.availableStationIds[0]);
     setStep('addons');
   };
 
@@ -381,7 +369,6 @@ export default function CustomerBookingWizard() {
     return total;
   };
 
-  // Handle direct reservation for verified customers
   const handleDirectReservation = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({ title: 'Uzupełnij dane', description: 'Podaj imię i numer telefonu', variant: 'destructive' });
@@ -422,7 +409,6 @@ export default function CustomerBookingWizard() {
       const data = response.data;
 
       if (!data.success) {
-        // Customer not verified - fall back to SMS flow
         if (data.requiresVerification) {
           setIsVerifiedCustomer(false);
           handleSendSms();
@@ -493,7 +479,6 @@ export default function CustomerBookingWizard() {
         throw new Error(response.error.message);
       }
 
-      // In dev mode, capture the dev code from response
       if (devMode && response.data?.devCode) {
         setDevCode(response.data.devCode);
       }
@@ -564,7 +549,6 @@ export default function CustomerBookingWizard() {
   };
 
   const handleReservationClick = () => {
-    // In dev mode, always require SMS verification
     if (devMode) {
       handleSendSms();
       return;
@@ -676,96 +660,87 @@ export default function CustomerBookingWizard() {
     );
   }
 
-  // STEP 2: DATE & TIME SELECTION
+  // STEP 2: DATE & TIME SELECTION (no stations visible)
   if (step === 'datetime') {
     const selectedDay = selectedDate ? availableDays.find((d) => isSameDay(d.date, selectedDate)) : null;
+    const visibleSlots = showMoreSlots ? selectedDay?.slots : selectedDay?.slots.slice(0, MAX_VISIBLE_SLOTS);
+    const hasMoreSlots = selectedDay && selectedDay.slots.length > MAX_VISIBLE_SLOTS;
 
     return (
-      <div className="container py-4 animate-fade-in">
-        <button
-          onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); }}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Wróć
-        </button>
+      <div className="min-h-screen bg-background">
+        <div className="container py-4 animate-fade-in">
+          <button
+            onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); setShowMoreSlots(false); }}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Wróć
+          </button>
 
-        <div className="mb-4">
-          <h2 className="text-base font-semibold">Wybierz termin</h2>
-          <p className="text-xs text-muted-foreground">
-            {selectedService?.name} • {selectedService?.duration_minutes} min
-          </p>
-        </div>
-
-        <div className="space-y-2 mb-4">
-          {availableDays.slice(0, 7).map((day) => {
-            const isSelected = selectedDate && isSameDay(selectedDate, day.date);
-            const totalSlots = day.ranges.reduce((acc, r) => acc + r.slots.length, 0);
-            
-            return (
-              <button
-                key={day.date.toISOString()}
-                onClick={() => setSelectedDate(isSelected ? null : day.date)}
-                className={cn(
-                  "w-full glass-card p-3 text-left transition-all",
-                  isSelected && "border-primary"
-                )}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium capitalize">
-                      {format(day.date, 'EEEE', { locale: pl })}
-                    </span>
-                    <span className="text-muted-foreground ml-2">
-                      {format(day.date, 'd MMM', { locale: pl })}
-                    </span>
-                  </div>
-                  <span className="text-xs text-primary">{totalSlots} wolnych</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selected day - show ranges as columns */}
-        {selectedDay && (
-          <div className="glass-card p-4 animate-fade-in">
-            <h3 className="text-sm font-medium mb-3">Dostępne godziny</h3>
-            <div className={cn(
-              "grid gap-4",
-              selectedDay.ranges.length === 1 && "grid-cols-1",
-              selectedDay.ranges.length === 2 && "grid-cols-2",
-              selectedDay.ranges.length >= 3 && "grid-cols-2 md:grid-cols-3"
-            )}>
-              {selectedDay.ranges.map((range, idx) => {
-                const station = stations.find(s => s.id === range.stationId);
-                return (
-                  <div key={range.stationId} className="space-y-2">
-                    <div className="text-center pb-1 border-b border-border">
-                      <div className="text-xs font-medium text-foreground">
-                        {station?.name || `Stanowisko ${idx + 1}`}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {range.startTime} - {range.endTime}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 justify-center">
-                      {range.slots.map((slot) => (
-                        <button
-                          key={`${slot.stationId}-${slot.time}`}
-                          onClick={() => handleSelectTime(slot)}
-                          className="px-2.5 py-1.5 text-xs rounded-md border border-border hover:border-primary hover:bg-primary/10 transition-all"
-                        >
-                          {slot.time}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="mb-4">
+            <h2 className="text-base font-semibold">Wybierz termin</h2>
+            <p className="text-xs text-muted-foreground">
+              {selectedService?.name} • {selectedService?.duration_minutes} min
+            </p>
           </div>
-        )}
+
+          <div className="space-y-2 mb-4">
+            {availableDays.slice(0, 7).map((day) => {
+              const isSelected = selectedDate && isSameDay(selectedDate, day.date);
+              const slotsCount = day.slots.length;
+              
+              return (
+                <button
+                  key={day.date.toISOString()}
+                  onClick={() => { setSelectedDate(isSelected ? null : day.date); setShowMoreSlots(false); }}
+                  className={cn(
+                    "w-full glass-card p-3 text-left transition-all",
+                    isSelected && "border-primary"
+                  )}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-medium capitalize">
+                        {format(day.date, 'EEEE', { locale: pl })}
+                      </span>
+                      <span className="text-muted-foreground ml-2">
+                        {format(day.date, 'd MMM', { locale: pl })}
+                      </span>
+                    </div>
+                    <span className="text-xs text-primary">{slotsCount} wolnych</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected day - show unified time slots (no stations) */}
+          {selectedDay && (
+            <div className="glass-card p-4 animate-fade-in">
+              <h3 className="text-sm font-medium mb-3">Dostępne godziny przyjazdu</h3>
+              <div className="flex flex-wrap gap-2">
+                {visibleSlots?.map((slot) => (
+                  <button
+                    key={slot.time}
+                    onClick={() => handleSelectTime(slot)}
+                    className="px-3 py-2 text-sm rounded-lg border border-border hover:border-primary hover:bg-primary/10 transition-all"
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
+              
+              {hasMoreSlots && !showMoreSlots && (
+                <button
+                  onClick={() => setShowMoreSlots(true)}
+                  className="mt-3 text-xs text-primary hover:underline"
+                >
+                  Pokaż więcej godzin ({selectedDay.slots.length - MAX_VISIBLE_SLOTS})
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
