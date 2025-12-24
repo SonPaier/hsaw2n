@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Car, Calendar, LogOut, 
-  Menu, Clock, CheckCircle2, Settings, Users, UserCircle
+  Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -60,6 +60,10 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('admin-sidebar-collapsed');
+    return saved === 'true';
+  });
   const [currentView, setCurrentView] = useState<ViewType>('calendar');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -161,6 +165,11 @@ const AdminDashboard = () => {
     fetchStations();
     fetchWorkingHours();
   }, [instanceId]);
+
+  // Save sidebar collapsed state
+  useEffect(() => {
+    localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   // Refetch stations when switching to calendar view
   useEffect(() => {
@@ -526,73 +535,128 @@ const AdminDashboard = () => {
 
         {/* Sidebar */}
         <aside className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border/50 transition-transform duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "fixed lg:static inset-y-0 left-0 z-50 bg-card border-r border-border/50 transition-all duration-300",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          sidebarCollapsed ? "lg:w-16" : "w-64"
         )}>
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className="p-6 border-b border-border/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
+            <div className={cn(
+              "border-b border-border/50 flex items-center",
+              sidebarCollapsed ? "p-3 justify-center" : "p-6"
+            )}>
+              <div className={cn(
+                "flex items-center",
+                sidebarCollapsed ? "justify-center" : "gap-3"
+              )}>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div>
-                  <h1 className="font-bold text-foreground">ARM CAR</h1>
-                  <p className="text-xs text-muted-foreground">Panel Admina</p>
-                </div>
+                {!sidebarCollapsed && (
+                  <div>
+                    <h1 className="font-bold text-foreground">ARM CAR</h1>
+                    <p className="text-xs text-muted-foreground">Panel Admina</p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className={cn(
+              "flex-1 space-y-2",
+              sidebarCollapsed ? "p-2" : "p-4"
+            )}>
               <Button 
                 variant={currentView === 'calendar' ? 'secondary' : 'ghost'} 
-                className="w-full justify-start gap-3"
+                className={cn(
+                  "w-full gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
                 onClick={() => setCurrentView('calendar')}
+                title="Kalendarz"
               >
-                <Calendar className="w-4 h-4" />
-                Kalendarz
+                <Calendar className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Kalendarz"}
               </Button>
               <Button 
                 variant={currentView === 'reservations' ? 'secondary' : 'ghost'} 
-                className="w-full justify-start gap-3"
+                className={cn(
+                  "w-full gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
                 onClick={() => setCurrentView('reservations')}
+                title="Rezerwacje"
               >
-                <Users className="w-4 h-4" />
-                Rezerwacje
+                <Users className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Rezerwacje"}
               </Button>
               <Button 
                 variant={currentView === 'customers' ? 'secondary' : 'ghost'} 
-                className="w-full justify-start gap-3"
+                className={cn(
+                  "w-full gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
                 onClick={() => setCurrentView('customers')}
+                title="Klienci"
               >
-                <UserCircle className="w-4 h-4" />
-                Klienci
+                <UserCircle className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Klienci"}
               </Button>
               <Button 
                 variant={currentView === 'settings' ? 'secondary' : 'ghost'} 
-                className="w-full justify-start gap-3"
+                className={cn(
+                  "w-full gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
                 onClick={() => setCurrentView('settings')}
+                title="Ustawienia"
               >
-                <Settings className="w-4 h-4" />
-                Ustawienia
+                <Settings className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Ustawienia"}
               </Button>
             </nav>
 
-            {/* User Info & Logout */}
-            <div className="p-4 border-t border-border/50 space-y-2">
-              {user && (
+            {/* Collapse toggle & User Info & Logout */}
+            <div className={cn(
+              "border-t border-border/50 space-y-2",
+              sidebarCollapsed ? "p-2" : "p-4"
+            )}>
+              {/* Collapse button - desktop only */}
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "w-full text-muted-foreground hidden lg:flex gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="w-4 h-4 shrink-0" />
+                ) : (
+                  <>
+                    <PanelLeftClose className="w-4 h-4 shrink-0" />
+                    Zwiń menu
+                  </>
+                )}
+              </Button>
+              
+              {!sidebarCollapsed && user && (
                 <div className="px-3 py-2 text-sm text-muted-foreground truncate">
                   {user.email}
                 </div>
               )}
               <Button 
                 variant="ghost" 
-                className="w-full justify-start gap-3 text-muted-foreground"
+                className={cn(
+                  "w-full text-muted-foreground gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                )}
                 onClick={handleLogout}
+                title="Wyloguj się"
               >
-                <LogOut className="w-4 h-4" />
-                Wyloguj się
+                <LogOut className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Wyloguj się"}
               </Button>
             </div>
           </div>
