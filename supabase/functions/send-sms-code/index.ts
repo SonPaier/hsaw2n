@@ -97,7 +97,8 @@ serve(async (req: Request): Promise<Response> => {
         to: normalizedPhone.replace("+", ""),
         message: smsMessage,
         format: "json",
-        from: "ARMCAR",
+        // Note: "from" field removed - requires registered sender name in SMSAPI panel
+        // To use custom sender name like "ARMCAR", register it at smsapi.pl/sendernames
       }),
     });
 
