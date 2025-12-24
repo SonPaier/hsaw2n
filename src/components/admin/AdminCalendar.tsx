@@ -109,8 +109,8 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     const dayName = format(date, 'EEEE').toLowerCase();
     const dayHours = workingHours[dayName];
     
-    if (!dayHours) {
-      // Day is closed - show minimal hours
+    // Day is closed or has invalid hours - show default hours
+    if (!dayHours || !dayHours.open || !dayHours.close) {
       return {
         hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
         startHour: DEFAULT_START_HOUR,
@@ -121,6 +121,16 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     
     const startHour = parseInt(dayHours.open.split(':')[0]);
     const endHour = parseInt(dayHours.close.split(':')[0]);
+    
+    // If parsing failed, use defaults
+    if (isNaN(startHour) || isNaN(endHour) || endHour <= startHour) {
+      return {
+        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
+        startHour: DEFAULT_START_HOUR,
+        endHour: DEFAULT_END_HOUR,
+        closeTime: `${DEFAULT_END_HOUR}:00`
+      };
+    }
     
     // Show hours from open to close-1 (the last hour row shows slots up to close time)
     return {
