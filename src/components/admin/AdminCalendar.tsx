@@ -1,10 +1,17 @@
-import { useState, DragEvent, useRef, useCallback } from 'react';
+import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical, Coffee, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 type ViewMode = 'day' | 'two-days' | 'week';
 
@@ -88,12 +95,37 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
 const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
-  const [showPpfStations, setShowPpfStations] = useState(false);
+  const [hiddenStationIds, setHiddenStationIds] = useState<Set<string>>(() => {
+    // Load from localStorage
+    const saved = localStorage.getItem('calendar-hidden-stations');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
   const [draggedReservation, setDraggedReservation] = useState<Reservation | null>(null);
   const [dragOverStation, setDragOverStation] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const isMobile = useIsMobile();
+
+  // Save hidden stations to localStorage
+  useEffect(() => {
+    localStorage.setItem('calendar-hidden-stations', JSON.stringify([...hiddenStationIds]));
+  }, [hiddenStationIds]);
+
+  const toggleStationVisibility = (stationId: string) => {
+    setHiddenStationIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stationId)) {
+        newSet.delete(stationId);
+      } else {
+        newSet.add(stationId);
+      }
+      return newSet;
+    });
+  };
+
+  const showAllStations = () => {
+    setHiddenStationIds(new Set());
+  };
   
   // Calculate hours based on working hours for current day
   const getHoursForDate = (date: Date): { hours: number[]; startHour: number; endHour: number; closeTime: string } => {
@@ -206,15 +238,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const isToday = isSameDay(currentDate, new Date());
 
-  // Filter stations - hide PPF on mobile by default
-  const visibleStations = stations.filter(station => {
-    if (isMobile && !showPpfStations && station.type === 'ppf') {
-      return false;
-    }
-    return true;
-  });
+  // Filter stations based on hidden station IDs
+  const visibleStations = stations.filter(station => !hiddenStationIds.has(station.id));
 
-  const hasPpfStations = stations.some(s => s.type === 'ppf');
+  const hasHiddenStations = hiddenStationIds.size > 0;
 
   // Get reservations for a specific date and station
   const getReservationsForStationAndDate = (stationId: string, dateStr: string) => {
@@ -464,18 +491,61 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
             </Button>
           </div>
           
-          {/* Toggle PPF stations on mobile */}
-          {isMobile && hasPpfStations && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPpfStations(!showPpfStations)}
-              className="text-xs"
-            >
-              {showPpfStations ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-              Folie
-            </Button>
-          )}
+          {/* Column visibility settings */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("gap-1", hasHiddenStations && "border-primary text-primary")}
+              >
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden md:inline">Kolumny</span>
+                {hasHiddenStations && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                    {hiddenStationIds.size}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-3">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Widoczność kolumn</h4>
+                  {hasHiddenStations && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={showAllStations}
+                      className="h-7 text-xs"
+                    >
+                      Pokaż wszystkie
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {stations.map((station) => (
+                    <div key={station.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`station-${station.id}`}
+                        checked={!hiddenStationIds.has(station.id)}
+                        onCheckedChange={() => toggleStationVisibility(station.id)}
+                      />
+                      <Label
+                        htmlFor={`station-${station.id}`}
+                        className="text-sm cursor-pointer flex-1"
+                      >
+                        {station.name}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({station.type === 'washing' ? 'mycie' : station.type === 'ppf' ? 'folia' : station.type === 'detailing' ? 'detailing' : 'uniwersalny'})
+                        </span>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       
