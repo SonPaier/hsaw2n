@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Phone, MessageSquare, Mail, Car, Calendar, Clock, X } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Car, Calendar, Clock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 interface Customer {
@@ -40,6 +41,7 @@ interface CustomerDetailsDialogProps {
 }
 
 const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: CustomerDetailsDialogProps) => {
+  const isMobile = useIsMobile();
   const [visits, setVisits] = useState<VisitHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [smsMessage, setSmsMessage] = useState('');
@@ -91,10 +93,13 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
     }
   };
 
-  const handleSmsLink = () => {
-    if (customer) {
+  const handleSmsButton = () => {
+    if (!customer) return;
+    if (isMobile) {
+      // On mobile, open native SMS app
       window.location.href = `sms:${customer.phone}`;
     }
+    // On web, scroll to the SMS form below
   };
 
   const handleSendSms = async () => {
@@ -167,7 +172,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
             <Button
               variant="outline"
               className="flex-1 gap-2"
-              onClick={handleSmsLink}
+              onClick={handleSmsButton}
             >
               <MessageSquare className="w-4 h-4 text-primary" />
               SMS
@@ -206,25 +211,27 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
 
           <Separator />
 
-          {/* Send SMS */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Wyślij wiadomość SMS</h4>
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Treść wiadomości..."
-                value={smsMessage}
-                onChange={(e) => setSmsMessage(e.target.value)}
-                rows={3}
-              />
-              <Button
-                onClick={handleSendSms}
-                disabled={!smsMessage.trim() || sendingSms}
-                className="w-full"
-              >
-                {sendingSms ? 'Wysyłanie...' : 'Wyślij SMS'}
-              </Button>
+          {/* Send SMS - only on web */}
+          {!isMobile && (
+            <div>
+              <h4 className="text-sm font-medium mb-2">Wyślij wiadomość SMS</h4>
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="Treść wiadomości..."
+                  value={smsMessage}
+                  onChange={(e) => setSmsMessage(e.target.value)}
+                  rows={3}
+                />
+                <Button
+                  onClick={handleSendSms}
+                  disabled={!smsMessage.trim() || sendingSms}
+                  className="w-full"
+                >
+                  {sendingSms ? 'Wysyłanie...' : 'Wyślij SMS'}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <Separator />
 

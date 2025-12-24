@@ -3,7 +3,9 @@ import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, ArrowUpDown, U
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerDetailsDialog from './CustomerDetailsDialog';
+import SendSmsDialog from './SendSmsDialog';
 
 interface Customer {
   id: string;
@@ -25,6 +27,7 @@ type SortDirection = 'asc' | 'desc';
 const ITEMS_PER_PAGE = 10;
 
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
+  const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +35,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [smsCustomer, setSmsCustomer] = useState<Customer | null>(null);
 
   const fetchCustomers = async () => {
     if (!instanceId) return;
@@ -112,9 +116,15 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     window.location.href = `tel:${phone}`;
   };
 
-  const handleSms = (phone: string, e: React.MouseEvent) => {
+  const handleSms = (customer: Customer, e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = `sms:${phone}`;
+    if (isMobile) {
+      // On mobile, open native SMS app
+      window.location.href = `sms:${customer.phone}`;
+    } else {
+      // On web, open dialog to send via gateway
+      setSmsCustomer(customer);
+    }
   };
 
   if (loading) {
@@ -200,7 +210,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
-                    onClick={(e) => handleSms(customer.phone, e)}
+                    onClick={(e) => handleSms(customer, e)}
                   >
                     <MessageSquare className="w-4 h-4" />
                   </Button>
@@ -247,6 +257,15 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         instanceId={instanceId}
         open={!!selectedCustomer}
         onClose={() => setSelectedCustomer(null)}
+      />
+
+      {/* Send SMS Dialog (web only) */}
+      <SendSmsDialog
+        phone={smsCustomer?.phone || ''}
+        customerName={smsCustomer?.name || ''}
+        instanceId={instanceId}
+        open={!!smsCustomer}
+        onClose={() => setSmsCustomer(null)}
       />
     </div>
   );
