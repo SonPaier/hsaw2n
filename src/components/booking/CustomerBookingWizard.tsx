@@ -47,12 +47,11 @@ interface Instance {
   social_instagram: string | null;
 }
 
-interface Reservation {
-  id: string;
-  station_id: string | null;
-  reservation_date: string;
+interface AvailabilityBlock {
+  block_date: string;
   start_time: string;
   end_time: string;
+  station_id: string;
 }
 
 interface CustomerBookingWizardProps {
@@ -78,7 +77,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [showAllServices, setShowAllServices] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showMoreSlots, setShowMoreSlots] = useState(false);
@@ -231,15 +230,15 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         const today = new Date();
         const endDate = addDays(today, 14);
 
-        const { data: reservationsData } = await supabase
-          .from('reservations')
-          .select('id, station_id, reservation_date, start_time, end_time')
-          .eq('instance_id', instanceData.id)
-          .gte('reservation_date', format(today, 'yyyy-MM-dd'))
-          .lte('reservation_date', format(endDate, 'yyyy-MM-dd'))
-          .neq('status', 'cancelled');
+        // Use backend function to get availability blocks (reservations + breaks)
+        const { data: blocksData } = await supabase
+          .rpc('get_availability_blocks', {
+            _instance_id: instanceData.id,
+            _from: format(today, 'yyyy-MM-dd'),
+            _to: format(endDate, 'yyyy-MM-dd'),
+          });
 
-        setReservations((reservationsData as Reservation[]) || []);
+        setAvailabilityBlocks((blocksData as AvailabilityBlock[]) || []);
       }
 
       setLoading(false);
@@ -280,7 +279,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       if (!workingHours) continue;
 
       const dateStr = format(date, 'yyyy-MM-dd');
-      const dayReservations = reservations.filter((r) => r.reservation_date === dateStr);
+      // Filter availability blocks for this date (includes both reservations and breaks)
+      const dayBlocks = availabilityBlocks.filter((b) => b.block_date === dateStr);
 
       const [openH, openM] = workingHours.open.split(':').map(Number);
       const [closeH, closeM] = workingHours.close.split(':').map(Number);
@@ -306,14 +306,15 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         const availableStations: string[] = [];
 
         for (const station of stations) {
-          const stationReservations = dayReservations.filter((r) => r.station_id === station.id);
+          // Get all blocks for this station on this day
+          const stationBlocks = dayBlocks.filter((b) => b.station_id === station.id);
           
-          // Check if this station has any overlapping reservations
-          const hasConflict = stationReservations.some((r) => {
-            const resStart = parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]);
-            const resEnd = parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]);
-            // Overlap check: [time, endTime) overlaps with [resStart, resEnd)
-            return time < resEnd && endTime > resStart;
+          // Check if this station has any overlapping blocks (reservations or breaks)
+          const hasConflict = stationBlocks.some((block) => {
+            const blockStart = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1]);
+            const blockEnd = parseInt(block.end_time.split(':')[0]) * 60 + parseInt(block.end_time.split(':')[1]);
+            // Overlap check: [time, endTime) overlaps with [blockStart, blockEnd)
+            return time < blockEnd && endTime > blockStart;
           });
 
           if (!hasConflict) {

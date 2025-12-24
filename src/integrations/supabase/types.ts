@@ -527,6 +527,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_availability_blocks: {
+        Args: { _from: string; _instance_id: string; _to: string }
+        Returns: {
+          block_date: string
+          end_time: string
+          start_time: string
+          station_id: string
+        }[]
+      }
       has_instance_role: {
         Args: {
           _instance_id: string
