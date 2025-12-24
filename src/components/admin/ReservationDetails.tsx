@@ -199,7 +199,6 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
               <span>{isEditing ? 'Edytuj rezerwację' : 'Szczegóły rezerwacji'}</span>
             </DialogTitle>
             <div className="flex items-center gap-2">
-              {getStatusBadge(reservation.status)}
               {!isEditing && onSave && (
                 <Button 
                   variant="outline" 
