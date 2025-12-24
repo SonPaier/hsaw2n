@@ -1,7 +1,7 @@
 import { useState, DragEvent } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical, Coffee, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,11 +29,23 @@ interface Reservation {
   };
 }
 
+interface Break {
+  id: string;
+  station_id: string;
+  break_date: string;
+  start_time: string;
+  end_time: string;
+  note: string | null;
+}
+
 interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
+  breaks?: Break[];
   onReservationClick?: (reservation: Reservation) => void;
   onAddReservation?: (stationId: string, date: string, time: string) => void;
+  onAddBreak?: (stationId: string, date: string, time: string) => void;
+  onDeleteBreak?: (breakId: string) => void;
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
 }
 
@@ -71,7 +83,7 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReservation, onReservationMove }: AdminCalendarProps) => {
+const AdminCalendar = ({ stations, reservations, breaks = [], onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [showPpfStations, setShowPpfStations] = useState(false);
@@ -134,9 +146,21 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
     );
   };
 
+  // Get breaks for a specific date and station
+  const getBreaksForStationAndDate = (stationId: string, dateStr: string) => {
+    return breaks.filter(
+      b => b.break_date === dateStr && b.station_id === stationId
+    );
+  };
+
   // Get reservations for current day grouped by station (day view)
   const getReservationsForStation = (stationId: string) => {
     return getReservationsForStationAndDate(stationId, currentDateStr);
+  };
+
+  // Get breaks for current day grouped by station (day view)
+  const getBreaksForStation = (stationId: string) => {
+    return getBreaksForStationAndDate(stationId, currentDateStr);
   };
 
   // Calculate position and height based on time
@@ -148,11 +172,19 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
     return { top: `${top}px`, height: `${Math.max(height, 30)}px` };
   };
 
-  // Handle click on empty time slot
+  // Handle click on empty time slot - show context menu or default to reservation
   const handleSlotClick = (stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
     const time = formatTimeSlot(hour, slotIndex);
     const targetDate = dateStr || currentDateStr;
     onAddReservation?.(stationId, targetDate, time);
+  };
+
+  // Handle right-click to add break
+  const handleSlotContextMenu = (e: React.MouseEvent, stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
+    e.preventDefault();
+    const time = formatTimeSlot(hour, slotIndex);
+    const targetDate = dateStr || currentDateStr;
+    onAddBreak?.(stationId, targetDate, time);
   };
 
   // Drag and drop handlers
@@ -411,6 +443,7 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                             )}
                             style={{ height: SLOT_HEIGHT }}
                             onClick={() => handleSlotClick(station.id, hour, slotIndex)}
+                            onContextMenu={(e) => handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
                             onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
                             onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
@@ -495,6 +528,44 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                             </div>
                           )}
                         </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Breaks */}
+                  {getBreaksForStation(station.id).map((breakItem) => {
+                    const style = getReservationStyle(breakItem.start_time, breakItem.end_time);
+                    
+                    return (
+                      <div
+                        key={breakItem.id}
+                        className="absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 bg-slate-500/80 border-slate-600 text-white overflow-hidden group"
+                        style={style}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
+                            <Coffee className="w-3 h-3 shrink-0" />
+                            Przerwa
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteBreak?.(breakItem.id);
+                            }}
+                            className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Usuń przerwę"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5">
+                          {breakItem.start_time.slice(0, 5)} - {breakItem.end_time.slice(0, 5)}
+                        </div>
+                        {breakItem.note && (
+                          <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5">
+                            {breakItem.note}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

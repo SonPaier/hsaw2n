@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
+import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
 import PriceListSettings from '@/components/admin/PriceListSettings';
 import StationsSettings from '@/components/admin/StationsSettings';
@@ -41,6 +42,16 @@ interface Reservation {
   price: number | null;
 }
 
+interface Break {
+  id: string;
+  instance_id: string;
+  station_id: string;
+  break_date: string;
+  start_time: string;
+  end_time: string;
+  note: string | null;
+}
+
 type ViewType = 'calendar' | 'reservations' | 'settings';
 
 const AdminDashboard = () => {
@@ -55,6 +66,15 @@ const AdminDashboard = () => {
   // Add reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
   const [newReservationData, setNewReservationData] = useState({
+    stationId: '',
+    date: '',
+    time: '',
+  });
+  
+  // Breaks state
+  const [breaks, setBreaks] = useState<Break[]>([]);
+  const [addBreakOpen, setAddBreakOpen] = useState(false);
+  const [newBreakData, setNewBreakData] = useState({
     stationId: '',
     date: '',
     time: '',
@@ -126,6 +146,7 @@ const AdminDashboard = () => {
     if (currentView === 'calendar') {
       fetchStations();
       fetchReservations();
+      fetchBreaks();
     }
   }, [currentView]);
 
@@ -161,8 +182,23 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fetch breaks from database
+  const fetchBreaks = async () => {
+    if (!instanceId) return;
+    
+    const { data, error } = await supabase
+      .from('breaks')
+      .select('*')
+      .eq('instance_id', instanceId);
+    
+    if (!error && data) {
+      setBreaks(data);
+    }
+  };
+
   useEffect(() => {
     fetchReservations();
+    fetchBreaks();
   }, [instanceId]);
 
   // Subscribe to realtime updates for reservations
@@ -375,6 +411,31 @@ const AdminDashboard = () => {
     toast.success('Rezerwacja została dodana');
   };
 
+  const handleAddBreak = (stationId: string, date: string, time: string) => {
+    setNewBreakData({ stationId, date, time });
+    setAddBreakOpen(true);
+  };
+
+  const handleBreakAdded = () => {
+    fetchBreaks();
+  };
+
+  const handleDeleteBreak = async (breakId: string) => {
+    const { error } = await supabase
+      .from('breaks')
+      .delete()
+      .eq('id', breakId);
+
+    if (error) {
+      toast.error('Błąd podczas usuwania przerwy');
+      console.error('Error deleting break:', error);
+      return;
+    }
+
+    setBreaks(prev => prev.filter(b => b.id !== breakId));
+    toast.success('Przerwa została usunięta');
+  };
+
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -547,8 +608,11 @@ const AdminDashboard = () => {
                 <AdminCalendar 
                   stations={stations}
                   reservations={reservations}
+                  breaks={breaks}
                   onReservationClick={handleReservationClick}
                   onAddReservation={handleAddReservation}
+                  onAddBreak={handleAddBreak}
+                  onDeleteBreak={handleDeleteBreak}
                   onReservationMove={handleReservationMove}
                 />
               </div>
@@ -635,6 +699,18 @@ const AdminDashboard = () => {
           time={newReservationData.time}
           instanceId={instanceId}
           onSuccess={handleReservationAdded}
+        />
+      )}
+
+      {/* Add Break Dialog */}
+      {instanceId && (
+        <AddBreakDialog
+          open={addBreakOpen}
+          onOpenChange={setAddBreakOpen}
+          instanceId={instanceId}
+          stations={stations}
+          initialData={newBreakData}
+          onBreakAdded={handleBreakAdded}
         />
       )}
 

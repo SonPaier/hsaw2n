@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      breaks: {
+        Row: {
+          break_date: string
+          created_at: string
+          end_time: string
+          id: string
+          instance_id: string
+          note: string | null
+          start_time: string
+          station_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          break_date: string
+          created_at?: string
+          end_time: string
+          id?: string
+          instance_id: string
+          note?: string | null
+          start_time: string
+          station_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          break_date?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          instance_id?: string
+          note?: string | null
+          start_time?: string
+          station_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breaks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaks_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
