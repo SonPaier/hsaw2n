@@ -255,7 +255,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
                 {visits.map((visit) => (
                   <div
                     key={visit.id}
-                    className="p-3 bg-secondary/50 rounded-lg"
+                    className="p-3 bg-muted/30 rounded-lg border border-border/50"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="font-medium text-sm">
