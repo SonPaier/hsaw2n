@@ -354,6 +354,47 @@ export type Database = {
           },
         ]
       }
+      sms_verification_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          instance_id: string
+          phone: string
+          reservation_data: Json
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          instance_id: string
+          phone: string
+          reservation_data: Json
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          instance_id?: string
+          phone?: string
+          reservation_data?: Json
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_verification_codes_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stations: {
         Row: {
           active: boolean | null
