@@ -551,6 +551,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_instance_working_hours: {
+        Args: { _instance_id: string; _working_hours: Json }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
