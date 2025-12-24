@@ -308,32 +308,55 @@ const AdminDashboard = () => {
     toast.success('Rezerwacja została dodana');
   };
 
-  const handleReservationMove = (reservationId: string, newStationId: string, newTime?: string) => {
+  const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+
+    const updates: any = { 
+      station_id: newStationId,
+      reservation_date: newDate
+    };
+
+    if (newTime) {
+      // Calculate new end time based on duration
+      const [startHours, startMinutes] = newTime.split(':').map(Number);
+      const [endHours, endMinutes] = reservation.end_time.split(':').map(Number);
+      const [origStartHours, origStartMinutes] = reservation.start_time.split(':').map(Number);
+      
+      const durationMinutes = (endHours * 60 + endMinutes) - (origStartHours * 60 + origStartMinutes);
+      const newEndTotalMinutes = startHours * 60 + startMinutes + durationMinutes;
+      const newEndHours = Math.floor(newEndTotalMinutes / 60);
+      const newEndMins = newEndTotalMinutes % 60;
+      
+      updates.start_time = newTime;
+      updates.end_time = `${newEndHours.toString().padStart(2, '0')}:${newEndMins.toString().padStart(2, '0')}`;
+    }
+
+    // Update in database
+    const { error } = await supabase
+      .from('reservations')
+      .update(updates)
+      .eq('id', reservationId);
+
+    if (error) {
+      toast.error('Błąd podczas przenoszenia rezerwacji');
+      console.error('Error moving reservation:', error);
+      return;
+    }
+
+    // Update local state
     setReservations(prev => 
-      prev.map(r => {
-        if (r.id === reservationId) {
-          const updated = { ...r, station_id: newStationId };
-          if (newTime) {
-            // Calculate new end time based on duration
-            const [startHours, startMinutes] = newTime.split(':').map(Number);
-            const [endHours, endMinutes] = r.end_time.split(':').map(Number);
-            const [origStartHours, origStartMinutes] = r.start_time.split(':').map(Number);
-            
-            const durationMinutes = (endHours * 60 + endMinutes) - (origStartHours * 60 + origStartMinutes);
-            const newEndTotalMinutes = startHours * 60 + startMinutes + durationMinutes;
-            const newEndHours = Math.floor(newEndTotalMinutes / 60);
-            const newEndMins = newEndTotalMinutes % 60;
-            
-            updated.start_time = newTime;
-            updated.end_time = `${newEndHours.toString().padStart(2, '0')}:${newEndMins.toString().padStart(2, '0')}`;
-          }
-          return updated;
-        }
-        return r;
-      })
+      prev.map(r => r.id === reservationId ? { ...r, ...updates } : r)
     );
+
     const station = stations.find(s => s.id === newStationId);
-    toast.success(`Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`);
+    const dateChanged = reservation.reservation_date !== newDate;
+    
+    if (dateChanged) {
+      toast.success(`Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})`);
+    } else {
+      toast.success(`Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`);
+    }
   };
 
   return (

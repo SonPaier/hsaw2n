@@ -34,7 +34,7 @@ interface AdminCalendarProps {
   reservations: Reservation[];
   onReservationClick?: (reservation: Reservation) => void;
   onAddReservation?: (stationId: string, date: string, time: string) => void;
-  onReservationMove?: (reservationId: string, newStationId: string, newTime?: string) => void;
+  onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
 }
 
 // Hours from 8:00 to 18:00
@@ -78,6 +78,7 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   const [draggedReservation, setDraggedReservation] = useState<Reservation | null>(null);
   const [dragOverStation, setDragOverStation] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const isMobile = useIsMobile();
 
   // Navigation handlers
@@ -164,37 +165,83 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
   const handleDragEnd = () => {
     setDraggedReservation(null);
     setDragOverStation(null);
+    setDragOverDate(null);
+    setDragOverSlot(null);
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>, stationId: string) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr?: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverStation(stationId);
+    if (dateStr) {
+      setDragOverDate(dateStr);
+    }
   };
 
-  const handleDragLeave = () => {
-    setDragOverStation(null);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, hour?: number, slotIndex?: number) => {
+  const handleSlotDragOver = (e: DragEvent<HTMLDivElement>, stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStation(stationId);
+    setDragOverSlot({ hour, slotIndex });
+    if (dateStr) {
+      setDragOverDate(dateStr);
+    }
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    // Only clear if we're leaving to an element outside the calendar
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragOverStation(null);
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr: string, hour?: number, slotIndex?: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOverStation(null);
+    setDragOverDate(null);
+    setDragOverSlot(null);
     
     if (draggedReservation) {
       const newTime = hour !== undefined && slotIndex !== undefined 
         ? formatTimeSlot(hour, slotIndex) 
         : undefined;
       
-      // Allow drop if station changed OR if time changed within same station
+      // Allow drop if station changed OR date changed OR time changed
       const stationChanged = draggedReservation.station_id !== stationId;
+      const dateChanged = draggedReservation.reservation_date !== dateStr;
       const timeChanged = newTime && newTime !== draggedReservation.start_time;
       
-      if (stationChanged || timeChanged) {
-        onReservationMove?.(draggedReservation.id, stationId, newTime);
+      if (stationChanged || dateChanged || timeChanged) {
+        onReservationMove?.(draggedReservation.id, stationId, dateStr, newTime);
       }
     }
     setDraggedReservation(null);
   };
+
+  // Calculate drag preview position
+  const getDragPreviewStyle = () => {
+    if (!draggedReservation || !dragOverSlot) return null;
+    
+    const start = parseTime(draggedReservation.start_time);
+    const end = parseTime(draggedReservation.end_time);
+    const duration = end - start;
+    
+    const newStartTime = dragOverSlot.hour + (dragOverSlot.slotIndex * SLOT_MINUTES) / 60;
+    const top = (newStartTime - 8) * HOUR_HEIGHT;
+    const height = duration * HOUR_HEIGHT;
+    
+    return { 
+      top: `${top}px`, 
+      height: `${Math.max(height, 30)}px`,
+      time: formatTimeSlot(dragOverSlot.hour, dragOverSlot.slotIndex)
+    };
+  };
+
+  const dragPreviewStyle = getDragPreviewStyle();
 
   // Current time indicator position
   const now = new Date();
@@ -336,37 +383,55 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                   className={cn(
                     "flex-1 relative min-w-[80px] transition-colors duration-150",
                     idx < visibleStations.length - 1 && "border-r border-border",
-                    dragOverStation === station.id && "bg-primary/10"
+                    dragOverStation === station.id && !dragOverSlot && "bg-primary/10"
                   )}
-                  onDragOver={(e) => handleDragOver(e, station.id)}
+                  onDragOver={(e) => handleDragOver(e, station.id, currentDateStr)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, station.id)}
+                  onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
                 >
                   {/* 5-minute grid slots */}
                   {HOURS.map((hour) => (
                     <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                      {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => (
-                        <div
-                          key={slotIndex}
-                          className={cn(
-                            "border-b group cursor-pointer transition-colors hover:bg-primary/5",
-                            slotIndex % 3 === 0 && "border-border/50",
-                            slotIndex % 3 !== 0 && "border-border/20"
-                          )}
-                          style={{ height: SLOT_HEIGHT }}
-                          onClick={() => handleSlotClick(station.id, hour, slotIndex)}
-                          onDrop={(e) => {
-                            e.stopPropagation();
-                            handleDrop(e, station.id, hour, slotIndex);
-                          }}
-                        >
-                          <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Plus className="w-3 h-3 text-primary/50" />
+                      {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                        const isDropTarget = dragOverStation === station.id && 
+                          dragOverSlot?.hour === hour && 
+                          dragOverSlot?.slotIndex === slotIndex;
+                        
+                        return (
+                          <div
+                            key={slotIndex}
+                            className={cn(
+                              "border-b group cursor-pointer transition-colors",
+                              slotIndex % 3 === 0 && "border-border/50",
+                              slotIndex % 3 !== 0 && "border-border/20",
+                              isDropTarget && "bg-primary/30 border-primary",
+                              !isDropTarget && "hover:bg-primary/5"
+                            )}
+                            style={{ height: SLOT_HEIGHT }}
+                            onClick={() => handleSlotClick(station.id, hour, slotIndex)}
+                            onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
+                            onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
+                          >
+                            <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Plus className="w-3 h-3 text-primary/50" />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ))}
+
+                  {/* Drag preview ghost */}
+                  {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
+                    <div
+                      className="absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-10 flex items-center justify-center"
+                      style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
+                    >
+                      <span className="text-xs font-semibold text-primary bg-background/80 px-2 py-0.5 rounded">
+                        {dragPreviewStyle.time}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Reservations */}
                   {getReservationsForStation(station.id).map((reservation) => {
@@ -539,42 +604,56 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                           "flex-1 relative min-w-[60px] transition-colors duration-150",
                           stationIdx < visibleStations.length - 1 && "border-r border-border",
                           isDayToday && "bg-primary/5",
-                          dragOverStation === `${dayStr}-${station.id}` && "bg-primary/10"
+                          dragOverStation === station.id && dragOverDate === dayStr && !dragOverSlot && "bg-primary/10"
                         )}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
-                          setDragOverStation(`${dayStr}-${station.id}`);
-                          setDragOverDate(dayStr);
-                        }}
+                        onDragOver={(e) => handleDragOver(e, station.id, dayStr)}
                         onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, station.id)}
+                        onDrop={(e) => handleDrop(e, station.id, dayStr)}
                       >
                         {/* 5-minute grid slots */}
                         {HOURS.map((hour) => (
                           <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                            {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => (
-                              <div
-                                key={slotIndex}
-                                className={cn(
-                                  "border-b group cursor-pointer transition-colors hover:bg-primary/5",
-                                  slotIndex % 3 === 0 && "border-border/50",
-                                  slotIndex % 3 !== 0 && "border-border/20"
-                                )}
-                                style={{ height: SLOT_HEIGHT }}
-                                onClick={() => handleSlotClick(station.id, hour, slotIndex, dayStr)}
-                                onDrop={(e) => {
-                                  e.stopPropagation();
-                                  handleDrop(e, station.id, hour, slotIndex);
-                                }}
-                              >
-                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Plus className="w-2 h-2 text-primary/50" />
+                            {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                              const isDropTarget = dragOverStation === station.id && 
+                                dragOverDate === dayStr &&
+                                dragOverSlot?.hour === hour && 
+                                dragOverSlot?.slotIndex === slotIndex;
+                              
+                              return (
+                                <div
+                                  key={slotIndex}
+                                  className={cn(
+                                    "border-b group cursor-pointer transition-colors",
+                                    slotIndex % 3 === 0 && "border-border/50",
+                                    slotIndex % 3 !== 0 && "border-border/20",
+                                    isDropTarget && "bg-primary/30 border-primary",
+                                    !isDropTarget && "hover:bg-primary/5"
+                                  )}
+                                  style={{ height: SLOT_HEIGHT }}
+                                  onClick={() => handleSlotClick(station.id, hour, slotIndex, dayStr)}
+                                  onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
+                                  onDrop={(e) => handleDrop(e, station.id, dayStr, hour, slotIndex)}
+                                >
+                                  <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Plus className="w-2 h-2 text-primary/50" />
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ))}
+
+                        {/* Drag preview ghost */}
+                        {draggedReservation && dragOverStation === station.id && dragOverDate === dayStr && dragPreviewStyle && (
+                          <div
+                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-10 flex items-center justify-center"
+                            style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
+                          >
+                            <span className="text-[9px] font-semibold text-primary bg-background/80 px-1 py-0.5 rounded">
+                              {dragPreviewStyle.time}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Reservations */}
                         {getReservationsForStationAndDate(station.id, dayStr).map((reservation) => {
