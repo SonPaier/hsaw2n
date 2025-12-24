@@ -798,14 +798,7 @@ export default function CustomerBookingWizard() {
             <Check className="w-7 h-7 text-green-500" />
           </div>
 
-          <h2 className="text-lg font-semibold mb-1">Rezerwacja potwierdzona!</h2>
-          <p className="text-sm text-muted-foreground mb-4">Twój kod:</p>
-
-          <div className="glass-card p-4 mb-4">
-            <span className="text-2xl font-mono font-bold text-primary tracking-wider">
-              {confirmationData.confirmationCode}
-            </span>
-          </div>
+          <h2 className="text-lg font-semibold mb-4">Rezerwacja potwierdzona!</h2>
 
           <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
             <div className="flex justify-between">
@@ -822,6 +815,11 @@ export default function CustomerBookingWizard() {
               <span className="text-muted-foreground">Godzina</span>
               <span className="font-medium">{confirmationData.time}</span>
             </div>
+          </div>
+
+          <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
+            <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
+            Wyslemy Ci przypomnienie SMS dzien przed oraz godzine przed wizyta
           </div>
 
           {(socialLinks.facebook || socialLinks.instagram) && (
