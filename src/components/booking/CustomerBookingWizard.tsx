@@ -21,6 +21,7 @@ interface Service {
   price_medium: number | null;
   price_large: number | null;
   requires_size: boolean | null;
+  station_type: string | null;
 }
 
 interface Station {
@@ -231,12 +232,20 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         const endDate = addDays(today, 14);
 
         // Use backend function to get availability blocks (reservations + breaks)
-        const { data: blocksData } = await supabase
+        const { data: blocksData, error: blocksError } = await supabase
           .rpc('get_availability_blocks', {
             _instance_id: instanceData.id,
             _from: format(today, 'yyyy-MM-dd'),
             _to: format(endDate, 'yyyy-MM-dd'),
           });
+
+        console.log('[CustomerBookingWizard] RPC get_availability_blocks:', {
+          instanceId: instanceData.id,
+          from: format(today, 'yyyy-MM-dd'),
+          to: format(endDate, 'yyyy-MM-dd'),
+          blocksData,
+          blocksError,
+        });
 
         setAvailabilityBlocks((blocksData as AvailabilityBlock[]) || []);
       }
@@ -271,6 +280,16 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     const today = new Date();
     const serviceDuration = selectedService.duration_minutes || 60;
 
+    // Filter stations by service type
+    const compatibleStations = stations.filter(s => {
+      // If service has no station_type, use all stations
+      if (!selectedService.station_type) return true;
+      // Match station type or universal stations
+      return s.type === selectedService.station_type || s.type === 'universal';
+    });
+
+    console.log('[getAvailableDays] Service:', selectedService.name, 'duration:', serviceDuration, 'compatibleStations:', compatibleStations.map(s => s.name));
+
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
       const dayName = format(date, 'EEEE').toLowerCase();
@@ -281,6 +300,10 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       const dateStr = format(date, 'yyyy-MM-dd');
       // Filter availability blocks for this date (includes both reservations and breaks)
       const dayBlocks = availabilityBlocks.filter((b) => b.block_date === dateStr);
+
+      if (dateStr === '2025-12-25') {
+        console.log('[getAvailableDays] 25-12-2025 dayBlocks:', dayBlocks);
+      }
 
       const [openH, openM] = workingHours.open.split(':').map(Number);
       const [closeH, closeM] = workingHours.close.split(':').map(Number);
@@ -305,7 +328,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         // Check which stations are available for the full duration [time, time+duration)
         const availableStations: string[] = [];
 
-        for (const station of stations) {
+        for (const station of compatibleStations) {
           // Get all blocks for this station on this day
           const stationBlocks = dayBlocks.filter((b) => b.station_id === station.id);
           
@@ -316,6 +339,10 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
             // Overlap check: [time, endTime) overlaps with [blockStart, blockEnd)
             return time < blockEnd && endTime > blockStart;
           });
+
+          if (dateStr === '2025-12-25' && (timeStr === '14:15' || timeStr === '14:00' || timeStr === '14:30')) {
+            console.log(`[getAvailableDays] ${timeStr} station ${station.name}: blocks=`, stationBlocks.map(b => `${b.start_time}-${b.end_time}`), 'hasConflict:', hasConflict);
+          }
 
           if (!hasConflict) {
             availableStations.push(station.id);
@@ -337,6 +364,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         days.push({ date, slots });
       }
     }
+
 
     return days;
   };
