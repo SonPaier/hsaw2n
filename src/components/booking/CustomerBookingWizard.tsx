@@ -721,24 +721,32 @@ export default function CustomerBookingWizard() {
               selectedDay.ranges.length === 2 && "grid-cols-2",
               selectedDay.ranges.length >= 3 && "grid-cols-2 md:grid-cols-3"
             )}>
-              {selectedDay.ranges.map((range, idx) => (
-                <div key={range.stationId} className="space-y-2">
-                  <div className="text-xs text-muted-foreground text-center pb-1 border-b border-border">
-                    {range.startTime} - {range.endTime}
+              {selectedDay.ranges.map((range, idx) => {
+                const station = stations.find(s => s.id === range.stationId);
+                return (
+                  <div key={range.stationId} className="space-y-2">
+                    <div className="text-center pb-1 border-b border-border">
+                      <div className="text-xs font-medium text-foreground">
+                        {station?.name || `Stanowisko ${idx + 1}`}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {range.startTime} - {range.endTime}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 justify-center">
+                      {range.slots.map((slot) => (
+                        <button
+                          key={`${slot.stationId}-${slot.time}`}
+                          onClick={() => handleSelectTime(slot)}
+                          className="px-2.5 py-1.5 text-xs rounded-md border border-border hover:border-primary hover:bg-primary/10 transition-all"
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 justify-center">
-                    {range.slots.map((slot) => (
-                      <button
-                        key={`${slot.stationId}-${slot.time}`}
-                        onClick={() => handleSelectTime(slot)}
-                        className="px-2.5 py-1.5 text-xs rounded-md border border-border hover:border-primary hover:bg-primary/10 transition-all"
-                      >
-                        {slot.time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
