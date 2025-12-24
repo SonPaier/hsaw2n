@@ -614,7 +614,7 @@ const AdminDashboard = () => {
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
             {currentView === 'settings' && <div className="space-y-6">
-                <div className="glass-card p-6 space-y-6">
+                <div className="glass-card p-6 space-y-6 bg-secondary-foreground">
                   <div>
                     <h2 className="text-lg font-semibold mb-2">Ustawienia instancji</h2>
                     <p className="text-muted-foreground text-sm">
@@ -623,15 +623,15 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 
-                <div className="glass-card p-6">
+                <div className="glass-card p-6 bg-secondary-foreground">
                   <WorkingHoursSettings instanceId={instanceId} />
                 </div>
                 
-                <div className="glass-card p-6">
+                <div className="glass-card p-6 bg-secondary-foreground">
                   <StationsSettings instanceId={instanceId} />
                 </div>
                 
-                <div className="glass-card p-6">
+                <div className="glass-card p-6 bg-secondary-foreground">
                   <PriceListSettings instanceId={instanceId} />
                 </div>
               </div>}
