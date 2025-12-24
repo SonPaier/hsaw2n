@@ -8,7 +8,7 @@ interface ClientLayoutProps {
 
 const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children }, ref) => {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div ref={ref} className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 glass-card border-b border-border/50">
         <div className="container py-4">
