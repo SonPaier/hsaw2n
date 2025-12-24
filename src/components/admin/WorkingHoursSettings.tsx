@@ -86,10 +86,15 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      console.log('[WorkingHoursSettings] Saving working hours:', workingHours);
+      
+      const { data, error } = await supabase
         .from('instances')
         .update({ working_hours: JSON.parse(JSON.stringify(workingHours)) })
-        .eq('id', instanceId);
+        .eq('id', instanceId)
+        .select('working_hours');
+
+      console.log('[WorkingHoursSettings] Save response:', { data, error });
 
       if (error) throw error;
       toast.success('Godziny pracy zostały zapisane');
