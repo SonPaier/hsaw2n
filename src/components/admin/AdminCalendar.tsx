@@ -1,7 +1,7 @@
 import { useState, DragEvent } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -438,7 +438,7 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                     const style = getReservationStyle(reservation.start_time, reservation.end_time);
                     const isDragging = draggedReservation?.id === reservation.id;
                     
-                    return (
+                      return (
                       <div
                         key={reservation.id}
                         draggable
@@ -457,36 +457,42 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                           onReservationClick?.(reservation);
                         }}
                       >
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
-                            <User className="w-3 h-3 shrink-0" />
-                            {reservation.customer_name}
+                        {/* Drag handle - more visible on mobile */}
+                        <div className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center opacity-60 hover:opacity-100 touch-none md:w-4 md:opacity-40">
+                          <GripVertical className="w-3.5 h-3.5 md:w-3 md:h-3" />
+                        </div>
+                        <div className="pl-4 md:pl-3">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
+                              <User className="w-3 h-3 shrink-0" />
+                              {reservation.customer_name}
+                            </div>
+                            {reservation.customer_phone && (
+                              <a
+                                href={`tel:${reservation.customer_phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                title={reservation.customer_phone}
+                              >
+                                <Phone className="w-3 h-3" />
+                              </a>
+                            )}
                           </div>
-                          {reservation.customer_phone && (
-                            <a
-                              href={`tel:${reservation.customer_phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                              title={reservation.customer_phone}
-                            >
-                              <Phone className="w-3 h-3" />
-                            </a>
+                          {reservation.vehicle_plate && (
+                            <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
+                              <Car className="w-3 h-3 shrink-0" />
+                              {reservation.vehicle_plate}
+                            </div>
+                          )}
+                          <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5 hidden md:block">
+                            {reservation.start_time} - {reservation.end_time}
+                          </div>
+                          {reservation.service && (
+                            <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">
+                              {reservation.service.name}
+                            </div>
                           )}
                         </div>
-                        {reservation.vehicle_plate && (
-                          <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
-                            <Car className="w-3 h-3 shrink-0" />
-                            {reservation.vehicle_plate}
-                          </div>
-                        )}
-                        <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5 hidden md:block">
-                          {reservation.start_time} - {reservation.end_time}
-                        </div>
-                        {reservation.service && (
-                          <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">
-                            {reservation.service.name}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -679,30 +685,36 @@ const AdminCalendar = ({ stations, reservations, onReservationClick, onAddReserv
                                 onReservationClick?.(reservation);
                               }}
                             >
-                              <div className="flex items-center justify-between gap-0.5">
-                                <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
-                                  <User className="w-2.5 h-2.5 shrink-0" />
-                                  {reservation.customer_name}
-                                </div>
-                                {reservation.customer_phone && (
-                                  <a
-                                    href={`tel:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                    title={reservation.customer_phone}
-                                  >
-                                    <Phone className="w-2.5 h-2.5" />
-                                  </a>
-                                )}
+                              {/* Drag handle */}
+                              <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
+                                <GripVertical className="w-2.5 h-2.5" />
                               </div>
-                              {reservation.vehicle_plate && (
-                                <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate opacity-90">
-                                  <Car className="w-2.5 h-2.5 shrink-0" />
-                                  {reservation.vehicle_plate}
+                              <div className="pl-3">
+                                <div className="flex items-center justify-between gap-0.5">
+                                  <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
+                                    <User className="w-2.5 h-2.5 shrink-0" />
+                                    {reservation.customer_name}
+                                  </div>
+                                  {reservation.customer_phone && (
+                                    <a
+                                      href={`tel:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                      title={reservation.customer_phone}
+                                    >
+                                      <Phone className="w-2.5 h-2.5" />
+                                    </a>
+                                  )}
                                 </div>
-                              )}
-                              <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
-                                {reservation.start_time} - {reservation.end_time}
+                                {reservation.vehicle_plate && (
+                                  <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate opacity-90">
+                                    <Car className="w-2.5 h-2.5 shrink-0" />
+                                    {reservation.vehicle_plate}
+                                  </div>
+                                )}
+                                <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
+                                  {reservation.start_time} - {reservation.end_time}
+                                </div>
                               </div>
                             </div>
                           );
