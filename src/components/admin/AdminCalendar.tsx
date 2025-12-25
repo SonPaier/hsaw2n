@@ -105,6 +105,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   const [dragOverStation, setDragOverStation] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Save hidden stations to localStorage
@@ -479,7 +480,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
           <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">
             Dziś
           </Button>
-          <Popover>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="ml-1 gap-1">
                 <CalendarIcon className="w-4 h-4" />
@@ -494,6 +495,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                   if (date) {
                     setCurrentDate(date);
                     setViewMode('day');
+                    setDatePickerOpen(false);
                   }
                 }}
                 initialFocus

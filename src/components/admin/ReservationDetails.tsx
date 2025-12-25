@@ -101,6 +101,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Editable fields
   const [customerName, setCustomerName] = useState('');
@@ -126,6 +127,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setNotes(reservation.notes || '');
       setPrice(reservation.price?.toString() || '');
       setIsEditing(false);
+      setDatePickerOpen(false);
     }
   }, [reservation]);
 
@@ -304,7 +306,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                   <CalendarIcon className="w-4 h-4" />
                   Data rezerwacji
                 </Label>
-                <Popover>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -324,6 +326,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                       onSelect={(date) => {
                         if (date) {
                           setReservationDate(format(date, 'yyyy-MM-dd'));
+                          setDatePickerOpen(false);
                         }
                       }}
                       initialFocus
