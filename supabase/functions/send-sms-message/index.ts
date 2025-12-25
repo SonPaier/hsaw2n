@@ -84,7 +84,7 @@ serve(async (req) => {
       body: new URLSearchParams({
         to: normalizedPhone,
         message: message,
-        from: "ARMCAR",
+        from: "TEST",
         format: "json",
         encoding: "utf-8",
       }),
