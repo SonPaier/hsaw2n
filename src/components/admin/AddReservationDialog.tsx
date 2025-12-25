@@ -352,11 +352,14 @@ const AddReservationDialog = ({
     // Validate required fields
     const newErrors: Record<string, string> = {};
     
-    // Service is only required for washing stations
+    // Service is required for washing stations, optional for others
     const isWashingStation = stationType === 'washing';
     if (isWashingStation && selectedServices.length === 0) {
       newErrors.services = 'Wybierz przynajmniej jedną usługę';
     }
+    
+    // For non-washing stations without selected service, we need a placeholder service
+    // since service_id is required in the database
     
     if (!stationId) {
       toast.error('Brak stanowiska');
@@ -478,9 +481,22 @@ const AddReservationDialog = ({
         notes: reservationNotes || null,
       };
 
-      // Use first selected service as main service (for non-PPF)
-      if (!isPPFStation && selectedServices.length > 0) {
+      // Set service_id - required field in database
+      if (selectedServices.length > 0) {
         reservationData.service_id = selectedServices[0];
+      } else {
+        // For non-washing stations without service selection, get first available service for this station type
+        const matchingService = services.find(s => s.station_type === stationType);
+        if (matchingService) {
+          reservationData.service_id = matchingService.id;
+        } else if (services.length > 0) {
+          // Fallback to first available service
+          reservationData.service_id = services[0].id;
+        } else {
+          toast.error('Brak dostępnych usług w systemie');
+          setLoading(false);
+          return;
+        }
       }
 
       const { error: reservationError } = await supabase
