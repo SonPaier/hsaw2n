@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2, Bug } from 'lucide-react';
@@ -74,6 +74,69 @@ const features = [
 ];
 
 type Step = 'service' | 'datetime' | 'addons' | 'summary' | 'success';
+
+// OTP Input component with autofocus refresh for triggering SMS autofill
+function OTPInputWithAutoFocus({ 
+  value, 
+  onChange, 
+  onComplete, 
+  smsSent,
+  isVerifying 
+}: { 
+  value: string;
+  onChange: (value: string) => void;
+  onComplete: (code: string) => void;
+  smsSent: boolean;
+  isVerifying: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Refresh autofocus every 500ms to trigger SMS autofill on mobile
+  useEffect(() => {
+    if (!smsSent || isVerifying) return;
+    
+    const focusInput = () => {
+      const input = containerRef.current?.querySelector('input');
+      if (input && document.activeElement !== input) {
+        input.focus();
+      }
+    };
+    
+    // Initial focus
+    focusInput();
+    
+    // Refresh focus every 500ms for the first 10 seconds
+    const interval = setInterval(focusInput, 500);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [smsSent, isVerifying]);
+  
+  return (
+    <div ref={containerRef} className="flex justify-center mb-4">
+      <InputOTP
+        maxLength={4}
+        value={value}
+        onChange={onChange}
+        onComplete={onComplete}
+        autoComplete="one-time-code"
+        inputMode="numeric"
+        className="gap-3"
+        autoFocus
+      >
+        <InputOTPGroup className="gap-3">
+          <InputOTPSlot index={0} className="h-14 w-14 text-2xl font-bold border-2" />
+          <InputOTPSlot index={1} className="h-14 w-14 text-2xl font-bold border-2" />
+          <InputOTPSlot index={2} className="h-14 w-14 text-2xl font-bold border-2" />
+          <InputOTPSlot index={3} className="h-14 w-14 text-2xl font-bold border-2" />
+        </InputOTPGroup>
+      </InputOTP>
+    </div>
+  );
+}
 
 export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookingWizardProps) {
   const [step, setStep] = useState<Step>('service');
@@ -1038,7 +1101,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
             >
               {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Wyślij kod SMS'}
+              {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Potwierdź'}
             </Button>
           </>
         ) : (
@@ -1055,24 +1118,13 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               </div>
             )}
             
-            <div className="flex justify-center mb-4">
-              <InputOTP
-                maxLength={4}
-                value={verificationCode}
-                onChange={setVerificationCode}
-                onComplete={handleVerifyCode}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                className="gap-3"
-              >
-                <InputOTPGroup className="gap-3">
-                  <InputOTPSlot index={0} className="h-14 w-14 text-2xl font-bold border-2" />
-                  <InputOTPSlot index={1} className="h-14 w-14 text-2xl font-bold border-2" />
-                  <InputOTPSlot index={2} className="h-14 w-14 text-2xl font-bold border-2" />
-                  <InputOTPSlot index={3} className="h-14 w-14 text-2xl font-bold border-2" />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
+            <OTPInputWithAutoFocus
+              value={verificationCode}
+              onChange={setVerificationCode}
+              onComplete={handleVerifyCode}
+              smsSent={smsSent}
+              isVerifying={isVerifying}
+            />
             {isVerifying && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
