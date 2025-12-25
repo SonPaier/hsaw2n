@@ -115,6 +115,7 @@ export type Database = {
           address: string | null
           auto_confirm_reservations: boolean | null
           background_color: string | null
+          booking_days_ahead: number
           created_at: string | null
           email: string | null
           id: string
@@ -138,6 +139,7 @@ export type Database = {
           address?: string | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
+          booking_days_ahead?: number
           created_at?: string | null
           email?: string | null
           id?: string
@@ -161,6 +163,7 @@ export type Database = {
           address?: string | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
+          booking_days_ahead?: number
           created_at?: string | null
           email?: string | null
           id?: string
