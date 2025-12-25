@@ -352,7 +352,9 @@ const AddReservationDialog = ({
     // Validate required fields
     const newErrors: Record<string, string> = {};
     
-    if (!isPPFStation && selectedServices.length === 0) {
+    // Service is only required for washing stations
+    const isWashingStation = stationType === 'washing';
+    if (isWashingStation && selectedServices.length === 0) {
       newErrors.services = 'Wybierz przynajmniej jedną usługę';
     }
     
