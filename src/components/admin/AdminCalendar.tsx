@@ -443,6 +443,45 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     setDragOverSlot(null);
     
     if (draggedReservation) {
+      // Check station type compatibility
+      const sourceStation = stations.find(s => s.id === draggedReservation.station_id);
+      const targetStation = stations.find(s => s.id === stationId);
+      
+      if (sourceStation && targetStation) {
+        const sourceType = sourceStation.type;
+        const targetType = targetStation.type;
+        
+        // Prevent moving between incompatible station types
+        // PPF can only go to PPF, washing can only go to washing/universal, etc.
+        const isCompatible = () => {
+          // Same type is always compatible
+          if (sourceType === targetType) return true;
+          
+          // Universal stations can accept anything
+          if (targetType === 'universal') return true;
+          
+          // From universal, can go anywhere
+          if (sourceType === 'universal') return true;
+          
+          // PPF can only go to PPF or universal
+          if (sourceType === 'ppf' && targetType !== 'ppf') return false;
+          
+          // Washing can only go to washing or universal
+          if (sourceType === 'washing' && targetType !== 'washing') return false;
+          
+          // Detailing can only go to detailing or universal
+          if (sourceType === 'detailing' && targetType !== 'detailing') return false;
+          
+          return false;
+        };
+        
+        if (!isCompatible()) {
+          console.warn(`Cannot move reservation from ${sourceType} station to ${targetType} station`);
+          setDraggedReservation(null);
+          return;
+        }
+      }
+      
       const newTime = hour !== undefined && slotIndex !== undefined 
         ? formatTimeSlot(hour, slotIndex) 
         : undefined;
