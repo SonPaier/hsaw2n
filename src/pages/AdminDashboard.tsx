@@ -31,6 +31,7 @@ interface Reservation {
   customer_phone: string;
   vehicle_plate: string;
   reservation_date: string;
+  end_date?: string | null;
   start_time: string;
   end_time: string;
   station_id: string;
@@ -38,6 +39,10 @@ interface Reservation {
   confirmation_code: string;
   service?: {
     name: string;
+  };
+  station?: {
+    name: string;
+    type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
   price: number | null;
 }
@@ -180,13 +185,15 @@ const AdminDashboard = () => {
         customer_phone,
         vehicle_plate,
         reservation_date,
+        end_date,
         start_time,
         end_time,
         station_id,
         status,
         confirmation_code,
         price,
-        services:service_id (name)
+        services:service_id (name),
+        stations:station_id (name, type)
       `).eq('instance_id', instanceId);
     if (!error && data) {
       setReservations(data.map(r => ({
@@ -194,6 +201,10 @@ const AdminDashboard = () => {
         status: r.status || 'pending',
         service: r.services ? {
           name: (r.services as any).name
+        } : undefined,
+        station: r.stations ? {
+          name: (r.stations as any).name,
+          type: (r.stations as any).type
         } : undefined
       })));
     }
@@ -226,7 +237,7 @@ const AdminDashboard = () => {
     }, payload => {
       console.log('Realtime reservation update:', payload);
       if (payload.eventType === 'INSERT') {
-        // Fetch the new reservation with service name
+        // Fetch the new reservation with service and station info
         supabase.from('reservations').select(`
                 id,
                 instance_id,
@@ -234,13 +245,15 @@ const AdminDashboard = () => {
                 customer_phone,
                 vehicle_plate,
                 reservation_date,
+                end_date,
                 start_time,
                 end_time,
                 station_id,
                 status,
                 confirmation_code,
                 price,
-                services:service_id (name)
+                services:service_id (name),
+                stations:station_id (name, type)
               `).eq('id', payload.new.id).single().then(({
           data
         }) => {
@@ -250,6 +263,10 @@ const AdminDashboard = () => {
               status: data.status || 'pending',
               service: data.services ? {
                 name: (data.services as any).name
+              } : undefined,
+              station: data.stations ? {
+                name: (data.stations as any).name,
+                type: (data.stations as any).type
               } : undefined
             };
             setReservations(prev => [...prev, newReservation as Reservation]);
