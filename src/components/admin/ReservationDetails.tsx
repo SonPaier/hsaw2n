@@ -223,6 +223,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -598,15 +599,16 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
           )}
         </div>
       </DialogContent>
-      
-      <SendSmsDialog
-        phone={customerPhone}
-        customerName={customerName}
-        instanceId={reservation?.instance_id || null}
-        open={smsDialogOpen}
-        onClose={() => setSmsDialogOpen(false)}
-      />
     </Dialog>
+    
+    <SendSmsDialog
+      phone={customerPhone}
+      customerName={customerName}
+      instanceId={reservation?.instance_id || null}
+      open={smsDialogOpen}
+      onClose={() => setSmsDialogOpen(false)}
+    />
+  </>
   );
 };
 
