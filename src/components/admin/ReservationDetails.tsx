@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -100,6 +107,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
   const [customerPhone, setCustomerPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [carSize, setCarSize] = useState<CarSize | ''>('');
+  const [reservationDate, setReservationDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [notes, setNotes] = useState('');
@@ -112,6 +120,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setCustomerPhone(reservation.customer_phone || '');
       setCarModel(reservation.vehicle_plate || '');
       setCarSize(reservation.car_size || '');
+      setReservationDate(reservation.reservation_date || '');
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
@@ -130,6 +139,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
         customer_phone: customerPhone,
         vehicle_plate: carModel,
         car_size: carSize || null,
+        reservation_date: reservationDate,
         start_time: startTime,
         end_time: endTime,
         notes: notes || undefined,
@@ -176,6 +186,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setCustomerPhone(reservation.customer_phone || '');
       setCarModel(reservation.vehicle_plate || '');
       setCarSize(reservation.car_size || '');
+      setReservationDate(reservation.reservation_date || '');
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
@@ -286,6 +297,42 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                   </div>
                 </div>
               )}
+
+              {/* Date */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4" />
+                  Data rezerwacji
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !reservationDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : 'Wybierz datę'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={reservationDate ? new Date(reservationDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setReservationDate(format(date, 'yyyy-MM-dd'));
+                        }
+                      }}
+                      initialFocus
+                      className="pointer-events-auto"
+                      locale={pl}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               {/* Time Range */}
               <div className="grid grid-cols-2 gap-4">

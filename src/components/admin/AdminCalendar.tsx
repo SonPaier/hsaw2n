@@ -1,7 +1,7 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
 
 type ViewMode = 'day' | 'two-days' | 'week';
 
@@ -478,6 +479,29 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
           <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">
             Dziś
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-1 gap-1">
+                <CalendarIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Data</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setCurrentDate(date);
+                    setViewMode('day');
+                  }
+                }}
+                initialFocus
+                className="pointer-events-auto"
+                locale={pl}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         
         <h2 className={cn(
@@ -501,7 +525,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
               onClick={() => setViewMode('day')}
               className="rounded-none border-0 px-2 md:px-3"
             >
-              <Calendar className="w-4 h-4 md:mr-1" />
+              <CalendarIcon className="w-4 h-4 md:mr-1" />
               <span className="hidden md:inline">Dzień</span>
             </Button>
             <Button

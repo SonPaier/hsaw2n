@@ -434,6 +434,15 @@ const AdminDashboard = () => {
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
+    
+    // Store original state for undo
+    const originalState = {
+      station_id: reservation.station_id,
+      reservation_date: reservation.reservation_date,
+      start_time: reservation.start_time,
+      end_time: reservation.end_time
+    };
+    
     const updates: any = {
       station_id: newStationId,
       reservation_date: newDate
@@ -466,13 +475,41 @@ const AdminDashboard = () => {
       ...r,
       ...updates
     } : r));
+    
     const station = stations.find(s => s.id === newStationId);
     const dateChanged = reservation.reservation_date !== newDate;
-    if (dateChanged) {
-      toast.success(`Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})`);
-    } else {
-      toast.success(`Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`);
-    }
+    const message = dateChanged 
+      ? `Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})`
+      : `Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`;
+    
+    // Show toast with undo action
+    toast.success(message, {
+      duration: 5000,
+      action: {
+        label: 'Cofnij',
+        onClick: async () => {
+          // Restore original state in database
+          const { error: undoError } = await supabase
+            .from('reservations')
+            .update(originalState)
+            .eq('id', reservationId);
+          
+          if (undoError) {
+            toast.error('Błąd podczas cofania zmiany');
+            console.error('Error undoing move:', undoError);
+            return;
+          }
+          
+          // Restore local state
+          setReservations(prev => prev.map(r => r.id === reservationId ? {
+            ...r,
+            ...originalState
+          } : r));
+          
+          toast.success('Zmiana została cofnięta');
+        }
+      }
+    });
   };
   return <>
       <Helmet>
