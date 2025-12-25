@@ -135,6 +135,23 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Upsert customer vehicle for future suggestions
+    if (reservationData.vehiclePlate && reservationData.vehiclePlate !== "BRAK") {
+      try {
+        await supabase.rpc("upsert_customer_vehicle", {
+          _instance_id: instanceId,
+          _phone: normalizedPhone,
+          _model: reservationData.vehiclePlate,
+          _plate: null,
+          _customer_id: customer.id,
+        });
+        console.log("Customer vehicle upserted:", reservationData.vehiclePlate);
+      } catch (vehicleError) {
+        console.error("Failed to upsert customer vehicle:", vehicleError);
+        // Non-critical, continue
+      }
+    }
+
     // Update customer name if changed
     if (customer.name !== reservationData.customerName) {
       await supabase
