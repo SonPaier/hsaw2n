@@ -27,6 +27,33 @@ serve(async (req) => {
       );
     }
 
+    // Check SMS limit if instanceId is provided
+    if (instanceId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.2");
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: canSend, error: limitCheckError } = await supabase
+        .rpc('check_sms_available', { _instance_id: instanceId });
+
+      if (limitCheckError) {
+        console.error("SMS limit check error:", limitCheckError);
+        return new Response(
+          JSON.stringify({ error: "Failed to check SMS limit" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!canSend) {
+        console.log(`SMS limit exceeded for instance ${instanceId}`);
+        return new Response(
+          JSON.stringify({ error: "SMS limit exceeded", code: "SMS_LIMIT_EXCEEDED" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Normalize phone number
     let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^0-9+]/g, "");
     if (!normalizedPhone.startsWith("+")) {
@@ -74,6 +101,21 @@ serve(async (req) => {
     }
 
     console.log("SMS sent successfully:", smsResult);
+
+    // Increment SMS usage after successful send
+    if (instanceId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.2");
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { error: incrementError } = await supabase
+        .rpc('increment_sms_usage', { _instance_id: instanceId });
+
+      if (incrementError) {
+        console.error("Failed to increment SMS usage:", incrementError);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: "SMS sent successfully" }),

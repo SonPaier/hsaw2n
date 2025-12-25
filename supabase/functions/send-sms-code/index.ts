@@ -54,6 +54,26 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check SMS limit before proceeding
+    const { data: canSend, error: limitCheckError } = await supabase
+      .rpc('check_sms_available', { _instance_id: instanceId });
+
+    if (limitCheckError) {
+      console.error("SMS limit check error:", limitCheckError);
+      return new Response(
+        JSON.stringify({ error: "Failed to check SMS limit" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!canSend) {
+      console.log(`SMS limit exceeded for instance ${instanceId}`);
+      return new Response(
+        JSON.stringify({ error: "SMS limit exceeded", code: "SMS_LIMIT_EXCEEDED" }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { error: dbError } = await supabase
       .from("sms_verification_codes")
       .insert({
@@ -114,6 +134,17 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Failed to send SMS", details: smsResult.error }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+
+    // Increment SMS usage after successful send
+    const { data: incremented, error: incrementError } = await supabase
+      .rpc('increment_sms_usage', { _instance_id: instanceId });
+
+    if (incrementError) {
+      console.error("Failed to increment SMS usage:", incrementError);
+      // Don't fail the request, SMS was already sent
+    } else {
+      console.log(`SMS usage incremented for instance ${instanceId}: ${incremented}`);
     }
 
     return new Response(

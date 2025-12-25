@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
+import { AllInstancesSmsUsage } from '@/components/admin/AllInstancesSmsUsage';
 
 interface Instance {
   id: string;
@@ -263,6 +264,9 @@ const SuperAdminDashboard = () => {
                 <div className="text-sm text-muted-foreground">Rezerwacji dzisiaj</div>
               </div>
             </div>
+
+            {/* SMS Usage */}
+            <AllInstancesSmsUsage />
 
             {/* Instances List */}
             <div className="space-y-4">

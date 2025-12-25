@@ -124,6 +124,8 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           slug: string
+          sms_limit: number
+          sms_used: number
           social_facebook: string | null
           social_instagram: string | null
           updated_at: string | null
@@ -144,6 +146,8 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slug: string
+          sms_limit?: number
+          sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
           updated_at?: string | null
@@ -164,6 +168,8 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string
+          sms_limit?: number
+          sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
           updated_at?: string | null
@@ -527,6 +533,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
       get_availability_blocks: {
         Args: { _from: string; _instance_id: string; _to: string }
         Returns: {
@@ -551,6 +558,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_sms_usage: { Args: { _instance_id: string }; Returns: boolean }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
