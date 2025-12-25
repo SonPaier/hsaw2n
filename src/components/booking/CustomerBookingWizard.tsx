@@ -1227,7 +1227,6 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="mt-1 h-9 text-sm"
                 disabled={smsSent}
-                autoFocus
               />
             </div>
             <div>
