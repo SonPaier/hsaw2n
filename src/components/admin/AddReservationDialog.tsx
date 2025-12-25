@@ -99,6 +99,11 @@ const AddReservationDialog = ({
     from: date ? new Date(date) : new Date(),
     to: undefined
   });
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
+  
+  // PPF specific fields
+  const [offerNumber, setOfferNumber] = useState('');
+  const [notes, setNotes] = useState('');
   
   const isPPFStation = stationType === 'ppf';
 
@@ -141,6 +146,9 @@ const AddReservationDialog = ({
         from: date ? new Date(date) : new Date(),
         to: undefined
       });
+      setDateRangeOpen(false);
+      setOfferNumber('');
+      setNotes('');
     }
   }, [open, time, date]);
 
@@ -361,6 +369,17 @@ const AddReservationDialog = ({
         ? format(dateRange.to, 'yyyy-MM-dd')
         : null;
 
+      // Build notes field - for PPF include offer number
+      let reservationNotes = '';
+      if (isPPFStation) {
+        if (offerNumber) {
+          reservationNotes = `Oferta: ${offerNumber}`;
+        }
+        if (notes) {
+          reservationNotes = reservationNotes ? `${reservationNotes}\n${notes}` : notes;
+        }
+      }
+
       const reservationData: any = {
         instance_id: instanceId,
         station_id: stationId,
@@ -374,10 +393,11 @@ const AddReservationDialog = ({
         car_size: carSize || null,
         confirmation_code: generateConfirmationCode(),
         status: 'confirmed',
+        notes: reservationNotes || null,
       };
 
-      // Use first selected service as main service (for now - can extend later)
-      if (selectedServices.length > 0) {
+      // Use first selected service as main service (for non-PPF)
+      if (!isPPFStation && selectedServices.length > 0) {
         reservationData.service_id = selectedServices[0];
       }
 
@@ -416,7 +436,7 @@ const AddReservationDialog = ({
                 <CalendarIcon className="w-4 h-4" />
                 Zakres dat (folia - rezerwacja wielodniowa)
               </Label>
-              <Popover>
+              <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -444,7 +464,13 @@ const AddReservationDialog = ({
                   <Calendar
                     mode="range"
                     selected={dateRange}
-                    onSelect={setDateRange}
+                    onSelect={(range) => {
+                      setDateRange(range);
+                      // Close picker when both dates are selected
+                      if (range?.from && range?.to) {
+                        setDateRangeOpen(false);
+                      }
+                    }}
                     numberOfMonths={2}
                     locale={pl}
                     className="pointer-events-auto"
@@ -589,61 +615,87 @@ const AddReservationDialog = ({
             </Select>
           </div>
 
-          {/* Services Multi-Select */}
-          <div className="space-y-2">
-            <Label className="flex items-center justify-between">
-              <span>Usługi</span>
-              {selectedServices.length > 0 && (
-                <span className="text-sm font-normal text-primary">
-                  Suma: {totalDurationMinutes} min
-                </span>
-              )}
-            </Label>
-            <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={servicesOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  {selectedServices.length === 0 
-                    ? "Wybierz usługi..." 
-                    : `Wybrano ${selectedServices.length} usług`}
-                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
-                <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
-                  {services.map((service) => {
-                    const isSelected = selectedServices.includes(service.id);
-                    return (
-                      <div
-                        key={service.id}
-                        className={cn(
-                          "flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
-                          isSelected && "bg-primary/10"
-                        )}
-                        onClick={() => toggleService(service.id)}
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleService(service.id)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{service.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {service.duration_minutes} min
-                            {service.price_from && ` • od ${service.price_from} zł`}
+          {/* Services Multi-Select - hidden for PPF */}
+          {!isPPFStation && (
+            <div className="space-y-2">
+              <Label className="flex items-center justify-between">
+                <span>Usługi</span>
+                {selectedServices.length > 0 && (
+                  <span className="text-sm font-normal text-primary">
+                    Suma: {totalDurationMinutes} min
+                  </span>
+                )}
+              </Label>
+              <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={servicesOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedServices.length === 0 
+                      ? "Wybierz usługi..." 
+                      : `Wybrano ${selectedServices.length} usług`}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
+                  <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
+                    {services.map((service) => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <div
+                          key={service.id}
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
+                            isSelected && "bg-primary/10"
+                          )}
+                          onClick={() => toggleService(service.id)}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleService(service.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{service.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {service.duration_minutes} min
+                              {service.price_from && ` • od ${service.price_from} zł`}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* PPF specific fields - Offer Number and Notes */}
+          {isPPFStation && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="offerNumber">Numer oferty</Label>
+                <Input
+                  id="offerNumber"
+                  value={offerNumber}
+                  onChange={(e) => setOfferNumber(e.target.value)}
+                  placeholder="np. OF-2024-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ppfNotes">Notatki</Label>
+                <Input
+                  id="ppfNotes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Dodatkowe informacje..."
+                />
+              </div>
+            </>
+          )}
 
           {/* Time Range - hidden for PPF as it's already in the date range section */}
           {!isPPFStation && (
