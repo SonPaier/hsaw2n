@@ -865,13 +865,16 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
 
           {otherServices.length > 0 && (
             <>
-              <button
-                onClick={() => setShowAllServices(!showAllServices)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
-              >
-                {showAllServices ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {showAllServices ? 'Zwiń' : `Więcej usług (${otherServices.length})`}
-              </button>
+              <div className="flex justify-center my-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAllServices(!showAllServices)}
+                  className="gap-2"
+                >
+                  {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showAllServices ? 'Zwiń usługi' : `Więcej usług (${otherServices.length})`}
+                </Button>
+              </div>
 
               {showAllServices && (
                 <div className="grid gap-2 animate-fade-in">
