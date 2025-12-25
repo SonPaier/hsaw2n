@@ -1294,17 +1294,17 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               />
               {/* Historical car models from previous reservations */}
               {!smsSent && historicalCarModels.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {historicalCarModels.map(({ model, count }) => (
                     <button
                       key={model}
                       type="button"
                       onClick={() => setCarModel(model)}
                       className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors",
+                        "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors border",
                         carModel === model
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
                       )}
                     >
                       {model}
