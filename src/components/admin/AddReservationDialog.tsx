@@ -94,11 +94,8 @@ const AddReservationDialog = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [servicesOpen, setServicesOpen] = useState(false);
   
-  // Date range for PPF stations
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: date ? new Date(date) : new Date(),
-    to: undefined
-  });
+  // Date range for PPF stations - start with undefined to allow full selection
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   
   // PPF specific fields
@@ -142,10 +139,7 @@ const AddReservationDialog = ({
       setSelectedCustomerId(null);
       setShowCustomerDropdown(false);
       setServicesOpen(false);
-      setDateRange({
-        from: date ? new Date(date) : new Date(),
-        to: undefined
-      });
+      setDateRange(undefined); // Reset to allow fresh selection
       setDateRangeOpen(false);
       setOfferNumber('');
       setNotes('');
@@ -463,6 +457,7 @@ const AddReservationDialog = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="range"
+                    defaultMonth={dateRange?.from || (date ? new Date(date) : new Date())}
                     selected={dateRange}
                     onSelect={(range) => {
                       setDateRange(range);
