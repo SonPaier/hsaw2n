@@ -77,7 +77,8 @@ const AdminDashboard = () => {
   const [newReservationData, setNewReservationData] = useState({
     stationId: '',
     date: '',
-    time: ''
+    time: '',
+    stationType: '' as string
   });
 
   // Breaks state
@@ -413,10 +414,12 @@ const AdminDashboard = () => {
     toast.success('Rezerwacja została zaktualizowana');
   };
   const handleAddReservation = (stationId: string, date: string, time: string) => {
+    const station = stations.find(s => s.id === stationId);
     setNewReservationData({
       stationId,
       date,
-      time
+      time,
+      stationType: station?.type || ''
     });
     setAddReservationOpen(true);
   };
@@ -703,7 +706,7 @@ const AdminDashboard = () => {
       <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} />
 
       {/* Add Reservation Dialog */}
-      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} />}
+      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} />}
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
