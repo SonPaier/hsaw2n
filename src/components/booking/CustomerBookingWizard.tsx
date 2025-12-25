@@ -516,8 +516,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const handleSelectService = (service: Service) => {
     setSelectedService(service);
     setStep('datetime');
-    // Reset selection when service changes
-    setSelectedDate(null);
+    // Reset selection when service changes - keep today as default
+    setSelectedDate(new Date());
     setSelectedTime(null);
     setDayScrollIndex(0);
     setSlotScrollIndex(0);
