@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -106,6 +108,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
   const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   // Editable fields
   const [customerName, setCustomerName] = useState('');
@@ -188,7 +192,11 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
 
   const handleSMS = () => {
     if (customerPhone) {
-      window.location.href = `sms:${customerPhone}`;
+      if (isMobile) {
+        window.location.href = `sms:${customerPhone}`;
+      } else {
+        setSmsDialogOpen(true);
+      }
     }
   };
 
@@ -590,6 +598,14 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
           )}
         </div>
       </DialogContent>
+      
+      <SendSmsDialog
+        phone={customerPhone}
+        customerName={customerName}
+        instanceId={reservation?.instance_id || null}
+        open={smsDialogOpen}
+        onClose={() => setSmsDialogOpen(false)}
+      />
     </Dialog>
   );
 };
