@@ -183,6 +183,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     date: string;
     time: string;
     serviceName: string;
+    status: 'confirmed' | 'pending';
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{ facebook: string | null; instagram: string | null }>({ facebook: null, instagram: null });
 
@@ -565,6 +566,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         date: data.reservation.date,
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
+        status: data.reservation.status || 'confirmed',
       });
 
       setSocialLinks({
@@ -673,6 +675,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         date: data.reservation.date,
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
+        status: data.reservation.status || 'confirmed',
       });
 
       setSocialLinks({
@@ -1139,14 +1142,31 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
 
   // STEP: SUCCESS
   if (step === 'success' && confirmationData) {
+    const isPending = confirmationData.status === 'pending';
+    
     return (
       <div className="container py-6 animate-fade-in">
         <div className="max-w-sm mx-auto text-center">
-          <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
-            <Check className="w-7 h-7 text-green-500" />
+          <div className={cn(
+            "w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3",
+            isPending ? "bg-amber-500/20" : "bg-green-500/20"
+          )}>
+            {isPending ? (
+              <Clock className="w-7 h-7 text-amber-500" />
+            ) : (
+              <Check className="w-7 h-7 text-green-500" />
+            )}
           </div>
 
-          <h2 className="text-lg font-semibold mb-4">Rezerwacja potwierdzona!</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            {isPending ? 'Rezerwacja przyjęta!' : 'Rezerwacja potwierdzona!'}
+          </h2>
+          
+          {isPending && (
+            <p className="text-sm text-muted-foreground mb-4">
+              Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.
+            </p>
+          )}
 
           <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
             <div className="flex justify-between">
@@ -1163,11 +1183,20 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               <span className="text-muted-foreground">Godzina</span>
               <span className="font-medium">{confirmationData.time}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <span className={cn(
+                "font-medium px-2 py-0.5 rounded text-xs",
+                isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600"
+              )}>
+                {isPending ? 'Oczekuje na potwierdzenie' : 'Potwierdzona'}
+              </span>
+            </div>
           </div>
 
           <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
             <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
-            Wyslemy Ci przypomnienie SMS dzien przed oraz godzine przed wizyta
+            Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą
           </div>
 
           {socialLinks.instagram && (

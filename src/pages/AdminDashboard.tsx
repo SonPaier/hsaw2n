@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +18,7 @@ import StationsSettings from '@/components/admin/StationsSettings';
 import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import CustomersView from '@/components/admin/CustomersView';
 import { SmsUsageCard } from '@/components/admin/SmsUsageCard';
+import { ReservationConfirmSettings } from '@/components/admin/ReservationConfirmSettings';
 import { toast } from 'sonner';
 interface Station {
   id: string;
@@ -89,6 +90,9 @@ const AdminDashboard = () => {
     date: '',
     time: ''
   });
+
+  // Reservation list filter
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
@@ -488,6 +492,26 @@ const AdminDashboard = () => {
     }
     toast.success('Przerwa została usunięta');
   };
+
+  const handleConfirmReservation = async (reservationId: string) => {
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: 'confirmed' })
+      .eq('id', reservationId);
+    
+    if (error) {
+      toast.error('Błąd podczas potwierdzania rezerwacji');
+      console.error('Error confirming reservation:', error);
+      return;
+    }
+    
+    // Update local state
+    setReservations(prev => prev.map(r => 
+      r.id === reservationId ? { ...r, status: 'confirmed' } : r
+    ));
+    
+    toast.success('Rezerwacja została potwierdzona');
+  };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -671,37 +695,88 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onReservationMove={handleReservationMove} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} />
               </div>}
 
             {currentView === 'reservations' && <div className="space-y-4">
+                {/* Filter controls */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={showPendingOnly ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowPendingOnly(!showPendingOnly)}
+                    className="gap-2"
+                  >
+                    <Filter className="w-4 h-4" />
+                    Do potwierdzenia
+                    {reservations.filter(r => r.status === 'pending').length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded-full">
+                        {reservations.filter(r => r.status === 'pending').length}
+                      </span>
+                    )}
+                  </Button>
+                </div>
+
                 <div className="glass-card overflow-hidden">
                   <div className="divide-y divide-border/50">
-                    {reservations.map(reservation => <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-success/10 text-success">
-                            <CheckCircle2 className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-foreground truncate">
-                              {reservation.customer_name}
+                    {reservations
+                      .filter(r => !showPendingOnly || r.status === 'pending')
+                      .sort((a, b) => {
+                        // Pending first, then by date
+                        if (a.status === 'pending' && b.status !== 'pending') return -1;
+                        if (a.status !== 'pending' && b.status === 'pending') return 1;
+                        return new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+                      })
+                      .map(reservation => {
+                        const isPending = reservation.status === 'pending';
+                        return (
+                          <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className={cn(
+                            "p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer",
+                            isPending ? "bg-amber-500/10" : "bg-primary-foreground"
+                          )}>
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className={cn(
+                                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                                isPending ? "bg-amber-500/20 text-amber-600" : "bg-success/10 text-success"
+                              )}>
+                                {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-foreground truncate">
+                                  {reservation.customer_name}
+                                </div>
+                                <div className="text-sm text-muted-foreground truncate">
+                                  {reservation.service?.name} • {reservation.vehicle_plate}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {reservation.service?.name} • {reservation.vehicle_plate}
+                            <div className="flex items-center gap-3">
+                              {isPending && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfirmReservation(reservation.id);
+                                  }}
+                                >
+                                  <Check className="w-4 h-4" />
+                                  Potwierdź
+                                </Button>
+                              )}
+                              <div className="text-right shrink-0">
+                                <div className="font-medium text-foreground">
+                                  {reservation.start_time}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-medium text-foreground">
-                            {reservation.start_time}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(new Date(reservation.reservation_date), 'd MMM', {
-                        locale: pl
+                        );
                       })}
-                          </div>
-                        </div>
-                      </div>)}
                   </div>
                 </div>
               </div>}
@@ -718,10 +793,14 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* SMS Usage */}
                 {instanceId && (
                   <SmsUsageCard instanceId={instanceId} />
                 )}
+
+                {/* Reservation Confirm Settings */}
+                <div className="glass-card p-6 bg-secondary-foreground">
+                  <ReservationConfirmSettings instanceId={instanceId} />
+                </div>
                 
                 <div className="glass-card p-6 bg-secondary-foreground">
                   <WorkingHoursSettings instanceId={instanceId} />

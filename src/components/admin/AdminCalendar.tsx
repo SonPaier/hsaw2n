@@ -60,6 +60,7 @@ interface AdminCalendarProps {
   onAddBreak?: (stationId: string, date: string, time: string) => void;
   onDeleteBreak?: (breakId: string) => void;
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
+  onConfirmReservation?: (reservationId: string) => void;
 }
 
 // Default hours from 9:00 to 19:00
@@ -115,7 +116,7 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove }: AdminCalendarProps) => {
+const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove, onConfirmReservation }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [hiddenStationIds, setHiddenStationIds] = useState<Set<string>>(() => {
@@ -830,6 +831,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                     const style = getReservationStyle(displayStart, displayEnd);
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
+                    const isPending = reservation.status === 'pending';
                     
                       return (
                       <div
@@ -860,16 +862,30 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                               <User className="w-3 h-3 shrink-0" />
                               {reservation.customer_name}
                             </div>
-                            {reservation.customer_phone && (
-                              <a
-                                href={`tel:${reservation.customer_phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                title={reservation.customer_phone}
-                              >
-                                <Phone className="w-3 h-3" />
-                              </a>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {isPending && onConfirmReservation && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onConfirmReservation(reservation.id);
+                                  }}
+                                  className="shrink-0 p-0.5 rounded bg-white/20 hover:bg-white/40 transition-colors"
+                                  title="Potwierdź rezerwację"
+                                >
+                                  <Check className="w-3 h-3" />
+                                </button>
+                              )}
+                              {reservation.customer_phone && (
+                                <a
+                                  href={`tel:${reservation.customer_phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                  title={reservation.customer_phone}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
                           </div>
                           {reservation.vehicle_plate && (
                             <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
