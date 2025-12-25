@@ -1222,7 +1222,6 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 id="name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="np. Jan Kowalski"
                 className="mt-1 h-9 text-sm"
                 disabled={smsSent}
                 autoFocus
@@ -1234,7 +1233,6 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 id="carModel"
                 value={carModel}
                 onChange={(e) => setCarModel(e.target.value)}
-                placeholder="np. BMW X5"
                 className="mt-1 h-9 text-sm"
                 disabled={smsSent}
               />
