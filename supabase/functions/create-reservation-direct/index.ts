@@ -150,6 +150,49 @@ serve(async (req: Request): Promise<Response> => {
       .eq("id", instanceId)
       .single();
 
+    // Send SMS based on confirmation status
+    const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
+    const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://armcar.pl";
+    const reservationUrl = `${FRONTEND_URL}/moja-rezerwacja?code=${confirmationCode}`;
+    
+    // Format date for SMS
+    const dateObj = new Date(reservationData.date);
+    const dayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+    const monthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+    const dayName = dayNames[dateObj.getDay()];
+    const dayNum = dateObj.getDate();
+    const monthName = monthNames[dateObj.getMonth()];
+    
+    const smsMessage = autoConfirm 
+      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}. Szczegóły: ${reservationUrl}`
+      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce. Szczegóły: ${reservationUrl}`;
+    
+    if (SMSAPI_TOKEN) {
+      try {
+        const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SMSAPI_TOKEN}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            to: normalizedPhone,
+            message: smsMessage,
+            from: "ARMCAR",
+            format: "json",
+            encoding: "utf-8",
+          }),
+        });
+        
+        const smsResult = await smsResponse.json();
+        console.log("Reservation SMS sent:", smsResult);
+      } catch (smsError) {
+        console.error("Failed to send reservation SMS:", smsError);
+      }
+    } else {
+      console.log(`[DEV MODE] Would send SMS to ${normalizedPhone}: ${smsMessage}`);
+    }
+
     console.log("Direct reservation created:", reservation.id);
 
     return new Response(
@@ -163,6 +206,7 @@ serve(async (req: Request): Promise<Response> => {
           endTime,
           serviceName: serviceData?.name,
           status: reservationStatus,
+          reservationUrl,
         },
         instance: instanceData,
       }),

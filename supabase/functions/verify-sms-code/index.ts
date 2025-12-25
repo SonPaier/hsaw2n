@@ -184,7 +184,7 @@ serve(async (req: Request): Promise<Response> => {
       .eq("id", instanceId)
       .single();
 
-    // Send confirmation SMS with reservation link
+    // Send SMS based on confirmation status
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
     const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://armcar.pl";
     const reservationUrl = `${FRONTEND_URL}/moja-rezerwacja?code=${confirmationCode}`;
@@ -197,7 +197,10 @@ serve(async (req: Request): Promise<Response> => {
     const dayNum = dateObj.getDate();
     const monthName = monthNames[dateObj.getMonth()];
     
-    const confirmationMessage = `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Szczegóły i anulowanie: ${reservationUrl}`;
+    // Different message based on auto-confirm setting
+    const smsMessage = autoConfirm 
+      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}. Szczegóły: ${reservationUrl}`
+      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce. Szczegóły: ${reservationUrl}`;
     
     if (SMSAPI_TOKEN) {
       try {
@@ -209,7 +212,7 @@ serve(async (req: Request): Promise<Response> => {
           },
           body: new URLSearchParams({
             to: normalizedPhone,
-            message: confirmationMessage,
+            message: smsMessage,
             from: "ARMCAR",
             format: "json",
             encoding: "utf-8",
@@ -217,13 +220,12 @@ serve(async (req: Request): Promise<Response> => {
         });
         
         const smsResult = await smsResponse.json();
-        console.log("Confirmation SMS sent:", smsResult);
+        console.log("Reservation SMS sent:", smsResult);
       } catch (smsError) {
-        console.error("Failed to send confirmation SMS:", smsError);
-        // Don't fail the reservation if SMS fails
+        console.error("Failed to send reservation SMS:", smsError);
       }
     } else {
-      console.log(`[DEV MODE] Would send confirmation SMS to ${normalizedPhone}: ${confirmationMessage}`);
+      console.log(`[DEV MODE] Would send SMS to ${normalizedPhone}: ${smsMessage}`);
     }
 
     return new Response(
