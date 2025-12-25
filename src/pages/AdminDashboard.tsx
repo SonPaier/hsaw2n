@@ -17,6 +17,7 @@ import PriceListSettings from '@/components/admin/PriceListSettings';
 import StationsSettings from '@/components/admin/StationsSettings';
 import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import CustomersView from '@/components/admin/CustomersView';
+import { SmsUsageCard } from '@/components/admin/SmsUsageCard';
 import { toast } from 'sonner';
 interface Station {
   id: string;
@@ -622,6 +623,11 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* SMS Usage */}
+                {instanceId && (
+                  <SmsUsageCard instanceId={instanceId} />
+                )}
                 
                 <div className="glass-card p-6 bg-secondary-foreground">
                   <WorkingHoursSettings instanceId={instanceId} />
