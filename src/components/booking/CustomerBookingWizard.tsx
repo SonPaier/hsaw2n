@@ -50,6 +50,7 @@ interface Instance {
   working_hours: Record<string, { open: string; close: string } | null> | null;
   social_facebook: string | null;
   social_instagram: string | null;
+  booking_days_ahead: number;
 }
 
 interface AvailabilityBlock {
@@ -368,6 +369,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
           working_hours: instanceData.working_hours as Record<string, { open: string; close: string } | null> | null,
           social_facebook: instanceData.social_facebook,
           social_instagram: instanceData.social_instagram,
+          booking_days_ahead: instanceData.booking_days_ahead ?? 90,
         };
         setInstance(parsedInstance);
 
@@ -390,7 +392,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         setStations((stationsData as Station[]) || []);
 
         const today = new Date();
-        const endDate = addDays(today, 14);
+        const daysAhead = instanceData.booking_days_ahead ?? 90;
+        const endDate = addDays(today, daysAhead);
 
         const { data: blocksData } = await supabase
           .rpc('get_availability_blocks', {
@@ -448,7 +451,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       return s.type === selectedService.station_type || s.type === 'universal';
     });
 
-    for (let i = 0; i < 14; i++) {
+    const daysAhead = instance.booking_days_ahead ?? 90;
+    for (let i = 0; i < daysAhead; i++) {
       const date = addDays(today, i);
       const dayName = format(date, 'EEEE').toLowerCase();
       const workingHours = instance.working_hours[dayName];
