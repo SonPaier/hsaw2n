@@ -494,6 +494,9 @@ const AdminDashboard = () => {
   };
 
   const handleConfirmReservation = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+
     const { error } = await supabase
       .from('reservations')
       .update({ status: 'confirmed' })
@@ -510,7 +513,30 @@ const AdminDashboard = () => {
       r.id === reservationId ? { ...r, status: 'confirmed' } : r
     ));
     
-    toast.success('Rezerwacja została potwierdzona');
+    // Send confirmation SMS
+    try {
+      const dateObj = new Date(reservation.reservation_date);
+      const dayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+      const monthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+      const dayName = dayNames[dateObj.getDay()];
+      const dayNum = dateObj.getDate();
+      const monthName = monthNames[dateObj.getMonth()];
+      
+      const message = `Twoja rezerwacja została potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservation.start_time}-${reservation.end_time}. Do zobaczenia!`;
+      
+      await supabase.functions.invoke('send-sms-message', {
+        body: {
+          phone: reservation.customer_phone,
+          message,
+          instanceId
+        }
+      });
+      
+      toast.success('Rezerwacja potwierdzona, SMS wysłany do klienta');
+    } catch (smsError) {
+      console.error('Failed to send confirmation SMS:', smsError);
+      toast.success('Rezerwacja potwierdzona (SMS nieudany)');
+    }
   };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
