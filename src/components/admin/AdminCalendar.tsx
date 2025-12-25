@@ -840,7 +840,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                         className={cn(
                           "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 cursor-grab active:cursor-grabbing",
                           "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
-                          "overflow-hidden",
+                          "overflow-hidden select-none",
                           getStatusColor(reservation.status, reservation.station?.type || station.type),
                           isDragging && "opacity-50 scale-95"
                         )}
@@ -1118,7 +1118,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                               className={cn(
                                 "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5 cursor-grab active:cursor-grabbing",
                                 "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
-                                "overflow-hidden",
+                                "overflow-hidden select-none",
                                 getStatusColor(reservation.status, reservation.station?.type || station.type),
                                 isDragging && "opacity-50 scale-95"
                               )}
