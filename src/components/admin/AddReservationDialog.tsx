@@ -94,6 +94,9 @@ const AddReservationDialog = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [servicesOpen, setServicesOpen] = useState(false);
   
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   // Date range for PPF stations - start with undefined to allow full selection
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
@@ -143,6 +146,7 @@ const AddReservationDialog = ({
       setDateRangeOpen(false);
       setOfferNumber('');
       setNotes('');
+      setErrors({}); // Reset validation errors
     }
   }, [open, time, date]);
 
@@ -192,11 +196,21 @@ const AddReservationDialog = ({
 
   // Toggle service selection
   const toggleService = (serviceId: string) => {
-    setSelectedServices(prev => 
-      prev.includes(serviceId) 
+    setSelectedServices(prev => {
+      const newServices = prev.includes(serviceId) 
         ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
-    );
+        : [...prev, serviceId];
+      
+      // Clear error when service is selected
+      if (newServices.length > 0 && errors.services) {
+        setErrors(prev => {
+          const { services, ...rest } = prev;
+          return rest;
+        });
+      }
+      
+      return newServices;
+    });
   };
 
   // AI suggestion for car size
@@ -278,11 +292,26 @@ const AddReservationDialog = ({
   };
 
   const handleSubmit = async () => {
-    // Only stationId is required (from context), rest is optional
+    // Validate required fields
+    const newErrors: Record<string, string> = {};
+    
+    if (!isPPFStation && selectedServices.length === 0) {
+      newErrors.services = 'Wybierz przynajmniej jedną usługę';
+    }
+    
     if (!stationId) {
       toast.error('Brak stanowiska');
       return;
     }
+    
+    // If there are validation errors, show them and return
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    // Clear errors
+    setErrors({});
 
     // Calculate end time if not set but services are selected
     let finalEndTime = endTime;
@@ -613,8 +642,11 @@ const AddReservationDialog = ({
           {/* Services Multi-Select - hidden for PPF */}
           {!isPPFStation && (
             <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span>Usługi</span>
+              <Label className={cn(
+                "flex items-center justify-between",
+                errors.services && "text-destructive"
+              )}>
+                <span>Usługi *</span>
                 {selectedServices.length > 0 && (
                   <span className="text-sm font-normal text-primary">
                     Suma: {totalDurationMinutes} min
@@ -627,7 +659,10 @@ const AddReservationDialog = ({
                     variant="outline"
                     role="combobox"
                     aria-expanded={servicesOpen}
-                    className="w-full justify-between font-normal"
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      errors.services && "border-destructive ring-destructive focus:ring-destructive"
+                    )}
                   >
                     {selectedServices.length === 0 
                       ? "Wybierz usługi..." 
@@ -665,9 +700,11 @@ const AddReservationDialog = ({
                   </div>
                 </PopoverContent>
               </Popover>
+              {errors.services && (
+                <p className="text-sm text-destructive">{errors.services}</p>
+              )}
             </div>
           )}
-
           {/* PPF specific fields - Offer Number and Notes */}
           {isPPFStation && (
             <>
