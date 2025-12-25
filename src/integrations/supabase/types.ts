@@ -113,6 +113,7 @@ export type Database = {
         Row: {
           active: boolean | null
           address: string | null
+          auto_confirm_reservations: boolean | null
           background_color: string | null
           created_at: string | null
           email: string | null
@@ -135,6 +136,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           address?: string | null
+          auto_confirm_reservations?: boolean | null
           background_color?: string | null
           created_at?: string | null
           email?: string | null
@@ -157,6 +159,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           address?: string | null
+          auto_confirm_reservations?: boolean | null
           background_color?: string | null
           created_at?: string | null
           email?: string | null

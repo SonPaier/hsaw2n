@@ -96,6 +96,16 @@ serve(async (req: Request): Promise<Response> => {
 
     const confirmationCode = generateConfirmationCode();
 
+    // Check instance auto_confirm setting
+    const { data: instanceSettings } = await supabase
+      .from("instances")
+      .select("auto_confirm_reservations")
+      .eq("id", instanceId)
+      .single();
+
+    const autoConfirm = instanceSettings?.auto_confirm_reservations !== false;
+    const reservationStatus = autoConfirm ? "confirmed" : "pending";
+
     const { data: reservation, error: reservationError } = await supabase
       .from("reservations")
       .insert({
@@ -111,7 +121,7 @@ serve(async (req: Request): Promise<Response> => {
         notes: reservationData.notes || null,
         confirmation_code: confirmationCode,
         car_size: reservationData.carSize || null,
-        status: "confirmed",
+        status: reservationStatus,
         source: "customer",
       })
       .select()
@@ -152,6 +162,7 @@ serve(async (req: Request): Promise<Response> => {
           time: reservationData.time,
           endTime,
           serviceName: serviceData?.name,
+          status: reservationStatus,
         },
         instance: instanceData,
       }),
