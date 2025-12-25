@@ -227,6 +227,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string
+          end_date: string | null
           end_time: string
           id: string
           instance_id: string
@@ -247,6 +248,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone: string
+          end_date?: string | null
           end_time: string
           id?: string
           instance_id: string
@@ -267,6 +269,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
+          end_date?: string | null
           end_time?: string
           id?: string
           instance_id?: string

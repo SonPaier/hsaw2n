@@ -40,6 +40,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+import type { DateRange } from 'react-day-picker';
+
 type CarSize = 'small' | 'medium' | 'large';
 
 interface Reservation {
@@ -51,6 +53,7 @@ interface Reservation {
   vehicle_plate: string;
   car_size?: CarSize | null;
   reservation_date: string;
+  end_date?: string | null;
   start_time: string;
   end_time: string;
   station_id: string | null;
@@ -63,6 +66,7 @@ interface Reservation {
   };
   station?: {
     name: string;
+    type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
 }
 
@@ -109,10 +113,14 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
   const [carModel, setCarModel] = useState('');
   const [carSize, setCarSize] = useState<CarSize | ''>('');
   const [reservationDate, setReservationDate] = useState('');
+  const [endDate, setEndDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [notes, setNotes] = useState('');
   const [price, setPrice] = useState('');
+
+  // Check if station type is PPF (folia) for multi-day reservations
+  const isPPFStation = reservation?.station?.type === 'ppf';
 
   // Reset form when reservation changes
   useEffect(() => {
@@ -122,6 +130,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setCarModel(reservation.vehicle_plate || '');
       setCarSize(reservation.car_size || '');
       setReservationDate(reservation.reservation_date || '');
+      setEndDate(reservation.end_date || null);
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
@@ -142,6 +151,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
         vehicle_plate: carModel,
         car_size: carSize || null,
         reservation_date: reservationDate,
+        end_date: isPPFStation ? (endDate || reservationDate) : reservationDate,
         start_time: startTime,
         end_time: endTime,
         notes: notes || undefined,
@@ -189,6 +199,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
       setCarModel(reservation.vehicle_plate || '');
       setCarSize(reservation.car_size || '');
       setReservationDate(reservation.reservation_date || '');
+      setEndDate(reservation.end_date || null);
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
@@ -300,11 +311,11 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                 </div>
               )}
 
-              {/* Date */}
+              {/* Date - Range for PPF, Single for others */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4" />
-                  Data rezerwacji
+                  {isPPFStation ? 'Daty rezerwacji (od - do)' : 'Data rezerwacji'}
                 </Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
@@ -316,23 +327,59 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : 'Wybierz datę'}
+                      {isPPFStation ? (
+                        reservationDate ? (
+                          endDate && endDate !== reservationDate ? (
+                            `${format(new Date(reservationDate), 'd MMM', { locale: pl })} - ${format(new Date(endDate), 'd MMM yyyy', { locale: pl })}`
+                          ) : (
+                            format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl })
+                          )
+                        ) : 'Wybierz daty'
+                      ) : (
+                        reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : 'Wybierz datę'
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={reservationDate ? new Date(reservationDate) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          setReservationDate(format(date, 'yyyy-MM-dd'));
-                          setDatePickerOpen(false);
-                        }
-                      }}
-                      initialFocus
-                      className="pointer-events-auto"
-                      locale={pl}
-                    />
+                    {isPPFStation ? (
+                      <Calendar
+                        mode="range"
+                        selected={{
+                          from: reservationDate ? new Date(reservationDate) : undefined,
+                          to: endDate ? new Date(endDate) : (reservationDate ? new Date(reservationDate) : undefined),
+                        }}
+                        onSelect={(range: DateRange | undefined) => {
+                          if (range?.from) {
+                            setReservationDate(format(range.from, 'yyyy-MM-dd'));
+                            if (range.to) {
+                              setEndDate(format(range.to, 'yyyy-MM-dd'));
+                              setDatePickerOpen(false);
+                            } else {
+                              setEndDate(null);
+                            }
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                        locale={pl}
+                        numberOfMonths={1}
+                      />
+                    ) : (
+                      <Calendar
+                        mode="single"
+                        selected={reservationDate ? new Date(reservationDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setReservationDate(format(date, 'yyyy-MM-dd'));
+                            setEndDate(null);
+                            setDatePickerOpen(false);
+                          }
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                        locale={pl}
+                      />
+                    )}
                   </PopoverContent>
                 </Popover>
               </div>
@@ -342,7 +389,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                 <div className="space-y-2">
                   <Label htmlFor="edit-start" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Początek
+                    {isPPFStation && endDate && endDate !== reservationDate ? `Początek (${format(new Date(reservationDate), 'd.MM', { locale: pl })})` : 'Początek'}
                   </Label>
                   <Input
                     id="edit-start"
@@ -352,7 +399,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-end">Koniec</Label>
+                  <Label htmlFor="edit-end">
+                    {isPPFStation && endDate && endDate !== reservationDate ? `Koniec (${format(new Date(endDate), 'd.MM', { locale: pl })})` : 'Koniec'}
+                  </Label>
                   <Input
                     id="edit-end"
                     type="time"
