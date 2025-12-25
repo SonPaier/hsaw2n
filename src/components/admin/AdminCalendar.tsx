@@ -28,12 +28,16 @@ interface Reservation {
   customer_phone?: string;
   vehicle_plate: string;
   reservation_date: string;
+  end_date?: string | null;
   start_time: string;
   end_time: string;
   station_id: string | null;
   status: string;
   service?: {
     name: string;
+  };
+  station?: {
+    type?: string;
   };
 }
 
@@ -66,7 +70,25 @@ const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 4 slots per hour
 const SLOT_HEIGHT = 20; // pixels per 15 minutes
 const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 80px per hour
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string, stationType?: string) => {
+  // PPF reservations get yellow color
+  if (stationType === 'ppf') {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-yellow-200 border-yellow-400 text-yellow-900';
+      case 'pending':
+        return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+      case 'in_progress':
+        return 'bg-yellow-300 border-yellow-500 text-yellow-900';
+      case 'completed':
+        return 'bg-yellow-100/60 border-yellow-300 text-yellow-700';
+      case 'cancelled':
+        return 'bg-yellow-100/40 border-yellow-200 text-yellow-600 line-through opacity-60';
+      default:
+        return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+    }
+  }
+  
   switch (status) {
     case 'confirmed':
       return 'bg-emerald-500/90 border-emerald-600 text-white';
@@ -745,7 +767,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                           "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 cursor-grab active:cursor-grabbing",
                           "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                           "overflow-hidden",
-                          getStatusColor(reservation.status),
+                          getStatusColor(reservation.status, reservation.station?.type || station.type),
                           isDragging && "opacity-50 scale-95"
                         )}
                         style={style}
@@ -1018,7 +1040,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                 "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5 cursor-grab active:cursor-grabbing",
                                 "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                                 "overflow-hidden",
-                                getStatusColor(reservation.status),
+                                getStatusColor(reservation.status, reservation.station?.type || station.type),
                                 isDragging && "opacity-50 scale-95"
                               )}
                               style={style}
@@ -1195,7 +1217,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                             "absolute left-0.5 right-0.5 rounded px-1 py-0.5 cursor-pointer",
                             "transition-all duration-150 hover:shadow-md hover:z-20",
                             "overflow-hidden text-[9px] md:text-[10px]",
-                            getStatusColor(reservation.status)
+                            getStatusColor(reservation.status, reservation.station?.type)
                           )}
                           style={{ top: `${top}px`, height: `${height}px` }}
                           onClick={(e) => {

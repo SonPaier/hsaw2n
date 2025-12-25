@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Car, Clock, Loader2, Sparkles, Check, ChevronDown } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Sparkles, Check, ChevronDown, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +26,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -48,6 +52,7 @@ interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
   stationId: string;
+  stationType?: string;
   date: string;
   time: string;
   instanceId: string;
@@ -64,6 +69,7 @@ const AddReservationDialog = ({
   open,
   onClose,
   stationId,
+  stationType,
   date,
   time,
   instanceId,
@@ -87,6 +93,14 @@ const AddReservationDialog = ({
   const [manualDuration, setManualDuration] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [servicesOpen, setServicesOpen] = useState(false);
+  
+  // Date range for PPF stations
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: date ? new Date(date) : new Date(),
+    to: undefined
+  });
+  
+  const isPPFStation = stationType === 'ppf';
 
   // Fetch services on mount
   useEffect(() => {
@@ -123,8 +137,12 @@ const AddReservationDialog = ({
       setSelectedCustomerId(null);
       setShowCustomerDropdown(false);
       setServicesOpen(false);
+      setDateRange({
+        from: date ? new Date(date) : new Date(),
+        to: undefined
+      });
     }
-  }, [open, time]);
+  }, [open, time, date]);
 
   // Calculate total duration from selected services
   const totalDurationMinutes = selectedServices.reduce((total, serviceId) => {
@@ -335,10 +353,19 @@ const AddReservationDialog = ({
       }
 
       // Create reservation
+      const reservationDate = isPPFStation && dateRange?.from 
+        ? format(dateRange.from, 'yyyy-MM-dd')
+        : date;
+      
+      const endDate = isPPFStation && dateRange?.to 
+        ? format(dateRange.to, 'yyyy-MM-dd')
+        : null;
+
       const reservationData: any = {
         instance_id: instanceId,
         station_id: stationId,
-        reservation_date: date,
+        reservation_date: reservationDate,
+        end_date: endDate,
         start_time: startTime,
         end_time: finalEndTime,
         customer_name: customerName || 'Bez nazwy',
@@ -382,17 +409,84 @@ const AddReservationDialog = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Date and Time Info */}
-          <div className="flex gap-4 p-3 bg-muted/50 rounded-lg text-sm">
-            <div>
-              <span className="text-muted-foreground">Data:</span>{' '}
-              <span className="font-medium">{date}</span>
+          {/* Date and Time Info - with range picker for PPF */}
+          {isPPFStation ? (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Zakres dat (folia - rezerwacja wielodniowa)
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "d MMM", { locale: pl })} -{" "}
+                          {format(dateRange.to, "d MMM yyyy", { locale: pl })}
+                        </>
+                      ) : (
+                        format(dateRange.from, "d MMM yyyy", { locale: pl })
+                      )
+                    ) : (
+                      <span>Wybierz zakres dat</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    locale={pl}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ppfStartTime">Godzina rozpoczęcia</Label>
+                  <Input
+                    id="ppfStartTime"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ppfEndTime">Godzina zakończenia</Label>
+                  <Input
+                    id="ppfEndTime"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Dla rezerwacji wielodniowych: godzina rozpoczęcia dotyczy pierwszego dnia, godzina zakończenia - ostatniego dnia.
+              </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Godzina:</span>{' '}
-              <span className="font-medium">{time}</span>
+          ) : (
+            <div className="flex gap-4 p-3 bg-muted/50 rounded-lg text-sm">
+              <div>
+                <span className="text-muted-foreground">Data:</span>{' '}
+                <span className="font-medium">{date}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Godzina:</span>{' '}
+                <span className="font-medium">{time}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Customer Name / Alias - Autocomplete */}
           <div className="space-y-2">
@@ -551,61 +645,63 @@ const AddReservationDialog = ({
             </Popover>
           </div>
 
-          {/* Time Range */}
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
+          {/* Time Range - hidden for PPF as it's already in the date range section */}
+          {!isPPFStation && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">Godzina zakończenia</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => {
+                      setEndTime(e.target.value);
+                      setManualDuration(null); // Reset manual duration when end time is manually changed
+                    }}
+                    placeholder="Automatycznie"
+                  />
+                </div>
               </div>
+              
+              {/* Duration Quick Select */}
               <div className="space-y-2">
-                <Label htmlFor="endTime">Godzina zakończenia</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => {
-                    setEndTime(e.target.value);
-                    setManualDuration(null); // Reset manual duration when end time is manually changed
-                  }}
-                  placeholder="Automatycznie"
-                />
+                <Label className="flex items-center justify-between">
+                  <span>Czas trwania</span>
+                  {effectiveDuration && (
+                    <span className="text-sm font-normal text-primary">
+                      {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
+                      {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
+                    </span>
+                  )}
+                </Label>
+                <Select 
+                  value={manualDuration?.toString() || ''} 
+                  onValueChange={handleDurationChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz czas trwania..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {DURATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            {/* Duration Quick Select */}
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span>Czas trwania</span>
-                {effectiveDuration && (
-                  <span className="text-sm font-normal text-primary">
-                    {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
-                    {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
-                  </span>
-                )}
-              </Label>
-              <Select 
-                value={manualDuration?.toString() || ''} 
-                onValueChange={handleDurationChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz czas trwania..." />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {DURATION_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter>
