@@ -299,12 +299,36 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   };
 
   // Calculate position and height based on time
-  const getReservationStyle = (startTime: string, endTime: string) => {
+  const getReservationStyle = (startTime: string, endTime: string, dayStartHour?: number) => {
+    const startHour = dayStartHour ?? DAY_START_HOUR;
     const start = parseTime(startTime);
     const end = parseTime(endTime);
-    const top = (start - DAY_START_HOUR) * HOUR_HEIGHT;
+    const top = (start - startHour) * HOUR_HEIGHT;
     const height = (end - start) * HOUR_HEIGHT;
     return { top: `${top}px`, height: `${Math.max(height, 30)}px` };
+  };
+
+  // Get display times for a multi-day reservation on a specific date
+  const getDisplayTimesForDate = (reservation: Reservation, dateStr: string): { displayStart: string; displayEnd: string } => {
+    const isFirstDay = reservation.reservation_date === dateStr;
+    const isLastDay = (reservation.end_date || reservation.reservation_date) === dateStr;
+    
+    const { startTime: dayOpen, closeTime: dayClose } = getWorkingHoursForDate(dateStr);
+    
+    let displayStart = reservation.start_time;
+    let displayEnd = reservation.end_time;
+    
+    // If not first day, start from opening time
+    if (!isFirstDay) {
+      displayStart = dayOpen;
+    }
+    
+    // If not last day, end at closing time
+    if (!isLastDay) {
+      displayEnd = dayClose;
+    }
+    
+    return { displayStart, displayEnd };
   };
 
   // Handle click on empty time slot - show context menu or default to reservation
@@ -763,8 +787,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
                   {/* Reservations */}
                   {getReservationsForStation(station.id).map((reservation) => {
-                    const style = getReservationStyle(reservation.start_time, reservation.end_time);
+                    const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, currentDateStr);
+                    const style = getReservationStyle(displayStart, displayEnd);
                     const isDragging = draggedReservation?.id === reservation.id;
+                    const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                     
                       return (
                       <div
@@ -813,7 +839,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                             </div>
                           )}
                           <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5">
-                            {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
+                            {isMultiDay 
+                              ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                              : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                            }
                           </div>
                           {reservation.service && (
                             <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">
@@ -1036,8 +1065,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
                         {/* Reservations */}
                         {getReservationsForStationAndDate(station.id, dayStr).map((reservation) => {
-                          const style = getReservationStyle(reservation.start_time, reservation.end_time);
+                          const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, dayStr);
+                          const style = getReservationStyle(displayStart, displayEnd);
                           const isDragging = draggedReservation?.id === reservation.id;
+                          const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                           
                           return (
                             <div
@@ -1086,7 +1117,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                   </div>
                                 )}
                                 <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
-                                  {reservation.start_time} - {reservation.end_time}
+                                  {isMultiDay 
+                                    ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                    : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                                  }
                                 </div>
                               </div>
                             </div>
@@ -1131,7 +1165,11 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
             {weekDays.map((day, idx) => {
               const dayStr = format(day, 'yyyy-MM-dd');
               const isDayToday = isSameDay(day, new Date());
-              const dayReservations = reservations.filter(r => r.reservation_date === dayStr);
+              const dayReservations = reservations.filter(r => {
+                const startDate = r.reservation_date;
+                const endDate = r.end_date || r.reservation_date;
+                return dayStr >= startDate && dayStr <= endDate;
+              });
               
               return (
                 <div 
@@ -1188,7 +1226,11 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
               {weekDays.map((day, idx) => {
                 const dayStr = format(day, 'yyyy-MM-dd');
                 const isDayToday = isSameDay(day, new Date());
-                const dayReservations = reservations.filter(r => r.reservation_date === dayStr);
+                const dayReservations = reservations.filter(r => {
+                  const startDate = r.reservation_date;
+                  const endDate = r.end_date || r.reservation_date;
+                  return dayStr >= startDate && dayStr <= endDate;
+                });
                 
                 return (
                   <div 
@@ -1214,10 +1256,13 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
                     {/* Reservations for week view */}
                     {dayReservations.map((reservation) => {
-                      const start = parseTime(reservation.start_time);
-                      const end = parseTime(reservation.end_time);
-                      const top = (start - 8) * 40;
+                      const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, dayStr);
+                      const start = parseTime(displayStart);
+                      const end = parseTime(displayEnd);
+                      const dayStartHour = HOURS[0] || 8;
+                      const top = (start - dayStartHour) * 40;
                       const height = Math.max((end - start) * 40, 20);
+                      const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                       
                       return (
                         <div
@@ -1250,7 +1295,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                             )}
                           </div>
                           <div className="truncate opacity-80">
-                            {reservation.start_time}
+                            {isMultiDay 
+                              ? `${displayStart.slice(0, 5)}`
+                              : reservation.start_time.slice(0, 5)
+                            }
                           </div>
                         </div>
                       );
