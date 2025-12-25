@@ -644,7 +644,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10 pt-3">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
@@ -908,7 +908,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10 pt-3">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
@@ -1139,7 +1139,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * 40 }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10 pt-3">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
