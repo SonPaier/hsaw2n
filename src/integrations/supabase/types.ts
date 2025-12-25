@@ -65,6 +65,60 @@ export type Database = {
           },
         ]
       }
+      customer_vehicles: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          instance_id: string
+          last_used_at: string
+          model: string
+          phone: string
+          plate: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          instance_id: string
+          last_used_at?: string
+          model: string
+          phone: string
+          plate?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          instance_id?: string
+          last_used_at?: string
+          model?: string
+          phone?: string
+          plate?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_vehicles_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -574,6 +628,16 @@ export type Database = {
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
+      }
+      upsert_customer_vehicle: {
+        Args: {
+          _customer_id?: string
+          _instance_id: string
+          _model: string
+          _phone: string
+          _plate?: string
+        }
+        Returns: string
       }
     }
     Enums: {

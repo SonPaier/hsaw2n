@@ -156,6 +156,8 @@ serve(async (req: Request): Promise<Response> => {
       .eq("instance_id", instanceId)
       .maybeSingle();
 
+    let customerId: string | null = null;
+
     if (existingCustomer) {
       // Update existing customer - mark as verified
       await supabase
@@ -165,16 +167,37 @@ serve(async (req: Request): Promise<Response> => {
           name: reservationData.customerName,
         })
         .eq("id", existingCustomer.id);
+      customerId = existingCustomer.id;
     } else {
       // Create new customer with verified phone
-      await supabase
+      const { data: newCustomer } = await supabase
         .from("customers")
         .insert({
           instance_id: instanceId,
           phone: normalizedPhone,
           name: reservationData.customerName,
           phone_verified: true,
+        })
+        .select("id")
+        .single();
+      
+      customerId = newCustomer?.id || null;
+    }
+
+    // Upsert customer vehicle
+    if (customerId && reservationData.vehiclePlate && reservationData.vehiclePlate !== "BRAK") {
+      try {
+        await supabase.rpc("upsert_customer_vehicle", {
+          _instance_id: instanceId,
+          _phone: normalizedPhone,
+          _model: reservationData.vehiclePlate,
+          _plate: null,
+          _customer_id: customerId,
         });
+        console.log("Customer vehicle upserted:", reservationData.vehiclePlate);
+      } catch (vehicleError) {
+        console.error("Failed to upsert customer vehicle:", vehicleError);
+      }
     }
 
     // Fetch instance info for social links

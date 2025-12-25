@@ -258,9 +258,9 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
 
-  // Fetch historical car models for this phone number
+  // Fetch customer vehicles from dedicated table
   useEffect(() => {
-    const fetchHistoricalCarModels = async () => {
+    const fetchCustomerVehicles = async () => {
       if (!instance || customerPhone.length < 9) {
         setHistoricalCarModels([]);
         return;
@@ -271,31 +271,16 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         normalizedPhone = '+48' + normalizedPhone;
       }
 
-      const { data: reservations } = await supabase
-        .from('reservations')
-        .select('vehicle_plate')
+      const { data: vehicles } = await supabase
+        .from('customer_vehicles')
+        .select('model, usage_count')
         .eq('instance_id', instance.id)
-        .or(`customer_phone.eq.${normalizedPhone},customer_phone.eq.${normalizedPhone.replace('+48', '')}`)
-        .not('vehicle_plate', 'is', null)
-        .not('vehicle_plate', 'eq', '')
-        .not('vehicle_plate', 'eq', 'BRAK');
+        .or(`phone.eq.${normalizedPhone},phone.eq.${normalizedPhone.replace('+48', '')}`)
+        .order('usage_count', { ascending: false })
+        .limit(5);
 
-      if (reservations && reservations.length > 0) {
-        // Count occurrences of each car model
-        const modelCounts = new Map<string, number>();
-        reservations.forEach(r => {
-          const model = r.vehicle_plate?.trim();
-          if (model && model.length > 1) {
-            modelCounts.set(model, (modelCounts.get(model) || 0) + 1);
-          }
-        });
-
-        // Convert to array and sort by count (descending)
-        const sortedModels = Array.from(modelCounts.entries())
-          .map(([model, count]) => ({ model, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5); // Max 5 suggestions
-
+      if (vehicles && vehicles.length > 0) {
+        const sortedModels = vehicles.map(v => ({ model: v.model, count: v.usage_count }));
         setHistoricalCarModels(sortedModels);
 
         // Auto-fill with most frequent model if carModel is empty
@@ -307,7 +292,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       }
     };
 
-    const timeoutId = setTimeout(fetchHistoricalCarModels, 600);
+    const timeoutId = setTimeout(fetchCustomerVehicles, 600);
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
 
