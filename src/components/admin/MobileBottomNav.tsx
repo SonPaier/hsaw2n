@@ -20,6 +20,7 @@ interface Station {
 interface Reservation {
   id: string;
   reservation_date: string;
+  end_date?: string | null;
   start_time: string;
   end_time: string;
   station_id: string | null;
@@ -64,7 +65,13 @@ const MobileBottomNav = ({
     
     return stations.map(station => {
       const stationReservations = reservations
-        .filter(r => r.station_id === station.id && r.reservation_date === dateStr && r.status !== 'cancelled')
+        .filter(r => {
+          if (r.station_id !== station.id || r.status === 'cancelled') return false;
+          // Check if date falls within reservation range (for multi-day reservations)
+          const startDate = r.reservation_date;
+          const endDate = r.end_date || r.reservation_date;
+          return dateStr >= startDate && dateStr <= endDate;
+        })
         .map(r => ({
           start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
           end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1]),

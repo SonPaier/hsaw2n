@@ -708,7 +708,7 @@ const AdminDashboard = () => {
       <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} />
 
       {/* Add Reservation Dialog */}
-      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} />}
+      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} workingHours={workingHours} />}
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}

@@ -64,6 +64,11 @@ interface ExistingBreak {
   end_time: string;
 }
 
+interface WorkingHours {
+  open: string;
+  close: string;
+}
+
 interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
@@ -75,6 +80,7 @@ interface AddReservationDialogProps {
   onSuccess: () => void;
   existingReservations?: ExistingReservation[];
   existingBreaks?: ExistingBreak[];
+  workingHours?: Record<string, WorkingHours | null> | null;
 }
 
 const CAR_SIZE_LABELS: Record<CarSize, string> = {
@@ -94,6 +100,7 @@ const AddReservationDialog = ({
   onSuccess,
   existingReservations = [],
   existingBreaks = [],
+  workingHours = null,
 }: AddReservationDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
@@ -127,6 +134,23 @@ const AddReservationDialog = ({
   
   const isPPFStation = stationType === 'ppf';
 
+  // Helper function to get working hours for a specific date
+  const getWorkingHoursForDate = (dateStr: string): WorkingHours | null => {
+    if (!workingHours) return null;
+    
+    const dateObj = new Date(dateStr);
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dateObj.getDay()];
+    
+    return workingHours[dayName] || null;
+  };
+
+  // Get max end time for PPF based on end date working hours
+  const ppfEndDateWorkingHours = dateRange?.to 
+    ? getWorkingHoursForDate(format(dateRange.to, 'yyyy-MM-dd'))
+    : null;
+  
+  const ppfMaxEndTime = ppfEndDateWorkingHours?.close || '19:00';
   // Fetch services on mount
   useEffect(() => {
     const fetchServices = async () => {
@@ -587,12 +611,29 @@ const AddReservationDialog = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ppfEndTime">Godzina zakończenia</Label>
+                  <Label htmlFor="ppfEndTime" className="flex items-center justify-between">
+                    <span>Godzina zakończenia</span>
+                    {dateRange?.to && ppfEndDateWorkingHours && (
+                      <span className="text-xs text-muted-foreground">
+                        (max {ppfMaxEndTime} - {format(dateRange.to, 'EEEE', { locale: pl })})
+                      </span>
+                    )}
+                  </Label>
                   <Input
                     id="ppfEndTime"
                     type="time"
                     value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
+                    max={ppfMaxEndTime}
+                    onChange={(e) => {
+                      const newEndTime = e.target.value;
+                      // Validate against working hours
+                      if (newEndTime > ppfMaxEndTime) {
+                        toast.error(`Godzina zakończenia nie może być późniejsza niż ${ppfMaxEndTime}`);
+                        setEndTime(ppfMaxEndTime);
+                      } else {
+                        setEndTime(newEndTime);
+                      }
+                    }}
                   />
                 </div>
               </div>
