@@ -440,15 +440,17 @@ const AdminDashboard = () => {
     fetchBreaks();
   };
   const handleDeleteBreak = async (breakId: string) => {
-    const {
-      error
-    } = await supabase.from('breaks').delete().eq('id', breakId);
+    // Optimistic update - remove from UI immediately
+    setBreaks(prev => prev.filter(b => b.id !== breakId));
+    
+    const { error } = await supabase.from('breaks').delete().eq('id', breakId);
     if (error) {
       toast.error('Błąd podczas usuwania przerwy');
       console.error('Error deleting break:', error);
+      // Revert on error - refetch breaks
+      fetchBreaks();
       return;
     }
-    setBreaks(prev => prev.filter(b => b.id !== breakId));
     toast.success('Przerwa została usunięta');
   };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
