@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2, Bug } from 'lucide-react';
+import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -12,6 +13,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Checkbox } from '@/components/ui/checkbox';
 import { useWebOTP } from '@/hooks/useWebOTP';
 import { searchCarModels } from '@/data/carModels';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface Service {
   id: string;
@@ -34,7 +36,7 @@ interface Station {
 
 interface TimeSlot {
   time: string;
-  availableStationIds: string[]; // List of stations available at this time
+  availableStationIds: string[];
 }
 
 interface AvailableDay {
@@ -62,18 +64,11 @@ interface CustomerBookingWizardProps {
 }
 
 const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
-const MIN_LEAD_TIME_MINUTES = 30; // Minimum time before booking (30 minutes)
-const SLOT_INTERVAL = 15; // Generate slots every 15 minutes
-const MAX_VISIBLE_SLOTS = 20; // Show max 20 slots initially
+const MIN_LEAD_TIME_MINUTES = 30;
+const SLOT_INTERVAL = 15;
 
-const features = [
-  { icon: <Sparkles className="w-4 h-4" />, title: 'Profesjonalna obsługa' },
-  { icon: <Shield className="w-4 h-4" />, title: 'Gwarancja jakości' },
-  { icon: <Clock className="w-4 h-4" />, title: 'Szybka rezerwacja' },
-  { icon: <Star className="w-4 h-4" />, title: 'Zadowoleni klienci' },
-];
-
-type Step = 'service' | 'datetime' | 'addons' | 'summary' | 'success';
+type Step = 'service' | 'datetime' | 'summary' | 'success';
+type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 // OTP Input component with autofocus refresh for triggering SMS autofill
 function OTPInputWithAutoFocus({ 
@@ -91,7 +86,6 @@ function OTPInputWithAutoFocus({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Refresh autofocus every 500ms to trigger SMS autofill on mobile
   useEffect(() => {
     if (!smsSent || isVerifying) return;
     
@@ -102,10 +96,8 @@ function OTPInputWithAutoFocus({
       }
     };
     
-    // Initial focus
     focusInput();
     
-    // Refresh focus every 500ms for the first 10 seconds
     const interval = setInterval(focusInput, 500);
     const timeout = setTimeout(() => clearInterval(interval), 10000);
     
@@ -145,8 +137,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [stations, setStations] = useState<Station[]>([]);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [showAllServices, setShowAllServices] = useState(false);
+  const [showAddons, setShowAddons] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showMoreSlots, setShowMoreSlots] = useState(false);
 
   // Selected values
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -157,11 +149,17 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [carSize, setCarSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [isInferringCarSize, setIsInferringCarSize] = useState(false);
 
+  // Date/time carousel state
+  const [dayScrollIndex, setDayScrollIndex] = useState(0);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
+  const [slotScrollIndex, setSlotScrollIndex] = useState(0);
+
   // Customer info
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
 
   // Verified customer state
   const [isVerifiedCustomer, setIsVerifiedCustomer] = useState(false);
@@ -198,16 +196,10 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     timeoutMs: 60000,
   });
 
-  useWebOTP({
-    onCodeReceived: handleWebOTPCode,
-    enabled: smsSent && !isVerifying,
-    timeoutMs: 60000,
-  });
-
-  // Notify parent about layout changes
+  // Notify parent about layout changes - hide layout for all steps except service
   useEffect(() => {
     if (onLayoutChange) {
-      onLayoutChange(step === 'datetime');
+      onLayoutChange(step !== 'service');
     }
   }, [step, onLayoutChange]);
 
@@ -343,21 +335,12 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         const today = new Date();
         const endDate = addDays(today, 14);
 
-        // Use backend function to get availability blocks (reservations + breaks)
-        const { data: blocksData, error: blocksError } = await supabase
+        const { data: blocksData } = await supabase
           .rpc('get_availability_blocks', {
             _instance_id: instanceData.id,
             _from: format(today, 'yyyy-MM-dd'),
             _to: format(endDate, 'yyyy-MM-dd'),
           });
-
-        console.log('[CustomerBookingWizard] RPC get_availability_blocks:', {
-          instanceId: instanceData.id,
-          from: format(today, 'yyyy-MM-dd'),
-          to: format(endDate, 'yyyy-MM-dd'),
-          blocksData,
-          blocksError,
-        });
 
         setAvailabilityBlocks((blocksData as AvailabilityBlock[]) || []);
       }
@@ -383,24 +366,30 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     return service.price_from || 0;
   };
 
-  // NEW LOGIC: Calculate available time slots - shows only times, not stations
-  // Customer sees one unified list of possible arrival times
+  // Calculate total duration including addons
+  const getTotalDuration = (): number => {
+    let total = selectedService?.duration_minutes || 60;
+    for (const addonId of selectedAddons) {
+      const addon = services.find((s) => s.id === addonId);
+      if (addon) {
+        total += addon.duration_minutes || 0;
+      }
+    }
+    return total;
+  };
+
+  // Calculate available time slots
   const getAvailableDays = (): AvailableDay[] => {
     if (!selectedService || !instance?.working_hours || stations.length === 0) return [];
 
     const days: AvailableDay[] = [];
     const today = new Date();
-    const serviceDuration = selectedService.duration_minutes || 60;
+    const serviceDuration = getTotalDuration();
 
-    // Filter stations by service type
     const compatibleStations = stations.filter(s => {
-      // If service has no station_type, use all stations
       if (!selectedService.station_type) return true;
-      // Match station type or universal stations
       return s.type === selectedService.station_type || s.type === 'universal';
     });
-
-    console.log('[getAvailableDays] Service:', selectedService.name, 'duration:', serviceDuration, 'compatibleStations:', compatibleStations.map(s => s.name));
 
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
@@ -410,19 +399,13 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       if (!workingHours) continue;
 
       const dateStr = format(date, 'yyyy-MM-dd');
-      // Filter availability blocks for this date (includes both reservations and breaks)
       const dayBlocks = availabilityBlocks.filter((b) => b.block_date === dateStr);
-
-      if (dateStr === '2025-12-25') {
-        console.log('[getAvailableDays] 25-12-2025 dayBlocks:', dayBlocks);
-      }
 
       const [openH, openM] = workingHours.open.split(':').map(Number);
       const [closeH, closeM] = workingHours.close.split(':').map(Number);
       const openMinutes = openH * 60 + openM;
       const closeMinutes = closeH * 60 + closeM;
 
-      // Calculate minimum start time (now + lead time for today)
       let minStartTime = openMinutes;
       if (i === 0) {
         const now = new Date();
@@ -430,44 +413,33 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         minStartTime = Math.max(openMinutes, Math.ceil(nowMinutes / SLOT_INTERVAL) * SLOT_INTERVAL);
       }
 
-      // Generate all possible slot times
-      const slotMap = new Map<string, string[]>(); // time -> available station IDs
+      const slotMap = new Map<string, string[]>();
 
       for (let time = minStartTime; time + serviceDuration <= closeMinutes; time += SLOT_INTERVAL) {
         const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
         const endTime = time + serviceDuration;
 
-        // Check which stations are available for the full duration [time, time+duration)
         const availableStations: string[] = [];
 
         for (const station of compatibleStations) {
-          // Get all blocks for this station on this day
           const stationBlocks = dayBlocks.filter((b) => b.station_id === station.id);
           
-          // Check if this station has any overlapping blocks (reservations or breaks)
           const hasConflict = stationBlocks.some((block) => {
             const blockStart = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1]);
             const blockEnd = parseInt(block.end_time.split(':')[0]) * 60 + parseInt(block.end_time.split(':')[1]);
-            // Overlap check: [time, endTime) overlaps with [blockStart, blockEnd)
             return time < blockEnd && endTime > blockStart;
           });
-
-          if (dateStr === '2025-12-25' && (timeStr === '14:15' || timeStr === '14:00' || timeStr === '14:30')) {
-            console.log(`[getAvailableDays] ${timeStr} station ${station.name}: blocks=`, stationBlocks.map(b => `${b.start_time}-${b.end_time}`), 'hasConflict:', hasConflict);
-          }
 
           if (!hasConflict) {
             availableStations.push(station.id);
           }
         }
 
-        // Only add slot if at least one station is available
         if (availableStations.length > 0) {
           slotMap.set(timeStr, availableStations);
         }
       }
 
-      // Convert map to sorted slots array
       const slots: TimeSlot[] = Array.from(slotMap.entries())
         .map(([time, availableStationIds]) => ({ time, availableStationIds }))
         .sort((a, b) => a.time.localeCompare(b.time));
@@ -477,20 +449,23 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
       }
     }
 
-
     return days;
   };
 
   const handleSelectService = (service: Service) => {
     setSelectedService(service);
     setStep('datetime');
+    // Reset selection when service changes
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setDayScrollIndex(0);
+    setSlotScrollIndex(0);
   };
 
   const handleSelectTime = (slot: TimeSlot) => {
     setSelectedTime(slot.time);
-    // Automatically assign first available station (customer doesn't see this)
     setSelectedStationId(slot.availableStationIds[0]);
-    setStep('addons');
+    setStep('summary'); // Go directly to summary
   };
 
   const toggleAddon = (serviceId: string) => {
@@ -636,7 +611,6 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     }
   };
 
-  // Auto-verify when code is complete (from manual input or WebOTP)
   const handleVerifyCode = useCallback(async (codeToVerify?: string) => {
     const code = codeToVerify || verificationCode;
     if (code.length !== 4) {
@@ -709,6 +683,28 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const availableDays = getAvailableDays();
   const addonServices = services.filter((s) => s.id !== selectedService?.id);
 
+  // Filter slots by time of day
+  const filterSlotsByTimeOfDay = (slots: TimeSlot[], tod: TimeOfDay): TimeSlot[] => {
+    return slots.filter(slot => {
+      const [hours] = slot.time.split(':').map(Number);
+      if (tod === 'morning') return hours < 12;
+      if (tod === 'afternoon') return hours >= 12 && hours < 17;
+      return hours >= 17;
+    });
+  };
+
+  // Get slots count for each time of day
+  const getSlotsCountByTimeOfDay = (slots: TimeSlot[]): { morning: number; afternoon: number; evening: number } => {
+    return {
+      morning: slots.filter(s => parseInt(s.time.split(':')[0]) < 12).length,
+      afternoon: slots.filter(s => {
+        const h = parseInt(s.time.split(':')[0]);
+        return h >= 12 && h < 17;
+      }).length,
+      evening: slots.filter(s => parseInt(s.time.split(':')[0]) >= 17).length,
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -717,7 +713,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     );
   }
 
-  // STEP 1: SERVICE SELECTION
+  // STEP 1: SERVICE SELECTION (with addons collapsible)
   if (step === 'service') {
     return (
       <div className="animate-fade-in">
@@ -789,353 +785,467 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               )}
             </>
           )}
-        </section>
 
-        <section className="container pb-6">
-          <div className="flex flex-wrap gap-3 justify-center pt-4 border-t border-border">
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="text-primary">{feature.icon}</span>
-                <span>{feature.title}</span>
-              </div>
-            ))}
-          </div>
+          {/* Addons section - collapsible, on first step */}
+          {selectedService && addonServices.length > 0 && (
+            <Collapsible open={showAddons} onOpenChange={setShowAddons} className="mt-4">
+              <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-2">
+                {showAddons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                <span>Wybierz dodatkowe usługi</span>
+                {selectedAddons.length > 0 && (
+                  <span className="ml-auto text-primary font-medium">({selectedAddons.length})</span>
+                )}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="animate-fade-in">
+                <div className="grid gap-2 mt-2">
+                  {addonServices.slice(0, 6).map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => toggleAddon(service.id)}
+                      className={cn(
+                        'glass-card p-3 text-left transition-all',
+                        selectedAddons.includes(service.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
+                          selectedAddons.includes(service.id) ? 'border-primary bg-primary' : 'border-muted-foreground'
+                        )}>
+                          {selectedAddons.includes(service.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate block">{service.name}</span>
+                        </div>
+                        <span className="text-sm font-semibold text-primary">+{service.price_from || 0} zł</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </section>
       </div>
     );
   }
 
-  // STEP 2: DATE & TIME SELECTION (no stations visible)
+  // STEP 2: DATE & TIME SELECTION (Booksy-style)
   if (step === 'datetime') {
+    const VISIBLE_DAYS = 6;
+    const visibleDays = availableDays.slice(dayScrollIndex, dayScrollIndex + VISIBLE_DAYS);
+    const canScrollDaysLeft = dayScrollIndex > 0;
+    const canScrollDaysRight = dayScrollIndex + VISIBLE_DAYS < availableDays.length;
+
     const selectedDay = selectedDate ? availableDays.find((d) => isSameDay(d.date, selectedDate)) : null;
-    const visibleSlots = showMoreSlots ? selectedDay?.slots : selectedDay?.slots.slice(0, MAX_VISIBLE_SLOTS);
-    const hasMoreSlots = selectedDay && selectedDay.slots.length > MAX_VISIBLE_SLOTS;
+    const filteredSlots = selectedDay ? filterSlotsByTimeOfDay(selectedDay.slots, timeOfDay) : [];
+    const slotsCount = selectedDay ? getSlotsCountByTimeOfDay(selectedDay.slots) : { morning: 0, afternoon: 0, evening: 0 };
+
+    // Slots carousel
+    const VISIBLE_SLOTS = 5;
+    const visibleSlots = filteredSlots.slice(slotScrollIndex, slotScrollIndex + VISIBLE_SLOTS);
+    const canScrollSlotsLeft = slotScrollIndex > 0;
+    const canScrollSlotsRight = slotScrollIndex + VISIBLE_SLOTS < filteredSlots.length;
+
+    // Auto-select first available time of day when date changes
+    useEffect(() => {
+      if (selectedDay) {
+        const counts = getSlotsCountByTimeOfDay(selectedDay.slots);
+        if (counts.morning > 0) setTimeOfDay('morning');
+        else if (counts.afternoon > 0) setTimeOfDay('afternoon');
+        else if (counts.evening > 0) setTimeOfDay('evening');
+        setSlotScrollIndex(0);
+      }
+    }, [selectedDate]);
+
+    // Get month/year range for header
+    const getMonthRange = () => {
+      if (visibleDays.length === 0) return '';
+      const firstDate = visibleDays[0].date;
+      const lastDate = visibleDays[visibleDays.length - 1].date;
+      const firstMonth = format(firstDate, 'LLLL yyyy', { locale: pl });
+      const lastMonth = format(lastDate, 'LLLL yyyy', { locale: pl });
+      if (firstMonth === lastMonth) return firstMonth.charAt(0).toUpperCase() + firstMonth.slice(1);
+      return `${format(firstDate, 'LLLL', { locale: pl }).charAt(0).toUpperCase() + format(firstDate, 'LLLL', { locale: pl }).slice(1)} - ${format(lastDate, 'LLLL yyyy', { locale: pl }).charAt(0).toUpperCase() + format(lastDate, 'LLLL yyyy', { locale: pl }).slice(1)}`;
+    };
 
     return (
       <div className="min-h-screen bg-background">
         <div className="container py-4 animate-fade-in">
+          {/* Header with back button */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); }}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Wróć
+            </button>
+            <button
+              onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Month header */}
+          <h2 className="text-xl font-bold mb-4">{getMonthRange()}</h2>
+
+          {/* Service info */}
+          <p className="text-xs text-muted-foreground mb-4">
+            {selectedService?.name} • {getTotalDuration()} min
+            {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} dodatki)`}
+          </p>
+
+          {/* Days carousel */}
+          <div className="flex items-center gap-1 mb-6">
+            <button
+              onClick={() => setDayScrollIndex(Math.max(0, dayScrollIndex - 1))}
+              disabled={!canScrollDaysLeft}
+              className={cn(
+                "p-1 rounded-full transition-colors",
+                canScrollDaysLeft ? "hover:bg-muted" : "opacity-30 cursor-not-allowed"
+              )}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex-1 flex justify-center gap-1 overflow-hidden">
+              {visibleDays.map((day) => {
+                const isSelected = selectedDate && isSameDay(selectedDate, day.date);
+                const hasSlots = day.slots.length > 0;
+                const dayOfWeek = format(day.date, 'EEEEEE', { locale: pl }); // Pn, Wt, Śr...
+                const dayNum = format(day.date, 'd');
+
+                return (
+                  <button
+                    key={day.date.toISOString()}
+                    onClick={() => { setSelectedDate(day.date); setSlotScrollIndex(0); }}
+                    disabled={!hasSlots}
+                    className={cn(
+                      "flex flex-col items-center justify-center w-14 h-16 rounded-lg border transition-all",
+                      isSelected ? "border-primary bg-background" : "border-border hover:border-muted-foreground",
+                      !hasSlots && "opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    <span className="text-xs text-muted-foreground capitalize">{dayOfWeek}</span>
+                    <span className={cn("text-lg font-semibold", isSelected && "text-foreground")}>{dayNum}</span>
+                    {hasSlots && (
+                      <div className={cn(
+                        "w-4 h-0.5 rounded-full mt-0.5",
+                        isSelected ? "bg-primary" : "bg-green-500"
+                      )} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setDayScrollIndex(Math.min(availableDays.length - VISIBLE_DAYS, dayScrollIndex + 1))}
+              disabled={!canScrollDaysRight}
+              className={cn(
+                "p-1 rounded-full transition-colors",
+                canScrollDaysRight ? "hover:bg-muted" : "opacity-30 cursor-not-allowed"
+              )}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Time of day tabs */}
+          {selectedDay && (
+            <>
+              <div className="flex justify-center gap-2 mb-4">
+                <button
+                  onClick={() => { setTimeOfDay('morning'); setSlotScrollIndex(0); }}
+                  disabled={slotsCount.morning === 0}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                    timeOfDay === 'morning' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
+                    slotsCount.morning === 0 && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  Rano
+                </button>
+                <button
+                  onClick={() => { setTimeOfDay('afternoon'); setSlotScrollIndex(0); }}
+                  disabled={slotsCount.afternoon === 0}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                    timeOfDay === 'afternoon' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
+                    slotsCount.afternoon === 0 && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  Popołudnie
+                </button>
+                <button
+                  onClick={() => { setTimeOfDay('evening'); setSlotScrollIndex(0); }}
+                  disabled={slotsCount.evening === 0}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                    timeOfDay === 'evening' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
+                    slotsCount.evening === 0 && "opacity-40 cursor-not-allowed"
+                  )}
+                >
+                  Wieczór
+                </button>
+              </div>
+
+              {/* Time slots carousel */}
+              {filteredSlots.length > 0 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setSlotScrollIndex(Math.max(0, slotScrollIndex - 1))}
+                    disabled={!canScrollSlotsLeft}
+                    className={cn(
+                      "p-1 rounded-full transition-colors",
+                      canScrollSlotsLeft ? "hover:bg-muted" : "opacity-30 cursor-not-allowed"
+                    )}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex-1 flex justify-center gap-2 overflow-hidden">
+                    {visibleSlots.map((slot, index) => (
+                      <button
+                        key={slot.time}
+                        onClick={() => handleSelectTime(slot)}
+                        className={cn(
+                          "px-4 py-3 rounded-lg border text-sm font-medium transition-all min-w-[70px]",
+                          index === 0 && selectedTime === slot.time
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:border-primary hover:bg-primary/10"
+                        )}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setSlotScrollIndex(Math.min(filteredSlots.length - VISIBLE_SLOTS, slotScrollIndex + 1))}
+                    disabled={!canScrollSlotsRight}
+                    className={cn(
+                      "p-1 rounded-full transition-colors",
+                      canScrollSlotsRight ? "hover:bg-muted" : "opacity-30 cursor-not-allowed"
+                    )}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  Brak dostępnych godzin w tym zakresie
+                </p>
+              )}
+            </>
+          )}
+
+          {!selectedDay && (
+            <p className="text-center text-sm text-muted-foreground py-8">
+              Wybierz dzień, aby zobaczyć dostępne godziny
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // STEP 3: SUMMARY WITH DATA & VERIFICATION
+  if (step === 'summary') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container py-4 animate-fade-in">
           <button
-            onClick={() => { setStep('service'); setSelectedDate(null); setSelectedTime(null); setShowMoreSlots(false); }}
+            onClick={() => { setStep('datetime'); setSmsSent(false); setVerificationCode(''); }}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
             Wróć
           </button>
 
-          <div className="mb-4">
-            <h2 className="text-base font-semibold">Wybierz termin</h2>
-            <p className="text-xs text-muted-foreground">
-              {selectedService?.name} • {selectedService?.duration_minutes} min
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold">Podsumowanie</h2>
+            
+            {/* Dev Mode Checkbox */}
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={devMode}
+                onCheckedChange={(checked) => setDevMode(checked === true)}
+                className="h-3.5 w-3.5"
+              />
+              <Bug className="w-3 h-3" />
+              <span>Dev</span>
+            </label>
+          </div>
+
+          {/* Booking summary */}
+          <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Usługa</span>
+              <span className="font-medium">{selectedService?.name}</span>
+            </div>
+            {selectedAddons.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Dodatki</span>
+                <span className="font-medium">{selectedAddons.length}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Data</span>
+              <span className="font-medium">
+                {selectedDate && format(selectedDate, 'd MMMM', { locale: pl })}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Godzina</span>
+              <span className="font-medium">{selectedTime}</span>
+            </div>
+            <div className="flex justify-between pt-1.5 border-t border-border">
+              <span className="text-muted-foreground">Cena</span>
+              <span className="font-bold text-primary">{getTotalPrice()} zł</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              * Cena może ulec zmianie w zależności od stanu samochodu
             </p>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {availableDays.slice(0, 7).map((day) => {
-              const isSelected = selectedDate && isSameDay(selectedDate, day.date);
-              const slotsCount = day.slots.length;
-              
-              return (
-                <button
-                  key={day.date.toISOString()}
-                  onClick={() => { setSelectedDate(isSelected ? null : day.date); setShowMoreSlots(false); }}
-                  className={cn(
-                    "w-full glass-card p-3 text-left transition-all",
-                    isSelected && "border-primary"
-                  )}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="font-medium capitalize">
-                        {format(day.date, 'EEEE', { locale: pl })}
-                      </span>
-                      <span className="text-muted-foreground ml-2">
-                        {format(day.date, 'd MMM', { locale: pl })}
-                      </span>
-                    </div>
-                    <span className="text-xs text-primary">{slotsCount} wolnych</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Selected day - show unified time slots (no stations) */}
-          {selectedDay && (
-            <div className="glass-card p-4 animate-fade-in">
-              <h3 className="text-sm font-medium mb-3">Dostępne godziny przyjazdu</h3>
-              <div className="flex flex-wrap gap-2">
-                {visibleSlots?.map((slot) => (
-                  <button
-                    key={slot.time}
-                    onClick={() => handleSelectTime(slot)}
-                    className="px-3 py-2 text-sm rounded-lg border border-border hover:border-primary hover:bg-primary/10 transition-all"
-                  >
-                    {slot.time}
-                  </button>
-                ))}
+          {/* Customer data */}
+          <div className="glass-card p-3 mb-3 space-y-3">
+            <div>
+              <Label htmlFor="phone" className="text-xs">Telefon *</Label>
+              <div className="relative">
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="np. 600 123 456"
+                  className="mt-1 h-9 text-sm pr-8"
+                  required
+                  disabled={smsSent}
+                />
+                {isCheckingCustomer && (
+                  <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                )}
               </div>
-              
-              {hasMoreSlots && !showMoreSlots && (
-                <button
-                  onClick={() => setShowMoreSlots(true)}
-                  className="mt-3 text-xs text-primary hover:underline"
-                >
-                  Pokaż więcej godzin ({selectedDay.slots.length - MAX_VISIBLE_SLOTS})
-                </button>
+              {isVerifiedCustomer && (
+                <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Rozpoznany numer - rezerwacja bez kodu SMS
+                </p>
               )}
             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // STEP 3: ADDONS
-  if (step === 'addons') {
-    return (
-      <div className="container py-4 animate-fade-in">
-        <button
-          onClick={() => setStep('datetime')}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Wróć
-        </button>
-
-        <div className="mb-4">
-          <h2 className="text-base font-semibold">Dodatkowe usługi</h2>
-          <p className="text-xs text-muted-foreground">Opcjonalnie dodaj usługi do rezerwacji</p>
-        </div>
-
-        {/* Car size is now inferred automatically from car model in summary step */}
-
-        {/* Addons */}
-        <div className="grid gap-2 mb-4">
-          {addonServices.slice(0, 6).map((service) => (
-            <button
-              key={service.id}
-              onClick={() => toggleAddon(service.id)}
-              className={cn(
-                'glass-card p-3 text-left transition-all',
-                selectedAddons.includes(service.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
-                  selectedAddons.includes(service.id) ? 'border-primary bg-primary' : 'border-muted-foreground'
-                )}>
-                  {selectedAddons.includes(service.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium truncate block">{service.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-primary">+{service.price_from || 0} zł</span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Summary & Continue */}
-        <div className="glass-card p-3">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-sm text-muted-foreground">Razem</span>
-            <span className="text-lg font-bold text-primary">{getTotalPrice()} zł</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground mb-3">
-            * Cena może ulec zmianie w zależności od stanu samochodu
-          </p>
-          <Button onClick={() => setStep('summary')} className="w-full" size="sm">
-            Dalej
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // STEP 4: SUMMARY WITH DATA & VERIFICATION
-  if (step === 'summary') {
-    return (
-      <div className="container py-4 animate-fade-in">
-        <button
-          onClick={() => { setStep('addons'); setSmsSent(false); setVerificationCode(''); }}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Wróć
-        </button>
-
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">Podsumowanie</h2>
-          
-          {/* Dev Mode Checkbox */}
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-            <Checkbox
-              checked={devMode}
-              onCheckedChange={(checked) => setDevMode(checked === true)}
-              className="h-3.5 w-3.5"
-            />
-            <Bug className="w-3 h-3" />
-            <span>Dev</span>
-          </label>
-        </div>
-
-        {/* Booking summary */}
-        <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Usługa</span>
-            <span className="font-medium">{selectedService?.name}</span>
-          </div>
-          {selectedAddons.length > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Dodatki</span>
-              <span className="font-medium">{selectedAddons.length}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Data</span>
-            <span className="font-medium">
-              {selectedDate && format(selectedDate, 'd MMMM', { locale: pl })}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Godzina</span>
-            <span className="font-medium">{selectedTime}</span>
-          </div>
-          <div className="flex justify-between pt-1.5 border-t border-border">
-            <span className="text-muted-foreground">Cena</span>
-            <span className="font-bold text-primary">{getTotalPrice()} zł</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            * Cena może ulec zmianie w zależności od stanu samochodu
-          </p>
-        </div>
-
-        {/* Customer data - phone first */}
-        <div className="glass-card p-3 mb-3 space-y-3">
-          <div>
-            <Label htmlFor="phone" className="text-xs">Telefon *</Label>
-            <div className="relative">
+            <div>
+              <Label htmlFor="name" className="text-xs">Imię i nazwisko *</Label>
               <Input
-                id="phone"
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="np. 600 123 456"
-                className="mt-1 h-9 text-sm pr-8"
-                required
+                id="name"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="np. Jan Kowalski"
+                className="mt-1 h-9 text-sm"
                 disabled={smsSent}
               />
-              {isCheckingCustomer && (
-                <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
+            <div>
+              <Label htmlFor="carModel" className="text-xs">Marka i model samochodu</Label>
+              <Input
+                id="carModel"
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                placeholder="np. BMW X5"
+                className="mt-1 h-9 text-sm"
+                disabled={smsSent}
+              />
+              {/* Car model suggestions */}
+              {!smsSent && carModel.length >= 2 && (() => {
+                const suggestions = searchCarModels(carModel, 2);
+                if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
+                return (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {suggestions.map((model) => (
+                      <button
+                        key={model}
+                        type="button"
+                        onClick={() => setCarModel(model)}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        {model}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Collapsible notes */}
+            <Collapsible open={showNotes} onOpenChange={setShowNotes}>
+              <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                <span>Uwagi (opcjonalnie)</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <Textarea
+                  id="notes"
+                  value={customerNotes}
+                  onChange={(e) => setCustomerNotes(e.target.value)}
+                  placeholder="np. bardzo brudne felgi, pies w aucie..."
+                  className="text-sm resize-none"
+                  rows={2}
+                  disabled={smsSent}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          {/* SMS verification or direct booking */}
+          {!smsSent ? (
+            <>
+              {devMode && (
+                <div className="mb-3 p-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
+                  <Bug className="w-3 h-3 inline-block mr-1" />
+                  Dev Mode: wymuszono weryfikację SMS
+                </div>
+              )}
+              <Button 
+                onClick={handleReservationClick} 
+                className="w-full" 
+                disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
+              >
+                {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Potwierdź'}
+              </Button>
+            </>
+          ) : (
+            <div className="glass-card p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-3">
+                Wpisz 4-cyfrowy kod z SMS
+              </p>
+              
+              {devMode && devCode && (
+                <div className="mb-3 p-2 rounded-md bg-green-500/10 border border-green-500/30 text-sm font-mono text-green-600 dark:text-green-400">
+                  <Bug className="w-3 h-3 inline-block mr-1" />
+                  Kod: <strong>{devCode}</strong>
+                </div>
+              )}
+              
+              <OTPInputWithAutoFocus
+                value={verificationCode}
+                onChange={setVerificationCode}
+                onComplete={handleVerifyCode}
+                smsSent={smsSent}
+                isVerifying={isVerifying}
+              />
+              {isVerifying && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Weryfikacja...
+                </div>
               )}
             </div>
-            {isVerifiedCustomer && (
-              <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
-                <Check className="w-3 h-3" /> Rozpoznany numer - rezerwacja bez kodu SMS
-              </p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="name" className="text-xs">Imię / Nazwa</Label>
-            <Input
-              id="name"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="np. Jan lub AutoMax"
-              className="mt-1 h-9 text-sm"
-              disabled={smsSent}
-            />
-          </div>
-          <div>
-            <Label htmlFor="carModel" className="text-xs">Marka i model samochodu</Label>
-            <Input
-              id="carModel"
-              value={carModel}
-              onChange={(e) => setCarModel(e.target.value)}
-              className="mt-1 h-9 text-sm"
-              disabled={smsSent}
-            />
-            {/* Car model suggestions */}
-            {!smsSent && carModel.length >= 2 && (() => {
-              const suggestions = searchCarModels(carModel, 2);
-              if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
-              return (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {suggestions.map((model) => (
-                    <button
-                      key={model}
-                      type="button"
-                      onClick={() => setCarModel(model)}
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      {model}
-                    </button>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
-          <div>
-            <Label htmlFor="notes" className="text-xs">Uwagi (opcjonalnie)</Label>
-            <Input
-              id="notes"
-              value={customerNotes}
-              onChange={(e) => setCustomerNotes(e.target.value)}
-              placeholder="np. bardzo brudne felgi"
-              className="mt-1 h-9 text-sm"
-              disabled={smsSent}
-            />
-          </div>
+          )}
         </div>
-
-        {/* SMS verification or direct booking */}
-        {!smsSent ? (
-          <>
-            {devMode && (
-              <div className="mb-3 p-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
-                <Bug className="w-3 h-3 inline-block mr-1" />
-                Dev Mode: wymuszono weryfikację SMS
-              </div>
-            )}
-            <Button 
-              onClick={handleReservationClick} 
-              className="w-full" 
-              disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}
-            >
-              {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Potwierdź'}
-            </Button>
-          </>
-        ) : (
-          <div className="glass-card p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-3">
-              Wpisz 4-cyfrowy kod z SMS
-            </p>
-            
-            {/* Show dev code when in dev mode */}
-            {devMode && devCode && (
-              <div className="mb-3 p-2 rounded-md bg-green-500/10 border border-green-500/30 text-sm font-mono text-green-600 dark:text-green-400">
-                <Bug className="w-3 h-3 inline-block mr-1" />
-                Kod: <strong>{devCode}</strong>
-              </div>
-            )}
-            
-            <OTPInputWithAutoFocus
-              value={verificationCode}
-              onChange={setVerificationCode}
-              onComplete={handleVerifyCode}
-              smsSent={smsSent}
-              isVerifying={isVerifying}
-            />
-            {isVerifying && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Weryfikacja...
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
@@ -1145,80 +1255,82 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     const isPending = confirmationData.status === 'pending';
     
     return (
-      <div className="container py-6 animate-fade-in">
-        <div className="max-w-sm mx-auto text-center">
-          <div className={cn(
-            "w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3",
-            isPending ? "bg-amber-500/20" : "bg-green-500/20"
-          )}>
-            {isPending ? (
-              <Clock className="w-7 h-7 text-amber-500" />
-            ) : (
-              <Check className="w-7 h-7 text-green-500" />
+      <div className="min-h-screen bg-background">
+        <div className="container py-6 animate-fade-in">
+          <div className="max-w-sm mx-auto text-center">
+            <div className={cn(
+              "w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3",
+              isPending ? "bg-amber-500/20" : "bg-green-500/20"
+            )}>
+              {isPending ? (
+                <Clock className="w-7 h-7 text-amber-500" />
+              ) : (
+                <Check className="w-7 h-7 text-green-500" />
+              )}
+            </div>
+
+            <h2 className="text-lg font-semibold mb-2">
+              {isPending ? 'Rezerwacja przyjęta!' : 'Rezerwacja potwierdzona!'}
+            </h2>
+            
+            {isPending && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.
+              </p>
             )}
-          </div>
 
-          <h2 className="text-lg font-semibold mb-2">
-            {isPending ? 'Rezerwacja przyjęta!' : 'Rezerwacja potwierdzona!'}
-          </h2>
-          
-          {isPending && (
-            <p className="text-sm text-muted-foreground mb-4">
-              Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.
-            </p>
-          )}
-
-          <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Usługa</span>
-              <span className="font-medium">{confirmationData.serviceName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data</span>
-              <span className="font-medium">
-                {format(parseISO(confirmationData.date), 'd MMM yyyy', { locale: pl })}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Godzina</span>
-              <span className="font-medium">{confirmationData.time}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <span className={cn(
-                "font-medium px-2 py-0.5 rounded text-xs",
-                isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600"
-              )}>
-                {isPending ? 'Oczekuje na potwierdzenie' : 'Potwierdzona'}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
-            <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
-            Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą
-          </div>
-
-          {socialLinks.instagram && (
-            <a
-              href={socialLinks.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center flex-shrink-0">
-                <Instagram className="w-5 h-5 text-white" />
+            <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Usługa</span>
+                <span className="font-medium">{confirmationData.serviceName}</span>
               </div>
-              <div className="text-left">
-                <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">Zaobserwuj nas na Instagramie!</p>
-                <p className="text-xs text-muted-foreground">Bądź na bieżąco z naszymi realizacjami</p>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Data</span>
+                <span className="font-medium">
+                  {format(parseISO(confirmationData.date), 'd MMM yyyy', { locale: pl })}
+                </span>
               </div>
-            </a>
-          )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Godzina</span>
+                <span className="font-medium">{confirmationData.time}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <span className={cn(
+                  "font-medium px-2 py-0.5 rounded text-xs",
+                  isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600"
+                )}>
+                  {isPending ? 'Oczekuje na potwierdzenie' : 'Potwierdzona'}
+                </span>
+              </div>
+            </div>
 
-          <Button variant="ghost" onClick={() => window.location.reload()} className="w-full text-muted-foreground" size="sm">
-            Zarezerwuj kolejną wizytę
-          </Button>
+            <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
+              <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
+              Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą
+            </div>
+
+            {socialLinks.instagram && (
+              <a
+                href={socialLinks.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center flex-shrink-0">
+                  <Instagram className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">Zaobserwuj nas na Instagramie!</p>
+                  <p className="text-xs text-muted-foreground">Bądź na bieżąco z naszymi realizacjami</p>
+                </div>
+              </a>
+            )}
+
+            <Button variant="ghost" onClick={() => window.location.reload()} className="w-full text-muted-foreground" size="sm">
+              Zarezerwuj kolejną wizytę
+            </Button>
+          </div>
         </div>
       </div>
     );
