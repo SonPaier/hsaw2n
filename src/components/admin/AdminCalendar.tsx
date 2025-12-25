@@ -267,11 +267,18 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
   const hasHiddenStations = hiddenStationIds.size > 0;
 
-  // Get reservations for a specific date and station
+  // Get reservations for a specific date and station (including multi-day reservations)
   const getReservationsForStationAndDate = (stationId: string, dateStr: string) => {
-    return reservations.filter(
-      r => r.reservation_date === dateStr && r.station_id === stationId
-    );
+    return reservations.filter(r => {
+      if (r.station_id !== stationId) return false;
+      
+      // Check if date falls within reservation range
+      const startDate = r.reservation_date;
+      const endDate = r.end_date || r.reservation_date; // Use reservation_date if no end_date
+      
+      // dateStr should be >= startDate and <= endDate
+      return dateStr >= startDate && dateStr <= endDate;
+    });
   };
 
   // Get breaks for a specific date and station
@@ -377,14 +384,16 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
     return { startTime: dayHours.open, closeTime: dayHours.close };
   };
 
-  // Check if a time slot overlaps with existing reservations
+  // Check if a time slot overlaps with existing reservations (including multi-day)
   const checkOverlap = (stationId: string, dateStr: string, startTime: string, endTime: string, excludeReservationId?: string): boolean => {
-    const stationReservations = reservations.filter(
-      r => r.reservation_date === dateStr && 
-           r.station_id === stationId && 
-           r.id !== excludeReservationId &&
-           r.status !== 'cancelled'
-    );
+    const stationReservations = reservations.filter(r => {
+      if (r.station_id !== stationId || r.id === excludeReservationId || r.status === 'cancelled') return false;
+      
+      // Check if date falls within reservation range
+      const startDate = r.reservation_date;
+      const endDate = r.end_date || r.reservation_date;
+      return dateStr >= startDate && dateStr <= endDate;
+    });
     
     const newStart = parseTime(startTime);
     const newEnd = parseTime(endTime);
