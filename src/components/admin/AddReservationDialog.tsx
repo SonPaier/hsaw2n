@@ -48,6 +48,22 @@ interface Customer {
   email: string | null;
 }
 
+interface ExistingReservation {
+  id: string;
+  station_id: string;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface ExistingBreak {
+  id: string;
+  station_id: string;
+  break_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
@@ -57,6 +73,8 @@ interface AddReservationDialogProps {
   time: string;
   instanceId: string;
   onSuccess: () => void;
+  existingReservations?: ExistingReservation[];
+  existingBreaks?: ExistingBreak[];
 }
 
 const CAR_SIZE_LABELS: Record<CarSize, string> = {
@@ -74,6 +92,8 @@ const AddReservationDialog = ({
   time,
   instanceId,
   onSuccess,
+  existingReservations = [],
+  existingBreaks = [],
 }: AddReservationDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
@@ -156,8 +176,8 @@ const AddReservationDialog = ({
     return total + (service?.duration_minutes || 0);
   }, 0);
 
-  // Duration options for dropdown (15min increments from 30min to 4h)
-  const DURATION_OPTIONS = [
+  // Base duration options for dropdown (15min increments from 30min to 4h)
+  const BASE_DURATION_OPTIONS = [
     { value: 30, label: '30 min' },
     { value: 45, label: '45 min' },
     { value: 60, label: '1h' },
@@ -171,6 +191,43 @@ const AddReservationDialog = ({
     { value: 210, label: '3h 30min' },
     { value: 240, label: '4h' },
   ];
+
+  // Calculate max available minutes until next reservation/break on this station
+  const maxAvailableMinutes = (() => {
+    if (!stationId || !date || !startTime) return null;
+    
+    const [startHours, startMins] = startTime.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMins;
+
+    // Get all blocks (reservations + breaks) for this station on this date that start AFTER our start time
+    const reservationBlocks = existingReservations
+      .filter(r => r.station_id === stationId && r.reservation_date === date)
+      .map(r => {
+        const [h, m] = r.start_time.split(':').map(Number);
+        return h * 60 + m;
+      });
+
+    const breakBlocks = existingBreaks
+      .filter(b => b.station_id === stationId && b.break_date === date)
+      .map(b => {
+        const [h, m] = b.start_time.split(':').map(Number);
+        return h * 60 + m;
+      });
+
+    const allBlocks = [...reservationBlocks, ...breakBlocks]
+      .filter(blockStart => blockStart > startTotalMinutes) // Only blocks that start after our start time
+      .sort((a, b) => a - b);
+
+    if (allBlocks.length === 0) return null; // No limit from other reservations
+    
+    const nextBlockStart = allBlocks[0];
+    return nextBlockStart - startTotalMinutes;
+  })();
+
+  // Filter duration options based on max available time
+  const DURATION_OPTIONS = maxAvailableMinutes !== null
+    ? BASE_DURATION_OPTIONS.filter(opt => opt.value <= maxAvailableMinutes)
+    : BASE_DURATION_OPTIONS;
 
   // Effective duration: manual override or service-based
   const effectiveDuration = manualDuration ?? (totalDurationMinutes > 0 ? totalDurationMinutes : null);
@@ -761,28 +818,44 @@ const AddReservationDialog = ({
               <div className="space-y-2">
                 <Label className="flex items-center justify-between">
                   <span>Czas trwania</span>
-                  {effectiveDuration && (
-                    <span className="text-sm font-normal text-primary">
-                      {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
-                      {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {maxAvailableMinutes !== null && (
+                      <span className="text-xs text-muted-foreground">
+                        (max {maxAvailableMinutes >= 60 
+                          ? `${Math.floor(maxAvailableMinutes / 60)}h${maxAvailableMinutes % 60 > 0 ? ` ${maxAvailableMinutes % 60}min` : ''}` 
+                          : `${maxAvailableMinutes}min`} do następnej rezerwacji)
+                      </span>
+                    )}
+                    {effectiveDuration && (
+                      <span className="text-sm font-normal text-primary">
+                        {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
+                        {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
+                      </span>
+                    )}
+                  </div>
                 </Label>
-                <Select 
-                  value={manualDuration?.toString() || ''} 
-                  onValueChange={handleDurationChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz czas trwania..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {DURATION_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value.toString()}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {DURATION_OPTIONS.length > 0 ? (
+                  <Select 
+                    value={manualDuration?.toString() || ''} 
+                    onValueChange={handleDurationChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz czas trwania..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {DURATION_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-sm text-destructive p-2 border border-destructive/30 rounded-md bg-destructive/10">
+                    Brak dostępnych opcji czasu trwania - następna rezerwacja zaczyna się za {maxAvailableMinutes} min. 
+                    Możesz ręcznie ustawić godzinę zakończenia powyżej.
+                  </div>
+                )}
               </div>
             </div>
           )}
