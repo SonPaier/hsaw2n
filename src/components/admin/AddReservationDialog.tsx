@@ -181,7 +181,8 @@ const AddReservationDialog = ({
       setSelectedServices([]);
       setStartTime(time);
       setEndTime('');
-      setManualDuration(null);
+      // Set default duration to 30 minutes for washing stations
+      setManualDuration(stationType === 'washing' ? 30 : null);
       setFoundCustomers([]);
       setSelectedCustomerId(null);
       setShowCustomerDropdown(false);
@@ -192,7 +193,7 @@ const AddReservationDialog = ({
       setNotes('');
       setErrors({}); // Reset validation errors
     }
-  }, [open, time, date]);
+  }, [open, time, date, stationType]);
 
   // Calculate total duration from selected services
   const totalDurationMinutes = selectedServices.reduce((total, serviceId) => {
