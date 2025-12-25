@@ -235,6 +235,7 @@ export type Database = {
           price: number | null
           reservation_date: string
           service_id: string
+          source: string | null
           start_time: string
           station_id: string | null
           status: Database["public"]["Enums"]["reservation_status"] | null
@@ -256,6 +257,7 @@ export type Database = {
           price?: number | null
           reservation_date: string
           service_id: string
+          source?: string | null
           start_time: string
           station_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"] | null
@@ -277,6 +279,7 @@ export type Database = {
           price?: number | null
           reservation_date?: string
           service_id?: string
+          source?: string | null
           start_time?: string
           station_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"] | null

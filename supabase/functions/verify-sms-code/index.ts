@@ -125,6 +125,7 @@ serve(async (req: Request): Promise<Response> => {
         confirmation_code: confirmationCode,
         car_size: reservationData.carSize || null,
         status: "confirmed",
+        source: "customer",
       })
       .select()
       .single();
