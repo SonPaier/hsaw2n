@@ -160,6 +160,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [customerPhone, setCustomerPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [historicalCarModels, setHistoricalCarModels] = useState<{ model: string; count: number }[]>([]);
   const [showNotes, setShowNotes] = useState(false);
 
   // Verified customer state
@@ -254,6 +255,59 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     };
 
     const timeoutId = setTimeout(checkCustomer, 500);
+    return () => clearTimeout(timeoutId);
+  }, [customerPhone, instance]);
+
+  // Fetch historical car models for this phone number
+  useEffect(() => {
+    const fetchHistoricalCarModels = async () => {
+      if (!instance || customerPhone.length < 9) {
+        setHistoricalCarModels([]);
+        return;
+      }
+
+      let normalizedPhone = customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+48' + normalizedPhone;
+      }
+
+      const { data: reservations } = await supabase
+        .from('reservations')
+        .select('vehicle_plate')
+        .eq('instance_id', instance.id)
+        .or(`customer_phone.eq.${normalizedPhone},customer_phone.eq.${normalizedPhone.replace('+48', '')}`)
+        .not('vehicle_plate', 'is', null)
+        .not('vehicle_plate', 'eq', '')
+        .not('vehicle_plate', 'eq', 'BRAK');
+
+      if (reservations && reservations.length > 0) {
+        // Count occurrences of each car model
+        const modelCounts = new Map<string, number>();
+        reservations.forEach(r => {
+          const model = r.vehicle_plate?.trim();
+          if (model && model.length > 1) {
+            modelCounts.set(model, (modelCounts.get(model) || 0) + 1);
+          }
+        });
+
+        // Convert to array and sort by count (descending)
+        const sortedModels = Array.from(modelCounts.entries())
+          .map(([model, count]) => ({ model, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5); // Max 5 suggestions
+
+        setHistoricalCarModels(sortedModels);
+
+        // Auto-fill with most frequent model if carModel is empty
+        if (!carModel && sortedModels.length > 0) {
+          setCarModel(sortedModels[0].model);
+        }
+      } else {
+        setHistoricalCarModels([]);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchHistoricalCarModels, 600);
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
 
@@ -797,7 +851,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="np. 600 123 456"
+                    placeholder=""
                     className="h-11 text-base"
                     autoFocus
                   />
@@ -1238,8 +1292,28 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 className="mt-1 h-9 text-sm"
                 disabled={smsSent}
               />
-              {/* Car model suggestions */}
-              {!smsSent && carModel.length >= 2 && (() => {
+              {/* Historical car models from previous reservations */}
+              {!smsSent && historicalCarModels.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {historicalCarModels.map(({ model, count }) => (
+                    <button
+                      key={model}
+                      type="button"
+                      onClick={() => setCarModel(model)}
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors",
+                        carModel === model
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      {model}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Car model suggestions from database */}
+              {!smsSent && historicalCarModels.length === 0 && carModel.length >= 2 && (() => {
                 const suggestions = searchCarModels(carModel, 2);
                 if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
                 return (
