@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Sparkles, Shield, Clock, Star, ChevronDown, ChevronUp, Check, ArrowLeft, Facebook, Instagram, Loader2, Bug } from 'lucide-react';
@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useWebOTP } from '@/hooks/useWebOTP';
+import { searchCarModels } from '@/data/carModels';
 
 interface Service {
   id: string;
@@ -976,10 +977,28 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               id="carModel"
               value={carModel}
               onChange={(e) => setCarModel(e.target.value)}
-              placeholder="np. Audi Q8"
               className="mt-1 h-9 text-sm"
               disabled={smsSent}
             />
+            {/* Car model suggestions */}
+            {!smsSent && carModel.length >= 2 && (() => {
+              const suggestions = searchCarModels(carModel, 2);
+              if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {suggestions.map((model) => (
+                    <button
+                      key={model}
+                      type="button"
+                      onClick={() => setCarModel(model)}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      {model}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <Label htmlFor="notes" className="text-xs">Uwagi (opcjonalnie)</Label>
