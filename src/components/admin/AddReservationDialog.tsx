@@ -669,7 +669,6 @@ const AddReservationDialog = ({
                   setCustomerName(e.target.value);
                   setSelectedCustomerId(null);
                 }}
-                placeholder="Jan Kowalski"
                 className="pr-10"
                 autoComplete="off"
               />
@@ -712,7 +711,6 @@ const AddReservationDialog = ({
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="123 456 789"
             />
           </div>
 
@@ -727,7 +725,6 @@ const AddReservationDialog = ({
                 id="carModel"
                 value={carModel}
                 onChange={(e) => setCarModel(e.target.value)}
-                placeholder="np. BMW X5, Audi A4"
                 className="pr-10"
               />
               {suggestingSize && (
