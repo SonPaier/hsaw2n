@@ -522,7 +522,7 @@ const AdminDashboard = () => {
       const dayNum = dateObj.getDate();
       const monthName = monthNames[dateObj.getMonth()];
       
-      const message = `Twoja rezerwacja została potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservation.start_time}-${reservation.end_time}. Do zobaczenia!`;
+      const message = `Twoja rezerwacja została potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservation.start_time?.slice(0, 5)}-${reservation.end_time?.slice(0, 5)}. Do zobaczenia!`;
       
       await supabase.functions.invoke('send-sms-message', {
         body: {
@@ -793,7 +793,7 @@ const AdminDashboard = () => {
                               )}
                               <div className="text-right shrink-0">
                                 <div className="font-medium text-foreground">
-                                  {reservation.start_time}
+                                  {reservation.start_time?.slice(0, 5)}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}

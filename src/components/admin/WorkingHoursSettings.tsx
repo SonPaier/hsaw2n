@@ -146,34 +146,39 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
           return (
             <div
               key={key}
-              className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border/50"
+              className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-lg bg-muted/30 border border-border/50"
             >
-              <div className="flex items-center gap-3 w-36">
-                <Switch
-                  checked={isOpen}
-                  onCheckedChange={(checked) => handleDayToggle(key, checked)}
-                />
-                <Label className="font-medium">{label}</Label>
+              <div className="flex items-center justify-between sm:justify-start gap-3 sm:w-36">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={isOpen}
+                    onCheckedChange={(checked) => handleDayToggle(key, checked)}
+                  />
+                  <Label className="font-medium text-sm sm:text-base">{label}</Label>
+                </div>
+                {!isOpen && (
+                  <span className="text-muted-foreground text-xs sm:hidden">Zamknięte</span>
+                )}
               </div>
 
               {isOpen ? (
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 pl-10 sm:pl-0">
                   <Input
                     type="time"
                     value={dayHours?.open || '09:00'}
                     onChange={(e) => handleTimeChange(key, 'open', e.target.value)}
-                    className="w-28"
+                    className="flex-1 sm:w-24 sm:flex-none text-sm"
                   />
                   <span className="text-muted-foreground">-</span>
                   <Input
                     type="time"
                     value={dayHours?.close || '19:00'}
                     onChange={(e) => handleTimeChange(key, 'close', e.target.value)}
-                    className="w-28"
+                    className="flex-1 sm:w-24 sm:flex-none text-sm"
                   />
                 </div>
               ) : (
-                <span className="text-muted-foreground text-sm">Zamknięte</span>
+                <span className="text-muted-foreground text-sm hidden sm:inline">Zamknięte</span>
               )}
             </div>
           );

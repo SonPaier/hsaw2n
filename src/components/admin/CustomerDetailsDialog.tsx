@@ -263,7 +263,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {visit.start_time.slice(0, 5)}
+                        {visit.start_time?.slice(0, 5)}
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-sm">
