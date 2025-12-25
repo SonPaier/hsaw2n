@@ -210,9 +210,9 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">Stanowiska</h3>
-        <Button onClick={() => openEditDialog()} size="sm" className="gap-2">
+        <Button onClick={() => openEditDialog()} size="sm" className="gap-2 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           Dodaj stanowisko
         </Button>
@@ -232,28 +232,28 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
               <div
                 key={station.id}
                 className={cn(
-                  "flex items-center justify-between p-4 border border-border/50 rounded-lg",
+                  "flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg",
                   !station.active && "opacity-50"
                 )}
               >
-                <div className="flex items-center gap-4">
-                  <div className={cn("p-2 rounded-lg", config.bgColor)}>
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className={cn("p-2 rounded-lg shrink-0", config.bgColor)}>
                     <Icon className={cn("w-5 h-5", config.color)} />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{station.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm sm:text-base">{station.name}</span>
                       {!station.active && (
                         <span className="text-xs bg-muted px-2 py-0.5 rounded">Nieaktywne</span>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
                       {config.label} • {config.description}
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-end sm:justify-start pl-10 sm:pl-0 shrink-0">
                   <Switch
                     checked={station.active ?? true}
                     onCheckedChange={() => toggleStationActive(station)}
@@ -261,6 +261,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8 sm:h-10 sm:w-10"
                     onClick={() => openEditDialog(station)}
                   >
                     <Edit2 className="w-4 h-4" />
@@ -268,7 +269,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive"
+                    className="h-8 w-8 sm:h-10 sm:w-10 text-destructive"
                     onClick={() => handleDelete(station.id)}
                   >
                     <Trash2 className="w-4 h-4" />
