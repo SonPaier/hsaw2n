@@ -92,6 +92,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [carSize, setCarSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [isInferringCarSize, setIsInferringCarSize] = useState(false);
 
   // Customer info
   const [customerName, setCustomerName] = useState('');
@@ -198,6 +199,34 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     const timeoutId = setTimeout(checkCustomer, 500);
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
+
+  // Auto-infer car size from car model using AI
+  useEffect(() => {
+    const inferCarSize = async () => {
+      if (!carModel || carModel.length < 3) return;
+      
+      setIsInferringCarSize(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('suggest-car-size', {
+          body: { carModel },
+        });
+
+        if (!error && data?.carSize) {
+          const size = data.carSize as 'small' | 'medium' | 'large';
+          if (['small', 'medium', 'large'].includes(size)) {
+            setCarSize(size);
+          }
+        }
+      } catch (e) {
+        console.log('Car size inference failed, using default');
+      } finally {
+        setIsInferringCarSize(false);
+      }
+    };
+
+    const timeoutId = setTimeout(inferCarSize, 800);
+    return () => clearTimeout(timeoutId);
+  }, [carModel]);
 
   const saveCustomerToLocalStorage = () => {
     localStorage.setItem('bookingCustomerData', JSON.stringify({
@@ -812,26 +841,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
           <p className="text-xs text-muted-foreground">Opcjonalnie dodaj usługi do rezerwacji</p>
         </div>
 
-        {/* Car size if needed */}
-        {selectedService?.requires_size && (
-          <div className="glass-card p-3 mb-3">
-            <Label className="text-xs font-medium mb-2 block">Rozmiar samochodu</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['small', 'medium', 'large'] as const).map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setCarSize(size)}
-                  className={cn(
-                    'py-1.5 px-2 rounded-md border text-xs transition-all',
-                    carSize === size ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  {size === 'small' ? 'Małe' : size === 'medium' ? 'Średnie' : 'Duże'}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Car size is now inferred automatically from car model in summary step */}
 
         {/* Addons */}
         <div className="grid gap-2 mb-4">
