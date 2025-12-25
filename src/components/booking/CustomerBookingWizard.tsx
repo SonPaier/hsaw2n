@@ -67,7 +67,7 @@ const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
 const MIN_LEAD_TIME_MINUTES = 30;
 const SLOT_INTERVAL = 15;
 
-type Step = 'service' | 'datetime' | 'summary' | 'success';
+type Step = 'phone' | 'service' | 'datetime' | 'summary' | 'success';
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 // OTP Input component with autofocus refresh for triggering SMS autofill
@@ -131,7 +131,7 @@ function OTPInputWithAutoFocus({
 }
 
 export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookingWizardProps) {
-  const [step, setStep] = useState<Step>('service');
+  const [step, setStep] = useState<Step>('phone');
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -196,10 +196,10 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     timeoutMs: 60000,
   });
 
-  // Notify parent about layout changes - hide layout for all steps except service
+  // Notify parent about layout changes - hide layout for all steps except phone
   useEffect(() => {
     if (onLayoutChange) {
-      onLayoutChange(step !== 'service');
+      onLayoutChange(step !== 'phone');
     }
   }, [step, onLayoutChange]);
 
@@ -770,8 +770,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     );
   }
 
-  // STEP 1: SERVICE SELECTION (with addons collapsible)
-  if (step === 'service') {
+  // STEP 1: PHONE NUMBER INPUT
+  if (step === 'phone') {
     return (
       <div className="animate-fade-in">
         <section className="py-4 md:py-6 text-center">
@@ -783,7 +783,59 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         </section>
 
         <section className="container pb-6">
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">Wybierz usługę</h2>
+          <div className="max-w-sm mx-auto">
+            <div className="glass-card p-4 space-y-4">
+              <div>
+                <Label htmlFor="phone" className="text-sm font-medium">Numer telefonu</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="np. 600 123 456"
+                    className="h-11 text-base"
+                    autoFocus
+                  />
+                  {isCheckingCustomer && (
+                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  )}
+                </div>
+                {isVerifiedCustomer && customerPhone.length >= 9 && (
+                  <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Witaj ponownie! Rezerwacja bez kodu SMS
+                  </p>
+                )}
+              </div>
+
+              <Button 
+                onClick={() => setStep('service')} 
+                className="w-full"
+                disabled={customerPhone.length < 9 || isCheckingCustomer}
+              >
+                Dalej
+              </Button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // STEP 2: SERVICE SELECTION (with addons collapsible)
+  if (step === 'service') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container py-4 animate-fade-in">
+          <button
+            onClick={() => setStep('phone')}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Wróć
+          </button>
+
+          <h2 className="text-base font-semibold mb-3">Wybierz usługę</h2>
 
           <div className="grid gap-2 mb-3">
             {popularServices.map((service) => (
@@ -882,7 +934,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               </CollapsibleContent>
             </Collapsible>
           )}
-        </section>
+        </div>
       </div>
     );
   }
@@ -1158,31 +1210,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
             </p>
           </div>
 
-          {/* Customer data */}
+          {/* Customer data - phone is already provided in first step */}
           <div className="glass-card p-3 mb-3 space-y-3">
-            <div>
-              <Label htmlFor="phone" className="text-xs">Telefon *</Label>
-              <div className="relative">
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="np. 600 123 456"
-                  className="mt-1 h-9 text-sm pr-8"
-                  required
-                  disabled={smsSent}
-                />
-                {isCheckingCustomer && (
-                  <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                )}
-              </div>
-              {isVerifiedCustomer && (
-                <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Rozpoznany numer - rezerwacja bez kodu SMS
-                </p>
-              )}
-            </div>
             <div>
               <Label htmlFor="name" className="text-xs">Imię i nazwisko *</Label>
               <Input
@@ -1192,6 +1221,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 placeholder="np. Jan Kowalski"
                 className="mt-1 h-9 text-sm"
                 disabled={smsSent}
+                autoFocus
               />
             </div>
             <div>
