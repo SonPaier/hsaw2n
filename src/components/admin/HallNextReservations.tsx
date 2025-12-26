@@ -124,12 +124,14 @@ const HallNextReservations = ({ stations, reservations }: HallNextReservationsPr
                 {station.name}
               </div>
               {next ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Car className="w-5 h-5 text-primary" />
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-lg font-medium text-foreground">
-                    {next.timeText}{' '}
-                    <span className="font-bold text-primary">{next.vehicle}</span>
+                    {next.timeText}
                   </span>
+                  <div className="flex items-center gap-2">
+                    <Car className="w-5 h-5 text-primary" />
+                    <span className="font-bold text-primary text-lg">{next.vehicle}</span>
+                  </div>
                 </div>
               ) : (
                 <div className="text-lg text-muted-foreground">
