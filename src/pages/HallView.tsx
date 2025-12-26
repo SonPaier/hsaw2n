@@ -279,7 +279,7 @@ const HallView = () => {
 
       <div className="h-screen w-screen overflow-hidden bg-background">
         <AdminCalendar
-          stations={stations}
+          stations={stations.filter(s => s.type === 'washing')}
           reservations={reservations}
           breaks={breaks}
           workingHours={workingHours}
@@ -288,6 +288,7 @@ const HallView = () => {
           readOnly={true}
           showStationFilter={false}
           showWeekView={false}
+          hallMode={true}
         />
       </div>
 

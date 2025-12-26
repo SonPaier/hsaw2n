@@ -67,6 +67,7 @@ interface AdminCalendarProps {
   readOnly?: boolean;
   showStationFilter?: boolean;
   showWeekView?: boolean;
+  hallMode?: boolean; // Simplified view for hall workers
 }
 
 // Default hours from 9:00 to 19:00
@@ -136,7 +137,8 @@ const AdminCalendar = ({
   allowedViews = ['day', 'two-days', 'week'],
   readOnly = false,
   showStationFilter = true,
-  showWeekView = true
+  showWeekView = true,
+  hallMode = false
 }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
@@ -597,45 +599,49 @@ const AdminCalendar = ({
     <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden">
       {/* Calendar Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">
-            Dziś
-          </Button>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-1 gap-1">
-                <CalendarIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Data</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={currentDate}
-                onSelect={(date) => {
-                  if (date) {
-                    setCurrentDate(date);
-                    setViewMode('day');
-                    setDatePickerOpen(false);
-                  }
-                }}
-                initialFocus
-                className="pointer-events-auto"
-                locale={pl}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        {/* Navigation - hidden in hallMode */}
+        {!hallMode && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">
+              Dziś
+            </Button>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-1 gap-1">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Data</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={currentDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setCurrentDate(date);
+                      setViewMode('day');
+                      setDatePickerOpen(false);
+                    }
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
+                  locale={pl}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         
         <h2 className={cn(
           "text-lg font-semibold",
-          isToday && "text-primary"
+          isToday && "text-primary",
+          hallMode && "flex-1 text-center"
         )}>
           {viewMode === 'week' 
             ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM yyyy', { locale: pl })}`
@@ -844,10 +850,13 @@ const AdminCalendar = ({
                             onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
                             onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
-                            <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Plus className="w-3 h-3 text-primary/50" />
-                              <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
-                            </div>
+                            {/* Hide + on hover in hallMode */}
+                            {!hallMode && (
+                              <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Plus className="w-3 h-3 text-primary/50" />
+                                <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -877,11 +886,13 @@ const AdminCalendar = ({
                       return (
                       <div
                         key={reservation.id}
-                        draggable
+                        draggable={!hallMode}
                         onDragStart={(e) => handleDragStart(e, reservation)}
                         onDragEnd={handleDragEnd}
                         className={cn(
-                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1 cursor-grab active:cursor-grabbing",
+                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1",
+                          !hallMode && "cursor-grab active:cursor-grabbing",
+                          hallMode && "cursor-pointer",
                           "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                           "overflow-hidden select-none",
                           getStatusColor(reservation.status, reservation.station?.type || station.type),
@@ -893,40 +904,55 @@ const AdminCalendar = ({
                           onReservationClick?.(reservation);
                         }}
                       >
-                        {/* Drag handle - more visible on mobile */}
-                        <div className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center opacity-60 hover:opacity-100 touch-none md:w-4 md:opacity-40">
-                          <GripVertical className="w-3.5 h-3.5 md:w-3 md:h-3" />
-                        </div>
-                        <div className="pl-4 md:pl-3">
+                        {/* Drag handle - hidden in hallMode */}
+                        {!hallMode && (
+                          <div className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center opacity-60 hover:opacity-100 touch-none md:w-4 md:opacity-40">
+                            <GripVertical className="w-3.5 h-3.5 md:w-3 md:h-3" />
+                          </div>
+                        )}
+                        <div className={cn(!hallMode && "pl-4 md:pl-3")}>
                           <div className="flex items-center justify-between gap-0.5">
-                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
-                              <User className="w-3 h-3 shrink-0" />
-                              {reservation.customer_name}
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              {isPending && onConfirmReservation && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onConfirmReservation(reservation.id);
-                                  }}
-                                  className="shrink-0 p-0.5 rounded bg-white/20 hover:bg-white/40 transition-colors"
-                                  title="Potwierdź rezerwację"
-                                >
-                                  <Check className="w-3 h-3" />
-                                </button>
-                              )}
-                              {reservation.customer_phone && (
-                                <a
-                                  href={`tel:${reservation.customer_phone}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                  title={reservation.customer_phone}
-                                >
-                                  <Phone className="w-4 h-4" />
-                                </a>
-                              )}
-                            </div>
+                            {/* In hallMode show time instead of name */}
+                            {hallMode ? (
+                              <div className="text-[11px] md:text-sm font-bold truncate">
+                                {isMultiDay 
+                                  ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                  : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                                }
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
+                                <User className="w-3 h-3 shrink-0" />
+                                {reservation.customer_name}
+                              </div>
+                            )}
+                            {/* Hide phone and confirm buttons in hallMode */}
+                            {!hallMode && (
+                              <div className="flex items-center gap-0.5">
+                                {isPending && onConfirmReservation && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onConfirmReservation(reservation.id);
+                                    }}
+                                    className="shrink-0 p-0.5 rounded bg-white/20 hover:bg-white/40 transition-colors"
+                                    title="Potwierdź rezerwację"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {reservation.customer_phone && (
+                                  <a
+                                    href={`tel:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                    title={reservation.customer_phone}
+                                  >
+                                    <Phone className="w-4 h-4" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {reservation.vehicle_plate && (
                             <div className="flex items-center gap-0.5 text-[10px] md:text-xs truncate opacity-90">
@@ -934,12 +960,15 @@ const AdminCalendar = ({
                               {reservation.vehicle_plate}
                             </div>
                           )}
-                          <div className="text-[10px] md:text-xs truncate opacity-80">
-                            {isMultiDay 
-                              ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
-                              : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
-                            }
-                          </div>
+                          {/* Hide time row in hallMode since time is shown instead of name */}
+                          {!hallMode && (
+                            <div className="text-[10px] md:text-xs truncate opacity-80">
+                              {isMultiDay 
+                                ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                              }
+                            </div>
+                          )}
                           {reservation.service && (
                             <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">
                               {reservation.service.name}
@@ -1138,10 +1167,13 @@ const AdminCalendar = ({
                                   onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
                                   onDrop={(e) => handleDrop(e, station.id, dayStr, hour, slotIndex)}
                                 >
-                                  <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Plus className="w-2 h-2 text-primary/50" />
-                                    <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
-                                  </div>
+                                  {/* Hide + on hover in hallMode */}
+                                  {!hallMode && (
+                                    <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Plus className="w-2 h-2 text-primary/50" />
+                                      <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -1170,11 +1202,13 @@ const AdminCalendar = ({
                           return (
                             <div
                               key={reservation.id}
-                              draggable
+                              draggable={!hallMode}
                               onDragStart={(e) => handleDragStart(e, reservation)}
                               onDragEnd={handleDragEnd}
                               className={cn(
-                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5 cursor-grab active:cursor-grabbing",
+                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5",
+                                !hallMode && "cursor-grab active:cursor-grabbing",
+                                hallMode && "cursor-pointer",
                                 "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                                 "overflow-hidden select-none",
                                 getStatusColor(reservation.status, reservation.station?.type || station.type),
@@ -1186,17 +1220,30 @@ const AdminCalendar = ({
                                 onReservationClick?.(reservation);
                               }}
                             >
-                              {/* Drag handle */}
-                              <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
-                                <GripVertical className="w-2.5 h-2.5" />
-                              </div>
-                              <div className="pl-3">
+                              {/* Drag handle - hidden in hallMode */}
+                              {!hallMode && (
+                                <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
+                                  <GripVertical className="w-2.5 h-2.5" />
+                                </div>
+                              )}
+                              <div className={cn(!hallMode && "pl-3")}>
                                 <div className="flex items-center justify-between gap-0.5">
-                                  <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
-                                    <User className="w-2.5 h-2.5 shrink-0" />
-                                    {reservation.customer_name}
-                                  </div>
-                                  {reservation.customer_phone && (
+                                  {/* In hallMode show time instead of name */}
+                                  {hallMode ? (
+                                    <div className="text-[10px] md:text-xs font-bold truncate">
+                                      {isMultiDay 
+                                        ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                        : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                                      }
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
+                                      <User className="w-2.5 h-2.5 shrink-0" />
+                                      {reservation.customer_name}
+                                    </div>
+                                  )}
+                                  {/* Hide phone in hallMode */}
+                                  {!hallMode && reservation.customer_phone && (
                                     <a
                                       href={`tel:${reservation.customer_phone}`}
                                       onClick={(e) => e.stopPropagation()}
@@ -1213,12 +1260,15 @@ const AdminCalendar = ({
                                     {reservation.vehicle_plate}
                                   </div>
                                 )}
-                                <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
-                                  {isMultiDay 
-                                    ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
-                                    : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
-                                  }
-                                </div>
+                                {/* Hide time row in hallMode */}
+                                {!hallMode && (
+                                  <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
+                                    {isMultiDay 
+                                      ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                      : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                                    }
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
