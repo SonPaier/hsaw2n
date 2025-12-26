@@ -121,15 +121,15 @@ const HallReservationDetails = ({
               <div className="text-sm">
                 {isMultiDay ? (
                   <>
-                    {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })} {reservation.start_time}
+                    {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })} {reservation.start_time.slice(0, 5)}
                     {' - '}
-                    {format(new Date(reservation.end_date!), 'd MMM', { locale: pl })} {reservation.end_time}
+                    {format(new Date(reservation.end_date!), 'd MMM', { locale: pl })} {reservation.end_time.slice(0, 5)}
                   </>
                 ) : (
                   <>
                     {format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}
                     <br />
-                    {reservation.start_time} - {reservation.end_time}
+                    {reservation.start_time.slice(0, 5)} - {reservation.end_time.slice(0, 5)}
                   </>
                 )}
               </div>
