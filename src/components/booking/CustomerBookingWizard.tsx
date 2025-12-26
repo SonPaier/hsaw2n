@@ -869,7 +869,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   if (step === 'service') {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in">
+        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
           <button
             onClick={() => setStep('phone')}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -1015,7 +1015,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
 
     return (
       <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in">
+        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-4">
             <button
@@ -1201,7 +1201,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   if (step === 'summary') {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in">
+        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
           <button
             onClick={() => { setStep('datetime'); setSmsSent(false); setVerificationCode(''); }}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
@@ -1395,7 +1395,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     
     return (
       <div className="min-h-screen bg-background">
-        <div className="container py-6 animate-fade-in">
+        <div className="container py-6 animate-fade-in max-w-[550px] mx-auto">
           <div className="max-w-sm mx-auto text-center">
             <div className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3",
