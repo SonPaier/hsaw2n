@@ -484,7 +484,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleCall}
                       title="Zadzwoń"
                     >
@@ -493,7 +493,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleSMS}
                       title="Wyślij SMS"
                     >
