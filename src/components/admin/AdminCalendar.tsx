@@ -50,6 +50,7 @@ interface Break {
   note: string | null;
 }
 
+
 interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
@@ -61,6 +62,11 @@ interface AdminCalendarProps {
   onDeleteBreak?: (breakId: string) => void;
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
   onConfirmReservation?: (reservationId: string) => void;
+  // Hall view props
+  allowedViews?: ViewMode[];
+  readOnly?: boolean;
+  showStationFilter?: boolean;
+  showWeekView?: boolean;
 }
 
 // Default hours from 9:00 to 19:00
@@ -116,7 +122,22 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onReservationClick, onAddReservation, onAddBreak, onDeleteBreak, onReservationMove, onConfirmReservation }: AdminCalendarProps) => {
+const AdminCalendar = ({ 
+  stations, 
+  reservations, 
+  breaks = [], 
+  workingHours, 
+  onReservationClick, 
+  onAddReservation, 
+  onAddBreak, 
+  onDeleteBreak, 
+  onReservationMove, 
+  onConfirmReservation,
+  allowedViews = ['day', 'two-days', 'week'],
+  readOnly = false,
+  showStationFilter = true,
+  showWeekView = true
+}: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [hiddenStationIds, setHiddenStationIds] = useState<Set<string>>(() => {
@@ -334,6 +355,9 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
   // Handle click on empty time slot - show context menu or default to reservation
   const handleSlotClick = (stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
+    // In read-only mode, do nothing
+    if (readOnly) return;
+    
     // Prevent click if long-press was triggered
     if (longPressTriggered.current) {
       longPressTriggered.current = false;
@@ -347,6 +371,9 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
   // Handle right-click to add break
   const handleSlotContextMenu = (e: React.MouseEvent, stationId: string, hour: number, slotIndex: number, dateStr?: string) => {
     e.preventDefault();
+    // In read-only mode, do nothing
+    if (readOnly) return;
+    
     const time = formatTimeSlot(hour, slotIndex);
     const targetDate = dateStr || currentDateStr;
     onAddBreak?.(stationId, targetDate, time);
@@ -354,6 +381,11 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
 
   // Drag and drop handlers
   const handleDragStart = (e: DragEvent<HTMLDivElement>, reservation: Reservation) => {
+    // In read-only mode, disable drag
+    if (readOnly) {
+      e.preventDefault();
+      return;
+    }
     setDraggedReservation(reservation);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', reservation.id);
@@ -616,95 +648,103 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
           <div className="flex border border-border rounded-lg overflow-hidden">
-            <Button
-              variant={viewMode === 'day' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('day')}
-              className="rounded-none border-0 px-2 md:px-3"
-            >
-              <CalendarIcon className="w-4 h-4 md:mr-1" />
-              <span className="hidden md:inline">Dzień</span>
-            </Button>
-            <Button
-              variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('two-days')}
-              className="rounded-none border-0 px-2 md:px-3"
-            >
-              <Columns2 className="w-4 h-4 md:mr-1" />
-              <span className="hidden md:inline">2 dni</span>
-            </Button>
-            <Button
-              variant={viewMode === 'week' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('week')}
-              className="rounded-none border-0 px-2 md:px-3"
-            >
-              <CalendarDays className="w-4 h-4 md:mr-1" />
-              <span className="hidden md:inline">Tydzień</span>
-            </Button>
+            {allowedViews.includes('day') && (
+              <Button
+                variant={viewMode === 'day' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('day')}
+                className="rounded-none border-0 px-2 md:px-3"
+              >
+                <CalendarIcon className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Dzień</span>
+              </Button>
+            )}
+            {allowedViews.includes('two-days') && (
+              <Button
+                variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('two-days')}
+                className="rounded-none border-0 px-2 md:px-3"
+              >
+                <Columns2 className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">2 dni</span>
+              </Button>
+            )}
+            {allowedViews.includes('week') && showWeekView && (
+              <Button
+                variant={viewMode === 'week' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('week')}
+                className="rounded-none border-0 px-2 md:px-3"
+              >
+                <CalendarDays className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Tydzień</span>
+              </Button>
+            )}
           </div>
           
-          {/* Column visibility settings */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn("gap-1", hasHiddenStations && "border-primary text-primary")}
-              >
-                <Settings2 className="w-4 h-4" />
-                <span className="hidden md:inline">Kolumny</span>
-                {hasHiddenStations && (
-                  <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
-                    {hiddenStationIds.size}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-3">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Widoczność kolumn</h4>
+          {/* Column visibility settings - only show if not read only */}
+          {showStationFilter && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn("gap-1", hasHiddenStations && "border-primary text-primary")}
+                >
+                  <Settings2 className="w-4 h-4" />
+                  <span className="hidden md:inline">Kolumny</span>
                   {hasHiddenStations && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={showAllStations}
-                      className="h-7 text-xs"
-                    >
-                      Pokaż wszystkie
-                    </Button>
+                    <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                      {hiddenStationIds.size}
+                    </span>
                   )}
-                </div>
-                <div className="space-y-2">
-                  {stations.map((station) => (
-                    <div key={station.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`station-${station.id}`}
-                        checked={!hiddenStationIds.has(station.id)}
-                        onCheckedChange={() => toggleStationVisibility(station.id)}
-                      />
-                      <Label
-                        htmlFor={`station-${station.id}`}
-                        className="text-sm cursor-pointer flex-1"
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-3">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Widoczność kolumn</h4>
+                    {hasHiddenStations && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={showAllStations}
+                        className="h-7 text-xs"
                       >
-                        {station.name}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({station.type === 'washing' ? 'mycie' : station.type === 'ppf' ? 'folia' : station.type === 'detailing' ? 'detailing' : 'uniwersalny'})
-                        </span>
-                      </Label>
-                    </div>
-                  ))}
+                        Pokaż wszystkie
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {stations.map((station) => (
+                      <div key={station.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`station-${station.id}`}
+                          checked={!hiddenStationIds.has(station.id)}
+                          onCheckedChange={() => toggleStationVisibility(station.id)}
+                        />
+                        <Label
+                          htmlFor={`station-${station.id}`}
+                          className="text-sm cursor-pointer flex-1"
+                        >
+                          {station.name}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({station.type === 'washing' ? 'mycie' : station.type === 'ppf' ? 'folia' : station.type === 'detailing' ? 'detailing' : 'uniwersalny'})
+                          </span>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
       
-      {/* Mobile hint for adding breaks */}
-      {isMobile && (viewMode === 'day' || viewMode === 'two-days') && (
+      {/* Mobile hint for adding breaks - only in edit mode */}
+      {!readOnly && isMobile && (viewMode === 'day' || viewMode === 'two-days') && (
         <div className="px-4 py-1 bg-muted/30 border-b border-border text-xs text-muted-foreground text-center">
           💡 Przytrzymaj dłużej slot, aby dodać przerwę
         </div>
