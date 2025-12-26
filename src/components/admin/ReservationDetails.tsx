@@ -402,7 +402,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-end" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 invisible" />
+                    <Clock className="w-4 h-4" />
                     {isPPFStation && endDate && endDate !== reservationDate ? `Koniec (${format(new Date(endDate), 'd.MM', { locale: pl })})` : 'Koniec'}
                   </Label>
                   <Input
