@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationDetails from '@/components/admin/HallReservationDetails';
+import HallNextReservations from '@/components/admin/HallNextReservations';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -316,7 +317,7 @@ const HallView = () => {
         <title>Widok hali | Panel pracownika</title>
       </Helmet>
 
-      <div className="h-screen w-screen overflow-hidden bg-background">
+      <div className="h-screen w-screen overflow-hidden bg-background pb-16">
         <AdminCalendar
           stations={stations.filter(s => s.type === 'washing')}
           reservations={reservations}
@@ -328,6 +329,11 @@ const HallView = () => {
           showStationFilter={false}
           showWeekView={false}
           hallMode={true}
+        />
+        
+        <HallNextReservations 
+          stations={stations} 
+          reservations={reservations} 
         />
       </div>
 
