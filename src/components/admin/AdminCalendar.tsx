@@ -99,15 +99,15 @@ const getStatusColor = (status: string, stationType?: string) => {
   
   switch (status) {
     case 'confirmed':
-      return 'bg-emerald-500/90 border-emerald-600 text-white';
+      return 'bg-emerald-500/90 border-emerald-600/70 text-white';
     case 'pending':
-      return 'bg-amber-500/90 border-amber-600 text-white';
+      return 'bg-amber-500/90 border-amber-600/70 text-white';
     case 'in_progress':
-      return 'bg-blue-500/90 border-blue-600 text-white';
+      return 'bg-blue-500/90 border-blue-600/70 text-white';
     case 'completed':
-      return 'bg-slate-400/80 border-slate-500 text-white';
+      return 'bg-slate-400/80 border-slate-500/70 text-white';
     case 'cancelled':
-      return 'bg-red-400/60 border-red-500 text-white line-through opacity-60';
+      return 'bg-red-400/60 border-red-500/70 text-white line-through opacity-60';
     default:
       return 'bg-secondary border-border text-foreground';
   }
@@ -890,7 +890,7 @@ const AdminCalendar = ({
                         onDragStart={(e) => handleDragStart(e, reservation)}
                         onDragEnd={handleDragEnd}
                         className={cn(
-                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1",
+                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0.5 md:py-1",
                           !hallMode && "cursor-grab active:cursor-grabbing",
                           hallMode && "cursor-pointer",
                           "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
@@ -1206,7 +1206,7 @@ const AdminCalendar = ({
                               onDragStart={(e) => handleDragStart(e, reservation)}
                               onDragEnd={handleDragEnd}
                               className={cn(
-                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 py-0.5",
+                                "absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5",
                                 !hallMode && "cursor-grab active:cursor-grabbing",
                                 hallMode && "cursor-pointer",
                                 "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
@@ -1415,7 +1415,7 @@ const AdminCalendar = ({
                         <div
                           key={reservation.id}
                           className={cn(
-                            "absolute left-0.5 right-0.5 rounded px-1 py-0.5 cursor-pointer",
+                            "absolute left-0.5 right-0.5 rounded border px-1 py-0.5 cursor-pointer",
                             "transition-all duration-150 hover:shadow-md hover:z-20",
                             "overflow-hidden text-[9px] md:text-[10px]",
                             getStatusColor(reservation.status, reservation.station?.type)
