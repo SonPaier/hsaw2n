@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,8 @@ interface DatePickerProps {
 
 const DatePicker = ({ selectedDate, onSelectDate }: DatePickerProps) => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -28,29 +30,62 @@ const DatePicker = ({ selectedDate, onSelectDate }: DatePickerProps) => {
 
   const canGoPrevious = !isBefore(addDays(weekStart, -7), startOfWeek(new Date(), { weekStartsOn: 1 }));
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    
+    const diff = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        // Swiped left - go to next week
+        goToNextWeek();
+      } else {
+        // Swiped right - go to previous week
+        if (canGoPrevious) {
+          goToPreviousWeek();
+        }
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   return (
-    <div className="space-y-4">
+    <div 
+      className="space-y-4"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
-          size="icon"
           onClick={goToPreviousWeek}
           disabled={!canGoPrevious}
-          className="shrink-0"
+          className="shrink-0 h-12 w-12 sm:h-10 sm:w-10"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
         </Button>
         <span className="text-sm font-medium text-muted-foreground">
           {format(weekStart, 'LLLL yyyy', { locale: pl })}
         </span>
         <Button
           variant="ghost"
-          size="icon"
           onClick={goToNextWeek}
-          className="shrink-0"
+          className="shrink-0 h-12 w-12 sm:h-10 sm:w-10"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6 sm:w-5 sm:h-5" />
         </Button>
       </div>
 
