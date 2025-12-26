@@ -603,7 +603,10 @@ const AddReservationDialog = ({
               </Popover>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ppfStartTime">Godzina rozpoczęcia</Label>
+                  <Label htmlFor="ppfStartTime" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Godzina rozpoczęcia
+                  </Label>
                   <Input
                     id="ppfStartTime"
                     type="time"
@@ -612,11 +615,12 @@ const AddReservationDialog = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ppfEndTime" className="flex items-center justify-between">
-                    <span>Godzina zakończenia</span>
+                  <Label htmlFor="ppfEndTime" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="flex-1">Godzina zakończenia</span>
                     {dateRange?.to && ppfEndDateWorkingHours && (
-                      <span className="text-xs text-muted-foreground">
-                        (max {ppfMaxEndTime} - {format(dateRange.to, 'EEEE', { locale: pl })})
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (max {ppfMaxEndTime})
                       </span>
                     )}
                   </Label>
