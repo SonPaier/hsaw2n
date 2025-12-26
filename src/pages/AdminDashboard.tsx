@@ -849,7 +849,17 @@ const AdminDashboard = () => {
       </div>
 
       {/* Reservation Details Modal */}
-      <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} />
+      <ReservationDetails 
+        reservation={selectedReservation} 
+        open={!!selectedReservation} 
+        onClose={() => setSelectedReservation(null)} 
+        onDelete={handleDeleteReservation} 
+        onSave={handleReservationSave}
+        onConfirm={async (id) => {
+          await handleConfirmReservation(id);
+          setSelectedReservation(null);
+        }}
+      />
 
       {/* Add Reservation Dialog */}
       {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} workingHours={workingHours} />}

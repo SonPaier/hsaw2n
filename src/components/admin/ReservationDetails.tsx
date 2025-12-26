@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,7 @@ interface ReservationDetailsProps {
   onClose: () => void;
   onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
   onSave?: (reservationId: string, data: Partial<Reservation>) => void;
+  onConfirm?: (reservationId: string) => void;
 }
 
 const CAR_SIZE_LABELS: Record<CarSize, string> = {
@@ -103,9 +104,10 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm }: ReservationDetailsProps) => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -227,26 +229,17 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2">
-              <span>{isEditing ? 'Edytuj rezerwację' : 'Szczegóły rezerwacji'}</span>
-            </DialogTitle>
-            <div className="flex items-center gap-2">
-              {!isEditing && onSave && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Pencil className="w-3 h-3" />
-                  Edytuj
-                </Button>
-              )}
-            </div>
-          </div>
-          <DialogDescription>
+          <DialogTitle>
+            {isEditing ? 'Edytuj rezerwację' : 'Szczegóły rezerwacji'}
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-2">
             {format(new Date(reservation.reservation_date), 'd MMMM yyyy (EEEE)', { locale: pl })}
+            {reservation.status === 'pending' && (
+              <Badge className="bg-warning/20 text-warning border-warning/30">Oczekujące</Badge>
+            )}
+            {reservation.status === 'confirmed' && (
+              <Badge className="bg-success/20 text-success border-success/30">Potwierdzone</Badge>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -482,9 +475,29 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
 
                 <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                   <Phone className="w-5 h-5 text-muted-foreground" />
-                  <div>
+                  <div className="flex-1">
                     <div className="text-xs text-muted-foreground">Telefon</div>
                     <div className="font-medium">{customerPhone}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={handleCall}
+                      title="Zadzwoń"
+                    >
+                      <PhoneCall className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={handleSMS}
+                      title="Wyślij SMS"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
@@ -541,33 +554,14 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                 </div>
               </div>
 
-              {/* Contact & Delete Buttons */}
-              <div className="space-y-2 pt-4 border-t border-border/50">
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 gap-2"
-                    onClick={handleCall}
-                  >
-                    <PhoneCall className="w-4 h-4" />
-                    Zadzwoń
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 gap-2"
-                    onClick={handleSMS}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Wyślij SMS
-                  </Button>
-                </div>
-                
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t border-border/50">
                 {onDelete && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
-                        variant="ghost" 
-                        className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        variant="outline" 
+                        className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
                         disabled={deleting}
                       >
                         {deleting ? (
@@ -575,7 +569,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                         ) : (
                           <Trash2 className="w-4 h-4" />
                         )}
-                        Anuluj rezerwację
+                        Anuluj
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -593,6 +587,39 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave }: Re
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                )}
+                
+                {onSave && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edytuj
+                  </Button>
+                )}
+                
+                {onConfirm && reservation.status === 'pending' && (
+                  <Button 
+                    className="flex-1 gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                    onClick={async () => {
+                      setConfirming(true);
+                      try {
+                        await onConfirm(reservation.id);
+                      } finally {
+                        setConfirming(false);
+                      }
+                    }}
+                    disabled={confirming}
+                  >
+                    {confirming ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    Potwierdź
+                  </Button>
                 )}
               </div>
             </>
