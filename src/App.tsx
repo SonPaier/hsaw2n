@@ -39,6 +39,14 @@ const App = () => (
                 } 
               />
               <Route 
+                path="/admin/:view" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/super-admin" 
                 element={
                   <ProtectedRoute requiredRole="super_admin">
