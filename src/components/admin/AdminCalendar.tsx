@@ -102,8 +102,8 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Zielony - potwierdzona, gotowa do realizacji
       return 'bg-emerald-500 border-emerald-600 text-white';
     case 'pending':
-      // Pomarańczowy - oczekuje na potwierdzenie
-      return 'bg-orange-500 border-orange-600 text-white';
+      // Bursztynowy - oczekuje na potwierdzenie
+      return 'bg-amber-500 border-amber-600 text-white';
     case 'in_progress':
       // Niebieski - w trakcie realizacji
       return 'bg-blue-600 border-blue-700 text-white';
