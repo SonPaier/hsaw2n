@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,8 +57,12 @@ interface Break {
   note: string | null;
 }
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
+
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings'];
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { view } = useParams<{ view?: string }>();
   const {
     user,
     signOut
@@ -68,7 +72,20 @@ const AdminDashboard = () => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
     return saved === 'true';
   });
-  const [currentView, setCurrentView] = useState<ViewType>('calendar');
+  
+  // Derive currentView from URL param
+  const currentView: ViewType = view && validViews.includes(view as ViewType) 
+    ? (view as ViewType) 
+    : 'calendar';
+  
+  const setCurrentView = (newView: ViewType) => {
+    if (newView === 'calendar') {
+      navigate('/admin');
+    } else {
+      navigate(`/admin/${newView}`);
+    }
+  };
+  
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
