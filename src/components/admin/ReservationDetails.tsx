@@ -548,10 +548,6 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     <div className="text-sm">{notes}</div>
                   </div>
                 )}
-
-                <div className="text-xs text-muted-foreground text-center">
-                  Kod potwierdzenia: <span className="font-mono font-medium">{reservation.confirmation_code}</span>
-                </div>
               </div>
 
               {/* Action Buttons */}

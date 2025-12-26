@@ -840,7 +840,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                         onDragStart={(e) => handleDragStart(e, reservation)}
                         onDragEnd={handleDragEnd}
                         className={cn(
-                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-1 md:py-1.5 cursor-grab active:cursor-grabbing",
+                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1 cursor-grab active:cursor-grabbing",
                           "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
                           "overflow-hidden select-none",
                           getStatusColor(reservation.status, reservation.station?.type || station.type),
@@ -857,12 +857,12 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                           <GripVertical className="w-3.5 h-3.5 md:w-3 md:h-3" />
                         </div>
                         <div className="pl-4 md:pl-3">
-                          <div className="flex items-center justify-between gap-1">
-                            <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
+                          <div className="flex items-center justify-between gap-0.5">
+                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
                               <User className="w-3 h-3 shrink-0" />
                               {reservation.customer_name}
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                               {isPending && onConfirmReservation && (
                                 <button
                                   onClick={(e) => {
@@ -879,7 +879,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                 <a
                                   href={`tel:${reservation.customer_phone}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+                                  className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
                                   title={reservation.customer_phone}
                                 >
                                   <Phone className="w-4 h-4" />
@@ -888,12 +888,12 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                             </div>
                           </div>
                           {reservation.vehicle_plate && (
-                            <div className="flex items-center gap-1 text-[10px] md:text-xs truncate opacity-90">
+                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs truncate opacity-90">
                               <Car className="w-3 h-3 shrink-0" />
                               {reservation.vehicle_plate}
                             </div>
                           )}
-                          <div className="text-[10px] md:text-xs truncate opacity-80 mt-0.5">
+                          <div className="text-[10px] md:text-xs truncate opacity-80">
                             {isMultiDay 
                               ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
                               : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
