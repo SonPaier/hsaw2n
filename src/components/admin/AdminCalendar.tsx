@@ -83,30 +83,35 @@ const getStatusColor = (status: string, stationType?: string) => {
   if (stationType === 'ppf') {
     switch (status) {
       case 'confirmed':
-        return 'bg-yellow-200 border-yellow-400 text-yellow-900';
+        return 'bg-yellow-400 border-yellow-500 text-yellow-950';
       case 'pending':
-        return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+        return 'bg-orange-300 border-orange-400 text-orange-950';
       case 'in_progress':
-        return 'bg-yellow-300 border-yellow-500 text-yellow-900';
+        return 'bg-yellow-500 border-yellow-600 text-yellow-950';
       case 'completed':
-        return 'bg-yellow-100/60 border-yellow-300 text-yellow-700';
+        return 'bg-yellow-200 border-yellow-400 text-yellow-800';
       case 'cancelled':
         return 'bg-yellow-100/40 border-yellow-200 text-yellow-600 line-through opacity-60';
       default:
-        return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+        return 'bg-yellow-300 border-yellow-400 text-yellow-900';
     }
   }
   
   switch (status) {
     case 'confirmed':
-      return 'bg-emerald-500/90 border-emerald-600/70 text-white';
+      // Zielony - potwierdzona, gotowa do realizacji
+      return 'bg-emerald-500 border-emerald-600 text-white';
     case 'pending':
-      return 'bg-amber-500/90 border-amber-600/70 text-white';
+      // Pomarańczowy - oczekuje na potwierdzenie
+      return 'bg-orange-500 border-orange-600 text-white';
     case 'in_progress':
-      return 'bg-blue-500/90 border-blue-600/70 text-white';
+      // Niebieski - w trakcie realizacji
+      return 'bg-blue-600 border-blue-700 text-white';
     case 'completed':
-      return 'bg-slate-400/80 border-slate-500/70 text-white';
+      // Szary - zakończona
+      return 'bg-slate-500 border-slate-600 text-white';
     case 'cancelled':
+      // Czerwony - anulowana
       return 'bg-red-400/60 border-red-500/70 text-white line-through opacity-60';
     default:
       return 'bg-secondary border-border text-foreground';
