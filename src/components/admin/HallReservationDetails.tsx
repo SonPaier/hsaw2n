@@ -100,7 +100,6 @@ const HallReservationDetails = ({
             <Car className="w-5 h-5 text-primary" />
             <div>
               <div className="font-semibold text-lg">{reservation.vehicle_plate}</div>
-              <div className="text-sm text-muted-foreground">{reservation.customer_name}</div>
             </div>
           </div>
 
@@ -155,8 +154,8 @@ const HallReservationDetails = ({
           </div>
         </div>
 
-        {/* Complete visit button - only if not already completed */}
-        {reservation.status !== 'completed' && reservation.status !== 'cancelled' && (
+        {/* Complete visit button - only for confirmed or in_progress */}
+        {(reservation.status === 'confirmed' || reservation.status === 'in_progress') && (
           <Button 
             onClick={handleCompleteVisit} 
             disabled={isLoading}
