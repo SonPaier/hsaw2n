@@ -806,7 +806,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                           >
                             <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Plus className="w-3 h-3 text-primary/50" />
-                              <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * 5).toString().padStart(2, '0')}`}</span>
+                              <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
                             </div>
                           </div>
                         );
@@ -1100,7 +1100,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                 >
                                   <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Plus className="w-2 h-2 text-primary/50" />
-                                    <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * 5).toString().padStart(2, '0')}`}</span>
+                                    <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
                                   </div>
                                 </div>
                               );
