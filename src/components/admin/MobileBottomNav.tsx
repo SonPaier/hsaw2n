@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, List, Clock, ChevronLeft, ChevronRight, UserCircle } from 'lucide-react';
+import { Calendar, List, Clock, ChevronLeft, ChevronRight, UserCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format, addDays, subDays, isToday } from 'date-fns';
@@ -35,6 +35,7 @@ interface MobileBottomNavProps {
   stations: Station[];
   reservations: Reservation[];
   currentDate: string;
+  onAddReservation?: () => void;
 }
 
 // Working hours
@@ -46,6 +47,7 @@ const MobileBottomNav = ({
   onViewChange,
   stations,
   reservations,
+  onAddReservation,
 }: MobileBottomNavProps) => {
   const [freeSlotsOpen, setFreeSlotsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -135,7 +137,7 @@ const MobileBottomNav = ({
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-4",
+              "flex-col gap-1 h-auto py-2 px-3",
               currentView === 'calendar' && "text-primary"
             )}
             onClick={() => onViewChange('calendar')}
@@ -147,18 +149,27 @@ const MobileBottomNav = ({
           <Button
             variant="ghost"
             size="sm"
-            className="flex-col gap-1 h-auto py-2 px-4"
+            className="flex-col gap-1 h-auto py-2 px-3"
             onClick={() => setFreeSlotsOpen(true)}
           >
             <Clock className="w-5 h-5" />
             <span className="text-[10px]">Wolne</span>
           </Button>
 
+          {/* Add Reservation Button */}
+          <Button
+            size="sm"
+            className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg"
+            onClick={onAddReservation}
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-4",
+              "flex-col gap-1 h-auto py-2 px-3",
               currentView === 'customers' && "text-primary"
             )}
             onClick={() => onViewChange('customers')}
@@ -171,7 +182,7 @@ const MobileBottomNav = ({
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-4",
+              "flex-col gap-1 h-auto py-2 px-3",
               currentView === 'reservations' && "text-primary"
             )}
             onClick={() => onViewChange('reservations')}

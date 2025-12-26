@@ -479,6 +479,23 @@ const AdminDashboard = () => {
     });
     setAddReservationOpen(true);
   };
+
+  // Quick add reservation (for mobile bottom nav)
+  const handleQuickAddReservation = () => {
+    const firstStation = stations[0];
+    const now = new Date();
+    const roundedMinutes = Math.ceil(now.getMinutes() / 5) * 5;
+    now.setMinutes(roundedMinutes);
+    const timeStr = format(now, 'HH:mm');
+    
+    setNewReservationData({
+      stationId: firstStation?.id || '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      time: timeStr,
+      stationType: firstStation?.type || ''
+    });
+    setAddReservationOpen(true);
+  };
   const handleReservationAdded = () => {
     // Refresh reservations from database
     fetchReservations();
@@ -868,7 +885,14 @@ const AdminDashboard = () => {
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} stations={stations} reservations={reservations} currentDate={format(new Date(), 'yyyy-MM-dd')} />
+      <MobileBottomNav 
+        currentView={currentView} 
+        onViewChange={setCurrentView} 
+        stations={stations} 
+        reservations={reservations} 
+        currentDate={format(new Date(), 'yyyy-MM-dd')}
+        onAddReservation={handleQuickAddReservation}
+      />
     </>;
 };
 export default AdminDashboard;
