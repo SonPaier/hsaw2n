@@ -746,7 +746,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                     className="relative"
                     style={{ height: HOUR_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted/10 px-0.5">
+                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted px-1 z-10">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                     <div className="absolute left-0 right-0 top-0 h-full">
@@ -1030,7 +1030,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                     className="relative"
                     style={{ height: HOUR_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted/10 px-0.5">
+                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted px-1 z-10">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                     <div className="absolute left-0 right-0 top-0 h-full">
@@ -1270,7 +1270,7 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                     className="relative border-b border-border/50"
                     style={{ height: 40 }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted/10 px-0.5">
+                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-muted-foreground bg-muted px-1 z-10">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                   </div>
