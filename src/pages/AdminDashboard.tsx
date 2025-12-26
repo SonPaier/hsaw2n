@@ -705,17 +705,19 @@ const AdminDashboard = () => {
 
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
-            {/* Header */}
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {currentView === 'calendar' ? 'Kalendarz rezerwacji' : currentView === 'reservations' ? 'Lista rezerwacji' : currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
-              </h1>
-              <p className="text-muted-foreground">
-                {format(new Date(), 'd MMMM yyyy', {
-                locale: pl
-              })}
-              </p>
-            </div>
+            {/* Header - only shown for non-calendar views */}
+            {currentView !== 'calendar' && (
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {currentView === 'reservations' ? 'Lista rezerwacji' : currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
+                </h1>
+                <p className="text-muted-foreground">
+                  {format(new Date(), 'd MMMM yyyy', {
+                  locale: pl
+                })}
+                </p>
+              </div>
+            )}
 
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
