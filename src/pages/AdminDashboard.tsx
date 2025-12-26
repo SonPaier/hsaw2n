@@ -812,14 +812,6 @@ const AdminDashboard = () => {
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
             {currentView === 'settings' && <div className="space-y-6">
-                <div className="glass-card p-6 space-y-6 bg-secondary-foreground">
-                  <div>
-                    <h2 className="text-lg font-semibold mb-2">Ustawienia instancji</h2>
-                    <p className="text-muted-foreground text-sm">
-                      Zarządzaj stanowiskami, cennikiem usług i godzinami pracy.
-                    </p>
-                  </div>
-                </div>
 
                 {instanceId && (
                   <SmsUsageCard instanceId={instanceId} />
