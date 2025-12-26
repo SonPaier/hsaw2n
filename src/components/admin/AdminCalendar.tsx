@@ -99,17 +99,17 @@ const getStatusColor = (status: string, stationType?: string) => {
   
   switch (status) {
     case 'confirmed':
-      // Zielony - potwierdzona, gotowa do realizacji
-      return 'bg-emerald-500 border-emerald-600 text-white';
+      // Zielony - potwierdzona, stonowany
+      return 'bg-emerald-400/80 border-emerald-500/70 text-emerald-950';
     case 'pending':
-      // Bursztynowy - oczekuje na potwierdzenie
-      return 'bg-amber-500 border-amber-600 text-white';
+      // Bursztynowy - oczekuje na potwierdzenie, stonowany
+      return 'bg-amber-400/80 border-amber-500/70 text-amber-950';
     case 'in_progress':
-      // Niebieski - w trakcie realizacji
-      return 'bg-blue-600 border-blue-700 text-white';
+      // Niebieski - w trakcie realizacji, stonowany
+      return 'bg-blue-400/80 border-blue-500/70 text-blue-950';
     case 'completed':
       // Szary - zakończona
-      return 'bg-slate-500 border-slate-600 text-white';
+      return 'bg-slate-400/80 border-slate-500/70 text-white';
     case 'cancelled':
       // Czerwony - anulowana
       return 'bg-red-400/60 border-red-500/70 text-white line-through opacity-60';
