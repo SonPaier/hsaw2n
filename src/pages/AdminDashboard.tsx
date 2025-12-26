@@ -484,8 +484,12 @@ const AdminDashboard = () => {
   const handleQuickAddReservation = () => {
     const firstStation = stations[0];
     const now = new Date();
-    const roundedMinutes = Math.ceil(now.getMinutes() / 5) * 5;
-    now.setMinutes(roundedMinutes);
+    const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
+    now.setMinutes(roundedMinutes, 0, 0);
+    if (roundedMinutes === 60) {
+      now.setHours(now.getHours() + 1);
+      now.setMinutes(0);
+    }
     const timeStr = format(now, 'HH:mm');
     
     setNewReservationData({
