@@ -96,28 +96,28 @@ const HallReservationDetails = ({
 
         <div className="space-y-4 py-4">
           {/* Vehicle info */}
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <Car className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+            <Car className="w-5 h-5 text-muted-foreground" />
             <div>
               <div className="font-semibold text-lg">{reservation.vehicle_plate}</div>
             </div>
           </div>
 
           {/* Service info */}
-          <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-            <Wrench className="w-5 h-5 text-primary mt-0.5" />
+          <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
+            <Wrench className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <div className="font-medium">Zakres usług</div>
-              <div className="text-lg">{reservation.service?.name || 'Brak danych'}</div>
+              <div className="text-sm text-muted-foreground">Zakres usług</div>
+              <div className="text-lg font-medium">{reservation.service?.name || 'Brak danych'}</div>
             </div>
           </div>
 
           {/* Time info */}
-          <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-            <Clock className="w-5 h-5 text-primary mt-0.5" />
+          <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
+            <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <div className="font-medium">Termin</div>
-              <div className="text-sm">
+              <div className="text-sm text-muted-foreground">Termin</div>
+              <div className="font-medium">
                 {isMultiDay ? (
                   <>
                     {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })} {reservation.start_time.slice(0, 5)}
