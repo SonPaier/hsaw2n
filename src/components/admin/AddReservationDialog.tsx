@@ -84,9 +84,9 @@ interface AddReservationDialogProps {
 }
 
 const CAR_SIZE_LABELS: Record<CarSize, string> = {
-  small: 'Mały (np. Fiat 500, VW Polo)',
-  medium: 'Średni (np. VW Golf, BMW 3)',
-  large: 'Duży (np. BMW X5, Audi Q7)',
+  small: 'Mały',
+  medium: 'Średni',
+  large: 'Duży',
 };
 
 const AddReservationDialog = ({
@@ -741,16 +741,19 @@ const AddReservationDialog = ({
                 <span className="text-xs text-muted-foreground">(AI sugeruje...)</span>
               )}
             </Label>
-            <Select value={carSize} onValueChange={(v) => setCarSize(v as CarSize)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz wielkość" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
-                <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
-                <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
+                <Button
+                  key={size}
+                  type="button"
+                  variant={carSize === size ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setCarSize(size)}
+                >
+                  {CAR_SIZE_LABELS[size]}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Services Multi-Select - hidden for PPF */}
