@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationDetails from '@/components/admin/HallReservationDetails';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Station {
   id: string;
@@ -195,6 +196,31 @@ const HallView = () => {
     fetchData();
   }, [instanceId]);
 
+  // Play notification sound for new customer reservations
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Pleasant notification melody
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+    } catch (e) {
+      console.log('Could not play notification sound:', e);
+    }
+  };
+
   // Subscribe to realtime updates
   useEffect(() => {
     if (!instanceId) return;
@@ -208,6 +234,13 @@ const HallView = () => {
         filter: `instance_id=eq.${instanceId}`
       }, payload => {
         if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new as any;
+          
+          // Play sound only for customer reservations
+          if (newRecord.source === 'customer') {
+            playNotificationSound();
+          }
+
           supabase
             .from('reservations')
             .select(`
@@ -224,6 +257,7 @@ const HallView = () => {
               status,
               confirmation_code,
               price,
+              source,
               services:service_id (name),
               stations:station_id (name, type)
             `)
@@ -238,6 +272,11 @@ const HallView = () => {
                   station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined
                 };
                 setReservations(prev => [...prev, newReservation as Reservation]);
+                
+                const isCustomerReservation = (data as any).source === 'customer';
+                toast.success(isCustomerReservation ? '🔔 Nowa rezerwacja!' : 'Nowa rezerwacja!', {
+                  description: `${data.start_time.slice(0, 5)} - ${data.vehicle_plate}`
+                });
               }
             });
         } else if (payload.eventType === 'UPDATE') {
