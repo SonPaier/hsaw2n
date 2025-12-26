@@ -10,6 +10,7 @@ import MojaRezerwacja from "./pages/MojaRezerwacja";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import HallView from "./pages/HallView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
@@ -35,6 +36,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/hall" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <HallView />
                   </ProtectedRoute>
                 } 
               />
