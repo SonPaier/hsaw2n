@@ -288,19 +288,19 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               {/* Car Size */}
               <div className="space-y-2">
                 <Label>Wielkość samochodu</Label>
-                <Select 
-                  value={carSize} 
-                  onValueChange={(v) => setCarSize(v as CarSize)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz wielkość" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    <SelectItem value="small">{CAR_SIZE_LABELS.small}</SelectItem>
-                    <SelectItem value="medium">{CAR_SIZE_LABELS.medium}</SelectItem>
-                    <SelectItem value="large">{CAR_SIZE_LABELS.large}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={carSize === size ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => setCarSize(size)}
+                    >
+                      {CAR_SIZE_LABELS[size]}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               {/* Service (read-only) */}
