@@ -879,10 +879,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                 <a
                                   href={`tel:${reservation.customer_phone}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                  className="shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
                                   title={reservation.customer_phone}
                                 >
-                                  <Phone className="w-3 h-3" />
+                                  <Phone className="w-4 h-4" />
                                 </a>
                               )}
                             </div>
@@ -1158,10 +1158,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                                     <a
                                       href={`tel:${reservation.customer_phone}`}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                      className="shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
                                       title={reservation.customer_phone}
                                     >
-                                      <Phone className="w-2.5 h-2.5" />
+                                      <Phone className="w-4 h-4" />
                                     </a>
                                   )}
                                 </div>
@@ -1342,10 +1342,10 @@ const AdminCalendar = ({ stations, reservations, breaks = [], workingHours, onRe
                               <a
                                 href={`tel:${reservation.customer_phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                className="shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
                                 title={reservation.customer_phone}
                               >
-                                <Phone className="w-2.5 h-2.5" />
+                                <Phone className="w-4 h-4" />
                               </a>
                             )}
                           </div>
