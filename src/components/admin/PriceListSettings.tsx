@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 interface Service {
   id: string;
   name: string;
+  shortcut: string | null;
   description: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
@@ -75,6 +76,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   // Form state for editing/adding
   const [formData, setFormData] = useState({
     name: '',
+    shortcut: '',
     description: '',
     duration_minutes: 60,
     duration_small: 60,
@@ -131,6 +133,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setEditingService(service);
       setFormData({
         name: service.name,
+        shortcut: service.shortcut || '',
         description: service.description || '',
         duration_minutes: service.duration_minutes || 60,
         duration_small: service.duration_small || service.duration_minutes || 60,
@@ -148,6 +151,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setEditingService(null);
       setFormData({
         name: '',
+        shortcut: '',
         description: '',
         duration_minutes: 60,
         duration_small: 60,
@@ -177,6 +181,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       const serviceData = {
         instance_id: instanceId,
         name: formData.name.trim(),
+        shortcut: formData.shortcut.trim() || null,
         description: formData.description.trim() || null,
         duration_minutes: formData.duration_minutes,
         duration_small: formData.requires_size ? formData.duration_small : null,
@@ -373,13 +378,24 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nazwa usługi *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="np. Mycie podstawowe"
-              />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2 col-span-2">
+                <Label>Nazwa usługi *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="np. Mycie podstawowe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Skrót</Label>
+                <Input
+                  value={formData.shortcut}
+                  onChange={(e) => setFormData(prev => ({ ...prev, shortcut: e.target.value.toUpperCase() }))}
+                  placeholder="np. KPL"
+                  maxLength={10}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
