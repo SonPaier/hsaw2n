@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -305,11 +306,11 @@ const OffersPage = () => {
 
   if (showGenerator && instanceId) {
     return (
-      <>
+      <AdminLayout title={editingOfferId ? (duplicatingOfferId ? 'Duplikuj ofertę' : 'Edytuj ofertę') : 'Nowa oferta'}>
         <Helmet>
           <title>{editingOfferId ? (duplicatingOfferId ? 'Duplikuj ofertę' : 'Edytuj ofertę') : 'Nowa oferta'} - Generator ofert</title>
         </Helmet>
-        <div className="min-h-screen bg-background p-4 lg:p-8">
+        <div className="p-4 lg:p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }} className="gap-2">
@@ -329,25 +330,19 @@ const OffersPage = () => {
             />
           </div>
         </div>
-      </>
+      </AdminLayout>
     );
   }
 
   return (
-    <>
+    <AdminLayout title="Oferty">
       <Helmet>
         <title>Oferty - Panel Admina</title>
       </Helmet>
-      <div className="min-h-screen bg-background p-4 lg:p-8">
+      <div className="p-4 lg:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate('/admin')} className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Panel
-              </Button>
-              <h1 className="text-2xl font-bold">Oferty</h1>
-            </div>
+            <h1 className="text-2xl font-bold">Oferty</h1>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => navigate('/admin/produkty')} className="gap-2">
                 <Package className="w-4 h-4" />
@@ -595,7 +590,7 @@ const OffersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </AdminLayout>
   );
 };
 

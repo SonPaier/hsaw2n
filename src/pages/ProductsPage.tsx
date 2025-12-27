@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft,
   Plus,
   Upload,
   Search,
@@ -51,6 +50,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
 import { PriceListViewer } from '@/components/products/PriceListViewer';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 interface PriceList {
   id: string;
@@ -311,27 +311,16 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold">Produkty</h1>
-            </div>
-          </div>
+    <AdminLayout title="Produkty">
+      <div className="p-4 lg:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Produkty</h1>
           <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
             <Upload className="h-4 w-4" />
             Wgraj cennik
           </Button>
         </div>
-      </header>
 
-      <main className="container px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 bg-muted/50">
             <TabsTrigger value="products" className="gap-2 data-[state=active]:bg-background">
@@ -669,7 +658,7 @@ export default function ProductsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
 
       {/* Upload Dialog */}
       {showUploadDialog && instanceId && (
@@ -688,7 +677,7 @@ export default function ProductsPage() {
       {selectedPriceList && (
         <PriceListViewer
           priceList={selectedPriceList}
-          products={products.filter(p => p.category === selectedPriceList.name || true)} // TODO: link products to price lists
+          products={products.filter(p => p.category === selectedPriceList.name || true)}
           open={!!selectedPriceList}
           onOpenChange={(open) => !open && setSelectedPriceList(null)}
         />
@@ -702,6 +691,6 @@ export default function ProductsPage() {
           onOpenChange={(open) => !open && setSelectedProduct(null)}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }
