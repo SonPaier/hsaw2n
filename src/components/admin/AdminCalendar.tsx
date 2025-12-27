@@ -647,10 +647,10 @@ const AdminCalendar = ({
           hallMode && "flex-1 text-center"
         )}>
           {viewMode === 'week' 
-            ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM yyyy', { locale: pl })}`
+            ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
             : viewMode === 'two-days'
-            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM yyyy', { locale: pl })}`
-            : format(currentDate, 'EEEE, d MMMM yyyy', { locale: pl })
+            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+            : format(currentDate, 'EEEE, d MMMM', { locale: pl })
           }
         </h2>
 
