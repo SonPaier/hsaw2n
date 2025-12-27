@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,9 @@ export function PriceListUploadDialog({
   const [name, setName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stageLabel, setStageLabel] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const acceptedTypes = [
     'application/pdf',
@@ -40,10 +44,8 @@ export function PriceListUploadDialog({
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
+    if (e.type === 'dragenter' || e.type === 'dragleave' || e.type === 'dragover') {
+      setDragActive(e.type !== 'dragleave');
     }
   }, []);
 
@@ -56,6 +58,7 @@ export function PriceListUploadDialog({
       const droppedFile = e.dataTransfer.files[0];
       if (acceptedTypes.includes(droppedFile.type)) {
         setFile(droppedFile);
+        setErrorMessage(null);
         if (!name) {
           setName(droppedFile.name.replace(/\.[^/.]+$/, ''));
         }
@@ -68,7 +71,12 @@ export function PriceListUploadDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+      if (!acceptedTypes.includes(selectedFile.type)) {
+        toast.error('Nieobsługiwany format pliku. Użyj PDF lub Excel.');
+        return;
+      }
       setFile(selectedFile);
+      setErrorMessage(null);
       if (!name) {
         setName(selectedFile.name.replace(/\.[^/.]+$/, ''));
       }
@@ -81,6 +89,32 @@ export function PriceListUploadDialog({
     return 'unknown';
   };
 
+  const readFileContent = (file: File, fileType: string) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Nie udało się odczytać pliku'));
+      reader.onload = (e) => resolve(String(e.target?.result ?? ''));
+
+      if (fileType === 'pdf') {
+        // PDF wysyłamy jako base64 (DataURL)
+        reader.readAsDataURL(file);
+      } else {
+        // Excel na razie jako tekst (uproszczenie)
+        reader.readAsText(file);
+      }
+    });
+  };
+
+  const normalizeInvokeError = (err: unknown) => {
+    const raw = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Wystąpił nieznany błąd.';
+
+    if (/401|invalid jwt/i.test(raw)) {
+      return 'Brak autoryzacji (Invalid JWT). Odśwież stronę i zaloguj się ponownie.';
+    }
+
+    return raw;
+  };
+
   const handleUpload = async () => {
     if (!file || !name.trim()) {
       toast.error('Wybierz plik i podaj nazwę cennika');
@@ -88,10 +122,26 @@ export function PriceListUploadDialog({
     }
 
     setIsUploading(true);
+    setProgress(8);
+    setStageLabel('Przygotowuję upload...');
+    setErrorMessage(null);
+
+    let priceListId: string | null = null;
 
     try {
+      // Upewnij się, że mamy sesję (żeby nie wysłać błędnego Authorization i nie dostać 401)
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Brak aktywnej sesji. Zaloguj się ponownie.');
+      }
+
       const fileType = getFileType(file);
       const filePath = `${instanceId}/${Date.now()}_${file.name}`;
+
+      setProgress(20);
+      setStageLabel('Wgrywam plik do magazynu...');
 
       // Upload file to storage
       const { error: uploadError } = await supabase.storage
@@ -99,6 +149,9 @@ export function PriceListUploadDialog({
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
+
+      setProgress(38);
+      setStageLabel('Zapisuję cennik w bazie...');
 
       // Create price list record
       const { data: priceList, error: insertError } = await supabase
@@ -115,41 +168,57 @@ export function PriceListUploadDialog({
         .single();
 
       if (insertError) throw insertError;
+      priceListId = priceList.id;
 
-      toast.success('Cennik został wgrany. Rozpoczynam ekstrakcję AI...');
+      setProgress(55);
+      setStageLabel('Odczytuję plik...');
 
-      // Read file content for AI extraction
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const content = e.target?.result as string;
-        
-        // Call extraction edge function
-        const { error: extractError } = await supabase.functions.invoke('extract-price-list', {
-          body: {
-            priceListId: priceList.id,
-            fileContent: content,
-            fileName: file.name,
-          },
-        });
+      const fileContent = await readFileContent(file, fileType);
 
-        if (extractError) {
-          console.error('Extraction error:', extractError);
-          // Status will be updated by the edge function
-        }
-      };
+      setProgress(78);
+      setStageLabel('Uruchamiam ekstrakcję AI...');
 
-      if (fileType === 'pdf') {
-        // For PDF, we need to send base64
-        reader.readAsDataURL(file);
-      } else {
-        // For Excel, read as text (simplified - in production you'd parse Excel)
-        reader.readAsText(file);
+      const { error: extractError } = await supabase.functions.invoke('extract-price-list', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: {
+          priceListId: priceList.id,
+          fileContent,
+          fileName: file.name,
+        },
+      });
+
+      if (extractError) {
+        const msg = normalizeInvokeError(extractError);
+
+        // jeśli funkcja nie wystartowała (np. 401), to UI przynajmniej pokaże błąd na liście
+        await supabase
+          .from('price_lists')
+          .update({ status: 'failed', error_message: msg })
+          .eq('id', priceList.id);
+
+        throw new Error(msg);
       }
+
+      setProgress(100);
+      setStageLabel('Gotowe — przetwarzanie trwa w tle.');
+      toast.success('Ekstrakcja uruchomiona. Status zobaczysz na liście cenników.');
 
       onSuccess();
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Nie udało się wgrać cennika');
+      const msg = normalizeInvokeError(error);
+      console.error('Upload/extraction error:', error);
+      setErrorMessage(msg);
+      toast.error(msg);
+
+      // Bezpiecznik: jeśli coś padło po utworzeniu rekordu, oznacz jako failed
+      if (priceListId) {
+        await supabase
+          .from('price_lists')
+          .update({ status: 'failed', error_message: msg })
+          .eq('id', priceListId);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -203,6 +272,7 @@ export function PriceListUploadDialog({
                   size="icon"
                   className="ml-auto"
                   onClick={() => setFile(null)}
+                  disabled={isUploading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -239,8 +309,27 @@ export function PriceListUploadDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="np. Folie samochodowe 2024"
+              disabled={isUploading}
             />
           </div>
+
+          {/* Progress */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{stageLabel || 'Przetwarzam...'}</span>
+                <span>{Math.min(100, Math.max(0, progress))}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+
+          {/* Error */}
+          {errorMessage && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
 
           {/* AI info */}
           <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
