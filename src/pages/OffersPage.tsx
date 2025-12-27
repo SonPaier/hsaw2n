@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -95,6 +95,7 @@ const statusColors: Record<string, string> = {
 
 const OffersPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
@@ -104,8 +105,13 @@ const OffersPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  
+  // Read initial pagination from URL
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const initialPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+  const [currentPage, setCurrentPage] = useState(isNaN(initialPage) || initialPage < 1 ? 1 : initialPage);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
+  
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<OfferSettings>({
     number_prefix: '',
@@ -300,10 +306,18 @@ const OffersPage = () => {
     return filteredOffers.slice(startIndex, startIndex + pageSize);
   }, [filteredOffers, currentPage, pageSize]);
 
-  // Reset page when filters or page size change
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery, pageSize]);
+  }, [statusFilter, searchQuery]);
+
+  // Sync pagination with URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', String(currentPage));
+    params.set('pageSize', String(pageSize));
+    setSearchParams(params, { replace: true });
+  }, [currentPage, pageSize, setSearchParams]);
 
   if (showGenerator && instanceId) {
     return (

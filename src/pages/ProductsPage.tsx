@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,7 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
@@ -121,8 +122,12 @@ export default function ProductsPage() {
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  
+  // Read initial pagination from URL
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const initialPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+  const [currentPage, setCurrentPage] = useState(isNaN(initialPage) || initialPage < 1 ? 1 : initialPage);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
 
   // Fetch instance ID
   useEffect(() => {
@@ -230,10 +235,18 @@ export default function ProductsPage() {
     return filteredProducts.slice(startIndex, startIndex + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
 
-  // Reset page when filters or page size change
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, pageSize]);
+  }, [searchQuery, categoryFilter]);
+
+  // Sync pagination with URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', String(currentPage));
+    params.set('pageSize', String(pageSize));
+    setSearchParams(params, { replace: true });
+  }, [currentPage, pageSize, setSearchParams]);
 
   // Download PDF from storage
   const handleDownloadPdf = async (priceList: PriceList) => {
