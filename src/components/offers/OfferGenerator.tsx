@@ -127,16 +127,24 @@ export const OfferGenerator = ({
       
       if (error) throw error;
       
-      // Download as HTML file
-      const blob = new Blob([data], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Oferta_${offer.id}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Open in new window for print-to-PDF
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(data);
+        printWindow.document.close();
+      } else {
+        // Fallback - download as HTML
+        const blob = new Blob([data], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Oferta_${offer.id}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.info('Otwórz plik i użyj Drukuj → Zapisz jako PDF');
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Błąd podczas generowania PDF');

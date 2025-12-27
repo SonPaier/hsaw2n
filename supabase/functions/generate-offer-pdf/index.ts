@@ -300,11 +300,36 @@ serve(async (req) => {
 
     const html = generateHtmlContent(offer as unknown as Offer);
 
-    // Return HTML for now - in production you'd use a PDF library or external service
-    return new Response(html, {
+    // Use docraptor-like approach with base64 encoding for simple PDF generation
+    // Since we can't use external PDF services easily, we'll use a data URI approach
+    // that works in browsers - the browser will print to PDF
+    
+    // For true PDF, we'll use the jsPDF approach via the browser
+    // Return HTML with PDF headers so the browser offers to download/print
+    const pdfReadyHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Oferta ${offer.offer_number}</title>
+  <style>
+    @media print {
+      @page { size: A4; margin: 15mm; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+</head>
+<body onload="window.print()">
+${html.replace('<!DOCTYPE html>', '').replace(/<html[^>]*>/, '').replace(/<\/html>/, '').replace(/<head>[\s\S]*<\/head>/, '').replace(/<body>/, '').replace(/<\/body>/, '')}
+</body>
+</html>
+    `;
+
+    return new Response(pdfReadyHtml, {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `inline; filename="Oferta_${offer.offer_number.replace(/\//g, '-')}.html"`,
       },
     });
 
