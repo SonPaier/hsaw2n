@@ -74,6 +74,7 @@ export const OptionsStep = ({
     new Set(options.map(o => o.id))
   );
   const [autocompleteOpen, setAutocompleteOpen] = useState<{ [key: string]: boolean }>({});
+  const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -269,20 +270,26 @@ export const OptionsStep = ({
                             />
                           </PopoverTrigger>
                           <PopoverContent className="p-0 w-[300px]" align="start">
-                            <Command>
-                              <CommandInput placeholder="Szukaj w bibliotece..." />
+                            <Command shouldFilter={false}>
+                              <CommandInput 
+                                placeholder="Szukaj w bibliotece..." 
+                                value={searchTerms[item.id] || ''}
+                                onValueChange={(value) => setSearchTerms(prev => ({ ...prev, [item.id]: value }))}
+                              />
                               <CommandList>
                                 <CommandEmpty>Brak produktów</CommandEmpty>
                                 <CommandGroup>
                                   {products
-                                    .filter(p => 
-                                      !item.customName || 
-                                      p.name.toLowerCase().includes((item.customName || '').toLowerCase())
-                                    )
+                                    .filter(p => {
+                                      const searchTerm = searchTerms[item.id] || '';
+                                      if (!searchTerm) return true;
+                                      return p.name.toLowerCase().includes(searchTerm.toLowerCase());
+                                    })
                                     .slice(0, 10)
                                     .map(product => (
                                       <CommandItem
                                         key={product.id}
+                                        value={product.id}
                                         onSelect={() => handleProductSelect(option.id, item.id, product)}
                                         className="flex justify-between"
                                       >
