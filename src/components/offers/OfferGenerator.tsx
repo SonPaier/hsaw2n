@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 interface OfferGeneratorProps {
   instanceId: string;
   offerId?: string;
+  duplicateFromId?: string;
   onClose?: () => void;
   onSaved?: (offerId: string) => void;
 }
@@ -34,6 +35,7 @@ const steps = [
 export const OfferGenerator = ({
   instanceId,
   offerId,
+  duplicateFromId,
   onClose,
   onSaved,
 }: OfferGeneratorProps) => {
@@ -64,12 +66,18 @@ export const OfferGenerator = ({
     loadOffer,
   } = useOffer(instanceId);
 
-  // Load existing offer if editing
+  // Load existing offer if editing or duplicating
   useEffect(() => {
-    if (offerId) {
-      loadOffer(offerId);
+    const loadId = offerId || duplicateFromId;
+    if (loadId) {
+      loadOffer(loadId).then(() => {
+        // If duplicating, reset the ID so it creates a new offer
+        if (duplicateFromId) {
+          updateOffer({ id: undefined, status: 'draft' });
+        }
+      });
     }
-  }, [offerId]);
+  }, [offerId, duplicateFromId]);
 
   const handleNext = () => {
     if (currentStep < 3) {
