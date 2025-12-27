@@ -104,6 +104,7 @@ const AddReservationDialog = ({
   workingHours = null,
 }: AddReservationDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [suggestingSize, setSuggestingSize] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
@@ -498,7 +499,7 @@ const AddReservationDialog = ({
         end_date: endDate,
         start_time: startTime,
         end_time: finalEndTime,
-        customer_name: customerName || 'Bez nazwy',
+        customer_name: customerName || 'Klient',
         customer_phone: phone || '',
         vehicle_plate: carModel || '', // Using vehicle_plate field for car model temporarily
         car_size: carSize || null,
@@ -551,6 +552,7 @@ const AddReservationDialog = ({
     startTime?: string | null;
     endTime?: string | null;
     serviceName?: string | null;
+    shouldConfirm?: boolean;
   }) => {
     if (data.customerName) setCustomerName(data.customerName);
     if (data.phone) setPhone(data.phone);
@@ -573,7 +575,24 @@ const AddReservationDialog = ({
     if (data.date && isPPFStation) {
       setDateRange({ from: new Date(data.date), to: undefined });
     }
+    
+    // Auto-submit if user said "zatwierdź"
+    if (data.shouldConfirm) {
+      setPendingAutoSubmit(true);
+    }
   };
+  
+  // Effect to handle auto-submit after voice parsing
+  useEffect(() => {
+    if (pendingAutoSubmit && !loading) {
+      setPendingAutoSubmit(false);
+      // Small delay to allow state updates to propagate
+      const timer = setTimeout(() => {
+        handleSubmit();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingAutoSubmit, loading]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useWebOTP } from '@/hooks/useWebOTP';
 import { searchCarModels } from '@/data/carModels';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
+import UpsellSuggestion from './UpsellSuggestion';
 
 interface Service {
   id: string;
@@ -140,6 +142,9 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAddons, setShowAddons] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Feature flags
+  const { hasFeature } = useInstanceFeatures(instance?.id ?? null);
 
   // Selected values
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -1255,6 +1260,24 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               * Cena może ulec zmianie w zależności od stanu samochodu
             </p>
           </div>
+
+          {/* Upsell suggestion - only show if feature is enabled and conditions are met */}
+          {hasFeature('upsell') && selectedService && selectedDate && selectedTime && selectedStationId && (
+            <UpsellSuggestion
+              selectedService={selectedService}
+              selectedTime={selectedTime}
+              selectedDate={selectedDate}
+              selectedStationId={selectedStationId}
+              services={services}
+              stations={stations}
+              availabilityBlocks={availabilityBlocks}
+              carSize={carSize}
+              onAddService={(serviceId) => {
+                setSelectedAddons(prev => [...prev, serviceId]);
+              }}
+              selectedAddons={selectedAddons}
+            />
+          )}
 
           {/* Customer data - phone is already provided in first step */}
           <div className="glass-card p-3 mb-3 space-y-3">
