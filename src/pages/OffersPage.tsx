@@ -1,17 +1,78 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+interface Offer {
+  id: string;
+  offer_number: string;
+  customer_data: {
+    name?: string;
+    email?: string;
+    company?: string;
+  };
+  vehicle_data?: {
+    brand?: string;
+    model?: string;
+    plate?: string;
+  };
+  status: string;
+  total_net: number;
+  total_gross: number;
+  created_at: string;
+  valid_until?: string;
+  public_token: string;
+}
+
+const statusLabels: Record<string, string> = {
+  draft: 'Szkic',
+  sent: 'Wysłana',
+  viewed: 'Obejrzana',
+  accepted: 'Zaakceptowana',
+  rejected: 'Odrzucona',
+  expired: 'Wygasła',
+};
+
+const statusColors: Record<string, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  sent: 'bg-blue-500/20 text-blue-600',
+  viewed: 'bg-amber-500/20 text-amber-600',
+  accepted: 'bg-green-500/20 text-green-600',
+  rejected: 'bg-red-500/20 text-red-600',
+  expired: 'bg-gray-500/20 text-gray-500',
+};
 
 const OffersPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchUserInstanceId = async () => {
@@ -43,25 +104,83 @@ const OffersPage = () => {
     fetchUserInstanceId();
   }, [user]);
 
+  const fetchOffers = async () => {
+    if (!instanceId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setOffers((data || []) as Offer[]);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+      toast.error('Błąd podczas pobierania ofert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOffers();
+  }, [instanceId]);
+
+  const handleDeleteOffer = async (offerId: string) => {
+    if (!confirm('Czy na pewno chcesz usunąć tę ofertę?')) return;
+    
+    try {
+      const { error } = await supabase.from('offers').delete().eq('id', offerId);
+      if (error) throw error;
+      setOffers(prev => prev.filter(o => o.id !== offerId));
+      toast.success('Oferta została usunięta');
+    } catch (error) {
+      console.error('Error deleting offer:', error);
+      toast.error('Błąd podczas usuwania oferty');
+    }
+  };
+
+  const handleCopyLink = (token: string) => {
+    const url = `${window.location.origin}/oferta/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link skopiowany do schowka');
+  };
+
+  const formatPrice = (value: number) => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN',
+    }).format(value);
+  };
+
+  const filteredOffers = statusFilter === 'all' 
+    ? offers 
+    : offers.filter(o => o.status === statusFilter);
+
   if (showGenerator && instanceId) {
     return (
       <>
         <Helmet>
-          <title>Nowa oferta - Generator ofert</title>
+          <title>{editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta'} - Generator ofert</title>
         </Helmet>
         <div className="min-h-screen bg-background p-4 lg:p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
-              <Button variant="ghost" onClick={() => setShowGenerator(false)} className="gap-2">
+              <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); }} className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Wróć do listy
               </Button>
             </div>
-            <h1 className="text-2xl font-bold mb-6">Nowa oferta</h1>
+            <h1 className="text-2xl font-bold mb-6">
+              {editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta'}
+            </h1>
             <OfferGenerator
               instanceId={instanceId}
-              onClose={() => setShowGenerator(false)}
-              onSaved={() => setShowGenerator(false)}
+              offerId={editingOfferId || undefined}
+              onClose={() => { setShowGenerator(false); setEditingOfferId(null); }}
+              onSaved={() => { setShowGenerator(false); setEditingOfferId(null); fetchOffers(); }}
             />
           </div>
         </div>
@@ -76,7 +195,7 @@ const OffersPage = () => {
       </Helmet>
       <div className="min-h-screen bg-background p-4 lg:p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <Button variant="ghost" onClick={() => navigate('/admin')} className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
@@ -89,11 +208,110 @@ const OffersPage = () => {
               Nowa oferta
             </Button>
           </div>
-          
-          <div className="glass-card p-8 text-center">
-            <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Brak ofert. Kliknij "Nowa oferta" aby utworzyć pierwszą.</p>
+
+          {/* Filters */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Wszystkie</SelectItem>
+                  <SelectItem value="draft">Szkice</SelectItem>
+                  <SelectItem value="sent">Wysłane</SelectItem>
+                  <SelectItem value="viewed">Obejrzane</SelectItem>
+                  <SelectItem value="accepted">Zaakceptowane</SelectItem>
+                  <SelectItem value="rejected">Odrzucone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
+            </div>
           </div>
+          
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredOffers.length === 0 ? (
+            <div className="glass-card p-8 text-center">
+              <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {statusFilter === 'all' 
+                  ? 'Brak ofert. Kliknij "Nowa oferta" aby utworzyć pierwszą.'
+                  : 'Brak ofert o wybranym statusie.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredOffers.map((offer) => (
+                <div 
+                  key={offer.id}
+                  className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+                  onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{offer.offer_number}</span>
+                          <Badge className={cn('text-xs', statusColors[offer.status])}>
+                            {statusLabels[offer.status] || offer.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {offer.customer_data?.name || offer.customer_data?.company || 'Brak danych klienta'}
+                          {offer.vehicle_data?.brand && ` • ${offer.vehicle_data.brand} ${offer.vehicle_data.model || ''}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <div className="font-semibold">{formatPrice(offer.total_gross)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(offer.created_at), 'd MMM yyyy', { locale: pl })}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/oferta/${offer.public_token}`, '_blank'); }}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Podgląd publiczny
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(offer.public_token); }}>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Kopiuj link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info('Wysyłka oferty - wkrótce'); }}>
+                            <Send className="w-4 h-4 mr-2" />
+                            Wyślij
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Usuń
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

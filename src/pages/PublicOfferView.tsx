@@ -1,0 +1,541 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { 
+  FileText, 
+  Check, 
+  X, 
+  Download, 
+  User, 
+  Building2, 
+  Car, 
+  Calendar,
+  Clock,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+interface OfferOption {
+  id: string;
+  name: string;
+  description?: string;
+  is_selected: boolean;
+  subtotal_net: number;
+  offer_option_items: {
+    id: string;
+    custom_name: string;
+    custom_description?: string;
+    quantity: number;
+    unit_price: number;
+    unit: string;
+    discount_percent: number;
+    is_optional: boolean;
+  }[];
+}
+
+interface Offer {
+  id: string;
+  offer_number: string;
+  customer_data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    nip?: string;
+    address?: string;
+  };
+  vehicle_data?: {
+    brand?: string;
+    model?: string;
+    plate?: string;
+    vin?: string;
+    year?: number;
+  };
+  status: string;
+  total_net: number;
+  total_gross: number;
+  vat_rate: number;
+  notes?: string;
+  payment_terms?: string;
+  valid_until?: string;
+  created_at: string;
+  offer_options: OfferOption[];
+  instances: {
+    name: string;
+    logo_url?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    website?: string;
+  };
+}
+
+const statusLabels: Record<string, string> = {
+  draft: 'Szkic',
+  sent: 'Wysłana',
+  viewed: 'Obejrzana',
+  accepted: 'Zaakceptowana',
+  rejected: 'Odrzucona',
+  expired: 'Wygasła',
+};
+
+const PublicOfferView = () => {
+  const { token } = useParams<{ token: string }>();
+  const [offer, setOffer] = useState<Offer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [responding, setResponding] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionForm, setShowRejectionForm] = useState(false);
+
+  useEffect(() => {
+    const fetchOffer = async () => {
+      if (!token) {
+        setError('Nieprawidłowy link do oferty');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('offers')
+          .select(`
+            *,
+            offer_options (
+              *,
+              offer_option_items (*)
+            ),
+            instances (
+              name,
+              logo_url,
+              phone,
+              email,
+              address,
+              website
+            )
+          `)
+          .eq('public_token', token)
+          .single();
+
+        if (error) throw error;
+        if (!data) {
+          setError('Oferta nie została znaleziona');
+          return;
+        }
+
+        setOffer(data as unknown as Offer);
+
+        // Mark as viewed if not already
+        if (data.status === 'sent') {
+          await supabase
+            .from('offers')
+            .update({ status: 'viewed', viewed_at: new Date().toISOString() })
+            .eq('id', data.id);
+        }
+      } catch (err) {
+        console.error('Error fetching offer:', err);
+        setError('Błąd podczas wczytywania oferty');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOffer();
+  }, [token]);
+
+  const handleAccept = async () => {
+    if (!offer) return;
+    setResponding(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ 
+          status: 'accepted', 
+          responded_at: new Date().toISOString() 
+        })
+        .eq('id', offer.id);
+
+      if (error) throw error;
+      setOffer({ ...offer, status: 'accepted' });
+      toast.success('Oferta została zaakceptowana!');
+    } catch (err) {
+      toast.error('Błąd podczas akceptacji oferty');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!offer) return;
+    setResponding(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ 
+          status: 'rejected', 
+          responded_at: new Date().toISOString(),
+          notes: rejectionReason ? `${offer.notes || ''}\n\nPowód odrzucenia: ${rejectionReason}` : offer.notes
+        })
+        .eq('id', offer.id);
+
+      if (error) throw error;
+      setOffer({ ...offer, status: 'rejected' });
+      setShowRejectionForm(false);
+      toast.success('Oferta została odrzucona');
+    } catch (err) {
+      toast.error('Błąd podczas odrzucania oferty');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  const formatPrice = (value: number) => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN',
+    }).format(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !offer) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Błąd</h2>
+            <p className="text-muted-foreground">{error || 'Oferta nie została znaleziona'}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const instance = offer.instances;
+  const isExpired = offer.valid_until && new Date(offer.valid_until) < new Date();
+  const canRespond = ['sent', 'viewed'].includes(offer.status) && !isExpired;
+
+  return (
+    <>
+      <Helmet>
+        <title>Oferta {offer.offer_number} - {instance?.name || 'Oferta'}</title>
+      </Helmet>
+      
+      <div className="min-h-screen bg-muted/30">
+        {/* Header */}
+        <header className="bg-background border-b">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {instance?.logo_url ? (
+                  <img src={instance.logo_url} alt={instance.name} className="h-12 object-contain" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <h1 className="font-bold text-lg">{instance?.name}</h1>
+                  <p className="text-sm text-muted-foreground">Oferta {offer.offer_number}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Open PDF in new tab
+                    const pdfUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-offer-pdf`;
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = pdfUrl;
+                    form.target = '_blank';
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'token';
+                    input.value = token || '';
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                  }}
+                  className="gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  PDF
+                </Button>
+                <Badge 
+                  className={cn(
+                    offer.status === 'accepted' && 'bg-green-500/20 text-green-600',
+                    offer.status === 'rejected' && 'bg-red-500/20 text-red-600',
+                    offer.status === 'viewed' && 'bg-amber-500/20 text-amber-600',
+                    offer.status === 'sent' && 'bg-blue-500/20 text-blue-600',
+                  )}
+                >
+                  {statusLabels[offer.status] || offer.status}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          {/* Validity warning */}
+          {isExpired && (
+            <Card className="border-destructive bg-destructive/10">
+              <CardContent className="py-4 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive" />
+                <p className="text-destructive font-medium">Ta oferta wygasła</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Customer & Vehicle Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <User className="w-4 h-4" />
+                  Dla
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-1">
+                <p className="font-medium">{offer.customer_data?.name}</p>
+                {offer.customer_data?.company && (
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <Building2 className="w-3 h-3" />
+                    {offer.customer_data.company}
+                  </p>
+                )}
+                {offer.customer_data?.email && (
+                  <p className="text-muted-foreground">{offer.customer_data.email}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {offer.vehicle_data?.brand && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Car className="w-4 h-4" />
+                    Pojazd
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1">
+                  <p className="font-medium">
+                    {offer.vehicle_data.brand} {offer.vehicle_data.model}
+                  </p>
+                  {offer.vehicle_data.plate && (
+                    <p className="text-muted-foreground">{offer.vehicle_data.plate}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Options */}
+          {offer.offer_options
+            .filter(opt => opt.is_selected)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((option) => (
+              <Card key={option.id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{option.name}</CardTitle>
+                  {option.description && (
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {option.offer_option_items.map((item) => {
+                      const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                      return (
+                        <div 
+                          key={item.id}
+                          className={cn(
+                            "flex items-center justify-between py-2 border-b last:border-0",
+                            item.is_optional && "text-muted-foreground"
+                          )}
+                        >
+                          <div className="flex-1">
+                            <span>{item.custom_name}</span>
+                            {item.is_optional && (
+                              <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm text-muted-foreground mr-4">
+                              {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                              {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
+                            </span>
+                            <span className="font-medium">
+                              {item.is_optional ? '—' : formatPrice(itemTotal)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between pt-4 font-medium">
+                    <span>Razem opcja</span>
+                    <span>{formatPrice(option.subtotal_net)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+          {/* Totals */}
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Suma netto</span>
+                <span>{formatPrice(offer.total_net)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">VAT ({offer.vat_rate}%)</span>
+                <span>{formatPrice(offer.total_gross - offer.total_net)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Razem brutto</span>
+                <span className="text-primary">{formatPrice(offer.total_gross)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notes & Terms */}
+          {(offer.notes || offer.payment_terms || offer.valid_until) && (
+            <Card>
+              <CardContent className="pt-6 space-y-3 text-sm">
+                {offer.valid_until && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span>
+                      Oferta ważna do: <strong>{format(new Date(offer.valid_until), 'd MMMM yyyy', { locale: pl })}</strong>
+                    </span>
+                  </div>
+                )}
+                {offer.payment_terms && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span>Warunki płatności: {offer.payment_terms}</span>
+                  </div>
+                )}
+                {offer.notes && (
+                  <div className="pt-2 text-muted-foreground whitespace-pre-wrap">
+                    {offer.notes}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Actions */}
+          {canRespond && (
+            <Card>
+              <CardContent className="pt-6">
+                {showRejectionForm ? (
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Powód odrzucenia (opcjonalnie)</h3>
+                    <Textarea
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Opisz dlaczego odrzucasz ofertę..."
+                      rows={3}
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowRejectionForm(false)}
+                        disabled={responding}
+                      >
+                        Anuluj
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        onClick={handleReject}
+                        disabled={responding}
+                      >
+                        {responding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        Potwierdź odrzucenie
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      className="flex-1 gap-2" 
+                      size="lg"
+                      onClick={handleAccept}
+                      disabled={responding}
+                    >
+                      {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
+                      Akceptuję ofertę
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 gap-2" 
+                      size="lg"
+                      onClick={() => setShowRejectionForm(true)}
+                      disabled={responding}
+                    >
+                      <X className="w-5 h-5" />
+                      Odrzuć ofertę
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Already responded */}
+          {offer.status === 'accepted' && (
+            <Card className="border-green-500/50 bg-green-500/10">
+              <CardContent className="py-6 text-center">
+                <Check className="w-12 h-12 mx-auto text-green-600 mb-3" />
+                <h3 className="text-lg font-semibold text-green-700">Oferta zaakceptowana</h3>
+                <p className="text-muted-foreground">Dziękujemy! Skontaktujemy się z Tobą wkrótce.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {offer.status === 'rejected' && (
+            <Card className="border-red-500/50 bg-red-500/10">
+              <CardContent className="py-6 text-center">
+                <X className="w-12 h-12 mx-auto text-red-600 mb-3" />
+                <h3 className="text-lg font-semibold text-red-700">Oferta odrzucona</h3>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Footer */}
+          <footer className="text-center text-sm text-muted-foreground pt-8 pb-4">
+            <p>{instance?.name}</p>
+            {instance?.address && <p>{instance.address}</p>}
+            {instance?.phone && <p>Tel: {instance.phone}</p>}
+            {instance?.email && <p>Email: {instance.email}</p>}
+          </footer>
+        </main>
+      </div>
+    </>
+  );
+};
+
+export default PublicOfferView;
