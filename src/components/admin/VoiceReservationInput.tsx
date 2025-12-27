@@ -17,6 +17,7 @@ interface ParsedReservation {
   startTime?: string | null;
   endTime?: string | null;
   serviceName?: string | null;
+  shouldConfirm?: boolean;
 }
 
 interface VoiceReservationInputProps {

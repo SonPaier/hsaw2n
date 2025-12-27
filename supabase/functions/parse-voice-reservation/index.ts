@@ -43,13 +43,14 @@ Jutro: ${tomorrowStr}
 ${servicesInfo}
 
 Zwróć JSON z polami:
-- customerName: imię i nazwisko klienta (string lub null)
+- customerName: imię i nazwisko klienta (string lub null). Jeśli nie podano imienia, zwróć null (NIE domyślne wartości)
 - phone: numer telefonu bez spacji, z prefixem +48 jeśli brak (string lub null)
 - carModel: model samochodu (string lub null)
 - date: data w formacie YYYY-MM-DD (string lub null). "dziś"/"dzisiaj" = ${todayStr}, "jutro" = ${tomorrowStr}
 - startTime: godzina rozpoczęcia w formacie HH:MM (string lub null)
 - endTime: godzina zakończenia w formacie HH:MM (string lub null)
 - serviceName: nazwa usługi najbliższa do dostępnych usług (string lub null)
+- shouldConfirm: boolean - true jeśli użytkownik powiedział "zatwierdź", "potwierdź", "dodaj", "zapisz" na końcu wypowiedzi
 
 Przykłady interpretacji:
 - "12 do 12.30" -> startTime: "12:00", endTime: "12:30"
@@ -57,6 +58,7 @@ Przykłady interpretacji:
 - "godzina 10" -> startTime: "10:00"
 - "2 stycznia" -> odpowiednia data w formacie YYYY-MM-DD
 - "666610222" lub "666 610 222" -> phone: "+48666610222"
+- "...zatwierdź" lub "...potwierdź" -> shouldConfirm: true
 
 WAŻNE: Zwróć TYLKO poprawny JSON bez żadnych dodatkowych komentarzy.`;
 
