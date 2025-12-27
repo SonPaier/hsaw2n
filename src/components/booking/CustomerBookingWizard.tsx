@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
+import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +51,7 @@ interface AvailableDay {
 interface Instance {
   id: string;
   name: string;
+  phone: string | null;
   working_hours: Record<string, { open: string; close: string } | null> | null;
   social_facebook: string | null;
   social_instagram: string | null;
@@ -191,6 +194,8 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     status: 'confirmed' | 'pending';
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{ facebook: string | null; instagram: string | null }>({ facebook: null, instagram: null });
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // WebOTP hook for automatic SMS code reading on Android/Chrome
   const handleWebOTPCode = useCallback((code: string) => {
@@ -410,6 +415,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
         const parsedInstance: Instance = {
           id: instanceData.id,
           name: instanceData.name,
+          phone: instanceData.phone,
           working_hours: instanceData.working_hours as Record<string, { open: string; close: string } | null> | null,
           social_facebook: instanceData.social_facebook,
           social_instagram: instanceData.social_instagram,
@@ -1467,6 +1473,26 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               </div>
             </div>
 
+            {/* SMS Contact Button */}
+            {isPending && instance?.phone && (
+              <Button
+                variant="outline"
+                className="w-full mb-4 gap-2"
+                onClick={() => {
+                  if (instance.phone) {
+                    if (isMobile) {
+                      window.location.href = `sms:${instance.phone}`;
+                    } else {
+                      setSmsDialogOpen(true);
+                    }
+                  }
+                }}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Napisz do nas
+              </Button>
+            )}
+
             <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
               <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
               Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą
@@ -1494,6 +1520,17 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
             </Button>
           </div>
         </div>
+
+        {/* SMS Dialog for web */}
+        {instance && (
+          <SendSmsDialog
+            phone={instance.phone || ''}
+            customerName={instance.name}
+            instanceId={instance.id}
+            open={smsDialogOpen}
+            onClose={() => setSmsDialogOpen(false)}
+          />
+        )}
       </div>
     );
   }
