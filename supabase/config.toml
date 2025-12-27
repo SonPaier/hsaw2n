@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.extract-price-list]
 verify_jwt = false
+
+[functions.parse-voice-reservation]
+verify_jwt = false
