@@ -108,14 +108,15 @@ serve(async (req: Request): Promise<Response> => {
 
     const confirmationCode = generateConfirmationCode();
 
-    // Check instance auto_confirm setting
+    // Check instance auto_confirm setting and get google maps URL
     const { data: instanceSettings } = await supabase
       .from("instances")
-      .select("auto_confirm_reservations")
+      .select("auto_confirm_reservations, google_maps_url")
       .eq("id", instanceId)
       .single();
 
     const autoConfirm = instanceSettings?.auto_confirm_reservations !== false;
+    const googleMapsUrl = instanceSettings?.google_maps_url || null;
     const reservationStatus = autoConfirm ? "confirmed" : "pending";
 
     // Create reservation
@@ -220,10 +221,11 @@ serve(async (req: Request): Promise<Response> => {
     const dayNum = dateObj.getDate();
     const monthName = monthNames[dateObj.getMonth()];
     
-    // Different message based on auto-confirm setting
+    // Different message based on auto-confirm setting, include maps link if available
+    const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
     const smsMessage = autoConfirm 
-      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}. Szczegóły: ${reservationUrl}`
-      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce. Szczegóły: ${reservationUrl}`;
+      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart} Szczegóły: ${reservationUrl}`
+      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart} Szczegóły: ${reservationUrl}`;
     
     if (SMSAPI_TOKEN) {
       try {

@@ -372,6 +372,7 @@ export type Database = {
           booking_days_ahead: number
           created_at: string | null
           email: string | null
+          google_maps_url: string | null
           id: string
           logo_url: string | null
           name: string
@@ -397,6 +398,7 @@ export type Database = {
           booking_days_ahead?: number
           created_at?: string | null
           email?: string | null
+          google_maps_url?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -422,6 +424,7 @@ export type Database = {
           booking_days_ahead?: number
           created_at?: string | null
           email?: string | null
+          google_maps_url?: string | null
           id?: string
           logo_url?: string | null
           name?: string
