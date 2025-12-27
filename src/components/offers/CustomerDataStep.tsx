@@ -14,6 +14,24 @@ interface CustomerDataStepProps {
   onVehicleChange: (data: Partial<VehicleData>) => void;
 }
 
+// Parse address from API format: "ULICA NR, KOD MIASTO" or "ULICA NR/LOKAL, KOD MIASTO"
+const parseAddress = (fullAddress: string) => {
+  if (!fullAddress) return { street: '', postalCode: '', city: '' };
+  
+  // Try to match pattern: "STREET, POSTAL_CODE CITY"
+  const match = fullAddress.match(/^(.+),\s*(\d{2}-\d{3})\s+(.+)$/);
+  if (match) {
+    return {
+      street: match[1].trim(),
+      postalCode: match[2].trim(),
+      city: match[3].trim(),
+    };
+  }
+  
+  // Fallback - just return the full address as street
+  return { street: fullAddress, postalCode: '', city: '' };
+};
+
 export const CustomerDataStep = ({
   customerData,
   vehicleData,
@@ -21,7 +39,9 @@ export const CustomerDataStep = ({
   onVehicleChange,
 }: CustomerDataStepProps) => {
   const [nipLoading, setNipLoading] = useState(false);
-  const [showManualCompany, setShowManualCompany] = useState(!!customerData.company || !!customerData.nip);
+  const [showManualCompany, setShowManualCompany] = useState(
+    !!customerData.company || !!customerData.nip || !!customerData.companyAddress
+  );
 
   const lookupNip = async () => {
     const nip = customerData.nip?.replace(/[^0-9]/g, '');
@@ -46,10 +66,16 @@ export const CustomerDataStep = ({
       
       if (data.result?.subject) {
         const subject = data.result.subject;
+        const addressStr = subject.workingAddress || subject.residenceAddress || '';
+        const parsed = parseAddress(addressStr);
+        
         onCustomerChange({
           company: subject.name,
-          address: subject.workingAddress || subject.residenceAddress,
+          companyAddress: parsed.street,
+          companyPostalCode: parsed.postalCode,
+          companyCity: parsed.city,
         });
+        setShowManualCompany(true);
         toast.success('Pobrano dane firmy');
       } else {
         toast.error('Nie znaleziono firmy o podanym NIP');
@@ -97,14 +123,6 @@ export const CustomerDataStep = ({
                 id="customerPhone"
                 value={customerData.phone}
                 onChange={(e) => onCustomerChange({ phone: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customerAddress">Adres</Label>
-              <Input
-                id="customerAddress"
-                value={customerData.address}
-                onChange={(e) => onCustomerChange({ address: e.target.value })}
               />
             </div>
           </div>
@@ -157,36 +175,64 @@ export const CustomerDataStep = ({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Nazwa firmy</Label>
-                <Input
-                  id="companyName"
-                  value={customerData.company}
-                  onChange={(e) => onCustomerChange({ company: e.target.value })}
-                />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nazwa firmy</Label>
+                  <Input
+                    id="companyName"
+                    value={customerData.company}
+                    onChange={(e) => onCustomerChange({ company: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyNip">NIP</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="companyNip"
+                      value={customerData.nip}
+                      onChange={(e) => onCustomerChange({ nip: e.target.value })}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={lookupNip}
+                      disabled={nipLoading}
+                      title="Pobierz dane z NIP"
+                    >
+                      {nipLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companyNip">NIP</Label>
-                <div className="flex gap-2">
+                <Label htmlFor="companyAddress">Adres (ulica i numer)</Label>
+                <Input
+                  id="companyAddress"
+                  value={customerData.companyAddress}
+                  onChange={(e) => onCustomerChange({ companyAddress: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="companyPostalCode">Kod pocztowy</Label>
                   <Input
-                    id="companyNip"
-                    value={customerData.nip}
-                    onChange={(e) => onCustomerChange({ nip: e.target.value })}
+                    id="companyPostalCode"
+                    value={customerData.companyPostalCode}
+                    onChange={(e) => onCustomerChange({ companyPostalCode: e.target.value })}
                   />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={lookupNip}
-                    disabled={nipLoading}
-                    title="Pobierz dane z NIP"
-                  >
-                    {nipLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4" />
-                    )}
-                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyCity">Miejscowość</Label>
+                  <Input
+                    id="companyCity"
+                    value={customerData.companyCity}
+                    onChange={(e) => onCustomerChange({ companyCity: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
