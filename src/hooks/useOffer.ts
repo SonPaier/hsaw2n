@@ -87,19 +87,29 @@ export const useOffer = (instanceId: string) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Initialize with one default option
+  // Initialize with default options: Basic and Premium
   useEffect(() => {
     if (offer.options.length === 0 && !offer.id) {
       setOffer(prev => ({
         ...prev,
-        options: [{
-          id: crypto.randomUUID(),
-          name: 'Opcja 1',
-          description: '',
-          items: [],
-          isSelected: true,
-          sortOrder: 0,
-        }],
+        options: [
+          {
+            id: crypto.randomUUID(),
+            name: 'Basic',
+            description: '',
+            items: [],
+            isSelected: true,
+            sortOrder: 0,
+          },
+          {
+            id: crypto.randomUUID(),
+            name: 'Premium',
+            description: '',
+            items: [],
+            isSelected: false,
+            sortOrder: 1,
+          },
+        ],
       }));
     }
   }, []);
