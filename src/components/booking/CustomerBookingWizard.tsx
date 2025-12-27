@@ -1517,18 +1517,19 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               </div>
             </div>
 
-            {/* SMS Contact Button */}
-            {isPending && instance?.phone && (
+            {/* SMS Contact Button - only on mobile */}
+            {isPending && instance?.phone && isMobile && (
               <Button
                 variant="outline"
                 className="w-full mb-4 gap-2"
                 onClick={() => {
                   if (instance.phone) {
-                    if (isMobile) {
-                      window.location.href = `sms:${instance.phone}`;
-                    } else {
-                      setSmsDialogOpen(true);
-                    }
+                    // Create SMS template: "Rezerwacja DZIEN GODZINA:MINUTY SAMOCHOD USLUGA"
+                    const dateFormatted = format(parseISO(confirmationData.date), 'd.MM', { locale: pl });
+                    const smsBody = encodeURIComponent(
+                      `Rezerwacja ${dateFormatted} ${confirmationData.time} ${carModel || ''} ${confirmationData.serviceName}`
+                    );
+                    window.location.href = `sms:${instance.phone}?body=${smsBody}`;
                   }
                 }}
               >

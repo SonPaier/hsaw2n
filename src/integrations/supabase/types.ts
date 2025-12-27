@@ -1032,6 +1032,7 @@ export type Database = {
           price_medium: number | null
           price_small: number | null
           requires_size: boolean | null
+          shortcut: string | null
           sort_order: number | null
           station_type: Database["public"]["Enums"]["station_type"] | null
           subcategory: string | null
@@ -1054,6 +1055,7 @@ export type Database = {
           price_medium?: number | null
           price_small?: number | null
           requires_size?: boolean | null
+          shortcut?: string | null
           sort_order?: number | null
           station_type?: Database["public"]["Enums"]["station_type"] | null
           subcategory?: string | null
@@ -1076,6 +1078,7 @@ export type Database = {
           price_medium?: number | null
           price_small?: number | null
           requires_size?: boolean | null
+          shortcut?: string | null
           sort_order?: number | null
           station_type?: Database["public"]["Enums"]["station_type"] | null
           subcategory?: string | null
