@@ -30,6 +30,7 @@ interface Reservation {
   confirmation_code: string;
   service?: {
     name: string;
+    shortcut?: string | null;
   };
   station?: {
     name: string;
@@ -167,7 +168,7 @@ const HallView = () => {
           status,
           confirmation_code,
           price,
-          services:service_id (name),
+          services:service_id (name, shortcut),
           stations:station_id (name, type)
         `)
         .eq('instance_id', instanceId);
@@ -176,7 +177,7 @@ const HallView = () => {
         setReservations(reservationsData.map(r => ({
           ...r,
           status: r.status || 'pending',
-          service: r.services ? { name: (r.services as any).name } : undefined,
+          service: r.services ? { name: (r.services as any).name, shortcut: (r.services as any).shortcut } : undefined,
           station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
         })));
       }
@@ -259,7 +260,7 @@ const HallView = () => {
               confirmation_code,
               price,
               source,
-              services:service_id (name),
+              services:service_id (name, shortcut),
               stations:station_id (name, type)
             `)
             .eq('id', payload.new.id)
@@ -269,7 +270,7 @@ const HallView = () => {
                 const newReservation = {
                   ...data,
                   status: data.status || 'pending',
-                  service: data.services ? { name: (data.services as any).name } : undefined,
+                  service: data.services ? { name: (data.services as any).name, shortcut: (data.services as any).shortcut } : undefined,
                   station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined
                 };
                 setReservations(prev => [...prev, newReservation as Reservation]);

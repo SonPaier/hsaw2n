@@ -35,6 +35,7 @@ interface Reservation {
   status: string;
   service?: {
     name: string;
+    shortcut?: string | null;
   };
   station?: {
     type?: string;
@@ -75,8 +76,8 @@ const DEFAULT_START_HOUR = 9;
 const DEFAULT_END_HOUR = 19;
 const SLOT_MINUTES = 15; // 15-minute slots
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 4 slots per hour
-const SLOT_HEIGHT = 20; // pixels per 15 minutes
-const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 80px per hour
+const SLOT_HEIGHT = 25; // pixels per 15 minutes (increased for 3 lines in 30min)
+const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 100px per hour
 
 const getStatusColor = (status: string, stationType?: string) => {
   // PPF reservations get yellow color
@@ -953,8 +954,8 @@ const AdminCalendar = ({
                             </div>
                           )}
                           {reservation.service && (
-                            <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5 hidden lg:block">
-                              {reservation.service.name}
+                            <div className="text-[10px] md:text-xs truncate opacity-70 mt-0.5">
+                              {reservation.service.shortcut || reservation.service.name}
                             </div>
                           )}
                         </div>
