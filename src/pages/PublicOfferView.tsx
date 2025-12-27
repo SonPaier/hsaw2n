@@ -254,33 +254,38 @@ const PublicOfferView = () => {
                 )}
                 <div>
                   <h1 className="font-bold text-lg">{instance?.name}</h1>
-                  <p className="text-sm text-muted-foreground">Oferta {offer.offer_number}</p>
+                  <p className="text-sm text-muted-foreground">Oferta nr {offer.offer_number}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    // Open PDF in new tab
-                    const pdfUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-offer-pdf`;
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = pdfUrl;
-                    form.target = '_blank';
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'token';
-                    input.value = token || '';
-                    form.appendChild(input);
-                    document.body.appendChild(form);
-                    form.submit();
-                    document.body.removeChild(form);
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-offer-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token }),
+                      });
+                      const html = await response.text();
+                      const blob = new Blob([html], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `Oferta_${offer.offer_number}.html`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      toast.error('Błąd podczas pobierania oferty');
+                    }
                   }}
                   className="gap-1"
                 >
                   <Download className="w-4 h-4" />
-                  PDF
+                  Pobierz PDF
                 </Button>
                 <Badge 
                   className={cn(

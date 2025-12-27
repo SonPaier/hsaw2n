@@ -192,8 +192,8 @@ const generateHtmlContent = (offer: Offer): string => {
     </div>
   </div>
 
-  <h1 class="offer-title">OFERTA HANDLOWA</h1>
-  <p class="offer-number">Nr: ${offer.offer_number} | Data: ${formatDate(offer.created_at)}</p>
+  <h1 class="offer-title">OFERTA</h1>
+  <p class="offer-number">Nr ${offer.offer_number} | Data: ${formatDate(offer.created_at)}</p>
 
   <div class="info-grid">
     <div class="info-box">
