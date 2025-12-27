@@ -14,6 +14,7 @@ import HallView from "./pages/HallView";
 import OffersPage from "./pages/OffersPage";
 import ProductsPage from "./pages/ProductsPage";
 import PublicOfferView from "./pages/PublicOfferView";
+import FollowUpPage from "./pages/FollowUpPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
@@ -64,6 +65,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <ProductsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/followup" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <FollowUpPage />
                   </ProtectedRoute>
                 } 
               />

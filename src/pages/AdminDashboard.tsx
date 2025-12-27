@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2 } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -724,6 +724,12 @@ const AdminDashboard = () => {
                 <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/oferty')} title="Oferty">
                   <FileText className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Oferty"}
+                </Button>
+              )}
+              {hasFeature('followup') && (
+                <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/followup')} title="Follow-up">
+                  <CalendarClock className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && "Follow-up"}
                 </Button>
               )}
               <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('settings')} title="Ustawienia">
