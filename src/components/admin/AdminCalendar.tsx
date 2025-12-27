@@ -941,16 +941,17 @@ const AdminCalendar = ({
                           {reservation.vehicle_plate && (
                             <div className="flex items-center gap-0.5 text-[10px] md:text-xs truncate opacity-90">
                               <Car className="w-3 h-3 shrink-0" />
-                              {reservation.vehicle_plate}
-                            </div>
-                          )}
-                          {/* Hide time row in hallMode since time is shown instead of name */}
-                          {!hallMode && (
-                            <div className="text-[10px] md:text-xs truncate opacity-80">
-                              {isMultiDay 
-                                ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
-                                : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
-                              }
+                              <span className="truncate">
+                                {reservation.vehicle_plate}
+                                {!hallMode && (
+                                  <span className="opacity-80">
+                                    , {isMultiDay 
+                                      ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
+                                      : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`
+                                    }
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           )}
                           {reservation.service && (
