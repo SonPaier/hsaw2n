@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { addMonths, format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
@@ -73,6 +74,9 @@ const defaultVehicleData: VehicleData = {
 };
 
 export const useOffer = (instanceId: string) => {
+  // Default valid until: 1 month from now
+  const defaultValidUntil = format(addMonths(new Date(), 1), 'yyyy-MM-dd');
+
   const [offer, setOffer] = useState<OfferState>({
     instanceId,
     customerData: defaultCustomerData,
@@ -82,6 +86,7 @@ export const useOffer = (instanceId: string) => {
     vatRate: 23,
     hideUnitPrices: false,
     status: 'draft',
+    validUntil: defaultValidUntil,
   });
   
   const [loading, setLoading] = useState(false);
