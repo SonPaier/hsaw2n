@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -349,6 +349,10 @@ const OffersPage = () => {
               <h1 className="text-2xl font-bold">Oferty</h1>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/admin/produkty')} className="gap-2">
+                <Package className="w-4 h-4" />
+                Produkty
+              </Button>
               <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia ofert">
                 <Settings className="w-4 h-4" />
               </Button>
