@@ -24,6 +24,7 @@ import {
   Check,
   X,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -192,17 +193,42 @@ export default function ProductsPage() {
 
   // Filter products
   const filteredProducts = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
     return products.filter(p => {
-      const matchesSearch = 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.brand?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = query === '' || 
+        p.name.toLowerCase().includes(query) ||
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        (p.description && p.description.toLowerCase().includes(query)) ||
+        (p.category && p.category.toLowerCase().includes(query));
       
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
       
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, categoryFilter]);
+
+  // Download PDF from storage
+  const handleDownloadPdf = async (priceList: PriceList) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('price-lists')
+        .download(priceList.file_path);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = priceList.name + '.' + priceList.file_type;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Nie udało się pobrać pliku');
+    }
+  };
 
   const handleDeletePriceList = async (priceList: PriceList) => {
     if (!confirm(`Czy na pewno chcesz usunąć cennik "${priceList.name}"?`)) return;
@@ -307,16 +333,16 @@ export default function ProductsPage() {
 
       <main className="container px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="products" className="gap-2">
+          <TabsList className="mb-6 bg-muted/50">
+            <TabsTrigger value="products" className="gap-2 data-[state=active]:bg-background">
               <Package className="h-4 w-4" />
               Produkty ({products.length})
             </TabsTrigger>
-            <TabsTrigger value="price-lists" className="gap-2">
+            <TabsTrigger value="price-lists" className="gap-2 data-[state=active]:bg-background">
               <FileText className="h-4 w-4" />
               Cenniki ({priceLists.length})
             </TabsTrigger>
-            <TabsTrigger value="global" className="gap-2">
+            <TabsTrigger value="global" className="gap-2 data-[state=active]:bg-background">
               <Sparkles className="h-4 w-4" />
               Globalne ({globalPriceLists.length})
             </TabsTrigger>
@@ -499,11 +525,20 @@ export default function ProductsPage() {
                         >
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <FileText className="h-5 w-5 text-primary" />
-                              </div>
+                              <button 
+                                onClick={() => handleDownloadPdf(priceList)}
+                                className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                                title="Pobierz plik"
+                              >
+                                <Download className="h-5 w-5 text-primary" />
+                              </button>
                               <div>
-                                <p className="font-medium">{priceList.name}</p>
+                                <button
+                                  onClick={() => handleDownloadPdf(priceList)}
+                                  className="font-medium hover:text-primary hover:underline transition-colors text-left"
+                                >
+                                  {priceList.name}
+                                </button>
                                 <p className="text-sm text-muted-foreground">
                                   {formatDate(priceList.created_at)}
                                   {priceList.products_count > 0 && (
