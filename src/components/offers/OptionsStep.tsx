@@ -127,13 +127,13 @@ export const OptionsStep = ({
       unit: product.unit,
       isCustom: false,
     });
+    setJustSelected(prev => ({ ...prev, [itemId]: true }));
     setAutocompleteOpen(prev => ({ ...prev, [itemId]: false }));
     setSearchTerms(prev => ({ ...prev, [itemId]: '' }));
-    // Prevent reopening on focus after selection
-    setJustSelected(prev => ({ ...prev, [itemId]: true }));
+    // Prevent reopening on focus after selection - use longer timeout
     setTimeout(() => {
       setJustSelected(prev => ({ ...prev, [itemId]: false }));
-    }, 100);
+    }, 300);
   };
 
   const toggleOption = (optionId: string) => {
@@ -258,14 +258,19 @@ export const OptionsStep = ({
                       <div className="col-span-4">
                         <Popover 
                           open={autocompleteOpen[item.id]} 
-                          onOpenChange={(open) => setAutocompleteOpen(prev => ({ ...prev, [item.id]: open }))}
+                          onOpenChange={(open) => {
+                            if (!open || !justSelected[item.id]) {
+                              setAutocompleteOpen(prev => ({ ...prev, [item.id]: open }));
+                            }
+                          }}
+                          modal={true}
                         >
                           <PopoverTrigger asChild>
                             <Input
                               value={item.customName || ''}
                               onChange={(e) => {
                                 onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
-                                if (e.target.value.length > 0) {
+                                if (e.target.value.length > 0 && !justSelected[item.id]) {
                                   setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
                                 }
                               }}
@@ -276,7 +281,7 @@ export const OptionsStep = ({
                               }}
                             />
                           </PopoverTrigger>
-                          <PopoverContent className="p-0 w-[300px]" align="start">
+                          <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                             <Command shouldFilter={false}>
                               <CommandInput 
                                 placeholder="Szukaj w bibliotece..." 
@@ -298,7 +303,7 @@ export const OptionsStep = ({
                                         key={product.id}
                                         value={product.id}
                                         onSelect={() => handleProductSelect(option.id, item.id, product)}
-                                        className="flex justify-between"
+                                        className="flex justify-between cursor-pointer"
                                       >
                                         <span>{product.name}</span>
                                         <span className="text-muted-foreground text-sm">

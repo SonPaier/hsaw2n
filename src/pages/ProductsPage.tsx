@@ -63,6 +63,9 @@ interface PriceList {
   error_message: string | null;
   is_global: boolean;
   created_at: string;
+  salesperson_name: string | null;
+  salesperson_email: string | null;
+  salesperson_phone: string | null;
 }
 
 interface Product {
@@ -534,6 +537,35 @@ export default function ProductsPage() {
                                     <span> • {priceList.products_count} produktów</span>
                                   )}
                                 </p>
+                                {(priceList.salesperson_name || priceList.salesperson_phone || priceList.salesperson_email) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Handlowiec: {priceList.salesperson_name}
+                                    {priceList.salesperson_phone && (
+                                      <>
+                                        {' • '}
+                                        <a 
+                                          href={`tel:${priceList.salesperson_phone}`} 
+                                          className="text-primary hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {priceList.salesperson_phone}
+                                        </a>
+                                      </>
+                                    )}
+                                    {priceList.salesperson_email && (
+                                      <>
+                                        {' • '}
+                                        <a 
+                                          href={`mailto:${priceList.salesperson_email}`} 
+                                          className="text-primary hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {priceList.salesperson_email}
+                                        </a>
+                                      </>
+                                    )}
+                                  </p>
+                                )}
                               </div>
                             </div>
 
