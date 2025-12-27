@@ -655,42 +655,44 @@ const AdminCalendar = ({
         </h2>
 
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex border border-border rounded-lg overflow-hidden">
-            {allowedViews.includes('day') && (
-              <Button
-                variant={viewMode === 'day' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('day')}
-                className="rounded-none border-0 px-2 md:px-3"
-              >
-                <CalendarIcon className="w-4 h-4 md:mr-1" />
-                <span className="hidden md:inline">Dzień</span>
-              </Button>
-            )}
-            {allowedViews.includes('two-days') && (
-              <Button
-                variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('two-days')}
-                className="rounded-none border-0 px-2 md:px-3"
-              >
-                <Columns2 className="w-4 h-4 md:mr-1" />
-                <span className="hidden md:inline">2 dni</span>
-              </Button>
-            )}
-            {allowedViews.includes('week') && showWeekView && (
-              <Button
-                variant={viewMode === 'week' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('week')}
-                className="rounded-none border-0 px-2 md:px-3"
-              >
-                <CalendarDays className="w-4 h-4 md:mr-1" />
-                <span className="hidden md:inline">Tydzień</span>
-              </Button>
-            )}
-          </div>
+          {/* View mode toggle - hide 2-days and week on mobile */}
+          {!isMobile && (
+            <div className="flex border border-border rounded-lg overflow-hidden">
+              {allowedViews.includes('day') && (
+                <Button
+                  variant={viewMode === 'day' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('day')}
+                  className="rounded-none border-0 px-2 md:px-3"
+                >
+                  <CalendarIcon className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline">Dzień</span>
+                </Button>
+              )}
+              {allowedViews.includes('two-days') && (
+                <Button
+                  variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('two-days')}
+                  className="rounded-none border-0 px-2 md:px-3"
+                >
+                  <Columns2 className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline">2 dni</span>
+                </Button>
+              )}
+              {allowedViews.includes('week') && showWeekView && (
+                <Button
+                  variant={viewMode === 'week' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('week')}
+                  className="rounded-none border-0 px-2 md:px-3"
+                >
+                  <CalendarDays className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline">Tydzień</span>
+                </Button>
+              )}
+            </div>
+          )}
           
           {/* Column visibility settings - only show if not read only */}
           {showStationFilter && (
@@ -752,12 +754,6 @@ const AdminCalendar = ({
         </div>
       </div>
       
-      {/* Mobile hint for adding breaks - only in edit mode */}
-      {!readOnly && isMobile && (viewMode === 'day' || viewMode === 'two-days') && (
-        <div className="px-4 py-1 bg-muted/30 border-b border-border text-xs text-muted-foreground text-center">
-          💡 Przytrzymaj dłużej slot, aby dodać przerwę
-        </div>
-      )}
 
       {/* DAY VIEW */}
       {viewMode === 'day' && (
