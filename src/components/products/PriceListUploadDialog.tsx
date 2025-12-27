@@ -29,6 +29,9 @@ export function PriceListUploadDialog({
 }: PriceListUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState('');
+  const [salespersonName, setSalespersonName] = useState('');
+  const [salespersonPhone, setSalespersonPhone] = useState('');
+  const [salespersonEmail, setSalespersonEmail] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -163,6 +166,9 @@ export function PriceListUploadDialog({
           file_type: fileType,
           status: 'pending',
           is_global: false,
+          salesperson_name: salespersonName.trim() || null,
+          salesperson_phone: salespersonPhone.trim() || null,
+          salesperson_email: salespersonEmail.trim() || null,
         })
         .select()
         .single();
@@ -228,6 +234,9 @@ export function PriceListUploadDialog({
     if (!isUploading) {
       setFile(null);
       setName('');
+      setSalespersonName('');
+      setSalespersonPhone('');
+      setSalespersonEmail('');
       onOpenChange(false);
     }
   };
@@ -311,6 +320,47 @@ export function PriceListUploadDialog({
               placeholder="np. Folie samochodowe 2024"
               disabled={isUploading}
             />
+          </div>
+
+          {/* Salesperson fields (optional) */}
+          <div className="space-y-3 p-3 border border-border rounded-lg">
+            <p className="text-sm font-medium text-muted-foreground">Dane handlowca (opcjonalnie)</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="salesperson-name" className="text-xs">Imię i nazwisko</Label>
+                <Input
+                  id="salesperson-name"
+                  value={salespersonName}
+                  onChange={(e) => setSalespersonName(e.target.value)}
+                  placeholder="Jan Kowalski"
+                  disabled={isUploading}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="salesperson-phone" className="text-xs">Telefon</Label>
+                  <Input
+                    id="salesperson-phone"
+                    type="tel"
+                    value={salespersonPhone}
+                    onChange={(e) => setSalespersonPhone(e.target.value)}
+                    placeholder="+48 123 456 789"
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="salesperson-email" className="text-xs">Email</Label>
+                  <Input
+                    id="salesperson-email"
+                    type="email"
+                    value={salespersonEmail}
+                    onChange={(e) => setSalespersonEmail(e.target.value)}
+                    placeholder="handlowiec@firma.pl"
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Progress */}

@@ -555,6 +555,9 @@ export type Database = {
           is_global: boolean | null
           name: string
           products_count: number | null
+          salesperson_email: string | null
+          salesperson_name: string | null
+          salesperson_phone: string | null
           status: string
           updated_at: string
         }
@@ -569,6 +572,9 @@ export type Database = {
           is_global?: boolean | null
           name: string
           products_count?: number | null
+          salesperson_email?: string | null
+          salesperson_name?: string | null
+          salesperson_phone?: string | null
           status?: string
           updated_at?: string
         }
@@ -583,6 +589,9 @@ export type Database = {
           is_global?: boolean | null
           name?: string
           products_count?: number | null
+          salesperson_email?: string | null
+          salesperson_name?: string | null
+          salesperson_phone?: string | null
           status?: string
           updated_at?: string
         }
