@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,12 +22,18 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Product {
   id: string;
@@ -64,11 +70,13 @@ export const OptionsStep = ({
   calculateOptionTotal,
 }: OptionsStepProps) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [expandedOptions, setExpandedOptions] = useState<Set<string>>(new Set());
+  const [expandedOptions, setExpandedOptions] = useState<Set<string>>(
+    new Set(options.map(o => o.id))
+  );
+  const [autocompleteOpen, setAutocompleteOpen] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchProducts = async () => {
-      // Fetch both global and instance products
       const { data, error } = await supabase
         .from('products_library')
         .select('*')
@@ -107,18 +115,15 @@ export const OptionsStep = ({
     });
   };
 
-  const handleAddProductItem = (optionId: string, product: Product) => {
-    onAddItem(optionId, {
+  const handleProductSelect = (optionId: string, itemId: string, product: Product) => {
+    onUpdateItem(optionId, itemId, {
       productId: product.id,
       customName: product.name,
-      customDescription: product.description || '',
-      quantity: 1,
       unitPrice: product.default_price,
       unit: product.unit,
-      discountPercent: 0,
-      isOptional: false,
       isCustom: false,
     });
+    setAutocompleteOpen(prev => ({ ...prev, [itemId]: false }));
   };
 
   const toggleOption = (optionId: string) => {
@@ -167,7 +172,6 @@ export const OptionsStep = ({
                       value={option.name}
                       onChange={(e) => onUpdateOption(option.id, { name: e.target.value })}
                       className="font-semibold text-lg border-none p-0 h-auto focus-visible:ring-0"
-                      placeholder="Nazwa opcji"
                     />
                   </div>
                   <div className="ml-7 mt-1 text-sm text-muted-foreground">
@@ -214,78 +218,146 @@ export const OptionsStep = ({
                   <Input
                     value={option.description || ''}
                     onChange={(e) => onUpdateOption(option.id, { description: e.target.value })}
-                    placeholder="Krótki opis tej opcji..."
                   />
                 </div>
 
-                {/* Items */}
-                <div className="space-y-3">
+                {/* Items Table */}
+                <div className="space-y-2">
                   <Label className="text-sm font-medium">Pozycje</Label>
+                  
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-muted rounded-t-lg text-xs font-medium text-muted-foreground">
+                    <div className="col-span-4">Nazwa</div>
+                    <div className="col-span-2 text-center">Ilość</div>
+                    <div className="col-span-1 text-center">J.m.</div>
+                    <div className="col-span-2 text-center">Cena</div>
+                    <div className="col-span-1 text-center">Rabat</div>
+                    <div className="col-span-1 text-center" title="Pozycja opcjonalna">Opc.</div>
+                    <div className="col-span-1"></div>
+                  </div>
                   
                   {option.items.map((item, itemIndex) => (
                     <div
                       key={item.id}
                       className={cn(
-                        "grid grid-cols-12 gap-2 p-3 rounded-lg border",
-                        item.isOptional && "bg-muted/50"
+                        "grid grid-cols-12 gap-2 p-3 border-x border-b first:border-t rounded-none last:rounded-b-lg",
+                        item.isOptional && "bg-muted/30"
                       )}
                     >
-                      <div className="col-span-12 md:col-span-4">
-                        <Input
-                          value={item.customName || ''}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { customName: e.target.value })}
-                          placeholder="Nazwa pozycji"
-                        />
+                      {/* Name with Autocomplete */}
+                      <div className="col-span-4">
+                        <Popover 
+                          open={autocompleteOpen[item.id]} 
+                          onOpenChange={(open) => setAutocompleteOpen(prev => ({ ...prev, [item.id]: open }))}
+                        >
+                          <PopoverTrigger asChild>
+                            <Input
+                              value={item.customName || ''}
+                              onChange={(e) => {
+                                onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
+                                if (e.target.value.length > 0) {
+                                  setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                                }
+                              }}
+                              onFocus={() => {
+                                if (products.length > 0) {
+                                  setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                                }
+                              }}
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent className="p-0 w-[300px]" align="start">
+                            <Command>
+                              <CommandInput placeholder="Szukaj w bibliotece..." />
+                              <CommandList>
+                                <CommandEmpty>Brak produktów</CommandEmpty>
+                                <CommandGroup>
+                                  {products
+                                    .filter(p => 
+                                      !item.customName || 
+                                      p.name.toLowerCase().includes((item.customName || '').toLowerCase())
+                                    )
+                                    .slice(0, 10)
+                                    .map(product => (
+                                      <CommandItem
+                                        key={product.id}
+                                        onSelect={() => handleProductSelect(option.id, item.id, product)}
+                                        className="flex justify-between"
+                                      >
+                                        <span>{product.name}</span>
+                                        <span className="text-muted-foreground text-sm">
+                                          {formatPrice(product.default_price)}
+                                        </span>
+                                      </CommandItem>
+                                    ))
+                                  }
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                      <div className="col-span-4 md:col-span-2">
+                      
+                      {/* Quantity */}
+                      <div className="col-span-2">
                         <Input
                           type="number"
                           value={item.quantity}
                           onChange={(e) => onUpdateItem(option.id, item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                          placeholder="Ilość"
                           min={0}
                           step={0.01}
+                          className="text-center"
                         />
                       </div>
-                      <div className="col-span-4 md:col-span-1">
+                      
+                      {/* Unit */}
+                      <div className="col-span-1">
                         <Input
                           value={item.unit}
                           onChange={(e) => onUpdateItem(option.id, item.id, { unit: e.target.value })}
-                          placeholder="j.m."
+                          className="text-center"
                         />
                       </div>
-                      <div className="col-span-4 md:col-span-2">
+                      
+                      {/* Price */}
+                      <div className="col-span-2">
                         <Input
                           type="number"
                           value={item.unitPrice}
                           onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                          placeholder="Cena"
                           min={0}
                           step={0.01}
+                          className="text-center"
                         />
                       </div>
-                      <div className="col-span-6 md:col-span-2">
-                        <div className="flex items-center gap-2">
+                      
+                      {/* Discount */}
+                      <div className="col-span-1">
+                        <div className="flex items-center gap-1">
                           <Input
                             type="number"
                             value={item.discountPercent}
                             onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: parseFloat(e.target.value) || 0 })}
-                            placeholder="%"
                             min={0}
                             max={100}
-                            className="w-16"
+                            className="text-center"
                           />
-                          <span className="text-sm text-muted-foreground">%</span>
                         </div>
                       </div>
-                      <div className="col-span-6 md:col-span-1 flex items-center justify-end gap-1">
+                      
+                      {/* Optional checkbox */}
+                      <div className="col-span-1 flex items-center justify-center">
                         <Checkbox
                           checked={item.isOptional}
                           onCheckedChange={(checked) => 
                             onUpdateItem(option.id, item.id, { isOptional: !!checked })
                           }
-                          title="Opcjonalna"
+                          title="Pozycja opcjonalna - klient może ją wybrać lub odrzucić"
                         />
+                      </div>
+                      
+                      {/* Delete */}
+                      <div className="col-span-1 flex items-center justify-end">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -298,8 +370,14 @@ export const OptionsStep = ({
                     </div>
                   ))}
 
-                  {/* Add Item Buttons */}
-                  <div className="flex flex-wrap gap-2 pt-2">
+                  {option.items.length === 0 && (
+                    <div className="border rounded-b-lg p-4 text-center text-muted-foreground text-sm">
+                      Brak pozycji. Dodaj pierwszą pozycję poniżej.
+                    </div>
+                  )}
+
+                  {/* Add Item Button */}
+                  <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -307,37 +385,8 @@ export const OptionsStep = ({
                       className="gap-1"
                     >
                       <Plus className="w-3 h-3" />
-                      Dodaj własną pozycję
+                      Dodaj pozycję
                     </Button>
-                    
-                    <Select onValueChange={(productId) => {
-                      const product = products.find(p => p.id === productId);
-                      if (product) handleAddProductItem(option.id, product);
-                    }}>
-                      <SelectTrigger className="w-auto">
-                        <div className="flex items-center gap-1">
-                          <Package className="w-3 h-3" />
-                          <span>Dodaj z biblioteki</span>
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            <div className="flex items-center justify-between gap-4">
-                              <span>{product.name}</span>
-                              <span className="text-muted-foreground text-sm">
-                                {formatPrice(product.default_price)}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        {products.length === 0 && (
-                          <div className="p-2 text-sm text-muted-foreground">
-                            Brak produktów w bibliotece
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </CardContent>

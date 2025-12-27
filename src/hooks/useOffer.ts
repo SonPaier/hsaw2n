@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
@@ -13,11 +13,8 @@ export interface CustomerData {
 }
 
 export interface VehicleData {
-  brand?: string;
-  model?: string;
+  brandModel?: string;
   plate?: string;
-  vin?: string;
-  year?: number;
 }
 
 export interface OfferItem {
@@ -48,6 +45,7 @@ export interface OfferState {
   customerData: CustomerData;
   vehicleData: VehicleData;
   options: OfferOption[];
+  additions: OfferItem[];
   notes?: string;
   paymentTerms?: string;
   validUntil?: string;
@@ -65,10 +63,8 @@ const defaultCustomerData: CustomerData = {
 };
 
 const defaultVehicleData: VehicleData = {
-  brand: '',
-  model: '',
+  brandModel: '',
   plate: '',
-  vin: '',
 };
 
 export const useOffer = (instanceId: string) => {
@@ -77,12 +73,30 @@ export const useOffer = (instanceId: string) => {
     customerData: defaultCustomerData,
     vehicleData: defaultVehicleData,
     options: [],
+    additions: [],
     vatRate: 23,
     status: 'draft',
   });
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Initialize with one default option
+  useEffect(() => {
+    if (offer.options.length === 0 && !offer.id) {
+      setOffer(prev => ({
+        ...prev,
+        options: [{
+          id: crypto.randomUUID(),
+          name: 'Opcja 1',
+          description: '',
+          items: [],
+          isSelected: true,
+          sortOrder: 0,
+        }],
+      }));
+    }
+  }, []);
 
   // Customer data handlers
   const updateCustomerData = useCallback((data: Partial<CustomerData>) => {
@@ -196,6 +210,35 @@ export const useOffer = (instanceId: string) => {
     }));
   }, []);
 
+  // Additions handlers
+  const addAddition = useCallback((item: Omit<OfferItem, 'id'>) => {
+    const newItem: OfferItem = {
+      ...item,
+      id: crypto.randomUUID(),
+    };
+    setOffer(prev => ({
+      ...prev,
+      additions: [...prev.additions, newItem],
+    }));
+    return newItem.id;
+  }, []);
+
+  const updateAddition = useCallback((itemId: string, data: Partial<OfferItem>) => {
+    setOffer(prev => ({
+      ...prev,
+      additions: prev.additions.map(item => 
+        item.id === itemId ? { ...item, ...data } : item
+      ),
+    }));
+  }, []);
+
+  const removeAddition = useCallback((itemId: string) => {
+    setOffer(prev => ({
+      ...prev,
+      additions: prev.additions.filter(item => item.id !== itemId),
+    }));
+  }, []);
+
   // General update
   const updateOffer = useCallback((data: Partial<OfferState>) => {
     setOffer(prev => ({ ...prev, ...data }));
@@ -210,11 +253,20 @@ export const useOffer = (instanceId: string) => {
     }, 0);
   }, []);
 
+  const calculateAdditionsTotal = useCallback(() => {
+    return offer.additions.reduce((sum, item) => {
+      if (item.isOptional) return sum;
+      const itemTotal = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+      return sum + itemTotal;
+    }, 0);
+  }, [offer.additions]);
+
   const calculateTotalNet = useCallback(() => {
-    return offer.options
+    const optionsTotal = offer.options
       .filter(opt => opt.isSelected)
       .reduce((sum, opt) => sum + calculateOptionTotal(opt), 0);
-  }, [offer.options, calculateOptionTotal]);
+    return optionsTotal + calculateAdditionsTotal();
+  }, [offer.options, calculateOptionTotal, calculateAdditionsTotal]);
 
   const calculateTotalGross = useCallback(() => {
     const net = calculateTotalNet();
@@ -337,6 +389,46 @@ export const useOffer = (instanceId: string) => {
         }
       }
 
+      // Insert additions as a special option
+      if (offer.additions.length > 0) {
+        const additionsOptionData = {
+          offer_id: offerId,
+          name: 'Dodatki',
+          description: '',
+          is_selected: true,
+          sort_order: offer.options.length,
+          subtotal_net: calculateAdditionsTotal(),
+        };
+
+        const { data: additionsOption, error: additionsOptionError } = await supabase
+          .from('offer_options')
+          .insert(additionsOptionData)
+          .select('id')
+          .single();
+
+        if (additionsOptionError) throw additionsOptionError;
+
+        const additionsItemsData = offer.additions.map((item, idx) => ({
+          option_id: additionsOption.id,
+          product_id: item.productId || null,
+          custom_name: item.customName,
+          custom_description: item.customDescription,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          unit: item.unit,
+          discount_percent: item.discountPercent,
+          is_optional: item.isOptional,
+          is_custom: item.isCustom,
+          sort_order: idx,
+        }));
+
+        const { error: additionsItemsError } = await supabase
+          .from('offer_option_items')
+          .insert(additionsItemsData);
+
+        if (additionsItemsError) throw additionsItemsError;
+      }
+
       toast.success('Oferta została zapisana');
       return offerId;
     } catch (error) {
@@ -346,7 +438,7 @@ export const useOffer = (instanceId: string) => {
     } finally {
       setSaving(false);
     }
-  }, [offer, instanceId, calculateTotalNet, calculateTotalGross, calculateOptionTotal]);
+  }, [offer, instanceId, calculateTotalNet, calculateTotalGross, calculateOptionTotal, calculateAdditionsTotal]);
 
   // Load offer from database
   const loadOffer = useCallback(async (offerId: string) => {
@@ -366,15 +458,37 @@ export const useOffer = (instanceId: string) => {
 
       if (offerError) throw offerError;
 
-      const options: OfferOption[] = (offerData.offer_options || [])
-        .sort((a: any, b: any) => a.sort_order - b.sort_order)
-        .map((opt: any) => ({
-          id: opt.id,
-          name: opt.name,
-          description: opt.description,
-          isSelected: opt.is_selected,
-          sortOrder: opt.sort_order,
-          items: (opt.offer_option_items || [])
+      const allOptions = (offerData.offer_options || [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order);
+      
+      // Separate additions from regular options
+      const additionsOption = allOptions.find((opt: any) => opt.name === 'Dodatki');
+      const regularOptions = allOptions.filter((opt: any) => opt.name !== 'Dodatki');
+
+      const options: OfferOption[] = regularOptions.map((opt: any) => ({
+        id: opt.id,
+        name: opt.name,
+        description: opt.description,
+        isSelected: opt.is_selected,
+        sortOrder: opt.sort_order,
+        items: (opt.offer_option_items || [])
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+          .map((item: any) => ({
+            id: item.id,
+            productId: item.product_id,
+            customName: item.custom_name,
+            customDescription: item.custom_description,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unit_price),
+            unit: item.unit,
+            discountPercent: Number(item.discount_percent),
+            isOptional: item.is_optional,
+            isCustom: item.is_custom,
+          })),
+      }));
+
+      const additions: OfferItem[] = additionsOption 
+        ? (additionsOption.offer_option_items || [])
             .sort((a: any, b: any) => a.sort_order - b.sort_order)
             .map((item: any) => ({
               id: item.id,
@@ -387,15 +501,24 @@ export const useOffer = (instanceId: string) => {
               discountPercent: Number(item.discount_percent),
               isOptional: item.is_optional,
               isCustom: item.is_custom,
-            })),
-        }));
+            }))
+        : [];
+
+      // Handle legacy vehicle data format
+      const vehicleDataRaw = offerData.vehicle_data as any || defaultVehicleData;
+      const vehicleData: VehicleData = {
+        brandModel: vehicleDataRaw.brandModel || 
+          [vehicleDataRaw.brand, vehicleDataRaw.model].filter(Boolean).join(' ') || '',
+        plate: vehicleDataRaw.plate || '',
+      };
 
       setOffer({
         id: offerData.id,
         instanceId: offerData.instance_id,
         customerData: (offerData.customer_data || defaultCustomerData) as unknown as CustomerData,
-        vehicleData: (offerData.vehicle_data || defaultVehicleData) as unknown as VehicleData,
+        vehicleData,
         options,
+        additions,
         notes: offerData.notes,
         paymentTerms: offerData.payment_terms,
         validUntil: offerData.valid_until,
@@ -417,7 +540,15 @@ export const useOffer = (instanceId: string) => {
       instanceId,
       customerData: defaultCustomerData,
       vehicleData: defaultVehicleData,
-      options: [],
+      options: [{
+        id: crypto.randomUUID(),
+        name: 'Opcja 1',
+        description: '',
+        items: [],
+        isSelected: true,
+        sortOrder: 0,
+      }],
+      additions: [],
       vatRate: 23,
       status: 'draft',
     });
@@ -436,8 +567,12 @@ export const useOffer = (instanceId: string) => {
     addItemToOption,
     updateItemInOption,
     removeItemFromOption,
+    addAddition,
+    updateAddition,
+    removeAddition,
     updateOffer,
     calculateOptionTotal,
+    calculateAdditionsTotal,
     calculateTotalNet,
     calculateTotalGross,
     saveOffer,
