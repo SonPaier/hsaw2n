@@ -761,7 +761,7 @@ const AdminCalendar = ({
           {/* Station Headers */}
           <div className="flex border-b border-border bg-muted/20">
             {/* Time column header */}
-            <div className="w-14 md:w-16 shrink-0 p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
+            <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
               <Clock className="w-4 h-4 mx-auto" />
             </div>
             
@@ -784,7 +784,7 @@ const AdminCalendar = ({
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
@@ -1027,7 +1027,7 @@ const AdminCalendar = ({
           {/* Day and Station Headers */}
           <div className="flex border-b border-border bg-muted/20">
             {/* Time column header */}
-            <div className="w-14 md:w-16 shrink-0 p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
+            <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
               <Clock className="w-4 h-4 mx-auto" />
             </div>
             
@@ -1076,7 +1076,7 @@ const AdminCalendar = ({
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
@@ -1287,7 +1287,7 @@ const AdminCalendar = ({
           {/* Week Day Headers */}
           <div className="flex border-b border-border bg-muted/20">
             {/* Time column header */}
-            <div className="w-14 md:w-16 shrink-0 p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
+            <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
               <Clock className="w-4 h-4 mx-auto" />
             </div>
             
@@ -1338,7 +1338,7 @@ const AdminCalendar = ({
           <div className="flex-1 overflow-auto">
             <div className="flex relative" style={{ minHeight: HOURS.length * 40 }}>
               {/* Time column */}
-              <div className="w-14 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
