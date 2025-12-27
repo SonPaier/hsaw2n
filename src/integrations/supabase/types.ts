@@ -163,6 +163,38 @@ export type Database = {
           },
         ]
       }
+      instance_features: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          instance_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          instance_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          instance_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instance_features_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instances: {
         Row: {
           active: boolean | null
@@ -185,6 +217,7 @@ export type Database = {
           social_facebook: string | null
           social_instagram: string | null
           updated_at: string | null
+          use_global_products: boolean
           website: string | null
           working_hours: Json | null
         }
@@ -209,6 +242,7 @@ export type Database = {
           social_facebook?: string | null
           social_instagram?: string | null
           updated_at?: string | null
+          use_global_products?: boolean
           website?: string | null
           working_hours?: Json | null
         }
@@ -233,10 +267,331 @@ export type Database = {
           social_facebook?: string | null
           social_instagram?: string | null
           updated_at?: string | null
+          use_global_products?: boolean
           website?: string | null
           working_hours?: Json | null
         }
         Relationships: []
+      }
+      offer_history: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string | null
+          id: string
+          new_data: Json | null
+          offer_id: string
+          old_data: Json | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_data?: Json | null
+          offer_id: string
+          old_data?: Json | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_data?: Json | null
+          offer_id?: string
+          old_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_history_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_option_items: {
+        Row: {
+          created_at: string
+          custom_description: string | null
+          custom_name: string | null
+          discount_percent: number
+          id: string
+          is_custom: boolean
+          is_optional: boolean
+          option_id: string
+          product_id: string | null
+          quantity: number
+          sort_order: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          discount_percent?: number
+          id?: string
+          is_custom?: boolean
+          is_optional?: boolean
+          option_id: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          discount_percent?: number
+          id?: string
+          is_custom?: boolean
+          is_optional?: boolean
+          option_id?: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_option_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "offer_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_option_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_library"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_options: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_selected: boolean
+          name: string
+          offer_id: string
+          sort_order: number
+          subtotal_net: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_selected?: boolean
+          name: string
+          offer_id: string
+          sort_order?: number
+          subtotal_net?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_selected?: boolean
+          name?: string
+          offer_id?: string
+          sort_order?: number
+          subtotal_net?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_options_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_text_blocks: {
+        Row: {
+          block_id: string | null
+          block_type: string
+          content: string
+          created_at: string
+          id: string
+          offer_id: string
+          sort_order: number
+        }
+        Insert: {
+          block_id?: string | null
+          block_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          offer_id: string
+          sort_order?: number
+        }
+        Update: {
+          block_id?: string | null
+          block_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          offer_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_text_blocks_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "text_blocks_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_text_blocks_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_data: Json
+          id: string
+          instance_id: string
+          notes: string | null
+          offer_number: string
+          payment_terms: string | null
+          public_token: string
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+          total_gross: number
+          total_net: number
+          updated_at: string
+          valid_until: string | null
+          vat_rate: number
+          vehicle_data: Json | null
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_data?: Json
+          id?: string
+          instance_id: string
+          notes?: string | null
+          offer_number: string
+          payment_terms?: string | null
+          public_token?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          valid_until?: string | null
+          vat_rate?: number
+          vehicle_data?: Json | null
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_data?: Json
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          offer_number?: string
+          payment_terms?: string | null
+          public_token?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          valid_until?: string | null
+          vat_rate?: number
+          vehicle_data?: Json | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products_library: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          default_price: number
+          description: string | null
+          id: string
+          instance_id: string | null
+          name: string
+          sort_order: number | null
+          source: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          default_price?: number
+          description?: string | null
+          id?: string
+          instance_id?: string | null
+          name: string
+          sort_order?: number | null
+          source?: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          default_price?: number
+          description?: string | null
+          id?: string
+          instance_id?: string | null
+          name?: string
+          sort_order?: number | null
+          source?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_library_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -565,6 +920,53 @@ export type Database = {
           },
         ]
       }
+      text_blocks_library: {
+        Row: {
+          active: boolean
+          block_type: string
+          content: string
+          created_at: string
+          id: string
+          instance_id: string | null
+          name: string
+          sort_order: number | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          block_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          name: string
+          sort_order?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          block_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          name?: string
+          sort_order?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "text_blocks_library_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -600,6 +1002,7 @@ export type Database = {
     }
     Functions: {
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
+      generate_offer_number: { Args: { _instance_id: string }; Returns: string }
       get_availability_blocks: {
         Args: { _from: string; _instance_id: string; _to: string }
         Returns: {
