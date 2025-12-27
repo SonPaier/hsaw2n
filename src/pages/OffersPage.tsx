@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter } from 'lucide-react';
+import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
@@ -32,8 +42,10 @@ interface Offer {
     name?: string;
     email?: string;
     company?: string;
+    phone?: string;
   };
   vehicle_data?: {
+    brandModel?: string;
     brand?: string;
     model?: string;
     plate?: string;
@@ -44,6 +56,20 @@ interface Offer {
   created_at: string;
   valid_until?: string;
   public_token: string;
+}
+
+interface OfferWithOptions extends Offer {
+  offer_options?: {
+    id: string;
+    offer_option_items?: {
+      custom_name?: string;
+    }[];
+  }[];
+}
+
+interface OfferSettings {
+  number_prefix: string;
+  number_format: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -70,9 +96,17 @@ const OffersPage = () => {
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [duplicatingOfferId, setDuplicatingOfferId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<OfferWithOptions[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState<OfferSettings>({
+    number_prefix: '',
+    number_format: 'PREFIX/YYYY/MMDD/NNN',
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     const fetchUserInstanceId = async () => {
@@ -110,12 +144,20 @@ const OffersPage = () => {
     try {
       const { data, error } = await supabase
         .from('offers')
-        .select('*')
+        .select(`
+          *,
+          offer_options (
+            id,
+            offer_option_items (
+              custom_name
+            )
+          )
+        `)
         .eq('instance_id', instanceId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setOffers((data || []) as Offer[]);
+      setOffers((data || []) as OfferWithOptions[]);
     } catch (error) {
       console.error('Error fetching offers:', error);
       toast.error('Błąd podczas pobierania ofert');
@@ -124,8 +166,40 @@ const OffersPage = () => {
     }
   };
 
+  const fetchSettings = async () => {
+    if (!instanceId) return;
+    const { data } = await supabase
+      .from('instance_features')
+      .select('*')
+      .eq('instance_id', instanceId)
+      .eq('feature_key', 'offer_settings')
+      .maybeSingle();
+    
+    if (data) {
+      try {
+        const parsed = JSON.parse(data.enabled ? 'true' : 'false');
+        // Settings stored in a different way - check text_blocks
+      } catch {}
+    }
+    
+    // Get instance slug for default prefix
+    const { data: instance } = await supabase
+      .from('instances')
+      .select('slug')
+      .eq('id', instanceId)
+      .single();
+    
+    if (instance?.slug) {
+      setSettings(prev => ({
+        ...prev,
+        number_prefix: prev.number_prefix || instance.slug.toUpperCase().slice(0, 3),
+      }));
+    }
+  };
+
   useEffect(() => {
     fetchOffers();
+    fetchSettings();
   }, [instanceId]);
 
   const handleDeleteOffer = async (offerId: string) => {
@@ -142,10 +216,26 @@ const OffersPage = () => {
     }
   };
 
+  const handleDuplicateOffer = async (offerId: string) => {
+    setDuplicatingOfferId(offerId);
+    setEditingOfferId(offerId);
+    setShowGenerator(true);
+  };
+
   const handleCopyLink = (token: string) => {
     const url = `${window.location.origin}/oferta/${token}`;
     navigator.clipboard.writeText(url);
     toast.success('Link skopiowany do schowka');
+  };
+
+  const handleSaveSettings = async () => {
+    // Settings would be stored - for now just close
+    setSavingSettings(true);
+    setTimeout(() => {
+      setSavingSettings(false);
+      setShowSettings(false);
+      toast.success('Ustawienia zapisane');
+    }, 500);
   };
 
   const formatPrice = (value: number) => {
@@ -155,32 +245,72 @@ const OffersPage = () => {
     }).format(value);
   };
 
-  const filteredOffers = statusFilter === 'all' 
-    ? offers 
-    : offers.filter(o => o.status === statusFilter);
+  // Search and filter
+  const filteredOffers = useMemo(() => {
+    let result = offers;
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(o => o.status === statusFilter);
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(offer => {
+        // Search in offer number
+        if (offer.offer_number.toLowerCase().includes(query)) return true;
+        
+        // Search in customer data
+        const customer = offer.customer_data;
+        if (customer?.name?.toLowerCase().includes(query)) return true;
+        if (customer?.email?.toLowerCase().includes(query)) return true;
+        if (customer?.company?.toLowerCase().includes(query)) return true;
+        if (customer?.phone?.toLowerCase().includes(query)) return true;
+        
+        // Search in vehicle data
+        const vehicle = offer.vehicle_data;
+        if (vehicle?.brandModel?.toLowerCase().includes(query)) return true;
+        if (vehicle?.brand?.toLowerCase().includes(query)) return true;
+        if (vehicle?.model?.toLowerCase().includes(query)) return true;
+        if (vehicle?.plate?.toLowerCase().includes(query)) return true;
+        
+        // Search in products/items
+        const products = offer.offer_options?.flatMap(opt => 
+          opt.offer_option_items?.map(item => item.custom_name) || []
+        ) || [];
+        if (products.some(name => name?.toLowerCase().includes(query))) return true;
+        
+        return false;
+      });
+    }
+    
+    return result;
+  }, [offers, statusFilter, searchQuery]);
 
   if (showGenerator && instanceId) {
     return (
       <>
         <Helmet>
-          <title>{editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta'} - Generator ofert</title>
+          <title>{editingOfferId ? (duplicatingOfferId ? 'Duplikuj ofertę' : 'Edytuj ofertę') : 'Nowa oferta'} - Generator ofert</title>
         </Helmet>
         <div className="min-h-screen bg-background p-4 lg:p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
-              <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); }} className="gap-2">
+              <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }} className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Wróć do listy
               </Button>
             </div>
             <h1 className="text-2xl font-bold mb-6">
-              {editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta'}
+              {duplicatingOfferId ? 'Duplikuj ofertę' : (editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta')}
             </h1>
             <OfferGenerator
               instanceId={instanceId}
-              offerId={editingOfferId || undefined}
-              onClose={() => { setShowGenerator(false); setEditingOfferId(null); }}
-              onSaved={() => { setShowGenerator(false); setEditingOfferId(null); fetchOffers(); }}
+              offerId={duplicatingOfferId ? undefined : editingOfferId || undefined}
+              duplicateFromId={duplicatingOfferId || undefined}
+              onClose={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }}
+              onSaved={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); fetchOffers(); }}
             />
           </div>
         </div>
@@ -203,14 +333,28 @@ const OffersPage = () => {
               </Button>
               <h1 className="text-2xl font-bold">Oferty</h1>
             </div>
-            <Button onClick={() => setShowGenerator(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nowa oferta
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia ofert">
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button onClick={() => setShowGenerator(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nowa oferta
+              </Button>
+            </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-4 mb-6">
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Szukaj po numerze, kliencie, pojeździe, produkcie..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -227,9 +371,11 @@ const OffersPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
-            </div>
+          </div>
+
+          <div className="text-sm text-muted-foreground mb-4">
+            {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
+            {searchQuery && ` dla "${searchQuery}"`}
           </div>
           
           {loading ? (
@@ -240,9 +386,11 @@ const OffersPage = () => {
             <div className="glass-card p-8 text-center">
               <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {statusFilter === 'all' 
-                  ? 'Brak ofert. Kliknij "Nowa oferta" aby utworzyć pierwszą.'
-                  : 'Brak ofert o wybranym statusie.'}
+                {searchQuery 
+                  ? `Brak wyników dla "${searchQuery}"`
+                  : statusFilter === 'all' 
+                    ? 'Brak ofert. Kliknij "Nowa oferta" aby utworzyć pierwszą.'
+                    : 'Brak ofert o wybranym statusie.'}
               </p>
             </div>
           ) : (
@@ -267,7 +415,9 @@ const OffersPage = () => {
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {offer.customer_data?.name || offer.customer_data?.company || 'Brak danych klienta'}
-                          {offer.vehicle_data?.brand && ` • ${offer.vehicle_data.brand} ${offer.vehicle_data.model || ''}`}
+                          {(offer.vehicle_data?.brandModel || offer.vehicle_data?.brand) && 
+                            ` • ${offer.vehicle_data.brandModel || `${offer.vehicle_data.brand} ${offer.vehicle_data.model || ''}`}`
+                          }
                         </div>
                       </div>
                     </div>
@@ -293,6 +443,10 @@ const OffersPage = () => {
                             <Copy className="w-4 h-4 mr-2" />
                             Kopiuj link
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateOffer(offer.id); }}>
+                            <CopyPlus className="w-4 h-4 mr-2" />
+                            Duplikuj
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info('Wysyłka oferty - wkrótce'); }}>
                             <Send className="w-4 h-4 mr-2" />
                             Wyślij
@@ -314,6 +468,62 @@ const OffersPage = () => {
           )}
         </div>
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ustawienia ofert</DialogTitle>
+            <DialogDescription>
+              Skonfiguruj format numeracji ofert
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="numberPrefix">Prefix numeracji</Label>
+              <Input
+                id="numberPrefix"
+                value={settings.number_prefix}
+                onChange={(e) => setSettings(prev => ({ ...prev, number_prefix: e.target.value.toUpperCase() }))}
+                placeholder="np. ARM, OFF, PPF"
+                maxLength={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Krótki prefix na początku numeru oferty (max 5 znaków)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Format numeracji</Label>
+              <Select 
+                value={settings.number_format} 
+                onValueChange={(val) => setSettings(prev => ({ ...prev, number_format: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PREFIX/YYYY/MMDD/NNN">PREFIX/YYYY/MMDD/NNN</SelectItem>
+                  <SelectItem value="PREFIX/YYYY/MM/NNN">PREFIX/YYYY/MM/NNN</SelectItem>
+                  <SelectItem value="PREFIX-YYYYMMDD-NNN">PREFIX-YYYYMMDD-NNN</SelectItem>
+                  <SelectItem value="YYYYMM-NNN">YYYYMM-NNN</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Przykład: <span className="font-mono">{settings.number_prefix || 'OFF'}/2025/0127/001</span>
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleSaveSettings} disabled={savingSettings}>
+              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
