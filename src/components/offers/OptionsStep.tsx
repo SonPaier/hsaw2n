@@ -226,12 +226,12 @@ export const OptionsStep = ({
                   <Label className="text-sm font-medium">Pozycje</Label>
                   
                   {/* Table Header */}
-                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-muted rounded-t-lg text-xs font-medium text-muted-foreground">
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-primary/10 border border-border rounded-t-lg text-xs font-medium text-foreground">
                     <div className="col-span-4">Nazwa</div>
                     <div className="col-span-2 text-center">Ilość</div>
                     <div className="col-span-1 text-center">J.m.</div>
-                    <div className="col-span-2 text-center">Cena</div>
-                    <div className="col-span-1 text-center">Rabat</div>
+                    <div className="col-span-2 text-center">Cena netto</div>
+                    <div className="col-span-1 text-center">Rabat %</div>
                     <div className="col-span-1 text-center" title="Pozycja opcjonalna">Opc.</div>
                     <div className="col-span-1"></div>
                   </div>
