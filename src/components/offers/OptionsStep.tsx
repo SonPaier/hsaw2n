@@ -81,11 +81,13 @@ export const OptionsStep = ({
         .from('products_library')
         .select('*')
         .eq('active', true)
-        .or(`instance_id.eq.${instanceId},source.eq.global`)
+        .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
         .order('sort_order');
       
       if (!error && data) {
         setProducts(data);
+      } else {
+        console.error('Error fetching products:', error);
       }
     };
     fetchProducts();
