@@ -903,13 +903,13 @@ const AdminCalendar = ({
                           onReservationClick?.(reservation);
                         }}
                       >
-                        {/* Drag handle - hidden in hallMode */}
-                        {!hallMode && (
-                          <div className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center opacity-60 hover:opacity-100 touch-none md:w-4 md:opacity-40">
-                            <GripVertical className="w-3.5 h-3.5 md:w-3 md:h-3" />
+                        {/* Drag handle - hidden in hallMode and on mobile */}
+                        {!hallMode && !isMobile && (
+                          <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-40 hover:opacity-100 touch-none">
+                            <GripVertical className="w-3 h-3" />
                           </div>
                         )}
-                        <div className={cn(!hallMode && "pl-4 md:pl-3")}>
+                        <div className={cn(!hallMode && !isMobile && "pl-3")}>
                           <div className="flex items-center justify-between gap-0.5">
                             {/* In hallMode show time instead of name */}
                             {hallMode ? (
@@ -925,32 +925,16 @@ const AdminCalendar = ({
                                 {reservation.customer_name}
                               </div>
                             )}
-                            {/* Hide phone and confirm buttons in hallMode */}
-                            {!hallMode && (
-                              <div className="flex items-center gap-0.5">
-                                {isPending && onConfirmReservation && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onConfirmReservation(reservation.id);
-                                    }}
-                                    className="shrink-0 p-0.5 rounded bg-white/20 hover:bg-white/40 transition-colors"
-                                    title="Potwierdź rezerwację"
-                                  >
-                                    <Check className="w-3 h-3" />
-                                  </button>
-                                )}
-                                {reservation.customer_phone && (
-                                  <a
-                                    href={`tel:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                    title={reservation.customer_phone}
-                                  >
-                                    <Phone className="w-4 h-4" />
-                                  </a>
-                                )}
-                              </div>
+                            {/* Hide phone button in hallMode */}
+                            {!hallMode && reservation.customer_phone && (
+                              <a
+                                href={`tel:${reservation.customer_phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                title={reservation.customer_phone}
+                              >
+                                <Phone className="w-4 h-4" />
+                              </a>
                             )}
                           </div>
                           {reservation.vehicle_plate && (
