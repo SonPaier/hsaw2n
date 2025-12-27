@@ -988,13 +988,13 @@ const AddReservationDialog = ({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+        <DialogFooter className="flex-row gap-2 sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1 sm:flex-none">
             Anuluj
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button onClick={handleSubmit} disabled={loading} className="flex-1 sm:flex-none">
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Dodaj rezerwację
+            Dodaj
           </Button>
         </DialogFooter>
       </DialogContent>
