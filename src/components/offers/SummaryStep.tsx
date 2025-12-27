@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,30 +22,76 @@ import {
   Calculator,
   Edit,
   Check,
-  X
+  X,
+  Plus,
+  Trash2,
+  Package
 } from 'lucide-react';
-import { CustomerData, VehicleData, OfferOption, OfferState } from '@/hooks/useOffer';
+import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SummaryStepProps {
+  instanceId: string;
   offer: OfferState;
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
+  additions: OfferItem[];
+  onAddAddition: (item: Omit<OfferItem, 'id'>) => string;
+  onUpdateAddition: (itemId: string, data: Partial<OfferItem>) => void;
+  onRemoveAddition: (itemId: string) => void;
+  calculateAdditionsTotal: () => number;
+}
+
+interface OfferTemplate {
+  id: string;
+  name: string;
+  payment_terms: string | null;
+  notes: string | null;
 }
 
 export const SummaryStep = ({
+  instanceId,
   offer,
   onUpdateOffer,
   onUpdateOption,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
+  additions,
+  onAddAddition,
+  onUpdateAddition,
+  onRemoveAddition,
+  calculateAdditionsTotal,
 }: SummaryStepProps) => {
   const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
   const [tempDiscount, setTempDiscount] = useState('');
+  const [templates, setTemplates] = useState<OfferTemplate[]>([]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data } = await supabase
+        .from('text_blocks_library')
+        .select('*')
+        .eq('active', true)
+        .eq('block_type', 'offer_template')
+        .or(`instance_id.eq.${instanceId},source.eq.global`)
+        .order('sort_order');
+      
+      if (data) {
+        setTemplates(data.map(t => ({
+          id: t.id,
+          name: t.name,
+          payment_terms: t.content.split('|||')[0] || null,
+          notes: t.content.split('|||')[1] || null,
+        })));
+      }
+    };
+    fetchTemplates();
+  }, [instanceId]);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
@@ -61,7 +107,6 @@ export const SummaryStep = ({
 
   const handleGlobalDiscountApply = (optionId: string, option: OfferOption) => {
     const discount = parseFloat(tempDiscount) || 0;
-    // Apply discount to all items in option
     const updatedItems = option.items.map(item => ({
       ...item,
       discountPercent: discount,
@@ -71,9 +116,31 @@ export const SummaryStep = ({
     setTempDiscount('');
   };
 
+  const handleAddAddition = () => {
+    onAddAddition({
+      productId: undefined,
+      customName: '',
+      customDescription: '',
+      quantity: 1,
+      unitPrice: 0,
+      unit: 'szt',
+      discountPercent: 0,
+      isOptional: false,
+      isCustom: true,
+    });
+  };
+
+  const handleApplyTemplate = (template: OfferTemplate) => {
+    onUpdateOffer({
+      paymentTerms: template.payment_terms || offer.paymentTerms,
+      notes: template.notes || offer.notes,
+    });
+  };
+
   const totalNet = calculateTotalNet();
   const totalGross = calculateTotalGross();
   const vatAmount = totalGross - totalNet;
+  const additionsTotal = calculateAdditionsTotal();
 
   return (
     <div className="space-y-6">
@@ -104,7 +171,7 @@ export const SummaryStep = ({
           </CardContent>
         </Card>
 
-        {(offer.vehicleData.brand || offer.vehicleData.model || offer.vehicleData.plate) && (
+        {offer.vehicleData.brandModel && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -113,14 +180,9 @@ export const SummaryStep = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-1">
-              <p className="font-medium">
-                {[offer.vehicleData.brand, offer.vehicleData.model].filter(Boolean).join(' ') || '—'}
-              </p>
+              <p className="font-medium">{offer.vehicleData.brandModel}</p>
               {offer.vehicleData.plate && (
                 <p className="text-muted-foreground">{offer.vehicleData.plate}</p>
-              )}
-              {offer.vehicleData.vin && (
-                <p className="text-muted-foreground text-xs">VIN: {offer.vehicleData.vin}</p>
               )}
             </CardContent>
           </Card>
@@ -171,7 +233,7 @@ export const SummaryStep = ({
                   <div className="col-span-5">Pozycja</div>
                   <div className="col-span-2 text-right">Ilość</div>
                   <div className="col-span-2 text-right">Cena</div>
-                  <div className="col-span-1 text-right">%</div>
+                  <div className="col-span-1 text-right">Rabat</div>
                   <div className="col-span-2 text-right">Wartość</div>
                 </div>
                 {option.items.map((item) => {
@@ -250,6 +312,102 @@ export const SummaryStep = ({
         </CardContent>
       </Card>
 
+      {/* Additions Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Package className="w-4 h-4 text-primary" />
+            Dodatki
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {additions.length > 0 && (
+            <div className="text-sm">
+              <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
+                <div className="col-span-4">Nazwa</div>
+                <div className="col-span-2 text-center">Ilość</div>
+                <div className="col-span-1 text-center">J.m.</div>
+                <div className="col-span-2 text-center">Cena</div>
+                <div className="col-span-2 text-right">Wartość</div>
+                <div className="col-span-1"></div>
+              </div>
+              {additions.map((item) => {
+                const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                return (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 items-center"
+                  >
+                    <div className="col-span-4">
+                      <Input
+                        value={item.customName || ''}
+                        onChange={(e) => onUpdateAddition(item.id, { customName: e.target.value })}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => onUpdateAddition(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                        min={0}
+                        step={0.01}
+                        className="h-8 text-center"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Input
+                        value={item.unit}
+                        onChange={(e) => onUpdateAddition(item.id, { unit: e.target.value })}
+                        className="h-8 text-center"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(e) => onUpdateAddition(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                        min={0}
+                        step={0.01}
+                        className="h-8 text-center"
+                      />
+                    </div>
+                    <div className="col-span-2 text-right font-medium">
+                      {formatPrice(itemValue)}
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onRemoveAddition(item.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              {additions.length > 0 && (
+                <div className="flex justify-end px-2 py-2 font-medium">
+                  Suma dodatków: {formatPrice(additionsTotal)}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAddAddition}
+            className="gap-1"
+          >
+            <Plus className="w-3 h-3" />
+            Dodaj pozycję
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Totals */}
       <Card>
         <CardHeader className="pb-3">
@@ -296,7 +454,24 @@ export const SummaryStep = ({
       {/* Notes & Terms */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Dodatkowe informacje</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Dodatkowe informacje</CardTitle>
+            {templates.length > 0 && (
+              <Select onValueChange={(id) => {
+                const template = templates.find(t => t.id === id);
+                if (template) handleApplyTemplate(template);
+              }}>
+                <SelectTrigger className="w-auto h-8">
+                  <span className="text-sm">Wczytaj szablon</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -312,7 +487,6 @@ export const SummaryStep = ({
             <Label htmlFor="paymentTerms">Warunki płatności</Label>
             <Input
               id="paymentTerms"
-              placeholder="np. 7 dni od daty wystawienia faktury"
               value={offer.paymentTerms || ''}
               onChange={(e) => onUpdateOffer({ paymentTerms: e.target.value })}
             />
@@ -321,7 +495,6 @@ export const SummaryStep = ({
             <Label htmlFor="notes">Uwagi</Label>
             <Textarea
               id="notes"
-              placeholder="Dodatkowe uwagi do oferty..."
               value={offer.notes || ''}
               onChange={(e) => onUpdateOffer({ notes: e.target.value })}
               rows={4}

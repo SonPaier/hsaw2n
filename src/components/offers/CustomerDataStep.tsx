@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Building2, Car } from 'lucide-react';
+import { User, Building2, Car, Search, Loader2 } from 'lucide-react';
 import { CustomerData, VehicleData } from '@/hooks/useOffer';
+import { toast } from 'sonner';
 
 interface CustomerDataStepProps {
   customerData: CustomerData;
@@ -17,6 +20,48 @@ export const CustomerDataStep = ({
   onCustomerChange,
   onVehicleChange,
 }: CustomerDataStepProps) => {
+  const [nipLoading, setNipLoading] = useState(false);
+  const [showManualCompany, setShowManualCompany] = useState(!!customerData.company || !!customerData.nip);
+
+  const lookupNip = async () => {
+    const nip = customerData.nip?.replace(/[^0-9]/g, '');
+    if (!nip || nip.length !== 10) {
+      toast.error('Wprowadź poprawny NIP (10 cyfr)');
+      return;
+    }
+
+    setNipLoading(true);
+    try {
+      // Use White List API from Polish Ministry of Finance
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(
+        `https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Nie znaleziono firmy');
+      }
+
+      const data = await response.json();
+      
+      if (data.result?.subject) {
+        const subject = data.result.subject;
+        onCustomerChange({
+          company: subject.name,
+          address: subject.workingAddress || subject.residenceAddress,
+        });
+        toast.success('Pobrano dane firmy');
+      } else {
+        toast.error('Nie znaleziono firmy o podanym NIP');
+      }
+    } catch (error) {
+      console.error('NIP lookup error:', error);
+      toast.error('Nie udało się pobrać danych firmy');
+    } finally {
+      setNipLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Customer Info */}
@@ -33,7 +78,6 @@ export const CustomerDataStep = ({
               <Label htmlFor="customerName">Imię i nazwisko *</Label>
               <Input
                 id="customerName"
-                placeholder="Jan Kowalski"
                 value={customerData.name}
                 onChange={(e) => onCustomerChange({ name: e.target.value })}
               />
@@ -43,7 +87,6 @@ export const CustomerDataStep = ({
               <Input
                 id="customerEmail"
                 type="email"
-                placeholder="jan@example.com"
                 value={customerData.email}
                 onChange={(e) => onCustomerChange({ email: e.target.value })}
               />
@@ -52,7 +95,6 @@ export const CustomerDataStep = ({
               <Label htmlFor="customerPhone">Telefon</Label>
               <Input
                 id="customerPhone"
-                placeholder="+48 123 456 789"
                 value={customerData.phone}
                 onChange={(e) => onCustomerChange({ phone: e.target.value })}
               />
@@ -61,7 +103,6 @@ export const CustomerDataStep = ({
               <Label htmlFor="customerAddress">Adres</Label>
               <Input
                 id="customerAddress"
-                placeholder="ul. Przykładowa 1, 00-000 Warszawa"
                 value={customerData.address}
                 onChange={(e) => onCustomerChange({ address: e.target.value })}
               />
@@ -79,26 +120,77 @@ export const CustomerDataStep = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Nazwa firmy</Label>
-              <Input
-                id="companyName"
-                placeholder="Firma Sp. z o.o."
-                value={customerData.company}
-                onChange={(e) => onCustomerChange({ company: e.target.value })}
-              />
+          {!showManualCompany ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 flex gap-2">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="companyNipSearch">NIP</Label>
+                  <Input
+                    id="companyNipSearch"
+                    value={customerData.nip}
+                    onChange={(e) => onCustomerChange({ nip: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={lookupNip}
+                    disabled={nipLoading}
+                    className="gap-2"
+                  >
+                    {nipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                    Pobierz dane
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowManualCompany(true)}
+                >
+                  Wprowadź ręcznie
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyNip">NIP</Label>
-              <Input
-                id="companyNip"
-                placeholder="1234567890"
-                value={customerData.nip}
-                onChange={(e) => onCustomerChange({ nip: e.target.value })}
-              />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Nazwa firmy</Label>
+                <Input
+                  id="companyName"
+                  value={customerData.company}
+                  onChange={(e) => onCustomerChange({ company: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyNip">NIP</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="companyNip"
+                    value={customerData.nip}
+                    onChange={(e) => onCustomerChange({ nip: e.target.value })}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={lookupNip}
+                    disabled={nipLoading}
+                    title="Pobierz dane z NIP"
+                  >
+                    {nipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -107,57 +199,27 @@ export const CustomerDataStep = ({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Car className="w-5 h-5 text-primary" />
-            Dane pojazdu (opcjonalne)
+            Dane pojazdu
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="vehicleBrand">Marka</Label>
+              <Label htmlFor="vehicleBrandModel">Marka i model *</Label>
               <Input
-                id="vehicleBrand"
-                placeholder="BMW"
-                value={vehicleData.brand}
-                onChange={(e) => onVehicleChange({ brand: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="vehicleModel">Model</Label>
-              <Input
-                id="vehicleModel"
-                placeholder="M5"
-                value={vehicleData.model}
-                onChange={(e) => onVehicleChange({ model: e.target.value })}
+                id="vehicleBrandModel"
+                value={vehicleData.brandModel || ''}
+                onChange={(e) => onVehicleChange({ brandModel: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehiclePlate">Nr rejestracyjny</Label>
               <Input
                 id="vehiclePlate"
-                placeholder="WA 12345"
                 value={vehicleData.plate}
                 onChange={(e) => onVehicleChange({ plate: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="vehicleYear">Rok produkcji</Label>
-              <Input
-                id="vehicleYear"
-                type="number"
-                placeholder="2024"
-                value={vehicleData.year || ''}
-                onChange={(e) => onVehicleChange({ year: e.target.value ? parseInt(e.target.value) : undefined })}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vehicleVin">VIN</Label>
-            <Input
-              id="vehicleVin"
-              placeholder="WBAPH5C55BA123456"
-              value={vehicleData.vin}
-              onChange={(e) => onVehicleChange({ vin: e.target.value })}
-            />
           </div>
         </CardContent>
       </Card>

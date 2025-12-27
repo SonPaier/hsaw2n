@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -52,8 +52,12 @@ export const OfferGenerator = ({
     addItemToOption,
     updateItemInOption,
     removeItemFromOption,
+    addAddition,
+    updateAddition,
+    removeAddition,
     updateOffer,
     calculateOptionTotal,
+    calculateAdditionsTotal,
     calculateTotalNet,
     calculateTotalGross,
     saveOffer,
@@ -61,11 +65,11 @@ export const OfferGenerator = ({
   } = useOffer(instanceId);
 
   // Load existing offer if editing
-  useState(() => {
+  useEffect(() => {
     if (offerId) {
       loadOffer(offerId);
     }
-  });
+  }, [offerId]);
 
   const handleNext = () => {
     if (currentStep < 3) {
@@ -95,7 +99,6 @@ export const OfferGenerator = ({
       await saveOffer();
       updateOffer({ status: 'sent' });
       toast.success('Oferta została zapisana i gotowa do wysłania');
-      // TODO: Implement sending logic (email, SMS, etc.)
     } catch (error) {
       // Error already handled in hook
     }
@@ -104,7 +107,7 @@ export const OfferGenerator = ({
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(offer.customerData.name && offer.customerData.email);
+        return !!(offer.customerData.name && offer.customerData.email && offer.vehicleData.brandModel);
       case 2:
         return offer.options.length > 0 && 
           offer.options.some(opt => opt.items.length > 0);
@@ -187,12 +190,18 @@ export const OfferGenerator = ({
         
         {currentStep === 3 && (
           <SummaryStep
+            instanceId={instanceId}
             offer={offer}
             onUpdateOffer={updateOffer}
             onUpdateOption={updateOption}
             calculateOptionTotal={calculateOptionTotal}
             calculateTotalNet={calculateTotalNet}
             calculateTotalGross={calculateTotalGross}
+            additions={offer.additions}
+            onAddAddition={addAddition}
+            onUpdateAddition={updateAddition}
+            onRemoveAddition={removeAddition}
+            calculateAdditionsTotal={calculateAdditionsTotal}
           />
         )}
       </Card>
