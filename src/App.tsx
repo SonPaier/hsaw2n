@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
+import OffersPage from "./pages/OffersPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
@@ -44,6 +45,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <HallView />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/oferty" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <OffersPage />
                   </ProtectedRoute>
                 } 
               />
