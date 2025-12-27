@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
 import OffersPage from "./pages/OffersPage";
+import PublicOfferView from "./pages/PublicOfferView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
               <Route path="/rezerwacje" element={<Rezerwacje />} />
               <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
+              <Route path="/oferta/:token" element={<PublicOfferView />} />
               <Route path="/auth" element={<Auth />} />
               <Route 
                 path="/admin" 
