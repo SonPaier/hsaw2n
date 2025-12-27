@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus } from 'lucide-react';
+import { Plus, FileText, ArrowLeft, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+const ITEMS_PER_PAGE = 20;
 
 interface Offer {
   id: string;
@@ -101,6 +103,7 @@ const OffersPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<OfferSettings>({
     number_prefix: '',
@@ -288,6 +291,18 @@ const OffersPage = () => {
     return result;
   }, [offers, statusFilter, searchQuery]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredOffers.length / ITEMS_PER_PAGE);
+  const paginatedOffers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOffers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredOffers, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
+
   if (showGenerator && instanceId) {
     return (
       <>
@@ -373,9 +388,12 @@ const OffersPage = () => {
             </div>
           </div>
 
-          <div className="text-sm text-muted-foreground mb-4">
-            {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
-            {searchQuery && ` dla "${searchQuery}"`}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm text-muted-foreground">
+              {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
+              {searchQuery && ` dla "${searchQuery}"`}
+              {totalPages > 1 && ` • Strona ${currentPage} z ${totalPages}`}
+            </div>
           </div>
           
           {loading ? (
@@ -394,77 +412,126 @@ const OffersPage = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredOffers.map((offer) => (
-                <div 
-                  key={offer.id}
-                  className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
-                  onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{offer.offer_number}</span>
-                          <Badge className={cn('text-xs', statusColors[offer.status])}>
-                            {statusLabels[offer.status] || offer.status}
-                          </Badge>
+            <>
+              <div className="space-y-3">
+                {paginatedOffers.map((offer) => (
+                  <div 
+                    key={offer.id}
+                    className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+                    onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <FileText className="w-5 h-5 text-primary" />
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {offer.customer_data?.name || offer.customer_data?.company || 'Brak danych klienta'}
-                          {(offer.vehicle_data?.brandModel || offer.vehicle_data?.brand) && 
-                            ` • ${offer.vehicle_data.brandModel || `${offer.vehicle_data.brand} ${offer.vehicle_data.model || ''}`}`
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="text-right hidden sm:block">
-                        <div className="font-semibold">{formatPrice(offer.total_gross)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(offer.created_at), 'd MMM yyyy', { locale: pl })}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{offer.offer_number}</span>
+                            <Badge className={cn('text-xs', statusColors[offer.status])}>
+                              {statusLabels[offer.status] || offer.status}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {offer.customer_data?.name || offer.customer_data?.company || 'Brak danych klienta'}
+                            {(offer.vehicle_data?.brandModel || offer.vehicle_data?.brand) && 
+                              ` • ${offer.vehicle_data.brandModel || `${offer.vehicle_data.brand} ${offer.vehicle_data.model || ''}`}`
+                            }
+                          </div>
                         </div>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/oferta/${offer.public_token}`, '_blank'); }}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Podgląd publiczny
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(offer.public_token); }}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Kopiuj link
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateOffer(offer.id); }}>
-                            <CopyPlus className="w-4 h-4 mr-2" />
-                            Duplikuj
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info('Wysyłka oferty - wkrótce'); }}>
-                            <Send className="w-4 h-4 mr-2" />
-                            Wyślij
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Usuń
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <div className="font-semibold">{formatPrice(offer.total_gross)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(offer.created_at), 'd MMM yyyy', { locale: pl })}
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/oferta/${offer.public_token}`, '_blank'); }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Podgląd publiczny
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(offer.public_token); }}>
+                              <Copy className="w-4 h-4 mr-2" />
+                              Kopiuj link
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateOffer(offer.id); }}>
+                              <CopyPlus className="w-4 h-4 mr-2" />
+                              Duplikuj
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info('Wysyłka oferty - wkrótce'); }}>
+                              <Send className="w-4 h-4 mr-2" />
+                              Wyślij
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Usuń
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-9"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

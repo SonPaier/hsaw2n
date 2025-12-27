@@ -9,7 +9,9 @@ export interface CustomerData {
   phone: string;
   company?: string;
   nip?: string;
-  address?: string;
+  companyAddress?: string;
+  companyPostalCode?: string;
+  companyCity?: string;
 }
 
 export interface VehicleData {
@@ -59,7 +61,9 @@ const defaultCustomerData: CustomerData = {
   phone: '',
   company: '',
   nip: '',
-  address: '',
+  companyAddress: '',
+  companyPostalCode: '',
+  companyCity: '',
 };
 
 const defaultVehicleData: VehicleData = {
