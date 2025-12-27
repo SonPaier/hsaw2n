@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
@@ -113,6 +114,9 @@ const AdminDashboard = () => {
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
+
+  // Instance features
+  const { hasFeature } = useInstanceFeatures(instanceId);
 
   // Working hours for calendar
   const [workingHours, setWorkingHours] = useState<Record<string, {
@@ -696,6 +700,12 @@ const AdminDashboard = () => {
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
+              {hasFeature('offers') && (
+                <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/oferty')} title="Oferty">
+                  <FileText className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && "Oferty"}
+                </Button>
+              )}
               <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('settings')} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}

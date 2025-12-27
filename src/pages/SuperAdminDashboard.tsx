@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 import { AllInstancesSmsUsage } from '@/components/admin/AllInstancesSmsUsage';
+import { InstanceFeaturesSettings } from '@/components/admin/InstanceFeaturesSettings';
 
 interface Instance {
   id: string;
@@ -44,6 +51,7 @@ const SuperAdminDashboard = () => {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
@@ -122,6 +130,11 @@ const SuperAdminDashboard = () => {
   const handleOpenSettings = (instance: Instance) => {
     setSelectedInstance(instance);
     setSettingsOpen(true);
+  };
+
+  const handleOpenFeatures = (instance: Instance) => {
+    setSelectedInstance(instance);
+    setFeaturesOpen(true);
   };
 
   const handleInstanceUpdate = (updatedInstance: Instance) => {
@@ -341,6 +354,10 @@ const SuperAdminDashboard = () => {
                               <Settings className="w-4 h-4 mr-2" />
                               Ustawienia whitelabel
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenFeatures(instance)}>
+                              <FileText className="w-4 h-4 mr-2" />
+                              Funkcje płatne
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleToggleInstance(instance.id, instance.active)}
                               className={instance.active ? "text-destructive" : "text-success"}
@@ -367,6 +384,18 @@ const SuperAdminDashboard = () => {
         instance={selectedInstance}
         onUpdate={handleInstanceUpdate}
       />
+
+      {/* Instance Features Dialog */}
+      {selectedInstance && (
+        <Dialog open={featuresOpen} onOpenChange={setFeaturesOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Funkcje płatne - {selectedInstance.name}</DialogTitle>
+            </DialogHeader>
+            <InstanceFeaturesSettings instanceId={selectedInstance.id} />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
