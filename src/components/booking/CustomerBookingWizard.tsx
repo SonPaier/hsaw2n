@@ -24,6 +24,9 @@ interface Service {
   name: string;
   description: string | null;
   duration_minutes: number | null;
+  duration_small: number | null;
+  duration_medium: number | null;
+  duration_large: number | null;
   price_from: number | null;
   price_small: number | null;
   price_medium: number | null;
@@ -476,13 +479,23 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     return service.price_from || 0;
   };
 
+  // Get service duration based on car size
+  const getServiceDuration = (service: Service): number => {
+    if (service.requires_size) {
+      if (carSize === 'small') return service.duration_small || service.duration_minutes || 60;
+      if (carSize === 'large') return service.duration_large || service.duration_minutes || 60;
+      return service.duration_medium || service.duration_minutes || 60;
+    }
+    return service.duration_minutes || 60;
+  };
+
   // Calculate total duration including addons
   const getTotalDuration = (): number => {
-    let total = selectedService?.duration_minutes || 60;
+    let total = selectedService ? getServiceDuration(selectedService) : 60;
     for (const addonId of selectedAddons) {
       const addon = services.find((s) => s.id === addonId);
       if (addon) {
-        total += addon.duration_minutes || 0;
+        total += getServiceDuration(addon);
       }
     }
     return total;
@@ -824,7 +837,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
     );
   }
 
-  // STEP 1: PHONE NUMBER INPUT
+  // STEP 1: PHONE NUMBER & CAR MODEL INPUT
   if (step === 'phone') {
     return (
       <div className="animate-fade-in">
@@ -862,6 +875,70 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 )}
               </div>
 
+              {/* Car model input - moved from summary step */}
+              {customerPhone.length >= 9 && (
+                <div className="animate-fade-in">
+                  <Label htmlFor="carModel" className="text-sm font-medium">Marka i model samochodu</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="carModel"
+                      value={carModel}
+                      onChange={(e) => setCarModel(e.target.value)}
+                      placeholder="np. Volkswagen Golf"
+                      className="h-11 text-base"
+                    />
+                    {isInferringCarSize && (
+                      <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    )}
+                  </div>
+                  {/* Historical car models from previous reservations */}
+                  {historicalCarModels.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {historicalCarModels.map(({ model, count }) => (
+                        <button
+                          key={model}
+                          type="button"
+                          onClick={() => setCarModel(model)}
+                          className={cn(
+                            "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                            carModel === model
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
+                          )}
+                        >
+                          {model}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Car model suggestions from database */}
+                  {historicalCarModels.length === 0 && carModel.length >= 2 && (() => {
+                    const suggestions = searchCarModels(carModel, 3);
+                    if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
+                    return (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {suggestions.map((model) => (
+                          <button
+                            key={model}
+                            type="button"
+                            onClick={() => setCarModel(model)}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            {model}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  {/* Show inferred car size */}
+                  {carModel.length >= 3 && !isInferringCarSize && (
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      Rozmiar: {carSize === 'small' ? 'Mały' : carSize === 'medium' ? 'Średni' : 'Duży'}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <Button 
                 onClick={() => setStep('service')} 
                 className="w-full"
@@ -892,25 +969,29 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
           <h2 className="text-base font-semibold mb-3">Wybierz usługę</h2>
 
           <div className="grid gap-2 mb-3">
-            {popularServices.map((service) => (
-              <button
-                key={service.id}
-                onClick={() => handleSelectService(service)}
-                className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                      {service.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{service.duration_minutes} min</p>
+            {popularServices.map((service) => {
+              const price = getServicePrice(service);
+              const duration = getServiceDuration(service);
+              return (
+                <button
+                  key={service.id}
+                  onClick={() => handleSelectService(service)}
+                  className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                        {service.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">{duration} min</p>
+                    </div>
+                    <span className="font-semibold text-primary whitespace-nowrap ml-3">
+                      {service.requires_size ? `${price} zł` : `od ${price} zł`}
+                    </span>
                   </div>
-                  <span className="font-semibold text-primary whitespace-nowrap ml-3">
-                    od {service.price_from || service.price_small || 0} zł
-                  </span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           {otherServices.length > 0 && (
@@ -928,25 +1009,29 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
 
               {showAllServices && (
                 <div className="grid gap-2 animate-fade-in">
-                  {otherServices.map((service) => (
-                    <button
-                      key={service.id}
-                      onClick={() => handleSelectService(service)}
-                      className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
-                            {service.name}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">{service.duration_minutes} min</p>
+                  {otherServices.map((service) => {
+                    const price = getServicePrice(service);
+                    const duration = getServiceDuration(service);
+                    return (
+                      <button
+                        key={service.id}
+                        onClick={() => handleSelectService(service)}
+                        className="glass-card p-3 text-left hover:border-primary/50 transition-all group"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                              {service.name}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">{duration} min</p>
+                          </div>
+                          <span className="font-semibold text-primary whitespace-nowrap ml-3">
+                            {service.requires_size ? `${price} zł` : `od ${price} zł`}
+                          </span>
                         </div>
-                        <span className="font-semibold text-primary whitespace-nowrap ml-3">
-                          od {service.price_from || service.price_small || 0} zł
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -1285,7 +1370,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
             />
           )}
 
-          {/* Customer data - phone is already provided in first step */}
+          {/* Customer data - phone and car model already provided in first step */}
           <div className="glass-card p-3 mb-3 space-y-3">
             <div>
               <Label htmlFor="name" className="text-xs">Imię i nazwisko *</Label>
@@ -1297,55 +1382,14 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 disabled={smsSent}
               />
             </div>
-            <div>
-              <Label htmlFor="carModel" className="text-xs">Marka i model samochodu</Label>
-              <Input
-                id="carModel"
-                value={carModel}
-                onChange={(e) => setCarModel(e.target.value)}
-                className="mt-1 h-9 text-sm"
-                disabled={smsSent}
-              />
-              {/* Historical car models from previous reservations */}
-              {!smsSent && historicalCarModels.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {historicalCarModels.map(({ model, count }) => (
-                    <button
-                      key={model}
-                      type="button"
-                      onClick={() => setCarModel(model)}
-                      className={cn(
-                        "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors border",
-                        carModel === model
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
-                      )}
-                    >
-                      {model}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {/* Car model suggestions from database */}
-              {!smsSent && historicalCarModels.length === 0 && carModel.length >= 2 && (() => {
-                const suggestions = searchCarModels(carModel, 2);
-                if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
-                return (
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {suggestions.map((model) => (
-                      <button
-                        key={model}
-                        type="button"
-                        onClick={() => setCarModel(model)}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                      >
-                        {model}
-                      </button>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
+
+            {/* Show car model as read-only info */}
+            {carModel && (
+              <div className="text-xs text-muted-foreground">
+                Samochód: <span className="font-medium text-foreground">{carModel}</span>
+                {' '}({carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'})
+              </div>
+            )}
 
             {/* Collapsible notes */}
             <Collapsible open={showNotes} onOpenChange={setShowNotes}>
