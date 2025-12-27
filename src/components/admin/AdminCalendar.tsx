@@ -604,44 +604,42 @@ const AdminCalendar = ({
     <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden">
       {/* Calendar Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 flex-wrap gap-2">
-        {/* Navigation - hidden in hallMode */}
-        {!hallMode && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">
-              Dziś
-            </Button>
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="ml-1 gap-1">
-                  <CalendarIcon className="w-4 h-4" />
-                  <span className="hidden sm:inline">Data</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setCurrentDate(date);
-                      setViewMode('day');
-                      setDatePickerOpen(false);
-                    }
-                  }}
-                  initialFocus
-                  className="pointer-events-auto"
-                  locale={pl}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
+        {/* Navigation */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleToday} className={cn("ml-2", hallMode && "hidden sm:flex")}>
+            Dziś
+          </Button>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-1 gap-1">
+                <CalendarIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Data</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setCurrentDate(date);
+                    setViewMode('day');
+                    setDatePickerOpen(false);
+                  }
+                }}
+                initialFocus
+                className="pointer-events-auto"
+                locale={pl}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         
         <h2 className={cn(
           "text-lg font-semibold",
