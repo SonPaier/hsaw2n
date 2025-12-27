@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -598,16 +599,19 @@ const AddReservationDialog = ({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 pr-8">
+            <DialogTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
               Nowa rezerwacja
-            </div>
+            </DialogTitle>
             <VoiceReservationInput 
               services={services} 
               onParsed={handleVoiceParsed} 
             />
-          </DialogTitle>
+          </div>
+          <DialogDescription className="sr-only">
+            Formularz dodawania nowej rezerwacji
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
