@@ -44,6 +44,7 @@ interface Offer {
   notes?: string;
   payment_terms?: string;
   valid_until?: string;
+  hide_unit_prices: boolean;
   created_at: string;
   offer_options: OfferOption[];
   instances: {
@@ -75,27 +76,54 @@ const formatDate = (dateStr: string): string => {
 const generateHtmlContent = (offer: Offer): string => {
   const instance = offer.instances;
   const vatAmount = offer.total_gross - offer.total_net;
+  const hideUnitPrices = offer.hide_unit_prices;
   
   const optionsHtml = offer.offer_options
     .filter((opt: any) => opt.is_selected !== false)
     .map((option: OfferOption) => {
-      const itemsHtml = option.offer_option_items
-        .map((item) => {
-          const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-          return `
-            <tr style="${item.is_optional ? 'color: #666; font-style: italic;' : ''}">
-              <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                ${item.custom_name}
+      // When hiding unit prices, show only item names
+      const itemsHtml = hideUnitPrices
+        ? option.offer_option_items
+            .map((item) => `
+              <div style="padding: 6px 0; ${item.is_optional ? 'color: #666; font-style: italic;' : ''}">
+                • ${item.custom_name}
                 ${item.is_optional ? '<span style="font-size: 10px; margin-left: 8px;">(opcjonalne)</span>' : ''}
-              </td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity} ${item.unit}</td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${formatPrice(item.unit_price)}</td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.discount_percent > 0 ? `-${item.discount_percent}%` : '—'}</td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: 500;">${item.is_optional ? '—' : formatPrice(itemTotal)}</td>
-            </tr>
-          `;
-        })
-        .join('');
+              </div>
+            `)
+            .join('')
+        : option.offer_option_items
+            .map((item) => {
+              const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+              return `
+                <tr style="${item.is_optional ? 'color: #666; font-style: italic;' : ''}">
+                  <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    ${item.custom_name}
+                    ${item.is_optional ? '<span style="font-size: 10px; margin-left: 8px;">(opcjonalne)</span>' : ''}
+                  </td>
+                  <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity} ${item.unit}</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${formatPrice(item.unit_price)}</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.discount_percent > 0 ? `-${item.discount_percent}%` : '—'}</td>
+                  <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: 500;">${item.is_optional ? '—' : formatPrice(itemTotal)}</td>
+                </tr>
+              `;
+            })
+            .join('');
+
+      // Different layout when hiding unit prices
+      if (hideUnitPrices) {
+        return `
+          <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">${option.name}</h3>
+            ${option.description ? `<p style="margin: 0 0 12px 0; font-size: 12px; color: #666;">${option.description}</p>` : ''}
+            <div style="font-size: 12px; margin-bottom: 12px;">
+              ${itemsHtml}
+            </div>
+            <div style="text-align: right; font-weight: bold; font-size: 14px; padding-top: 8px; border-top: 2px solid #eee;">
+              Cena: ${formatPrice(option.subtotal_net)} netto
+            </div>
+          </div>
+        `;
+      }
 
       return `
         <div style="margin-bottom: 24px;">
