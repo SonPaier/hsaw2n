@@ -42,7 +42,7 @@ interface UpsellSuggestionProps {
   selectedAddons: string[];
 }
 
-const UPSELL_DURATION_MAX = 15; // Only suggest services up to 15 minutes
+const UPSELL_SLOT_SIZE = 15; // Grid is 15-minute intervals
 
 export default function UpsellSuggestion({
   selectedService,
@@ -94,17 +94,17 @@ export default function UpsellSuggestion({
     const nextBlockStart = stationBlocks[0].start;
     const gapMinutes = nextBlockStart - serviceEndMinutes;
 
-    // Only suggest if gap is small (5-20 minutes) - perfect for quick upsell
-    if (gapMinutes < 5 || gapMinutes > 20) {
+    // Only suggest if gap is exactly 15 minutes (one grid slot)
+    if (gapMinutes !== UPSELL_SLOT_SIZE) {
       return null;
     }
 
-    // Find short services (up to UPSELL_DURATION_MAX) that fit in the gap
+    // Find services that fit exactly in the 15-minute slot
     const shortServices = services.filter(s => {
       if (s.id === selectedService.id) return false;
       if (selectedAddons.includes(s.id)) return false;
       const duration = s.duration_minutes || 60;
-      return duration <= UPSELL_DURATION_MAX && duration <= gapMinutes;
+      return duration <= UPSELL_SLOT_SIZE;
     });
 
     if (shortServices.length === 0) {
