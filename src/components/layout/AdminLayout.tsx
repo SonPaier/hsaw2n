@@ -205,9 +205,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               <Car className="w-5 h-5 text-primary" />
               <span className="font-bold">{title || 'ARM CAR'}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <div className="w-9" /> {/* Spacer for centering */}
           </div>
         </header>
 
