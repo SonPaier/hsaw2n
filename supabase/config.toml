@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-offer-pdf]
 verify_jwt = false
+
+[functions.extract-price-list]
+verify_jwt = true

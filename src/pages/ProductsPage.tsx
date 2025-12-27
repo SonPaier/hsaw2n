@@ -1,0 +1,640 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { 
+  ArrowLeft, 
+  Plus, 
+  Upload, 
+  Search, 
+  Sparkles, 
+  FileText, 
+  Package,
+  Trash2,
+  Eye,
+  ToggleLeft,
+  ToggleRight,
+  Loader2,
+  Check,
+  X,
+  AlertCircle
+} from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
+import { PriceListViewer } from '@/components/products/PriceListViewer';
+import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
+
+interface PriceList {
+  id: string;
+  name: string;
+  file_path: string;
+  file_type: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  products_count: number;
+  extracted_at: string | null;
+  error_message: string | null;
+  is_global: boolean;
+  created_at: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  brand: string | null;
+  description: string | null;
+  category: string | null;
+  unit: string;
+  default_price: number;
+  metadata: Record<string, unknown> | null;
+  active: boolean;
+  source: string;
+  instance_id: string | null;
+}
+
+const statusLabels: Record<string, string> = {
+  pending: 'Oczekuje',
+  processing: 'Przetwarzanie',
+  completed: 'Zakończono',
+  failed: 'Błąd',
+};
+
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
+  processing: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+  completed: 'bg-green-500/20 text-green-600 border-green-500/30',
+  failed: 'bg-red-500/20 text-red-600 border-red-500/30',
+};
+
+export default function ProductsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [priceLists, setPriceLists] = useState<PriceList[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [globalPriceLists, setGlobalPriceLists] = useState<PriceList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState('products');
+
+  // Fetch instance ID
+  useEffect(() => {
+    const fetchInstanceId = async () => {
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('instance_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.instance_id) {
+        setInstanceId(profile.instance_id);
+      }
+    };
+
+    fetchInstanceId();
+  }, [user]);
+
+  // Fetch data
+  useEffect(() => {
+    if (!instanceId) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+
+      // Fetch price lists
+      const { data: priceListsData } = await supabase
+        .from('price_lists')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .order('created_at', { ascending: false });
+
+      // Fetch global price lists
+      const { data: globalPriceListsData } = await supabase
+        .from('price_lists')
+        .select('*')
+        .eq('is_global', true)
+        .order('created_at', { ascending: false });
+
+      // Fetch products
+      const { data: productsData } = await supabase
+        .from('products_library')
+        .select('*')
+        .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
+
+      setPriceLists((priceListsData as PriceList[]) || []);
+      setGlobalPriceLists((globalPriceListsData as PriceList[]) || []);
+      setProducts((productsData as Product[]) || []);
+      setLoading(false);
+    };
+
+    fetchData();
+
+    // Subscribe to price_lists changes for real-time status updates
+    const channel = supabase
+      .channel('price-lists-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_lists',
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
+  // Get unique categories
+  const categories = useMemo(() => {
+    const cats = new Set(products.filter(p => p.category).map(p => p.category!));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchesSearch = 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.brand?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, categoryFilter]);
+
+  const handleDeletePriceList = async (priceList: PriceList) => {
+    if (!confirm(`Czy na pewno chcesz usunąć cennik "${priceList.name}"?`)) return;
+
+    try {
+      // Delete from storage
+      await supabase.storage
+        .from('price-lists')
+        .remove([priceList.file_path]);
+
+      // Delete from database
+      const { error } = await supabase
+        .from('price_lists')
+        .delete()
+        .eq('id', priceList.id);
+
+      if (error) throw error;
+
+      setPriceLists(prev => prev.filter(p => p.id !== priceList.id));
+      toast.success('Cennik został usunięty');
+    } catch (error) {
+      console.error('Error deleting price list:', error);
+      toast.error('Nie udało się usunąć cennika');
+    }
+  };
+
+  const handleToggleProduct = async (product: Product) => {
+    try {
+      const { error } = await supabase
+        .from('products_library')
+        .update({ active: !product.active })
+        .eq('id', product.id);
+
+      if (error) throw error;
+
+      setProducts(prev => 
+        prev.map(p => p.id === product.id ? { ...p, active: !p.active } : p)
+      );
+      toast.success(product.active ? 'Produkt dezaktywowany' : 'Produkt aktywowany');
+    } catch (error) {
+      console.error('Error toggling product:', error);
+      toast.error('Nie udało się zmienić statusu produktu');
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (!confirm(`Czy na pewno chcesz usunąć produkt "${product.name}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('products_library')
+        .delete()
+        .eq('id', product.id);
+
+      if (error) throw error;
+
+      setProducts(prev => prev.filter(p => p.id !== product.id));
+      toast.success('Produkt został usunięty');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Nie udało się usunąć produktu');
+    }
+  };
+
+  const formatPrice = (value: number) => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN',
+    }).format(value);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              <h1 className="text-xl font-semibold">Produkty</h1>
+            </div>
+          </div>
+          <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Wgraj cennik
+          </Button>
+        </div>
+      </header>
+
+      <main className="container px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="products" className="gap-2">
+              <Package className="h-4 w-4" />
+              Produkty ({products.length})
+            </TabsTrigger>
+            <TabsTrigger value="price-lists" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Cenniki ({priceLists.length})
+            </TabsTrigger>
+            <TabsTrigger value="global" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Globalne ({globalPriceLists.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Products Tab */}
+          <TabsContent value="products">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle>Biblioteka produktów</CardTitle>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Szukaj produktów..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 w-full sm:w-64"
+                      />
+                    </div>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="all">Wszystkie kategorie</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">
+                      {products.length === 0 
+                        ? 'Brak produktów. Wgraj cennik, aby rozpocząć.'
+                        : 'Nie znaleziono produktów spełniających kryteria.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-primary/10 border border-border">
+                          <TableHead>Nazwa</TableHead>
+                          <TableHead>Marka</TableHead>
+                          <TableHead>Kategoria</TableHead>
+                          <TableHead className="text-right">Cena</TableHead>
+                          <TableHead>Jednostka</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow 
+                            key={product.id}
+                            className={!product.active ? 'opacity-50' : ''}
+                          >
+                            <TableCell className="font-medium">
+                              <button 
+                                onClick={() => setSelectedProduct(product)}
+                                className="text-left hover:text-primary transition-colors"
+                              >
+                                {product.name}
+                              </button>
+                            </TableCell>
+                            <TableCell>{product.brand || '-'}</TableCell>
+                            <TableCell>
+                              {product.category && (
+                                <Badge variant="outline" className="text-xs">
+                                  {product.category}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatPrice(product.default_price)}
+                            </TableCell>
+                            <TableCell>{product.unit}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={product.source === 'global' ? 'secondary' : 'default'}
+                                className="text-xs"
+                              >
+                                {product.source === 'global' ? 'Globalny' : 'Własny'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedProduct(product)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Szczegóły
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleToggleProduct(product)}>
+                                    {product.active ? (
+                                      <>
+                                        <ToggleLeft className="mr-2 h-4 w-4" />
+                                        Dezaktywuj
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ToggleRight className="mr-2 h-4 w-4" />
+                                        Aktywuj
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  {product.source !== 'global' && (
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteProduct(product)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Usuń
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Price Lists Tab */}
+          <TabsContent value="price-lists">
+            <Card>
+              <CardHeader>
+                <CardTitle>Twoje cenniki</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : priceLists.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      Brak wgranych cenników
+                    </p>
+                    <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
+                      <Upload className="h-4 w-4" />
+                      Wgraj pierwszy cennik
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {priceLists.map((priceList) => (
+                      <div 
+                        key={priceList.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{priceList.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(priceList.created_at)}
+                              {priceList.products_count > 0 && (
+                                <span> • {priceList.products_count} produktów</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge className={statusColors[priceList.status]}>
+                            {priceList.status === 'processing' && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            {priceList.status === 'completed' && (
+                              <Check className="mr-1 h-3 w-3" />
+                            )}
+                            {priceList.status === 'failed' && (
+                              <X className="mr-1 h-3 w-3" />
+                            )}
+                            {statusLabels[priceList.status]}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setSelectedPriceList(priceList)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Zobacz cennik
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeletePriceList(priceList)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Usuń
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Global Price Lists Tab */}
+          <TabsContent value="global">
+            <Card>
+              <CardHeader>
+                <CardTitle>Globalne cenniki</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Cenniki dostarczone przez administratora systemu. Możesz aktywować produkty z tych cenników.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : globalPriceLists.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">
+                      Brak globalnych cenników
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {globalPriceLists.map((priceList) => (
+                      <div 
+                        key={priceList.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-lg bg-secondary/20 flex items-center justify-center">
+                            <Sparkles className="h-5 w-5 text-secondary-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{priceList.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {priceList.products_count} produktów
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary">Globalny</Badge>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setSelectedPriceList(priceList)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Zobacz
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Upload Dialog */}
+      {showUploadDialog && instanceId && (
+        <PriceListUploadDialog
+          instanceId={instanceId}
+          open={showUploadDialog}
+          onOpenChange={setShowUploadDialog}
+          onSuccess={() => {
+            setShowUploadDialog(false);
+            setActiveTab('price-lists');
+          }}
+        />
+      )}
+
+      {/* Price List Viewer */}
+      {selectedPriceList && (
+        <PriceListViewer
+          priceList={selectedPriceList}
+          products={products.filter(p => p.category === selectedPriceList.name || true)} // TODO: link products to price lists
+          open={!!selectedPriceList}
+          onOpenChange={(open) => !open && setSelectedPriceList(null)}
+        />
+      )}
+
+      {/* Product Details Dialog */}
+      {selectedProduct && (
+        <ProductDetailsDialog
+          product={selectedProduct}
+          open={!!selectedProduct}
+          onOpenChange={(open) => !open && setSelectedProduct(null)}
+        />
+      )}
+    </div>
+  );
+}

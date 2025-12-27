@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
 import OffersPage from "./pages/OffersPage";
+import ProductsPage from "./pages/ProductsPage";
 import PublicOfferView from "./pages/PublicOfferView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -55,6 +56,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <OffersPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/produkty" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <ProductsPage />
                   </ProtectedRoute>
                 } 
               />

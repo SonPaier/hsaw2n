@@ -540,15 +540,70 @@ export type Database = {
           },
         ]
       }
+      price_lists: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          extracted_at: string | null
+          file_path: string
+          file_type: string
+          id: string
+          instance_id: string | null
+          is_global: boolean | null
+          name: string
+          products_count: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          extracted_at?: string | null
+          file_path: string
+          file_type: string
+          id?: string
+          instance_id?: string | null
+          is_global?: boolean | null
+          name: string
+          products_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          extracted_at?: string | null
+          file_path?: string
+          file_type?: string
+          id?: string
+          instance_id?: string | null
+          is_global?: boolean | null
+          name?: string
+          products_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_lists_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products_library: {
         Row: {
           active: boolean
+          brand: string | null
           category: string | null
           created_at: string
           default_price: number
           description: string | null
           id: string
           instance_id: string | null
+          metadata: Json | null
           name: string
           sort_order: number | null
           source: string
@@ -557,12 +612,14 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          brand?: string | null
           category?: string | null
           created_at?: string
           default_price?: number
           description?: string | null
           id?: string
           instance_id?: string | null
+          metadata?: Json | null
           name: string
           sort_order?: number | null
           source?: string
@@ -571,12 +628,14 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          brand?: string | null
           category?: string | null
           created_at?: string
           default_price?: number
           description?: string | null
           id?: string
           instance_id?: string | null
+          metadata?: Json | null
           name?: string
           sort_order?: number | null
           source?: string
