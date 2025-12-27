@@ -28,6 +28,7 @@ interface Instance {
   background_color?: string;
   social_facebook?: string;
   social_instagram?: string;
+  google_maps_url?: string;
 }
 
 interface InstanceSettingsDialogProps {
@@ -61,6 +62,7 @@ const InstanceSettingsDialog = ({
     background_color: '#ffffff',
     social_facebook: '',
     social_instagram: '',
+    google_maps_url: '',
   });
 
   useEffect(() => {
@@ -79,6 +81,7 @@ const InstanceSettingsDialog = ({
         background_color: instance.background_color || '#ffffff',
         social_facebook: instance.social_facebook || '',
         social_instagram: instance.social_instagram || '',
+        google_maps_url: instance.google_maps_url || '',
       });
     }
   }, [instance]);
@@ -174,6 +177,7 @@ const InstanceSettingsDialog = ({
           background_color: formData.background_color,
           social_facebook: formData.social_facebook || null,
           social_instagram: formData.social_instagram || null,
+          google_maps_url: formData.google_maps_url || null,
         })
         .eq('id', instance.id);
 
@@ -456,6 +460,19 @@ const InstanceSettingsDialog = ({
                 onChange={(e) => handleInputChange('social_instagram', e.target.value)}
                 placeholder="https://instagram.com/firma"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="google_maps_url">Link do Google Maps</Label>
+              <Input
+                id="google_maps_url"
+                value={formData.google_maps_url}
+                onChange={(e) => handleInputChange('google_maps_url', e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Link będzie dodany do SMS-ów z potwierdzeniem rezerwacji
+              </p>
             </div>
           </TabsContent>
         </Tabs>
