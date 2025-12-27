@@ -939,19 +939,19 @@ const AdminCalendar = ({
                             )}
                           </div>
                           {reservation.vehicle_plate && (
-                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs truncate opacity-90">
+                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs opacity-90">
                               <Car className="w-3 h-3 shrink-0" />
-                              <span className="truncate">
+                              <span className="truncate min-w-0">
                                 {reservation.vehicle_plate}
-                                {!hallMode && (
-                                  <span className="opacity-80">
-                                    , {isMultiDay 
-                                      ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
-                                      : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`
-                                    }
-                                  </span>
-                                )}
                               </span>
+                              {!hallMode && (
+                                <span className="opacity-80 shrink-0">
+                                  , {isMultiDay 
+                                    ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
+                                    : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`
+                                  }
+                                </span>
+                              )}
                             </div>
                           )}
                           {reservation.service && (
