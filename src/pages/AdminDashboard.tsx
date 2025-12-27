@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +20,7 @@ import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import CustomersView from '@/components/admin/CustomersView';
 import { SmsUsageCard } from '@/components/admin/SmsUsageCard';
 import { ReservationConfirmSettings } from '@/components/admin/ReservationConfirmSettings';
+import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 import { toast } from 'sonner';
 interface Station {
   id: string;
@@ -115,6 +116,10 @@ const AdminDashboard = () => {
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
 
+  // Instance settings dialog
+  const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
+  const [instanceData, setInstanceData] = useState<any>(null);
+
   // Instance features
   const { hasFeature } = useInstanceFeatures(instanceId);
 
@@ -179,9 +184,24 @@ const AdminDashboard = () => {
       } | null>);
     }
   };
+
+  // Fetch instance data for settings
+  const fetchInstanceData = async () => {
+    if (!instanceId) return;
+    const { data } = await supabase
+      .from('instances')
+      .select('*')
+      .eq('id', instanceId)
+      .maybeSingle();
+    if (data) {
+      setInstanceData(data);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
+    fetchInstanceData();
   }, [instanceId]);
 
   // Save sidebar collapsed state
@@ -854,6 +874,26 @@ const AdminDashboard = () => {
 
             {currentView === 'settings' && <div className="space-y-6">
 
+                {/* Company Settings Button */}
+                {instanceData && (
+                  <div className="glass-card p-6 bg-secondary-foreground">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <Building2 className="w-5 h-5" />
+                          Dane firmy i branding
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Logo, kolory, dane kontaktowe
+                        </p>
+                      </div>
+                      <Button onClick={() => setInstanceSettingsOpen(true)}>
+                        Edytuj
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {instanceId && (
                   <SmsUsageCard instanceId={instanceId} />
                 )}
@@ -897,6 +937,16 @@ const AdminDashboard = () => {
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
+
+      {/* Instance Settings Dialog */}
+      <InstanceSettingsDialog 
+        open={instanceSettingsOpen}
+        onOpenChange={setInstanceSettingsOpen}
+        instance={instanceData}
+        onUpdate={(updated) => {
+          setInstanceData(updated);
+        }}
+      />
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
