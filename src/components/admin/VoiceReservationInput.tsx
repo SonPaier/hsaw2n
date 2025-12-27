@@ -28,62 +28,15 @@ interface VoiceReservationInputProps {
 export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        } 
-      });
-
-      // Check for supported mime types
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4';
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-        
-        if (chunksRef.current.length === 0) {
-          toast.error('Nie nagrano żadnego dźwięku');
-          return;
-        }
-
-        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
-        await processAudio(audioBlob);
-      };
-
-      mediaRecorder.start(100); // Collect data every 100ms
-      setIsRecording(true);
-      toast.info('Nagrywanie... Mów teraz');
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Nie można uzyskać dostępu do mikrofonu');
+  const stopRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    setIsRecording(false);
   }, []);
 
   const processAudio = async (audioBlob: Blob) => {
@@ -177,7 +130,7 @@ export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationIn
     });
   };
 
-  // Alternative: Use live recognition instead of recording
+  // Use live recognition with manual stop support
   const startLiveRecognition = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -188,18 +141,54 @@ export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationIn
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'pl-PL';
-    recognition.interimResults = false;
+    recognition.interimResults = true; // Get interim results for better UX
     recognition.maxAlternatives = 1;
-    recognition.continuous = false;
+    recognition.continuous = true; // Keep listening until manually stopped
+
+    transcriptRef.current = '';
+    recognitionRef.current = recognition;
 
     recognition.onstart = () => {
       setIsRecording(true);
-      toast.info('Słucham... Mów teraz');
+      toast.info('Słucham... Kliknij ponownie aby zakończyć');
     };
 
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      console.log('Live transcript:', transcript);
+    recognition.onresult = (event: any) => {
+      // Collect all results
+      let finalTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+      if (finalTranscript) {
+        transcriptRef.current = finalTranscript.trim();
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      recognitionRef.current = null;
+      setIsRecording(false);
+      if (event.error === 'no-speech') {
+        toast.error('Nie wykryto mowy. Spróbuj ponownie.');
+      } else if (event.error === 'not-allowed') {
+        toast.error('Brak dostępu do mikrofonu. Sprawdź uprawnienia.');
+      } else if (event.error !== 'aborted') {
+        toast.error('Błąd rozpoznawania mowy');
+      }
+    };
+
+    recognition.onend = async () => {
+      recognitionRef.current = null;
+      setIsRecording(false);
+      
+      const transcript = transcriptRef.current;
+      if (!transcript) {
+        return;
+      }
+
+      console.log('Final transcript:', transcript);
       toast.info(`Rozpoznano: "${transcript}"`);
       
       setIsProcessing(true);
@@ -234,30 +223,13 @@ export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationIn
       }
     };
 
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      setIsRecording(false);
-      if (event.error === 'no-speech') {
-        toast.error('Nie wykryto mowy. Spróbuj ponownie.');
-      } else if (event.error === 'not-allowed') {
-        toast.error('Brak dostępu do mikrofonu. Sprawdź uprawnienia.');
-      } else {
-        toast.error('Błąd rozpoznawania mowy');
-      }
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-    };
-
     recognition.start();
   }, [services, onParsed]);
 
   const handleClick = () => {
     if (isRecording) {
-      stopRecording();
+      stopRecognition();
     } else {
-      // Use live recognition for better UX
       startLiveRecognition();
     }
   };
