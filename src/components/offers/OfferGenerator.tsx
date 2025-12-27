@@ -10,8 +10,10 @@ import {
   User, 
   Package, 
   FileCheck,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
 import { CustomerDataStep } from './CustomerDataStep';
 import { OptionsStep } from './OptionsStep';
@@ -109,6 +111,29 @@ export const OfferGenerator = ({
       toast.success('Oferta została zapisana i gotowa do wysłania');
     } catch (error) {
       // Error already handled in hook
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!offer.id) {
+      toast.error('Najpierw zapisz ofertę');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-offer-pdf', {
+        body: { offerId: offer.id },
+      });
+      
+      if (error) throw error;
+      
+      // Open HTML in new tab (for now - could be converted to PDF)
+      const blob = new Blob([data], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Błąd podczas generowania PDF');
     }
   };
 
@@ -261,18 +286,30 @@ export const OfferGenerator = ({
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSend}
-              disabled={saving || !canProceed}
-              className="gap-2"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
+            <>
+              {offer.id && (
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadPdf}
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Podgląd PDF
+                </Button>
               )}
-              Wyślij ofertę
-            </Button>
+              <Button
+                onClick={handleSend}
+                disabled={saving || !canProceed}
+                className="gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                Wyślij ofertę
+              </Button>
+            </>
           )}
         </div>
       </div>
