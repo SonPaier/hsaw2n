@@ -30,6 +30,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { VoiceReservationInput } from './VoiceReservationInput';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -541,13 +542,52 @@ const AddReservationDialog = ({
     }
   };
 
+  // Handle voice input parsed data
+  const handleVoiceParsed = (data: {
+    customerName?: string | null;
+    phone?: string | null;
+    carModel?: string | null;
+    date?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    serviceName?: string | null;
+  }) => {
+    if (data.customerName) setCustomerName(data.customerName);
+    if (data.phone) setPhone(data.phone);
+    if (data.carModel) setCarModel(data.carModel);
+    if (data.startTime) setStartTime(data.startTime);
+    if (data.endTime) setEndTime(data.endTime);
+    
+    // Find matching service by name
+    if (data.serviceName) {
+      const matchingService = services.find(s => 
+        s.name.toLowerCase().includes(data.serviceName!.toLowerCase()) ||
+        data.serviceName!.toLowerCase().includes(s.name.toLowerCase())
+      );
+      if (matchingService) {
+        setSelectedServices([matchingService.id]);
+      }
+    }
+    
+    // Handle date for PPF stations
+    if (data.date && isPPFStation) {
+      setDateRange({ from: new Date(data.date), to: undefined });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Nowa rezerwacja
+          <DialogTitle className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Nowa rezerwacja
+            </div>
+            <VoiceReservationInput 
+              services={services} 
+              onParsed={handleVoiceParsed} 
+            />
           </DialogTitle>
         </DialogHeader>
 
