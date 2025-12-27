@@ -165,7 +165,7 @@ const generateHtmlContent = (offer: Offer): string => {
     .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
     .logo { max-height: 60px; }
     .company-info { text-align: right; font-size: 11px; color: #666; }
-    .offer-title { font-size: 24px; font-weight: bold; color: #0ea5e9; margin-bottom: 8px; }
+    .offer-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 8px; }
     .offer-number { font-size: 14px; color: #666; margin-bottom: 24px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
     .info-box { background: #f8f9fa; padding: 16px; border-radius: 8px; }
@@ -173,7 +173,7 @@ const generateHtmlContent = (offer: Offer): string => {
     .info-box p { margin: 4px 0; font-size: 12px; }
     .totals { margin-top: 32px; background: #f8f9fa; padding: 20px; border-radius: 8px; }
     .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; }
-    .totals-row.total { font-size: 18px; font-weight: bold; color: #0ea5e9; border-top: 2px solid #ddd; padding-top: 16px; margin-top: 8px; }
+    .totals-row.total { font-size: 18px; font-weight: bold; color: #333; border-top: 2px solid #ddd; padding-top: 16px; margin-top: 8px; }
     .notes { margin-top: 32px; font-size: 11px; color: #666; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 10px; color: #999; text-align: center; }
   </style>
@@ -181,7 +181,7 @@ const generateHtmlContent = (offer: Offer): string => {
 <body>
   <div class="header">
     <div>
-      ${instance?.logo_url ? `<img src="${instance.logo_url}" alt="${instance.name}" class="logo">` : `<h2 style="margin: 0; color: #0ea5e9;">${instance?.name || 'Oferta'}</h2>`}
+      ${instance?.logo_url ? `<img src="${instance.logo_url}" alt="${instance.name}" class="logo">` : `<h2 style="margin: 0; color: #333;">${instance?.name || 'Oferta'}</h2>`}
     </div>
     <div class="company-info">
       <strong>${instance?.name || ''}</strong><br>

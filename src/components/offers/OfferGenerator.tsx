@@ -127,10 +127,16 @@ export const OfferGenerator = ({
       
       if (error) throw error;
       
-      // Open HTML in new tab (for now - could be converted to PDF)
+      // Download as HTML file
       const blob = new Blob([data], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Oferta_${offer.id}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Błąd podczas generowania PDF');
@@ -294,7 +300,7 @@ export const OfferGenerator = ({
                   className="gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Podgląd PDF
+                  Pobierz PDF
                 </Button>
               )}
               <Button
