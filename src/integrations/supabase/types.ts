@@ -1020,7 +1020,10 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           description: string | null
+          duration_large: number | null
+          duration_medium: number | null
           duration_minutes: number | null
+          duration_small: number | null
           id: string
           instance_id: string
           name: string
@@ -1039,7 +1042,10 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          duration_large?: number | null
+          duration_medium?: number | null
           duration_minutes?: number | null
+          duration_small?: number | null
           id?: string
           instance_id: string
           name: string
@@ -1058,7 +1064,10 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           description?: string | null
+          duration_large?: number | null
+          duration_medium?: number | null
           duration_minutes?: number | null
+          duration_small?: number | null
           id?: string
           instance_id?: string
           name?: string
