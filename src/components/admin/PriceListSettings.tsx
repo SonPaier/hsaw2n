@@ -33,6 +33,9 @@ interface Service {
   name: string;
   description: string | null;
   duration_minutes: number | null;
+  duration_small: number | null;
+  duration_medium: number | null;
+  duration_large: number | null;
   price_from: number | null;
   price_small: number | null;
   price_medium: number | null;
@@ -74,6 +77,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     name: '',
     description: '',
     duration_minutes: 60,
+    duration_small: 60,
+    duration_medium: 60,
+    duration_large: 60,
     price_from: 0,
     price_small: 0,
     price_medium: 0,
@@ -127,6 +133,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         name: service.name,
         description: service.description || '',
         duration_minutes: service.duration_minutes || 60,
+        duration_small: service.duration_small || service.duration_minutes || 60,
+        duration_medium: service.duration_medium || service.duration_minutes || 60,
+        duration_large: service.duration_large || service.duration_minutes || 60,
         price_from: service.price_from || 0,
         price_small: service.price_small || 0,
         price_medium: service.price_medium || 0,
@@ -141,6 +150,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         name: '',
         description: '',
         duration_minutes: 60,
+        duration_small: 60,
+        duration_medium: 60,
+        duration_large: 60,
         price_from: 0,
         price_small: 0,
         price_medium: 0,
@@ -167,6 +179,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         duration_minutes: formData.duration_minutes,
+        duration_small: formData.requires_size ? formData.duration_small : null,
+        duration_medium: formData.requires_size ? formData.duration_medium : null,
+        duration_large: formData.requires_size ? formData.duration_large : null,
         price_from: formData.price_from || null,
         price_small: formData.requires_size ? formData.price_small : null,
         price_medium: formData.requires_size ? formData.price_medium : null,
@@ -413,32 +428,62 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             {formData.requires_size ? (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs">Mały (zł)</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_small}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price_small: parseFloat(e.target.value) || 0 }))}
-                  />
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Mały (zł)</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_small}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price_small: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Średni (zł)</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_medium}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price_medium: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Duży (zł)</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_large}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price_large: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Średni (zł)</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_medium}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price_medium: parseFloat(e.target.value) || 0 }))}
-                  />
+
+                <Label className="text-sm text-muted-foreground">Czas trwania wg wielkości (min)</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Mały</Label>
+                    <Input
+                      type="number"
+                      value={formData.duration_small}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration_small: parseInt(e.target.value) || 60 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Średni</Label>
+                    <Input
+                      type="number"
+                      value={formData.duration_medium}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration_medium: parseInt(e.target.value) || 60 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Duży</Label>
+                    <Input
+                      type="number"
+                      value={formData.duration_large}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration_large: parseInt(e.target.value) || 60 }))}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Duży (zł)</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_large}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price_large: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-              </div>
+              </>
             ) : (
               <div className="space-y-2">
                 <Label>Cena od (zł)</Label>
