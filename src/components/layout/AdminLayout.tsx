@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Car, Calendar, LogOut, Menu, Settings, UserCircle, 
-  PanelLeftClose, PanelLeft, FileText, Package, X 
+  PanelLeftClose, PanelLeft, FileText, Package, X, CalendarClock 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { path: '/admin/customers', icon: UserCircle, label: 'Klienci' },
     ...(hasFeature('offers') ? [{ path: '/admin/oferty', icon: FileText, label: 'Oferty' }] : []),
     ...(hasFeature('offers') ? [{ path: '/admin/produkty', icon: Package, label: 'Produkty' }] : []),
+    ...(hasFeature('followup') ? [{ path: '/admin/followup', icon: CalendarClock, label: 'Follow-up' }] : []),
     { path: '/admin/settings', icon: Settings, label: 'Ustawienia' },
   ];
 
