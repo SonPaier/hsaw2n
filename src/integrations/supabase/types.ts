@@ -163,6 +163,223 @@ export type Database = {
           },
         ]
       }
+      followup_event_services: {
+        Row: {
+          created_at: string
+          event_id: string
+          followup_service_id: string
+          id: string
+          interval_months: number
+          reminder_date: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          followup_service_id: string
+          id?: string
+          interval_months: number
+          reminder_date: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          followup_service_id?: string
+          id?: string
+          interval_months?: number
+          reminder_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_event_services_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "followup_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_event_services_followup_service_id_fkey"
+            columns: ["followup_service_id"]
+            isOneToOne: false
+            referencedRelation: "followup_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_events: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          instance_id: string
+          notes: string | null
+          offer_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          instance_id: string
+          notes?: string | null
+          offer_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          offer_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_events_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_services: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_interval_months: number
+          description: string | null
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_interval_months?: number
+          description?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_interval_months?: number
+          description?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_services_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          due_date: string
+          event_id: string
+          event_service_id: string | null
+          id: string
+          instance_id: string
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          due_date: string
+          event_id: string
+          event_service_id?: string | null
+          id?: string
+          instance_id: string
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          due_date?: string
+          event_id?: string
+          event_service_id?: string | null
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "followup_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_tasks_event_service_id_fkey"
+            columns: ["event_service_id"]
+            isOneToOne: false
+            referencedRelation: "followup_event_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_tasks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instance_features: {
         Row: {
           created_at: string
@@ -468,6 +685,8 @@ export type Database = {
       }
       offers: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string | null
           customer_data: Json
@@ -490,6 +709,8 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_data?: Json
@@ -512,6 +733,8 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_data?: Json
