@@ -75,6 +75,7 @@ export const OptionsStep = ({
   );
   const [autocompleteOpen, setAutocompleteOpen] = useState<{ [key: string]: boolean }>({});
   const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
+  const [justSelected, setJustSelected] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -127,6 +128,12 @@ export const OptionsStep = ({
       isCustom: false,
     });
     setAutocompleteOpen(prev => ({ ...prev, [itemId]: false }));
+    setSearchTerms(prev => ({ ...prev, [itemId]: '' }));
+    // Prevent reopening on focus after selection
+    setJustSelected(prev => ({ ...prev, [itemId]: true }));
+    setTimeout(() => {
+      setJustSelected(prev => ({ ...prev, [itemId]: false }));
+    }, 100);
   };
 
   const toggleOption = (optionId: string) => {
@@ -263,7 +270,7 @@ export const OptionsStep = ({
                                 }
                               }}
                               onFocus={() => {
-                                if (products.length > 0) {
+                                if (products.length > 0 && !justSelected[item.id]) {
                                   setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
                                 }
                               }}
