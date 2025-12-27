@@ -163,58 +163,17 @@ export type Database = {
           },
         ]
       }
-      followup_event_services: {
-        Row: {
-          created_at: string
-          event_id: string
-          followup_service_id: string
-          id: string
-          interval_months: number
-          reminder_date: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          followup_service_id: string
-          id?: string
-          interval_months: number
-          reminder_date: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          followup_service_id?: string
-          id?: string
-          interval_months?: number
-          reminder_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "followup_event_services_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "followup_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followup_event_services_followup_service_id_fkey"
-            columns: ["followup_service_id"]
-            isOneToOne: false
-            referencedRelation: "followup_services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       followup_events: {
         Row: {
           created_at: string
           customer_id: string | null
           customer_name: string
           customer_phone: string
+          followup_service_id: string | null
           id: string
           instance_id: string
+          next_reminder_date: string
           notes: string | null
-          offer_id: string | null
           status: string
           updated_at: string
         }
@@ -223,10 +182,11 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           customer_phone: string
+          followup_service_id?: string | null
           id?: string
           instance_id: string
+          next_reminder_date?: string
           notes?: string | null
-          offer_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -235,10 +195,11 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string
+          followup_service_id?: string | null
           id?: string
           instance_id?: string
+          next_reminder_date?: string
           notes?: string | null
-          offer_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -251,17 +212,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "followup_events_followup_service_id_fkey"
+            columns: ["followup_service_id"]
+            isOneToOne: false
+            referencedRelation: "followup_services"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "followup_events_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followup_events_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
@@ -318,7 +279,6 @@ export type Database = {
           customer_phone: string
           due_date: string
           event_id: string
-          event_service_id: string | null
           id: string
           instance_id: string
           notes: string | null
@@ -333,7 +293,6 @@ export type Database = {
           customer_phone: string
           due_date: string
           event_id: string
-          event_service_id?: string | null
           id?: string
           instance_id: string
           notes?: string | null
@@ -348,7 +307,6 @@ export type Database = {
           customer_phone?: string
           due_date?: string
           event_id?: string
-          event_service_id?: string | null
           id?: string
           instance_id?: string
           notes?: string | null
@@ -362,13 +320,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "followup_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followup_tasks_event_service_id_fkey"
-            columns: ["event_service_id"]
-            isOneToOne: false
-            referencedRelation: "followup_event_services"
             referencedColumns: ["id"]
           },
           {

@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 interface InstanceFeatures {
   offers: boolean;
   upsell: boolean;
-  // Add more features here as needed
+  followup: boolean;
 }
 
 const defaultFeatures: InstanceFeatures = {
   offers: false,
   upsell: false,
+  followup: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
