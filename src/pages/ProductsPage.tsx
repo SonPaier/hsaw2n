@@ -24,6 +24,8 @@ import {
   X,
   AlertCircle,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -40,6 +42,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +105,8 @@ const statusColors: Record<string, string> = {
   failed: 'bg-red-500/20 text-red-600 border-red-500/30',
 };
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -110,6 +121,8 @@ export default function ProductsPage() {
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Fetch instance ID
   useEffect(() => {
@@ -209,6 +222,18 @@ export default function ProductsPage() {
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, categoryFilter]);
+
+  // Pagination for products
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(startIndex, startIndex + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
+
+  // Reset page when filters or page size change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, pageSize]);
 
   // Download PDF from storage
   const handleDownloadPdf = async (priceList: PriceList) => {
@@ -398,7 +423,7 @@ export default function ProductsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredProducts.map((product) => (
+                        {paginatedProducts.map((product) => (
                           <TableRow 
                             key={product.id}
                             className={!product.active ? 'opacity-50' : ''}
@@ -472,6 +497,71 @@ export default function ProductsPage() {
                         ))}
                       </TableBody>
                     </Table>
+
+                    {/* Pagination */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Pokaż</span>
+                        <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
+                          <SelectTrigger className="w-20 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map(size => (
+                              <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span>na stronie</span>
+                        <span className="ml-2">({filteredProducts.length} produktów{totalPages > 1 && `, strona ${currentPage} z ${totalPages}`})</span>
+                      </div>
+                      
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                              let pageNum: number;
+                              if (totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                              } else {
+                                pageNum = currentPage - 2 + i;
+                              }
+                              return (
+                                <Button
+                                  key={pageNum}
+                                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setCurrentPage(pageNum)}
+                                  className="w-9"
+                                >
+                                  {pageNum}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>

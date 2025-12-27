@@ -105,13 +105,13 @@ const InstanceSettingsDialog = ({
     setUploadingLogo(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${instance.id}-logo-${Date.now()}.${fileExt}`;
+      const fileName = `${instance.id}/logo-${Date.now()}.${fileExt}`;
 
       // Delete old logo if exists
       if (formData.logo_url) {
-        const oldPath = formData.logo_url.split('/').pop();
-        if (oldPath) {
-          await supabase.storage.from('instance-logos').remove([oldPath]);
+        const urlParts = formData.logo_url.split('/instance-logos/');
+        if (urlParts[1]) {
+          await supabase.storage.from('instance-logos').remove([urlParts[1]]);
         }
       }
 
@@ -141,9 +141,9 @@ const InstanceSettingsDialog = ({
     if (!formData.logo_url || !instance) return;
 
     try {
-      const oldPath = formData.logo_url.split('/').pop();
-      if (oldPath) {
-        await supabase.storage.from('instance-logos').remove([oldPath]);
+      const urlParts = formData.logo_url.split('/instance-logos/');
+      if (urlParts[1]) {
+        await supabase.storage.from('instance-logos').remove([urlParts[1]]);
       }
       setFormData(prev => ({ ...prev, logo_url: '' }));
       toast.success('Logo zostało usunięte');
