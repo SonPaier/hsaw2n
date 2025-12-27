@@ -68,6 +68,7 @@ interface Offer {
   notes?: string;
   payment_terms?: string;
   valid_until?: string;
+  hide_unit_prices: boolean;
   created_at: string;
   offer_options: OfferOption[];
   instances: {
@@ -363,36 +364,56 @@ const PublicOfferView = () => {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {option.offer_option_items.map((item) => {
-                      const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                      return (
+                  {/* Show items only if unit prices are not hidden, or show just names */}
+                  {offer.hide_unit_prices ? (
+                    <div className="space-y-2">
+                      {option.offer_option_items.map((item) => (
                         <div 
                           key={item.id}
                           className={cn(
-                            "flex items-center justify-between py-2 border-b last:border-0",
+                            "py-1",
                             item.is_optional && "text-muted-foreground"
                           )}
                         >
-                          <div className="flex-1">
-                            <span>{item.custom_name}</span>
-                            {item.is_optional && (
-                              <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm text-muted-foreground mr-4">
-                              {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                              {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
-                            </span>
-                            <span className="font-medium">
-                              {item.is_optional ? '—' : formatPrice(itemTotal)}
-                            </span>
-                          </div>
+                          <span>{item.custom_name}</span>
+                          {item.is_optional && (
+                            <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {option.offer_option_items.map((item) => {
+                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                        return (
+                          <div 
+                            key={item.id}
+                            className={cn(
+                              "flex items-center justify-between py-2 border-b last:border-0",
+                              item.is_optional && "text-muted-foreground"
+                            )}
+                          >
+                            <div className="flex-1">
+                              <span>{item.custom_name}</span>
+                              {item.is_optional && (
+                                <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-sm text-muted-foreground mr-4">
+                                {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
+                              </span>
+                              <span className="font-medium">
+                                {item.is_optional ? '—' : formatPrice(itemTotal)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="flex justify-between pt-4 font-medium">
                     <span>Razem opcja</span>
                     <span>{formatPrice(option.subtotal_net)}</span>

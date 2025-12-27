@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -474,6 +475,20 @@ export const SummaryStep = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="hideUnitPrices">Ukryj ceny jednostkowe</Label>
+              <p className="text-sm text-muted-foreground">
+                Klient zobaczy tylko cenę końcową opcji, bez rozbicia na pozycje
+              </p>
+            </div>
+            <Switch
+              id="hideUnitPrices"
+              checked={offer.hideUnitPrices}
+              onCheckedChange={(checked) => onUpdateOffer({ hideUnitPrices: checked })}
+            />
+          </div>
+          <Separator />
           <div className="space-y-2">
             <Label htmlFor="validUntil">Oferta ważna do</Label>
             <Input

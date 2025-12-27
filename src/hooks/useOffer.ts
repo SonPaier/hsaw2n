@@ -52,6 +52,7 @@ export interface OfferState {
   paymentTerms?: string;
   validUntil?: string;
   vatRate: number;
+  hideUnitPrices: boolean;
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
 }
 
@@ -79,6 +80,7 @@ export const useOffer = (instanceId: string) => {
     options: [],
     additions: [],
     vatRate: 23,
+    hideUnitPrices: false,
     status: 'draft',
   });
   
@@ -306,6 +308,7 @@ export const useOffer = (instanceId: string) => {
         total_net: number;
         total_gross: number;
         status: string;
+        hide_unit_prices: boolean;
         offer_number?: string;
       } = {
         instance_id: instanceId,
@@ -318,6 +321,7 @@ export const useOffer = (instanceId: string) => {
         total_net: totalNet,
         total_gross: totalGross,
         status: offer.status,
+        hide_unit_prices: offer.hideUnitPrices,
         ...(offerNumber && { offer_number: offerNumber }),
       };
 
@@ -527,6 +531,7 @@ export const useOffer = (instanceId: string) => {
         paymentTerms: offerData.payment_terms,
         validUntil: offerData.valid_until,
         vatRate: Number(offerData.vat_rate),
+        hideUnitPrices: offerData.hide_unit_prices || false,
         status: offerData.status as OfferState['status'],
       });
     } catch (error) {
@@ -554,6 +559,7 @@ export const useOffer = (instanceId: string) => {
       }],
       additions: [],
       vatRate: 23,
+      hideUnitPrices: false,
       status: 'draft',
     });
   }, [instanceId]);

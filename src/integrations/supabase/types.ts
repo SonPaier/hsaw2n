@@ -471,6 +471,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_data: Json
+          hide_unit_prices: boolean
           id: string
           instance_id: string
           notes: string | null
@@ -492,6 +493,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          hide_unit_prices?: boolean
           id?: string
           instance_id: string
           notes?: string | null
@@ -513,6 +515,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          hide_unit_prices?: boolean
           id?: string
           instance_id?: string
           notes?: string | null
