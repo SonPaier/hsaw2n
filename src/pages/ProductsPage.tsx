@@ -4,16 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Upload, 
-  Search, 
-  Sparkles, 
-  FileText, 
+import {
+  ArrowLeft,
+  Plus,
+  Upload,
+  Search,
+  Sparkles,
+  FileText,
   Package,
   Trash2,
   Eye,
@@ -22,7 +23,7 @@ import {
   Loader2,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -483,61 +484,92 @@ export default function ProductsPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {priceLists.map((priceList) => (
-                      <div 
-                        key={priceList.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FileText className="h-5 w-5 text-primary" />
+                    {priceLists.map((priceList) => {
+                      const progressValue =
+                        priceList.status === 'pending'
+                          ? 20
+                          : priceList.status === 'processing'
+                            ? 60
+                            : 100;
+
+                      return (
+                        <div
+                          key={priceList.id}
+                          className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <FileText className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{priceList.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatDate(priceList.created_at)}
+                                  {priceList.products_count > 0 && (
+                                    <span> • {priceList.products_count} produktów</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <Badge className={statusColors[priceList.status]}>
+                                {priceList.status === 'processing' && (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                )}
+                                {priceList.status === 'completed' && (
+                                  <Check className="mr-1 h-3 w-3" />
+                                )}
+                                {priceList.status === 'failed' && (
+                                  <X className="mr-1 h-3 w-3" />
+                                )}
+                                {statusLabels[priceList.status]}
+                              </Badge>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedPriceList(priceList)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Zobacz cennik
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeletePriceList(priceList)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Usuń
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{priceList.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatDate(priceList.created_at)}
-                              {priceList.products_count > 0 && (
-                                <span> • {priceList.products_count} produktów</span>
-                              )}
-                            </p>
-                          </div>
+
+                          {(priceList.status === 'pending' || priceList.status === 'processing') && (
+                            <div className="mt-3 space-y-2">
+                              <Progress value={progressValue} />
+                              <p className="text-xs text-muted-foreground">
+                                {priceList.status === 'pending'
+                                  ? 'Czeka w kolejce do przetworzenia.'
+                                  : 'AI przetwarza cennik — możesz pracować dalej.'}
+                              </p>
+                            </div>
+                          )}
+
+                          {priceList.status === 'failed' && priceList.error_message && (
+                            <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                              <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                              <p className="text-sm text-destructive">{priceList.error_message}</p>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={statusColors[priceList.status]}>
-                            {priceList.status === 'processing' && (
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            )}
-                            {priceList.status === 'completed' && (
-                              <Check className="mr-1 h-3 w-3" />
-                            )}
-                            {priceList.status === 'failed' && (
-                              <X className="mr-1 h-3 w-3" />
-                            )}
-                            {statusLabels[priceList.status]}
-                          </Badge>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedPriceList(priceList)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Zobacz cennik
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeletePriceList(priceList)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Usuń
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
