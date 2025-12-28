@@ -754,12 +754,17 @@ const PublicOfferView = () => {
                                           item.is_optional && !isOptionalSelected && "text-muted-foreground"
                                         )}
                                       >
-                                        <div className="flex items-center gap-2">
-                                          <span>{item.custom_name}</span>
-                                          {item.is_optional && !isOptionalSelected && (
-                                            <Badge variant="outline" className="text-xs">
-                                              opcjonalne
-                                            </Badge>
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span>{item.custom_name}</span>
+                                            {item.is_optional && !isOptionalSelected && (
+                                              <Badge variant="outline" className="text-xs">
+                                                opcjonalne
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {item.custom_description && (
+                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
                                           )}
                                         </div>
                                         {item.is_optional && (
@@ -794,12 +799,17 @@ const PublicOfferView = () => {
                                           item.is_optional && !isOptionalSelected && "text-muted-foreground"
                                         )}
                                       >
-                                        <div className="flex items-center gap-2">
-                                          <span>{item.custom_name}</span>
-                                          {item.is_optional && !isOptionalSelected && (
-                                            <Badge variant="outline" className="text-xs">
-                                              opcjonalne
-                                            </Badge>
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span>{item.custom_name}</span>
+                                            {item.is_optional && !isOptionalSelected && (
+                                              <Badge variant="outline" className="text-xs">
+                                                opcjonalne
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {item.custom_description && (
+                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
                                           )}
                                         </div>
                                         {item.is_optional && (
@@ -880,6 +890,9 @@ const PublicOfferView = () => {
                                 {option.offer_option_items.map((item) => (
                                   <div key={item.id} className="py-1">
                                     <span>{item.custom_name}</span>
+                                    {item.custom_description && (
+                                      <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
+                                    )}
                                   </div>
                                 ))}
                               </div>
