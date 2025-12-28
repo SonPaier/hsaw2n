@@ -25,12 +25,21 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
+interface OfferScopeRef {
+  id: string;
+  name: string;
+}
+
 interface OfferOption {
   id: string;
   name: string;
   description?: string;
   is_selected: boolean;
   subtotal_net: number;
+  sort_order?: number;
+  scope_id?: string | null;
+  is_upsell?: boolean;
+  scope?: OfferScopeRef | null;
   offer_option_items: {
     id: string;
     custom_name: string;
@@ -114,6 +123,10 @@ const PublicOfferView = () => {
             *,
             offer_options (
               *,
+              scope:offer_scopes (
+                id,
+                name
+              ),
               offer_option_items (*)
             ),
             instances (
@@ -233,10 +246,51 @@ const PublicOfferView = () => {
   const isExpired = offer.valid_until && new Date(offer.valid_until) < new Date();
   const canRespond = ['sent', 'viewed'].includes(offer.status) && !isExpired;
 
+  const selectedOptions = offer.offer_options
+    .filter((opt) => opt.is_selected)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  const scopeSections = Object.values(
+    selectedOptions.reduce(
+      (acc, opt) => {
+        const inferredNameFromTitle = opt.name.includes(' - ')
+          ? opt.name.split(' - ')[0]
+          : null;
+        const key = opt.scope_id ?? inferredNameFromTitle ?? '__ungrouped__';
+
+        const inferredScopeName = opt.scope_id
+          ? opt.scope?.name ?? inferredNameFromTitle ?? 'Zakres'
+          : inferredNameFromTitle ?? 'Pozostałe';
+
+        if (!acc[key]) {
+          acc[key] = {
+            key,
+            scopeName: inferredScopeName,
+            sortKey: opt.sort_order ?? 0,
+            options: [] as OfferOption[],
+          };
+        }
+        acc[key].options.push(opt);
+        return acc;
+      },
+      {} as Record<
+        string,
+        { key: string; scopeName: string; sortKey: number; options: OfferOption[] }
+      >
+    )
+  ).sort((a, b) => a.sortKey - b.sortKey);
+
   return (
     <>
       <Helmet>
-        <title>Oferta {offer.offer_number} - {instance?.name || 'Oferta'}</title>
+        <title>Oferta {offer.offer_number} – {instance?.name || 'Firma'}</title>
+        <meta
+          name="description"
+          content={`Oferta ${offer.offer_number} od ${instance?.name || 'firmy'}: zakres prac, pozycje i podsumowanie kosztów.`}
+        />
+        {typeof window !== 'undefined' && (
+          <link rel="canonical" href={window.location.href} />
+        )}
       </Helmet>
       
       <div className="min-h-screen bg-muted/30">
@@ -246,14 +300,21 @@ const PublicOfferView = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {instance?.logo_url ? (
-                  <img src={instance.logo_url} alt={instance.name} className="h-12 object-contain" />
+                  <img
+                    src={instance.logo_url}
+                    alt={`Logo ${instance.name}`}
+                    className="h-12 object-contain"
+                  />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                     <FileText className="w-6 h-6 text-primary" />
                   </div>
                 )}
                 <div>
-                  <h1 className="font-bold text-lg">{instance?.name}</h1>
+                  <h1 className="font-bold text-lg">
+                    <span className="sr-only">Oferta </span>
+                    {instance?.name}
+                  </h1>
                   <p className="text-sm text-muted-foreground">Oferta nr {offer.offer_number}</p>
                 </div>
               </div>
@@ -356,81 +417,99 @@ const PublicOfferView = () => {
             )}
           </div>
 
-          {/* Options - sorted by sort_order (upsells last within each scope) */}
-          {offer.offer_options
-            .filter(opt => opt.is_selected)
-            .sort((a, b) => {
-              // Sort by sort_order to ensure upsells come after their parent scope options
-              const sortA = (a as any).sort_order ?? 0;
-              const sortB = (b as any).sort_order ?? 0;
-              return sortA - sortB;
-            })
-            .map((option) => (
-              <Card key={option.id}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">{option.name}</CardTitle>
-                  {option.description && (
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {/* Show items only if unit prices are not hidden, or show just names */}
-                  {offer.hide_unit_prices ? (
-                    <div className="space-y-2">
-                      {option.offer_option_items.map((item) => (
-                        <div 
-                          key={item.id}
-                          className={cn(
-                            "py-1",
-                            item.is_optional && "text-muted-foreground"
+          {/* Zakresy (scope) */}
+          {scopeSections.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                Brak wybranych pozycji w ofercie.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-8">
+              {scopeSections.map((section) => (
+                <section key={section.key} className="space-y-3">
+                  <h2 className="text-base font-semibold">{section.scopeName}</h2>
+
+                  {section.options.map((option) => (
+                    <article key={option.id}>
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold">{option.name}</CardTitle>
+                          {option.description && (
+                            <p className="text-sm text-muted-foreground">{option.description}</p>
                           )}
-                        >
-                          <span>{item.custom_name}</span>
-                          {item.is_optional && (
-                            <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Show items only if unit prices are not hidden, or show just names */}
+                          {offer.hide_unit_prices ? (
+                            <div className="space-y-2">
+                              {option.offer_option_items.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className={cn(
+                                    "py-1",
+                                    item.is_optional && "text-muted-foreground"
+                                  )}
+                                >
+                                  <span>{item.custom_name}</span>
+                                  {item.is_optional && (
+                                    <Badge variant="outline" className="ml-2 text-xs">
+                                      opcjonalne
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {option.offer_option_items.map((item) => {
+                                const itemTotal =
+                                  item.quantity *
+                                  item.unit_price *
+                                  (1 - item.discount_percent / 100);
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={cn(
+                                      "flex items-center justify-between py-2 border-b last:border-0",
+                                      item.is_optional && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <div className="flex-1">
+                                      <span>{item.custom_name}</span>
+                                      {item.is_optional && (
+                                        <Badge variant="outline" className="ml-2 text-xs">
+                                          opcjonalne
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-sm text-muted-foreground mr-4">
+                                        {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                        {item.discount_percent > 0 &&
+                                          ` (-${item.discount_percent}%)`}
+                                      </span>
+                                      <span className="font-medium">
+                                        {item.is_optional ? '—' : formatPrice(itemTotal)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {option.offer_option_items.map((item) => {
-                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                        return (
-                          <div 
-                            key={item.id}
-                            className={cn(
-                              "flex items-center justify-between py-2 border-b last:border-0",
-                              item.is_optional && "text-muted-foreground"
-                            )}
-                          >
-                            <div className="flex-1">
-                              <span>{item.custom_name}</span>
-                              {item.is_optional && (
-                                <Badge variant="outline" className="ml-2 text-xs">opcjonalne</Badge>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <span className="text-sm text-muted-foreground mr-4">
-                                {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                                {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
-                              </span>
-                              <span className="font-medium">
-                                {item.is_optional ? '—' : formatPrice(itemTotal)}
-                              </span>
-                            </div>
+                          <div className="flex justify-between pt-4 font-medium">
+                            <span>Razem opcja</span>
+                            <span>{formatPrice(option.subtotal_net)}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-4 font-medium">
-                    <span>Razem opcja</span>
-                    <span>{formatPrice(option.subtotal_net)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                        </CardContent>
+                      </Card>
+                    </article>
+                  ))}
+                </section>
+              ))}
+            </div>
+          )}
 
           {/* Totals */}
           <Card>
