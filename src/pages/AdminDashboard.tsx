@@ -59,6 +59,12 @@ interface Break {
   end_time: string;
   note: string | null;
 }
+interface ClosedDay {
+  id: string;
+  instance_id: string;
+  closed_date: string;
+  reason: string | null;
+}
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
 
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings'];
@@ -110,6 +116,9 @@ const AdminDashboard = () => {
     date: '',
     time: ''
   });
+  
+  // Closed days state
+  const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
 
   // Reservation list filter
   const [showPendingOnly, setShowPendingOnly] = useState(false);
@@ -216,6 +225,7 @@ const AdminDashboard = () => {
       fetchStations();
       fetchReservations();
       fetchBreaks();
+      fetchClosedDays();
     }
   }, [currentView]);
 
@@ -269,9 +279,23 @@ const AdminDashboard = () => {
       setBreaks(data);
     }
   };
+  
+  // Fetch closed days from database
+  const fetchClosedDays = async () => {
+    if (!instanceId) return;
+    const { data, error } = await supabase
+      .from('closed_days')
+      .select('*')
+      .eq('instance_id', instanceId);
+    if (!error && data) {
+      setClosedDays(data);
+    }
+  };
+  
   useEffect(() => {
     fetchReservations();
     fetchBreaks();
+    fetchClosedDays();
   }, [instanceId]);
 
   // Play notification sound for new customer reservations
@@ -557,6 +581,54 @@ const AdminDashboard = () => {
     }
     toast.success('Przerwa została usunięta');
   };
+  
+  const handleToggleClosedDay = async (date: string) => {
+    if (!instanceId) return;
+    
+    const existingClosedDay = closedDays.find(cd => cd.closed_date === date);
+    
+    if (existingClosedDay) {
+      // Day is closed - open it (delete from closed_days)
+      setClosedDays(prev => prev.filter(cd => cd.id !== existingClosedDay.id));
+      
+      const { error } = await supabase
+        .from('closed_days')
+        .delete()
+        .eq('id', existingClosedDay.id);
+      
+      if (error) {
+        toast.error('Błąd podczas otwierania dnia');
+        console.error('Error opening day:', error);
+        fetchClosedDays();
+        return;
+      }
+      toast.success('Dzień został otwarty');
+    } else {
+      // Day is open - close it (insert to closed_days)
+      const newClosedDay = {
+        instance_id: instanceId,
+        closed_date: date,
+        reason: null
+      };
+      
+      const { data, error } = await supabase
+        .from('closed_days')
+        .insert(newClosedDay)
+        .select()
+        .single();
+      
+      if (error) {
+        toast.error('Błąd podczas zamykania dnia');
+        console.error('Error closing day:', error);
+        return;
+      }
+      
+      if (data) {
+        setClosedDays(prev => [...prev, data]);
+      }
+      toast.success('Dzień został zamknięty');
+    }
+  };
 
   const handleConfirmReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
@@ -793,7 +865,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} />
               </div>}
 
             {currentView === 'reservations' && <div className="space-y-4">
