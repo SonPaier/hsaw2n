@@ -40,6 +40,9 @@ export interface OfferOption {
   items: OfferItem[];
   isSelected: boolean;
   sortOrder: number;
+  scopeId?: string;
+  variantId?: string;
+  isUpsell?: boolean;
 }
 
 export interface OfferState {
@@ -94,32 +97,102 @@ export const useOffer = (instanceId: string) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Initialize with default options: Basic and Premium
-  useEffect(() => {
-    if (offer.options.length === 0 && !offer.id) {
-      setOffer(prev => ({
-        ...prev,
-        options: [
-          {
+  // Generate options from selected scopes × variants
+  const generateOptionsFromScopes = useCallback(async (scopeIds: string[]) => {
+    if (scopeIds.length === 0) {
+      setOffer(prev => ({ ...prev, options: [] }));
+      return;
+    }
+
+    try {
+      // Fetch selected scopes
+      const { data: scopes, error: scopesError } = await supabase
+        .from('offer_scopes')
+        .select('*')
+        .in('id', scopeIds)
+        .eq('active', true)
+        .order('sort_order');
+
+      if (scopesError) throw scopesError;
+
+      // Fetch active variants
+      const { data: variants, error: variantsError } = await supabase
+        .from('offer_variants')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order');
+
+      if (variantsError) throw variantsError;
+
+      // Fetch scope-variant products
+      const { data: scopeVariantProducts, error: productsError } = await supabase
+        .from('offer_scope_variant_products')
+        .select('*, products_library(*)')
+        .eq('instance_id', instanceId)
+        .in('scope_id', scopeIds);
+
+      if (productsError) throw productsError;
+
+      // Generate options: for each scope × variant combination
+      const newOptions: OfferOption[] = [];
+      let sortOrder = 0;
+
+      for (const scope of scopes || []) {
+        for (const variant of variants || []) {
+          // Find products for this scope-variant combo
+          const products = (scopeVariantProducts || [])
+            .filter(p => p.scope_id === scope.id && p.variant_id === variant.id)
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+          const items: OfferItem[] = products.map(p => ({
             id: crypto.randomUUID(),
-            name: 'Basic',
-            description: '',
-            items: [],
-            isSelected: true,
-            sortOrder: 0,
-          },
-          {
+            productId: p.product_id || undefined,
+            customName: p.custom_name || p.products_library?.name || '',
+            customDescription: p.custom_description || p.products_library?.description || '',
+            quantity: Number(p.quantity) || 1,
+            unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
+            unit: p.unit || p.products_library?.unit || 'szt',
+            discountPercent: 0,
+            isOptional: false,
+            isCustom: !p.product_id,
+          }));
+
+          newOptions.push({
             id: crypto.randomUUID(),
-            name: 'Premium',
-            description: '',
+            name: `${scope.name} - ${variant.name}`,
+            description: scope.description || '',
+            items,
+            isSelected: sortOrder === 0, // First option selected by default
+            sortOrder,
+            scopeId: scope.id,
+            variantId: variant.id,
+            isUpsell: false,
+          });
+          sortOrder++;
+        }
+
+        // Add coating upsell if scope has it enabled
+        if (scope.has_coating_upsell) {
+          newOptions.push({
+            id: crypto.randomUUID(),
+            name: `${scope.name} - Powłoka ceramiczna (upsell)`,
+            description: 'Dodatkowa ochrona powłoką ceramiczną',
             items: [],
             isSelected: false,
-            sortOrder: 1,
-          },
-        ],
-      }));
+            sortOrder,
+            scopeId: scope.id,
+            isUpsell: true,
+          });
+          sortOrder++;
+        }
+      }
+
+      setOffer(prev => ({ ...prev, options: newOptions }));
+    } catch (error) {
+      console.error('Error generating options from scopes:', error);
     }
-  }, []);
+  }, [instanceId]);
 
   // Customer data handlers
   const updateCustomerData = useCallback((data: Partial<CustomerData>) => {
@@ -143,7 +216,9 @@ export const useOffer = (instanceId: string) => {
       ...prev,
       selectedScopeIds: scopeIds,
     }));
-  }, []);
+    // Generate options based on selected scopes
+    generateOptionsFromScopes(scopeIds);
+  }, [generateOptionsFromScopes]);
 
   // Option handlers
   const addOption = useCallback((option: Omit<OfferOption, 'id' | 'sortOrder'>) => {
@@ -576,14 +651,7 @@ export const useOffer = (instanceId: string) => {
       customerData: defaultCustomerData,
       vehicleData: defaultVehicleData,
       selectedScopeIds: [],
-      options: [{
-        id: crypto.randomUUID(),
-        name: 'Opcja 1',
-        description: '',
-        items: [],
-        isSelected: true,
-        sortOrder: 0,
-      }],
+      options: [],
       additions: [],
       vatRate: 23,
       hideUnitPrices: false,
@@ -598,6 +666,7 @@ export const useOffer = (instanceId: string) => {
     updateCustomerData,
     updateVehicleData,
     updateSelectedScopes,
+    generateOptionsFromScopes,
     addOption,
     updateOption,
     removeOption,
