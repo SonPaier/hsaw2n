@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
+import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -113,6 +114,7 @@ const OffersPage = () => {
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
   
   const [showSettings, setShowSettings] = useState(false);
+  const [showScopesSettings, setShowScopesSettings] = useState(false);
   const [settings, setSettings] = useState<OfferSettings>({
     number_prefix: '',
     number_format: 'PREFIX/YYYY/MMDD/NNN',
@@ -363,7 +365,11 @@ const OffersPage = () => {
                 <Package className="w-4 h-4" />
                 Produkty
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia ofert">
+              <Button variant="outline" onClick={() => setShowScopesSettings(true)} className="gap-2">
+                <Layers className="w-4 h-4" />
+                Zakresy
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia numeracji">
                 <Settings className="w-4 h-4" />
               </Button>
               <Button onClick={() => setShowGenerator(true)} className="gap-2">
@@ -622,6 +628,15 @@ const OffersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Scopes Settings Dialog */}
+      {instanceId && (
+        <OfferSettingsDialog
+          open={showScopesSettings}
+          onOpenChange={setShowScopesSettings}
+          instanceId={instanceId}
+        />
+      )}
     </AdminLayout>
   );
 };

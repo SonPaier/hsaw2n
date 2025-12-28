@@ -589,33 +589,45 @@ export type Database = {
           description: string | null
           id: string
           is_selected: boolean
+          is_upsell: boolean
           name: string
           offer_id: string
+          parent_option_id: string | null
+          scope_id: string | null
           sort_order: number
           subtotal_net: number
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
           is_selected?: boolean
+          is_upsell?: boolean
           name: string
           offer_id: string
+          parent_option_id?: string | null
+          scope_id?: string | null
           sort_order?: number
           subtotal_net?: number
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
           is_selected?: boolean
+          is_upsell?: boolean
           name?: string
           offer_id?: string
+          parent_option_id?: string | null
+          scope_id?: string | null
           sort_order?: number
           subtotal_net?: number
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -623,6 +635,148 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_options_parent_option_id_fkey"
+            columns: ["parent_option_id"]
+            isOneToOne: false
+            referencedRelation: "offer_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_options_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_options_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_scope_variant_products: {
+        Row: {
+          created_at: string
+          custom_description: string | null
+          custom_name: string | null
+          id: string
+          instance_id: string
+          product_id: string | null
+          quantity: number
+          scope_id: string
+          sort_order: number | null
+          unit: string
+          unit_price: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          id?: string
+          instance_id: string
+          product_id?: string | null
+          quantity?: number
+          scope_id: string
+          sort_order?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          id?: string
+          instance_id?: string
+          product_id?: string | null
+          quantity?: number
+          scope_id?: string
+          sort_order?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_scope_variant_products_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variant_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variant_products_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variant_products_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_scopes: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          has_coating_upsell: boolean
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          has_coating_upsell?: boolean
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          has_coating_upsell?: boolean
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_scopes_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
             referencedColumns: ["id"]
           },
         ]
@@ -668,6 +822,47 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_variants: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_variants_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
             referencedColumns: ["id"]
           },
         ]
