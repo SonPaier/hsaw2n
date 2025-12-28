@@ -134,6 +134,17 @@ export const useOffer = (instanceId: string) => {
 
       if (productsError) throw productsError;
 
+      // Fetch scope extras (additional options like coating)
+      const { data: scopeExtras, error: extrasError } = await supabase
+        .from('offer_scope_extras')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .in('scope_id', scopeIds)
+        .order('sort_order');
+
+      if (extrasError) throw extrasError;
+
       // Generate options: for each scope × variant combination
       // If no variants defined, create one option per scope
       const newOptions: OfferOption[] = [];
@@ -181,17 +192,18 @@ export const useOffer = (instanceId: string) => {
           sortOrder++;
         }
 
-        // Add coating upsell if scope has it enabled
-        if (scope.has_coating_upsell) {
+        // Add scope extras (custom additional options like coating)
+        const extras = (scopeExtras || []).filter(e => e.scope_id === scope.id);
+        for (const extra of extras) {
           newOptions.push({
             id: crypto.randomUUID(),
-            name: `${scope.name} - Powłoka ceramiczna (upsell)`,
-            description: 'Dodatkowa ochrona powłoką ceramiczną',
+            name: `${scope.name} - ${extra.name}`,
+            description: extra.description || '',
             items: [],
-            isSelected: true, // All options selected by default
+            isSelected: true,
             sortOrder,
             scopeId: scope.id,
-            isUpsell: true,
+            isUpsell: extra.is_upsell,
           });
           sortOrder++;
         }
