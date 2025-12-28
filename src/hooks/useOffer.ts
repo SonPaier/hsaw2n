@@ -125,6 +125,22 @@ export const useOffer = (instanceId: string) => {
 
       if (variantsError) throw variantsError;
 
+      // Fetch scope-variant links (which variants are assigned to which scopes)
+      const { data: scopeVariantLinks, error: linksError } = await supabase
+        .from('offer_scope_variants')
+        .select('scope_id, variant_id')
+        .eq('instance_id', instanceId)
+        .in('scope_id', scopeIds);
+
+      if (linksError) throw linksError;
+
+      // Build a map of scope_id -> variant_ids
+      const scopeVariantsMap = (scopeVariantLinks || []).reduce((acc, link) => {
+        if (!acc[link.scope_id]) acc[link.scope_id] = new Set<string>();
+        acc[link.scope_id].add(link.variant_id);
+        return acc;
+      }, {} as Record<string, Set<string>>);
+
       // Fetch scope-variant products
       const { data: scopeVariantProducts, error: productsError } = await supabase
         .from('offer_scope_variant_products')
@@ -145,17 +161,18 @@ export const useOffer = (instanceId: string) => {
 
       if (extrasError) throw extrasError;
 
-      // Generate options: for each scope × variant combination
-      // If no variants defined, create one option per scope
+      // Generate options: for each scope × assigned variant combination
       const newOptions: OfferOption[] = [];
       let sortOrder = 0;
 
-      const variantsToUse = (variants && variants.length > 0) 
-        ? variants 
-        : [{ id: null, name: '' }]; // Fallback: single "empty" variant
-
       for (const scope of scopes || []) {
-        for (const variant of variantsToUse) {
+        // Get variants assigned to this scope, or all variants if none assigned
+        const assignedVariantIds = scopeVariantsMap[scope.id];
+        const variantsForScope = assignedVariantIds && assignedVariantIds.size > 0
+          ? (variants || []).filter(v => assignedVariantIds.has(v.id))
+          : (variants && variants.length > 0 ? variants : [{ id: null, name: '' }]);
+
+        for (const variant of variantsForScope) {
           // Find products for this scope-variant combo
           const products = (scopeVariantProducts || [])
             .filter(p => p.scope_id === scope.id && (variant.id === null || p.variant_id === variant.id))
