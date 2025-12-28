@@ -955,10 +955,35 @@ const PublicOfferView = () => {
                                   })}
                                 </div>
                               )}
-                              <div className="flex justify-between pt-4 font-medium">
-                                <span>Razem opcja</span>
-                                <span>{formatPrice(option.subtotal_net)}</span>
-                              </div>
+                              {(() => {
+                                // Calculate original price (before discounts) for this option
+                                const originalTotal = option.offer_option_items.reduce((sum, item) => {
+                                  return sum + (item.quantity * item.unit_price);
+                                }, 0);
+                                const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
+                                const totalDiscount = originalTotal - option.subtotal_net;
+                                
+                                return (
+                                  <div className="flex justify-between pt-4 font-medium items-center">
+                                    <span>Razem opcja</span>
+                                    <div className="flex items-center gap-2">
+                                      {hasDiscount && originalTotal > option.subtotal_net && (
+                                        <>
+                                          <span className="text-muted-foreground line-through text-sm">
+                                            {formatPrice(originalTotal)}
+                                          </span>
+                                          <Badge variant="secondary" className="text-xs">
+                                            -{formatPrice(totalDiscount)}
+                                          </Badge>
+                                        </>
+                                      )}
+                                      <span className={hasDiscount ? "text-primary" : ""}>
+                                        {formatPrice(option.subtotal_net)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </CardContent>
                           </Card>
                         </article>
@@ -1018,10 +1043,35 @@ const PublicOfferView = () => {
                                   </div>
                                 ))}
                               </div>
-                              <div className="flex justify-between pt-4 font-medium">
-                                <span>Razem opcja</span>
-                                <span>{formatPrice(option.subtotal_net)}</span>
-                              </div>
+                              {(() => {
+                                // Calculate original price (before discounts) for this upsell option
+                                const originalTotal = option.offer_option_items.reduce((sum, item) => {
+                                  return sum + (item.quantity * item.unit_price);
+                                }, 0);
+                                const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
+                                const totalDiscount = originalTotal - option.subtotal_net;
+                                
+                                return (
+                                  <div className="flex justify-between pt-4 font-medium items-center">
+                                    <span>Razem opcja</span>
+                                    <div className="flex items-center gap-2">
+                                      {hasDiscount && originalTotal > option.subtotal_net && (
+                                        <>
+                                          <span className="text-muted-foreground line-through text-sm">
+                                            {formatPrice(originalTotal)}
+                                          </span>
+                                          <Badge variant="secondary" className="text-xs">
+                                            -{formatPrice(totalDiscount)}
+                                          </Badge>
+                                        </>
+                                      )}
+                                      <span className={hasDiscount ? "text-primary" : ""}>
+                                        {formatPrice(option.subtotal_net)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </CardContent>
                           </Card>
                         </article>
