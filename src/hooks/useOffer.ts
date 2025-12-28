@@ -180,21 +180,6 @@ export const useOffer = (instanceId: string) => {
           });
           sortOrder++;
         }
-
-        // Add coating upsell if scope has it enabled
-        if (scope.has_coating_upsell) {
-          newOptions.push({
-            id: crypto.randomUUID(),
-            name: `${scope.name} - Powłoka ceramiczna (upsell)`,
-            description: 'Dodatkowa ochrona powłoką ceramiczną',
-            items: [],
-            isSelected: true, // All options selected by default
-            sortOrder,
-            scopeId: scope.id,
-            isUpsell: true,
-          });
-          sortOrder++;
-        }
       }
 
       setOffer(prev => ({ ...prev, options: newOptions }));
