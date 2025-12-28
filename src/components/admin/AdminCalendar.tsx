@@ -24,6 +24,13 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type ViewMode = 'day' | 'two-days' | 'week';
 
@@ -179,6 +186,7 @@ const AdminCalendar = ({
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [weekViewStationId, setWeekViewStationId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Save hidden stations to localStorage
@@ -1370,30 +1378,46 @@ const AdminCalendar = ({
       {/* WEEK VIEW */}
       {viewMode === 'week' && (
         <>
-          {/* Week Day Headers */}
+          {/* Week Day Headers with Station Selector */}
           <div className="flex border-b border-border bg-muted/20">
-            {/* Time column header */}
-            <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
-              <Clock className="w-4 h-4 mx-auto" />
+            {/* Time column header with station selector */}
+            <div className="w-16 md:w-20 shrink-0 p-2 flex flex-col items-center justify-center gap-1 border-r border-border">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <Select
+                value={weekViewStationId || stations[0]?.id || ''}
+                onValueChange={(value) => setWeekViewStationId(value)}
+              >
+                <SelectTrigger className="h-7 text-xs w-full px-1">
+                  <SelectValue placeholder="Stanowisko" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((station) => (
+                    <SelectItem key={station.id} value={station.id} className="text-xs">
+                      {station.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Day headers */}
             {weekDays.map((day, idx) => {
               const dayStr = format(day, 'yyyy-MM-dd');
               const isDayToday = isSameDay(day, new Date());
-              const dayReservations = reservations.filter(r => {
-                const startDate = r.reservation_date;
-                const endDate = r.end_date || r.reservation_date;
-                return dayStr >= startDate && dayStr <= endDate;
-              });
+              const isDayClosed = isDateClosed(dayStr);
+              const selectedStationId = weekViewStationId || stations[0]?.id;
+              const dayReservations = selectedStationId 
+                ? getReservationsForStationAndDate(selectedStationId, dayStr)
+                : [];
               
               return (
                 <div 
                   key={dayStr}
                   className={cn(
-                    "flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[100px] cursor-pointer hover:bg-muted/50 transition-colors",
+                    "flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px] cursor-pointer hover:bg-muted/50 transition-colors",
                     idx < 6 && "border-r border-border",
-                    isDayToday && "bg-primary/10"
+                    isDayToday && "bg-primary/10",
+                    isDayClosed && "bg-red-500/10"
                   )}
                   onClick={() => {
                     setCurrentDate(day);
@@ -1402,119 +1426,266 @@ const AdminCalendar = ({
                 >
                   <div className={cn(
                     "text-foreground",
-                    isDayToday && "text-primary font-bold"
+                    isDayToday && "text-primary font-bold",
+                    isDayClosed && "text-red-500"
                   )}>
                     {format(day, 'EEEE', { locale: pl })}
                   </div>
                   <div className={cn(
                     "text-lg font-bold",
-                    isDayToday && "text-primary"
+                    isDayToday && "text-primary",
+                    isDayClosed && "text-red-500"
                   )}>
                     {format(day, 'd')}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {dayReservations.length} rez.
+                  <div className={cn(
+                    "text-xs",
+                    isDayClosed ? "text-red-500" : "text-muted-foreground"
+                  )}>
+                    {isDayClosed ? "zamknięte" : `${dayReservations.length} rez.`}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Calendar Grid - Week View (simplified) */}
+          {/* Calendar Grid - Week View with single station */}
           <div className="flex-1 overflow-auto">
-            <div className="flex relative" style={{ minHeight: HOURS.length * 40 }}>
+            <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
               {/* Time column */}
-              <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              <div className="w-16 md:w-20 shrink-0 border-r border-border bg-muted/10">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
-                    className="relative border-b border-border/50"
-                    style={{ height: 40 }}
+                    className="relative"
+                    style={{ height: HOUR_HEIGHT }}
                   >
                     <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
+                    <div className="absolute left-0 right-0 top-0 h-full">
+                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "border-b",
+                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                          )}
+                          style={{ height: SLOT_HEIGHT }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Day columns */}
+              {/* Day columns for selected station */}
               {weekDays.map((day, idx) => {
                 const dayStr = format(day, 'yyyy-MM-dd');
                 const isDayToday = isSameDay(day, new Date());
-                const dayReservations = reservations.filter(r => {
-                  const startDate = r.reservation_date;
-                  const endDate = r.end_date || r.reservation_date;
-                  return dayStr >= startDate && dayStr <= endDate;
-                });
+                const isDayClosed = isDateClosed(dayStr);
+                const selectedStationId = weekViewStationId || stations[0]?.id;
+                const dayReservations = selectedStationId 
+                  ? getReservationsForStationAndDate(selectedStationId, dayStr)
+                  : [];
+                const dayBreaks = selectedStationId 
+                  ? getBreaksForStationAndDate(selectedStationId, dayStr)
+                  : [];
+                const dayHours = getHoursForDate(day);
                 
                 return (
                   <div 
                     key={dayStr}
                     className={cn(
-                      "flex-1 relative min-w-[100px]",
+                      "flex-1 relative min-w-[80px]",
                       idx < 6 && "border-r border-border",
-                      isDayToday && "bg-primary/5"
+                      isDayToday && "bg-primary/5",
+                      isDayClosed && "bg-red-500/5"
                     )}
+                    onDragOver={(e) => selectedStationId && handleDragOver(e, selectedStationId, dayStr)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => selectedStationId && handleDrop(e, selectedStationId, dayStr)}
                   >
-                    {/* Hour grid */}
+                    {/* Closed day overlay */}
+                    {isDayClosed && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                        <div className="bg-red-500/10 absolute inset-0" />
+                        <div className="relative bg-red-500/80 text-white px-3 py-1.5 rounded-lg shadow text-xs flex items-center gap-1">
+                          <CalendarOff className="w-3 h-3" />
+                          <span>Zamknięte</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hour grid slots */}
                     {HOURS.map((hour) => (
-                      <div 
-                        key={hour} 
-                        className="border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors"
-                        style={{ height: 40 }}
-                        onClick={() => {
-                          setCurrentDate(day);
-                          setViewMode('day');
-                        }}
-                      />
+                      <div key={hour} style={{ height: HOUR_HEIGHT }}>
+                        {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                          const isDropTarget = selectedStationId && 
+                            dragOverStation === selectedStationId && 
+                            dragOverDate === dayStr &&
+                            dragOverSlot?.hour === hour && 
+                            dragOverSlot?.slotIndex === slotIndex;
+                          
+                          return (
+                            <div
+                              key={slotIndex}
+                              className={cn(
+                                "border-b group cursor-pointer transition-colors",
+                                slotIndex % 2 === 0 && "border-border/50",
+                                slotIndex % 2 !== 0 && "border-border/20",
+                                isDropTarget && "bg-primary/30 border-primary",
+                                !isDropTarget && !isDayClosed && "hover:bg-primary/5",
+                                isDayClosed && "pointer-events-none"
+                              )}
+                              style={{ height: SLOT_HEIGHT }}
+                              onClick={() => !isDayClosed && selectedStationId && handleSlotClick(selectedStationId, hour, slotIndex, dayStr)}
+                              onContextMenu={(e) => !isDayClosed && selectedStationId && handleSlotContextMenu(e, selectedStationId, hour, slotIndex, dayStr)}
+                              onTouchStart={() => !isDayClosed && selectedStationId && handleTouchStart(selectedStationId, hour, slotIndex, dayStr)}
+                              onTouchEnd={handleTouchEnd}
+                              onTouchMove={handleTouchMove}
+                              onDragOver={(e) => selectedStationId && handleSlotDragOver(e, selectedStationId, hour, slotIndex, dayStr)}
+                              onDrop={(e) => selectedStationId && handleDrop(e, selectedStationId, dayStr, hour, slotIndex)}
+                            >
+                              {!hallMode && !isDayClosed && (
+                                <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Plus className="w-2 h-2 text-primary/50" />
+                                  <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ))}
 
-                    {/* Reservations for week view */}
+                    {/* Drag preview ghost */}
+                    {selectedStationId && draggedReservation && dragOverStation === selectedStationId && dragOverDate === dayStr && dragPreviewStyle && (
+                      <div
+                        className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-10 flex items-center justify-center"
+                        style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
+                      >
+                        <span className="text-[9px] font-semibold text-primary bg-background/80 px-1 py-0.5 rounded">
+                          {dragPreviewStyle.time}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Reservations */}
                     {dayReservations.map((reservation) => {
                       const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, dayStr);
-                      const start = parseTime(displayStart);
-                      const end = parseTime(displayEnd);
-                      const dayStartHour = HOURS[0] || 8;
-                      const top = (start - dayStartHour) * 40;
-                      const height = Math.max((end - start) * 40, 20);
+                      const style = getReservationStyle(displayStart, displayEnd, dayHours.startHour);
+                      const isDragging = draggedReservation?.id === reservation.id;
                       const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
+                      const selectedStation = stations.find(s => s.id === selectedStationId);
                       
                       return (
                         <div
                           key={reservation.id}
+                          draggable={!hallMode && !readOnly}
+                          onDragStart={(e) => handleDragStart(e, reservation)}
+                          onDragEnd={handleDragEnd}
                           className={cn(
-                            "absolute left-0.5 right-0.5 rounded border px-1 py-0.5 cursor-pointer",
-                            "transition-all duration-150 hover:shadow-md hover:z-20",
-                            "overflow-hidden text-[9px] md:text-[10px]",
-                            getStatusColor(reservation.status, reservation.station?.type)
+                            "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1",
+                            !hallMode && !readOnly && "cursor-grab active:cursor-grabbing",
+                            hallMode && "cursor-pointer",
+                            "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
+                            "overflow-hidden select-none",
+                            getStatusColor(reservation.status, selectedStation?.type),
+                            isDragging && "opacity-50 scale-95"
                           )}
-                          style={{ top: `${top}px`, height: `${height}px` }}
+                          style={style}
                           onClick={(e) => {
                             e.stopPropagation();
                             onReservationClick?.(reservation);
                           }}
                         >
-                          <div className="flex items-center justify-between gap-0.5">
-                            <div className="font-semibold truncate">
-                              {reservation.customer_name}
+                          {/* Drag handle */}
+                          {!hallMode && !readOnly && (
+                            <div className="absolute left-0 top-0 bottom-0 w-3 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
+                              <GripVertical className="w-2 h-2" />
                             </div>
-                            {reservation.customer_phone && (
-                              <a
-                                href={`tel:${reservation.customer_phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
-                                title={reservation.customer_phone}
-                              >
-                                <Phone className="w-4 h-4" />
-                              </a>
+                          )}
+                          <div className={cn(!hallMode && !readOnly && "pl-2")}>
+                            <div className="flex items-center justify-between gap-0.5">
+                              {hallMode ? (
+                                <div className="text-[9px] md:text-[10px] font-bold truncate">
+                                  {isMultiDay 
+                                    ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                    : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
+                                  }
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
+                                  <User className="w-2.5 h-2.5 shrink-0" />
+                                  {reservation.customer_name}
+                                </div>
+                              )}
+                              {!hallMode && reservation.customer_phone && (
+                                <a
+                                  href={`tel:${reservation.customer_phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                  title={reservation.customer_phone}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                            {reservation.vehicle_plate && (
+                              <div className="flex items-center gap-0.5 text-[8px] md:text-[9px] opacity-90 truncate">
+                                <Car className="w-2 h-2 shrink-0" />
+                                <span className="truncate">{reservation.vehicle_plate}</span>
+                                {!hallMode && (
+                                  <span className="opacity-80 shrink-0 ml-0.5">
+                                    {isMultiDay 
+                                      ? `${displayStart.slice(0, 5)}`
+                                      : reservation.start_time.slice(0, 5)
+                                    }
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {reservation.service && (
+                              <div className="text-[8px] md:text-[9px] opacity-70 truncate">
+                                {reservation.service.shortcut || reservation.service.name}
+                              </div>
                             )}
                           </div>
-                          <div className="truncate opacity-80">
-                            {isMultiDay 
-                              ? `${displayStart.slice(0, 5)}`
-                              : reservation.start_time.slice(0, 5)
-                            }
+                        </div>
+                      );
+                    })}
+
+                    {/* Breaks */}
+                    {dayBreaks.map((breakItem) => {
+                      const style = getReservationStyle(breakItem.start_time, breakItem.end_time, dayHours.startHour);
+                      
+                      return (
+                        <div
+                          key={breakItem.id}
+                          className="absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 bg-slate-500/80 border-slate-600 text-white overflow-hidden group"
+                          style={style}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-semibold truncate">
+                              <Coffee className="w-2.5 h-2.5 shrink-0" />
+                              Przerwa
+                            </div>
+                            {!readOnly && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteBreak?.(breakItem.id);
+                                }}
+                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Usuń przerwę"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="text-[8px] md:text-[9px] truncate opacity-80">
+                            {breakItem.start_time.slice(0, 5)} - {breakItem.end_time.slice(0, 5)}
                           </div>
                         </div>
                       );
@@ -1523,14 +1694,14 @@ const AdminCalendar = ({
                 );
               })}
 
-              {/* Current time indicator for week view */}
-              {weekDays.some(d => isSameDay(d, new Date())) && currentHour >= 8 && currentHour <= 18 && (
+              {/* Current time indicator */}
+              {weekDays.some(d => isSameDay(d, new Date())) && showCurrentTime && (
                 <div 
                   className="absolute left-0 right-0 z-30 pointer-events-none"
-                  style={{ top: (currentHour - 8) * 40 }}
+                  style={{ top: currentTimeTop }}
                 >
                   <div className="flex items-center">
-                    <div className="w-14 md:w-16 flex justify-end pr-1">
+                    <div className="w-16 md:w-20 flex justify-end pr-1">
                       <div className="w-2 h-2 rounded-full bg-red-500" />
                     </div>
                     <div className="flex-1 h-0.5 bg-red-500" />
