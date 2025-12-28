@@ -785,20 +785,16 @@ const PublicOfferView = () => {
                               ) : (
                                 <div className="space-y-2">
                                   {option.offer_option_items.map((item) => {
-                                    const itemTotal =
-                                      item.quantity *
-                                      item.unit_price *
-                                      (1 - item.discount_percent / 100);
                                     const isOptionalSelected = selectedOptionalItems[item.id];
                                     return (
                                       <div
                                         key={item.id}
                                         className={cn(
-                                          "flex items-center justify-between py-2 border-b last:border-0",
+                                          "flex items-center justify-between py-1",
                                           item.is_optional && !isOptionalSelected && "text-muted-foreground"
                                         )}
                                       >
-                                        <div className="flex-1 flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
                                           <span>{item.custom_name}</span>
                                           {item.is_optional && !isOptionalSelected && (
                                             <Badge variant="outline" className="text-xs">
@@ -806,34 +802,22 @@ const PublicOfferView = () => {
                                             </Badge>
                                           )}
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                          <div className="text-right">
-                                            <span className="text-sm text-muted-foreground mr-4">
-                                              {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                                              {item.discount_percent > 0 &&
-                                                ` (-${item.discount_percent}%)`}
-                                            </span>
-                                            <span className="font-medium">
-                                              {formatPrice(itemTotal)}
-                                            </span>
-                                          </div>
-                                          {item.is_optional && (
-                                            <Button
-                                              variant={isOptionalSelected ? "default" : "outline"}
-                                              size="sm"
-                                              onClick={() => handleToggleOptionalItem(item.id)}
-                                            >
-                                              {isOptionalSelected ? (
-                                                <>
-                                                  <Check className="w-4 h-4 mr-1" />
-                                                  Dodane
-                                                </>
-                                              ) : (
-                                                'Dodaj'
-                                              )}
-                                            </Button>
-                                          )}
-                                        </div>
+                                        {item.is_optional && (
+                                          <Button
+                                            variant={isOptionalSelected ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => handleToggleOptionalItem(item.id)}
+                                          >
+                                            {isOptionalSelected ? (
+                                              <>
+                                                <Check className="w-4 h-4 mr-1" />
+                                                Dodane
+                                              </>
+                                            ) : (
+                                              'Dodaj'
+                                            )}
+                                          </Button>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -892,41 +876,13 @@ const PublicOfferView = () => {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              {offer.hide_unit_prices ? (
-                                <div className="space-y-2">
-                                  {option.offer_option_items.map((item) => (
-                                    <div key={item.id} className="py-1">
-                                      <span>{item.custom_name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {option.offer_option_items.map((item) => {
-                                    const itemTotal =
-                                      item.quantity *
-                                      item.unit_price *
-                                      (1 - item.discount_percent / 100);
-                                    return (
-                                      <div
-                                        key={item.id}
-                                        className="flex items-center justify-between py-2 border-b last:border-0"
-                                      >
-                                        <div className="flex-1">
-                                          <span>{item.custom_name}</span>
-                                        </div>
-                                        <div className="text-right">
-                                          <span className="text-sm text-muted-foreground mr-4">
-                                            {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                                            {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
-                                          </span>
-                                          <span className="font-medium">{formatPrice(itemTotal)}</span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              <div className="space-y-2">
+                                {option.offer_option_items.map((item) => (
+                                  <div key={item.id} className="py-1">
+                                    <span>{item.custom_name}</span>
+                                  </div>
+                                ))}
+                              </div>
                               <div className="flex justify-between pt-4 font-medium">
                                 <span>Razem opcja</span>
                                 <span>{formatPrice(option.subtotal_net)}</span>
