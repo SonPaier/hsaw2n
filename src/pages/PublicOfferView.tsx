@@ -12,8 +12,10 @@ import {
   Calendar,
   Clock,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Save
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,9 +55,16 @@ interface OfferOption {
   }[];
 }
 
+interface SelectedState {
+  selectedVariants: Record<string, string>;
+  selectedUpsells: Record<string, boolean>;
+  selectedOptionalItems: Record<string, boolean>;
+}
+
 interface Offer {
   id: string;
   offer_number: string;
+  instance_id: string;
   customer_data: {
     name?: string;
     email?: string;
@@ -80,6 +89,7 @@ interface Offer {
   valid_until?: string;
   hide_unit_prices: boolean;
   created_at: string;
+  selected_state?: SelectedState | null;
   offer_options: OfferOption[];
   instances: {
     name: string;
@@ -102,12 +112,14 @@ const statusLabels: Record<string, string> = {
 
 const PublicOfferView = () => {
   const { token } = useParams<{ token: string }>();
+  const { user, hasRole, hasInstanceRole } = useAuth();
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionForm, setShowRejectionForm] = useState(false);
+  const [savingState, setSavingState] = useState(false);
   
   // Track selected variant per scope (key: scope_id, value: option_id)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -159,26 +171,36 @@ const PublicOfferView = () => {
         const fetchedOffer = data as unknown as Offer;
         setOffer(fetchedOffer);
 
-        // Initialize selected variants - first non-upsell variant per scope
-        const initialVariants: Record<string, string> = {};
-        const selectedOptions = fetchedOffer.offer_options.filter(opt => opt.is_selected);
+        // Check if there's a saved selected_state to restore
+        const savedState = fetchedOffer.selected_state;
         
-        // Group by scope and select first non-upsell variant for each scope
-        const scopeGroups = selectedOptions.reduce((acc, opt) => {
-          const key = opt.scope_id ?? '__ungrouped__';
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(opt);
-          return acc;
-        }, {} as Record<string, OfferOption[]>);
-        
-        Object.entries(scopeGroups).forEach(([scopeId, options]) => {
-          // Only consider non-upsell options as variants
-          const variants = options.filter(o => !o.is_upsell).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-          if (variants.length > 0) {
-            initialVariants[scopeId] = variants[0].id;
-          }
-        });
-        setSelectedVariants(initialVariants);
+        if (savedState) {
+          // Restore saved state
+          setSelectedVariants(savedState.selectedVariants || {});
+          setSelectedUpsells(savedState.selectedUpsells || {});
+          setSelectedOptionalItems(savedState.selectedOptionalItems || {});
+        } else {
+          // Initialize selected variants - first non-upsell variant per scope
+          const initialVariants: Record<string, string> = {};
+          const selectedOptions = fetchedOffer.offer_options.filter(opt => opt.is_selected);
+          
+          // Group by scope and select first non-upsell variant for each scope
+          const scopeGroups = selectedOptions.reduce((acc, opt) => {
+            const key = opt.scope_id ?? '__ungrouped__';
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(opt);
+            return acc;
+          }, {} as Record<string, OfferOption[]>);
+          
+          Object.entries(scopeGroups).forEach(([scopeId, options]) => {
+            // Only consider non-upsell options as variants
+            const variants = options.filter(o => !o.is_upsell).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+            if (variants.length > 0) {
+              initialVariants[scopeId] = variants[0].id;
+            }
+          });
+          setSelectedVariants(initialVariants);
+        }
 
         // Mark as viewed if not already
         if (data.status === 'sent') {
@@ -334,6 +356,38 @@ const PublicOfferView = () => {
     setSelectedUpsells(prev => ({ ...prev, [optionId]: !prev[optionId] }));
   };
 
+  // Check if user is admin for this offer's instance
+  const isAdmin = user && offer && (
+    hasRole('super_admin') || hasInstanceRole('admin', offer.instance_id)
+  );
+
+  const handleSaveState = async () => {
+    if (!offer || !isAdmin) return;
+    setSavingState(true);
+    try {
+      const stateToSave: SelectedState = {
+        selectedVariants,
+        selectedUpsells,
+        selectedOptionalItems,
+      };
+      
+      const { error } = await supabase
+        .from('offers')
+        .update({ selected_state: JSON.parse(JSON.stringify(stateToSave)) })
+        .eq('id', offer.id);
+      
+      if (error) throw error;
+      
+      setOffer({ ...offer, selected_state: stateToSave });
+      toast.success('Zapisano wybory w ofercie');
+    } catch (err) {
+      console.error('Error saving state:', err);
+      toast.error('Błąd podczas zapisywania');
+    } finally {
+      setSavingState(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -436,6 +490,22 @@ const PublicOfferView = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleSaveState}
+                    disabled={savingState}
+                    className="gap-1"
+                  >
+                    {savingState ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Zapisz
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

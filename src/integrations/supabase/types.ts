@@ -988,6 +988,7 @@ export type Database = {
           payment_terms: string | null
           public_token: string
           responded_at: string | null
+          selected_state: Json | null
           sent_at: string | null
           status: string
           total_gross: number
@@ -1012,6 +1013,7 @@ export type Database = {
           payment_terms?: string | null
           public_token?: string
           responded_at?: string | null
+          selected_state?: Json | null
           sent_at?: string | null
           status?: string
           total_gross?: number
@@ -1036,6 +1038,7 @@ export type Database = {
           payment_terms?: string | null
           public_token?: string
           responded_at?: string | null
+          selected_state?: Json | null
           sent_at?: string | null
           status?: string
           total_gross?: number
