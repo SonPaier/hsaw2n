@@ -10,6 +10,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -657,47 +668,64 @@ const AdminCalendar = ({
               />
             </PopoverContent>
           </Popover>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <h2 className={cn(
-            "text-lg font-semibold",
-            isToday && "text-primary",
-            currentDateClosed && viewMode === 'day' && "text-red-500",
-            hallMode && "flex-1 text-center"
-          )}>
-            {viewMode === 'week' 
-              ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
-              : viewMode === 'two-days'
-              ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
-              : format(currentDate, 'EEEE, d MMMM', { locale: pl })
-            }
-          </h2>
           
           {/* Close/Open day button - only in day view and not read-only */}
           {viewMode === 'day' && !readOnly && onToggleClosedDay && (
-            <Button
-              variant={currentDateClosed ? "destructive" : "outline"}
-              size="sm"
-              onClick={() => onToggleClosedDay(currentDateStr)}
-              className="gap-1"
-              title={currentDateClosed ? "Otwórz dzień" : "Zamknij dzień"}
-            >
-              {currentDateClosed ? (
-                <>
-                  <CalendarOff className="w-4 h-4" />
-                  <span className="hidden md:inline">Zamknięty</span>
-                </>
-              ) : (
-                <>
-                  <Ban className="w-4 h-4" />
-                  <span className="hidden md:inline">Zamknij</span>
-                </>
-              )}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant={currentDateClosed ? "destructive" : "ghost"}
+                  size="icon"
+                  className="h-9 w-9"
+                  title={currentDateClosed ? "Otwórz dzień" : "Zamknij dzień"}
+                >
+                  {currentDateClosed ? (
+                    <CalendarOff className="w-4 h-4" />
+                  ) : (
+                    <Ban className="w-4 h-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {currentDateClosed ? "Otworzyć dzień?" : "Zamknąć dzień?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {currentDateClosed 
+                      ? `Czy na pewno chcesz otworzyć dzień ${format(currentDate, 'd MMMM yyyy', { locale: pl })}? Klienci będą mogli rezerwować wizyty.`
+                      : `Czy na pewno chcesz zamknąć dzień ${format(currentDate, 'd MMMM yyyy', { locale: pl })}? Klienci nie będą mogli rezerwować wizyt w tym dniu.`
+                    }
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => onToggleClosedDay(currentDateStr)}
+                    className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+                  >
+                    {currentDateClosed ? "Otwórz" : "Zamknij"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
-
+        
+        <h2 className={cn(
+          "text-lg font-semibold",
+          isToday && "text-primary",
+          currentDateClosed && viewMode === 'day' && "text-red-500",
+          hallMode && "flex-1 text-center"
+        )}>
+          {viewMode === 'week' 
+            ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
+            : viewMode === 'two-days'
+            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+            : format(currentDate, 'EEEE, d MMMM', { locale: pl })
+          }
+        </h2>
+        
         <div className="flex items-center gap-2">
           {/* View mode toggle - hide 2-days and week on mobile */}
           {!isMobile && (
