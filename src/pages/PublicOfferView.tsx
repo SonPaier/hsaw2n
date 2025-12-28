@@ -961,7 +961,7 @@ const PublicOfferView = () => {
                                   return sum + (item.quantity * item.unit_price);
                                 }, 0);
                                 const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
-                                const totalDiscount = originalTotal - option.subtotal_net;
+                                const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
                                 
                                 return (
                                   <div className="flex justify-between pt-4 font-medium items-center">
@@ -973,7 +973,7 @@ const PublicOfferView = () => {
                                             {formatPrice(originalTotal)}
                                           </span>
                                           <Badge variant="secondary" className="text-xs">
-                                            -{formatPrice(totalDiscount)}
+                                            -{discountPercent}%
                                           </Badge>
                                         </>
                                       )}
@@ -1049,7 +1049,7 @@ const PublicOfferView = () => {
                                   return sum + (item.quantity * item.unit_price);
                                 }, 0);
                                 const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
-                                const totalDiscount = originalTotal - option.subtotal_net;
+                                const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
                                 
                                 return (
                                   <div className="flex justify-between pt-4 font-medium items-center">
@@ -1061,7 +1061,7 @@ const PublicOfferView = () => {
                                             {formatPrice(originalTotal)}
                                           </span>
                                           <Badge variant="secondary" className="text-xs">
-                                            -{formatPrice(totalDiscount)}
+                                            -{discountPercent}%
                                           </Badge>
                                         </>
                                       )}
