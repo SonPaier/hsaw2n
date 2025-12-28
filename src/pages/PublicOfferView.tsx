@@ -356,14 +356,19 @@ const PublicOfferView = () => {
             )}
           </div>
 
-          {/* Options */}
+          {/* Options - sorted by sort_order (upsells last within each scope) */}
           {offer.offer_options
             .filter(opt => opt.is_selected)
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => {
+              // Sort by sort_order to ensure upsells come after their parent scope options
+              const sortA = (a as any).sort_order ?? 0;
+              const sortB = (b as any).sort_order ?? 0;
+              return sortA - sortB;
+            })
             .map((option) => (
               <Card key={option.id}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{option.name}</CardTitle>
+                  <CardTitle className="text-lg font-semibold">{option.name}</CardTitle>
                   {option.description && (
                     <p className="text-sm text-muted-foreground">{option.description}</p>
                   )}
