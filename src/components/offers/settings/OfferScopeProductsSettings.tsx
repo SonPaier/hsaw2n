@@ -52,12 +52,20 @@ export interface OfferScopeProductsSettingsRef {
 export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsRef, OfferScopeProductsSettingsProps>(
   ({ instanceId, onChange }, ref) => {
     const [scopes, setScopes] = useState<OfferScope[]>([]);
-    const [variants, setVariants] = useState<OfferVariant[]>([]);
+    const [allVariants, setAllVariants] = useState<OfferVariant[]>([]);
+    const [scopeVariantLinks, setScopeVariantLinks] = useState<{ scope_id: string; variant_id: string }[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [scopeProducts, setScopeProducts] = useState<ScopeVariantProduct[]>([]);
     const [selectedScope, setSelectedScope] = useState<string | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Get variants available for the selected scope
+    const availableVariants = selectedScope
+      ? allVariants.filter(v => 
+          scopeVariantLinks.some(link => link.scope_id === selectedScope && link.variant_id === v.id)
+        )
+      : [];
 
     useEffect(() => {
       fetchData();
@@ -65,7 +73,21 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
 
     useEffect(() => {
       if (selectedScope && selectedVariant) {
+        // Check if selected variant is still valid for this scope
+        const isValidVariant = availableVariants.some(v => v.id === selectedVariant);
+        if (!isValidVariant && availableVariants.length > 0) {
+          setSelectedVariant(availableVariants[0].id);
+        } else if (!isValidVariant && availableVariants.length === 0) {
+          setSelectedVariant(null);
+        }
+      }
+    }, [selectedScope, availableVariants]);
+
+    useEffect(() => {
+      if (selectedScope && selectedVariant) {
         fetchScopeProducts();
+      } else {
+        setScopeProducts([]);
       }
     }, [selectedScope, selectedVariant]);
 
@@ -137,22 +159,33 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
 
     const fetchData = async () => {
       try {
-        const [scopesRes, variantsRes, productsRes] = await Promise.all([
+        const [scopesRes, variantsRes, productsRes, linksRes] = await Promise.all([
           supabase.from('offer_scopes').select('id, name').eq('instance_id', instanceId).eq('active', true).order('sort_order'),
           supabase.from('offer_variants').select('id, name').eq('instance_id', instanceId).eq('active', true).order('sort_order'),
           supabase.from('products_library').select('id, name, default_price, unit').eq('instance_id', instanceId).eq('active', true).order('name'),
+          supabase.from('offer_scope_variants').select('scope_id, variant_id').eq('instance_id', instanceId),
         ]);
 
         if (scopesRes.error) throw scopesRes.error;
         if (variantsRes.error) throw variantsRes.error;
         if (productsRes.error) throw productsRes.error;
+        if (linksRes.error) throw linksRes.error;
 
         setScopes(scopesRes.data || []);
-        setVariants(variantsRes.data || []);
+        setAllVariants(variantsRes.data || []);
         setProducts(productsRes.data || []);
+        setScopeVariantLinks(linksRes.data || []);
 
-        if (scopesRes.data?.length) setSelectedScope(scopesRes.data[0].id);
-        if (variantsRes.data?.length) setSelectedVariant(variantsRes.data[0].id);
+        if (scopesRes.data?.length) {
+          const firstScope = scopesRes.data[0].id;
+          setSelectedScope(firstScope);
+          
+          // Find first variant linked to this scope
+          const firstVariant = (linksRes.data || []).find(l => l.scope_id === firstScope);
+          if (firstVariant) {
+            setSelectedVariant(firstVariant.variant_id);
+          }
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Błąd podczas pobierania danych');
@@ -241,7 +274,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
       return <div className="text-muted-foreground">Ładowanie...</div>;
     }
 
-    if (scopes.length === 0 || variants.length === 0) {
+    if (scopes.length === 0 || allVariants.length === 0) {
       return (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
@@ -286,11 +319,15 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
                 <SelectValue placeholder="Wybierz wariant" />
               </SelectTrigger>
               <SelectContent>
-                {variants.map((variant) => (
-                  <SelectItem key={variant.id} value={variant.id}>
-                    {variant.name}
-                  </SelectItem>
-                ))}
+                {availableVariants.length === 0 ? (
+                  <SelectItem value="" disabled>Brak przypisanych wariantów</SelectItem>
+                ) : (
+                  availableVariants.map((variant) => (
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -301,7 +338,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
             <CardHeader className="py-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">
-                  {scopes.find(s => s.id === selectedScope)?.name} - {variants.find(v => v.id === selectedVariant)?.name}
+                  {scopes.find(s => s.id === selectedScope)?.name} - {allVariants.find(v => v.id === selectedVariant)?.name}
                 </CardTitle>
                 <Button onClick={handleAddProduct} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
