@@ -107,6 +107,11 @@ const PublicOfferView = () => {
   const [responding, setResponding] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionForm, setShowRejectionForm] = useState(false);
+  
+  // Track selected variant per scope (key: scope_id, value: option_id)
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  // Track selected optional items (key: item_id, value: boolean)
+  const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchOffer = async () => {
@@ -147,7 +152,28 @@ const PublicOfferView = () => {
           return;
         }
 
-        setOffer(data as unknown as Offer);
+        const fetchedOffer = data as unknown as Offer;
+        setOffer(fetchedOffer);
+
+        // Initialize selected variants - first variant per scope
+        const initialVariants: Record<string, string> = {};
+        const selectedOptions = fetchedOffer.offer_options.filter(opt => opt.is_selected);
+        
+        // Group by scope and select first variant for each scope
+        const scopeGroups = selectedOptions.reduce((acc, opt) => {
+          const key = opt.scope_id ?? '__ungrouped__';
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(opt);
+          return acc;
+        }, {} as Record<string, OfferOption[]>);
+        
+        Object.entries(scopeGroups).forEach(([scopeId, options]) => {
+          const sortedOptions = options.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+          if (sortedOptions.length > 0) {
+            initialVariants[scopeId] = sortedOptions[0].id;
+          }
+        });
+        setSelectedVariants(initialVariants);
 
         // Mark as viewed if not already
         if (data.status === 'sent') {
@@ -218,6 +244,45 @@ const PublicOfferView = () => {
       style: 'currency',
       currency: 'PLN',
     }).format(value);
+  };
+
+  // Calculate dynamic total based on selected variants and optional items
+  const calculateDynamicTotal = () => {
+    if (!offer) return { net: 0, gross: 0 };
+    
+    let totalNet = 0;
+    
+    // Add selected variant totals
+    Object.values(selectedVariants).forEach(optionId => {
+      const option = offer.offer_options.find(o => o.id === optionId);
+      if (option) {
+        // Calculate option total from items (excluding optionals not selected)
+        option.offer_option_items.forEach(item => {
+          if (item.is_optional) {
+            if (selectedOptionalItems[item.id]) {
+              const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+              totalNet += itemTotal;
+            }
+          } else {
+            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+            totalNet += itemTotal;
+          }
+        });
+      }
+    });
+    
+    const totalGross = totalNet * (1 + offer.vat_rate / 100);
+    return { net: totalNet, gross: totalGross };
+  };
+
+  const dynamicTotals = calculateDynamicTotal();
+
+  const handleSelectVariant = (scopeId: string, optionId: string) => {
+    setSelectedVariants(prev => ({ ...prev, [scopeId]: optionId }));
+  };
+
+  const handleToggleOptionalItem = (itemId: string) => {
+    setSelectedOptionalItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
   if (loading) {
@@ -426,106 +491,183 @@ const PublicOfferView = () => {
             </Card>
           ) : (
             <div className="space-y-8">
-              {scopeSections.map((section) => (
-                <section key={section.key} className="space-y-3">
-                  <h2 className="text-base font-semibold">{section.scopeName}</h2>
+              {scopeSections.map((section) => {
+                const hasMultipleVariants = section.options.length > 1;
+                const selectedOptionId = selectedVariants[section.key];
+                
+                return (
+                  <section key={section.key} className="space-y-3">
+                    <h2 className="text-base font-semibold">{section.scopeName}</h2>
 
-                  {section.options.map((option) => (
-                    <article key={option.id}>
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold">{option.name}</CardTitle>
-                          {option.description && (
-                            <p className="text-sm text-muted-foreground">{option.description}</p>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          {/* Show items only if unit prices are not hidden, or show just names */}
-                          {offer.hide_unit_prices ? (
-                            <div className="space-y-2">
-                              {option.offer_option_items.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className={cn(
-                                    "py-1",
-                                    item.is_optional && "text-muted-foreground"
-                                  )}
-                                >
-                                  <span>{item.custom_name}</span>
-                                  {item.is_optional && (
-                                    <Badge variant="outline" className="ml-2 text-xs">
-                                      opcjonalne
-                                    </Badge>
+                    {section.options.map((option) => {
+                      const isSelected = selectedOptionId === option.id;
+                      const variantName = option.name.includes(' - ') 
+                        ? option.name.split(' - ').slice(1).join(' - ')
+                        : option.name;
+                      
+                      return (
+                        <article key={option.id}>
+                          <Card className={cn(
+                            "transition-all",
+                            hasMultipleVariants && isSelected && "ring-2 ring-primary border-primary",
+                            hasMultipleVariants && !isSelected && "opacity-60"
+                          )}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
+                                  {option.description && (
+                                    <p className="text-sm text-muted-foreground">{option.description}</p>
                                   )}
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {option.offer_option_items.map((item) => {
-                                const itemTotal =
-                                  item.quantity *
-                                  item.unit_price *
-                                  (1 - item.discount_percent / 100);
-                                return (
-                                  <div
-                                    key={item.id}
-                                    className={cn(
-                                      "flex items-center justify-between py-2 border-b last:border-0",
-                                      item.is_optional && "text-muted-foreground"
-                                    )}
+                                {hasMultipleVariants && (
+                                  <Button
+                                    variant={isSelected ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleSelectVariant(section.key, option.id)}
+                                    className="shrink-0"
                                   >
-                                    <div className="flex-1">
-                                      <span>{item.custom_name}</span>
-                                      {item.is_optional && (
-                                        <Badge variant="outline" className="ml-2 text-xs">
-                                          opcjonalne
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-sm text-muted-foreground mr-4">
-                                        {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                                        {item.discount_percent > 0 &&
-                                          ` (-${item.discount_percent}%)`}
-                                      </span>
-                                      <span className="font-medium">
-                                        {item.is_optional ? '—' : formatPrice(itemTotal)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          <div className="flex justify-between pt-4 font-medium">
-                            <span>Razem opcja</span>
-                            <span>{formatPrice(option.subtotal_net)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </article>
-                  ))}
-                </section>
-              ))}
+                                    {isSelected ? (
+                                      <>
+                                        <Check className="w-4 h-4 mr-1" />
+                                        Wybrany
+                                      </>
+                                    ) : (
+                                      'Wybierz'
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {/* Show items only if unit prices are not hidden, or show just names */}
+                              {offer.hide_unit_prices ? (
+                                <div className="space-y-2">
+                                  {option.offer_option_items.map((item) => {
+                                    const isOptionalSelected = selectedOptionalItems[item.id];
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className={cn(
+                                          "flex items-center justify-between py-1",
+                                          item.is_optional && !isOptionalSelected && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span>{item.custom_name}</span>
+                                          {item.is_optional && !isOptionalSelected && (
+                                            <Badge variant="outline" className="text-xs">
+                                              opcjonalne
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {item.is_optional && (
+                                          <Button
+                                            variant={isOptionalSelected ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => handleToggleOptionalItem(item.id)}
+                                          >
+                                            {isOptionalSelected ? (
+                                              <>
+                                                <Check className="w-4 h-4 mr-1" />
+                                                Dodane
+                                              </>
+                                            ) : (
+                                              'Dodaj'
+                                            )}
+                                          </Button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {option.offer_option_items.map((item) => {
+                                    const itemTotal =
+                                      item.quantity *
+                                      item.unit_price *
+                                      (1 - item.discount_percent / 100);
+                                    const isOptionalSelected = selectedOptionalItems[item.id];
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className={cn(
+                                          "flex items-center justify-between py-2 border-b last:border-0",
+                                          item.is_optional && !isOptionalSelected && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <div className="flex-1 flex items-center gap-2">
+                                          <span>{item.custom_name}</span>
+                                          {item.is_optional && !isOptionalSelected && (
+                                            <Badge variant="outline" className="text-xs">
+                                              opcjonalne
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                          <div className="text-right">
+                                            <span className="text-sm text-muted-foreground mr-4">
+                                              {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                              {item.discount_percent > 0 &&
+                                                ` (-${item.discount_percent}%)`}
+                                            </span>
+                                            <span className="font-medium">
+                                              {formatPrice(itemTotal)}
+                                            </span>
+                                          </div>
+                                          {item.is_optional && (
+                                            <Button
+                                              variant={isOptionalSelected ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => handleToggleOptionalItem(item.id)}
+                                            >
+                                              {isOptionalSelected ? (
+                                                <>
+                                                  <Check className="w-4 h-4 mr-1" />
+                                                  Dodane
+                                                </>
+                                              ) : (
+                                                'Dodaj'
+                                              )}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              <div className="flex justify-between pt-4 font-medium">
+                                <span>Razem opcja</span>
+                                <span>{formatPrice(option.subtotal_net)}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </article>
+                      );
+                    })}
+                  </section>
+                );
+              })}
             </div>
           )}
 
-          {/* Totals */}
-          <Card>
+          {/* Totals - Dynamic */}
+          <Card className="sticky bottom-4 shadow-lg border-primary/20">
             <CardContent className="pt-6 space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Suma netto</span>
-                <span>{formatPrice(offer.total_net)}</span>
+                <span>{formatPrice(dynamicTotals.net)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">VAT ({offer.vat_rate}%)</span>
-                <span>{formatPrice(offer.total_gross - offer.total_net)}</span>
+                <span>{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Razem brutto</span>
-                <span className="text-primary">{formatPrice(offer.total_gross)}</span>
+                <span className="text-primary">{formatPrice(dynamicTotals.gross)}</span>
               </div>
             </CardContent>
           </Card>
