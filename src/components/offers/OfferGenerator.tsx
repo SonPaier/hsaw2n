@@ -238,6 +238,7 @@ export const OfferGenerator = ({
           <OptionsStep
             instanceId={instanceId}
             options={offer.options}
+            selectedScopeIds={offer.selectedScopeIds}
             onAddOption={addOption}
             onUpdateOption={updateOption}
             onRemoveOption={removeOption}
