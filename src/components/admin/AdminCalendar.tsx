@@ -1,7 +1,7 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check, Ban, CalendarOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -51,16 +51,24 @@ interface Break {
   note: string | null;
 }
 
+interface ClosedDay {
+  id: string;
+  closed_date: string;
+  reason: string | null;
+}
+
 
 interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
   breaks?: Break[];
+  closedDays?: ClosedDay[];
   workingHours?: Record<string, { open: string; close: string } | null> | null;
   onReservationClick?: (reservation: Reservation) => void;
   onAddReservation?: (stationId: string, date: string, time: string) => void;
   onAddBreak?: (stationId: string, date: string, time: string) => void;
   onDeleteBreak?: (breakId: string) => void;
+  onToggleClosedDay?: (date: string) => void;
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
   onConfirmReservation?: (reservationId: string) => void;
   // Hall view props
@@ -133,11 +141,13 @@ const AdminCalendar = ({
   stations, 
   reservations, 
   breaks = [], 
+  closedDays = [],
   workingHours, 
   onReservationClick, 
   onAddReservation, 
   onAddBreak, 
   onDeleteBreak, 
+  onToggleClosedDay,
   onReservationMove, 
   onConfirmReservation,
   allowedViews = ['day', 'two-days', 'week'],
@@ -291,6 +301,13 @@ const AdminCalendar = ({
 
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const isToday = isSameDay(currentDate, new Date());
+  
+  // Check if a date is closed
+  const isDateClosed = (dateStr: string) => {
+    return closedDays.some(cd => cd.closed_date === dateStr);
+  };
+  
+  const currentDateClosed = isDateClosed(currentDateStr);
 
   // Filter stations based on hidden station IDs
   const visibleStations = stations.filter(station => !hiddenStationIds.has(station.id));
@@ -642,18 +659,44 @@ const AdminCalendar = ({
           </Popover>
         </div>
         
-        <h2 className={cn(
-          "text-lg font-semibold",
-          isToday && "text-primary",
-          hallMode && "flex-1 text-center"
-        )}>
-          {viewMode === 'week' 
-            ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
-            : viewMode === 'two-days'
-            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
-            : format(currentDate, 'EEEE, d MMMM', { locale: pl })
-          }
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className={cn(
+            "text-lg font-semibold",
+            isToday && "text-primary",
+            currentDateClosed && viewMode === 'day' && "text-red-500",
+            hallMode && "flex-1 text-center"
+          )}>
+            {viewMode === 'week' 
+              ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
+              : viewMode === 'two-days'
+              ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+              : format(currentDate, 'EEEE, d MMMM', { locale: pl })
+            }
+          </h2>
+          
+          {/* Close/Open day button - only in day view and not read-only */}
+          {viewMode === 'day' && !readOnly && onToggleClosedDay && (
+            <Button
+              variant={currentDateClosed ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => onToggleClosedDay(currentDateStr)}
+              className="gap-1"
+              title={currentDateClosed ? "Otwórz dzień" : "Zamknij dzień"}
+            >
+              {currentDateClosed ? (
+                <>
+                  <CalendarOff className="w-4 h-4" />
+                  <span className="hidden md:inline">Zamknięty</span>
+                </>
+              ) : (
+                <>
+                  <Ban className="w-4 h-4" />
+                  <span className="hidden md:inline">Zamknij</span>
+                </>
+              )}
+            </Button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           {/* View mode toggle - hide 2-days and week on mobile */}
@@ -783,7 +826,20 @@ const AdminCalendar = ({
 
           {/* Calendar Grid - Day View */}
           <div className="flex-1 overflow-auto">
-            <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+            <div className={cn(
+              "flex relative",
+              currentDateClosed && "opacity-50"
+            )} style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+              {/* Closed day overlay */}
+              {currentDateClosed && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                  <div className="bg-red-500/20 backdrop-blur-[1px] absolute inset-0" />
+                  <div className="relative bg-red-500/90 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                    <CalendarOff className="w-5 h-5" />
+                    <span className="font-semibold">Dzień zamknięty</span>
+                  </div>
+                </div>
+              )}
               {/* Time column */}
               <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
                 {HOURS.map((hour) => (

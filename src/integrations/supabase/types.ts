@@ -65,6 +65,41 @@ export type Database = {
           },
         ]
       }
+      closed_days: {
+        Row: {
+          closed_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          instance_id: string
+          reason: string | null
+        }
+        Insert: {
+          closed_date: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_id: string
+          reason?: string | null
+        }
+        Update: {
+          closed_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closed_days_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_vehicles: {
         Row: {
           created_at: string
