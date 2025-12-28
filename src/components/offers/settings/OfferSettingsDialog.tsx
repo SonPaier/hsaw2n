@@ -74,7 +74,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="scopes" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
-              Zakresy
+              Usługi
             </TabsTrigger>
             <TabsTrigger value="variants" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
