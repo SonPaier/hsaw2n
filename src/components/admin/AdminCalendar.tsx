@@ -735,6 +735,25 @@ const AdminCalendar = ({
         </h2>
         
         <div className="flex items-center gap-2">
+          {/* Station selector for week view */}
+          {!isMobile && viewMode === 'week' && stations.length > 0 && (
+            <Select
+              value={weekViewStationId || stations[0]?.id || ''}
+              onValueChange={(value) => setWeekViewStationId(value)}
+            >
+              <SelectTrigger className="h-9 w-[140px] text-sm">
+                <SelectValue placeholder="Stanowisko" />
+              </SelectTrigger>
+              <SelectContent>
+                {stations.map((station) => (
+                  <SelectItem key={station.id} value={station.id}>
+                    {station.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
           {/* View mode toggle - hide 2-days and week on mobile */}
           {!isMobile && (
             <div className="flex border border-border rounded-lg overflow-hidden">
@@ -1378,26 +1397,11 @@ const AdminCalendar = ({
       {/* WEEK VIEW */}
       {viewMode === 'week' && (
         <>
-          {/* Week Day Headers with Station Selector */}
+          {/* Week Day Headers */}
           <div className="flex border-b border-border bg-muted/20">
-            {/* Time column header with station selector */}
-            <div className="w-16 md:w-20 shrink-0 p-2 flex flex-col items-center justify-center gap-1 border-r border-border">
+            {/* Time column header */}
+            <div className="w-16 md:w-20 shrink-0 p-2 flex items-center justify-center border-r border-border">
               <Clock className="w-4 h-4 text-muted-foreground" />
-              <Select
-                value={weekViewStationId || stations[0]?.id || ''}
-                onValueChange={(value) => setWeekViewStationId(value)}
-              >
-                <SelectTrigger className="h-7 text-xs w-full px-1">
-                  <SelectValue placeholder="Stanowisko" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stations.map((station) => (
-                    <SelectItem key={station.id} value={station.id} className="text-xs">
-                      {station.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             
             {/* Day headers */}
