@@ -587,6 +587,9 @@ const PublicOfferView = () => {
                     {offer.customer_data.company}
                   </p>
                 )}
+                {offer.customer_data?.nip && (
+                  <p className="text-muted-foreground">NIP: {offer.customer_data.nip}</p>
+                )}
                 {offer.customer_data?.email && (
                   <p className="text-muted-foreground">{offer.customer_data.email}</p>
                 )}
