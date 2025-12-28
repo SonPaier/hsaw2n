@@ -964,8 +964,7 @@ const PublicOfferView = () => {
                                 const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
                                 
                                 return (
-                                  <div className="flex justify-between pt-4 font-medium items-center">
-                                    <span>Razem opcja</span>
+                                  <div className="flex justify-end pt-4 font-medium items-center">
                                     <div className="flex items-center gap-2">
                                       {hasDiscount && originalTotal > option.subtotal_net && (
                                         <>
@@ -1052,8 +1051,7 @@ const PublicOfferView = () => {
                                 const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
                                 
                                 return (
-                                  <div className="flex justify-between pt-4 font-medium items-center">
-                                    <span>Razem opcja</span>
+                                  <div className="flex justify-end pt-4 font-medium items-center">
                                     <div className="flex items-center gap-2">
                                       {hasDiscount && originalTotal > option.subtotal_net && (
                                         <>
