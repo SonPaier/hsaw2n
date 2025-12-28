@@ -524,8 +524,17 @@ const PublicOfferView = () => {
           ) : (
             <div className="space-y-8">
               {scopeSections.map((section) => {
-                // For extras scope, all options are individually selectable
+                // For extras scope, flatten all items from all options as individually selectable
                 if (section.isExtrasScope) {
+                  // Collect all items from all options in this extras scope
+                  const allItems = section.options.flatMap(option => 
+                    option.offer_option_items.map(item => ({
+                      ...item,
+                      optionId: option.id,
+                      optionDescription: option.description
+                    }))
+                  );
+
                   return (
                     <section key={section.key} className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -533,64 +542,56 @@ const PublicOfferView = () => {
                         <Badge variant="secondary" className="text-xs">Dodatki</Badge>
                       </div>
 
-                      {section.options.map((option) => {
-                        const isOptionSelected = selectedUpsells[option.id];
-                        const variantName = option.name.includes(' - ') 
-                          ? option.name.split(' - ').slice(1).join(' - ')
-                          : option.name;
+                      {allItems.map((item) => {
+                        const isItemSelected = selectedOptionalItems[item.id];
+                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
                         
                         return (
-                          <article key={option.id}>
-                            <Card className={cn(
+                          <Card 
+                            key={item.id}
+                            className={cn(
                               "transition-all",
-                              isOptionSelected && "ring-2 ring-primary border-primary",
-                              !isOptionSelected && "opacity-70"
-                            )}>
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
-                                    {option.description && (
-                                      <p className="text-sm text-muted-foreground">{option.description}</p>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    {!offer.hide_unit_prices && (
-                                      <span className="font-medium">{formatPrice(option.subtotal_net)}</span>
-                                    )}
-                                    <Button
-                                      variant={isOptionSelected ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => handleToggleUpsell(option.id)}
-                                      className="shrink-0"
-                                    >
-                                      {isOptionSelected ? (
-                                        <>
-                                          <Check className="w-4 h-4 mr-1" />
-                                          Dodane
-                                        </>
-                                      ) : (
-                                        'Dodaj'
-                                      )}
-                                    </Button>
-                                  </div>
+                              isItemSelected && "ring-2 ring-primary border-primary",
+                              !isItemSelected && "opacity-70"
+                            )}
+                          >
+                            <CardContent className="py-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium">{item.custom_name}</p>
+                                  {item.custom_description && (
+                                    <p className="text-sm text-muted-foreground">{item.custom_description}</p>
+                                  )}
+                                  {!offer.hide_unit_prices && (
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                      {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
+                                    </p>
+                                  )}
                                 </div>
-                              </CardHeader>
-                              {/* Show items only when selected and prices not hidden */}
-                              {isOptionSelected && !offer.hide_unit_prices && option.offer_option_items.length > 0 && (
-                                <CardContent className="pt-0">
-                                  <div className="space-y-1 text-sm text-muted-foreground">
-                                    {option.offer_option_items.map((item) => (
-                                      <div key={item.id} className="flex justify-between">
-                                        <span>{item.custom_name}</span>
-                                        <span>{item.quantity} {item.unit} × {formatPrice(item.unit_price)}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </CardContent>
-                              )}
-                            </Card>
-                          </article>
+                                <div className="flex items-center gap-3">
+                                  {!offer.hide_unit_prices && (
+                                    <span className="font-medium">{formatPrice(itemTotal)}</span>
+                                  )}
+                                  <Button
+                                    variant={isItemSelected ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleToggleOptionalItem(item.id)}
+                                    className="shrink-0"
+                                  >
+                                    {isItemSelected ? (
+                                      <>
+                                        <Check className="w-4 h-4 mr-1" />
+                                        Dodane
+                                      </>
+                                    ) : (
+                                      'Dodaj'
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         );
                       })}
                     </section>
