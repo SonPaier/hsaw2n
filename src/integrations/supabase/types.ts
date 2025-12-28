@@ -848,6 +848,7 @@ export type Database = {
           has_coating_upsell: boolean
           id: string
           instance_id: string
+          is_extras_scope: boolean
           name: string
           sort_order: number | null
           updated_at: string
@@ -859,6 +860,7 @@ export type Database = {
           has_coating_upsell?: boolean
           id?: string
           instance_id: string
+          is_extras_scope?: boolean
           name: string
           sort_order?: number | null
           updated_at?: string
@@ -870,6 +872,7 @@ export type Database = {
           has_coating_upsell?: boolean
           id?: string
           instance_id?: string
+          is_extras_scope?: boolean
           name?: string
           sort_order?: number | null
           updated_at?: string

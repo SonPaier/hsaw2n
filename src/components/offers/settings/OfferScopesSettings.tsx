@@ -40,6 +40,7 @@ interface OfferScope {
   sort_order: number;
   active: boolean;
   has_coating_upsell: boolean;
+  is_extras_scope: boolean;
   variantLinks: ScopeVariantLink[];
   extras: ScopeExtra[];
   isNew?: boolean;
@@ -96,6 +97,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                 sort_order: scope.sort_order,
                 active: scope.active,
                 has_coating_upsell: false,
+                is_extras_scope: scope.is_extras_scope,
               })
               .select('id')
               .single();
@@ -113,6 +115,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                 description: scope.description,
                 active: scope.active,
                 sort_order: scope.sort_order,
+                is_extras_scope: scope.is_extras_scope,
               })
               .eq('id', scope.id);
             if (error) throw error;
@@ -279,6 +282,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         sort_order: scopes.filter(s => !s.isDeleted).length,
         active: true,
         has_coating_upsell: false,
+        is_extras_scope: false,
         variantLinks: [],
         extras: [],
         isNew: true,
@@ -467,6 +471,21 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                         onChange={(e) => handleUpdateScope(scope.id, { description: e.target.value })}
                         placeholder="Opis (opcjonalny)"
                       />
+                      
+                      {/* Extras scope toggle */}
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id={`extras-${scope.id}`}
+                          checked={scope.is_extras_scope}
+                          onCheckedChange={(checked) => handleUpdateScope(scope.id, { is_extras_scope: !!checked })}
+                        />
+                        <label htmlFor={`extras-${scope.id}`} className="text-sm cursor-pointer">
+                          <span className="font-medium">Zakres typu "Dodatki"</span>
+                          <span className="text-muted-foreground ml-2">
+                            — każda opcja jest niezależna, można dodać dowolne kombinacje
+                          </span>
+                        </label>
+                      </div>
                       
                       {/* Variants and Extras */}
                       <Collapsible open={expandedScopes.has(scope.id)} onOpenChange={() => toggleExpanded(scope.id)}>
