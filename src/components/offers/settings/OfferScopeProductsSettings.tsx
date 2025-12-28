@@ -314,22 +314,24 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
           </div>
           <div className="flex-1">
             <label className="text-sm font-medium mb-2 block">Wariant</label>
-            <Select value={selectedVariant || ''} onValueChange={setSelectedVariant}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz wariant" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableVariants.length === 0 ? (
-                  <SelectItem value="" disabled>Brak przypisanych wariantów</SelectItem>
-                ) : (
-                  availableVariants.map((variant) => (
+            {availableVariants.length === 0 ? (
+              <div className="h-10 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted/50 flex items-center">
+                Brak przypisanych wariantów dla tego zakresu
+              </div>
+            ) : (
+              <Select value={selectedVariant || ''} onValueChange={setSelectedVariant}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz wariant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVariants.map((variant) => (
                     <SelectItem key={variant.id} value={variant.id}>
                       {variant.name}
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
