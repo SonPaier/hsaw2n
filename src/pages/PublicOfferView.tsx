@@ -114,6 +114,27 @@ const statusLabels: Record<string, string> = {
   expired: 'Wygasła',
 };
 
+// Helper to render description - supports HTML or plain text with line breaks
+const renderDescription = (text: string) => {
+  // Check if text contains HTML tags
+  const hasHtmlTags = /<[^>]+>/.test(text);
+  
+  if (hasHtmlTags) {
+    // Render as HTML (for formatted content)
+    return (
+      <div 
+        className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
+    );
+  } else {
+    // Plain text - preserve line breaks and whitespace
+    return (
+      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{text}</p>
+    );
+  }
+};
+
 const PublicOfferView = () => {
   const { token } = useParams<{ token: string }>();
   const { user, hasRole, hasInstanceRole } = useAuth();
@@ -661,9 +682,7 @@ const PublicOfferView = () => {
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <p className="font-medium">{item.custom_name}</p>
-                                  {item.custom_description && (
-                                    <p className="text-sm text-muted-foreground">{item.custom_description}</p>
-                                  )}
+                                  {item.custom_description && renderDescription(item.custom_description)}
                                   {!offer.hide_unit_prices && (
                                     <p className="text-sm text-muted-foreground mt-1">
                                       {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
@@ -774,9 +793,9 @@ const PublicOfferView = () => {
                                               </Badge>
                                             )}
                                           </div>
-                                          {(item.custom_description || item.products_library?.description) && (
-                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
-                                          )}
+                                          {(item.custom_description || item.products_library?.description) && 
+                                            renderDescription(item.custom_description || item.products_library?.description || '')
+                                          }
                                         </div>
                                         {item.is_optional && (
                                           <Button
@@ -819,9 +838,9 @@ const PublicOfferView = () => {
                                               </Badge>
                                             )}
                                           </div>
-                                          {(item.custom_description || item.products_library?.description) && (
-                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
-                                          )}
+                                          {(item.custom_description || item.products_library?.description) && 
+                                            renderDescription(item.custom_description || item.products_library?.description || '')
+                                          }
                                         </div>
                                         {item.is_optional && (
                                           <Button
@@ -901,9 +920,9 @@ const PublicOfferView = () => {
                                 {option.offer_option_items.map((item) => (
                                   <div key={item.id} className="py-1">
                                     <span>{item.custom_name}</span>
-                                    {(item.custom_description || item.products_library?.description) && (
-                                      <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
-                                    )}
+                                    {(item.custom_description || item.products_library?.description) && 
+                                      renderDescription(item.custom_description || item.products_library?.description || '')
+                                    }
                                   </div>
                                 ))}
                               </div>
