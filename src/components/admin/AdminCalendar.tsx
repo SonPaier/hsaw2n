@@ -364,6 +364,54 @@ const AdminCalendar = ({
     return getBreaksForStationAndDate(stationId, currentDateStr);
   };
 
+  // Calculate free time for a station on a given date
+  const getFreeTimeForStation = (stationId: string, dateStr: string): { hours: number; minutes: number } => {
+    const { startTime, closeTime } = getWorkingHoursForDate(dateStr);
+    const openHour = parseTime(startTime);
+    const closeHour = parseTime(closeTime);
+    const totalWorkingMinutes = (closeHour - openHour) * 60;
+
+    // Get all reservations for this station on this date (excluding cancelled)
+    const stationReservations = reservations.filter(r => {
+      if (r.station_id !== stationId || r.status === 'cancelled') return false;
+      const startDate = r.reservation_date;
+      const endDate = r.end_date || r.reservation_date;
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+
+    // Calculate booked minutes
+    let bookedMinutes = 0;
+    stationReservations.forEach(r => {
+      const { displayStart, displayEnd } = getDisplayTimesForDate(r, dateStr);
+      const start = parseTime(displayStart);
+      const end = parseTime(displayEnd);
+      bookedMinutes += (end - start) * 60;
+    });
+
+    // Get breaks for this station
+    const stationBreaks = getBreaksForStationAndDate(stationId, dateStr);
+    stationBreaks.forEach(b => {
+      const start = parseTime(b.start_time);
+      const end = parseTime(b.end_time);
+      bookedMinutes += (end - start) * 60;
+    });
+
+    const freeMinutes = Math.max(0, totalWorkingMinutes - bookedMinutes);
+    return {
+      hours: Math.floor(freeMinutes / 60),
+      minutes: Math.round(freeMinutes % 60)
+    };
+  };
+
+  // Format free time as string
+  const formatFreeTime = (stationId: string, dateStr: string): string => {
+    const { hours, minutes } = getFreeTimeForStation(stationId, dateStr);
+    if (hours === 0 && minutes === 0) return 'brak wolnego';
+    if (hours === 0) return `wolne ${minutes} min`;
+    if (minutes === 0) return `wolne ${hours}h`;
+    return `wolne ${hours}h ${minutes}min`;
+  };
+
   // Calculate position and height based on time
   const getReservationStyle = (startTime: string, endTime: string, dayStartHour?: number) => {
     const startHour = dayStartHour ?? DAY_START_HOUR;
@@ -874,7 +922,10 @@ const AdminCalendar = ({
                 )}
               >
                 <div className="text-foreground truncate">{station.name}</div>
-                <div className="text-xs text-muted-foreground capitalize hidden md:block">{station.type}</div>
+                <div className="text-xs text-muted-foreground capitalize hidden md:block">
+                  {station.type}
+                  <span className="text-primary ml-1">• {formatFreeTime(station.id, currentDateStr)}</span>
+                </div>
               </div>
             ))}
           </div>
