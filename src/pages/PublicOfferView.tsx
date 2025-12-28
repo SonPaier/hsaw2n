@@ -251,16 +251,24 @@ const PublicOfferView = () => {
     }).format(value);
   };
 
-  // Calculate dynamic total based on selected variants, upsells and optional items
+  // Calculate dynamic total based on selected variants, upsells, optional items, and extras
   const calculateDynamicTotal = () => {
     if (!offer) return { net: 0, gross: 0 };
     
     let totalNet = 0;
     
-    // Add selected variant totals (non-upsell options)
+    // Identify extras scope options (their items are tracked via selectedOptionalItems)
+    const extrasScopeOptionIds = new Set<string>();
+    offer.offer_options.forEach(opt => {
+      if (opt.scope?.is_extras_scope) {
+        extrasScopeOptionIds.add(opt.id);
+      }
+    });
+    
+    // Add selected variant totals (non-upsell, non-extras-scope options)
     Object.values(selectedVariants).forEach(optionId => {
       const option = offer.offer_options.find(o => o.id === optionId);
-      if (option) {
+      if (option && !extrasScopeOptionIds.has(option.id)) {
         // Calculate option total from items (excluding optionals not selected)
         option.offer_option_items.forEach(item => {
           if (item.is_optional) {
@@ -276,11 +284,11 @@ const PublicOfferView = () => {
       }
     });
     
-    // Add selected upsell options
+    // Add selected upsell options (non-extras-scope)
     Object.entries(selectedUpsells).forEach(([optionId, isSelected]) => {
       if (isSelected) {
         const option = offer.offer_options.find(o => o.id === optionId);
-        if (option) {
+        if (option && !extrasScopeOptionIds.has(option.id)) {
           option.offer_option_items.forEach(item => {
             if (item.is_optional) {
               if (selectedOptionalItems[item.id]) {
@@ -293,6 +301,18 @@ const PublicOfferView = () => {
             }
           });
         }
+      }
+    });
+    
+    // Add selected items from extras scope (each item is individually selectable)
+    offer.offer_options.forEach(option => {
+      if (extrasScopeOptionIds.has(option.id)) {
+        option.offer_option_items.forEach(item => {
+          if (selectedOptionalItems[item.id]) {
+            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+            totalNet += itemTotal;
+          }
+        });
       }
     });
     
