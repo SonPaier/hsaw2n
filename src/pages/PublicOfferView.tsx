@@ -52,6 +52,9 @@ interface OfferOption {
     unit: string;
     discount_percent: number;
     is_optional: boolean;
+    products_library?: {
+      description?: string;
+    } | null;
   }[];
 }
 
@@ -149,7 +152,12 @@ const PublicOfferView = () => {
                 name,
                 is_extras_scope
               ),
-              offer_option_items (*)
+              offer_option_items (
+                *,
+                products_library (
+                  description
+                )
+              )
             ),
             instances (
               name,
@@ -763,8 +771,8 @@ const PublicOfferView = () => {
                                               </Badge>
                                             )}
                                           </div>
-                                          {item.custom_description && (
-                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
+                                          {(item.custom_description || item.products_library?.description) && (
+                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
                                           )}
                                         </div>
                                         {item.is_optional && (
@@ -808,8 +816,8 @@ const PublicOfferView = () => {
                                               </Badge>
                                             )}
                                           </div>
-                                          {item.custom_description && (
-                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
+                                          {(item.custom_description || item.products_library?.description) && (
+                                            <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
                                           )}
                                         </div>
                                         {item.is_optional && (
@@ -890,8 +898,8 @@ const PublicOfferView = () => {
                                 {option.offer_option_items.map((item) => (
                                   <div key={item.id} className="py-1">
                                     <span>{item.custom_name}</span>
-                                    {item.custom_description && (
-                                      <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description}</p>
+                                    {(item.custom_description || item.products_library?.description) && (
+                                      <p className="text-sm text-muted-foreground mt-0.5">{item.custom_description || item.products_library?.description}</p>
                                     )}
                                   </div>
                                 ))}
