@@ -59,6 +59,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
 import { PriceListViewer } from '@/components/products/PriceListViewer';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
+import { AddProductDialog } from '@/components/products/AddProductDialog';
 import AdminLayout from '@/components/layout/AdminLayout';
 
 interface PriceList {
@@ -119,6 +120,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
@@ -148,40 +150,43 @@ export default function ProductsPage() {
     fetchInstanceId();
   }, [user]);
 
-  // Fetch data
+  // Fetch data function
+  const fetchData = async () => {
+    if (!instanceId) return;
+    
+    setLoading(true);
+
+    // Fetch price lists
+    const { data: priceListsData } = await supabase
+      .from('price_lists')
+      .select('*')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: false });
+
+    // Fetch global price lists
+    const { data: globalPriceListsData } = await supabase
+      .from('price_lists')
+      .select('*')
+      .eq('is_global', true)
+      .order('created_at', { ascending: false });
+
+    // Fetch products
+    const { data: productsData } = await supabase
+      .from('products_library')
+      .select('*')
+      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
+      .order('category', { ascending: true })
+      .order('name', { ascending: true });
+
+    setPriceLists((priceListsData as PriceList[]) || []);
+    setGlobalPriceLists((globalPriceListsData as PriceList[]) || []);
+    setProducts((productsData as Product[]) || []);
+    setLoading(false);
+  };
+
+  // Fetch data on instanceId change
   useEffect(() => {
     if (!instanceId) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-
-      // Fetch price lists
-      const { data: priceListsData } = await supabase
-        .from('price_lists')
-        .select('*')
-        .eq('instance_id', instanceId)
-        .order('created_at', { ascending: false });
-
-      // Fetch global price lists
-      const { data: globalPriceListsData } = await supabase
-        .from('price_lists')
-        .select('*')
-        .eq('is_global', true)
-        .order('created_at', { ascending: false });
-
-      // Fetch products
-      const { data: productsData } = await supabase
-        .from('products_library')
-        .select('*')
-        .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
-        .order('category', { ascending: true })
-        .order('name', { ascending: true });
-
-      setPriceLists((priceListsData as PriceList[]) || []);
-      setGlobalPriceLists((globalPriceListsData as PriceList[]) || []);
-      setProducts((productsData as Product[]) || []);
-      setLoading(false);
-    };
 
     fetchData();
 
@@ -356,10 +361,16 @@ export default function ProductsPage() {
       <div className="p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Produkty</h1>
-          <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Wgraj cennik
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowAddProductDialog(true)} variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Dodaj produkt
+            </Button>
+            <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Wgraj cennik
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -824,6 +835,17 @@ export default function ProductsPage() {
           product={selectedProduct}
           open={!!selectedProduct}
           onOpenChange={(open) => !open && setSelectedProduct(null)}
+        />
+      )}
+
+      {/* Add Product Dialog */}
+      {instanceId && (
+        <AddProductDialog
+          open={showAddProductDialog}
+          onOpenChange={setShowAddProductDialog}
+          instanceId={instanceId}
+          categories={categories}
+          onProductAdded={fetchData}
         />
       )}
     </AdminLayout>
