@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, GripVertical, Tag, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Tag, ChevronDown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,6 +22,17 @@ interface ScopeVariantLink {
   isDeleted?: boolean;
 }
 
+interface ScopeExtra {
+  id: string;
+  name: string;
+  description: string | null;
+  is_upsell: boolean;
+  sort_order: number;
+  isNew?: boolean;
+  isDeleted?: boolean;
+  isDirty?: boolean;
+}
+
 interface OfferScope {
   id: string;
   name: string;
@@ -30,6 +41,7 @@ interface OfferScope {
   active: boolean;
   has_coating_upsell: boolean;
   variantLinks: ScopeVariantLink[];
+  extras: ScopeExtra[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -83,7 +95,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                 description: scope.description,
                 sort_order: scope.sort_order,
                 active: scope.active,
-                has_coating_upsell: true, // default to true
+                has_coating_upsell: false,
               })
               .select('id')
               .single();
@@ -100,19 +112,18 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                 name: scope.name,
                 description: scope.description,
                 active: scope.active,
-                has_coating_upsell: true, // always true
                 sort_order: scope.sort_order,
               })
               .eq('id', scope.id);
             if (error) throw error;
           }
 
-          // Handle variant links for all scopes
+          // Handle variant links and extras for all scopes
           for (const scope of scopes.filter(s => !s.isDeleted)) {
             const realScopeId = scope.isNew ? scopeIdMap.get(scope.id) : scope.id;
             if (!realScopeId) continue;
 
-            // Delete removed links
+            // Delete removed variant links
             const deletedLinks = scope.variantLinks.filter(l => l.isDeleted && !l.isNew);
             for (const link of deletedLinks) {
               await supabase
@@ -122,7 +133,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                 .eq('variant_id', link.variant_id);
             }
 
-            // Add new links
+            // Add new variant links
             const newLinks = scope.variantLinks.filter(l => l.isNew && !l.isDeleted);
             for (const link of newLinks) {
               await supabase
@@ -132,6 +143,45 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                   variant_id: link.variant_id,
                   instance_id: instanceId,
                 });
+            }
+
+            // Handle extras
+            // Delete removed extras
+            const deletedExtras = scope.extras.filter(e => e.isDeleted && !e.isNew);
+            for (const extra of deletedExtras) {
+              await supabase
+                .from('offer_scope_extras')
+                .delete()
+                .eq('id', extra.id);
+            }
+
+            // Add new extras
+            const newExtras = scope.extras.filter(e => e.isNew && !e.isDeleted);
+            for (const extra of newExtras) {
+              await supabase
+                .from('offer_scope_extras')
+                .insert({
+                  scope_id: realScopeId,
+                  instance_id: instanceId,
+                  name: extra.name,
+                  description: extra.description,
+                  is_upsell: extra.is_upsell,
+                  sort_order: extra.sort_order,
+                });
+            }
+
+            // Update dirty extras
+            const dirtyExtras = scope.extras.filter(e => e.isDirty && !e.isNew && !e.isDeleted);
+            for (const extra of dirtyExtras) {
+              await supabase
+                .from('offer_scope_extras')
+                .update({
+                  name: extra.name,
+                  description: extra.description,
+                  is_upsell: extra.is_upsell,
+                  sort_order: extra.sort_order,
+                })
+                .eq('id', extra.id);
             }
           }
 
@@ -176,6 +226,15 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
 
         if (linksError) throw linksError;
 
+        // Fetch scope extras
+        const { data: extrasData, error: extrasError } = await supabase
+          .from('offer_scope_extras')
+          .select('*')
+          .eq('instance_id', instanceId)
+          .order('sort_order');
+
+        if (extrasError) throw extrasError;
+
         // Map links to scopes
         const linksByScope = (linksData || []).reduce((acc, link) => {
           if (!acc[link.scope_id]) acc[link.scope_id] = [];
@@ -183,9 +242,23 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
           return acc;
         }, {} as Record<string, ScopeVariantLink[]>);
 
+        // Map extras to scopes
+        const extrasByScope = (extrasData || []).reduce((acc, extra) => {
+          if (!acc[extra.scope_id]) acc[extra.scope_id] = [];
+          acc[extra.scope_id].push({
+            id: extra.id,
+            name: extra.name,
+            description: extra.description,
+            is_upsell: extra.is_upsell,
+            sort_order: extra.sort_order || 0,
+          });
+          return acc;
+        }, {} as Record<string, ScopeExtra[]>);
+
         setScopes((scopesData || []).map(s => ({ 
           ...s, 
           variantLinks: linksByScope[s.id] || [],
+          extras: extrasByScope[s.id] || [],
           isNew: false, 
           isDeleted: false, 
           isDirty: false 
@@ -205,8 +278,9 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         description: null,
         sort_order: scopes.filter(s => !s.isDeleted).length,
         active: true,
-        has_coating_upsell: true,
+        has_coating_upsell: false,
         variantLinks: [],
+        extras: [],
         isNew: true,
         isDirty: true,
       };
@@ -241,7 +315,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         let newLinks: ScopeVariantLink[];
         
         if (existingLink) {
-          // Toggle off - mark as deleted or remove if new
           if (existingLink.isNew) {
             newLinks = scope.variantLinks.filter(l => l.variant_id !== variantId);
           } else {
@@ -250,11 +323,64 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
             );
           }
         } else {
-          // Toggle on - add new link
           newLinks = [...scope.variantLinks, { variant_id: variantId, isNew: true }];
         }
         
         return { ...scope, variantLinks: newLinks, isDirty: true };
+      }));
+      onChange?.();
+    };
+
+    const handleAddExtra = (scopeId: string) => {
+      setScopes(scopes.map(scope => {
+        if (scope.id !== scopeId) return scope;
+        
+        const newExtra: ScopeExtra = {
+          id: crypto.randomUUID(),
+          name: 'Nowa opcja',
+          description: null,
+          is_upsell: true,
+          sort_order: scope.extras.filter(e => !e.isDeleted).length,
+          isNew: true,
+          isDirty: true,
+        };
+        
+        return { ...scope, extras: [...scope.extras, newExtra], isDirty: true };
+      }));
+      onChange?.();
+    };
+
+    const handleUpdateExtra = (scopeId: string, extraId: string, updates: Partial<ScopeExtra>) => {
+      setScopes(scopes.map(scope => {
+        if (scope.id !== scopeId) return scope;
+        
+        return {
+          ...scope,
+          extras: scope.extras.map(e => 
+            e.id === extraId ? { ...e, ...updates, isDirty: true } : e
+          ),
+          isDirty: true,
+        };
+      }));
+      onChange?.();
+    };
+
+    const handleDeleteExtra = (scopeId: string, extraId: string) => {
+      setScopes(scopes.map(scope => {
+        if (scope.id !== scopeId) return scope;
+        
+        const extra = scope.extras.find(e => e.id === extraId);
+        let newExtras: ScopeExtra[];
+        
+        if (extra?.isNew) {
+          newExtras = scope.extras.filter(e => e.id !== extraId);
+        } else {
+          newExtras = scope.extras.map(e => 
+            e.id === extraId ? { ...e, isDeleted: true } : e
+          );
+        }
+        
+        return { ...scope, extras: newExtras, isDirty: true };
       }));
       onChange?.();
     };
@@ -266,6 +392,10 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
 
     const getLinkedVariantsCount = (scope: OfferScope): number => {
       return scope.variantLinks.filter(l => !l.isDeleted).length;
+    };
+
+    const getExtrasCount = (scope: OfferScope): number => {
+      return scope.extras.filter(e => !e.isDeleted).length;
     };
 
     const toggleExpanded = (scopeId: string) => {
@@ -292,7 +422,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
           <div>
             <h3 className="text-lg font-medium">Zakresy oferty</h3>
             <p className="text-sm text-muted-foreground">
-              Zdefiniuj zakresy usług i przypisz do nich warianty cenowe
+              Zdefiniuj zakresy usług, przypisz warianty i dodatkowe opcje
             </p>
           </div>
           <Button onClick={handleAddScope} size="sm">
@@ -338,7 +468,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                         placeholder="Opis (opcjonalny)"
                       />
                       
-                      {/* Variants assignment */}
+                      {/* Variants and Extras */}
                       <Collapsible open={expandedScopes.has(scope.id)} onOpenChange={() => toggleExpanded(scope.id)}>
                         <div className="flex items-center justify-between">
                           <CollapsibleTrigger asChild>
@@ -347,6 +477,12 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                               <span>Warianty</span>
                               <Badge variant="secondary" className="ml-1">
                                 {getLinkedVariantsCount(scope)}
+                              </Badge>
+                              <span className="mx-2 text-muted-foreground">|</span>
+                              <Sparkles className="h-4 w-4" />
+                              <span>Opcje</span>
+                              <Badge variant="secondary" className="ml-1">
+                                {getExtrasCount(scope)}
                               </Badge>
                               <ChevronDown className={`h-4 w-4 transition-transform ${expandedScopes.has(scope.id) ? 'rotate-180' : ''}`} />
                             </Button>
@@ -360,34 +496,91 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <CollapsibleContent className="pt-3">
-                          {allVariants.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                              Brak zdefiniowanych wariantów. Dodaj je w zakładce "Warianty".
-                            </p>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {allVariants.map((variant) => {
-                                const isLinked = isVariantLinked(scope, variant.id);
-                                return (
-                                  <label
-                                    key={variant.id}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
-                                      isLinked 
-                                        ? 'bg-primary/10 border-primary' 
-                                        : 'bg-muted/50 border-border hover:bg-muted'
-                                    }`}
-                                  >
-                                    <Checkbox
-                                      checked={isLinked}
-                                      onCheckedChange={() => toggleVariant(scope.id, variant.id)}
-                                    />
-                                    <span className="text-sm">{variant.name}</span>
-                                  </label>
-                                );
-                              })}
+                        <CollapsibleContent className="pt-3 space-y-4">
+                          {/* Variants section */}
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                              <Tag className="h-4 w-4" />
+                              Przypisane warianty
+                            </h4>
+                            {allVariants.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                Brak zdefiniowanych wariantów. Dodaj je w zakładce "Warianty".
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {allVariants.map((variant) => {
+                                  const isLinked = isVariantLinked(scope, variant.id);
+                                  return (
+                                    <label
+                                      key={variant.id}
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                                        isLinked 
+                                          ? 'bg-primary/10 border-primary' 
+                                          : 'bg-muted/50 border-border hover:bg-muted'
+                                      }`}
+                                    >
+                                      <Checkbox
+                                        checked={isLinked}
+                                        onCheckedChange={() => toggleVariant(scope.id, variant.id)}
+                                      />
+                                      <span className="text-sm">{variant.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Extras section */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-medium flex items-center gap-2">
+                                <Sparkles className="h-4 w-4" />
+                                Dodatkowe opcje (np. Powłoka)
+                              </h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddExtra(scope.id)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Dodaj opcję
+                              </Button>
                             </div>
-                          )}
+                            {scope.extras.filter(e => !e.isDeleted).length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                Brak dodatkowych opcji. Kliknij "Dodaj opcję" aby utworzyć.
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {scope.extras.filter(e => !e.isDeleted).map((extra) => (
+                                  <div key={extra.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                                    <Input
+                                      value={extra.name}
+                                      onChange={(e) => handleUpdateExtra(scope.id, extra.id, { name: e.target.value })}
+                                      placeholder="Nazwa opcji"
+                                      className="flex-1"
+                                    />
+                                    <Input
+                                      value={extra.description || ''}
+                                      onChange={(e) => handleUpdateExtra(scope.id, extra.id, { description: e.target.value })}
+                                      placeholder="Opis (opcjonalny)"
+                                      className="flex-1"
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteExtra(scope.id, extra.id)}
+                                      className="text-destructive hover:text-destructive shrink-0"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
