@@ -579,48 +579,86 @@ export const useOffer = (instanceId: string) => {
       }
 
       // Save customer to customers table (source: 'oferty')
-      if (offer.customerData.phone || offer.customerData.email) {
-        const customerData = {
-          instance_id: instanceId,
-          name: offer.customerData.name || offer.customerData.company || 'Nieznany',
-          phone: offer.customerData.phone || '',
-          email: offer.customerData.email || null,
-          company: offer.customerData.company || null,
-          nip: offer.customerData.nip || null,
-          address: offer.customerData.companyAddress 
+      try {
+        if (offer.customerData.name || offer.customerData.company) {
+          const fullAddress = offer.customerData.companyAddress 
             ? `${offer.customerData.companyAddress}${offer.customerData.companyPostalCode ? ', ' + offer.customerData.companyPostalCode : ''}${offer.customerData.companyCity ? ' ' + offer.customerData.companyCity : ''}`
-            : null,
-          source: 'oferty',
-        };
+            : null;
 
-        // Check if customer already exists (by phone or email within this instance and source)
-        const { data: existingCustomer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('instance_id', instanceId)
-          .eq('source', 'oferty')
-          .or(`phone.eq.${offer.customerData.phone},email.eq.${offer.customerData.email}`)
-          .maybeSingle();
+          // Try to find existing customer by phone within this instance and source
+          let existingCustomerId: string | null = null;
+          
+          if (offer.customerData.phone) {
+            const { data: existingByPhone } = await supabase
+              .from('customers')
+              .select('id')
+              .eq('instance_id', instanceId)
+              .eq('source', 'oferty')
+              .eq('phone', offer.customerData.phone)
+              .maybeSingle();
+            
+            if (existingByPhone) {
+              existingCustomerId = existingByPhone.id;
+            }
+          }
 
-        if (existingCustomer) {
-          // Update existing customer
-          await supabase
-            .from('customers')
-            .update({
-              name: customerData.name,
-              email: customerData.email,
-              company: customerData.company,
-              nip: customerData.nip,
-              address: customerData.address,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingCustomer.id);
-        } else {
-          // Insert new customer
-          await supabase
-            .from('customers')
-            .insert(customerData);
+          // If not found by phone, try by email
+          if (!existingCustomerId && offer.customerData.email) {
+            const { data: existingByEmail } = await supabase
+              .from('customers')
+              .select('id')
+              .eq('instance_id', instanceId)
+              .eq('source', 'oferty')
+              .eq('email', offer.customerData.email)
+              .maybeSingle();
+            
+            if (existingByEmail) {
+              existingCustomerId = existingByEmail.id;
+            }
+          }
+
+          if (existingCustomerId) {
+            // Update existing customer
+            await supabase
+              .from('customers')
+              .update({
+                name: offer.customerData.name || offer.customerData.company || 'Nieznany',
+                email: offer.customerData.email || null,
+                phone: offer.customerData.phone || '',
+                company: offer.customerData.company || null,
+                nip: offer.customerData.nip || null,
+                address: fullAddress,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingCustomerId);
+            console.log('Updated offer customer:', existingCustomerId);
+          } else {
+            // Insert new customer
+            const { data: newCustomer, error: customerError } = await supabase
+              .from('customers')
+              .insert({
+                instance_id: instanceId,
+                name: offer.customerData.name || offer.customerData.company || 'Nieznany',
+                phone: offer.customerData.phone || '',
+                email: offer.customerData.email || null,
+                company: offer.customerData.company || null,
+                nip: offer.customerData.nip || null,
+                address: fullAddress,
+                source: 'oferty',
+              })
+              .select('id')
+              .maybeSingle();
+            
+            if (customerError) {
+              console.error('Error saving offer customer:', customerError);
+            } else {
+              console.log('Created new offer customer:', newCustomer?.id);
+            }
+          }
         }
+      } catch (customerSaveError) {
+        // Don't fail the whole offer save if customer save fails
+        console.error('Error saving customer from offer:', customerSaveError);
       }
 
       toast.success('Oferta została zapisana');
