@@ -112,6 +112,8 @@ const PublicOfferView = () => {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   // Track selected optional items (key: item_id, value: boolean)
   const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
+  // Track selected upsell options (key: option_id, value: boolean)
+  const [selectedUpsells, setSelectedUpsells] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchOffer = async () => {
@@ -155,11 +157,11 @@ const PublicOfferView = () => {
         const fetchedOffer = data as unknown as Offer;
         setOffer(fetchedOffer);
 
-        // Initialize selected variants - first variant per scope
+        // Initialize selected variants - first non-upsell variant per scope
         const initialVariants: Record<string, string> = {};
         const selectedOptions = fetchedOffer.offer_options.filter(opt => opt.is_selected);
         
-        // Group by scope and select first variant for each scope
+        // Group by scope and select first non-upsell variant for each scope
         const scopeGroups = selectedOptions.reduce((acc, opt) => {
           const key = opt.scope_id ?? '__ungrouped__';
           if (!acc[key]) acc[key] = [];
@@ -168,9 +170,10 @@ const PublicOfferView = () => {
         }, {} as Record<string, OfferOption[]>);
         
         Object.entries(scopeGroups).forEach(([scopeId, options]) => {
-          const sortedOptions = options.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-          if (sortedOptions.length > 0) {
-            initialVariants[scopeId] = sortedOptions[0].id;
+          // Only consider non-upsell options as variants
+          const variants = options.filter(o => !o.is_upsell).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+          if (variants.length > 0) {
+            initialVariants[scopeId] = variants[0].id;
           }
         });
         setSelectedVariants(initialVariants);
@@ -246,13 +249,13 @@ const PublicOfferView = () => {
     }).format(value);
   };
 
-  // Calculate dynamic total based on selected variants and optional items
+  // Calculate dynamic total based on selected variants, upsells and optional items
   const calculateDynamicTotal = () => {
     if (!offer) return { net: 0, gross: 0 };
     
     let totalNet = 0;
     
-    // Add selected variant totals
+    // Add selected variant totals (non-upsell options)
     Object.values(selectedVariants).forEach(optionId => {
       const option = offer.offer_options.find(o => o.id === optionId);
       if (option) {
@@ -271,6 +274,26 @@ const PublicOfferView = () => {
       }
     });
     
+    // Add selected upsell options
+    Object.entries(selectedUpsells).forEach(([optionId, isSelected]) => {
+      if (isSelected) {
+        const option = offer.offer_options.find(o => o.id === optionId);
+        if (option) {
+          option.offer_option_items.forEach(item => {
+            if (item.is_optional) {
+              if (selectedOptionalItems[item.id]) {
+                const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                totalNet += itemTotal;
+              }
+            } else {
+              const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+              totalNet += itemTotal;
+            }
+          });
+        }
+      }
+    });
+    
     const totalGross = totalNet * (1 + offer.vat_rate / 100);
     return { net: totalNet, gross: totalGross };
   };
@@ -283,6 +306,10 @@ const PublicOfferView = () => {
 
   const handleToggleOptionalItem = (itemId: string) => {
     setSelectedOptionalItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+  };
+
+  const handleToggleUpsell = (optionId: string) => {
+    setSelectedUpsells(prev => ({ ...prev, [optionId]: !prev[optionId] }));
   };
 
   if (loading) {
@@ -492,14 +519,18 @@ const PublicOfferView = () => {
           ) : (
             <div className="space-y-8">
               {scopeSections.map((section) => {
-                const hasMultipleVariants = section.options.length > 1;
+                // Split options into variants (non-upsell) and upsells
+                const variants = section.options.filter(o => !o.is_upsell);
+                const upsells = section.options.filter(o => o.is_upsell);
+                const hasMultipleVariants = variants.length > 1;
                 const selectedOptionId = selectedVariants[section.key];
                 
                 return (
                   <section key={section.key} className="space-y-3">
                     <h2 className="text-base font-semibold">{section.scopeName}</h2>
 
-                    {section.options.map((option) => {
+                    {/* Render variants */}
+                    {variants.map((option) => {
                       const isSelected = selectedOptionId === option.id;
                       const variantName = option.name.includes(' - ') 
                         ? option.name.split(' - ').slice(1).join(' - ')
@@ -632,6 +663,94 @@ const PublicOfferView = () => {
                                               )}
                                             </Button>
                                           )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              <div className="flex justify-between pt-4 font-medium">
+                                <span>Razem opcja</span>
+                                <span>{formatPrice(option.subtotal_net)}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </article>
+                      );
+                    })}
+
+                    {/* Render upsells - with "Dodaj" button */}
+                    {upsells.map((option) => {
+                      const isUpsellSelected = selectedUpsells[option.id];
+                      const variantName = option.name.includes(' - ') 
+                        ? option.name.split(' - ').slice(1).join(' - ')
+                        : option.name;
+                      
+                      return (
+                        <article key={option.id}>
+                          <Card className={cn(
+                            "transition-all",
+                            isUpsellSelected && "ring-2 ring-primary border-primary",
+                            !isUpsellSelected && "opacity-70"
+                          )}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
+                                    <Badge variant="secondary" className="text-xs">Opcja</Badge>
+                                  </div>
+                                  {option.description && (
+                                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                                  )}
+                                </div>
+                                <Button
+                                  variant={isUpsellSelected ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleToggleUpsell(option.id)}
+                                  className="shrink-0"
+                                >
+                                  {isUpsellSelected ? (
+                                    <>
+                                      <Check className="w-4 h-4 mr-1" />
+                                      Dodane
+                                    </>
+                                  ) : (
+                                    'Dodaj'
+                                  )}
+                                </Button>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {offer.hide_unit_prices ? (
+                                <div className="space-y-2">
+                                  {option.offer_option_items.map((item) => (
+                                    <div key={item.id} className="py-1">
+                                      <span>{item.custom_name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {option.offer_option_items.map((item) => {
+                                    const itemTotal =
+                                      item.quantity *
+                                      item.unit_price *
+                                      (1 - item.discount_percent / 100);
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className="flex items-center justify-between py-2 border-b last:border-0"
+                                      >
+                                        <div className="flex-1">
+                                          <span>{item.custom_name}</span>
+                                        </div>
+                                        <div className="text-right">
+                                          <span className="text-sm text-muted-foreground mr-4">
+                                            {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                            {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
+                                          </span>
+                                          <span className="font-medium">{formatPrice(itemTotal)}</span>
                                         </div>
                                       </div>
                                     );
