@@ -316,10 +316,9 @@ export const OptionsStep = ({
                       open={autocompleteOpen[item.id]} 
                       onOpenChange={(open) => {
                         if (!open || !justSelected[item.id]) {
-                          setAutocompleteOpen(prev => ({ ...prev, [item.id]: open }));
+                          setAutocompleteOpen((prev) => ({ ...prev, [item.id]: open }));
                         }
                       }}
-                      modal={true}
                     >
                       <PopoverTrigger asChild>
                         <Input
@@ -327,34 +326,39 @@ export const OptionsStep = ({
                           onChange={(e) => {
                             onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
                             if (e.target.value.length > 0 && !justSelected[item.id]) {
-                              setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                              setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
                             }
                           }}
                           onFocus={() => {
                             if (products.length > 0 && !justSelected[item.id]) {
-                              setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                              setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
                             }
                           }}
                         />
                       </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                      <PopoverContent
+                        className="p-0 w-[300px]"
+                        align="start"
+                        onOpenAutoFocus={(e) => e.preventDefault()}
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                      >
                         <Command shouldFilter={false}>
-                          <CommandInput 
-                            placeholder="Szukaj w bibliotece..." 
+                          <CommandInput
+                            placeholder="Szukaj w bibliotece..."
                             value={searchTerms[item.id] || ''}
-                            onValueChange={(value) => setSearchTerms(prev => ({ ...prev, [item.id]: value }))}
+                            onValueChange={(value) => setSearchTerms((prev) => ({ ...prev, [item.id]: value }))}
                           />
                           <CommandList>
                             <CommandEmpty>Brak produktów</CommandEmpty>
                             <CommandGroup>
                               {products
-                                .filter(p => {
+                                .filter((p) => {
                                   const searchTerm = searchTerms[item.id] || '';
                                   if (!searchTerm) return true;
                                   return p.name.toLowerCase().includes(searchTerm.toLowerCase());
                                 })
                                 .slice(0, 10)
-                                .map(product => (
+                                .map((product) => (
                                   <CommandItem
                                     key={product.id}
                                     value={product.id}
@@ -366,8 +370,7 @@ export const OptionsStep = ({
                                       {formatPrice(product.default_price)}
                                     </span>
                                   </CommandItem>
-                                ))
-                              }
+                                ))}
                             </CommandGroup>
                           </CommandList>
                         </Command>
