@@ -8,6 +8,7 @@ import {
   Save, 
   Send, 
   User, 
+  Layers,
   Package, 
   FileCheck,
   Loader2,
@@ -16,6 +17,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
 import { CustomerDataStep } from './CustomerDataStep';
+import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
 import { toast } from 'sonner';
@@ -30,8 +32,9 @@ interface OfferGeneratorProps {
 
 const steps = [
   { id: 1, label: 'Dane klienta', icon: User },
-  { id: 2, label: 'Opcje i produkty', icon: Package },
-  { id: 3, label: 'Podsumowanie', icon: FileCheck },
+  { id: 2, label: 'Zakres', icon: Layers },
+  { id: 3, label: 'Opcje i produkty', icon: Package },
+  { id: 4, label: 'Podsumowanie', icon: FileCheck },
 ];
 
 export const OfferGenerator = ({
@@ -49,6 +52,7 @@ export const OfferGenerator = ({
     saving,
     updateCustomerData,
     updateVehicleData,
+    updateSelectedScopes,
     addOption,
     updateOption,
     removeOption,
@@ -82,7 +86,7 @@ export const OfferGenerator = ({
   }, [offerId, duplicateFromId]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(prev => prev + 1);
     }
   };
@@ -156,9 +160,11 @@ export const OfferGenerator = ({
       case 1:
         return !!(offer.customerData.name && offer.customerData.email && offer.vehicleData.brandModel);
       case 2:
+        return offer.selectedScopeIds.length > 0;
+      case 3:
         return offer.options.length > 0 && 
           offer.options.some(opt => opt.items.length > 0);
-      case 3:
+      case 4:
         return true;
       default:
         return false;
@@ -219,8 +225,16 @@ export const OfferGenerator = ({
             onVehicleChange={updateVehicleData}
           />
         )}
-        
+
         {currentStep === 2 && (
+          <ScopesStep
+            instanceId={instanceId}
+            selectedScopeIds={offer.selectedScopeIds}
+            onScopesChange={updateSelectedScopes}
+          />
+        )}
+        
+        {currentStep === 3 && (
           <OptionsStep
             instanceId={instanceId}
             options={offer.options}
@@ -235,7 +249,7 @@ export const OfferGenerator = ({
           />
         )}
         
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <SummaryStep
             instanceId={instanceId}
             offer={offer}
@@ -290,7 +304,7 @@ export const OfferGenerator = ({
             Zapisz
           </Button>
 
-          {currentStep < 3 ? (
+          {currentStep < 4 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed}
