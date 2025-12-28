@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -202,25 +201,14 @@ export const SummaryStep = ({
           {offer.options.map((option) => (
             <div
               key={option.id}
-              className={cn(
-                "border rounded-lg p-4 space-y-3",
-                option.isSelected ? "border-primary/50 bg-primary/5" : "border-border opacity-60"
-              )}
+              className="border rounded-lg p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={option.isSelected}
-                    onCheckedChange={(checked) => 
-                      onUpdateOption(option.id, { isSelected: !!checked })
-                    }
-                  />
-                  <div>
-                    <h4 className="font-medium">{option.name}</h4>
-                    {option.description && (
-                      <p className="text-sm text-muted-foreground">{option.description}</p>
-                    )}
-                  </div>
+                <div>
+                  <h4 className="font-medium">{option.name}</h4>
+                  {option.description && (
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="font-semibold">{formatPrice(calculateOptionTotal(option))}</p>

@@ -210,7 +210,7 @@ export const OptionsStep = ({
 
   // Render single option card
   const renderOptionCard = (option: OfferOption) => (
-    <Card key={option.id} className={cn("overflow-hidden", option.isUpsell && "border-amber-500/50 bg-amber-500/5")}>
+    <Card key={option.id} className="overflow-hidden">
       <Collapsible
         open={expandedOptions.has(option.id)}
         onOpenChange={() => toggleOption(option.id)}
@@ -229,23 +229,16 @@ export const OptionsStep = ({
                     onUpdateOption(option.id, { isSelected: !!checked })
                   }
                 />
-                <div className="flex items-center gap-2">
-                  {option.isUpsell && (
-                    <span className="text-xs bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
-                      Upsell
-                    </span>
-                  )}
-                  <Input
-                    value={option.name.replace(/^.*? - /, '')} // Show only variant name
-                    onChange={(e) => {
-                      const scopeName = option.name.includes(' - ') 
-                        ? option.name.split(' - ')[0] + ' - ' 
-                        : '';
-                      onUpdateOption(option.id, { name: scopeName + e.target.value });
-                    }}
-                    className="font-semibold text-lg border-none p-0 h-auto focus-visible:ring-0"
-                  />
-                </div>
+                <Input
+                  value={option.name.replace(/^.*? - /, '')} // Show only variant name
+                  onChange={(e) => {
+                    const scopeName = option.name.includes(' - ') 
+                      ? option.name.split(' - ')[0] + ' - ' 
+                      : '';
+                    onUpdateOption(option.id, { name: scopeName + e.target.value });
+                  }}
+                  className="font-semibold text-lg border-none p-0 h-auto focus-visible:ring-0"
+                />
               </div>
               <div className="ml-7 mt-1 text-sm text-muted-foreground">
                 {option.items.length} pozycji • {formatPrice(calculateOptionTotal(option))} netto
