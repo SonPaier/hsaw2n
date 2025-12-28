@@ -47,6 +47,7 @@ export interface OfferState {
   instanceId: string;
   customerData: CustomerData;
   vehicleData: VehicleData;
+  selectedScopeIds: string[];
   options: OfferOption[];
   additions: OfferItem[];
   notes?: string;
@@ -81,6 +82,7 @@ export const useOffer = (instanceId: string) => {
     instanceId,
     customerData: defaultCustomerData,
     vehicleData: defaultVehicleData,
+    selectedScopeIds: [],
     options: [],
     additions: [],
     vatRate: 23,
@@ -132,6 +134,14 @@ export const useOffer = (instanceId: string) => {
     setOffer(prev => ({
       ...prev,
       vehicleData: { ...prev.vehicleData, ...data },
+    }));
+  }, []);
+
+  // Scope handlers
+  const updateSelectedScopes = useCallback((scopeIds: string[]) => {
+    setOffer(prev => ({
+      ...prev,
+      selectedScopeIds: scopeIds,
     }));
   }, []);
 
@@ -540,6 +550,7 @@ export const useOffer = (instanceId: string) => {
         instanceId: offerData.instance_id,
         customerData: (offerData.customer_data || defaultCustomerData) as unknown as CustomerData,
         vehicleData,
+        selectedScopeIds: [],
         options,
         additions,
         notes: offerData.notes,
@@ -564,6 +575,7 @@ export const useOffer = (instanceId: string) => {
       instanceId,
       customerData: defaultCustomerData,
       vehicleData: defaultVehicleData,
+      selectedScopeIds: [],
       options: [{
         id: crypto.randomUUID(),
         name: 'Opcja 1',
@@ -585,6 +597,7 @@ export const useOffer = (instanceId: string) => {
     saving,
     updateCustomerData,
     updateVehicleData,
+    updateSelectedScopes,
     addOption,
     updateOption,
     removeOption,
