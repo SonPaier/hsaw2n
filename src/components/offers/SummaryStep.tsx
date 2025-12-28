@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,10 +70,12 @@ export const SummaryStep = ({
   const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
   const [tempDiscount, setTempDiscount] = useState('');
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
+  const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    const fetchTemplates = async () => {
-      const { data } = await supabase
+    const fetchData = async () => {
+      // Fetch templates
+      const { data: templatesData } = await supabase
         .from('text_blocks_library')
         .select('*')
         .eq('active', true)
@@ -81,17 +83,53 @@ export const SummaryStep = ({
         .or(`instance_id.eq.${instanceId},source.eq.global`)
         .order('sort_order');
       
-      if (data) {
-        setTemplates(data.map(t => ({
+      if (templatesData) {
+        setTemplates(templatesData.map(t => ({
           id: t.id,
           name: t.name,
           payment_terms: t.content.split('|||')[0] || null,
           notes: t.content.split('|||')[1] || null,
         })));
       }
+
+      // Fetch scopes for grouping
+      if (offer.selectedScopeIds.length > 0) {
+        const { data: scopesData } = await supabase
+          .from('offer_scopes')
+          .select('id, name, sort_order')
+          .in('id', offer.selectedScopeIds)
+          .order('sort_order');
+        
+        if (scopesData) {
+          setScopes(scopesData);
+        }
+      }
     };
-    fetchTemplates();
-  }, [instanceId]);
+    fetchData();
+  }, [instanceId, offer.selectedScopeIds]);
+
+  // Group options by scope
+  const groupedOptions = useMemo(() => {
+    const groups: { scopeId: string | null; scopeName: string; options: OfferOption[] }[] = [];
+    
+    // Group by scope
+    for (const scope of scopes) {
+      const scopeOptions = offer.options
+        .filter(o => o.scopeId === scope.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      if (scopeOptions.length > 0) {
+        groups.push({ scopeId: scope.id, scopeName: scope.name, options: scopeOptions });
+      }
+    }
+    
+    // Options without scope
+    const noScopeOptions = offer.options.filter(o => !o.scopeId);
+    if (noScopeOptions.length > 0) {
+      groups.push({ scopeId: null, scopeName: 'Inne', options: noScopeOptions });
+    }
+    
+    return groups;
+  }, [offer.options, scopes]);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
@@ -189,7 +227,7 @@ export const SummaryStep = ({
         )}
       </div>
 
-      {/* Options Summary */}
+      {/* Options Summary - grouped by scope */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -197,105 +235,112 @@ export const SummaryStep = ({
             Opcje wyceny
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {offer.options.map((option) => (
-            <div
-              key={option.id}
-              className="border rounded-lg p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">{option.name}</h4>
-                  {option.description && (
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatPrice(calculateOptionTotal(option))}</p>
-                  <p className="text-xs text-muted-foreground">netto</p>
-                </div>
-              </div>
-
-              {/* Items table */}
-              <div className="text-sm">
-                <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
-                  <div className="col-span-5">Pozycja</div>
-                  <div className="col-span-2 text-right">Ilość</div>
-                  <div className="col-span-2 text-right">Cena</div>
-                  <div className="col-span-1 text-right">Rabat</div>
-                  <div className="col-span-2 text-right">Wartość</div>
-                </div>
-                {option.items.map((item) => {
-                  const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-                  return (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0",
-                        item.isOptional && "text-muted-foreground italic"
+        <CardContent className="space-y-6">
+          {groupedOptions.map((group) => (
+            <div key={group.scopeId || 'other'} className="space-y-3">
+              {/* Scope header */}
+              <h3 className="font-semibold text-lg border-b pb-2">{group.scopeName}</h3>
+              
+              {group.options.map((option) => (
+                <div
+                  key={option.id}
+                  className="border rounded-lg p-4 space-y-3 ml-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">{option.name}</h4>
+                      {option.description && (
+                        <p className="text-sm text-muted-foreground">{option.description}</p>
                       )}
-                    >
-                      <div className="col-span-5 flex items-center gap-1">
-                        {item.isOptional && <Badge variant="outline" className="text-xs px-1">OPC</Badge>}
-                        {item.customName}
-                      </div>
-                      <div className="col-span-2 text-right">
-                        {item.quantity} {item.unit}
-                      </div>
-                      <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
-                      <div className="col-span-1 text-right">
-                        {item.discountPercent > 0 && `-${item.discountPercent}%`}
-                      </div>
-                      <div className="col-span-2 text-right font-medium">
-                        {item.isOptional ? '—' : formatPrice(itemValue)}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{formatPrice(calculateOptionTotal(option))}</p>
+                      <p className="text-xs text-muted-foreground">netto</p>
+                    </div>
+                  </div>
 
-              {/* Global discount edit */}
-              <div className="flex items-center gap-2 pt-2">
-                {editingDiscount === option.id ? (
-                  <>
-                    <Input
-                      type="number"
-                      value={tempDiscount}
-                      onChange={(e) => setTempDiscount(e.target.value)}
-                      className="w-20 h-8"
-                      min={0}
-                      max={100}
-                    />
-                    <span className="text-sm">%</span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => handleGlobalDiscountApply(option.id, option)}
-                    >
-                      <Check className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => setEditingDiscount(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleGlobalDiscountStart(option.id)}
-                    className="gap-1 text-muted-foreground"
-                  >
-                    <Edit className="w-3 h-3" />
-                    Ustaw rabat dla całej opcji
-                  </Button>
-                )}
-              </div>
+                  {/* Items table */}
+                  <div className="text-sm">
+                    <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
+                      <div className="col-span-5">Pozycja</div>
+                      <div className="col-span-2 text-right">Ilość</div>
+                      <div className="col-span-2 text-right">Cena</div>
+                      <div className="col-span-1 text-right">Rabat</div>
+                      <div className="col-span-2 text-right">Wartość</div>
+                    </div>
+                    {option.items.map((item) => {
+                      const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0",
+                            item.isOptional && "text-muted-foreground italic"
+                          )}
+                        >
+                          <div className="col-span-5 flex items-center gap-1">
+                            {item.isOptional && <Badge variant="outline" className="text-xs px-1">OPC</Badge>}
+                            {item.customName}
+                          </div>
+                          <div className="col-span-2 text-right">
+                            {item.quantity} {item.unit}
+                          </div>
+                          <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
+                          <div className="col-span-1 text-right">
+                            {item.discountPercent > 0 && `-${item.discountPercent}%`}
+                          </div>
+                          <div className="col-span-2 text-right font-medium">
+                            {item.isOptional ? '—' : formatPrice(itemValue)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Global discount edit */}
+                  <div className="flex items-center gap-2 pt-2">
+                    {editingDiscount === option.id ? (
+                      <>
+                        <Input
+                          type="number"
+                          value={tempDiscount}
+                          onChange={(e) => setTempDiscount(e.target.value)}
+                          className="w-20 h-8"
+                          min={0}
+                          max={100}
+                        />
+                        <span className="text-sm">%</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleGlobalDiscountApply(option.id, option)}
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => setEditingDiscount(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleGlobalDiscountStart(option.id)}
+                        className="gap-1 text-muted-foreground"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Ustaw rabat dla całej opcji
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </CardContent>
