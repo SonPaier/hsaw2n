@@ -193,7 +193,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
           return true;
         } catch (error) {
           console.error('Error saving scopes:', error);
-          toast.error('Błąd podczas zapisywania zakresów');
+          toast.error('Błąd podczas zapisywania usług');
           return false;
         }
       },
@@ -277,7 +277,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
     const handleAddScope = () => {
       const newScope: OfferScope = {
         id: crypto.randomUUID(),
-        name: 'Nowy zakres',
+        name: 'Nowa usługa',
         description: null,
         sort_order: scopes.filter(s => !s.isDeleted).length,
         active: true,
@@ -300,7 +300,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
     };
 
     const handleDeleteScope = (id: string) => {
-      if (!confirm('Czy na pewno chcesz usunąć ten zakres?')) return;
+      if (!confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
       
       const scope = scopes.find(s => s.id === id);
       if (scope?.isNew) {
@@ -424,21 +424,21 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium">Zakresy oferty</h3>
+            <h3 className="text-lg font-medium">Usługi oferty</h3>
             <p className="text-sm text-muted-foreground">
-              Zdefiniuj zakresy usług, przypisz warianty i dodatkowe opcje
+              Zdefiniuj usługi, przypisz warianty i dodatkowe opcje
             </p>
           </div>
           <Button onClick={handleAddScope} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Dodaj zakres
+            Dodaj usługę
           </Button>
         </div>
 
         {visibleScopes.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Brak zdefiniowanych zakresów. Kliknij "Dodaj zakres" aby utworzyć pierwszy.
+              Brak zdefiniowanych usług. Kliknij "Dodaj usługę" aby utworzyć pierwszą.
             </CardContent>
           </Card>
         ) : (
@@ -455,7 +455,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                         <Input
                           value={scope.name}
                           onChange={(e) => handleUpdateScope(scope.id, { name: e.target.value })}
-                          placeholder="Nazwa zakresu"
+                          placeholder="Nazwa usługi"
                           className="flex-1"
                         />
                         <div className="flex items-center gap-2">
@@ -480,7 +480,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           onCheckedChange={(checked) => handleUpdateScope(scope.id, { is_extras_scope: !!checked })}
                         />
                         <label htmlFor={`extras-${scope.id}`} className="text-sm cursor-pointer">
-                          <span className="font-medium">Zakres typu "Dodatki"</span>
+                          <span className="font-medium">Usługa typu "Dodatki"</span>
                           <span className="text-muted-foreground ml-2">
                             — każda opcja jest niezależna, można dodać dowolne kombinacje
                           </span>
