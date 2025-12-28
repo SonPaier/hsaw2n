@@ -13,7 +13,13 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  Save
+  Save,
+  Sparkles,
+  Shield,
+  Award,
+  Star,
+  Users,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -590,6 +596,92 @@ const PublicOfferView = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* About Us Section */}
+          <Card className="bg-gradient-to-br from-primary/5 via-background to-primary/10 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold mb-2">Dlaczego warto nam zaufać?</h2>
+                <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
+                  Nasze studio powstało z pasji do motoryzacji i perfekcji w każdym detalu. Specjalizujemy się w profesjonalnym zabezpieczaniu i pielęgnacji pojazdów klasy premium.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">Metoda z brytu</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Zaawansowana technika montażu PPF z zawijaniem krawędzi – folia niewidoczna, nie zbiera brudu.
+                  </p>
+                </div>
+
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Award className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">Produkty premium</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    UltraFit, Perfect Shield, Gyeon, WinCrest – marki gwarantujące najwyższą trwałość.
+                  </p>
+                </div>
+
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">Precyzja OEM</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Każdą realizację wykonujemy ręcznie, z dbałością o detale i estetykę na poziomie fabrycznym.
+                  </p>
+                </div>
+
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Car className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">Kompleksowa ochrona</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Folie PPF, powłoki ceramiczne, impregnacja skóry, ochrona felg, szyb i wnętrza.
+                  </p>
+                </div>
+
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Star className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">700+ opinii, 5.0 ★</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Zaufanie setek klientów potwierdzone najwyższymi ocenami w Google.
+                  </p>
+                </div>
+
+                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Heart className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm">Indywidualne podejście</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Każdy samochód traktujemy jak unikatowy projekt, idealnie dopasowany do potrzeb właściciela.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Customer & Vehicle Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
