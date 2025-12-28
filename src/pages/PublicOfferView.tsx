@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 interface OfferScopeRef {
   id: string;
   name: string;
+  is_extras_scope?: boolean;
 }
 
 interface OfferOption {
@@ -132,7 +133,8 @@ const PublicOfferView = () => {
               *,
               scope:offer_scopes (
                 id,
-                name
+                name,
+                is_extras_scope
               ),
               offer_option_items (*)
             ),
@@ -353,12 +355,15 @@ const PublicOfferView = () => {
         const inferredScopeName = opt.scope_id
           ? opt.scope?.name ?? inferredNameFromTitle ?? 'Zakres'
           : inferredNameFromTitle ?? 'Pozostałe';
+        
+        const isExtrasScope = opt.scope?.is_extras_scope ?? false;
 
         if (!acc[key]) {
           acc[key] = {
             key,
             scopeName: inferredScopeName,
             sortKey: opt.sort_order ?? 0,
+            isExtrasScope,
             options: [] as OfferOption[],
           };
         }
@@ -367,7 +372,7 @@ const PublicOfferView = () => {
       },
       {} as Record<
         string,
-        { key: string; scopeName: string; sortKey: number; options: OfferOption[] }
+        { key: string; scopeName: string; sortKey: number; isExtrasScope: boolean; options: OfferOption[] }
       >
     )
   ).sort((a, b) => a.sortKey - b.sortKey);
@@ -519,7 +524,80 @@ const PublicOfferView = () => {
           ) : (
             <div className="space-y-8">
               {scopeSections.map((section) => {
-                // Split options into variants (non-upsell) and upsells
+                // For extras scope, all options are individually selectable
+                if (section.isExtrasScope) {
+                  return (
+                    <section key={section.key} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-semibold">{section.scopeName}</h2>
+                        <Badge variant="secondary" className="text-xs">Dodatki</Badge>
+                      </div>
+
+                      {section.options.map((option) => {
+                        const isOptionSelected = selectedUpsells[option.id];
+                        const variantName = option.name.includes(' - ') 
+                          ? option.name.split(' - ').slice(1).join(' - ')
+                          : option.name;
+                        
+                        return (
+                          <article key={option.id}>
+                            <Card className={cn(
+                              "transition-all",
+                              isOptionSelected && "ring-2 ring-primary border-primary",
+                              !isOptionSelected && "opacity-70"
+                            )}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
+                                    {option.description && (
+                                      <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {!offer.hide_unit_prices && (
+                                      <span className="font-medium">{formatPrice(option.subtotal_net)}</span>
+                                    )}
+                                    <Button
+                                      variant={isOptionSelected ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => handleToggleUpsell(option.id)}
+                                      className="shrink-0"
+                                    >
+                                      {isOptionSelected ? (
+                                        <>
+                                          <Check className="w-4 h-4 mr-1" />
+                                          Dodane
+                                        </>
+                                      ) : (
+                                        'Dodaj'
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              {/* Show items only when selected and prices not hidden */}
+                              {isOptionSelected && !offer.hide_unit_prices && option.offer_option_items.length > 0 && (
+                                <CardContent className="pt-0">
+                                  <div className="space-y-1 text-sm text-muted-foreground">
+                                    {option.offer_option_items.map((item) => (
+                                      <div key={item.id} className="flex justify-between">
+                                        <span>{item.custom_name}</span>
+                                        <span>{item.quantity} {item.unit} × {formatPrice(item.unit_price)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              )}
+                            </Card>
+                          </article>
+                        );
+                      })}
+                    </section>
+                  );
+                }
+
+                // Regular scope - variants + upsells
                 const variants = section.options.filter(o => !o.is_upsell);
                 const upsells = section.options.filter(o => o.is_upsell);
                 const hasMultipleVariants = variants.length > 1;
