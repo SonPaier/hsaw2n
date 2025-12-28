@@ -172,7 +172,7 @@ export const useOffer = (instanceId: string) => {
             name: optionName,
             description: scope.description || '',
             items,
-            isSelected: sortOrder === 0, // First option selected by default
+            isSelected: true, // All options selected by default
             sortOrder,
             scopeId: scope.id,
             variantId: variant.id || undefined,
@@ -188,7 +188,7 @@ export const useOffer = (instanceId: string) => {
             name: `${scope.name} - Powłoka ceramiczna (upsell)`,
             description: 'Dodatkowa ochrona powłoką ceramiczną',
             items: [],
-            isSelected: false,
+            isSelected: true, // All options selected by default
             sortOrder,
             scopeId: scope.id,
             isUpsell: true,
@@ -472,6 +472,9 @@ export const useOffer = (instanceId: string) => {
           is_selected: option.isSelected,
           sort_order: option.sortOrder,
           subtotal_net: calculateOptionTotal(option),
+          scope_id: option.scopeId || null,
+          variant_id: option.variantId || null,
+          is_upsell: option.isUpsell || false,
         };
 
         const { data: optionResult, error: optionError } = await supabase
