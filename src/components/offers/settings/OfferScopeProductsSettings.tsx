@@ -279,7 +279,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Najpierw zdefiniuj zakresy i warianty w odpowiednich zakładkach.</p>
+            <p>Najpierw zdefiniuj usługi i warianty w odpowiednich zakładkach.</p>
           </CardContent>
         </Card>
       );
@@ -290,18 +290,18 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
     return (
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-medium">Produkty dla zakresów</h3>
+          <h3 className="text-lg font-medium">Produkty dla usług</h3>
           <p className="text-sm text-muted-foreground">
-            Przypisz produkty do kombinacji zakres × wariant
+            Przypisz produkty do kombinacji usługa × wariant
           </p>
         </div>
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Zakres</label>
+            <label className="text-sm font-medium mb-2 block">Usługa</label>
             <Select value={selectedScope || ''} onValueChange={setSelectedScope}>
               <SelectTrigger>
-                <SelectValue placeholder="Wybierz zakres" />
+                <SelectValue placeholder="Wybierz usługę" />
               </SelectTrigger>
               <SelectContent>
                 {scopes.map((scope) => (
@@ -316,7 +316,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
             <label className="text-sm font-medium mb-2 block">Wariant</label>
             {availableVariants.length === 0 ? (
               <div className="h-10 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted/50 flex items-center">
-                Brak przypisanych wariantów dla tego zakresu
+                Brak przypisanych wariantów dla tej usługi
               </div>
             ) : (
               <Select value={selectedVariant || ''} onValueChange={setSelectedVariant}>

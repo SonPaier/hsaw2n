@@ -373,7 +373,7 @@ const PublicOfferView = () => {
         const key = opt.scope_id ?? inferredNameFromTitle ?? '__ungrouped__';
 
         const inferredScopeName = opt.scope_id
-          ? opt.scope?.name ?? inferredNameFromTitle ?? 'Zakres'
+          ? opt.scope?.name ?? inferredNameFromTitle ?? 'Usługa'
           : inferredNameFromTitle ?? 'Pozostałe';
         
         const isExtrasScope = opt.scope?.is_extras_scope ?? false;
@@ -403,7 +403,7 @@ const PublicOfferView = () => {
         <title>Oferta {offer.offer_number} – {instance?.name || 'Firma'}</title>
         <meta
           name="description"
-          content={`Oferta ${offer.offer_number} od ${instance?.name || 'firmy'}: zakres prac, pozycje i podsumowanie kosztów.`}
+          content={`Oferta ${offer.offer_number} od ${instance?.name || 'firmy'}: usługi, pozycje i podsumowanie kosztów.`}
         />
         {typeof window !== 'undefined' && (
           <link rel="canonical" href={window.location.href} />
