@@ -578,6 +578,51 @@ export const useOffer = (instanceId: string) => {
         if (additionsItemsError) throw additionsItemsError;
       }
 
+      // Save customer to customers table (source: 'oferty')
+      if (offer.customerData.phone || offer.customerData.email) {
+        const customerData = {
+          instance_id: instanceId,
+          name: offer.customerData.name || offer.customerData.company || 'Nieznany',
+          phone: offer.customerData.phone || '',
+          email: offer.customerData.email || null,
+          company: offer.customerData.company || null,
+          nip: offer.customerData.nip || null,
+          address: offer.customerData.companyAddress 
+            ? `${offer.customerData.companyAddress}${offer.customerData.companyPostalCode ? ', ' + offer.customerData.companyPostalCode : ''}${offer.customerData.companyCity ? ' ' + offer.customerData.companyCity : ''}`
+            : null,
+          source: 'oferty',
+        };
+
+        // Check if customer already exists (by phone or email within this instance and source)
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('instance_id', instanceId)
+          .eq('source', 'oferty')
+          .or(`phone.eq.${offer.customerData.phone},email.eq.${offer.customerData.email}`)
+          .maybeSingle();
+
+        if (existingCustomer) {
+          // Update existing customer
+          await supabase
+            .from('customers')
+            .update({
+              name: customerData.name,
+              email: customerData.email,
+              company: customerData.company,
+              nip: customerData.nip,
+              address: customerData.address,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingCustomer.id);
+        } else {
+          // Insert new customer
+          await supabase
+            .from('customers')
+            .insert(customerData);
+        }
+      }
+
       toast.success('Oferta została zapisana');
       return offerId;
     } catch (error) {
