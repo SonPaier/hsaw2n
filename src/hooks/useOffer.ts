@@ -135,14 +135,19 @@ export const useOffer = (instanceId: string) => {
       if (productsError) throw productsError;
 
       // Generate options: for each scope × variant combination
+      // If no variants defined, create one option per scope
       const newOptions: OfferOption[] = [];
       let sortOrder = 0;
 
+      const variantsToUse = (variants && variants.length > 0) 
+        ? variants 
+        : [{ id: null, name: '' }]; // Fallback: single "empty" variant
+
       for (const scope of scopes || []) {
-        for (const variant of variants || []) {
+        for (const variant of variantsToUse) {
           // Find products for this scope-variant combo
           const products = (scopeVariantProducts || [])
-            .filter(p => p.scope_id === scope.id && p.variant_id === variant.id)
+            .filter(p => p.scope_id === scope.id && (variant.id === null || p.variant_id === variant.id))
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
           const items: OfferItem[] = products.map(p => ({
@@ -158,15 +163,19 @@ export const useOffer = (instanceId: string) => {
             isCustom: !p.product_id,
           }));
 
+          const optionName = variant.name 
+            ? `${scope.name} - ${variant.name}` 
+            : scope.name;
+
           newOptions.push({
             id: crypto.randomUUID(),
-            name: `${scope.name} - ${variant.name}`,
+            name: optionName,
             description: scope.description || '',
             items,
             isSelected: sortOrder === 0, // First option selected by default
             sortOrder,
             scopeId: scope.id,
-            variantId: variant.id,
+            variantId: variant.id || undefined,
             isUpsell: false,
           });
           sortOrder++;
