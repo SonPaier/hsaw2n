@@ -420,9 +420,16 @@ const AdminCalendar = ({
   };
 
   // Format free time as string
-  const formatFreeTime = (stationId: string, dateStr: string): string => {
+  const formatFreeTime = (stationId: string, dateStr: string): string | null => {
+    // Don't show for closed days or past dates
+    if (isDateClosed(dateStr)) return null;
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return null;
+    
     const freeTime = getFreeTimeForStation(stationId, dateStr);
-    if (!freeTime) return 'zamknięte';
+    if (!freeTime) return null;
     const { hours, minutes } = freeTime;
     if (hours === 0 && minutes === 0) return 'brak wolnego';
     if (hours === 0) return `wolne ${minutes} min`;
@@ -931,20 +938,25 @@ const AdminCalendar = ({
             </div>
             
             {/* Station headers */}
-            {visibleStations.map((station, idx) => (
-              <div 
-                key={station.id}
-                className={cn(
-                  "flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px]",
-                  idx < visibleStations.length - 1 && "border-r border-border"
-                )}
-              >
-                <div className="text-foreground truncate">{station.name}</div>
-                <div className="text-xs text-primary hidden md:block">
-                  {formatFreeTime(station.id, currentDateStr)}
+            {visibleStations.map((station, idx) => {
+              const freeTimeText = formatFreeTime(station.id, currentDateStr);
+              return (
+                <div 
+                  key={station.id}
+                  className={cn(
+                    "flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px]",
+                    idx < visibleStations.length - 1 && "border-r border-border"
+                  )}
+                >
+                  <div className="text-foreground truncate">{station.name}</div>
+                  {freeTimeText && (
+                    <div className="text-xs text-primary hidden md:block">
+                      {freeTimeText}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Calendar Grid - Day View */}
