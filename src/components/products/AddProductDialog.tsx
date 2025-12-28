@@ -102,8 +102,10 @@ export function AddProductDialog({
     setSaving(true);
 
     try {
-      // Build metadata object from fields
-      const metadata: Record<string, string> = {};
+      // Build metadata object from fields - always include _source: 'manual'
+      const metadata: Record<string, string> = {
+        _source: 'manual',
+      };
       metadataFields.forEach(field => {
         if (field.key.trim() && field.value.trim()) {
           metadata[field.key.trim()] = field.value.trim();
@@ -123,7 +125,7 @@ export function AddProductDialog({
           category: finalCategory || null,
           unit: finalUnit || 'szt',
           default_price: priceValue,
-          metadata: Object.keys(metadata).length > 0 ? metadata : null,
+          metadata: metadata,
           source: 'instance',
           active: true,
         });
