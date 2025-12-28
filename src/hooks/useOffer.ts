@@ -588,6 +588,9 @@ export const useOffer = (instanceId: string) => {
         description: opt.description,
         isSelected: opt.is_selected,
         sortOrder: opt.sort_order,
+        scopeId: opt.scope_id,
+        variantId: opt.variant_id,
+        isUpsell: opt.is_upsell,
         items: (opt.offer_option_items || [])
           .sort((a: any, b: any) => a.sort_order - b.sort_order)
           .map((item: any) => ({
@@ -603,6 +606,13 @@ export const useOffer = (instanceId: string) => {
             isCustom: item.is_custom,
           })),
       }));
+
+      // Extract unique scope IDs from options
+      const scopeIdsFromOptions = [...new Set(
+        options
+          .filter(opt => opt.scopeId)
+          .map(opt => opt.scopeId as string)
+      )];
 
       const additions: OfferItem[] = additionsOption 
         ? (additionsOption.offer_option_items || [])
@@ -634,7 +644,7 @@ export const useOffer = (instanceId: string) => {
         instanceId: offerData.instance_id,
         customerData: (offerData.customer_data || defaultCustomerData) as unknown as CustomerData,
         vehicleData,
-        selectedScopeIds: [],
+        selectedScopeIds: scopeIdsFromOptions,
         options,
         additions,
         notes: offerData.notes,
