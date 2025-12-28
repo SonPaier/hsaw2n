@@ -367,7 +367,7 @@ const OffersPage = () => {
               </Button>
               <Button variant="outline" onClick={() => setShowScopesSettings(true)} className="gap-2">
                 <Layers className="w-4 h-4" />
-                Zakresy
+                Usługi
               </Button>
               <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia numeracji">
                 <Settings className="w-4 h-4" />

@@ -534,7 +534,7 @@ const PublicOfferView = () => {
             )}
           </div>
 
-          {/* Zakresy (scope) */}
+          {/* Usługi (scope) */}
           {scopeSections.length === 0 ? (
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
