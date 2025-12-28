@@ -76,6 +76,7 @@ interface Offer {
   vehicle_data?: {
     brand?: string;
     model?: string;
+    brandModel?: string;
     plate?: string;
     vin?: string;
     year?: number;
@@ -584,7 +585,7 @@ const PublicOfferView = () => {
               </CardContent>
             </Card>
 
-            {offer.vehicle_data?.brand && (
+            {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -594,7 +595,7 @@ const PublicOfferView = () => {
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
                   <p className="font-medium">
-                    {offer.vehicle_data.brand} {offer.vehicle_data.model}
+                    {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
                   </p>
                   {offer.vehicle_data.plate && (
                     <p className="text-muted-foreground">{offer.vehicle_data.plate}</p>
