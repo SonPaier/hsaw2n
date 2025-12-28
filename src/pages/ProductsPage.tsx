@@ -119,6 +119,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [showPriceListProducts, setShowPriceListProducts] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
@@ -221,6 +222,16 @@ export default function ProductsPage() {
   const filteredProducts = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return products.filter(p => {
+      // First filter by source type
+      // If showPriceListProducts is false, only show manually added products
+      // Manually added products have metadata._source === 'manual' OR no metadata (legacy)
+      // Products from price lists have metadata but no _source: 'manual'
+      if (!showPriceListProducts && p.source === 'instance') {
+        const metadata = p.metadata as Record<string, unknown> | null;
+        const isManuallyAdded = !metadata || metadata._source === 'manual';
+        if (!isManuallyAdded) return false;
+      }
+      
       const matchesSearch = query === '' || 
         p.name.toLowerCase().includes(query) ||
         (p.brand && p.brand.toLowerCase().includes(query)) ||
@@ -231,7 +242,7 @@ export default function ProductsPage() {
       
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, categoryFilter]);
+  }, [products, searchQuery, categoryFilter, showPriceListProducts]);
 
   // Pagination for products
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -393,28 +404,41 @@ export default function ProductsPage() {
           <TabsContent value="products">
             <Card>
               <CardHeader>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle>Biblioteka produktów</CardTitle>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Szukaj produktów..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 w-full sm:w-64"
-                      />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle>Biblioteka produktów</CardTitle>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Szukaj produktów..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 w-full sm:w-64"
+                        />
+                      </div>
+                      <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="all">Wszystkie kategorie</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
                     </div>
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="all">Wszystkie kategorie</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showPriceListProducts}
+                        onChange={(e) => setShowPriceListProducts(e.target.checked)}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <span className="text-muted-foreground">Pokaż produkty z cenników</span>
+                    </label>
                   </div>
                 </div>
               </CardHeader>
