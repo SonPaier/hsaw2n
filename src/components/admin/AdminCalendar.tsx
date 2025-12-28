@@ -365,10 +365,22 @@ const AdminCalendar = ({
   };
 
   // Calculate free time for a station on a given date
-  const getFreeTimeForStation = (stationId: string, dateStr: string): { hours: number; minutes: number } => {
+  const getFreeTimeForStation = (stationId: string, dateStr: string): { hours: number; minutes: number } | null => {
     const { startTime, closeTime } = getWorkingHoursForDate(dateStr);
+    
+    // Check if day is closed or has invalid hours
+    if (!startTime || !closeTime) {
+      return null;
+    }
+    
     const openHour = parseTime(startTime);
     const closeHour = parseTime(closeTime);
+    
+    // Handle NaN or invalid values
+    if (isNaN(openHour) || isNaN(closeHour) || closeHour <= openHour) {
+      return null;
+    }
+    
     const totalWorkingMinutes = (closeHour - openHour) * 60;
 
     // Get all reservations for this station on this date (excluding cancelled)
@@ -385,7 +397,9 @@ const AdminCalendar = ({
       const { displayStart, displayEnd } = getDisplayTimesForDate(r, dateStr);
       const start = parseTime(displayStart);
       const end = parseTime(displayEnd);
-      bookedMinutes += (end - start) * 60;
+      if (!isNaN(start) && !isNaN(end)) {
+        bookedMinutes += (end - start) * 60;
+      }
     });
 
     // Get breaks for this station
@@ -393,7 +407,9 @@ const AdminCalendar = ({
     stationBreaks.forEach(b => {
       const start = parseTime(b.start_time);
       const end = parseTime(b.end_time);
-      bookedMinutes += (end - start) * 60;
+      if (!isNaN(start) && !isNaN(end)) {
+        bookedMinutes += (end - start) * 60;
+      }
     });
 
     const freeMinutes = Math.max(0, totalWorkingMinutes - bookedMinutes);
@@ -405,7 +421,9 @@ const AdminCalendar = ({
 
   // Format free time as string
   const formatFreeTime = (stationId: string, dateStr: string): string => {
-    const { hours, minutes } = getFreeTimeForStation(stationId, dateStr);
+    const freeTime = getFreeTimeForStation(stationId, dateStr);
+    if (!freeTime) return 'zamknięte';
+    const { hours, minutes } = freeTime;
     if (hours === 0 && minutes === 0) return 'brak wolnego';
     if (hours === 0) return `wolne ${minutes} min`;
     if (minutes === 0) return `wolne ${hours}h`;
@@ -922,9 +940,8 @@ const AdminCalendar = ({
                 )}
               >
                 <div className="text-foreground truncate">{station.name}</div>
-                <div className="text-xs text-muted-foreground capitalize hidden md:block">
-                  {station.type}
-                  <span className="text-primary ml-1">• {formatFreeTime(station.id, currentDateStr)}</span>
+                <div className="text-xs text-primary hidden md:block">
+                  {formatFreeTime(station.id, currentDateStr)}
                 </div>
               </div>
             ))}
