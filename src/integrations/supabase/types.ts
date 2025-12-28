@@ -737,6 +737,55 @@ export type Database = {
           },
         ]
       }
+      offer_scope_variants: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          scope_id: string
+          sort_order: number | null
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          scope_id: string
+          sort_order?: number | null
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          scope_id?: string
+          sort_order?: number | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_scope_variants_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variants_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variants_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_scopes: {
         Row: {
           active: boolean
