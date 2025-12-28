@@ -17,6 +17,7 @@ import {
   Package,
   Trash2,
   Eye,
+  Pencil,
   ToggleLeft,
   ToggleRight,
   Loader2,
@@ -60,6 +61,7 @@ import { PriceListUploadDialog } from '@/components/products/PriceListUploadDial
 import { PriceListViewer } from '@/components/products/PriceListViewer';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
+import { EditProductDialog } from '@/components/products/EditProductDialog';
 import AdminLayout from '@/components/layout/AdminLayout';
 
 interface PriceList {
@@ -122,6 +124,7 @@ export default function ProductsPage() {
   const [showPriceListProducts, setShowPriceListProducts] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
@@ -516,6 +519,12 @@ export default function ProductsPage() {
                                     <Eye className="mr-2 h-4 w-4" />
                                     Szczegóły
                                   </DropdownMenuItem>
+                                  {product.source !== 'global' && (
+                                    <DropdownMenuItem onClick={() => setEditingProduct(product)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Edytuj
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => handleToggleProduct(product)}>
                                     {product.active ? (
                                       <>
@@ -870,6 +879,17 @@ export default function ProductsPage() {
           instanceId={instanceId}
           categories={categories}
           onProductAdded={fetchData}
+        />
+      )}
+
+      {/* Edit Product Dialog */}
+      {editingProduct && (
+        <EditProductDialog
+          open={!!editingProduct}
+          onOpenChange={(open) => !open && setEditingProduct(null)}
+          product={editingProduct}
+          categories={categories}
+          onProductUpdated={fetchData}
         />
       )}
     </AdminLayout>
