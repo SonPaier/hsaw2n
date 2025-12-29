@@ -812,7 +812,7 @@ export default function CustomerBookingWizard({
                     {isInferringCarSize && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
                   </div>
                   {/* Historical car models from previous reservations */}
-                  {historicalCarModels.length > 0 && <div className="flex flex-wrap gap-2 mt-2">
+                  {historicalCarModels.length > 0 && <div className="flex flex-wrap gap-2 mt-2 py-[8px]">
                       {historicalCarModels.map(({
                   model,
                   count
