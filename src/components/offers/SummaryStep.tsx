@@ -23,9 +23,7 @@ import {
   Edit,
   Check,
   X,
-  Plus,
-  Trash2,
-  Package
+  Plus
 } from 'lucide-react';
 import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
@@ -36,14 +34,10 @@ interface SummaryStepProps {
   offer: OfferState;
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
+  onAddItem: (optionId: string, item: Omit<OfferItem, 'id'>) => string;
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
-  additions: OfferItem[];
-  onAddAddition: (item: Omit<OfferItem, 'id'>) => string;
-  onUpdateAddition: (itemId: string, data: Partial<OfferItem>) => void;
-  onRemoveAddition: (itemId: string) => void;
-  calculateAdditionsTotal: () => number;
 }
 
 interface OfferTemplate {
@@ -58,14 +52,10 @@ export const SummaryStep = ({
   offer,
   onUpdateOffer,
   onUpdateOption,
+  onAddItem,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
-  additions,
-  onAddAddition,
-  onUpdateAddition,
-  onRemoveAddition,
-  calculateAdditionsTotal,
 }: SummaryStepProps) => {
   const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
   const [tempDiscount, setTempDiscount] = useState('');
@@ -154,8 +144,8 @@ export const SummaryStep = ({
     setTempDiscount('');
   };
 
-  const handleAddAddition = () => {
-    onAddAddition({
+  const handleAddItemToOption = (optionId: string) => {
+    onAddItem(optionId, {
       productId: undefined,
       customName: '',
       customDescription: '',
@@ -178,7 +168,6 @@ export const SummaryStep = ({
   const totalNet = calculateTotalNet();
   const totalGross = calculateTotalGross();
   const vatAmount = totalGross - totalNet;
-  const additionsTotal = calculateAdditionsTotal();
 
   return (
     <div className="space-y-6">
@@ -338,6 +327,15 @@ export const SummaryStep = ({
                         Ustaw rabat dla całej opcji
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddItemToOption(option.id)}
+                      className="gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Dodaj pozycję
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -346,101 +344,6 @@ export const SummaryStep = ({
         </CardContent>
       </Card>
 
-      {/* Additions Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="w-4 h-4 text-primary" />
-            Dodatki
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {additions.length > 0 && (
-            <div className="text-sm">
-              <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
-                <div className="col-span-4">Nazwa</div>
-                <div className="col-span-2 text-center">Ilość</div>
-                <div className="col-span-1 text-center">J.m.</div>
-                <div className="col-span-2 text-center">Cena</div>
-                <div className="col-span-2 text-right">Wartość</div>
-                <div className="col-span-1"></div>
-              </div>
-              {additions.map((item) => {
-                const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-                return (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 items-center"
-                  >
-                    <div className="col-span-4">
-                      <Input
-                        value={item.customName || ''}
-                        onChange={(e) => onUpdateAddition(item.id, { customName: e.target.value })}
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => onUpdateAddition(item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                        min={0}
-                        step={0.01}
-                        className="h-8 text-center"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Input
-                        value={item.unit}
-                        onChange={(e) => onUpdateAddition(item.id, { unit: e.target.value })}
-                        className="h-8 text-center"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.unitPrice}
-                        onChange={(e) => onUpdateAddition(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                        min={0}
-                        step={0.01}
-                        className="h-8 text-center"
-                      />
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      {formatPrice(itemValue)}
-                    </div>
-                    <div className="col-span-1 flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onRemoveAddition(item.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-              {additions.length > 0 && (
-                <div className="flex justify-end px-2 py-2 font-medium">
-                  Suma dodatków: {formatPrice(additionsTotal)}
-                </div>
-              )}
-            </div>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAddAddition}
-            className="gap-1"
-          >
-            <Plus className="w-3 h-3" />
-            Dodaj pozycję
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Totals */}
       <Card>
