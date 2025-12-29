@@ -256,14 +256,10 @@ export const OfferGenerator = ({
             offer={offer}
             onUpdateOffer={updateOffer}
             onUpdateOption={updateOption}
+            onAddItem={addItemToOption}
             calculateOptionTotal={calculateOptionTotal}
             calculateTotalNet={calculateTotalNet}
             calculateTotalGross={calculateTotalGross}
-            additions={offer.additions}
-            onAddAddition={addAddition}
-            onUpdateAddition={updateAddition}
-            onRemoveAddition={removeAddition}
-            calculateAdditionsTotal={calculateAdditionsTotal}
           />
         )}
       </Card>
