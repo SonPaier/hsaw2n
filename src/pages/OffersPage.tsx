@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, Layers } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, Layers, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ interface Offer {
   created_at: string;
   valid_until?: string;
   public_token: string;
+  approved_at?: string | null;
 }
 
 interface OfferWithOptions extends Offer {
@@ -239,6 +240,12 @@ const OffersPage = () => {
     const url = `${window.location.origin}/oferta/${token}`;
     navigator.clipboard.writeText(url);
     toast.success('Link skopiowany do schowka');
+  };
+
+  const handleCopyOfferNumber = (offerNumber: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(offerNumber);
+    toast.success('Numer oferty skopiowany');
   };
 
   const handleSaveSettings = async () => {
@@ -448,8 +455,15 @@ const OffersPage = () => {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium truncate">{offer.offer_number}</span>
-                            <Badge className={cn('text-xs', statusColors[offer.status])}>
-                              {statusLabels[offer.status] || offer.status}
+                            <button
+                              onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
+                              className="p-1 hover:bg-secondary/80 rounded transition-colors"
+                              title="Kopiuj numer oferty"
+                            >
+                              <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                            </button>
+                            <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
+                              {offer.approved_at ? 'Zaakceptowana' : (statusLabels[offer.status] || offer.status)}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground truncate">
