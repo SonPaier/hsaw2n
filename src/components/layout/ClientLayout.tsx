@@ -36,7 +36,7 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children, 
     <div ref={ref} className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       {!hideHeader && (
-        <header className="sticky top-0 z-50 glass-card border-b border-border/50">
+        <header className="sticky top-0 z-50 bg-background">
           <div className="container py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
