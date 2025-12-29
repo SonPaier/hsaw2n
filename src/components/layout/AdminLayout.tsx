@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import { supabase } from '@/integrations/supabase/client';
+import { NotificationBell } from '@/components/admin/NotificationBell';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -261,9 +262,18 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               <Car className="w-5 h-5 text-primary" />
               <span className="font-bold">{title || 'ARM CAR'}</span>
             </div>
-            <div className="w-9" /> {/* Spacer for centering */}
+            <div className="flex items-center gap-1">
+              {instanceId && <NotificationBell instanceId={instanceId} />}
+            </div>
           </div>
         </header>
+
+        {/* Desktop Notification Bell - fixed position */}
+        {instanceId && (
+          <div className="hidden lg:block fixed top-4 right-4 z-40">
+            <NotificationBell instanceId={instanceId} />
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-auto">

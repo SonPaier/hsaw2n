@@ -15,6 +15,7 @@ import OffersPage from "./pages/OffersPage";
 import ProductsPage from "./pages/ProductsPage";
 import PublicOfferView from "./pages/PublicOfferView";
 import FollowUpPage from "./pages/FollowUpPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
@@ -77,6 +78,14 @@ const App = () => (
                 } 
               />
               <Route 
+                path="/admin/notifications" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <NotificationsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
                 path="/admin/:view" 
                 element={
                   <ProtectedRoute requiredRole="admin">

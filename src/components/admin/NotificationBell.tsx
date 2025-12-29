@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  read: boolean;
+  entity_type: string | null;
+  entity_id: string | null;
+  created_at: string;
+}
+
+interface NotificationBellProps {
+  instanceId: string;
+  onOpenReservation?: (reservationId: string) => void;
+}
+
+export const NotificationBell = ({ instanceId, onOpenReservation }: NotificationBellProps) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const newNotifications = notifications.filter(n => !n.read);
+  const earlierNotifications = notifications.filter(n => n.read);
+
+  const fetchNotifications = async () => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!error && data) {
+      setNotifications(data);
+    }
+  };
+
+  useEffect(() => {
+    if (!instanceId) return;
+    
+    fetchNotifications();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
+    if (!notification.read) {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notification.id);
+      
+      setNotifications(prev => 
+        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+      );
+    }
+
+    // Navigate based on entity type
+    if (notification.entity_type === 'offer' && notification.entity_id) {
+      setOpen(false);
+      navigate(`/admin/oferty?id=${notification.entity_id}`);
+    } else if (notification.entity_type === 'reservation' && notification.entity_id) {
+      setOpen(false);
+      if (onOpenReservation) {
+        navigate('/admin/reservations');
+        setTimeout(() => {
+          onOpenReservation(notification.entity_id!);
+        }, 100);
+      } else {
+        navigate(`/admin/reservations?open=${notification.entity_id}`);
+      }
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'reservation_new':
+        return '📅';
+      case 'reservation_cancelled':
+        return '❌';
+      case 'reservation_edited':
+        return '✏️';
+      case 'offer_approved':
+        return '✅';
+      case 'offer_modified':
+        return '📝';
+      default:
+        return '🔔';
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent 
+        className="w-80 p-0 bg-card border-border shadow-xl" 
+        align="end"
+        sideOffset={8}
+      >
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-lg">Powiadomienia</h3>
+        </div>
+        
+        <ScrollArea className="h-[400px]">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              Brak powiadomień
+            </div>
+          ) : (
+            <div className="p-2">
+              {newNotifications.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
+                    Nowe
+                  </div>
+                  {newNotifications.map(notification => (
+                    <button
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg hover:bg-accent/50 transition-colors flex gap-3 items-start",
+                        !notification.read && "bg-primary/5"
+                      )}
+                    >
+                      <span className="text-xl shrink-0">
+                        {getNotificationIcon(notification.type)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{notification.title}</p>
+                        {notification.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {notification.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-primary mt-1">
+                          {formatDistanceToNow(new Date(notification.created_at), { 
+                            addSuffix: true, 
+                            locale: pl 
+                          })}
+                        </p>
+                      </div>
+                      {!notification.read && (
+                        <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
+                      )}
+                    </button>
+                  ))}
+                </>
+              )}
+              
+              {earlierNotifications.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase mt-2">
+                    Wcześniejsze
+                  </div>
+                  {earlierNotifications.map(notification => (
+                    <button
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className="w-full text-left p-3 rounded-lg hover:bg-accent/50 transition-colors flex gap-3 items-start"
+                    >
+                      <span className="text-xl shrink-0 opacity-60">
+                        {getNotificationIcon(notification.type)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-muted-foreground">{notification.title}</p>
+                        {notification.description && (
+                          <p className="text-xs text-muted-foreground/70 line-clamp-2">
+                            {notification.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(notification.created_at), { 
+                            addSuffix: true, 
+                            locale: pl 
+                          })}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+        
+        {notifications.length > 0 && (
+          <div className="p-2 border-t border-border">
+            <Button 
+              variant="ghost" 
+              className="w-full text-sm text-muted-foreground"
+              onClick={() => {
+                setOpen(false);
+                navigate('/admin/notifications');
+              }}
+            >
+              Zobacz wszystkie powiadomienia
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};

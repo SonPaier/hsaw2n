@@ -269,6 +269,19 @@ const PublicOfferView = () => {
         .eq('id', offer.id);
 
       if (error) throw error;
+      
+      // Create notification for offer acceptance
+      await supabase
+        .from('notifications')
+        .insert({
+          instance_id: offer.instance_id,
+          type: 'offer_approved',
+          title: `Oferta ${offer.offer_number} zaakceptowana`,
+          description: `${offer.customer_data?.name || 'Klient'} zaakceptował ofertę`,
+          entity_type: 'offer',
+          entity_id: offer.id,
+        });
+      
       setOffer({ ...offer, status: 'accepted' });
       toast.success('Oferta została zaakceptowana!');
     } catch (err) {
@@ -414,8 +427,51 @@ const PublicOfferView = () => {
       
       if (error) throw error;
       
+      // Create notification for offer modification (only if not admin saving their own state)
+      // Note: This is for admin state save, don't create notification
+      
       setOffer({ ...offer, selected_state: stateToSave });
       toast.success('Zapisano wybory w ofercie');
+    } catch (err) {
+      console.error('Error saving state:', err);
+      toast.error('Błąd podczas zapisywania');
+    } finally {
+      setSavingState(false);
+    }
+  };
+
+  // Handle when customer modifies selection (non-admin)
+  const handleCustomerSaveSelection = async () => {
+    if (!offer || isAdmin) return;
+    setSavingState(true);
+    try {
+      const stateToSave: SelectedState = {
+        selectedVariants,
+        selectedUpsells,
+        selectedOptionalItems,
+      };
+      
+      const { error } = await supabase
+        .from('offers')
+        .update({ selected_state: JSON.parse(JSON.stringify(stateToSave)) })
+        .eq('id', offer.id);
+      
+      if (error) throw error;
+      
+      // Create notification for customer modifying offer selection
+      await supabase
+        .from('notifications')
+        .insert({
+          instance_id: offer.instance_id,
+          type: 'offer_modified',
+          title: `Oferta ${offer.offer_number} zmieniona`,
+          description: `${offer.customer_data?.name || 'Klient'} zmienił wybory w ofercie`,
+          entity_type: 'offer',
+          entity_id: offer.id,
+        });
+      
+      setOffer({ ...offer, selected_state: stateToSave });
+      toast.success('Zapisano Twoje wybory');
     } catch (err) {
       console.error('Error saving state:', err);
       toast.error('Błąd podczas zapisywania');
