@@ -303,6 +303,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         instanceId={instanceId}
         open={!!selectedCustomer}
         onClose={() => setSelectedCustomer(null)}
+        onCustomerUpdated={fetchCustomers}
       />
 
       {/* Send SMS Dialog (web only) */}
