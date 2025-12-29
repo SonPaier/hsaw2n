@@ -1112,16 +1112,10 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              /* First line: Car model + time */
+                              {/* Line 1: Auto */}
                               <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
                                 <Car className="w-3 h-3 shrink-0" />
                                 <span className="truncate">{reservation.vehicle_plate}</span>
-                                <span className="opacity-80 shrink-0">
-                                  , {isMultiDay 
-                                    ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
-                                    : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`
-                                  }
-                                </span>
                               </div>
                             )}
                             {/* Hide phone button in hallMode */}
@@ -1136,10 +1130,14 @@ const AdminCalendar = ({
                               </a>
                             )}
                           </div>
-                          {/* Second line: Customer name */}
+                          {/* Line 2: Godzina (pełna) + klient (ucięty) */}
                           {!hallMode && (
-                            <div className="flex items-center gap-0.5 text-[10px] md:text-xs opacity-90">
-                              <User className="w-3 h-3 shrink-0" />
+                            <div className="flex items-center gap-1 text-[10px] md:text-xs opacity-90 min-w-0">
+                              <span className="shrink-0 font-semibold tabular-nums">
+                                {isMultiDay
+                                  ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
+                                  : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
+                              </span>
                               <span className="truncate min-w-0">
                                 {reservation.customer_name}
                               </span>

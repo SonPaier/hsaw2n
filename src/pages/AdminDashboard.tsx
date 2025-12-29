@@ -755,6 +755,9 @@ const AdminDashboard = () => {
       }
     });
   };
+
+  const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
+
   return <>
       <Helmet>
         <title>Panel Admina - ARM CAR AUTO SPA</title>
@@ -788,8 +791,24 @@ const AdminDashboard = () => {
                 {!sidebarCollapsed && "Kalendarz"}
               </Button>
               <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('reservations')} title="Rezerwacje">
-                <Users className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && "Rezerwacje"}
+                <div className="relative">
+                  <Users className="w-4 h-4 shrink-0" />
+                  {sidebarCollapsed && pendingCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">Rezerwacje</span>
+                    {pendingCount > 0 && (
+                      <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </>
+                )}
               </Button>
               <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('customers')} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
@@ -869,80 +888,65 @@ const AdminDashboard = () => {
               </div>}
 
             {currentView === 'reservations' && <div className="space-y-4">
-                {/* Filter controls */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showPendingOnly ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setShowPendingOnly(!showPendingOnly)}
-                    className="gap-2"
-                  >
-                    <Filter className="w-4 h-4" />
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-base font-semibold text-foreground">
                     Do potwierdzenia
-                    {reservations.filter(r => r.status === 'pending').length > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded-full">
-                        {reservations.filter(r => r.status === 'pending').length}
+                    {pendingCount > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full">
+                        {pendingCount}
                       </span>
                     )}
-                  </Button>
+                  </h2>
                 </div>
 
                 <div className="glass-card overflow-hidden">
                   <div className="divide-y divide-border/50">
                     {reservations
-                      .filter(r => !showPendingOnly || r.status === 'pending')
+                      .filter(r => (r.status || 'pending') === 'pending')
                       .sort((a, b) => {
-                        // Pending first, then by date
-                        if (a.status === 'pending' && b.status !== 'pending') return -1;
-                        if (a.status !== 'pending' && b.status === 'pending') return 1;
-                        return new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+                        const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+                        if (d !== 0) return d;
+                        return (a.start_time || '').localeCompare(b.start_time || '');
                       })
                       .map(reservation => {
-                        const isPending = reservation.status === 'pending';
+                        const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
                         return (
-                          <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className={cn(
-                            "p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer",
-                            isPending ? "bg-amber-500/10" : "bg-primary-foreground"
-                          )}>
+                          <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-amber-500/10">
                             <div className="flex items-center gap-4 min-w-0">
-                              <div className={cn(
-                                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                                isPending ? "bg-amber-500/20 text-amber-600" : "bg-success/10 text-success"
-                              )}>
-                                {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+                              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
+                                <AlertCircle className="w-5 h-5" />
                               </div>
                               <div className="min-w-0">
                                 <div className="font-medium text-foreground truncate">
                                   {reservation.vehicle_plate}
                                 </div>
                                 <div className="text-sm text-muted-foreground truncate">
-                                  {reservation.service?.name} • {reservation.customer_name}
+                                  {reservation.customer_name}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              {isPending && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleConfirmReservation(reservation.id);
-                                  }}
-                                >
-                                  <Check className="w-4 h-4" />
-                                  Potwierdź
-                                </Button>
-                              )}
-                              <div className="text-right shrink-0">
-                                <div className="font-medium text-foreground">
-                                  {reservation.start_time?.slice(0, 5)}
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-right">
+                                <div className="font-medium text-foreground tabular-nums">
+                                  {timeRange}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
                                 </div>
                               </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleConfirmReservation(reservation.id);
+                                }}
+                              >
+                                <Check className="w-4 h-4" />
+                                Potwierdź
+                              </Button>
                             </div>
                           </div>
                         );
