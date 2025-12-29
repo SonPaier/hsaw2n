@@ -48,7 +48,7 @@
     --input: 0 0% 100%;
     --ring: 216 19% 26%;
 
-    --radius: 0rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 222 47% 11%;
@@ -135,6 +135,7 @@
     --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --radius: 0.5rem;
   }
 }
 
