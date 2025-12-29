@@ -145,6 +145,10 @@ export default function CustomerBookingWizard({
   const [dayScrollIndex, setDayScrollIndex] = useState(0);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
   const [slotScrollIndex, setSlotScrollIndex] = useState(0);
+  
+  // Calendar month state (for Booksy-style calendar)
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
+  const slotsScrollRef = useRef<HTMLDivElement>(null);
 
   // Customer info
   const [customerName, setCustomerName] = useState('');
@@ -939,9 +943,6 @@ export default function CustomerBookingWizard({
 
   // STEP 2: DATE & TIME SELECTION (Booksy-style full month calendar)
   if (step === 'datetime') {
-    // Current month state for calendar
-    const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(selectedDate || new Date()));
-    
     // Generate calendar days for the current month view
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
@@ -979,9 +980,6 @@ export default function CustomerBookingWizard({
     const goToNextMonth = () => {
       setCurrentMonth(addMonths(currentMonth, 1));
     };
-
-    // Scroll container ref for time slots
-    const slotsScrollRef = useRef<HTMLDivElement>(null);
 
     return <div className="min-h-screen bg-background">
         <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
