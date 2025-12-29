@@ -845,13 +845,13 @@ export default function CustomerBookingWizard({
   if (step === 'service') {
     return <div className="min-h-screen bg-background">
         <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
-          <button onClick={() => setStep('phone')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <button onClick={() => setStep('phone')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
             <ArrowLeft className="w-4 h-4" />
             Wróć
           </button>
 
-          <h2 className="text-base font-semibold mb-1">Wybierz usługę</h2>
-          <p className="text-xs text-muted-foreground mb-3">
+          <h2 className="font-semibold mb-1 text-xl">Wybierz usługę</h2>
+          <p className="text-muted-foreground mb-3 text-base">
             Ostateczny koszt usługi może się nieznacznie różnić, np. w przypadku bardzo silnych zabrudzeń.
           </p>
 
