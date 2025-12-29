@@ -125,11 +125,14 @@ export const NotificationBell = ({ instanceId, onOpenReservation }: Notification
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button 
+          size="icon" 
+          className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30 transition-all hover:scale-105"
+        >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 text-xs font-bold bg-red-500 text-white rounded-full flex items-center justify-center border-2 border-background shadow-md">
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </Button>
