@@ -152,7 +152,7 @@ export default function CustomerBookingWizard({
   const [dayScrollIndex, setDayScrollIndex] = useState(0);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
   const [slotScrollIndex, setSlotScrollIndex] = useState(0);
-  
+
   // Calendar month state (for Booksy-style calendar)
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const slotsScrollRef = useRef<HTMLDivElement>(null);
@@ -857,12 +857,9 @@ export default function CustomerBookingWizard({
     // All services in one list, first 5 visible, rest collapsed
     const visibleServices = services.slice(0, 5);
     const hiddenServices = services.slice(5);
-    
+
     // Get all selected service IDs (main + addons combined)
-    const allSelectedIds = selectedService 
-      ? [selectedService.id, ...selectedAddons] 
-      : [...selectedAddons];
-    
+    const allSelectedIds = selectedService ? [selectedService.id, ...selectedAddons] : [...selectedAddons];
     const toggleService = (service: Service) => {
       if (allSelectedIds.includes(service.id)) {
         // Remove from selection
@@ -889,29 +886,15 @@ export default function CustomerBookingWizard({
         }
       }
     };
-    
     const canContinue = allSelectedIds.length > 0;
-    
     const renderServiceItem = (service: Service) => {
       const price = getServicePrice(service);
       const duration = getServiceDuration(service);
       const isSelected = allSelectedIds.includes(service.id);
-      
-      return (
-        <button 
-          key={service.id} 
-          onClick={() => toggleService(service)}
-          className={cn(
-            'glass-card p-3 text-left transition-all w-full',
-            isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-          )}
-        >
+      return <button key={service.id} onClick={() => toggleService(service)} className={cn('glass-card p-3 text-left transition-all w-full', isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50')}>
           <div className="flex items-center gap-3">
             {/* Large checkbox */}
-            <div className={cn(
-              'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-              isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
-            )}>
+            <div className={cn('w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', isSelected ? 'border-primary bg-primary' : 'border-muted-foreground')}>
               {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
             </div>
             
@@ -926,10 +909,8 @@ export default function CustomerBookingWizard({
               od {price} zł
             </span>
           </div>
-        </button>
-      );
+        </button>;
     };
-
     return <div className="min-h-screen bg-background">
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => goToStep('phone', 'back')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
@@ -948,8 +929,7 @@ export default function CustomerBookingWizard({
           </div>
 
           {/* Collapsible section for remaining services */}
-          {hiddenServices.length > 0 && (
-            <>
+          {hiddenServices.length > 0 && <>
               <div className="flex justify-center my-4">
                 <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2">
                   {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -957,21 +937,14 @@ export default function CustomerBookingWizard({
                 </Button>
               </div>
 
-              {showAllServices && (
-                <div className="grid gap-2 animate-fade-in mb-4">
+              {showAllServices && <div className="grid gap-2 animate-fade-in mb-4">
                   {hiddenServices.map(renderServiceItem)}
-                </div>
-              )}
-            </>
-          )}
+                </div>}
+            </>}
 
           {/* CTA Button */}
           <div className="mt-6">
-            <Button 
-              onClick={() => goToStep('datetime', 'forward')}
-              className="w-full h-12 text-base"
-              disabled={!canContinue}
-            >
+            <Button onClick={() => goToStep('datetime', 'forward')} className="w-full h-12 text-base" disabled={!canContinue}>
               Dalej {allSelectedIds.length > 0 && `(${allSelectedIds.length} ${allSelectedIds.length === 1 ? 'usługa' : allSelectedIds.length < 5 ? 'usługi' : 'usług'})`}
             </Button>
           </div>
@@ -984,41 +957,40 @@ export default function CustomerBookingWizard({
     // Generate calendar days for the current month view
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
-    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    
+    const calendarStart = startOfWeek(monthStart, {
+      weekStartsOn: 1
+    });
+    const calendarEnd = endOfWeek(monthEnd, {
+      weekStartsOn: 1
+    });
     const calendarDays: Date[] = [];
     let day = calendarStart;
     while (day <= calendarEnd) {
       calendarDays.push(day);
       day = addDays(day, 1);
     }
-
     const dayNames = ['PON.', 'WT.', 'ŚR.', 'CZW.', 'PT.', 'SOB.', 'NIEDZ.'];
-    
+
     // Check if a date has available slots
     const hasAvailableSlots = (date: Date): boolean => {
       const dayData = availableDays.find(d => isSameDay(d.date, date));
       return dayData ? dayData.slots.length > 0 : false;
     };
-    
+
     // Get slots for selected date
     const selectedDayData = selectedDate ? availableDays.find(d => isSameDay(d.date, selectedDate)) : null;
     const availableSlots = selectedDayData?.slots || [];
-    
+
     // Month navigation
     const canGoPreviousMonth = !isBefore(endOfMonth(subMonths(currentMonth, 1)), startOfDay(new Date()));
-    
     const goToPreviousMonth = () => {
       if (canGoPreviousMonth) {
         setCurrentMonth(subMonths(currentMonth, 1));
       }
     };
-    
     const goToNextMonth = () => {
       setCurrentMonth(addMonths(currentMonth, 1));
     };
-
     return <div className="min-h-screen bg-background">
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           {/* Header with back button */}
@@ -1041,115 +1013,65 @@ export default function CustomerBookingWizard({
 
           {/* Month header with navigation */}
           <div className="flex items-center justify-between px-2 mb-4">
-            <button
-              onClick={goToPreviousMonth}
-              disabled={!canGoPreviousMonth}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                canGoPreviousMonth ? "hover:bg-muted text-muted-foreground" : "opacity-30 cursor-not-allowed"
-              )}
-            >
+            <button onClick={goToPreviousMonth} disabled={!canGoPreviousMonth} className={cn("p-2 rounded-full transition-colors", canGoPreviousMonth ? "hover:bg-muted text-muted-foreground" : "opacity-30 cursor-not-allowed")}>
               <ChevronLeft className="w-5 h-5" />
             </button>
             <span className="text-base font-semibold capitalize">
-              {format(currentMonth, 'LLLL yyyy', { locale: pl })}
+              {format(currentMonth, 'LLLL yyyy', {
+              locale: pl
+            })}
             </span>
-            <button
-              onClick={goToNextMonth}
-              className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-            >
+            <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
           {/* Day names header */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {dayNames.map((dayName) => (
-              <div 
-                key={dayName} 
-                className="text-center text-xs font-medium text-muted-foreground py-2"
-              >
+            {dayNames.map(dayName => <div key={dayName} className="text-center text-xs font-medium text-muted-foreground py-2">
                 {dayName}
-              </div>
-            ))}
+              </div>)}
           </div>
 
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1 mb-6">
-            {calendarDays.map((calDay) => {
-              const isPast = isBefore(calDay, startOfDay(new Date()));
-              const isSelected = selectedDate && isSameDay(calDay, selectedDate);
-              const isTodayDate = isToday(calDay);
-              const isCurrentMonth = isSameMonth(calDay, currentMonth);
-              const hasSlots = hasAvailableSlots(calDay);
-
-              return (
-                <button
-                  key={calDay.toISOString()}
-                  onClick={() => {
-                    if (!isPast && isCurrentMonth && hasSlots) {
-                      setSelectedDate(calDay);
-                      setSelectedTime(null);
-                    }
-                  }}
-                  disabled={isPast || !isCurrentMonth || !hasSlots}
-                  className={cn(
-                    "relative flex items-center justify-center h-11 w-full rounded-full text-sm font-medium transition-all duration-200",
-                    !isCurrentMonth && "text-muted-foreground/30",
-                    isPast && isCurrentMonth && "text-muted-foreground/50 cursor-not-allowed",
-                    !hasSlots && isCurrentMonth && !isPast && "text-muted-foreground/50 cursor-not-allowed",
-                    !isPast && isCurrentMonth && hasSlots && !isSelected && "hover:bg-secondary",
-                    isTodayDate && !isSelected && "ring-2 ring-primary/30 ring-inset",
-                    isSelected && "bg-primary text-primary-foreground shadow-lg",
-                  )}
-                >
+            {calendarDays.map(calDay => {
+            const isPast = isBefore(calDay, startOfDay(new Date()));
+            const isSelected = selectedDate && isSameDay(calDay, selectedDate);
+            const isTodayDate = isToday(calDay);
+            const isCurrentMonth = isSameMonth(calDay, currentMonth);
+            const hasSlots = hasAvailableSlots(calDay);
+            return <button key={calDay.toISOString()} onClick={() => {
+              if (!isPast && isCurrentMonth && hasSlots) {
+                setSelectedDate(calDay);
+                setSelectedTime(null);
+              }
+            }} disabled={isPast || !isCurrentMonth || !hasSlots} className={cn("relative flex items-center justify-center h-11 w-full rounded-full text-sm font-medium transition-all duration-200", !isCurrentMonth && "text-muted-foreground/30", isPast && isCurrentMonth && "text-muted-foreground/50 cursor-not-allowed", !hasSlots && isCurrentMonth && !isPast && "text-muted-foreground/50 cursor-not-allowed", !isPast && isCurrentMonth && hasSlots && !isSelected && "hover:bg-secondary", isTodayDate && !isSelected && "ring-2 ring-primary/30 ring-inset", isSelected && "bg-primary text-primary-foreground shadow-lg")}>
                   <span>{format(calDay, 'd')}</span>
-                </button>
-              );
-            })}
+                </button>;
+          })}
           </div>
 
           {/* Horizontal scrollable time slots */}
-          {selectedDate && (
-            <div className="border-t border-border pt-4">
-              {availableSlots.length > 0 ? (
-                <div 
-                  ref={slotsScrollRef}
-                  className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {availableSlots.map((slot) => {
-                    const isSelected = selectedTime === slot.time;
-                    
-                    return (
-                      <button
-                        key={slot.time}
-                        onClick={() => handleSelectTime(slot)}
-                        className={cn(
-                          "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
-                          isSelected 
-                            ? "bg-primary text-primary-foreground shadow-lg" 
-                            : "bg-card border-2 border-border hover:border-primary/50"
-                        )}
-                      >
+          {selectedDate && <div className="border-t border-border pt-4">
+              {availableSlots.length > 0 ? <div ref={slotsScrollRef} className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4" style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+                  {availableSlots.map(slot => {
+              const isSelected = selectedTime === slot.time;
+              return <button key={slot.time} onClick={() => handleSelectTime(slot)} className={cn("flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]", isSelected ? "bg-primary text-primary-foreground shadow-lg" : "bg-card border-2 border-border hover:border-primary/50")}>
                         {slot.time}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-center text-base text-muted-foreground py-4">
+                      </button>;
+            })}
+                </div> : <p className="text-center text-base text-muted-foreground py-4">
                   Brak dostępnych godzin w tym dniu
-                </p>
-              )}
-            </div>
-          )}
+                </p>}
+            </div>}
 
-          {!selectedDate && (
-            <p className="text-center text-base text-muted-foreground py-4">
+          {!selectedDate && <p className="text-center text-base text-muted-foreground py-4">
               Wybierz dzień, aby zobaczyć dostępne godziny
-            </p>
-          )}
+            </p>}
         </div>
       </div>;
   }
@@ -1162,7 +1084,7 @@ export default function CustomerBookingWizard({
           goToStep('datetime', 'back');
           setSmsSent(false);
           setVerificationCode('');
-        }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
+        }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-3 text-base">
             <ArrowLeft className="w-4 h-4" />
             Wróć
           </button>
