@@ -845,8 +845,84 @@ export default function CustomerBookingWizard({
       </div>;
   }
 
-  // STEP 2: SERVICE SELECTION (with addons collapsible)
+  // STEP 2: SERVICE SELECTION (unified multi-select list)
   if (step === 'service') {
+    // All services in one list, first 5 visible, rest collapsed
+    const visibleServices = services.slice(0, 5);
+    const hiddenServices = services.slice(5);
+    
+    // Get all selected service IDs (main + addons combined)
+    const allSelectedIds = selectedService 
+      ? [selectedService.id, ...selectedAddons] 
+      : [...selectedAddons];
+    
+    const toggleService = (service: Service) => {
+      if (allSelectedIds.includes(service.id)) {
+        // Remove from selection
+        if (selectedService?.id === service.id) {
+          // If it was the main service, promote first addon to main or clear
+          if (selectedAddons.length > 0) {
+            const newMainId = selectedAddons[0];
+            const newMain = services.find(s => s.id === newMainId);
+            setSelectedService(newMain || null);
+            setSelectedAddons(selectedAddons.slice(1));
+          } else {
+            setSelectedService(null);
+          }
+        } else {
+          // Remove from addons
+          setSelectedAddons(selectedAddons.filter(id => id !== service.id));
+        }
+      } else {
+        // Add to selection
+        if (!selectedService) {
+          setSelectedService(service);
+        } else {
+          setSelectedAddons([...selectedAddons, service.id]);
+        }
+      }
+    };
+    
+    const canContinue = allSelectedIds.length > 0;
+    
+    const renderServiceItem = (service: Service) => {
+      const price = getServicePrice(service);
+      const duration = getServiceDuration(service);
+      const isSelected = allSelectedIds.includes(service.id);
+      
+      return (
+        <button 
+          key={service.id} 
+          onClick={() => toggleService(service)}
+          className={cn(
+            'glass-card p-3 text-left transition-all w-full',
+            isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+          )}
+        >
+          <div className="flex items-center gap-3">
+            {/* Large checkbox */}
+            <div className={cn(
+              'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+              isSelected ? 'border-primary bg-primary' : 'border-muted-foreground'
+            )}>
+              {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-foreground truncate">
+                {service.name}
+              </h3>
+              <p className="text-muted-foreground text-sm">{duration} min</p>
+            </div>
+            
+            <span className="font-semibold text-primary whitespace-nowrap">
+              od {price} zł
+            </span>
+          </div>
+        </button>
+      );
+    };
+
     return <div className="min-h-screen bg-background">
         <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
           <button onClick={() => setStep('phone')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
@@ -854,89 +930,44 @@ export default function CustomerBookingWizard({
             Wróć
           </button>
 
-          <h2 className="font-semibold mb-1 text-xl">Wybierz usługę</h2>
+          <h2 className="font-semibold mb-1 text-xl">Wybierz usługi</h2>
           <p className="text-muted-foreground mb-3 text-base">
             Ostateczny koszt usługi może się nieznacznie różnić, np. w przypadku bardzo silnych zabrudzeń.
           </p>
 
+          {/* First 5 services always visible */}
           <div className="grid gap-2 mb-3">
-            {popularServices.map(service => {
-            const price = getServicePrice(service);
-            const duration = getServiceDuration(service);
-            return <div key={service.id} className="glass-card p-3 hover:border-primary/50 transition-all group">
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate">
-                        {service.name}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">{duration} min</p>
-                    </div>
-                    <span className="font-semibold text-primary whitespace-nowrap">
-                      od {price} zł
-                    </span>
-                    <Button size="sm" onClick={() => handleSelectService(service)}>
-                      Wybierz
-                    </Button>
-                  </div>
-                </div>;
-          })}
+            {visibleServices.map(renderServiceItem)}
           </div>
 
-          {otherServices.length > 0 && <>
+          {/* Collapsible section for remaining services */}
+          {hiddenServices.length > 0 && (
+            <>
               <div className="flex justify-center my-4">
                 <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2">
                   {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showAllServices ? 'Zwiń' : `Więcej (${otherServices.length})`}
+                  {showAllServices ? 'Zwiń' : `Pokaż więcej usług (${hiddenServices.length})`}
                 </Button>
               </div>
 
-              {showAllServices && <div className="grid gap-2 animate-fade-in">
-                  {otherServices.map(service => {
-              const price = getServicePrice(service);
-              const duration = getServiceDuration(service);
-              return <div key={service.id} className="glass-card p-3 hover:border-primary/50 transition-all group">
-                        <div className="flex justify-between items-center gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-foreground truncate">
-                              {service.name}
-                            </h3>
-                            <p className="text-xs text-muted-foreground">{duration} min</p>
-                          </div>
-                          <span className="font-semibold text-primary whitespace-nowrap">
-                            od {price} zł
-                          </span>
-                          <Button size="sm" onClick={() => handleSelectService(service)}>
-                            Wybierz
-                          </Button>
-                        </div>
-                      </div>;
-            })}
-                </div>}
-            </>}
-
-          {/* Addons section - collapsible, on first step */}
-          {selectedService && addonServices.length > 0 && <Collapsible open={showAddons} onOpenChange={setShowAddons} className="mt-4">
-              <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-2">
-                {showAddons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                <span className="text-base">Dodaj opcjonalne usługi </span>
-                {selectedAddons.length > 0 && <span className="ml-auto text-primary font-medium">({selectedAddons.length})</span>}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="animate-fade-in">
-                <div className="grid gap-2 mt-2">
-                  {addonServices.slice(0, 6).map(service => <button key={service.id} onClick={() => toggleAddon(service.id)} className={cn('glass-card p-3 text-left transition-all', selectedAddons.includes(service.id) ? 'border-primary bg-primary/5' : 'hover:border-primary/50')}>
-                      <div className="flex items-center gap-2">
-                        <div className={cn('w-4 h-4 rounded border flex items-center justify-center flex-shrink-0', selectedAddons.includes(service.id) ? 'border-primary bg-primary' : 'border-muted-foreground')}>
-                          {selectedAddons.includes(service.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium truncate block">{service.name}</span>
-                        </div>
-                        <span className="text-sm font-semibold text-primary">+{service.price_from || 0} zł</span>
-                      </div>
-                    </button>)}
+              {showAllServices && (
+                <div className="grid gap-2 animate-fade-in mb-4">
+                  {hiddenServices.map(renderServiceItem)}
                 </div>
-              </CollapsibleContent>
-            </Collapsible>}
+              )}
+            </>
+          )}
+
+          {/* CTA Button */}
+          <div className="mt-6">
+            <Button 
+              onClick={() => setStep('datetime')} 
+              className="w-full h-12 text-base"
+              disabled={!canContinue}
+            >
+              Dalej {allSelectedIds.length > 0 && `(${allSelectedIds.length} ${allSelectedIds.length === 1 ? 'usługa' : allSelectedIds.length < 5 ? 'usługi' : 'usług'})`}
+            </Button>
+          </div>
         </div>
       </div>;
   }
