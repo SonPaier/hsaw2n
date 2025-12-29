@@ -899,60 +899,74 @@ const AdminDashboard = () => {
                   </h2>
                 </div>
 
-                <div className="glass-card overflow-hidden">
-                  <div className="divide-y divide-border/50">
-                    {reservations
-                      .filter(r => (r.status || 'pending') === 'pending')
-                      .sort((a, b) => {
-                        const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
-                        if (d !== 0) return d;
-                        return (a.start_time || '').localeCompare(b.start_time || '');
-                      })
-                      .map(reservation => {
-                        const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
-                        return (
-                          <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-amber-500/10">
-                            <div className="flex items-center gap-4 min-w-0">
-                              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
-                                <AlertCircle className="w-5 h-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-medium text-foreground truncate">
-                                  {reservation.vehicle_plate}
-                                </div>
-                                <div className="text-sm text-muted-foreground truncate">
-                                  {reservation.customer_name}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="text-right">
-                                <div className="font-medium text-foreground tabular-nums">
-                                  {timeRange}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleConfirmReservation(reservation.id);
-                                }}
-                              >
-                                <Check className="w-4 h-4" />
-                                Potwierdź
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                {pendingCount === 0 ? (
+                  <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center mb-6">
+                      <CheckCircle2 className="w-10 h-10 text-green-500" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                      Wszystko potwierdzone!
+                    </h3>
+                    <p className="text-muted-foreground max-w-sm">
+                      Nie masz żadnych rezerwacji oczekujących na potwierdzenie. Nowe rezerwacje pojawią się tutaj automatycznie.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="glass-card overflow-hidden">
+                    <div className="divide-y divide-border/50">
+                      {reservations
+                        .filter(r => (r.status || 'pending') === 'pending')
+                        .sort((a, b) => {
+                          const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+                          if (d !== 0) return d;
+                          return (a.start_time || '').localeCompare(b.start_time || '');
+                        })
+                        .map(reservation => {
+                          const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
+                          return (
+                            <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-amber-500/10">
+                              <div className="flex items-center gap-4 min-w-0">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
+                                  <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-foreground truncate">
+                                    {reservation.vehicle_plate}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground truncate">
+                                    {reservation.customer_name}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 shrink-0">
+                                <div className="text-right">
+                                  <div className="font-medium text-foreground tabular-nums">
+                                    {timeRange}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfirmReservation(reservation.id);
+                                  }}
+                                >
+                                  <Check className="w-4 h-4" />
+                                  Potwierdź
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>}
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
