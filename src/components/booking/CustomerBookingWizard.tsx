@@ -882,7 +882,7 @@ export default function CustomerBookingWizard({
               <div className="flex justify-center my-4">
                 <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2">
                   {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showAllServices ? 'Zwiń usługi' : `Więcej usług (${otherServices.length})`}
+                  {showAllServices ? 'Zwiń' : `Więcej (${otherServices.length})`}
                 </Button>
               </div>
 
