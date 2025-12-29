@@ -1146,7 +1146,7 @@ const AdminCalendar = ({
                             </div>
                           )}
                           {reservation.service && (
-                            <div className="text-[10px] md:text-xs opacity-70 mt-0.5">
+                            <div className="text-[10px] md:text-xs opacity-70 leading-tight">
                               {reservation.service.shortcut || reservation.service.name}
                             </div>
                           )}
