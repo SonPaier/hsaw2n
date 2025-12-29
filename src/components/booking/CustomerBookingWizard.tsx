@@ -853,7 +853,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
           <div className="max-w-sm mx-auto">
             <div className="glass-card p-4 space-y-4">
               <div>
-                <Label htmlFor="phone" className="text-sm font-medium">Numer telefonu</Label>
+                <Label htmlFor="phone" className="text-base font-medium">Numer telefonu</Label>
                 <div className="relative mt-1">
                   <Input
                     id="phone"
@@ -861,7 +861,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder=""
-                    className="h-11 text-base"
+                    className="h-12 text-base"
                     autoFocus
                   />
                   {isCheckingCustomer && (
@@ -870,7 +870,7 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                 </div>
                 {isVerifiedCustomer && customerPhone.length >= 9 && (
                   <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Witaj ponownie! Rezerwacja bez kodu SMS
+                    <Check className="w-3 h-3" /> Witaj ponownie!
                   </p>
                 )}
               </div>
@@ -878,14 +878,14 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
               {/* Car model input - moved from summary step */}
               {customerPhone.length >= 9 && (
                 <div className="animate-fade-in">
-                  <Label htmlFor="carModel" className="text-sm font-medium">Marka i model samochodu</Label>
+                  <Label htmlFor="carModel" className="text-base font-medium">Marka i model samochodu</Label>
                   <div className="relative mt-1">
                     <Input
                       id="carModel"
                       value={carModel}
                       onChange={(e) => setCarModel(e.target.value)}
                       placeholder="np. Volkswagen Golf"
-                      className="h-11 text-base"
+                      className="h-12 text-base"
                     />
                     {isInferringCarSize && (
                       <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -893,14 +893,14 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                   </div>
                   {/* Historical car models from previous reservations */}
                   {historicalCarModels.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {historicalCarModels.map(({ model, count }) => (
                         <button
                           key={model}
                           type="button"
                           onClick={() => setCarModel(model)}
                           className={cn(
-                            "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                            "inline-flex items-center px-4 py-2.5 rounded-full text-sm font-medium transition-colors border min-h-[44px]",
                             carModel === model
                               ? "bg-primary text-primary-foreground border-primary"
                               : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
@@ -916,13 +916,13 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                     const suggestions = searchCarModels(carModel, 3);
                     if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
                     return (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {suggestions.map((model) => (
                           <button
                             key={model}
                             type="button"
                             onClick={() => setCarModel(model)}
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            className="inline-flex items-center px-4 py-2.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors min-h-[44px]"
                           >
                             {model}
                           </button>
@@ -930,12 +930,6 @@ export default function CustomerBookingWizard({ onLayoutChange }: CustomerBookin
                       </div>
                     );
                   })()}
-                  {/* Show inferred car size */}
-                  {carModel.length >= 3 && !isInferringCarSize && (
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      Rozmiar: {carSize === 'small' ? 'Mały' : carSize === 'medium' ? 'Średni' : 'Duży'}
-                    </p>
-                  )}
                 </div>
               )}
 
