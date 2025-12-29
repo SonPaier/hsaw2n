@@ -249,6 +249,9 @@ const AdminDashboard = () => {
         status,
         confirmation_code,
         price,
+        notes,
+        source,
+        car_size,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId);
@@ -675,6 +678,43 @@ const AdminDashboard = () => {
       toast.success('Rezerwacja potwierdzona (SMS nieudany)');
     }
   };
+
+  const handleCompleteReservation = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+
+    const { error: updateError } = await supabase
+      .from('reservations')
+      .update({ status: 'completed' })
+      .eq('id', reservationId);
+
+    if (updateError) {
+      toast.error('Błąd podczas aktualizacji statusu');
+      console.error('Update error:', updateError);
+      return;
+    }
+
+    // Update local state
+    setReservations(prev => prev.map(r => 
+      r.id === reservationId ? { ...r, status: 'completed' } : r
+    ));
+
+    // Send SMS about visit completion
+    try {
+      await supabase.functions.invoke('send-sms-message', {
+        body: {
+          phone: reservation.customer_phone,
+          message: `Dziękujemy za wizytę! Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Do zobaczenia!`,
+          instanceId
+        }
+      });
+      toast.success('Wizyta zakończona, SMS wysłany do klienta');
+    } catch (smsError) {
+      console.error('SMS error:', smsError);
+      toast.warning('Wizyta zakończona, ale SMS nie został wysłany');
+    }
+  };
+
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -1118,6 +1158,10 @@ const AdminDashboard = () => {
         onSave={handleReservationSave}
         onConfirm={async (id) => {
           await handleConfirmReservation(id);
+          setSelectedReservation(null);
+        }}
+        onComplete={async (id) => {
+          await handleCompleteReservation(id);
           setSelectedReservation(null);
         }}
       />
