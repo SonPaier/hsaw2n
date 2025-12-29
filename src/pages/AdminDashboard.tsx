@@ -951,22 +951,34 @@ const AdminDashboard = () => {
                                       {dateStr}
                                     </div>
                                   </div>
-                                  <a
-                                    href={`tel:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-9 h-9 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                                    title="Zadzwoń"
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="w-9 h-9"
+                                    asChild
                                   >
-                                    <Phone className="w-4 h-4" />
-                                  </a>
-                                  <a
-                                    href={`sms:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-9 h-9 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                                    title="Wyślij SMS"
+                                    <a
+                                      href={`tel:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Zadzwoń"
+                                    >
+                                      <Phone className="w-4 h-4" />
+                                    </a>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="w-9 h-9"
+                                    asChild
                                   >
-                                    <MessageSquare className="w-4 h-4" />
-                                  </a>
+                                    <a
+                                      href={`sms:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Wyślij SMS"
+                                    >
+                                      <MessageSquare className="w-4 h-4" />
+                                    </a>
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -1001,24 +1013,33 @@ const AdminDashboard = () => {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 pt-1">
-                                  <a
-                                    href={`tel:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 h-10 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center gap-2 text-foreground transition-colors"
-                                  >
-                                    <Phone className="w-4 h-4" />
-                                    <span className="text-sm">Zadzwoń</span>
-                                  </a>
-                                  <a
-                                    href={`sms:${reservation.customer_phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 h-10 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center gap-2 text-foreground transition-colors"
-                                  >
-                                    <MessageSquare className="w-4 h-4" />
-                                    <span className="text-sm">SMS</span>
-                                  </a>
                                   <Button
-                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 h-10 gap-2"
+                                    asChild
+                                  >
+                                    <a
+                                      href={`tel:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <Phone className="w-4 h-4" />
+                                      <span className="text-sm">Zadzwoń</span>
+                                    </a>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="flex-1 h-10 gap-2"
+                                    asChild
+                                  >
+                                    <a
+                                      href={`sms:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MessageSquare className="w-4 h-4" />
+                                      <span className="text-sm">SMS</span>
+                                    </a>
+                                  </Button>
+                                  <Button
                                     variant="outline"
                                     className="flex-1 h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
                                     onClick={(e) => {
