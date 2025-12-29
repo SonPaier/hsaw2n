@@ -1146,8 +1146,10 @@ const AdminCalendar = ({
                             </div>
                           )}
                           {reservation.service && (
-                            <div className="text-[10px] md:text-xs opacity-70 leading-tight">
-                              {reservation.service.shortcut || reservation.service.name}
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              <span className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                {reservation.service.shortcut || reservation.service.name}
+                              </span>
                             </div>
                           )}
                         </div>

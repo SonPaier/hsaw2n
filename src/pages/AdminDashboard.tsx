@@ -913,10 +913,10 @@ const AdminDashboard = () => {
                               </div>
                               <div className="min-w-0">
                                 <div className="font-medium text-foreground truncate">
-                                  {reservation.customer_name}
+                                  {reservation.vehicle_plate}
                                 </div>
                                 <div className="text-sm text-muted-foreground truncate">
-                                  {reservation.service?.name} • {reservation.vehicle_plate}
+                                  {reservation.service?.name} • {reservation.customer_name}
                                 </div>
                               </div>
                             </div>

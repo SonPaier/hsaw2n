@@ -229,11 +229,16 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edytuj rezerwację' : 'Szczegóły rezerwacji'}
+          <DialogTitle className="text-xl">
+            {isEditing ? 'Edytuj rezerwację' : (
+              <span className="flex items-center gap-3">
+                <span>{formatTime(startTime)} - {formatTime(endTime)}</span>
+                <span className="text-muted-foreground font-normal">•</span>
+                <span className="font-normal">{format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}</span>
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
-            {format(new Date(reservation.reservation_date), 'd MMMM yyyy (EEEE)', { locale: pl })}
             {reservation.status === 'pending' && (
               <Badge className="bg-warning/20 text-warning border-warning/30">Oczekujące</Badge>
             )}
@@ -464,46 +469,51 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
             </>
           ) : (
             <>
-              {/* Read-only view */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Klient</div>
-                    <div className="font-medium">{customerName}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <Phone className="w-5 h-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">Telefon</div>
-                    <div className="font-medium">{customerPhone}</div>
+              {/* Read-only view - simplified layout */}
+              <div className="space-y-4">
+                {/* Customer info row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-xs text-muted-foreground">Klient</div>
+                      <div className="font-medium">{customerName}</div>
+                    </div>
                   </div>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleCall}
                       title="Zadzwoń"
                     >
-                      <PhoneCall className="w-4 h-4" />
+                      <PhoneCall className="w-5 h-5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleSMS}
                       title="Wyślij SMS"
                     >
-                      <MessageSquare className="w-4 h-4" />
+                      <MessageSquare className="w-5 h-5" />
                     </Button>
                   </div>
                 </div>
 
+                {/* Phone */}
+                <div className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Telefon</div>
+                    <div className="font-medium">{customerPhone}</div>
+                  </div>
+                </div>
+
+                {/* Car model + size */}
                 {carModel && (
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-3">
                     <Car className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <div className="text-xs text-muted-foreground">Samochód</div>
@@ -515,45 +525,48 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   </div>
                 )}
 
+                {/* Car size warning if missing */}
+                {!carSize && reservation.status === 'pending' && (
+                  <div className="flex items-center gap-2 p-2 bg-warning/10 border border-warning/30 rounded-lg text-warning text-sm">
+                    <Car className="w-4 h-4 shrink-0" />
+                    <span>Brak wybranej wielkości auta - wymagane przy potwierdzeniu</span>
+                  </div>
+                )}
+
+                {/* Service */}
                 {reservation.service && (
-                  <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg">
+                  <div className="flex items-center gap-3">
                     <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm">U</div>
                     <div>
                       <div className="text-xs text-muted-foreground">Usługa</div>
-                      <div className="font-medium text-primary">{reservation.service.name}</div>
+                      <div className="font-medium">{reservation.service.name}</div>
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <Clock className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Godzina</div>
-                    <div className="font-medium">{formatTime(startTime)} - {formatTime(endTime)}</div>
-                  </div>
-                </div>
-
-                {price && (
-                  <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg">
-                    <div className="w-5 h-5 flex items-center justify-center text-success font-bold text-sm">zł</div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Cena</div>
-                      <div className="font-medium text-success">{price} PLN</div>
-                    </div>
-                  </div>
-                )}
-
+                {/* Notes - always visible if present */}
                 {notes && (
-                  <div className="p-3 bg-muted/30 rounded-lg">
+                  <div className="border-t border-border/30 pt-3">
                     <div className="text-xs text-muted-foreground mb-1">Notatki</div>
-                    <div className="text-sm">{notes}</div>
+                    <div className="text-sm whitespace-pre-wrap">{notes}</div>
+                  </div>
+                )}
+
+                {/* Suggested price (only label change) */}
+                {price && (
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <div className="w-5 h-5 flex items-center justify-center font-bold text-sm">zł</div>
+                    <div>
+                      <div className="text-xs">Sugerowana cena</div>
+                      <div className="font-medium">{price} PLN</div>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4 border-t border-border/50">
-                {onDelete && (
+                {onDelete && reservation.status === 'pending' && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
@@ -566,12 +579,12 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                         ) : (
                           <Trash2 className="w-4 h-4" />
                         )}
-                        Anuluj
+                        Odrzuć
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy na pewno chcesz anulować rezerwację?</AlertDialogTitle>
+                        <AlertDialogTitle>Czy na pewno chcesz odrzucić rezerwację?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Rezerwacja zostanie usunięta z systemu. Dane klienta ({customerName}, {customerPhone}) zostaną zachowane w bazie klientów.
                         </AlertDialogDescription>
@@ -579,7 +592,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                       <AlertDialogFooter>
                         <AlertDialogCancel>Nie, wróć</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Tak, usuń rezerwację
+                          Tak, odrzuć rezerwację
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -601,6 +614,10 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   <Button 
                     className="flex-1 gap-2 bg-success hover:bg-success/90 text-success-foreground"
                     onClick={async () => {
+                      if (!carSize) {
+                        setIsEditing(true);
+                        return;
+                      }
                       setConfirming(true);
                       try {
                         await onConfirm(reservation.id);
