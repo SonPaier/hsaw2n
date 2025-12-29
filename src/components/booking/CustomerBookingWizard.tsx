@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { format, addDays, parseISO, isSameDay } from 'date-fns';
+import { format, addDays, parseISO, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isBefore, startOfDay, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -937,48 +937,52 @@ export default function CustomerBookingWizard({
       </div>;
   }
 
-  // STEP 2: DATE & TIME SELECTION (Booksy-style)
+  // STEP 2: DATE & TIME SELECTION (Booksy-style full month calendar)
   if (step === 'datetime') {
-    const VISIBLE_DAYS = 6;
-    const visibleDays = availableDays.slice(dayScrollIndex, dayScrollIndex + VISIBLE_DAYS);
-    const canScrollDaysLeft = dayScrollIndex > 0;
-    const canScrollDaysRight = dayScrollIndex + VISIBLE_DAYS < availableDays.length;
-    const selectedDay = selectedDate ? availableDays.find(d => isSameDay(d.date, selectedDate)) : null;
-    const filteredSlots = selectedDay ? filterSlotsByTimeOfDay(selectedDay.slots, timeOfDay) : [];
-    const slotsCount = selectedDay ? getSlotsCountByTimeOfDay(selectedDay.slots) : {
-      morning: 0,
-      afternoon: 0,
-      evening: 0
+    // Current month state for calendar
+    const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(selectedDate || new Date()));
+    
+    // Generate calendar days for the current month view
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    
+    const calendarDays: Date[] = [];
+    let day = calendarStart;
+    while (day <= calendarEnd) {
+      calendarDays.push(day);
+      day = addDays(day, 1);
+    }
+
+    const dayNames = ['PON.', 'WT.', 'ŚR.', 'CZW.', 'PT.', 'SOB.', 'NIEDZ.'];
+    
+    // Check if a date has available slots
+    const hasAvailableSlots = (date: Date): boolean => {
+      const dayData = availableDays.find(d => isSameDay(d.date, date));
+      return dayData ? dayData.slots.length > 0 : false;
+    };
+    
+    // Get slots for selected date
+    const selectedDayData = selectedDate ? availableDays.find(d => isSameDay(d.date, selectedDate)) : null;
+    const availableSlots = selectedDayData?.slots || [];
+    
+    // Month navigation
+    const canGoPreviousMonth = !isBefore(endOfMonth(subMonths(currentMonth, 1)), startOfDay(new Date()));
+    
+    const goToPreviousMonth = () => {
+      if (canGoPreviousMonth) {
+        setCurrentMonth(subMonths(currentMonth, 1));
+      }
+    };
+    
+    const goToNextMonth = () => {
+      setCurrentMonth(addMonths(currentMonth, 1));
     };
 
-    // Slots carousel
-    const VISIBLE_SLOTS = 5;
-    const visibleSlots = filteredSlots.slice(slotScrollIndex, slotScrollIndex + VISIBLE_SLOTS);
-    const canScrollSlotsLeft = slotScrollIndex > 0;
-    const canScrollSlotsRight = slotScrollIndex + VISIBLE_SLOTS < filteredSlots.length;
+    // Scroll container ref for time slots
+    const slotsScrollRef = useRef<HTMLDivElement>(null);
 
-    // Get month/year range for header
-    const getMonthRange = () => {
-      if (visibleDays.length === 0) return '';
-      const firstDate = visibleDays[0].date;
-      const lastDate = visibleDays[visibleDays.length - 1].date;
-      const firstMonth = format(firstDate, 'LLLL yyyy', {
-        locale: pl
-      });
-      const lastMonth = format(lastDate, 'LLLL yyyy', {
-        locale: pl
-      });
-      if (firstMonth === lastMonth) return firstMonth.charAt(0).toUpperCase() + firstMonth.slice(1);
-      return `${format(firstDate, 'LLLL', {
-        locale: pl
-      }).charAt(0).toUpperCase() + format(firstDate, 'LLLL', {
-        locale: pl
-      }).slice(1)} - ${format(lastDate, 'LLLL yyyy', {
-        locale: pl
-      }).charAt(0).toUpperCase() + format(lastDate, 'LLLL yyyy', {
-        locale: pl
-      }).slice(1)}`;
-    };
     return <div className="min-h-screen bg-background">
         <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
           {/* Header with back button */}
@@ -991,94 +995,125 @@ export default function CustomerBookingWizard({
               <ArrowLeft className="w-4 h-4" />
               Wróć
             </button>
-            
           </div>
 
-          {/* Month header */}
-          <h2 className="text-xl font-bold mb-4">{getMonthRange()}</h2>
-
           {/* Service info */}
-          <p className="mb-4 text-base text-inherit">
+          <p className="mb-4 text-base text-muted-foreground">
             {selectedService?.name} • {getTotalDuration()} min
             {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} dodatki)`}
           </p>
 
-          {/* Days carousel */}
-          <div className="flex items-center gap-1 mb-6">
-            <button onClick={() => setDayScrollIndex(Math.max(0, dayScrollIndex - 1))} disabled={!canScrollDaysLeft} className={cn("p-1 rounded-full transition-colors", canScrollDaysLeft ? "hover:bg-muted" : "opacity-30 cursor-not-allowed")}>
+          {/* Month header with navigation */}
+          <div className="flex items-center justify-between px-2 mb-4">
+            <button
+              onClick={goToPreviousMonth}
+              disabled={!canGoPreviousMonth}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                canGoPreviousMonth ? "hover:bg-muted text-muted-foreground" : "opacity-30 cursor-not-allowed"
+              )}
+            >
               <ChevronLeft className="w-5 h-5" />
             </button>
-
-            <div className="flex-1 flex justify-center gap-1 overflow-hidden">
-              {visibleDays.map(day => {
-              const isSelected = selectedDate && isSameDay(selectedDate, day.date);
-              const hasSlots = day.slots.length > 0;
-              const dayOfWeek = format(day.date, 'EEEEEE', {
-                locale: pl
-              }); // Pn, Wt, Śr...
-              const dayNum = format(day.date, 'd');
-              return <button key={day.date.toISOString()} onClick={() => {
-                setSelectedDate(day.date);
-                setSlotScrollIndex(0);
-              }} disabled={!hasSlots} className={cn("flex flex-col items-center justify-center w-14 h-16 rounded-lg border transition-all", isSelected ? "border-primary bg-background" : "border-border hover:border-muted-foreground", !hasSlots && "opacity-40 cursor-not-allowed")}>
-                    <span className="text-xs text-muted-foreground capitalize">{dayOfWeek}</span>
-                    <span className={cn("text-lg font-semibold", isSelected && "text-foreground")}>{dayNum}</span>
-                    {hasSlots && <div className={cn("w-4 h-0.5 rounded-full mt-0.5", isSelected ? "bg-primary" : "bg-green-500")} />}
-                  </button>;
-            })}
-            </div>
-
-            <button onClick={() => setDayScrollIndex(Math.min(availableDays.length - VISIBLE_DAYS, dayScrollIndex + 1))} disabled={!canScrollDaysRight} className={cn("p-1 rounded-full transition-colors", canScrollDaysRight ? "hover:bg-muted" : "opacity-30 cursor-not-allowed")}>
+            <span className="text-base font-semibold capitalize">
+              {format(currentMonth, 'LLLL yyyy', { locale: pl })}
+            </span>
+            <button
+              onClick={goToNextMonth}
+              className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+            >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Time of day tabs */}
-          {selectedDay && <>
-              <div className="flex justify-center gap-2 mb-4">
-                <button onClick={() => {
-              setTimeOfDay('morning');
-              setSlotScrollIndex(0);
-            }} disabled={slotsCount.morning === 0} className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all", timeOfDay === 'morning' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50", slotsCount.morning === 0 && "opacity-40 cursor-not-allowed")}>
-                  Rano
-                </button>
-                <button onClick={() => {
-              setTimeOfDay('afternoon');
-              setSlotScrollIndex(0);
-            }} disabled={slotsCount.afternoon === 0} className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all", timeOfDay === 'afternoon' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50", slotsCount.afternoon === 0 && "opacity-40 cursor-not-allowed")}>
-                  Popołudnie
-                </button>
-                <button onClick={() => {
-              setTimeOfDay('evening');
-              setSlotScrollIndex(0);
-            }} disabled={slotsCount.evening === 0} className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all", timeOfDay === 'evening' ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50", slotsCount.evening === 0 && "opacity-40 cursor-not-allowed")}>
-                  Wieczór
-                </button>
+          {/* Day names header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {dayNames.map((dayName) => (
+              <div 
+                key={dayName} 
+                className="text-center text-xs font-medium text-muted-foreground py-2"
+              >
+                {dayName}
               </div>
+            ))}
+          </div>
 
-              {/* Time slots carousel */}
-              {filteredSlots.length > 0 ? <div className="flex items-center gap-1">
-                  <button onClick={() => setSlotScrollIndex(Math.max(0, slotScrollIndex - 1))} disabled={!canScrollSlotsLeft} className={cn("p-1 rounded-full transition-colors", canScrollSlotsLeft ? "hover:bg-muted" : "opacity-30 cursor-not-allowed")}>
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1 mb-6">
+            {calendarDays.map((calDay) => {
+              const isPast = isBefore(calDay, startOfDay(new Date()));
+              const isSelected = selectedDate && isSameDay(calDay, selectedDate);
+              const isTodayDate = isToday(calDay);
+              const isCurrentMonth = isSameMonth(calDay, currentMonth);
+              const hasSlots = hasAvailableSlots(calDay);
 
-                  <div className="flex-1 flex justify-center gap-2 overflow-hidden">
-                    {visibleSlots.map((slot, index) => <button key={slot.time} onClick={() => handleSelectTime(slot)} className={cn("px-4 py-3 rounded-lg border text-sm font-medium transition-all min-w-[70px]", index === 0 && selectedTime === slot.time ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary hover:bg-primary/10")}>
+              return (
+                <button
+                  key={calDay.toISOString()}
+                  onClick={() => {
+                    if (!isPast && isCurrentMonth && hasSlots) {
+                      setSelectedDate(calDay);
+                      setSelectedTime(null);
+                    }
+                  }}
+                  disabled={isPast || !isCurrentMonth || !hasSlots}
+                  className={cn(
+                    "relative flex items-center justify-center h-11 w-full rounded-full text-sm font-medium transition-all duration-200",
+                    !isCurrentMonth && "text-muted-foreground/30",
+                    isPast && isCurrentMonth && "text-muted-foreground/50 cursor-not-allowed",
+                    !hasSlots && isCurrentMonth && !isPast && "text-muted-foreground/50 cursor-not-allowed",
+                    !isPast && isCurrentMonth && hasSlots && !isSelected && "hover:bg-secondary",
+                    isTodayDate && !isSelected && "ring-2 ring-primary/30 ring-inset",
+                    isSelected && "bg-primary text-primary-foreground shadow-lg",
+                  )}
+                >
+                  <span>{format(calDay, 'd')}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Horizontal scrollable time slots */}
+          {selectedDate && (
+            <div className="border-t border-border pt-4">
+              {availableSlots.length > 0 ? (
+                <div 
+                  ref={slotsScrollRef}
+                  className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {availableSlots.map((slot) => {
+                    const isSelected = selectedTime === slot.time;
+                    
+                    return (
+                      <button
+                        key={slot.time}
+                        onClick={() => handleSelectTime(slot)}
+                        className={cn(
+                          "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                          isSelected 
+                            ? "bg-primary text-primary-foreground shadow-lg" 
+                            : "bg-card border-2 border-border hover:border-primary/50"
+                        )}
+                      >
                         {slot.time}
-                      </button>)}
-                  </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-base text-muted-foreground py-4">
+                  Brak dostępnych godzin w tym dniu
+                </p>
+              )}
+            </div>
+          )}
 
-                  <button onClick={() => setSlotScrollIndex(Math.min(filteredSlots.length - VISIBLE_SLOTS, slotScrollIndex + 1))} disabled={!canScrollSlotsRight} className={cn("p-1 rounded-full transition-colors", canScrollSlotsRight ? "hover:bg-muted" : "opacity-30 cursor-not-allowed")}>
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div> : <p className="text-center text-sm text-muted-foreground py-4">
-                  Brak dostępnych godzin w tym zakresie
-                </p>}
-            </>}
-
-          {!selectedDay && <p className="text-center text-sm text-muted-foreground py-8">
+          {!selectedDate && (
+            <p className="text-center text-base text-muted-foreground py-4">
               Wybierz dzień, aby zobaczyć dostępne godziny
-            </p>}
+            </p>
+          )}
         </div>
       </div>;
   }
