@@ -974,8 +974,8 @@ const PublicOfferView = () => {
                         <article key={option.id}>
                           <Card className={cn(
                             "transition-all",
-                            hasMultipleVariants && isSelected && "ring-2 ring-primary border-primary",
-                            hasMultipleVariants && !isSelected && "opacity-60"
+                            hasMultipleVariants && isSelected && isScopeSelected && "ring-2 ring-primary border-primary",
+                            hasMultipleVariants && !(isSelected && isScopeSelected) && "opacity-60"
                           )}>
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
