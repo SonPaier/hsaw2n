@@ -998,7 +998,7 @@ export default function CustomerBookingWizard({
           <h2 className="text-xl font-bold mb-4">{getMonthRange()}</h2>
 
           {/* Service info */}
-          <p className="text-xs text-muted-foreground mb-4">
+          <p className="mb-4 text-base text-inherit">
             {selectedService?.name} • {getTotalDuration()} min
             {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} dodatki)`}
           </p>
