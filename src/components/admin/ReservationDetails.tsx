@@ -529,10 +529,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     <Car className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <div className="text-xs text-muted-foreground">Samochód</div>
-                      <div className="font-medium">
-                        {carModel}
-                        {carSize && <span className="text-muted-foreground ml-2">({CAR_SIZE_LABELS[carSize as CarSize]})</span>}
-                      </div>
+                      <div className="font-medium">{carModel}</div>
                     </div>
                   </div>
                 )}
