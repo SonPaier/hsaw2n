@@ -162,6 +162,8 @@ export default function CustomerBookingWizard({
   const [customerPhone, setCustomerPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [wantsInvoice, setWantsInvoice] = useState(false);
+  const [nipNumber, setNipNumber] = useState('');
   const [historicalCarModels, setHistoricalCarModels] = useState<{
     model: string;
     count: number;
@@ -815,6 +817,12 @@ export default function CustomerBookingWizard({
                   </p>}
               </div>
 
+              {/* Name input - optional */}
+              {customerPhone.length >= 9 && <div className="animate-fade-in">
+                  <Label htmlFor="customerName" className="text-base font-medium">Imię i nazwisko (opcjonalnie)</Label>
+                  <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="np. Jan Kowalski" className="h-12 text-base mt-1" />
+                </div>}
+
               {/* Car model input - moved from summary step */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
                   <Label htmlFor="carModel" className="text-base font-medium">Marka i model samochodu</Label>
@@ -1112,7 +1120,7 @@ export default function CustomerBookingWizard({
               </div>}
             {carModel && <div className="flex justify-between">
               <span className="text-muted-foreground">Samochód</span>
-              <span className="font-medium">{carModel} ({carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'})</span>
+              <span className="font-medium">{carModel}, {carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'}</span>
             </div>}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Data</span>
@@ -1140,15 +1148,34 @@ export default function CustomerBookingWizard({
           setSelectedAddons(prev => [...prev, serviceId]);
         }} selectedAddons={selectedAddons} />}
 
-          {/* Customer data - phone and car model already provided in first step */}
+          {/* Customer data - VAT invoice option */}
           <div className="glass-card p-3 mb-3 space-y-3">
-            <div>
-              <Label htmlFor="name" className="text-xs">Imię i nazwisko *</Label>
-              <Input id="name" value={customerName} onChange={e => setCustomerName(e.target.value)} className="mt-1 h-9 text-sm" disabled={smsSent} />
-            </div>
+            {/* VAT Invoice checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <Checkbox 
+                checked={wantsInvoice} 
+                onCheckedChange={checked => setWantsInvoice(checked === true)} 
+                className="h-5 w-5"
+                disabled={smsSent}
+              />
+              <span className="text-sm font-medium">Proszę o fakturę VAT</span>
+            </label>
 
-            {/* Show car model as read-only info */}
-            {carModel}
+            {/* NIP input - shown when invoice is requested */}
+            {wantsInvoice && (
+              <div className="animate-fade-in">
+                <Label htmlFor="nip" className="text-xs">Numer NIP</Label>
+                <Input 
+                  id="nip" 
+                  value={nipNumber} 
+                  onChange={e => setNipNumber(e.target.value)} 
+                  placeholder="np. 1234567890"
+                  className="mt-1 h-9 text-sm" 
+                  disabled={smsSent}
+                  maxLength={13}
+                />
+              </div>
+            )}
 
             {/* Collapsible notes */}
             <Collapsible open={showNotes} onOpenChange={setShowNotes}>
@@ -1168,9 +1195,9 @@ export default function CustomerBookingWizard({
                   <Bug className="w-3 h-3 inline-block mr-1" />
                   Dev Mode: wymuszono weryfikację SMS
                 </div>}
-              <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim()}>
+              <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || (wantsInvoice && !nipNumber.trim())}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {isVerifiedCustomer && !devMode ? 'Rezerwuj' : 'Potwierdź'}
+                Potwierdź i umów
               </Button>
             </> : <div className="glass-card p-4 text-center">
               <p className="text-xs text-muted-foreground mb-3">
