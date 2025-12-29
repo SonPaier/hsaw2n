@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare } from 'lucide-react';
+import { NotificationBell } from '@/components/admin/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -812,7 +813,7 @@ const AdminDashboard = () => {
         <aside className={cn("fixed lg:static inset-y-0 left-0 z-50 bg-card border-r border-border/50 transition-all duration-300", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64")}>
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className={cn("border-b border-border/50 flex items-center", sidebarCollapsed ? "p-3 justify-center" : "p-6")}>
+            <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
               <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "gap-3")}>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-primary-foreground" />
@@ -822,6 +823,17 @@ const AdminDashboard = () => {
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
               </div>
+              {!sidebarCollapsed && instanceId && (
+                <NotificationBell 
+                  instanceId={instanceId} 
+                  onOpenReservation={(reservationId) => {
+                    const reservation = reservations.find(r => r.id === reservationId);
+                    if (reservation) {
+                      setSelectedReservation(reservation);
+                    }
+                  }}
+                />
+              )}
             </div>
 
             {/* Navigation */}
@@ -905,9 +917,22 @@ const AdminDashboard = () => {
                 <Car className="w-5 h-5 text-primary" />
                 <span className="font-bold">ARM CAR</span>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {instanceId && (
+                  <NotificationBell 
+                    instanceId={instanceId} 
+                    onOpenReservation={(reservationId) => {
+                      const reservation = reservations.find(r => r.id === reservationId);
+                      if (reservation) {
+                        setSelectedReservation(reservation);
+                      }
+                    }}
+                  />
+                )}
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           </header>
 
