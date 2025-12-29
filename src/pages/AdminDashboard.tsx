@@ -1012,10 +1012,11 @@ const AdminDashboard = () => {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 pt-1">
+                                <div className="flex items-center justify-end gap-2 pt-1">
                                   <Button
                                     variant="outline"
-                                    className="flex-1 h-10 gap-2"
+                                    size="icon"
+                                    className="h-10 w-10"
                                     asChild
                                   >
                                     <a
@@ -1023,12 +1024,12 @@ const AdminDashboard = () => {
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <Phone className="w-4 h-4" />
-                                      <span className="text-sm">Zadzwoń</span>
                                     </a>
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    className="flex-1 h-10 gap-2"
+                                    size="icon"
+                                    className="h-10 w-10"
                                     asChild
                                   >
                                     <a
@@ -1036,12 +1037,11 @@ const AdminDashboard = () => {
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <MessageSquare className="w-4 h-4" />
-                                      <span className="text-sm">SMS</span>
                                     </a>
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    className="flex-1 h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                    className="h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleConfirmReservation(reservation.id);
