@@ -914,7 +914,7 @@ export default function CustomerBookingWizard({
           {selectedService && addonServices.length > 0 && <Collapsible open={showAddons} onOpenChange={setShowAddons} className="mt-4">
               <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-2">
                 {showAddons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                <span>Wybierz dodatkowe usługi</span>
+                <span className="text-base">Dodaj opcjonalne usługi </span>
                 {selectedAddons.length > 0 && <span className="ml-auto text-primary font-medium">({selectedAddons.length})</span>}
               </CollapsibleTrigger>
               <CollapsibleContent className="animate-fade-in">
