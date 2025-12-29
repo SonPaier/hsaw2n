@@ -91,15 +91,15 @@ const CAR_SIZE_LABELS: Record<CarSize, string> = {
 
 const getSourceLabel = (source?: string | null) => {
   if (!source || source === 'admin') {
-    return <Badge variant="outline" className="text-xs font-normal">Admin</Badge>;
+    return <Badge variant="outline" className="text-xs font-normal">Źródło: Pracownik</Badge>;
   }
-  if (source === 'calendar' || source === 'online') {
-    return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">Online</Badge>;
+  if (source === 'customer' || source === 'calendar' || source === 'online') {
+    return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">Źródło: System rezerwacji</Badge>;
   }
   if (source === 'booksy') {
-    return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">Booksy</Badge>;
+    return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">Źródło: Booksy</Badge>;
   }
-  return <Badge variant="outline" className="text-xs font-normal">{source}</Badge>;
+  return <Badge variant="outline" className="text-xs font-normal">Źródło: {source}</Badge>;
 };
 
 const getStatusBadge = (status: string) => {
