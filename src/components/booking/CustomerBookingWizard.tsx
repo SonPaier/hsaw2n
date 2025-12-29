@@ -865,7 +865,7 @@ export default function CustomerBookingWizard({
                       <h3 className="font-medium text-foreground truncate">
                         {service.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground">{duration} min</p>
+                      <p className="text-muted-foreground text-sm">{duration} min</p>
                     </div>
                     <span className="font-semibold text-primary whitespace-nowrap">
                       od {price} zł
