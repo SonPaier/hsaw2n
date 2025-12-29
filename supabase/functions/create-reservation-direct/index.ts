@@ -127,6 +127,30 @@ serve(async (req: Request): Promise<Response> => {
       .select()
       .single();
 
+    // Create notification for new reservation
+    try {
+      const dateObj = new Date(reservationData.date);
+      const dayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+      const monthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+      const dayName = dayNames[dateObj.getDay()];
+      const dayNum = dateObj.getDate();
+      const monthName = monthNames[dateObj.getMonth()];
+      
+      await supabase
+        .from("notifications")
+        .insert({
+          instance_id: instanceId,
+          type: "reservation_new",
+          title: `Nowa rezerwacja: ${reservationData.customerName}`,
+          description: `${serviceData?.name || 'Usługa'} - ${dayName} ${dayNum} ${monthName} o ${reservationData.time}`,
+          entity_type: "reservation",
+          entity_id: reservation?.id,
+        });
+      console.log("Notification created for new reservation");
+    } catch (notifError) {
+      console.error("Failed to create notification:", notifError);
+    }
+
     if (reservationError) {
       console.error("Reservation error:", reservationError);
       return new Response(
