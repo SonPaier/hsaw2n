@@ -19,7 +19,8 @@ import {
   Award,
   Star,
   Users,
-  Heart
+  Heart,
+  Pencil
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -575,6 +576,9 @@ const PublicOfferView = () => {
   const instance = offer.instances;
   const isExpired = offer.valid_until && new Date(offer.valid_until) < new Date();
   const canRespond = ['sent', 'viewed'].includes(offer.status) && !isExpired;
+  const isAccepted = offer.status === 'accepted';
+  // Interactions disabled when accepted and not in edit mode
+  const interactionsDisabled = isAccepted && !isEditMode;
 
   const selectedOptions = offer.offer_options
     .filter((opt) => opt.is_selected)
@@ -916,6 +920,7 @@ const PublicOfferView = () => {
                                     variant={isItemSelected ? "default" : "outline"}
                                     size="sm"
                                     onClick={() => handleToggleOptionalItem(item.id)}
+                                    disabled={interactionsDisabled}
                                     className="shrink-0"
                                   >
                                     {isItemSelected ? (
@@ -942,10 +947,21 @@ const PublicOfferView = () => {
                 const upsells = section.options.filter(o => o.is_upsell);
                 const hasMultipleVariants = variants.length > 1;
                 const selectedOptionId = selectedVariants[section.key];
+                // Check if this scope is the selected one (for single-scope selection)
+                const isScopeSelected = selectedScopeId === section.key;
                 
                 return (
-                  <section key={section.key} className="space-y-3">
-                    <h2 className="text-base font-semibold">{section.scopeName}</h2>
+                  <section key={section.key} className={cn(
+                    "space-y-3",
+                    // Dim non-selected scopes when there's a selection
+                    selectedScopeId && !isScopeSelected && "opacity-50"
+                  )}>
+                    <h2 className="text-base font-semibold flex items-center gap-2">
+                      {section.scopeName}
+                      {isScopeSelected && (
+                        <Badge variant="default" className="text-xs">Wybrana</Badge>
+                      )}
+                    </h2>
 
                     {/* Render variants */}
                     {variants.map((option) => {
@@ -974,6 +990,7 @@ const PublicOfferView = () => {
                                     variant={isSelected ? "default" : "outline"}
                                     size="sm"
                                     onClick={() => handleSelectVariant(section.key, option.id)}
+                                    disabled={interactionsDisabled}
                                     className="shrink-0"
                                   >
                                     {isSelected ? (
@@ -985,6 +1002,21 @@ const PublicOfferView = () => {
                                       'Wybierz'
                                     )}
                                   </Button>
+                                )}
+                                {/* Show select button for single variant too, to select this scope */}
+                                {!hasMultipleVariants && !isScopeSelected && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSelectVariant(section.key, option.id)}
+                                    disabled={interactionsDisabled}
+                                    className="shrink-0"
+                                  >
+                                    Wybierz usługę
+                                  </Button>
+                                )}
+                                {!hasMultipleVariants && isScopeSelected && (
+                                  <Badge variant="default" className="text-xs">Wybrana</Badge>
                                 )}
                               </div>
                             </CardHeader>
@@ -1020,6 +1052,7 @@ const PublicOfferView = () => {
                                             variant={isOptionalSelected ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => handleToggleOptionalItem(item.id)}
+                                            disabled={interactionsDisabled}
                                           >
                                             {isOptionalSelected ? (
                                               <>
@@ -1065,6 +1098,7 @@ const PublicOfferView = () => {
                                             variant={isOptionalSelected ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => handleToggleOptionalItem(item.id)}
+                                            disabled={interactionsDisabled}
                                           >
                                             {isOptionalSelected ? (
                                               <>
@@ -1144,6 +1178,7 @@ const PublicOfferView = () => {
                                   variant={isUpsellSelected ? "default" : "outline"}
                                   size="sm"
                                   onClick={() => handleToggleUpsell(option.id)}
+                                  disabled={interactionsDisabled}
                                   className="shrink-0"
                                 >
                                   {isUpsellSelected ? (
@@ -1253,7 +1288,7 @@ const PublicOfferView = () => {
             </Card>
           )}
 
-          {/* Actions */}
+          {/* Actions - for non-accepted offers */}
           {canRespond && (
             <Card>
               <CardContent className="pt-6">
@@ -1289,11 +1324,11 @@ const PublicOfferView = () => {
                     <Button 
                       className="flex-1 gap-2" 
                       size="lg"
-                      onClick={handleAccept}
-                      disabled={responding}
+                      onClick={handleConfirmSelection}
+                      disabled={responding || !selectedScopeId}
                     >
                       {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
-                      Akceptuję ofertę
+                      Zatwierdź wybór
                     </Button>
                     <Button 
                       variant="outline" 
@@ -1311,13 +1346,52 @@ const PublicOfferView = () => {
             </Card>
           )}
 
-          {/* Already responded */}
-          {offer.status === 'accepted' && (
+          {/* Accepted offer - show edit/confirm buttons */}
+          {isAccepted && (
             <Card className="border-green-500/50 bg-green-500/10">
-              <CardContent className="py-6 text-center">
-                <Check className="w-12 h-12 mx-auto text-green-600 mb-3" />
-                <h3 className="text-lg font-semibold text-green-700">Oferta zaakceptowana</h3>
-                <p className="text-muted-foreground">Dziękujemy! Skontaktujemy się z Tobą wkrótce.</p>
+              <CardContent className="py-6">
+                <div className="text-center mb-4">
+                  <Check className="w-12 h-12 mx-auto text-green-600 mb-3" />
+                  <h3 className="text-lg font-semibold text-green-700">Oferta zaakceptowana</h3>
+                  <p className="text-muted-foreground">
+                    {isEditMode 
+                      ? 'Możesz teraz zmienić swoje wybory i zatwierdzić ponownie.' 
+                      : 'Dziękujemy! Skontaktujemy się z Tobą wkrótce.'}
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  {isEditMode ? (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsEditMode(false)}
+                        disabled={responding}
+                        className="gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Anuluj edycję
+                      </Button>
+                      <Button 
+                        onClick={handleConfirmSelection}
+                        disabled={responding || !selectedScopeId}
+                        className="gap-2"
+                      >
+                        {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        Zatwierdź zmiany
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditMode(true)}
+                      className="gap-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Edytuj wybór
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
