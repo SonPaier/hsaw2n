@@ -987,17 +987,11 @@ export default function CustomerBookingWizard({
             setStep('service');
             setSelectedDate(null);
             setSelectedTime(null);
-          }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-base">
               <ArrowLeft className="w-4 h-4" />
               Wróć
             </button>
-            <button onClick={() => {
-            setStep('service');
-            setSelectedDate(null);
-            setSelectedTime(null);
-          }} className="text-muted-foreground hover:text-foreground">
-              ✕
-            </button>
+            
           </div>
 
           {/* Month header */}
