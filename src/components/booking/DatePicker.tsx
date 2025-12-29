@@ -2,33 +2,46 @@ import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { format, addDays, startOfWeek, isSameDay, isToday, isBefore, startOfDay } from 'date-fns';
+import { 
+  format, 
+  addMonths, 
+  subMonths,
+  startOfMonth, 
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  isSameDay, 
+  isToday, 
+  isBefore, 
+  startOfDay,
+  isSameMonth 
+} from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 interface DatePickerProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
+  daysWithAvailability?: Date[];
 }
 
-const DatePicker = ({ selectedDate, onSelectDate }: DatePickerProps) => {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+const DatePicker = ({ selectedDate, onSelectDate, daysWithAvailability = [] }: DatePickerProps) => {
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
-  const goToPreviousWeek = () => {
-    const newStart = addDays(weekStart, -7);
-    if (!isBefore(newStart, startOfDay(new Date()))) {
-      setWeekStart(newStart);
+  const goToPreviousMonth = () => {
+    const newMonth = subMonths(currentMonth, 1);
+    if (!isBefore(endOfMonth(newMonth), startOfDay(new Date()))) {
+      setCurrentMonth(newMonth);
     }
   };
 
-  const goToNextWeek = () => {
-    setWeekStart(addDays(weekStart, 7));
+  const goToNextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
   };
 
-  const canGoPrevious = !isBefore(addDays(weekStart, -7), startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const canGoPrevious = !isBefore(endOfMonth(subMonths(currentMonth, 1)), startOfDay(new Date()));
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -46,18 +59,35 @@ const DatePicker = ({ selectedDate, onSelectDate }: DatePickerProps) => {
 
     if (Math.abs(diff) > minSwipeDistance) {
       if (diff > 0) {
-        // Swiped left - go to next week
-        goToNextWeek();
+        goToNextMonth();
       } else {
-        // Swiped right - go to previous week
         if (canGoPrevious) {
-          goToPreviousWeek();
+          goToPreviousMonth();
         }
       }
     }
 
     touchStartX.current = null;
     touchEndX.current = null;
+  };
+
+  // Generate calendar days
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+
+  const calendarDays: Date[] = [];
+  let day = calendarStart;
+  while (day <= calendarEnd) {
+    calendarDays.push(day);
+    day = addDays(day, 1);
+  }
+
+  const dayNames = ['PON', 'WT', 'ŚR', 'CZW', 'PT', 'SOB', 'NIEDZ'];
+
+  const hasAvailability = (date: Date) => {
+    return daysWithAvailability.some(d => isSameDay(d, date));
   };
 
   return (
@@ -67,56 +97,70 @@ const DatePicker = ({ selectedDate, onSelectDate }: DatePickerProps) => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Week Navigation */}
-      <div className="flex items-center justify-between">
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between px-2">
         <Button
           variant="ghost"
-          onClick={goToPreviousWeek}
+          size="icon"
+          onClick={goToPreviousMonth}
           disabled={!canGoPrevious}
-          className="shrink-0 h-12 w-12 sm:h-10 sm:w-10"
+          className="shrink-0 h-10 w-10 text-muted-foreground"
         >
-          <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
+          <ChevronLeft className="w-5 h-5" />
         </Button>
-        <span className="text-sm font-medium text-muted-foreground">
-          {format(weekStart, 'LLLL yyyy', { locale: pl })}
+        <span className="text-base font-semibold capitalize">
+          {format(currentMonth, 'LLLL yyyy', { locale: pl })}
         </span>
         <Button
           variant="ghost"
-          onClick={goToNextWeek}
-          className="shrink-0 h-12 w-12 sm:h-10 sm:w-10"
+          size="icon"
+          onClick={goToNextMonth}
+          className="shrink-0 h-10 w-10 text-muted-foreground"
         >
-          <ChevronRight className="w-6 h-6 sm:w-5 sm:h-5" />
+          <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
 
-      {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day) => {
-          const isPast = isBefore(day, startOfDay(new Date()));
-          const isSelected = selectedDate && isSameDay(day, selectedDate);
-          const isTodayDate = isToday(day);
+      {/* Day Names Header */}
+      <div className="grid grid-cols-7 gap-1">
+        {dayNames.map((dayName) => (
+          <div 
+            key={dayName} 
+            className="text-center text-xs font-medium text-muted-foreground py-2"
+          >
+            {dayName}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {calendarDays.map((calDay) => {
+          const isPast = isBefore(calDay, startOfDay(new Date()));
+          const isSelected = selectedDate && isSameDay(calDay, selectedDate);
+          const isTodayDate = isToday(calDay);
+          const isCurrentMonth = isSameMonth(calDay, currentMonth);
+          const hasSlots = hasAvailability(calDay);
 
           return (
             <button
-              key={day.toISOString()}
-              onClick={() => !isPast && onSelectDate(day)}
-              disabled={isPast}
+              key={calDay.toISOString()}
+              onClick={() => !isPast && isCurrentMonth && onSelectDate(calDay)}
+              disabled={isPast || !isCurrentMonth}
               className={cn(
-                "flex flex-col items-center py-3 px-1 rounded-xl transition-all duration-300",
-                isPast && "opacity-40 cursor-not-allowed",
-                isSelected
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                  : isTodayDate
-                    ? "bg-secondary border-2 border-primary/50"
-                    : "bg-card/50 hover:bg-secondary border border-border/50"
+                "relative flex items-center justify-center h-11 w-full rounded-full text-sm font-medium transition-all duration-200",
+                !isCurrentMonth && "text-muted-foreground/30",
+                isPast && isCurrentMonth && "text-muted-foreground/50 cursor-not-allowed",
+                !isPast && isCurrentMonth && !isSelected && "hover:bg-secondary",
+                isTodayDate && !isSelected && "ring-2 ring-primary/30 ring-inset",
+                isSelected && "bg-primary text-primary-foreground shadow-lg",
               )}
             >
-              <span className="text-[10px] uppercase font-medium opacity-70">
-                {format(day, 'EEEEEE', { locale: pl })}
-              </span>
-              <span className="text-lg font-bold mt-1">
-                {format(day, 'd')}
-              </span>
+              <span>{format(calDay, 'd')}</span>
+              {/* Availability dot */}
+              {hasSlots && !isPast && isCurrentMonth && !isSelected && (
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+              )}
             </button>
           );
         })}
