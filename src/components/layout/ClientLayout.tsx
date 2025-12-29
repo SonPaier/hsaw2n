@@ -1,6 +1,13 @@
-import { ReactNode, forwardRef } from 'react';
+import { ReactNode, forwardRef, useEffect, useState } from 'react';
 import { Car, Phone } from 'lucide-react';
-import { mockInstance } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Instance {
+  id: string;
+  name: string;
+  phone: string | null;
+  logo_url: string | null;
+}
 
 interface ClientLayoutProps {
   children: ReactNode;
@@ -9,6 +16,22 @@ interface ClientLayoutProps {
 }
 
 const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children, hideHeader = false, hideFooter = false }, ref) => {
+  const [instance, setInstance] = useState<Instance | null>(null);
+
+  useEffect(() => {
+    const fetchInstance = async () => {
+      const { data } = await supabase
+        .from('instances')
+        .select('id, name, phone, logo_url')
+        .eq('slug', 'armcar')
+        .single();
+      if (data) {
+        setInstance(data);
+      }
+    };
+    fetchInstance();
+  }, []);
+
   return (
     <div ref={ref} className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -17,23 +40,35 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children, 
           <div className="container py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
-                  <Car className="w-5 h-5 text-primary-foreground" />
-                </div>
+                {instance?.logo_url ? (
+                  <img 
+                    src={instance.logo_url} 
+                    alt={instance.name} 
+                    className="w-10 h-10 rounded-xl object-contain"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
+                    <Car className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                )}
                 <div>
                   <h1 className="text-lg font-bold text-foreground leading-tight">
-                    ARM CAR
+                    {instance?.name?.split(' ').slice(0, 2).join(' ') || 'ARM CAR'}
                   </h1>
-                  <p className="text-xs text-muted-foreground">AUTO SPA</p>
+                  <p className="text-xs text-muted-foreground">
+                    {instance?.name?.split(' ').slice(2).join(' ') || 'AUTO SPA'}
+                  </p>
                 </div>
               </div>
-              <a 
-                href={`tel:${mockInstance.phone}`}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Phone className="w-4 h-4" />
-                <span className="hidden sm:inline">{mockInstance.phone}</span>
-              </a>
+              {instance?.phone && (
+                <a 
+                  href={`tel:${instance.phone}`}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden sm:inline">{instance.phone}</span>
+                </a>
+              )}
             </div>
           </div>
         </header>
