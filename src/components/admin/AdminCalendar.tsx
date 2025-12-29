@@ -1112,7 +1112,6 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              {/* Line 1: Auto */}
                               <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
                                 <Car className="w-3 h-3 shrink-0" />
                                 <span className="truncate">{reservation.vehicle_plate}</span>
