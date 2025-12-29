@@ -1,5 +1,5 @@
 import { ReactNode, forwardRef } from 'react';
-import { Car, Phone, MapPin, Facebook, Instagram } from 'lucide-react';
+import { Car, Phone } from 'lucide-react';
 import { mockInstance } from '@/data/mockData';
 
 interface ClientLayoutProps {
@@ -48,47 +48,9 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children, 
       {!hideFooter && (
         <footer className="border-t border-border/50 mt-auto">
           <div className="container py-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              {/* Logo & copyright */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Car className="w-4 h-4 text-primary" />
-                <span>© {new Date().getFullYear()} ARM CAR AUTO SPA</span>
-              </div>
-
-              {/* Contact & Social */}
-              <div className="flex items-center gap-4">
-                <a 
-                  href={`tel:${mockInstance.phone}`}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Phone className="w-3 h-3" />
-                  {mockInstance.phone}
-                </a>
-
-                <div className="flex gap-2">
-                  {mockInstance.socialLinks?.facebook && (
-                    <a
-                      href={mockInstance.socialLinks.facebook}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      <Facebook className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                  {mockInstance.socialLinks?.instagram && (
-                    <a
-                      href={mockInstance.socialLinks.instagram}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      <Instagram className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              © {new Date().getFullYear()} ARM CAR AUTO SPA
+            </p>
           </div>
         </footer>
       )}
