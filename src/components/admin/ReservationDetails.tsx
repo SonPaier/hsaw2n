@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check, CheckCircle2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { Button } from '@/components/ui/button';
@@ -63,6 +63,7 @@ interface Reservation {
   confirmation_code: string;
   price?: number;
   notes?: string;
+  source?: string | null;
   service?: {
     name: string;
   };
@@ -79,12 +80,26 @@ interface ReservationDetailsProps {
   onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
   onSave?: (reservationId: string, data: Partial<Reservation>) => void;
   onConfirm?: (reservationId: string) => void;
+  onComplete?: (reservationId: string) => void;
 }
 
 const CAR_SIZE_LABELS: Record<CarSize, string> = {
   small: 'Mały',
   medium: 'Średni',
   large: 'Duży',
+};
+
+const getSourceLabel = (source?: string | null) => {
+  if (!source || source === 'admin') {
+    return <Badge variant="outline" className="text-xs font-normal">Admin</Badge>;
+  }
+  if (source === 'calendar' || source === 'online') {
+    return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">Online</Badge>;
+  }
+  if (source === 'booksy') {
+    return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">Booksy</Badge>;
+  }
+  return <Badge variant="outline" className="text-xs font-normal">{source}</Badge>;
 };
 
 const getStatusBadge = (status: string) => {
@@ -104,10 +119,11 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onComplete }: ReservationDetailsProps) => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -239,12 +255,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
             )}
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
-            {reservation.status === 'pending' && (
-              <Badge className="bg-warning/20 text-warning border-warning/30">Oczekujące</Badge>
-            )}
-            {reservation.status === 'confirmed' && (
-              <Badge className="bg-success/20 text-success border-success/30">Potwierdzone</Badge>
-            )}
+            {getStatusBadge(reservation.status)}
+            {getSourceLabel(reservation.source)}
           </DialogDescription>
         </DialogHeader>
 
@@ -633,6 +645,28 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                       <Check className="w-4 h-4" />
                     )}
                     Potwierdź
+                  </Button>
+                )}
+
+                {onComplete && (reservation.status === 'confirmed' || reservation.status === 'in_progress') && (
+                  <Button 
+                    className="flex-1 gap-2"
+                    onClick={async () => {
+                      setCompleting(true);
+                      try {
+                        await onComplete(reservation.id);
+                      } finally {
+                        setCompleting(false);
+                      }
+                    }}
+                    disabled={completing}
+                  >
+                    {completing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    Zakończ wizytę
                   </Button>
                 )}
               </div>
