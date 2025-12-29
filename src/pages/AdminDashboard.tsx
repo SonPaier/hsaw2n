@@ -936,6 +936,21 @@ const AdminDashboard = () => {
             </div>
           </header>
 
+          {/* Desktop Notification Bell - fixed position */}
+          {instanceId && (
+            <div className="hidden lg:block fixed top-4 right-4 z-40">
+              <NotificationBell 
+                instanceId={instanceId} 
+                onOpenReservation={(reservationId) => {
+                  const reservation = reservations.find(r => r.id === reservationId);
+                  if (reservation) {
+                    setSelectedReservation(reservation);
+                  }
+                }}
+              />
+            </div>
+          )}
+
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
             {/* Header - only shown for non-calendar views */}
