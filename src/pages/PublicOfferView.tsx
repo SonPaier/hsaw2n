@@ -987,13 +987,13 @@ const PublicOfferView = () => {
                                 </div>
                                 {hasMultipleVariants && (
                                   <Button
-                                    variant={isSelected ? "default" : "outline"}
+                                    variant={isSelected && isScopeSelected ? "default" : "outline"}
                                     size="sm"
                                     onClick={() => handleSelectVariant(section.key, option.id)}
                                     disabled={interactionsDisabled}
                                     className="shrink-0"
                                   >
-                                    {isSelected ? (
+                                    {isSelected && isScopeSelected ? (
                                       <>
                                         <Check className="w-4 h-4 mr-1" />
                                         Wybrany
