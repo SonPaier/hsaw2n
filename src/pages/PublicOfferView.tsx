@@ -68,6 +68,8 @@ interface SelectedState {
   selectedVariants: Record<string, string>;
   selectedUpsells: Record<string, boolean>;
   selectedOptionalItems: Record<string, boolean>;
+  // Track which scope (non-extras) is selected - only one allowed
+  selectedScopeId?: string | null;
 }
 
 interface Offer {
@@ -99,6 +101,7 @@ interface Offer {
   valid_until?: string;
   hide_unit_prices: boolean;
   created_at: string;
+  approved_at?: string | null;
   selected_state?: SelectedState | null;
   offer_options: OfferOption[];
   instances: {
@@ -151,6 +154,8 @@ const PublicOfferView = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionForm, setShowRejectionForm] = useState(false);
   const [savingState, setSavingState] = useState(false);
+  // Edit mode for accepted offers
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Track selected variant per scope (key: scope_id, value: option_id)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -158,6 +163,8 @@ const PublicOfferView = () => {
   const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
   // Track selected upsell options (key: option_id, value: boolean)
   const [selectedUpsells, setSelectedUpsells] = useState<Record<string, boolean>>({});
+  // Track which non-extras scope is selected (only one allowed)
+  const [selectedScopeId, setSelectedScopeId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOffer = async () => {
@@ -215,6 +222,7 @@ const PublicOfferView = () => {
           setSelectedVariants(savedState.selectedVariants || {});
           setSelectedUpsells(savedState.selectedUpsells || {});
           setSelectedOptionalItems(savedState.selectedOptionalItems || {});
+          setSelectedScopeId(savedState.selectedScopeId ?? null);
         } else {
           // Initialize selected variants - first non-upsell variant per scope
           const initialVariants: Record<string, string> = {};
@@ -228,14 +236,25 @@ const PublicOfferView = () => {
             return acc;
           }, {} as Record<string, OfferOption[]>);
           
+          // Find first non-extras scope to set as default selected
+          let firstNonExtrasScope: string | null = null;
+          
           Object.entries(scopeGroups).forEach(([scopeId, options]) => {
+            // Check if this is an extras scope
+            const isExtrasScope = options.some(o => o.scope?.is_extras_scope);
+            
             // Only consider non-upsell options as variants
             const variants = options.filter(o => !o.is_upsell).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
             if (variants.length > 0) {
               initialVariants[scopeId] = variants[0].id;
+              // Set first non-extras scope as the selected one
+              if (!isExtrasScope && !firstNonExtrasScope) {
+                firstNonExtrasScope = scopeId;
+              }
             }
           });
           setSelectedVariants(initialVariants);
+          setSelectedScopeId(firstNonExtrasScope);
         }
 
         // Mark as viewed if not already
@@ -256,15 +275,28 @@ const PublicOfferView = () => {
     fetchOffer();
   }, [token]);
 
-  const handleAccept = async () => {
+  // Confirm selection - saves state, changes status to accepted, creates notification
+  const handleConfirmSelection = async () => {
     if (!offer) return;
     setResponding(true);
     try {
+      const stateToSave: SelectedState = {
+        selectedVariants,
+        selectedUpsells,
+        selectedOptionalItems,
+        selectedScopeId,
+      };
+      
       const { error } = await supabase
         .from('offers')
         .update({ 
           status: 'accepted', 
-          responded_at: new Date().toISOString() 
+          responded_at: new Date().toISOString(),
+          approved_at: new Date().toISOString(),
+          selected_state: JSON.parse(JSON.stringify(stateToSave)),
+          // Update totals based on selection
+          total_net: dynamicTotals.net,
+          total_gross: dynamicTotals.gross,
         })
         .eq('id', offer.id);
 
@@ -277,18 +309,31 @@ const PublicOfferView = () => {
           instance_id: offer.instance_id,
           type: 'offer_approved',
           title: `Oferta ${offer.offer_number} zaakceptowana`,
-          description: `${offer.customer_data?.name || 'Klient'} zaakceptował ofertę`,
+          description: `${offer.customer_data?.name || 'Klient'} zaakceptował ofertę na ${formatPrice(dynamicTotals.gross)}`,
           entity_type: 'offer',
           entity_id: offer.id,
         });
       
-      setOffer({ ...offer, status: 'accepted' });
-      toast.success('Oferta została zaakceptowana!');
+      setOffer({ 
+        ...offer, 
+        status: 'accepted', 
+        selected_state: stateToSave,
+        approved_at: new Date().toISOString(),
+        total_net: dynamicTotals.net,
+        total_gross: dynamicTotals.gross,
+      });
+      setIsEditMode(false);
+      toast.success('Oferta została zatwierdzona!');
     } catch (err) {
-      toast.error('Błąd podczas akceptacji oferty');
+      toast.error('Błąd podczas zatwierdzania oferty');
     } finally {
       setResponding(false);
     }
+  };
+
+  const handleAccept = async () => {
+    // Use handleConfirmSelection for the confirm flow
+    await handleConfirmSelection();
   };
 
   const handleReject = async () => {
@@ -322,7 +367,7 @@ const PublicOfferView = () => {
     }).format(value);
   };
 
-  // Calculate dynamic total based on selected variants, upsells, optional items, and extras
+  // Calculate dynamic total based on selected scope, variant, upsells, optional items, and extras
   const calculateDynamicTotal = () => {
     if (!offer) return { net: 0, gross: 0 };
     
@@ -330,14 +375,17 @@ const PublicOfferView = () => {
     
     // Identify extras scope options (their items are tracked via selectedOptionalItems)
     const extrasScopeOptionIds = new Set<string>();
+    const extrasScopeIds = new Set<string>();
     offer.offer_options.forEach(opt => {
       if (opt.scope?.is_extras_scope) {
         extrasScopeOptionIds.add(opt.id);
+        if (opt.scope_id) extrasScopeIds.add(opt.scope_id);
       }
     });
     
-    // Add selected variant totals (non-upsell, non-extras-scope options)
-    Object.values(selectedVariants).forEach(optionId => {
+    // Only count the selected scope's variant (non-extras scopes)
+    if (selectedScopeId && selectedVariants[selectedScopeId]) {
+      const optionId = selectedVariants[selectedScopeId];
       const option = offer.offer_options.find(o => o.id === optionId);
       if (option && !extrasScopeOptionIds.has(option.id)) {
         // Calculate option total from items (excluding optionals not selected)
@@ -353,13 +401,14 @@ const PublicOfferView = () => {
           }
         });
       }
-    });
+    }
     
-    // Add selected upsell options (non-extras-scope)
+    // Add selected upsell options (only from the selected scope, non-extras-scope)
     Object.entries(selectedUpsells).forEach(([optionId, isSelected]) => {
       if (isSelected) {
         const option = offer.offer_options.find(o => o.id === optionId);
-        if (option && !extrasScopeOptionIds.has(option.id)) {
+        // Only include upsells from selected scope
+        if (option && !extrasScopeOptionIds.has(option.id) && option.scope_id === selectedScopeId) {
           option.offer_option_items.forEach(item => {
             if (item.is_optional) {
               if (selectedOptionalItems[item.id]) {
@@ -393,8 +442,27 @@ const PublicOfferView = () => {
 
   const dynamicTotals = calculateDynamicTotal();
 
-  const handleSelectVariant = (scopeId: string, optionId: string) => {
+  // Handle selecting a scope (and its variant) - only one non-extras scope can be selected
+  const handleSelectScope = (scopeId: string, optionId: string) => {
+    setSelectedScopeId(scopeId);
     setSelectedVariants(prev => ({ ...prev, [scopeId]: optionId }));
+    // Clear upsells from other scopes when switching
+    setSelectedUpsells(prev => {
+      const newUpsells: Record<string, boolean> = {};
+      // Keep only upsells that belong to this scope or extras scopes
+      Object.entries(prev).forEach(([upId, selected]) => {
+        const upOption = offer?.offer_options.find(o => o.id === upId);
+        if (upOption && (upOption.scope_id === scopeId || upOption.scope?.is_extras_scope)) {
+          newUpsells[upId] = selected;
+        }
+      });
+      return newUpsells;
+    });
+  };
+
+  const handleSelectVariant = (scopeId: string, optionId: string) => {
+    // When selecting a variant, also set this scope as the selected one
+    handleSelectScope(scopeId, optionId);
   };
 
   const handleToggleOptionalItem = (itemId: string) => {
@@ -418,6 +486,7 @@ const PublicOfferView = () => {
         selectedVariants,
         selectedUpsells,
         selectedOptionalItems,
+        selectedScopeId,
       };
       
       const { error } = await supabase
@@ -449,6 +518,7 @@ const PublicOfferView = () => {
         selectedVariants,
         selectedUpsells,
         selectedOptionalItems,
+        selectedScopeId,
       };
       
       const { error } = await supabase
