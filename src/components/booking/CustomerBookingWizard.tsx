@@ -1148,10 +1148,7 @@ export default function CustomerBookingWizard({
             </div>
 
             {/* Show car model as read-only info */}
-            {carModel && <div className="text-xs text-muted-foreground">
-                Samochód: <span className="font-medium text-foreground">{carModel}</span>
-                {' '}({carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'})
-              </div>}
+            {carModel}
 
             {/* Collapsible notes */}
             <Collapsible open={showNotes} onOpenChange={setShowNotes}>
