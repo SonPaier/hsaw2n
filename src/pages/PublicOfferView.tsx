@@ -575,7 +575,7 @@ const PublicOfferView = () => {
 
   const instance = offer.instances;
   const isExpired = offer.valid_until && new Date(offer.valid_until) < new Date();
-  const canRespond = ['sent', 'viewed'].includes(offer.status) && !isExpired;
+  const canRespond = ['draft', 'sent', 'viewed'].includes(offer.status) && !isExpired;
   const isAccepted = offer.status === 'accepted';
   // Interactions disabled when accepted and not in edit mode
   const interactionsDisabled = isAccepted && !isEditMode;
