@@ -20,7 +20,10 @@ import {
   Star,
   Users,
   Heart,
-  Pencil
+  Pencil,
+  Facebook,
+  Instagram,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -112,6 +115,8 @@ interface Offer {
     email?: string;
     address?: string;
     website?: string;
+    social_facebook?: string;
+    social_instagram?: string;
   };
 }
 
@@ -200,7 +205,9 @@ const PublicOfferView = () => {
               phone,
               email,
               address,
-              website
+              website,
+              social_facebook,
+              social_instagram
             )
           `)
           .eq('public_token', token)
@@ -1292,56 +1299,17 @@ const PublicOfferView = () => {
           {canRespond && (
             <Card>
               <CardContent className="pt-6">
-                {showRejectionForm ? (
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Powód odrzucenia (opcjonalnie)</h3>
-                    <Textarea
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      placeholder="Opisz dlaczego odrzucasz ofertę..."
-                      rows={3}
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setShowRejectionForm(false)}
-                        disabled={responding}
-                      >
-                        Anuluj
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        onClick={handleReject}
-                        disabled={responding}
-                      >
-                        {responding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                        Potwierdź odrzucenie
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button 
-                      className="flex-1 gap-2" 
-                      size="lg"
-                      onClick={handleConfirmSelection}
-                      disabled={responding || !selectedScopeId}
-                    >
-                      {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
-                      Zatwierdź wybór
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 gap-2" 
-                      size="lg"
-                      onClick={() => setShowRejectionForm(true)}
-                      disabled={responding}
-                    >
-                      <X className="w-5 h-5" />
-                      Odrzuć ofertę
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-center">
+                  <Button 
+                    className="gap-2" 
+                    size="lg"
+                    onClick={handleConfirmSelection}
+                    disabled={responding || !selectedScopeId}
+                  >
+                    {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
+                    Zatwierdź wybór
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1356,7 +1324,19 @@ const PublicOfferView = () => {
                   <p className="text-muted-foreground">
                     {isEditMode 
                       ? 'Możesz teraz zmienić swoje wybory i zatwierdzić ponownie.' 
-                      : 'Dziękujemy! Skontaktujemy się z Tobą wkrótce.'}
+                      : (
+                        <>
+                          Dziękujemy! Skontaktujemy się z Tobą wkrótce
+                          {instance?.phone && (
+                            <>
+                              {' '}lub zadzwoń do nas:{' '}
+                              <a href={`tel:${instance.phone}`} className="text-primary font-medium hover:underline">
+                                {instance.phone}
+                              </a>
+                            </>
+                          )}
+                        </>
+                      )}
                   </p>
                 </div>
                 
@@ -1391,6 +1371,43 @@ const PublicOfferView = () => {
                       Edytuj wybór
                     </Button>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Social media links */}
+          {(instance?.social_facebook || instance?.social_instagram) && (
+            <Card>
+              <CardContent className="py-6">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-4">
+                    Zobacz nasze realizacje i obserwuj nas w social media
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    {instance?.social_facebook && (
+                      <a 
+                        href={instance.social_facebook} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1877F2]/90 transition-colors"
+                      >
+                        <Facebook className="w-5 h-5" />
+                        <span>Facebook</span>
+                      </a>
+                    )}
+                    {instance?.social_instagram && (
+                      <a 
+                        href={instance.social_instagram} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity"
+                      >
+                        <Instagram className="w-5 h-5" />
+                        <span>Instagram</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
