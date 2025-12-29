@@ -119,6 +119,7 @@ export default function CustomerBookingWizard({
   onLayoutChange
 }: CustomerBookingWizardProps) {
   const [step, setStep] = useState<Step>('phone');
+  const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -126,6 +127,12 @@ export default function CustomerBookingWizard({
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAddons, setShowAddons] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Navigation helpers with animation direction
+  const goToStep = (newStep: Step, direction: 'forward' | 'back' = 'forward') => {
+    setSlideDirection(direction);
+    setStep(newStep);
+  };
 
   // Feature flags
   const {
@@ -530,7 +537,7 @@ export default function CustomerBookingWizard({
   const handleSelectTime = (slot: TimeSlot) => {
     setSelectedTime(slot.time);
     setSelectedStationId(slot.availableStationIds[0]);
-    setStep('summary'); // Go directly to summary
+    goToStep('summary', 'forward'); // Go directly to summary
   };
   const toggleAddon = (serviceId: string) => {
     setSelectedAddons(prev => prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]);
@@ -611,7 +618,7 @@ export default function CustomerBookingWizard({
         facebook: data.instance?.social_facebook || null,
         instagram: data.instance?.social_instagram || null
       });
-      setStep('success');
+      goToStep('success', 'forward');
     } catch (error) {
       console.error('Error creating direct reservation:', error);
       toast({
@@ -726,7 +733,7 @@ export default function CustomerBookingWizard({
         facebook: data.instance?.social_facebook || null,
         instagram: data.instance?.social_instagram || null
       });
-      setStep('success');
+      goToStep('success', 'forward');
     } catch (error) {
       console.error('Error verifying code:', error);
       toast({
@@ -785,7 +792,7 @@ export default function CustomerBookingWizard({
 
   // STEP 1: PHONE NUMBER & CAR MODEL INPUT
   if (step === 'phone') {
-    return <div className="animate-fade-in">
+    return <div className={slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right"}>
         <section className="py-4 md:py-6 text-center">
           <div className="container">
             <h1 className="text-lg md:text-xl font-bold text-foreground">
@@ -836,7 +843,7 @@ export default function CustomerBookingWizard({
               })()}
                 </div>}
 
-              <Button onClick={() => setStep('service')} className="w-full" disabled={customerPhone.length < 9 || isCheckingCustomer}>
+              <Button onClick={() => goToStep('service', 'forward')} className="w-full" disabled={customerPhone.length < 9 || isCheckingCustomer}>
                 Dalej
               </Button>
             </div>
@@ -924,8 +931,8 @@ export default function CustomerBookingWizard({
     };
 
     return <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
-          <button onClick={() => setStep('phone')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
+        <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
+          <button onClick={() => goToStep('phone', 'back')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
             <ArrowLeft className="w-4 h-4" />
             Wróć
           </button>
@@ -961,7 +968,7 @@ export default function CustomerBookingWizard({
           {/* CTA Button */}
           <div className="mt-6">
             <Button 
-              onClick={() => setStep('datetime')} 
+              onClick={() => goToStep('datetime', 'forward')}
               className="w-full h-12 text-base"
               disabled={!canContinue}
             >
@@ -1013,11 +1020,11 @@ export default function CustomerBookingWizard({
     };
 
     return <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
+        <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => {
-            setStep('service');
+            goToStep('service', 'back');
             setSelectedDate(null);
             setSelectedTime(null);
           }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-base">
@@ -1150,9 +1157,9 @@ export default function CustomerBookingWizard({
   // STEP 3: SUMMARY WITH DATA & VERIFICATION
   if (step === 'summary') {
     return <div className="min-h-screen bg-background">
-        <div className="container py-4 animate-fade-in max-w-[550px] mx-auto">
+        <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => {
-          setStep('datetime');
+          goToStep('datetime', 'back');
           setSmsSent(false);
           setVerificationCode('');
         }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
@@ -1266,7 +1273,7 @@ export default function CustomerBookingWizard({
   if (step === 'success' && confirmationData) {
     const isPending = confirmationData.status === 'pending';
     return <div className="min-h-screen bg-background">
-        <div className="container py-6 animate-fade-in max-w-[550px] mx-auto">
+        <div className={cn("container py-6 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <div className="max-w-sm mx-auto text-center">
             <div className={cn("w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3", isPending ? "bg-amber-500/20" : "bg-green-500/20")}>
               {isPending ? <Clock className="w-7 h-7 text-amber-500" /> : <Check className="w-7 h-7 text-green-500" />}
