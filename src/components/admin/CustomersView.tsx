@@ -192,16 +192,16 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium text-foreground truncate">
-                      {customer.company || customer.name}
+                      {customer.name}
                     </div>
                     <div className="text-sm text-muted-foreground truncate">
                       {customer.phone}
                       {customer.email && ` • ${customer.email}`}
                       {customer.nip && ` • NIP: ${customer.nip}`}
                     </div>
-                    {customer.company && customer.name && (
+                    {customer.company && (
                       <div className="text-xs text-muted-foreground truncate">
-                        Kontakt: {customer.name}
+                        Firma: {customer.company}
                       </div>
                     )}
                   </div>
