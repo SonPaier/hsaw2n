@@ -850,25 +850,31 @@ export default function CustomerBookingWizard({
             Wróć
           </button>
 
-          <h2 className="text-base font-semibold mb-3">Wybierz usługę</h2>
+          <h2 className="text-base font-semibold mb-1">Wybierz usługę</h2>
+          <p className="text-xs text-muted-foreground mb-3">
+            Ostateczny koszt usługi może się nieznacznie różnić, np. w przypadku bardzo silnych zabrudzeń.
+          </p>
 
           <div className="grid gap-2 mb-3">
             {popularServices.map(service => {
             const price = getServicePrice(service);
             const duration = getServiceDuration(service);
-            return <button key={service.id} onClick={() => handleSelectService(service)} className="glass-card p-3 text-left hover:border-primary/50 transition-all group">
-                  <div className="flex justify-between items-center">
+            return <div key={service.id} className="glass-card p-3 hover:border-primary/50 transition-all group">
+                  <div className="flex justify-between items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                      <h3 className="font-medium text-foreground truncate">
                         {service.name}
                       </h3>
                       <p className="text-xs text-muted-foreground">{duration} min</p>
                     </div>
-                    <span className="font-semibold text-primary whitespace-nowrap ml-3">
-                      {service.requires_size ? `${price} zł` : `od ${price} zł`}
+                    <span className="font-semibold text-primary whitespace-nowrap">
+                      od {price} zł
                     </span>
+                    <Button size="sm" onClick={() => handleSelectService(service)}>
+                      Wybierz
+                    </Button>
                   </div>
-                </button>;
+                </div>;
           })}
           </div>
 
@@ -884,19 +890,22 @@ export default function CustomerBookingWizard({
                   {otherServices.map(service => {
               const price = getServicePrice(service);
               const duration = getServiceDuration(service);
-              return <button key={service.id} onClick={() => handleSelectService(service)} className="glass-card p-3 text-left hover:border-primary/50 transition-all group">
-                        <div className="flex justify-between items-center">
+              return <div key={service.id} className="glass-card p-3 hover:border-primary/50 transition-all group">
+                        <div className="flex justify-between items-center gap-3">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                            <h3 className="font-medium text-foreground truncate">
                               {service.name}
                             </h3>
                             <p className="text-xs text-muted-foreground">{duration} min</p>
                           </div>
-                          <span className="font-semibold text-primary whitespace-nowrap ml-3">
-                            {service.requires_size ? `${price} zł` : `od ${price} zł`}
+                          <span className="font-semibold text-primary whitespace-nowrap">
+                            od {price} zł
                           </span>
+                          <Button size="sm" onClick={() => handleSelectService(service)}>
+                            Wybierz
+                          </Button>
                         </div>
-                      </button>;
+                      </div>;
             })}
                 </div>}
             </>}
