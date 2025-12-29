@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -923,43 +923,112 @@ const AdminDashboard = () => {
                         })
                         .map(reservation => {
                           const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
+                          const dateStr = format(new Date(reservation.reservation_date), 'd MMM', { locale: pl });
                           return (
-                            <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-amber-500/10">
-                              <div className="flex items-center gap-4 min-w-0">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
-                                  <AlertCircle className="w-5 h-5" />
+                            <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 transition-colors cursor-pointer bg-amber-500/10">
+                              {/* Desktop layout */}
+                              <div className="hidden sm:flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
+                                    <AlertCircle className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-foreground truncate">
+                                      {reservation.vehicle_plate}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground truncate">
+                                      {reservation.customer_name}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="font-medium text-foreground truncate">
-                                    {reservation.vehicle_plate}
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <div className="font-medium text-foreground tabular-nums">
+                                      {timeRange}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {dateStr}
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-muted-foreground truncate">
-                                    {reservation.customer_name}
-                                  </div>
+                                  <a
+                                    href={`tel:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-9 h-9 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                                    title="Zadzwoń"
+                                  >
+                                    <Phone className="w-4 h-4" />
+                                  </a>
+                                  <a
+                                    href={`sms:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-9 h-9 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                                    title="Wyślij SMS"
+                                  >
+                                    <MessageSquare className="w-4 h-4" />
+                                  </a>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleConfirmReservation(reservation.id);
+                                    }}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    Potwierdź
+                                  </Button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-3 shrink-0">
-                                <div className="text-right">
-                                  <div className="font-medium text-foreground tabular-nums">
-                                    {timeRange}
+                              {/* Mobile layout - stacked with buttons at bottom */}
+                              <div className="sm:hidden space-y-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
+                                    <AlertCircle className="w-5 h-5" />
                                   </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-foreground">
+                                      {reservation.vehicle_plate}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {reservation.customer_name}
+                                    </div>
+                                    <div className="mt-1 text-sm font-medium text-foreground tabular-nums">
+                                      {timeRange} · {dateStr}
+                                    </div>
                                   </div>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleConfirmReservation(reservation.id);
-                                  }}
-                                >
-                                  <Check className="w-4 h-4" />
-                                  Potwierdź
-                                </Button>
+                                <div className="flex items-center gap-2 pt-1">
+                                  <a
+                                    href={`tel:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 h-10 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    <Phone className="w-4 h-4" />
+                                    <span className="text-sm">Zadzwoń</span>
+                                  </a>
+                                  <a
+                                    href={`sms:${reservation.customer_phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 h-10 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span className="text-sm">SMS</span>
+                                  </a>
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 h-10 gap-1 bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleConfirmReservation(reservation.id);
+                                    }}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    Potwierdź
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           );
