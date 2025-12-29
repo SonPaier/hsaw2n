@@ -1004,7 +1004,7 @@ const AdminDashboard = () => {
                                   <a
                                     href={`tel:${reservation.customer_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 h-10 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className="flex-1 h-10 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center gap-2 text-foreground transition-colors"
                                   >
                                     <Phone className="w-4 h-4" />
                                     <span className="text-sm">Zadzwoń</span>
@@ -1012,14 +1012,15 @@ const AdminDashboard = () => {
                                   <a
                                     href={`sms:${reservation.customer_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 h-10 rounded-lg bg-secondary/50 hover:bg-secondary flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className="flex-1 h-10 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center gap-2 text-foreground transition-colors"
                                   >
                                     <MessageSquare className="w-4 h-4" />
                                     <span className="text-sm">SMS</span>
                                   </a>
                                   <Button
                                     size="sm"
-                                    className="flex-1 h-10 gap-1 bg-green-600 hover:bg-green-700 text-white"
+                                    variant="outline"
+                                    className="flex-1 h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleConfirmReservation(reservation.id);
