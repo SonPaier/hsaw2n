@@ -270,7 +270,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
 
         {/* Desktop Notification Bell - fixed position */}
         {instanceId && (
-          <div className="hidden lg:block fixed top-4 right-4 z-40">
+          <div className="hidden lg:block fixed top-[11px] right-[11px] z-40">
             <NotificationBell instanceId={instanceId} />
           </div>
         )}
