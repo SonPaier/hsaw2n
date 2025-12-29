@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Car, Calendar, LogOut, Menu, Settings, UserCircle, 
-  PanelLeftClose, PanelLeft, FileText, Package, X, CalendarClock 
+  PanelLeftClose, PanelLeft, FileText, Package, X, CalendarClock, ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     return saved === 'true';
   });
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const { hasFeature } = useInstanceFeatures(instanceId);
 
   useEffect(() => {
@@ -57,6 +58,44 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     fetchUserInstanceId();
   }, [user]);
 
+  // Fetch pending reservations count
+  useEffect(() => {
+    if (!instanceId) return;
+    
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+        .eq('instance_id', instanceId)
+        .eq('status', 'pending');
+      
+      setPendingCount(count || 0);
+    };
+
+    fetchPendingCount();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel('pending-reservations-count')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchPendingCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
   useEffect(() => {
     localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
@@ -69,16 +108,17 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const isActive = (path: string) => {
     if (path === '/admin') {
       return location.pathname === '/admin' || 
-             location.pathname === '/admin/calendar' ||
-             location.pathname === '/admin/reservations' ||
-             location.pathname === '/admin/customers' ||
-             location.pathname === '/admin/settings';
+             location.pathname === '/admin/calendar';
+    }
+    if (path === '/admin/reservations') {
+      return location.pathname === '/admin/reservations';
     }
     return location.pathname.startsWith(path);
   };
 
   const navItems = [
     { path: '/admin', icon: Calendar, label: 'Kalendarz' },
+    { path: '/admin/reservations', icon: ClipboardList, label: 'Rezerwacje', badge: pendingCount > 0 ? pendingCount : undefined },
     { path: '/admin/customers', icon: UserCircle, label: 'Klienci' },
     ...(hasFeature('offers') ? [{ path: '/admin/oferty', icon: FileText, label: 'Oferty' }] : []),
     ...(hasFeature('offers') ? [{ path: '/admin/produkty', icon: Package, label: 'Produkty' }] : []),
@@ -133,7 +173,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                 key={item.path}
                 variant={isActive(item.path) ? 'secondary' : 'ghost'}
                 className={cn(
-                  "w-full gap-3",
+                  "w-full gap-3 relative",
                   sidebarCollapsed ? "justify-center px-2" : "justify-start"
                 )}
                 onClick={() => {
@@ -142,8 +182,24 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                 }}
                 title={item.label}
               >
-                <item.icon className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && item.label}
+                <div className="relative">
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  {sidebarCollapsed && item.badge && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.badge && (
+                      <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
               </Button>
             ))}
           </nav>
