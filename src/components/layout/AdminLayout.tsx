@@ -116,7 +116,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     return location.pathname.startsWith(path);
   };
 
-  const navItems = [
+  const navItems: Array<{ path: string; icon: typeof Calendar; label: string; badge?: number }> = [
     { path: '/admin', icon: Calendar, label: 'Kalendarz' },
     { path: '/admin/reservations', icon: ClipboardList, label: 'Rezerwacje', badge: pendingCount > 0 ? pendingCount : undefined },
     { path: '/admin/customers', icon: UserCircle, label: 'Klienci' },
