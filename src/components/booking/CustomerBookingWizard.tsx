@@ -1090,7 +1090,7 @@ export default function CustomerBookingWizard({
           </button>
 
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold">Podsumowanie</h2>
+            <h2 className="text-base font-semibold">Sprawdź i potwierdź</h2>
             
             {/* Dev Mode Checkbox */}
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
