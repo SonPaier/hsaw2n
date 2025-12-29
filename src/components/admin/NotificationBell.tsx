@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -35,7 +35,11 @@ export const NotificationBell = ({ instanceId, onOpenReservation }: Notification
   const newNotifications = notifications.filter(n => !n.read);
   const earlierNotifications = notifications.filter(n => n.read);
 
-  const fetchNotifications = async () => {
+  const channelNameRef = useRef<string | null>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!instanceId) return;
+
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -43,37 +47,52 @@ export const NotificationBell = ({ instanceId, onOpenReservation }: Notification
       .order('created_at', { ascending: false })
       .limit(10);
 
-    if (!error && data) {
-      setNotifications(data);
+    if (error) {
+      console.log('[NotificationBell] fetchNotifications error', error);
+      return;
     }
-  };
+
+    setNotifications(data ?? []);
+  }, [instanceId]);
 
   useEffect(() => {
     if (!instanceId) return;
-    
+
     fetchNotifications();
 
-    // Subscribe to realtime updates
+    // IMPORTANT: AdminLayout/AdminDashboard can render multiple bells at once.
+    // Using a unique channel name prevents one component from removing another's subscription.
+    const channelName =
+      channelNameRef.current ??
+      `notifications-realtime-${instanceId}-${Math.random().toString(36).slice(2)}`;
+    channelNameRef.current = channelName;
+
+    console.log('[NotificationBell] subscribing', { instanceId, channelName });
+
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `instance_id=eq.${instanceId}`
+          filter: `instance_id=eq.${instanceId}`,
         },
-        () => {
+        (payload) => {
+          console.log('[NotificationBell] realtime payload', payload);
           fetchNotifications();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[NotificationBell] channel status', status, { channelName });
+      });
 
     return () => {
+      console.log('[NotificationBell] unsubscribing', { instanceId, channelName });
       supabase.removeChannel(channel);
     };
-  }, [instanceId]);
+  }, [instanceId, fetchNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read
