@@ -22,8 +22,7 @@ import {
   Calculator,
   Edit,
   Check,
-  X,
-  Plus
+  X
 } from 'lucide-react';
 import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
@@ -34,7 +33,6 @@ interface SummaryStepProps {
   offer: OfferState;
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
-  onAddItem: (optionId: string, item: Omit<OfferItem, 'id'>) => string;
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
@@ -52,7 +50,6 @@ export const SummaryStep = ({
   offer,
   onUpdateOffer,
   onUpdateOption,
-  onAddItem,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
@@ -144,19 +141,6 @@ export const SummaryStep = ({
     setTempDiscount('');
   };
 
-  const handleAddItemToOption = (optionId: string) => {
-    onAddItem(optionId, {
-      productId: undefined,
-      customName: '',
-      customDescription: '',
-      quantity: 1,
-      unitPrice: 0,
-      unit: 'szt',
-      discountPercent: 0,
-      isOptional: false,
-      isCustom: true,
-    });
-  };
 
   const handleApplyTemplate = (template: OfferTemplate) => {
     onUpdateOffer({
@@ -327,15 +311,6 @@ export const SummaryStep = ({
                         Ustaw rabat dla całej opcji
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddItemToOption(option.id)}
-                      className="gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Dodaj pozycję
-                    </Button>
                   </div>
                 </div>
               ))}

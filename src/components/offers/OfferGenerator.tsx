@@ -256,7 +256,6 @@ export const OfferGenerator = ({
             offer={offer}
             onUpdateOffer={updateOffer}
             onUpdateOption={updateOption}
-            onAddItem={addItemToOption}
             calculateOptionTotal={calculateOptionTotal}
             calculateTotalNet={calculateTotalNet}
             calculateTotalGross={calculateTotalGross}
