@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Phone, MessageSquare, Mail, Car, Calendar, Clock } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Car, Calendar, Clock, Pencil, Save, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,10 @@ interface Customer {
   phone: string;
   email: string | null;
   notes: string | null;
+  company?: string | null;
+  nip?: string | null;
+  address?: string | null;
+  source?: string;
 }
 
 interface VisitHistory {
@@ -38,18 +43,33 @@ interface CustomerDetailsDialogProps {
   instanceId: string | null;
   open: boolean;
   onClose: () => void;
+  onCustomerUpdated?: () => void;
 }
 
-const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: CustomerDetailsDialogProps) => {
+const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomerUpdated }: CustomerDetailsDialogProps) => {
   const isMobile = useIsMobile();
   const [visits, setVisits] = useState<VisitHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [smsMessage, setSmsMessage] = useState('');
   const [sendingSms, setSendingSms] = useState(false);
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (customer && instanceId && open) {
       fetchVisitHistory();
+      // Reset edit state when customer changes
+      setIsEditing(false);
+      setEditName(customer.name);
+      setEditEmail(customer.email || '');
+      setEditNotes(customer.notes || '');
+      setEditCompany(customer.company || '');
     }
   }, [customer, instanceId, open]);
 
@@ -128,6 +148,42 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
     }
   };
 
+  const handleSaveCustomer = async () => {
+    if (!customer) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update({
+          name: editName.trim() || customer.name,
+          email: editEmail.trim() || null,
+          notes: editNotes.trim() || null,
+          company: editCompany.trim() || null,
+        })
+        .eq('id', customer.id);
+      
+      if (error) throw error;
+      
+      toast.success('Dane klienta zapisane');
+      setIsEditing(false);
+      onCustomerUpdated?.();
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('Błąd podczas zapisywania');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditName(customer?.name || '');
+    setEditEmail(customer?.email || '');
+    setEditNotes(customer?.notes || '');
+    setEditCompany(customer?.company || '');
+  };
+
   const getStatusLabel = (status: string | null) => {
     switch (status) {
       case 'confirmed': return 'Potwierdzona';
@@ -144,50 +200,146 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
   if (!customer) return null;
 
   return (
-    <Dialog open={open} onOpenChange={() => onClose()}>
+    <Dialog open={open} onOpenChange={() => { setIsEditing(false); onClose(); }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-              {customer.name.charAt(0).toUpperCase()}
+          <DialogTitle className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+                {(isEditing ? editName : customer.name).charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div>{isEditing ? editName || customer.name : customer.name}</div>
+                <div className="text-sm font-normal text-muted-foreground">{customer.phone}</div>
+              </div>
             </div>
-            <div>
-              <div>{customer.name}</div>
-              <div className="text-sm font-normal text-muted-foreground">{customer.phone}</div>
-            </div>
+            {!isEditing && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditing(true)}
+                className="shrink-0"
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Quick Actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={handleCall}
-            >
-              <Phone className="w-4 h-4 text-success" />
-              Zadzwoń
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 gap-2"
-              onClick={handleSmsButton}
-            >
-              <MessageSquare className="w-4 h-4 text-primary" />
-              SMS
-            </Button>
-            {customer.email && (
-              <Button
-                variant="outline"
-                className="flex-1 gap-2"
-                onClick={() => window.location.href = `mailto:${customer.email}`}
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </Button>
-            )}
-          </div>
+          {/* Edit Form */}
+          {isEditing ? (
+            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Imię i nazwisko</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Imię i nazwisko"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Email</label>
+                <Input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="Email"
+                />
+              </div>
+              {customer.source === 'oferty' && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Firma</label>
+                  <Input
+                    value={editCompany}
+                    onChange={(e) => setEditCompany(e.target.value)}
+                    placeholder="Nazwa firmy"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium mb-1 block">Notatki</label>
+                <Textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Notatki o kliencie..."
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveCustomer}
+                  disabled={saving}
+                  className="flex-1 gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Zapisywanie...' : 'Zapisz'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={saving}
+                  className="gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Anuluj
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={handleCall}
+                >
+                  <Phone className="w-4 h-4 text-success" />
+                  Zadzwoń
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={handleSmsButton}
+                >
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  SMS
+                </Button>
+                {customer.email && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => window.location.href = `mailto:${customer.email}`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Button>
+                )}
+              </div>
+
+              {/* Customer Info */}
+              {(customer.email || customer.company || customer.nip) && (
+                <div className="text-sm space-y-1">
+                  {customer.email && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Email:</span> {customer.email}
+                    </div>
+                  )}
+                  {customer.company && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Firma:</span> {customer.company}
+                    </div>
+                  )}
+                  {customer.nip && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium text-foreground">NIP:</span> {customer.nip}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
           {/* Vehicles */}
           {uniqueVehicles.length > 0 && (
@@ -291,13 +443,13 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose }: Customer
             )}
           </div>
 
-          {/* Notes */}
-          {customer.notes && (
+          {/* Notes - only show when not editing */}
+          {!isEditing && customer.notes && (
             <>
               <Separator />
               <div>
                 <h4 className="text-sm font-medium mb-2">Notatki</h4>
-                <p className="text-sm text-muted-foreground">{customer.notes}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
               </div>
             </>
           )}
