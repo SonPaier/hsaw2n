@@ -3,6 +3,7 @@ import { Loader2, AlertTriangle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 
 interface InstanceUser {
   id: string;
@@ -45,6 +47,11 @@ interface EditInstanceUserDialogProps {
   onSuccess: () => void;
 }
 
+const EMPLOYEE_FEATURES = [
+  { key: 'offers', label: 'Oferty', description: 'Dostęp do modułu generowania ofert' },
+  { key: 'followup', label: 'Follow-up', description: 'Dostęp do modułu follow-up klientów' },
+];
+
 const EditInstanceUserDialog = ({ 
   open, 
   onOpenChange, 
@@ -57,13 +64,44 @@ const EditInstanceUserDialog = ({
   const [loading, setLoading] = useState(false);
   const [showAdminConfirm, setShowAdminConfirm] = useState(false);
   const [pendingRole, setPendingRole] = useState<'admin' | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const { hasFeature } = useInstanceFeatures(instanceId);
 
   useEffect(() => {
     if (user) {
       setUsername(user.username);
       setRole(user.role);
+      if (user.role === 'employee') {
+        fetchPermissions(user.id);
+      } else {
+        setPermissions({});
+      }
     }
   }, [user]);
+
+  const fetchPermissions = async (userId: string) => {
+    setLoadingPermissions(true);
+    try {
+      const { data, error } = await supabase
+        .from('employee_permissions')
+        .select('feature_key, enabled')
+        .eq('user_id', userId)
+        .eq('instance_id', instanceId);
+
+      if (error) throw error;
+
+      const perms: Record<string, boolean> = {};
+      data?.forEach(p => {
+        perms[p.feature_key] = p.enabled;
+      });
+      setPermissions(perms);
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
 
   const handleRoleChange = (newRole: 'employee' | 'admin') => {
     if (newRole === 'admin' && role !== 'admin') {
@@ -71,12 +109,18 @@ const EditInstanceUserDialog = ({
       setShowAdminConfirm(true);
     } else {
       setRole(newRole);
+      if (newRole === 'employee' && user) {
+        fetchPermissions(user.id);
+      } else {
+        setPermissions({});
+      }
     }
   };
 
   const confirmAdminRole = () => {
     if (pendingRole === 'admin') {
       setRole('admin');
+      setPermissions({});
     }
     setPendingRole(null);
     setShowAdminConfirm(false);
@@ -85,6 +129,32 @@ const EditInstanceUserDialog = ({
   const cancelAdminRole = () => {
     setPendingRole(null);
     setShowAdminConfirm(false);
+  };
+
+  const handlePermissionChange = (featureKey: string, enabled: boolean) => {
+    setPermissions(prev => ({ ...prev, [featureKey]: enabled }));
+  };
+
+  const savePermissions = async (userId: string) => {
+    for (const feature of EMPLOYEE_FEATURES) {
+      const enabled = permissions[feature.key] || false;
+      
+      const { error } = await supabase
+        .from('employee_permissions')
+        .upsert({
+          user_id: userId,
+          instance_id: instanceId,
+          feature_key: feature.key,
+          enabled,
+        }, {
+          onConflict: 'user_id,instance_id,feature_key',
+        });
+
+      if (error) {
+        console.error('Error saving permission:', error);
+        throw error;
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,6 +199,11 @@ const EditInstanceUserDialog = ({
         throw new Error(response.data.error);
       }
 
+      // Save permissions if employee
+      if (role === 'employee') {
+        await savePermissions(user.id);
+      }
+
       toast.success('Dane użytkownika zostały zaktualizowane');
       onOpenChange(false);
       onSuccess();
@@ -141,6 +216,8 @@ const EditInstanceUserDialog = ({
   };
 
   if (!user) return null;
+
+  const availableFeatures = EMPLOYEE_FEATURES.filter(f => hasFeature(f.key as 'offers' | 'followup'));
 
   return (
     <>
@@ -182,6 +259,36 @@ const EditInstanceUserDialog = ({
                   : 'Pracownik ma ograniczony dostęp do wybranych modułów'}
               </p>
             </div>
+
+            {/* Employee Permissions */}
+            {role === 'employee' && availableFeatures.length > 0 && (
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-medium">Uprawnienia pracownika</Label>
+                {loadingPermissions ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {availableFeatures.map((feature) => (
+                      <div 
+                        key={feature.key}
+                        className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/50"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{feature.label}</p>
+                          <p className="text-xs text-muted-foreground">{feature.description}</p>
+                        </div>
+                        <Switch
+                          checked={permissions[feature.key] || false}
+                          onCheckedChange={(checked) => handlePermissionChange(feature.key, checked)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button 

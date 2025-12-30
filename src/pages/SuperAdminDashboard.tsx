@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 import { AllInstancesSmsUsage } from '@/components/admin/AllInstancesSmsUsage';
 import { InstanceFeaturesSettings } from '@/components/admin/InstanceFeaturesSettings';
+import InstanceUsersTab from '@/components/admin/InstanceUsersTab';
 
 interface Instance {
   id: string;
@@ -52,6 +53,7 @@ const SuperAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [usersOpen, setUsersOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
@@ -135,6 +137,11 @@ const SuperAdminDashboard = () => {
   const handleOpenFeatures = (instance: Instance) => {
     setSelectedInstance(instance);
     setFeaturesOpen(true);
+  };
+
+  const handleOpenUsers = (instance: Instance) => {
+    setSelectedInstance(instance);
+    setUsersOpen(true);
   };
 
   const handleInstanceUpdate = (updatedInstance: Instance) => {
@@ -358,6 +365,10 @@ const SuperAdminDashboard = () => {
                               <FileText className="w-4 h-4 mr-2" />
                               Funkcje płatne
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenUsers(instance)}>
+                              <Users className="w-4 h-4 mr-2" />
+                              Zarządzaj użytkownikami
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleToggleInstance(instance.id, instance.active)}
                               className={instance.active ? "text-destructive" : "text-success"}
@@ -393,6 +404,21 @@ const SuperAdminDashboard = () => {
               <DialogTitle>Funkcje płatne - {selectedInstance.name}</DialogTitle>
             </DialogHeader>
             <InstanceFeaturesSettings instanceId={selectedInstance.id} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Instance Users Dialog */}
+      {selectedInstance && (
+        <Dialog open={usersOpen} onOpenChange={setUsersOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Użytkownicy - {selectedInstance.name}
+              </DialogTitle>
+            </DialogHeader>
+            <InstanceUsersTab instanceId={selectedInstance.id} />
           </DialogContent>
         </Dialog>
       )}
