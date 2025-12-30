@@ -37,4 +37,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.manage-instance-users]
+verify_jwt = false
+
+[functions.reset-password]
 verify_jwt = true
