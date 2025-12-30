@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Rezerwacje from "./pages/Rezerwacje";
 import MojaRezerwacja from "./pages/MojaRezerwacja";
 import Auth from "./pages/Auth";
+import InstanceAuth from "./pages/InstanceAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
@@ -36,6 +37,8 @@ const App = () => (
               <Route path="/rezerwacje" element={<Rezerwacje />} />
               <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
               <Route path="/oferta/:token" element={<PublicOfferView />} />
+              {/* Instance-specific login route */}
+              <Route path="/:slug/login" element={<InstanceAuth />} />
               <Route path="/auth" element={<Auth />} />
               <Route 
                 path="/admin" 

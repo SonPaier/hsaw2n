@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.parse-voice-reservation]
 verify_jwt = false
+
+[functions.manage-instance-users]
+verify_jwt = true

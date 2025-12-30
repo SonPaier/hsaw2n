@@ -210,6 +210,44 @@ export type Database = {
           },
         ]
       }
+      employee_permissions: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          instance_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          instance_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          instance_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_permissions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       followup_events: {
         Row: {
           created_at: string
@@ -1243,6 +1281,7 @@ export type Database = {
           full_name: string | null
           id: string
           instance_id: string | null
+          is_blocked: boolean
           phone: string | null
           updated_at: string | null
           username: string | null
@@ -1253,6 +1292,7 @@ export type Database = {
           full_name?: string | null
           id: string
           instance_id?: string | null
+          is_blocked?: boolean
           phone?: string | null
           updated_at?: string | null
           username?: string | null
@@ -1263,6 +1303,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           instance_id?: string | null
+          is_blocked?: boolean
           phone?: string | null
           updated_at?: string | null
           username?: string | null
@@ -1670,6 +1711,10 @@ export type Database = {
           station_id: string
         }[]
       }
+      has_employee_permission: {
+        Args: { _feature_key: string; _instance_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_instance_role: {
         Args: {
           _instance_id: string
@@ -1686,6 +1731,7 @@ export type Database = {
         Returns: boolean
       }
       increment_sms_usage: { Args: { _instance_id: string }; Returns: boolean }
+      is_user_blocked: { Args: { _user_id: string }; Returns: boolean }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
@@ -1702,7 +1748,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "super_admin" | "admin" | "user"
+      app_role: "super_admin" | "admin" | "user" | "employee"
       car_size: "small" | "medium" | "large"
       reservation_status:
         | "pending"
@@ -1844,7 +1890,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "admin", "user"],
+      app_role: ["super_admin", "admin", "user", "employee"],
       car_size: ["small", "medium", "large"],
       reservation_status: [
         "pending",
