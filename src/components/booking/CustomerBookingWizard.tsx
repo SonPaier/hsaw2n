@@ -1177,34 +1177,34 @@ export default function CustomerBookingWizard({
           {/* Booking summary */}
           <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Usługa</span>
-              <span className="font-medium">{selectedService?.name}</span>
+              <span className="text-muted-foreground text-base">Usługa</span>
+              <span className="font-medium text-base">{selectedService?.name}</span>
             </div>
             {selectedAddons.length > 0 && <div className="flex justify-between">
                 <span className="text-muted-foreground">Dodatki</span>
                 <span className="font-medium">{selectedAddons.length}</span>
               </div>}
             {carModel && <div className="flex justify-between">
-              <span className="text-muted-foreground">Samochód</span>
-              <span className="font-medium">{carModel}, {carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'}</span>
+              <span className="text-muted-foreground text-base">Samochód</span>
+              <span className="font-medium text-base">{carModel}, {carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'}</span>
             </div>}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Data</span>
-              <span className="font-medium">
+              <span className="text-muted-foreground text-base">Data</span>
+              <span className="font-medium text-base">
                 {selectedDate && format(selectedDate, 'd MMMM', {
                 locale: pl
               })}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Godzina</span>
-              <span className="font-medium">{selectedTime}</span>
+              <span className="text-muted-foreground text-base">Godzina</span>
+              <span className="font-medium text-base">{selectedTime}</span>
             </div>
             <div className="flex justify-between pt-1.5 border-t border-border">
-              <span className="text-muted-foreground">Cena</span>
-              <span className="font-bold text-primary">{getTotalPrice()} zł</span>
+              <span className="text-muted-foreground text-base">Cena</span>
+              <span className="font-bold text-primary text-base">{getTotalPrice()} zł</span>
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               * Cena może ulec zmianie w zależności od stanu samochodu
             </p>
           </div>
