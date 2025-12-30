@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Building2, Palette, Upload, Loader2, Save, Trash2, Image as ImageIcon
+  Building2, Palette, Upload, Loader2, Save, Trash2, Image as ImageIcon, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import InstanceUsersTab from './InstanceUsersTab';
 
 interface Instance {
   id: string;
@@ -210,10 +211,14 @@ const InstanceSettingsDialog = ({
         </DialogHeader>
 
         <Tabs defaultValue="company" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="company">Firma</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="contact">Kontakt</TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Użytkownicy
+            </TabsTrigger>
           </TabsList>
 
           {/* Company Tab */}
@@ -474,6 +479,11 @@ const InstanceSettingsDialog = ({
                 Link będzie dodany do SMS-ów z potwierdzeniem rezerwacji
               </p>
             </div>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="mt-4">
+            <InstanceUsersTab instanceId={instance.id} />
           </TabsContent>
         </Tabs>
 
