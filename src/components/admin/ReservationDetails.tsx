@@ -444,18 +444,6 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 </div>
               </div>
 
-              {/* Price */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Cena (PLN)</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
 
               {/* Notes */}
               <div className="space-y-2">

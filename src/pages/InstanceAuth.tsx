@@ -31,7 +31,8 @@ const InstanceAuth = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const returnTo = searchParams.get('returnTo') || '/admin';
+  // Always redirect to /admin for both admin and employee roles
+  const returnTo = '/admin';
 
   // Fetch instance by slug
   useEffect(() => {

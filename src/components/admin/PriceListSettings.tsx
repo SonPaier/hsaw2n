@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -333,6 +334,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                             <span className="ml-2">• od {service.price_from} zł</span>
                           ) : null}
                         </div>
+                        {service.description && (
+                          <p className="text-xs text-muted-foreground/80 mt-0.5 line-clamp-1">{service.description}</p>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-2">
@@ -399,11 +403,12 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Opis</Label>
-              <Input
+              <Label>Opis (wyświetlany klientowi)</Label>
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Krótki opis usługi"
+                placeholder="Opis usługi widoczny dla klienta podczas rezerwacji"
+                rows={2}
               />
             </div>
 

@@ -960,6 +960,9 @@ export default function CustomerBookingWizard({
               <h3 className="font-medium text-foreground truncate">
                 {service.name}
               </h3>
+              {service.description && (
+                <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>
+              )}
               <p className="text-muted-foreground text-sm">{duration} min</p>
             </div>
             
