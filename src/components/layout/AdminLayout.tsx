@@ -190,7 +190,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:sticky top-0 left-0 z-50 h-screen glass-card border-r border-border/50 flex flex-col transition-all duration-300",
+        "fixed lg:sticky top-0 left-0 z-50 h-dvh glass-card border-r border-border/50 flex flex-col transition-all duration-300",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         sidebarCollapsed ? "lg:w-16" : "lg:w-64",
         "w-64"
@@ -198,7 +198,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className={cn(
-            "flex items-center gap-3 border-b border-border/50",
+            "flex items-center gap-3 border-b border-border/50 shrink-0",
             sidebarCollapsed ? "p-4 justify-center" : "p-6"
           )}>
             <Car className="w-8 h-8 text-primary shrink-0" />
@@ -218,8 +218,8 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             </Button>
           </div>
 
-          {/* Navigation */}
-          <nav className={cn("flex-1 space-y-1", sidebarCollapsed ? "p-2" : "p-4")}>
+          {/* Navigation - scrollable area */}
+          <nav className={cn("flex-1 overflow-y-auto space-y-1", sidebarCollapsed ? "p-2" : "p-4")}>
             {navItems.map((item) => (
               <Button
                 key={item.path}
@@ -256,9 +256,9 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             ))}
           </nav>
 
-          {/* Footer */}
+          {/* Footer - always visible at bottom */}
           <div className={cn(
-            "border-t border-border/50 space-y-2",
+            "border-t border-border/50 space-y-2 shrink-0",
             sidebarCollapsed ? "p-2" : "p-4"
           )}>
             <Button

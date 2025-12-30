@@ -369,6 +369,41 @@ const AdminCalendar = ({
     return getBreaksForStationAndDate(stationId, currentDateStr);
   };
 
+  // Calculate overlap position for reservations that overlap in time
+  const getOverlapInfo = (reservation: Reservation, allReservations: Reservation[], dateStr: string) => {
+    const { displayStart: resStart, displayEnd: resEnd } = getDisplayTimesForDate(reservation, dateStr);
+    const resStartNum = parseTime(resStart);
+    const resEndNum = parseTime(resEnd);
+    
+    // Find all overlapping reservations (excluding cancelled)
+    const overlapping = allReservations.filter(r => {
+      if (r.id === reservation.id || r.status === 'cancelled') return false;
+      const { displayStart: rStart, displayEnd: rEnd } = getDisplayTimesForDate(r, dateStr);
+      const rStartNum = parseTime(rStart);
+      const rEndNum = parseTime(rEnd);
+      // Check if time ranges overlap
+      return resStartNum < rEndNum && resEndNum > rStartNum;
+    });
+    
+    if (overlapping.length === 0) {
+      return { hasOverlap: false, index: 0, total: 1 };
+    }
+    
+    // Include current reservation in the group
+    const group = [reservation, ...overlapping];
+    // Sort by start time, then by id for consistent ordering
+    group.sort((a, b) => {
+      const { displayStart: aStart } = getDisplayTimesForDate(a, dateStr);
+      const { displayStart: bStart } = getDisplayTimesForDate(b, dateStr);
+      const timeDiff = parseTime(aStart) - parseTime(bStart);
+      if (timeDiff !== 0) return timeDiff;
+      return a.id.localeCompare(b.id);
+    });
+    
+    const index = group.findIndex(r => r.id === reservation.id);
+    return { hasOverlap: true, index, total: group.length };
+  };
+
   // Calculate free time for a station on a given date
   const getFreeTimeForStation = (stationId: string, dateStr: string): { hours: number; minutes: number } | null => {
     const { startTime, closeTime } = getWorkingHoursForDate(dateStr);
@@ -1072,34 +1107,48 @@ const AdminCalendar = ({
                   )}
 
                   {/* Reservations */}
-                  {getReservationsForStation(station.id).map((reservation) => {
-                    const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, currentDateStr);
-                    const style = getReservationStyle(displayStart, displayEnd);
-                    const isDragging = draggedReservation?.id === reservation.id;
-                    const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
-                    const isPending = reservation.status === 'pending';
-                    
+                  {(() => {
+                    const stationReservations = getReservationsForStation(station.id);
+                    return stationReservations.map((reservation) => {
+                      const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, currentDateStr);
+                      const style = getReservationStyle(displayStart, displayEnd);
+                      const isDragging = draggedReservation?.id === reservation.id;
+                      const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
+                      const isPending = reservation.status === 'pending';
+                      
+                      // Calculate overlap positioning
+                      const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
+                      const widthPercent = overlapInfo.hasOverlap ? 100 / overlapInfo.total : 100;
+                      const leftPercent = overlapInfo.hasOverlap ? overlapInfo.index * widthPercent : 0;
+                      
                       return (
-                      <div
-                        key={reservation.id}
-                        draggable={!hallMode}
-                        onDragStart={(e) => handleDragStart(e, reservation)}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5",
-                          !hallMode && "cursor-grab active:cursor-grabbing",
-                          hallMode && "cursor-pointer",
-                          "transition-all duration-150 hover:shadow-lg hover:z-20",
-                          "overflow-hidden select-none",
-                          getStatusColor(reservation.status, reservation.station?.type || station.type),
-                          isDragging && "opacity-50 scale-95"
-                        )}
-                        style={style}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onReservationClick?.(reservation);
-                        }}
-                      >
+                        <div
+                          key={reservation.id}
+                          draggable={!hallMode}
+                          onDragStart={(e) => handleDragStart(e, reservation)}
+                          onDragEnd={handleDragEnd}
+                          className={cn(
+                            "absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5",
+                            !hallMode && "cursor-grab active:cursor-grabbing",
+                            hallMode && "cursor-pointer",
+                            "transition-all duration-150 hover:shadow-lg hover:z-20",
+                            "overflow-hidden select-none",
+                            getStatusColor(reservation.status, reservation.station?.type || station.type),
+                            isDragging && "opacity-50 scale-95",
+                            overlapInfo.hasOverlap && "border-2 border-dashed"
+                          )}
+                          style={{
+                            ...style,
+                            left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
+                            right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
+                            width: overlapInfo.hasOverlap ? `calc(${widthPercent}% - 4px)` : undefined,
+                            zIndex: overlapInfo.hasOverlap ? 10 + overlapInfo.index : undefined,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onReservationClick?.(reservation);
+                          }}
+                        >
                         {/* Drag handle - hidden in hallMode and on mobile */}
                         {!hallMode && !isMobile && (
                           <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-40 hover:opacity-100 touch-none">
@@ -1166,7 +1215,8 @@ const AdminCalendar = ({
                         </div>
                       </div>
                     );
-                  })}
+                    });
+                  })()}
 
                   {/* Breaks */}
                   {getBreaksForStation(station.id).map((breakItem) => {

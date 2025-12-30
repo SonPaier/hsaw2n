@@ -4,6 +4,7 @@ import { pl } from 'date-fns/locale';
 import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check, CheckCircle2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
+import ServiceSelector from '@/components/admin/ServiceSelector';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -64,6 +65,8 @@ interface Reservation {
   price?: number;
   notes?: string;
   source?: string | null;
+  service_id?: string;
+  service_ids?: string[];
   service?: {
     name: string;
   };
@@ -145,6 +148,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
   const [endTime, setEndTime] = useState('');
   const [notes, setNotes] = useState('');
   const [price, setPrice] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   // Check if station type is PPF (folia) for multi-day reservations
   const isPPFStation = reservation?.station?.type === 'ppf';
@@ -162,6 +166,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
       setPrice(reservation.price?.toString() || '');
+      // Initialize service IDs from reservation
+      const serviceIds = reservation.service_ids || (reservation.service_id ? [reservation.service_id] : []);
+      setSelectedServiceIds(serviceIds);
       setIsEditing(false);
       setDatePickerOpen(false);
     }
@@ -183,6 +190,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
         end_time: endTime,
         notes: notes || undefined,
         price: price ? parseFloat(price) : undefined,
+        service_ids: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
+        service_id: selectedServiceIds[0] || reservation.service_id,
       });
       setIsEditing(false);
     } finally {
@@ -235,6 +244,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
       setEndTime(reservation.end_time || '');
       setNotes(reservation.notes || '');
       setPrice(reservation.price?.toString() || '');
+      const serviceIds = reservation.service_ids || (reservation.service_id ? [reservation.service_id] : []);
+      setSelectedServiceIds(serviceIds);
     }
     setIsEditing(false);
   };
@@ -325,25 +336,12 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 </div>
               </div>
 
-              {/* Service (read-only) - show all services if multi-service */}
-              {(reservation.services_data && reservation.services_data.length > 0) || reservation.service ? (
-                <div className="space-y-2">
-                  <Label>Usługi</Label>
-                  <div className="p-2 bg-muted/50 rounded-md text-sm flex flex-wrap gap-2">
-                    {reservation.services_data && reservation.services_data.length > 0 ? (
-                      reservation.services_data.map((svc, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                          {svc.name}
-                        </span>
-                      ))
-                    ) : reservation.service ? (
-                      <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                        {reservation.service.name}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+              {/* Service editing - show all services with ability to toggle them */}
+              <ServiceSelector
+                instanceId={reservation.instance_id}
+                selectedServiceIds={selectedServiceIds}
+                onServicesChange={setSelectedServiceIds}
+              />
 
               {/* Date - Range for PPF, Single for others */}
               <div className="space-y-2">
