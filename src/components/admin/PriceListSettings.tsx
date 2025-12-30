@@ -364,32 +364,52 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   };
 
   const toggleServiceActive = async (service: Service) => {
+    const newValue = !service.active;
+    
+    // Optimistic update
+    setServices(prev => prev.map(s => 
+      s.id === service.id ? { ...s, active: newValue } : s
+    ));
+    
     try {
       const { error } = await supabase
         .from('services')
-        .update({ active: !service.active })
+        .update({ active: newValue })
         .eq('id', service.id);
       
       if (error) throw error;
-      fetchServices();
     } catch (error) {
       console.error('Error toggling service:', error);
       toast.error('Błąd podczas zmiany statusu usługi');
+      // Revert on error
+      setServices(prev => prev.map(s => 
+        s.id === service.id ? { ...s, active: !newValue } : s
+      ));
     }
   };
 
   const toggleServicePopular = async (service: Service) => {
+    const newValue = !service.is_popular;
+    
+    // Optimistic update - update local state immediately
+    setServices(prev => prev.map(s => 
+      s.id === service.id ? { ...s, is_popular: newValue } : s
+    ));
+    
     try {
       const { error } = await supabase
         .from('services')
-        .update({ is_popular: !service.is_popular })
+        .update({ is_popular: newValue })
         .eq('id', service.id);
       
       if (error) throw error;
-      fetchServices();
     } catch (error) {
       console.error('Error toggling popular:', error);
       toast.error('Błąd podczas zmiany statusu popularności');
+      // Revert on error
+      setServices(prev => prev.map(s => 
+        s.id === service.id ? { ...s, is_popular: !newValue } : s
+      ));
     }
   };
 
