@@ -328,32 +328,48 @@ export default function CustomerBookingWizard({
     return () => clearTimeout(timeoutId);
   }, [carModel]);
 
-  // Auto-select first available time of day when date changes (moved from datetime step)
-  // Using inline logic to avoid dependency on functions defined later
+  // Auto-select first available slot when entering datetime step or when date changes
   useEffect(() => {
-    if (selectedDate && step === 'datetime' && selectedService && instance?.working_hours && stations.length > 0) {
-      // Recalculate available days inline to get slots for selected date
+    if (step === 'datetime' && selectedService && instance?.working_hours && stations.length > 0) {
+      // Recalculate available days inline to get slots
       const serviceDuration = selectedService.duration_minutes || 60;
       const compatibleStations = stations.filter(s => {
         if (!selectedService.station_type) return true;
         return s.type === selectedService.station_type || s.type === 'universal';
       });
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const dayName = format(selectedDate, 'EEEE').toLowerCase();
-      const workingHours = instance.working_hours[dayName];
-      if (workingHours) {
+      
+      const today = new Date();
+      const daysAhead = instance.booking_days_ahead ?? 90;
+      
+      // Find first available slot across all days
+      let foundFirstSlot = false;
+      
+      for (let i = 0; i < daysAhead && !foundFirstSlot; i++) {
+        const date = addDays(today, i);
+        const dayName = format(date, 'EEEE').toLowerCase();
+        const workingHours = instance.working_hours[dayName];
+        
+        if (!workingHours) continue;
+        
+        const dateStr = format(date, 'yyyy-MM-dd');
         const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
         const [openH, openM] = workingHours.open.split(':').map(Number);
         const [closeH, closeM] = workingHours.close.split(':').map(Number);
         const openMinutes = openH * 60 + openM;
         const closeMinutes = closeH * 60 + closeM;
-        const slots: {
-          time: string;
-        }[] = [];
-        for (let time = openMinutes; time + serviceDuration <= closeMinutes; time += 15) {
+        
+        let minStartTime = openMinutes;
+        if (i === 0) {
+          const now = new Date();
+          const nowMinutes = now.getHours() * 60 + now.getMinutes() + MIN_LEAD_TIME_MINUTES;
+          minStartTime = Math.max(openMinutes, Math.ceil(nowMinutes / SLOT_INTERVAL) * SLOT_INTERVAL);
+        }
+        
+        for (let time = minStartTime; time + serviceDuration <= closeMinutes; time += SLOT_INTERVAL) {
           const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
           const endTime = time + serviceDuration;
-          const hasAvailableStation = compatibleStations.some(station => {
+          
+          const availableStation = compatibleStations.find(station => {
             const stationBlocks = dayBlocks.filter(b => b.station_id === station.id);
             return !stationBlocks.some(block => {
               const blockStart = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1]);
@@ -361,25 +377,63 @@ export default function CustomerBookingWizard({
               return time < blockEnd && endTime > blockStart;
             });
           });
-          if (hasAvailableStation) {
-            slots.push({
-              time: timeStr
-            });
+          
+          if (availableStation) {
+            // Found first available slot - auto-select it
+            setSelectedDate(date);
+            setSelectedTime(timeStr);
+            setSelectedStationId(availableStation.id);
+            setCurrentMonth(startOfMonth(date));
+            foundFirstSlot = true;
+            break;
           }
         }
-
-        // Count slots by time of day
-        const morning = slots.filter(s => parseInt(s.time.split(':')[0]) < 12).length;
-        const afternoon = slots.filter(s => {
-          const h = parseInt(s.time.split(':')[0]);
-          return h >= 12 && h < 17;
-        }).length;
-        const evening = slots.filter(s => parseInt(s.time.split(':')[0]) >= 17).length;
-        if (morning > 0) setTimeOfDay('morning');else if (afternoon > 0) setTimeOfDay('afternoon');else if (evening > 0) setTimeOfDay('evening');
-        setSlotScrollIndex(0);
+      }
+      
+      // Set time of day based on selected time
+      if (selectedDate) {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const dayName = format(selectedDate, 'EEEE').toLowerCase();
+        const workingHours = instance.working_hours[dayName];
+        
+        if (workingHours) {
+          const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
+          const [openH, openM] = workingHours.open.split(':').map(Number);
+          const [closeH, closeM] = workingHours.close.split(':').map(Number);
+          const openMinutes = openH * 60 + openM;
+          const closeMinutes = closeH * 60 + closeM;
+          const slots: { time: string }[] = [];
+          
+          for (let time = openMinutes; time + serviceDuration <= closeMinutes; time += 15) {
+            const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
+            const endTime = time + serviceDuration;
+            const hasAvailableStation = compatibleStations.some(station => {
+              const stationBlocks = dayBlocks.filter(b => b.station_id === station.id);
+              return !stationBlocks.some(block => {
+                const blockStart = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1]);
+                const blockEnd = parseInt(block.end_time.split(':')[0]) * 60 + parseInt(block.end_time.split(':')[1]);
+                return time < blockEnd && endTime > blockStart;
+              });
+            });
+            if (hasAvailableStation) {
+              slots.push({ time: timeStr });
+            }
+          }
+          
+          const morning = slots.filter(s => parseInt(s.time.split(':')[0]) < 12).length;
+          const afternoon = slots.filter(s => {
+            const h = parseInt(s.time.split(':')[0]);
+            return h >= 12 && h < 17;
+          }).length;
+          const evening = slots.filter(s => parseInt(s.time.split(':')[0]) >= 17).length;
+          if (morning > 0) setTimeOfDay('morning');
+          else if (afternoon > 0) setTimeOfDay('afternoon');
+          else if (evening > 0) setTimeOfDay('evening');
+          setSlotScrollIndex(0);
+        }
       }
     }
-  }, [selectedDate, step, selectedService, instance, stations, availabilityBlocks]);
+  }, [step, selectedService, instance, stations, availabilityBlocks]);
   const saveCustomerToLocalStorage = () => {
     localStorage.setItem('bookingCustomerData', JSON.stringify({
       phone: customerPhone,
@@ -533,13 +587,19 @@ export default function CustomerBookingWizard({
     // Reset selection when service changes - keep today as default
     setSelectedDate(new Date());
     setSelectedTime(null);
+    setSelectedStationId(null);
     setDayScrollIndex(0);
     setSlotScrollIndex(0);
   };
   const handleSelectTime = (slot: TimeSlot) => {
     setSelectedTime(slot.time);
     setSelectedStationId(slot.availableStationIds[0]);
-    goToStep('summary', 'forward'); // Go directly to summary
+  };
+  
+  const handleConfirmDateTime = () => {
+    if (selectedDate && selectedTime && selectedStationId) {
+      goToStep('summary', 'forward');
+    }
   };
   const toggleAddon = (serviceId: string) => {
     setSelectedAddons(prev => prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]);
@@ -1052,7 +1112,13 @@ export default function CustomerBookingWizard({
             return <button key={calDay.toISOString()} onClick={() => {
               if (!isPast && isCurrentMonth && hasSlots) {
                 setSelectedDate(calDay);
-                setSelectedTime(null);
+                // Auto-select first available slot for this day
+                const dayData = availableDays.find(d => isSameDay(d.date, calDay));
+                if (dayData && dayData.slots.length > 0) {
+                  const firstSlot = dayData.slots[0];
+                  setSelectedTime(firstSlot.time);
+                  setSelectedStationId(firstSlot.availableStationIds[0]);
+                }
               }
             }} disabled={isPast || !isCurrentMonth || !hasSlots} className={cn("relative flex items-center justify-center h-11 w-full rounded-full text-sm font-medium transition-all duration-200", !isCurrentMonth && "text-muted-foreground/30", isPast && isCurrentMonth && "text-muted-foreground/50 cursor-not-allowed", !hasSlots && isCurrentMonth && !isPast && "text-muted-foreground/50 cursor-not-allowed", !isPast && isCurrentMonth && hasSlots && !isSelected && "hover:bg-secondary", isTodayDate && !isSelected && "ring-2 ring-primary/30 ring-inset", isSelected && "bg-primary text-primary-foreground shadow-lg")}>
                   <span>{format(calDay, 'd')}</span>
@@ -1080,6 +1146,17 @@ export default function CustomerBookingWizard({
           {!selectedDate && <p className="text-center text-base text-muted-foreground py-4">
               Wybierz dzień, aby zobaczyć dostępne godziny
             </p>}
+
+          {/* CTA Button */}
+          <div className="mt-6">
+            <Button 
+              onClick={handleConfirmDateTime} 
+              className="w-full h-12 text-base" 
+              disabled={!selectedDate || !selectedTime}
+            >
+              Dalej
+            </Button>
+          </div>
         </div>
       </div>;
   }
