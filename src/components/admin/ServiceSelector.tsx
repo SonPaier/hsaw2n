@@ -23,6 +23,7 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -56,16 +57,30 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const matchingService = services.find(s => 
-        s.shortcut?.toLowerCase() === searchValue.toLowerCase() ||
-        s.name.toLowerCase().includes(searchValue.toLowerCase())
-      );
+      const matchingService = filteredServices[0];
       if (matchingService) {
         toggleService(matchingService.id);
         setSearchValue('');
+        setIsDropdownOpen(false);
       }
+    } else if (e.key === 'Escape') {
+      setIsDropdownOpen(false);
+      setSearchValue('');
     }
   };
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    setIsDropdownOpen(value.length > 0);
+  };
+
+  // Filter services based on search
+  const filteredServices = searchValue
+    ? services.filter(s => 
+        s.shortcut?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        s.name.toLowerCase().includes(searchValue.toLowerCase())
+      )
+    : services;
 
   if (loading) {
     return (
@@ -78,14 +93,6 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
       </div>
     );
   }
-
-  // Filter services based on search
-  const filteredServices = searchValue
-    ? services.filter(s => 
-        s.shortcut?.toLowerCase().includes(searchValue.toLowerCase()) ||
-        s.name.toLowerCase().includes(searchValue.toLowerCase())
-      )
-    : services;
 
   return (
     <div className="space-y-2">
@@ -116,35 +123,49 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
         </div>
       )}
 
-      {/* Search input */}
-      <Input
-        placeholder="Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        onKeyDown={handleSearchKeyDown}
-        className="h-9"
-      />
-      
-      {/* Service list */}
-      <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-2 bg-muted/30 rounded-md border border-border/50">
-        {filteredServices.map(service => (
-          <label
-            key={service.id}
-            className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-muted/50 transition-colors"
-          >
-            <Checkbox
-              checked={selectedServiceIds.includes(service.id)}
-              onCheckedChange={() => toggleService(service.id)}
-            />
-            <span className="text-sm truncate">
-              {service.shortcut && (
-                <span className="text-primary font-semibold mr-1">[{service.shortcut}]</span>
-              )}
-              {service.shortcut || service.name}
-            </span>
-          </label>
-        ))}
+      {/* Search input with dropdown */}
+      <div className="relative">
+        <Input
+          placeholder="Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
+          value={searchValue}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          onFocus={() => searchValue && setIsDropdownOpen(true)}
+          onBlur={() => setTimeout(() => setIsDropdownOpen(false), 150)}
+          className="h-9"
+        />
+        
+        {/* Dropdown list */}
+        {isDropdownOpen && filteredServices.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-1 p-2">
+              {filteredServices.map(service => (
+                <label
+                  key={service.id}
+                  className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-accent transition-colors"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    toggleService(service.id);
+                  }}
+                >
+                  <Checkbox
+                    checked={selectedServiceIds.includes(service.id)}
+                    onCheckedChange={() => toggleService(service.id)}
+                  />
+                  <span className="text-sm truncate">
+                    {service.shortcut && (
+                      <span className="text-primary font-semibold mr-1">[{service.shortcut}]</span>
+                    )}
+                    {service.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Selected services display */}
       {selectedServiceIds.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {services
