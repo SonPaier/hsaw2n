@@ -138,14 +138,14 @@ const renderDescription = (text: string) => {
     // Render as HTML (for formatted content)
     return (
       <div 
-        className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+        className="text-sm text-foreground/70 mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
         dangerouslySetInnerHTML={{ __html: text }}
       />
     );
   } else {
     // Plain text - preserve line breaks and whitespace
     return (
-      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{text}</p>
+      <p className="text-sm text-foreground/70 mt-1 whitespace-pre-line">{text}</p>
     );
   }
 };
@@ -736,7 +736,7 @@ const PublicOfferView = () => {
           )}
 
           {/* About Us Section */}
-          <Card className="bg-gradient-to-br from-primary/5 via-background to-primary/10 border-primary/20">
+          <Card className="bg-card border-primary/20">
             <CardContent className="pt-6">
               <div className="text-center mb-6">
                 <h2 className="text-xl font-bold mb-2">Dlaczego warto nam zaufać?</h2>
@@ -746,7 +746,7 @@ const PublicOfferView = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Sparkles className="w-5 h-5 text-primary" />
@@ -758,7 +758,7 @@ const PublicOfferView = () => {
                   </p>
                 </div>
 
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Award className="w-5 h-5 text-primary" />
@@ -770,7 +770,7 @@ const PublicOfferView = () => {
                   </p>
                 </div>
 
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-primary" />
@@ -782,7 +782,7 @@ const PublicOfferView = () => {
                   </p>
                 </div>
 
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Car className="w-5 h-5 text-primary" />
@@ -794,7 +794,7 @@ const PublicOfferView = () => {
                   </p>
                 </div>
 
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Star className="w-5 h-5 text-primary" />
@@ -806,7 +806,7 @@ const PublicOfferView = () => {
                   </p>
                 </div>
 
-                <div className="bg-background/60 backdrop-blur-sm rounded-lg p-4 border border-primary/10">
+                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Heart className="w-5 h-5 text-primary" />
@@ -961,8 +961,8 @@ const PublicOfferView = () => {
                 return (
                   <section key={section.key} className={cn(
                     "space-y-3",
-                    // Dim non-selected scopes when there's a selection
-                    selectedScopeId && !isScopeSelected && "opacity-50"
+                    // Dim non-selected scopes when there's a selection (less aggressive opacity)
+                    selectedScopeId && !isScopeSelected && "opacity-70"
                   )}>
                     <h2 className="text-base font-semibold flex items-center gap-2">
                       {section.scopeName}
@@ -981,9 +981,9 @@ const PublicOfferView = () => {
                       return (
                         <article key={option.id}>
                           <Card className={cn(
-                            "transition-all",
+                            "transition-all bg-card",
                             hasMultipleVariants && isSelected && isScopeSelected && "ring-2 ring-primary border-primary",
-                            hasMultipleVariants && !(isSelected && isScopeSelected) && "opacity-60"
+                            hasMultipleVariants && !(isSelected && isScopeSelected) && "opacity-70"
                           )}>
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
