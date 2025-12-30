@@ -352,7 +352,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                 {uniqueVehicles.map((plate) => (
                   <div
                     key={plate}
-                    className="px-3 py-1.5 bg-secondary rounded-md text-sm font-mono"
+                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-mono"
                   >
                     {plate}
                   </div>
