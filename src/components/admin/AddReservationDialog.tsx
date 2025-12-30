@@ -726,25 +726,6 @@ const AddReservationDialog = ({
             </div>
           )}
 
-          {/* Car Model */}
-          <div className="space-y-2">
-            <Label htmlFor="carModel" className="flex items-center gap-2">
-              <Car className="w-4 h-4" />
-              Model samochodu
-            </Label>
-            <div className="relative">
-              <Input
-                id="carModel"
-                value={carModel}
-                onChange={(e) => setCarModel(e.target.value)}
-                className="pr-10"
-              />
-              {suggestingSize && (
-                <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
-              )}
-            </div>
-          </div>
-
           {/* Customer Name / Alias - Autocomplete */}
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center gap-2">
@@ -802,6 +783,25 @@ const AddReservationDialog = ({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
+          </div>
+
+          {/* Car Model */}
+          <div className="space-y-2">
+            <Label htmlFor="carModel" className="flex items-center gap-2">
+              <Car className="w-4 h-4" />
+              Model samochodu
+            </Label>
+            <div className="relative">
+              <Input
+                id="carModel"
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                className="pr-10"
+              />
+              {suggestingSize && (
+                <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
+              )}
+            </div>
           </div>
 
           {/* Car Size */}
