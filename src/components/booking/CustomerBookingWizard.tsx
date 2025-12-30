@@ -1073,6 +1073,9 @@ export default function CustomerBookingWizard({
             </button>
           </div>
 
+          {/* Page title */}
+          <h2 className="text-xl font-semibold mb-2">Wybierz termin</h2>
+
           {/* Service info */}
           <p className="mb-4 text-base text-muted-foreground">
             {selectedService?.name} • {getTotalDuration()} min
