@@ -988,10 +988,10 @@ export default function CustomerBookingWizard({
 
           {/* Collapsible section for remaining services */}
           {hiddenServices.length > 0 && <>
-              <div className="flex justify-center my-4">
-                <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2">
+              <div className="my-4">
+                <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2 w-full sm:w-auto">
                   {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showAllServices ? 'Zwiń' : `Pokaż więcej usług (${hiddenServices.length})`}
+                  {showAllServices ? 'Zwiń' : `Więcej (${hiddenServices.length})`}
                 </Button>
               </div>
 
