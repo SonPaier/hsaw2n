@@ -1089,7 +1089,7 @@ const AdminCalendar = ({
                           "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-0.5",
                           !hallMode && "cursor-grab active:cursor-grabbing",
                           hallMode && "cursor-pointer",
-                          "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
+                          "transition-all duration-150 hover:shadow-lg hover:z-20",
                           "overflow-hidden select-none",
                           getStatusColor(reservation.status, reservation.station?.type || station.type),
                           isDragging && "opacity-50 scale-95"
@@ -1149,7 +1149,7 @@ const AdminCalendar = ({
                           )}
                           {/* Show all services as chips */}
                           {reservation.services_data && reservation.services_data.length > 0 ? (
-                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                            <div className="flex flex-wrap gap-1 mt-0.5">
                               {reservation.services_data.map((svc, idx) => (
                                 <span key={idx} className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                   {svc.shortcut || svc.name}
@@ -1157,7 +1157,7 @@ const AdminCalendar = ({
                               ))}
                             </div>
                           ) : reservation.service && (
-                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                            <div className="flex flex-wrap gap-1 mt-0.5">
                               <span className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
@@ -1398,7 +1398,7 @@ const AdminCalendar = ({
                                 "absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5",
                                 !hallMode && "cursor-grab active:cursor-grabbing",
                                 hallMode && "cursor-pointer",
-                                "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
+                                "transition-all duration-150 hover:shadow-lg hover:z-20",
                                 "overflow-hidden select-none",
                                 getStatusColor(reservation.status, reservation.station?.type || station.type),
                                 isDragging && "opacity-50 scale-95"
@@ -1686,7 +1686,7 @@ const AdminCalendar = ({
                             "absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1",
                             !hallMode && !readOnly && "cursor-grab active:cursor-grabbing",
                             hallMode && "cursor-pointer",
-                            "transition-all duration-150 hover:shadow-lg hover:scale-[1.02] hover:z-20",
+                            "transition-all duration-150 hover:shadow-lg hover:z-20",
                             "overflow-hidden select-none",
                             getStatusColor(reservation.status, selectedStation?.type),
                             isDragging && "opacity-50 scale-95"
