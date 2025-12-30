@@ -38,6 +38,7 @@ type CarSize = 'small' | 'medium' | 'large';
 interface Service {
   id: string;
   name: string;
+  shortcut?: string | null;
   duration_minutes: number | null;
   price_from: number | null;
   station_type: string | null;
@@ -159,7 +160,7 @@ const AddReservationDialog = ({
     const fetchServices = async () => {
       const { data, error } = await supabase
         .from('services')
-        .select('id, name, duration_minutes, price_from, station_type')
+        .select('id, name, shortcut, duration_minutes, price_from, station_type')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('sort_order');
@@ -841,6 +842,33 @@ const AddReservationDialog = ({
                   </span>
                 )}
               </Label>
+              
+              {/* Quick service bubbles - first 2 services */}
+              {services.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {services.slice(0, 2).map((service) => {
+                    const isSelected = selectedServices.includes(service.id);
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => toggleService(service.id)}
+                        className={cn(
+                          "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors border min-h-[40px]",
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
+                        )}
+                      >
+                        {isSelected && <Check className="w-3 h-3" />}
+                        {service.shortcut || service.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Autocomplete dropdown */}
               <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -859,6 +887,41 @@ const AddReservationDialog = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
+                  {/* Search input */}
+                  <div className="p-2 border-b border-border">
+                    <Input
+                      placeholder="Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
+                      className="h-9"
+                      onChange={(e) => {
+                        const searchValue = e.target.value.toLowerCase();
+                        // Find matching service by shortcut or name
+                        if (searchValue.length >= 2) {
+                          const matchingService = services.find(s => 
+                            s.shortcut?.toLowerCase() === searchValue ||
+                            s.name.toLowerCase().includes(searchValue)
+                          );
+                          if (matchingService && !selectedServices.includes(matchingService.id)) {
+                            toggleService(matchingService.id);
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const searchValue = (e.target as HTMLInputElement).value.toLowerCase();
+                          const matchingService = services.find(s => 
+                            s.shortcut?.toLowerCase() === searchValue ||
+                            s.name.toLowerCase().includes(searchValue)
+                          );
+                          if (matchingService) {
+                            toggleService(matchingService.id);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                   <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
                     {services.map((service) => {
                       const isSelected = selectedServices.includes(service.id);
@@ -876,7 +939,12 @@ const AddReservationDialog = ({
                             onCheckedChange={() => toggleService(service.id)}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{service.name}</div>
+                            <div className="font-medium text-sm truncate">
+                              {service.shortcut && (
+                                <span className="text-primary font-semibold mr-2">[{service.shortcut}]</span>
+                              )}
+                              {service.name}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {service.duration_minutes} min
                               {service.price_from && ` • od ${service.price_from} zł`}
