@@ -447,9 +447,9 @@ const AdminCalendar = ({
     const startHour = dayStartHour ?? DAY_START_HOUR;
     const start = parseTime(startTime);
     const end = parseTime(endTime);
-    const top = (start - startHour) * HOUR_HEIGHT;
-    const height = (end - start) * HOUR_HEIGHT;
-    return { top: `${top}px`, height: `${Math.max(height, 30)}px` };
+    const top = (start - startHour) * HOUR_HEIGHT + 1; // +1px offset from top
+    const height = (end - start) * HOUR_HEIGHT - 2; // -2px to create 1px gap top and bottom
+    return { top: `${top}px`, height: `${Math.max(height, 28)}px` };
   };
 
   // Get display times for a multi-day reservation on a specific date
