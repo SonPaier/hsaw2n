@@ -1293,6 +1293,7 @@ export type Database = {
           price: number | null
           reservation_date: string
           service_id: string
+          service_ids: Json | null
           source: string | null
           start_time: string
           station_id: string | null
@@ -1315,6 +1316,7 @@ export type Database = {
           price?: number | null
           reservation_date: string
           service_id: string
+          service_ids?: Json | null
           source?: string | null
           start_time: string
           station_id?: string | null
@@ -1337,6 +1339,7 @@ export type Database = {
           price?: number | null
           reservation_date?: string
           service_id?: string
+          service_ids?: Json | null
           source?: string | null
           start_time?: string
           station_id?: string | null

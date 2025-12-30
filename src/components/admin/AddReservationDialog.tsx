@@ -509,17 +509,21 @@ const AddReservationDialog = ({
         notes: reservationNotes || null,
       };
 
-      // Set service_id - required field in database
+      // Set service_id - required field in database (first service)
+      // Also store all selected services in service_ids
       if (selectedServices.length > 0) {
         reservationData.service_id = selectedServices[0];
+        reservationData.service_ids = selectedServices;
       } else {
         // For non-washing stations without service selection, get first available service for this station type
         const matchingService = services.find(s => s.station_type === stationType);
         if (matchingService) {
           reservationData.service_id = matchingService.id;
+          reservationData.service_ids = [matchingService.id];
         } else if (services.length > 0) {
           // Fallback to first available service
           reservationData.service_id = services[0].id;
+          reservationData.service_ids = [services[0].id];
         } else {
           toast.error('Brak dostępnych usług w systemie');
           setLoading(false);

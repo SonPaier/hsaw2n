@@ -45,6 +45,11 @@ interface Reservation {
     name: string;
     shortcut?: string | null;
   };
+  // Array of all services (if multi-service reservation)
+  services_data?: Array<{
+    name: string;
+    shortcut?: string | null;
+  }>;
   station?: {
     name: string;
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
@@ -98,6 +103,7 @@ const AdminDashboard = () => {
   
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [allServices, setAllServices] = useState<Array<{ id: string; name: string; shortcut?: string | null }>>([]);
   const [stations, setStations] = useState<Station[]>([]);
 
   // Add reservation dialog state
@@ -230,9 +236,35 @@ const AdminDashboard = () => {
     }
   }, [currentView]);
 
+  // Fetch all services for multi-service mapping
+  const fetchAllServices = async () => {
+    if (!instanceId) return;
+    const { data } = await supabase
+      .from('services')
+      .select('id, name, shortcut')
+      .eq('instance_id', instanceId)
+      .eq('active', true);
+    if (data) {
+      setAllServices(data);
+    }
+  };
+
   // Fetch reservations from database
   const fetchReservations = async () => {
     if (!instanceId) return;
+    
+    // First fetch services to map service_ids
+    const { data: servicesData } = await supabase
+      .from('services')
+      .select('id, name, shortcut')
+      .eq('instance_id', instanceId)
+      .eq('active', true);
+    
+    const servicesMap = new Map<string, { name: string; shortcut?: string | null }>();
+    if (servicesData) {
+      servicesData.forEach(s => servicesMap.set(s.id, { name: s.name, shortcut: s.shortcut }));
+    }
+    
     const {
       data,
       error
@@ -253,22 +285,37 @@ const AdminDashboard = () => {
         notes,
         source,
         car_size,
+        service_ids,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId);
     if (!error && data) {
-      setReservations(data.map(r => ({
-        ...r,
-        status: r.status || 'pending',
-        service: r.services ? {
-          name: (r.services as any).name,
-          shortcut: (r.services as any).shortcut
-        } : undefined,
-        station: r.stations ? {
-          name: (r.stations as any).name,
-          type: (r.stations as any).type
-        } : undefined
-      })));
+      setReservations(data.map(r => {
+        // Map service_ids to services_data if available
+        const serviceIds = (r as any).service_ids as string[] | null;
+        const servicesData: Array<{ name: string; shortcut?: string | null }> = [];
+        
+        if (serviceIds && serviceIds.length > 0) {
+          serviceIds.forEach(id => {
+            const svc = servicesMap.get(id);
+            if (svc) servicesData.push(svc);
+          });
+        }
+        
+        return {
+          ...r,
+          status: r.status || 'pending',
+          service: r.services ? {
+            name: (r.services as any).name,
+            shortcut: (r.services as any).shortcut
+          } : undefined,
+          services_data: servicesData.length > 0 ? servicesData : undefined,
+          station: r.stations ? {
+            name: (r.stations as any).name,
+            type: (r.stations as any).type
+          } : undefined
+        };
+      }));
     }
   };
 
