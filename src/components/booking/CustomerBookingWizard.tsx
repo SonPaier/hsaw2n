@@ -1227,18 +1227,18 @@ export default function CustomerBookingWizard({
                 <Label htmlFor="nip" className="text-xs">Numer NIP</Label>
                 <Input id="nip" value={nipNumber} onChange={e => setNipNumber(e.target.value)} placeholder="np. 1234567890" className="mt-1 h-9 text-sm" disabled={smsSent} maxLength={13} />
               </div>}
-
-            {/* Collapsible notes */}
-            <Collapsible open={showNotes} onOpenChange={setShowNotes}>
-              <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                <span className="text-base">Zostaw wiadomość (opcjonalnie) </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-2">
-                <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder="np. bardzo brudne felgi, pies w aucie..." className="text-sm resize-none" rows={2} disabled={smsSent} />
-              </CollapsibleContent>
-            </Collapsible>
           </div>
+
+          {/* Collapsible notes - outside the card */}
+          <Collapsible open={showNotes} onOpenChange={setShowNotes} className="mb-3">
+            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              <span className="text-base">Zostaw wiadomość (opcjonalnie)</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder="np. bardzo brudne felgi, pies w aucie..." className="text-sm resize-none" rows={2} disabled={smsSent} />
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* SMS verification or direct booking */}
           {!smsSent ? <>
