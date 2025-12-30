@@ -1232,7 +1232,7 @@ export default function CustomerBookingWizard({
             <Collapsible open={showNotes} onOpenChange={setShowNotes}>
               <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                <span>Uwagi (opcjonalnie)</span>
+                <span className="text-base">Zostaw wiadomość (opcjonalnie) </span>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder="np. bardzo brudne felgi, pies w aucie..." className="text-sm resize-none" rows={2} disabled={smsSent} />
