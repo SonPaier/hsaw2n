@@ -1086,7 +1086,7 @@ const AdminCalendar = ({
                         onDragStart={(e) => handleDragStart(e, reservation)}
                         onDragEnd={handleDragEnd}
                         className={cn(
-                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-0.5",
+                          "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5",
                           !hallMode && "cursor-grab active:cursor-grabbing",
                           hallMode && "cursor-pointer",
                           "transition-all duration-150 hover:shadow-lg hover:z-20",
