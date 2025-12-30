@@ -337,38 +337,31 @@ export default function CustomerBookingWizard({
         if (!selectedService.station_type) return true;
         return s.type === selectedService.station_type || s.type === 'universal';
       });
-      
       const today = new Date();
       const daysAhead = instance.booking_days_ahead ?? 90;
-      
+
       // Find first available slot across all days
       let foundFirstSlot = false;
-      
       for (let i = 0; i < daysAhead && !foundFirstSlot; i++) {
         const date = addDays(today, i);
         const dayName = format(date, 'EEEE').toLowerCase();
         const workingHours = instance.working_hours[dayName];
-        
         if (!workingHours) continue;
-        
         const dateStr = format(date, 'yyyy-MM-dd');
         const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
         const [openH, openM] = workingHours.open.split(':').map(Number);
         const [closeH, closeM] = workingHours.close.split(':').map(Number);
         const openMinutes = openH * 60 + openM;
         const closeMinutes = closeH * 60 + closeM;
-        
         let minStartTime = openMinutes;
         if (i === 0) {
           const now = new Date();
           const nowMinutes = now.getHours() * 60 + now.getMinutes() + MIN_LEAD_TIME_MINUTES;
           minStartTime = Math.max(openMinutes, Math.ceil(nowMinutes / SLOT_INTERVAL) * SLOT_INTERVAL);
         }
-        
         for (let time = minStartTime; time + serviceDuration <= closeMinutes; time += SLOT_INTERVAL) {
           const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
           const endTime = time + serviceDuration;
-          
           const availableStation = compatibleStations.find(station => {
             const stationBlocks = dayBlocks.filter(b => b.station_id === station.id);
             return !stationBlocks.some(block => {
@@ -377,7 +370,6 @@ export default function CustomerBookingWizard({
               return time < blockEnd && endTime > blockStart;
             });
           });
-          
           if (availableStation) {
             // Found first available slot - auto-select it
             setSelectedDate(date);
@@ -389,21 +381,21 @@ export default function CustomerBookingWizard({
           }
         }
       }
-      
+
       // Set time of day based on selected time
       if (selectedDate) {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const dayName = format(selectedDate, 'EEEE').toLowerCase();
         const workingHours = instance.working_hours[dayName];
-        
         if (workingHours) {
           const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
           const [openH, openM] = workingHours.open.split(':').map(Number);
           const [closeH, closeM] = workingHours.close.split(':').map(Number);
           const openMinutes = openH * 60 + openM;
           const closeMinutes = closeH * 60 + closeM;
-          const slots: { time: string }[] = [];
-          
+          const slots: {
+            time: string;
+          }[] = [];
           for (let time = openMinutes; time + serviceDuration <= closeMinutes; time += 15) {
             const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
             const endTime = time + serviceDuration;
@@ -416,19 +408,18 @@ export default function CustomerBookingWizard({
               });
             });
             if (hasAvailableStation) {
-              slots.push({ time: timeStr });
+              slots.push({
+                time: timeStr
+              });
             }
           }
-          
           const morning = slots.filter(s => parseInt(s.time.split(':')[0]) < 12).length;
           const afternoon = slots.filter(s => {
             const h = parseInt(s.time.split(':')[0]);
             return h >= 12 && h < 17;
           }).length;
           const evening = slots.filter(s => parseInt(s.time.split(':')[0]) >= 17).length;
-          if (morning > 0) setTimeOfDay('morning');
-          else if (afternoon > 0) setTimeOfDay('afternoon');
-          else if (evening > 0) setTimeOfDay('evening');
+          if (morning > 0) setTimeOfDay('morning');else if (afternoon > 0) setTimeOfDay('afternoon');else if (evening > 0) setTimeOfDay('evening');
           setSlotScrollIndex(0);
         }
       }
@@ -595,7 +586,6 @@ export default function CustomerBookingWizard({
     setSelectedTime(slot.time);
     setSelectedStationId(slot.availableStationIds[0]);
   };
-  
   const handleConfirmDateTime = () => {
     if (selectedDate && selectedTime && selectedStationId) {
       goToStep('summary', 'forward');
@@ -1077,7 +1067,7 @@ export default function CustomerBookingWizard({
           <h2 className="text-xl font-semibold mb-2">Wybierz termin</h2>
 
           {/* Service info */}
-          <p className="mb-4 text-base text-muted-foreground">
+          <p className="mb-4 text-base text-inherit">
             {selectedService?.name} • {getTotalDuration()} min
             {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} dodatki)`}
           </p>
@@ -1152,11 +1142,7 @@ export default function CustomerBookingWizard({
 
           {/* CTA Button */}
           <div className="mt-6">
-            <Button 
-              onClick={handleConfirmDateTime} 
-              className="w-full h-12 text-base" 
-              disabled={!selectedDate || !selectedTime}
-            >
+            <Button onClick={handleConfirmDateTime} className="w-full h-12 text-base" disabled={!selectedDate || !selectedTime}>
               Dalej
             </Button>
           </div>
@@ -1232,30 +1218,15 @@ export default function CustomerBookingWizard({
           <div className="glass-card p-3 mb-3 space-y-3">
             {/* VAT Invoice checkbox */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <Checkbox 
-                checked={wantsInvoice} 
-                onCheckedChange={checked => setWantsInvoice(checked === true)} 
-                className="h-5 w-5"
-                disabled={smsSent}
-              />
+              <Checkbox checked={wantsInvoice} onCheckedChange={checked => setWantsInvoice(checked === true)} className="h-5 w-5" disabled={smsSent} />
               <span className="text-sm font-medium">Proszę o fakturę VAT</span>
             </label>
 
             {/* NIP input - shown when invoice is requested */}
-            {wantsInvoice && (
-              <div className="animate-fade-in">
+            {wantsInvoice && <div className="animate-fade-in">
                 <Label htmlFor="nip" className="text-xs">Numer NIP</Label>
-                <Input 
-                  id="nip" 
-                  value={nipNumber} 
-                  onChange={e => setNipNumber(e.target.value)} 
-                  placeholder="np. 1234567890"
-                  className="mt-1 h-9 text-sm" 
-                  disabled={smsSent}
-                  maxLength={13}
-                />
-              </div>
-            )}
+                <Input id="nip" value={nipNumber} onChange={e => setNipNumber(e.target.value)} placeholder="np. 1234567890" className="mt-1 h-9 text-sm" disabled={smsSent} maxLength={13} />
+              </div>}
 
             {/* Collapsible notes */}
             <Collapsible open={showNotes} onOpenChange={setShowNotes}>
@@ -1275,7 +1246,7 @@ export default function CustomerBookingWizard({
                   <Bug className="w-3 h-3 inline-block mr-1" />
                   Dev Mode: wymuszono weryfikację SMS
                 </div>}
-              <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || (wantsInvoice && !nipNumber.trim())}>
+              <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Potwierdź i umów
               </Button>
