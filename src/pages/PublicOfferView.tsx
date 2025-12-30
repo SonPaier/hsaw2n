@@ -959,11 +959,7 @@ const PublicOfferView = () => {
                 const isScopeSelected = selectedScopeId === section.key;
                 
                 return (
-                  <section key={section.key} className={cn(
-                    "space-y-3",
-                    // Dim non-selected scopes when there's a selection (less aggressive opacity)
-                    selectedScopeId && !isScopeSelected && "opacity-70"
-                  )}>
+                  <section key={section.key} className="space-y-3">
                     <h2 className="text-base font-semibold flex items-center gap-2">
                       {section.scopeName}
                       {isScopeSelected && (
@@ -981,9 +977,9 @@ const PublicOfferView = () => {
                       return (
                         <article key={option.id}>
                           <Card className={cn(
-                            "transition-all bg-card",
-                            hasMultipleVariants && isSelected && isScopeSelected && "ring-2 ring-primary border-primary",
-                            hasMultipleVariants && !(isSelected && isScopeSelected) && "opacity-70"
+                            "transition-all",
+                            hasMultipleVariants && isSelected && isScopeSelected && "ring-2 ring-primary border-primary bg-card",
+                            hasMultipleVariants && !(isSelected && isScopeSelected) && "bg-white border-border"
                           )}>
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
