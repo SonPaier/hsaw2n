@@ -16,10 +16,12 @@ interface AdminLayoutProps {
   title?: string;
 }
 
+type UserRole = 'super_admin' | 'admin' | 'employee' | 'user';
+
 const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, roles } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -27,8 +29,19 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   });
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [employeePermissions, setEmployeePermissions] = useState<string[]>([]);
   const { hasFeature } = useInstanceFeatures(instanceId);
 
+  // Determine user's role for the current instance
+  const userRole: UserRole = (() => {
+    if (roles.some(r => r.role === 'super_admin')) return 'super_admin';
+    if (roles.some(r => r.role === 'admin' && (r.instance_id === instanceId || !r.instance_id))) return 'admin';
+    if (roles.some(r => r.role === 'employee' && r.instance_id === instanceId)) return 'employee';
+    return 'user';
+  })();
+
+  const isEmployee = userRole === 'employee';
+  const canSeeSettings = userRole === 'super_admin' || userRole === 'admin';
   useEffect(() => {
     const fetchUserInstanceId = async () => {
       if (!user) return;
@@ -38,6 +51,14 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
         .eq('user_id', user.id);
       
       if (!rolesData || rolesData.length === 0) return;
+      
+      // Check for employee role first
+      const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
+      if (employeeRole?.instance_id) {
+        setInstanceId(employeeRole.instance_id);
+        return;
+      }
+      
       const adminRole = rolesData.find(r => r.role === 'admin' && r.instance_id);
       if (adminRole?.instance_id) {
         setInstanceId(adminRole.instance_id);
@@ -58,6 +79,27 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     };
     fetchUserInstanceId();
   }, [user]);
+
+  // Fetch employee permissions
+  useEffect(() => {
+    if (!user || !instanceId || !isEmployee) {
+      setEmployeePermissions([]);
+      return;
+    }
+
+    const fetchPermissions = async () => {
+      const { data } = await supabase
+        .from('employee_permissions')
+        .select('feature_key')
+        .eq('user_id', user.id)
+        .eq('instance_id', instanceId)
+        .eq('enabled', true);
+      
+      setEmployeePermissions(data?.map(p => p.feature_key) || []);
+    };
+
+    fetchPermissions();
+  }, [user, instanceId, isEmployee]);
 
   // Fetch pending reservations count
   useEffect(() => {
@@ -117,14 +159,23 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     return location.pathname.startsWith(path);
   };
 
+  // Check if employee has permission for a feature
+  const employeeHasPermission = (featureKey: string) => {
+    if (!isEmployee) return true;
+    return employeePermissions.includes(featureKey);
+  };
+
   const navItems: Array<{ path: string; icon: typeof Calendar; label: string; badge?: number }> = [
     { path: '/admin', icon: Calendar, label: 'Kalendarz' },
     { path: '/admin/reservations', icon: ClipboardList, label: 'Rezerwacje', badge: pendingCount > 0 ? pendingCount : undefined },
     { path: '/admin/customers', icon: UserCircle, label: 'Klienci' },
-    ...(hasFeature('offers') ? [{ path: '/admin/oferty', icon: FileText, label: 'Oferty' }] : []),
-    ...(hasFeature('offers') ? [{ path: '/admin/produkty', icon: Package, label: 'Produkty' }] : []),
-    ...(hasFeature('followup') ? [{ path: '/admin/followup', icon: CalendarClock, label: 'Follow-up' }] : []),
-    { path: '/admin/settings', icon: Settings, label: 'Ustawienia' },
+    // Offers - visible if feature enabled AND (not employee OR employee has permission)
+    ...(hasFeature('offers') && employeeHasPermission('offers') ? [{ path: '/admin/oferty', icon: FileText, label: 'Oferty' }] : []),
+    ...(hasFeature('offers') && employeeHasPermission('offers') ? [{ path: '/admin/produkty', icon: Package, label: 'Produkty' }] : []),
+    // Follow-up - visible if feature enabled AND (not employee OR employee has permission)
+    ...(hasFeature('followup') && employeeHasPermission('followup') ? [{ path: '/admin/followup', icon: CalendarClock, label: 'Follow-up' }] : []),
+    // Settings - only for admin and super_admin
+    ...(canSeeSettings ? [{ path: '/admin/settings', icon: Settings, label: 'Ustawienia' }] : []),
   ];
 
   return (
