@@ -817,13 +817,7 @@ export default function CustomerBookingWizard({
                   </p>}
               </div>
 
-              {/* Name input - optional */}
-              {customerPhone.length >= 9 && <div className="animate-fade-in">
-                  <Label htmlFor="customerName" className="text-base font-medium">Imię i nazwisko (opcjonalnie)</Label>
-                  <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="np. Jan Kowalski" className="h-12 text-base mt-1" />
-                </div>}
-
-              {/* Car model input - moved from summary step */}
+              {/* Car model input */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
                   <Label htmlFor="carModel" className="text-base font-medium">Marka i model samochodu</Label>
                   <div className="relative mt-1">
@@ -849,6 +843,12 @@ export default function CustomerBookingWizard({
                           </button>)}
                       </div>;
               })()}
+                </div>}
+
+              {/* Name input - optional */}
+              {customerPhone.length >= 9 && <div className="animate-fade-in">
+                  <Label htmlFor="customerName" className="text-base font-medium">Imię i nazwisko (opcjonalnie)</Label>
+                  <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="np. Jan Kowalski" className="h-12 text-base mt-1" />
                 </div>}
 
               <Button onClick={() => goToStep('service', 'forward')} className="w-full" disabled={customerPhone.length < 9 || isCheckingCustomer}>
