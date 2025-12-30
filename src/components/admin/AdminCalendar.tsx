@@ -55,6 +55,11 @@ interface Reservation {
     name: string;
     shortcut?: string | null;
   };
+  // Array of all services (if multi-service reservation)
+  services_data?: Array<{
+    name: string;
+    shortcut?: string | null;
+  }>;
   station?: {
     type?: string;
   };
@@ -1142,7 +1147,16 @@ const AdminCalendar = ({
                               </span>
                             </div>
                           )}
-                          {reservation.service && (
+                          {/* Show all services as chips */}
+                          {reservation.services_data && reservation.services_data.length > 0 ? (
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              {reservation.services_data.map((svc, idx) => (
+                                <span key={idx} className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                  {svc.shortcut || svc.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : reservation.service && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
                               <span className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                 {reservation.service.shortcut || reservation.service.name}

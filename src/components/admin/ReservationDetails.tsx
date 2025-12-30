@@ -67,6 +67,11 @@ interface Reservation {
   service?: {
     name: string;
   };
+  // Array of all services (if multi-service reservation)
+  services_data?: Array<{
+    name: string;
+    shortcut?: string | null;
+  }>;
   station?: {
     name: string;
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
@@ -320,15 +325,25 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 </div>
               </div>
 
-              {/* Service (read-only) */}
-              {reservation.service && (
+              {/* Service (read-only) - show all services if multi-service */}
+              {(reservation.services_data && reservation.services_data.length > 0) || reservation.service ? (
                 <div className="space-y-2">
-                  <Label>Usługa</Label>
-                  <div className="p-2 bg-muted/50 rounded-md text-sm">
-                    {reservation.service.name}
+                  <Label>Usługi</Label>
+                  <div className="p-2 bg-muted/50 rounded-md text-sm flex flex-wrap gap-2">
+                    {reservation.services_data && reservation.services_data.length > 0 ? (
+                      reservation.services_data.map((svc, idx) => (
+                        <span key={idx} className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
+                          {svc.name}
+                        </span>
+                      ))
+                    ) : reservation.service ? (
+                      <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
+                        {reservation.service.name}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Date - Range for PPF, Single for others */}
               <div className="space-y-2">
@@ -542,16 +557,28 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   </div>
                 )}
 
-                {/* Service */}
-                {reservation.service && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm">U</div>
+                {/* Service - show all services if multi-service */}
+                {(reservation.services_data && reservation.services_data.length > 0) || reservation.service ? (
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm mt-1">U</div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Usługa</div>
-                      <div className="font-medium">{reservation.service.name}</div>
+                      <div className="text-xs text-muted-foreground">Usługi</div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {reservation.services_data && reservation.services_data.length > 0 ? (
+                          reservation.services_data.map((svc, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
+                              {svc.name}
+                            </span>
+                          ))
+                        ) : reservation.service ? (
+                          <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
+                            {reservation.service.name}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Notes - always visible if present */}
                 {notes && (
