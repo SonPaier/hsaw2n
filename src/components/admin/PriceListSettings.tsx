@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save, GripVertical, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,6 +29,23 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Service {
   id: string;
@@ -46,6 +64,7 @@ interface Service {
   station_type: string | null;
   active: boolean | null;
   sort_order: number | null;
+  is_popular: boolean | null;
 }
 
 interface PriceListSettingsProps {
@@ -65,6 +84,96 @@ const CATEGORY_SECTIONS = [
   { key: 'ppf', label: 'Folia PPF', stationType: 'ppf' },
   { key: 'universal', label: 'Pranie tapicerki', stationType: 'universal' },
 ];
+
+// Sortable service item component
+const SortableServiceItem = ({ 
+  service, 
+  onEdit, 
+  onDelete, 
+  onToggleActive,
+  onTogglePopular 
+}: { 
+  service: Service; 
+  onEdit: () => void; 
+  onDelete: () => void; 
+  onToggleActive: () => void;
+  onTogglePopular: () => void;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: service.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 p-4 border border-border/50 rounded-lg bg-background",
+        !service.active && "opacity-50"
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
+          <span className="font-medium truncate">{service.name}</span>
+          {!service.active && (
+            <span className="text-xs bg-muted px-2 py-0.5 rounded">Nieaktywna</span>
+          )}
+        </div>
+        <div className="text-sm text-muted-foreground mt-1">
+          {service.duration_minutes} min
+          {service.requires_size ? (
+            <span className="ml-2">
+              • S: {service.price_small} zł | M: {service.price_medium} zł | L: {service.price_large} zł
+            </span>
+          ) : service.price_from ? (
+            <span className="ml-2">• od {service.price_from} zł</span>
+          ) : null}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onTogglePopular}
+          title={service.is_popular ? "Usuń z popularnych" : "Oznacz jako popularna"}
+        >
+          <Star className={cn("w-4 h-4", service.is_popular ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
+        </Button>
+        <Switch
+          checked={service.active ?? true}
+          onCheckedChange={onToggleActive}
+        />
+        <Button variant="ghost" size="icon" onClick={onEdit}>
+          <Edit2 className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="text-destructive" onClick={onDelete}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [services, setServices] = useState<Service[]>([]);
@@ -90,7 +199,15 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     requires_size: true,
     station_type: 'washing',
     active: true,
+    is_popular: false,
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchServices = async () => {
     if (!instanceId) return;
@@ -147,6 +264,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         requires_size: service.requires_size ?? true,
         station_type: service.station_type || 'washing',
         active: service.active ?? true,
+        is_popular: service.is_popular ?? false,
       });
     } else {
       setEditingService(null);
@@ -165,6 +283,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         requires_size: true,
         station_type: 'washing',
         active: true,
+        is_popular: false,
       });
     }
     setEditDialogOpen(true);
@@ -195,6 +314,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         requires_size: formData.requires_size,
         station_type: formData.station_type as any,
         active: formData.active,
+        is_popular: formData.is_popular,
         sort_order: editingService?.sort_order ?? services.length,
       };
 
@@ -258,6 +378,56 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
+  const toggleServicePopular = async (service: Service) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({ is_popular: !service.is_popular })
+        .eq('id', service.id);
+      
+      if (error) throw error;
+      fetchServices();
+    } catch (error) {
+      console.error('Error toggling popular:', error);
+      toast.error('Błąd podczas zmiany statusu popularności');
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent, stationType: string) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    const sectionServices = getServicesByType(stationType);
+    const oldIndex = sectionServices.findIndex(s => s.id === active.id);
+    const newIndex = sectionServices.findIndex(s => s.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    const reorderedServices = arrayMove(sectionServices, oldIndex, newIndex);
+    
+    // Update local state immediately
+    setServices(prev => {
+      const otherServices = prev.filter(s => s.station_type !== stationType);
+      return [...otherServices, ...reorderedServices.map((s, i) => ({ ...s, sort_order: i }))];
+    });
+    
+    // Update in database
+    try {
+      for (let i = 0; i < reorderedServices.length; i++) {
+        await supabase
+          .from('services')
+          .update({ sort_order: i })
+          .eq('id', reorderedServices[i].id);
+      }
+      toast.success('Kolejność zapisana');
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast.error('Błąd podczas zapisywania kolejności');
+      fetchServices();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -303,67 +473,35 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </CollapsibleTrigger>
             
             <CollapsibleContent>
-              <div className="mt-2 space-y-2">
-                {sectionServices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground p-4 text-center">
-                    Brak usług w tej kategorii
-                  </p>
-                ) : (
-                  sectionServices.map(service => (
-                    <div
-                      key={service.id}
-                      className={cn(
-                        "flex items-center justify-between p-4 border border-border/50 rounded-lg",
-                        !service.active && "opacity-50"
-                      )}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{service.name}</span>
-                          {!service.active && (
-                            <span className="text-xs bg-muted px-2 py-0.5 rounded">Nieaktywna</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {service.duration_minutes} min
-                          {service.requires_size ? (
-                            <span className="ml-2">
-                              • S: {service.price_small} zł | M: {service.price_medium} zł | L: {service.price_large} zł
-                            </span>
-                          ) : service.price_from ? (
-                            <span className="ml-2">• od {service.price_from} zł</span>
-                          ) : null}
-                        </div>
-                        {service.description && (
-                          <p className="text-xs text-muted-foreground/80 mt-0.5 line-clamp-1">{service.description}</p>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={service.active ?? true}
-                          onCheckedChange={() => toggleServiceActive(service)}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => handleDragEnd(event, section.stationType)}
+              >
+                <SortableContext
+                  items={sectionServices.map(s => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="mt-2 space-y-2">
+                    {sectionServices.length === 0 ? (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        Brak usług w tej kategorii
+                      </p>
+                    ) : (
+                      sectionServices.map(service => (
+                        <SortableServiceItem
+                          key={service.id}
+                          service={service}
+                          onEdit={() => openEditDialog(service)}
+                          onDelete={() => handleDelete(service.id)}
+                          onToggleActive={() => toggleServiceActive(service)}
+                          onTogglePopular={() => toggleServicePopular(service)}
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(service)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDelete(service.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                      ))
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </CollapsibleContent>
           </Collapsible>
         );
@@ -522,6 +660,18 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 checked={formData.active}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, active: v }))}
               />
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+              <Checkbox
+                id="is_popular"
+                checked={formData.is_popular}
+                onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_popular: !!v }))}
+              />
+              <Label htmlFor="is_popular" className="flex items-center gap-2 cursor-pointer">
+                <Star className="w-4 h-4 text-amber-500" />
+                Popularna usługa (pokazuj jako pierwszą)
+              </Label>
             </div>
           </div>
 

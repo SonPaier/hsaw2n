@@ -42,6 +42,7 @@ interface Service {
   duration_minutes: number | null;
   price_from: number | null;
   station_type: string | null;
+  is_popular?: boolean | null;
 }
 
 interface Customer {
@@ -160,7 +161,7 @@ const AddReservationDialog = ({
     const fetchServices = async () => {
       const { data, error } = await supabase
         .from('services')
-        .select('id, name, shortcut, duration_minutes, price_from, station_type')
+        .select('id, name, shortcut, duration_minutes, price_from, station_type, is_popular')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('sort_order');
@@ -843,31 +844,6 @@ const AddReservationDialog = ({
                 )}
               </Label>
               
-              {/* Quick service bubbles - first 2 services */}
-              {services.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {services.slice(0, 2).map((service) => {
-                    const isSelected = selectedServices.includes(service.id);
-                    return (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => toggleService(service.id)}
-                        className={cn(
-                          "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors border min-h-[40px]",
-                          isSelected
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
-                        )}
-                      >
-                        {isSelected && <Check className="w-3 h-3" />}
-                        {service.shortcut || service.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              
               {/* Autocomplete dropdown */}
               <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
                 <PopoverTrigger asChild>
@@ -939,11 +915,11 @@ const AddReservationDialog = ({
                             onCheckedChange={() => toggleService(service.id)}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">
+                            <div className="font-medium text-sm">
                               {service.shortcut && (
-                                <span className="text-primary font-semibold mr-2">[{service.shortcut}]</span>
+                                <span className="text-primary font-semibold">[{service.shortcut}]</span>
                               )}
-                              {service.name}
+                              {service.shortcut ? ` - ${service.name}` : service.name}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {service.duration_minutes} min
@@ -956,6 +932,35 @@ const AddReservationDialog = ({
                   </div>
                 </PopoverContent>
               </Popover>
+              
+              {/* Popular/Quick service chips - below dropdown */}
+              {(() => {
+                const popularServices = services.filter(s => s.is_popular);
+                const displayServices = popularServices.length > 0 ? popularServices : services.slice(0, 4);
+                return displayServices.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {displayServices.map((service) => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => toggleService(service.id)}
+                          className={cn(
+                            "px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px]",
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-accent"
+                          )}
+                        >
+                          {service.shortcut || service.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              
               {errors.services && (
                 <p className="text-sm text-destructive">{errors.services}</p>
               )}

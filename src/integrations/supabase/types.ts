@@ -1465,6 +1465,7 @@ export type Database = {
           duration_small: number | null
           id: string
           instance_id: string
+          is_popular: boolean | null
           name: string
           price_from: number | null
           price_large: number | null
@@ -1488,6 +1489,7 @@ export type Database = {
           duration_small?: number | null
           id?: string
           instance_id: string
+          is_popular?: boolean | null
           name: string
           price_from?: number | null
           price_large?: number | null
@@ -1511,6 +1513,7 @@ export type Database = {
           duration_small?: number | null
           id?: string
           instance_id?: string
+          is_popular?: boolean | null
           name?: string
           price_from?: number | null
           price_large?: number | null

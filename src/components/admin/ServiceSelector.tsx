@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Service {
@@ -11,6 +11,7 @@ interface Service {
   name: string;
   shortcut?: string | null;
   duration_minutes?: number | null;
+  is_popular?: boolean | null;
 }
 
 interface ServiceSelectorProps {
@@ -30,7 +31,7 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
       setLoading(true);
       const { data } = await supabase
         .from('services')
-        .select('id, name, shortcut, duration_minutes')
+        .select('id, name, shortcut, duration_minutes, is_popular')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('sort_order');
@@ -82,6 +83,9 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
       )
     : services;
 
+  // Get popular services for quick selection
+  const popularServices = services.filter(s => s.is_popular);
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -97,31 +101,6 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
   return (
     <div className="space-y-2">
       <Label>Usługi</Label>
-      
-      {/* Quick service bubbles - first 2 services */}
-      {services.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {services.slice(0, 2).map(service => {
-            const isSelected = selectedServiceIds.includes(service.id);
-            return (
-              <button
-                key={service.id}
-                type="button"
-                onClick={() => toggleService(service.id)}
-                className={cn(
-                  "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors border min-h-[40px]",
-                  isSelected
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-foreground border-border hover:bg-accent hover:border-accent"
-                )}
-              >
-                {isSelected && <Check className="w-3 h-3" />}
-                {service.shortcut || service.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* Search input with dropdown */}
       <div className="relative">
@@ -152,11 +131,11 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
                     checked={selectedServiceIds.includes(service.id)}
                     onCheckedChange={() => toggleService(service.id)}
                   />
-                  <span className="text-sm truncate">
+                  <span className="text-sm">
                     {service.shortcut && (
-                      <span className="text-primary font-semibold mr-1">[{service.shortcut}]</span>
+                      <span className="text-primary font-semibold">[{service.shortcut}]</span>
                     )}
-                    {service.name}
+                    {service.shortcut ? ` - ${service.name}` : service.name}
                   </span>
                 </label>
               ))}
@@ -165,18 +144,27 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
         )}
       </div>
 
-      {/* Selected services display */}
-      {selectedServiceIds.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {services
-            .filter(s => selectedServiceIds.includes(s.id))
-            .map(s => (
-              <span key={s.id} className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                {s.shortcut || s.name}
-              </span>
-            ))}
-        </div>
-      )}
+      {/* Selected/Popular services - clickable chips */}
+      <div className="flex flex-wrap gap-2">
+        {(popularServices.length > 0 ? popularServices : services.slice(0, 4)).map(service => {
+          const isSelected = selectedServiceIds.includes(service.id);
+          return (
+            <button
+              key={service.id}
+              type="button"
+              onClick={() => toggleService(service.id)}
+              className={cn(
+                "px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px]",
+                isSelected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-accent"
+              )}
+            >
+              {service.shortcut || service.name}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
