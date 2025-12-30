@@ -1186,7 +1186,7 @@ export default function CustomerBookingWizard({
               </div>}
             {carModel && <div className="flex justify-between">
               <span className="text-muted-foreground text-base">Samochód</span>
-              <span className="font-medium text-base">{carModel}, {carSize === 'small' ? 'mały' : carSize === 'medium' ? 'średni' : 'duży'}</span>
+              <span className="font-medium text-base">{carModel}</span>
             </div>}
             <div className="flex justify-between">
               <span className="text-muted-foreground text-base">Data</span>
