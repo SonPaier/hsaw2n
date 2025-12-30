@@ -107,7 +107,7 @@ const DEFAULT_START_HOUR = 9;
 const DEFAULT_END_HOUR = 19;
 const SLOT_MINUTES = 15; // 15-minute slots
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES; // 4 slots per hour
-const SLOT_HEIGHT = 27; // pixels per 15 minutes (increased for 3 lines in 30min)
+const SLOT_HEIGHT = 32; // pixels per 15 minutes (increased for 3 lines in 30min + padding)
 const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 108px per hour
 
 const getStatusColor = (status: string, stationType?: string) => {
