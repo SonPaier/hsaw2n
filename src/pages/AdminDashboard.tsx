@@ -733,22 +733,39 @@ const AdminDashboard = () => {
   const handleConfirmReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
-    const {
-      error
-    } = await supabase.from('reservations').update({
-      status: 'confirmed'
-    }).eq('id', reservationId);
-    if (error) {
-      toast.error('Błąd podczas potwierdzania rezerwacji');
-      console.error('Error confirming reservation:', error);
-      return;
-    }
 
-    // Update local state
+    const previousStatus = reservation.status;
+
+    // Optimistic UI update (so it disappears from "Niepotwierdzone" instantly)
     setReservations(prev => prev.map(r => r.id === reservationId ? {
       ...r,
       status: 'confirmed'
     } : r));
+    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      ...prev,
+      status: 'confirmed'
+    } : prev);
+
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: 'confirmed' })
+      .eq('id', reservationId);
+
+    if (error) {
+      // Rollback optimistic update
+      setReservations(prev => prev.map(r => r.id === reservationId ? {
+        ...r,
+        status: previousStatus
+      } : r));
+      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+        ...prev,
+        status: previousStatus
+      } : prev);
+
+      toast.error('Błąd podczas potwierdzania rezerwacji');
+      console.error('Error confirming reservation:', error);
+      return;
+    }
 
     // Send confirmation SMS
     try {
