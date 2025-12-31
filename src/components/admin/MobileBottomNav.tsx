@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Sheet,
   SheetContent,
@@ -29,19 +30,22 @@ interface Reservation {
 
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
 
+type WorkingHoursMap = Record<string, { open: string; close: string } | null>;
+
 interface MobileBottomNavProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
   stations: Station[];
   reservations: Reservation[];
   currentDate: string;
+  workingHours?: WorkingHoursMap;
   onAddReservation?: () => void;
   onAddReservationWithSlot?: (stationId: string, date: string, time: string) => void;
 }
 
-// Working hours
-const START_HOUR = 8;
-const END_HOUR = 18;
+// Default working hours fallback
+const DEFAULT_START_HOUR = 9;
+const DEFAULT_END_HOUR = 18;
 
 // Round minutes UP to nearest quarter (0, 15, 30, 45)
 const roundUpToQuarter = (minutes: number): number => {
@@ -53,11 +57,18 @@ const roundDownToQuarter = (minutes: number): number => {
   return Math.floor(minutes / 15) * 15;
 };
 
+// Parse time string like "09:00" to minutes from midnight
+const parseTimeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
 const MobileBottomNav = ({
   currentView,
   onViewChange,
   stations,
   reservations,
+  workingHours,
   onAddReservation,
   onAddReservationWithSlot,
 }: MobileBottomNavProps) => {
@@ -74,8 +85,21 @@ const MobileBottomNav = ({
     const currentMinutes = now.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinutes;
     
-    const workStart = START_HOUR * 60;
-    const workEnd = END_HOUR * 60;
+    // Get working hours for this day
+    const date = new Date(dateStr);
+    const dayName = format(date, 'EEEE').toLowerCase();
+    const dayWorkingHours = workingHours?.[dayName];
+    
+    // If no working hours for this day (closed), return empty
+    if (!dayWorkingHours) {
+      return stations.map(station => ({
+        ...station,
+        freeRanges: [],
+      }));
+    }
+    
+    const workStart = parseTimeToMinutes(dayWorkingHours.open);
+    const workEnd = parseTimeToMinutes(dayWorkingHours.close);
     
     return stations.map(station => {
       const stationReservations = reservations
@@ -267,29 +291,31 @@ const MobileBottomNav = ({
             </Button>
           </div>
 
-          <div className="space-y-5 overflow-y-auto pb-8">
-            {stationsWithRanges.map(station => (
-              <div key={station.id} className="bg-muted/20 rounded-xl p-4 border border-border/50">
-                <div className="text-lg font-semibold mb-3">{station.name}</div>
-                {station.freeRanges.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {station.freeRanges.map((range, idx) => (
-                      <button 
-                        key={idx} 
-                        onClick={() => handleSlotClick(station.id, range.startTime)}
-                        className="flex items-center justify-between bg-success/20 hover:bg-success/30 active:bg-success/40 text-success px-4 py-3 rounded-lg transition-colors text-left"
-                      >
-                        <span className="text-base font-medium">{range.label}</span>
-                        <span className="text-sm opacity-70">({range.duration})</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Brak wolnych terminów</span>
-                )}
-              </div>
-            ))}
-          </div>
+          <ScrollArea className="h-[calc(70vh-140px)]">
+            <div className="space-y-5 pb-8 pr-4">
+              {stationsWithRanges.map(station => (
+                <div key={station.id} className="bg-muted/30 rounded-xl p-4 border border-border">
+                  <div className="text-lg font-semibold mb-3">{station.name}</div>
+                  {station.freeRanges.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {station.freeRanges.map((range, idx) => (
+                        <button 
+                          key={idx} 
+                          onClick={() => handleSlotClick(station.id, range.startTime)}
+                          className="flex items-center justify-between bg-background hover:bg-muted active:bg-muted/80 border border-border px-4 py-3 rounded-lg transition-colors text-left"
+                        >
+                          <span className="text-lg font-semibold text-foreground">{range.label}</span>
+                          <span className="text-base text-muted-foreground">({range.duration})</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-base text-muted-foreground">Brak wolnych terminów</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         </SheetContent>
       </Sheet>
     </>
