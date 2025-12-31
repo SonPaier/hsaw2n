@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Search, Phone, MessageSquare, Check, Pencil, X, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
@@ -65,17 +66,6 @@ type TabValue = 'all' | 'confirmed' | 'pending';
 
 const DEBOUNCE_MS = 300;
 
-const formatDateHeader = (dateStr: string): string => {
-  const date = parseISO(dateStr);
-  if (isToday(date)) {
-    return `Dziś, ${format(date, 'd MMMM', { locale: pl })}`;
-  }
-  if (isTomorrow(date)) {
-    return `Jutro, ${format(date, 'd MMMM', { locale: pl })}`;
-  }
-  return format(date, 'EEEE, d MMMM', { locale: pl });
-};
-
 const ReservationsView = ({
   reservations,
   allServices,
@@ -83,12 +73,24 @@ const ReservationsView = ({
   onConfirmReservation,
   onRejectReservation,
 }: ReservationsViewProps) => {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<string | null>(null);
+
+  const formatDateHeader = (dateStr: string): string => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) {
+      return `${t('dates.today')}, ${format(date, 'd MMMM', { locale: pl })}`;
+    }
+    if (isTomorrow(date)) {
+      return `${t('dates.tomorrow')}, ${format(date, 'd MMMM', { locale: pl })}`;
+    }
+    return format(date, 'EEEE, d MMMM', { locale: pl });
+  };
 
   // Debounce search query
   useEffect(() => {
@@ -261,12 +263,12 @@ const ReservationsView = ({
             {/* Action buttons */}
             <div className="flex items-center gap-1.5">
               <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-                <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Zadzwoń">
+                <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title={t('common.call')}>
                   <Phone className="w-4 h-4" />
                 </a>
               </Button>
               <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-                <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Wyślij SMS">
+                <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title={t('common.sendSms')}>
                   <MessageSquare className="w-4 h-4" />
                 </a>
               </Button>
@@ -281,7 +283,7 @@ const ReservationsView = ({
                   }}
                 >
                   <Check className="w-4 h-4" />
-                  Potwierdź
+                  {t('common.confirm')}
                 </Button>
               )}
               <Button
@@ -289,7 +291,7 @@ const ReservationsView = ({
                 variant="ghost"
                 className="w-8 h-8 text-muted-foreground hover:text-destructive"
                 onClick={e => handleRejectClick(e, reservation.id)}
-                title="Odrzuć"
+                title={t('reservations.rejectReservation')}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -345,7 +347,7 @@ const ReservationsView = ({
                 }}
               >
                 <Check className="w-4 h-4" />
-                Potwierdź
+                {t('common.confirm')}
               </Button>
             )}
           </div>
@@ -360,7 +362,7 @@ const ReservationsView = ({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Szukaj po kodzie, imieniu, telefonie lub aucie..."
+          placeholder={t('reservations.searchPlaceholder')}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -371,7 +373,7 @@ const ReservationsView = ({
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all" className="gap-1.5">
-            Wszystkie
+            {t('common.all')}
             {counts.all > 0 && (
               <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.all}
@@ -379,7 +381,7 @@ const ReservationsView = ({
             )}
           </TabsTrigger>
           <TabsTrigger value="confirmed" className="gap-1.5">
-            Potwierdzone
+            {t('reservations.confirmed')}
             {counts.confirmed > 0 && (
               <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.confirmed}
@@ -387,7 +389,7 @@ const ReservationsView = ({
             )}
           </TabsTrigger>
           <TabsTrigger value="pending" className="gap-1.5">
-            Niepotwierdzone
+            {t('reservations.pending')}
             {counts.pending > 0 && (
               <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
                 {counts.pending}
@@ -403,16 +405,16 @@ const ReservationsView = ({
                 <Calendar className="w-10 h-10 text-muted-foreground" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Brak rezerwacji
+                {t('reservations.noReservations')}
               </h3>
               <p className="text-muted-foreground max-w-sm">
                 {debouncedQuery
-                  ? 'Nie znaleziono rezerwacji pasujących do wyszukiwania.'
+                  ? t('reservations.noSearchResults')
                   : activeTab === 'pending'
-                    ? 'Nie masz żadnych rezerwacji oczekujących na potwierdzenie.'
+                    ? t('reservations.noPending')
                     : activeTab === 'confirmed'
-                      ? 'Nie masz żadnych potwierdzonych rezerwacji.'
-                      : 'Nie masz żadnych nadchodzących rezerwacji.'}
+                      ? t('reservations.noConfirmed')
+                      : t('reservations.noUpcoming')}
               </p>
             </div>
           ) : (
@@ -439,7 +441,7 @@ const ReservationsView = ({
         </TabsContent>
       </Tabs>
 
-      {/* Reject confirmation dialog - double confirmation */}
+      {/* Reject confirmation dialog */}
       <AlertDialog
         open={rejectDialogOpen}
         onOpenChange={(open) => {
@@ -448,18 +450,18 @@ const ReservationsView = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Odrzucić rezerwację?</AlertDialogTitle>
+            <AlertDialogTitle>{t('reservations.rejectConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Rezerwacja zostanie usunięta z systemu. Dane klienta zostaną zachowane.
+              {t('reservations.rejectConfirmDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelReject}>Anuluj</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCancelReject}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmReject}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Tak, odrzuć
+              {t('reservations.yesReject')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
