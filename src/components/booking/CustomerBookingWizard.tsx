@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, addDays, parseISO, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isBefore, startOfDay, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
@@ -118,6 +119,7 @@ function OTPInputWithAutoFocus({
 export default function CustomerBookingWizard({
   onLayoutChange
 }: CustomerBookingWizardProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('phone');
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
   const [instance, setInstance] = useState<Instance | null>(null);
@@ -607,16 +609,16 @@ export default function CustomerBookingWizard({
   const handleDirectReservation = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({
-        title: 'Uzupełnij dane',
-        description: 'Podaj imię i numer telefonu',
+        title: t('errors.validationError'),
+        description: t('errors.requiredField'),
         variant: 'destructive'
       });
       return;
     }
     if (!selectedService || !selectedDate || !selectedTime || !instance) {
       toast({
-        title: 'Błąd',
-        description: 'Brak wymaganych danych',
+        title: t('common.error'),
+        description: t('errors.requiredField'),
         variant: 'destructive'
       });
       return;
@@ -652,8 +654,8 @@ export default function CustomerBookingWizard({
           return;
         }
         toast({
-          title: 'Błąd',
-          description: data.error || 'Nie udało się utworzyć rezerwacji',
+          title: t('common.error'),
+          description: data.error || t('errors.generic'),
           variant: 'destructive'
         });
         return;
@@ -674,8 +676,8 @@ export default function CustomerBookingWizard({
     } catch (error) {
       console.error('Error creating direct reservation:', error);
       toast({
-        title: 'Błąd',
-        description: 'Nie udało się utworzyć rezerwacji',
+        title: t('common.error'),
+        description: t('errors.generic'),
         variant: 'destructive'
       });
     } finally {
@@ -685,16 +687,16 @@ export default function CustomerBookingWizard({
   const handleSendSms = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({
-        title: 'Uzupełnij dane',
-        description: 'Podaj imię i numer telefonu',
+        title: t('errors.validationError'),
+        description: t('errors.requiredField'),
         variant: 'destructive'
       });
       return;
     }
     if (!selectedService || !selectedDate || !selectedTime || !instance) {
       toast({
-        title: 'Błąd',
-        description: 'Brak wymaganych danych',
+        title: t('common.error'),
+        description: t('errors.requiredField'),
         variant: 'destructive'
       });
       return;
@@ -726,15 +728,15 @@ export default function CustomerBookingWizard({
         setDevCode(response.data.devCode);
       }
       toast({
-        title: 'Kod wysłany',
-        description: 'Wpisz 4-cyfrowy kod z SMS'
+        title: t('booking.codeSent'),
+        description: t('booking.enterCode')
       });
       setSmsSent(true);
     } catch (error) {
       console.error('Error sending SMS:', error);
       toast({
-        title: 'Błąd',
-        description: 'Nie udało się wysłać SMS',
+        title: t('common.error'),
+        description: t('booking.smsSendError'),
         variant: 'destructive'
       });
     } finally {
@@ -745,8 +747,8 @@ export default function CustomerBookingWizard({
     const code = codeToVerify || verificationCode;
     if (code.length !== 4) {
       toast({
-        title: 'Nieprawidłowy kod',
-        description: 'Wpisz 4-cyfrowy kod z SMS',
+        title: t('booking.invalidCode'),
+        description: t('booking.enterCode'),
         variant: 'destructive'
       });
       return;
@@ -767,8 +769,8 @@ export default function CustomerBookingWizard({
       const data = response.data;
       if (!data.success) {
         toast({
-          title: 'Błędny kod',
-          description: data.error || 'Sprawdź kod i spróbuj ponownie',
+          title: t('booking.invalidCode'),
+          description: data.error || t('booking.verificationError'),
           variant: 'destructive'
         });
         return;
@@ -789,8 +791,8 @@ export default function CustomerBookingWizard({
     } catch (error) {
       console.error('Error verifying code:', error);
       toast({
-        title: 'Błąd weryfikacji',
-        description: 'Sprawdź kod i spróbuj ponownie',
+        title: t('booking.verificationError'),
+        description: t('booking.verificationError'),
         variant: 'destructive'
       });
     } finally {
@@ -848,7 +850,7 @@ export default function CustomerBookingWizard({
         <section className="py-4 md:py-6 text-center">
           <div className="container">
             <h1 className="text-lg md:text-xl font-bold text-foreground">
-              Zarezerwuj wizytę
+              {t('booking.title')}
             </h1>
           </div>
         </section>
@@ -857,19 +859,19 @@ export default function CustomerBookingWizard({
           <div className="max-w-sm mx-auto">
             <div className="glass-card p-4 space-y-4">
               <div>
-                <Label htmlFor="phone" className="text-base font-medium">Numer telefonu</Label>
+                <Label htmlFor="phone" className="text-base font-medium">{t('booking.phonePlaceholder')}</Label>
                 <div className="relative mt-1">
                   <Input id="phone" type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="" className="h-12 text-base" autoFocus />
                   {isCheckingCustomer && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
                 </div>
                 {isVerifiedCustomer && customerPhone.length >= 9 && <p className="text-green-600 mt-1.5 flex items-center gap-1 text-base">
-                    <Check className="w-3 h-3" /> Witaj ponownie!
+                    <Check className="w-3 h-3" /> {t('booking.verifiedCustomer')}
                   </p>}
               </div>
 
               {/* Car model input */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
-                  <Label htmlFor="carModel" className="text-base font-medium">Marka i model samochodu</Label>
+                  <Label htmlFor="carModel" className="text-base font-medium">{t('reservations.carModel')}</Label>
                   <div className="relative mt-1">
                     <Input id="carModel" value={carModel} onChange={e => setCarModel(e.target.value)} placeholder="np. Volkswagen Golf" className="h-12 text-base" />
                     {isInferringCarSize && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
@@ -897,12 +899,12 @@ export default function CustomerBookingWizard({
 
               {/* Name input - optional */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
-                  <Label htmlFor="customerName" className="text-base font-medium">Imię i nazwisko (opcjonalnie)</Label>
-                  <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="np. Jan Kowalski" className="h-12 text-base mt-1" />
+                  <Label htmlFor="customerName" className="text-base font-medium">{t('booking.yourName')} ({t('common.optional')})</Label>
+                  <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={t('booking.namePlaceholder')} className="h-12 text-base mt-1" />
                 </div>}
 
               <Button onClick={() => goToStep('service', 'forward')} className="w-full" disabled={customerPhone.length < 9 || isCheckingCustomer}>
-                Dalej
+                {t('common.next')}
               </Button>
             </div>
           </div>
@@ -976,12 +978,12 @@ export default function CustomerBookingWizard({
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => goToStep('phone', 'back')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
             <ArrowLeft className="w-4 h-4" />
-            Wróć
+            {t('common.back')}
           </button>
 
-          <h2 className="font-semibold mb-1 text-xl">Wybierz usługi</h2>
+          <h2 className="font-semibold mb-1 text-xl">{t('booking.selectService')}</h2>
           <p className="text-muted-foreground mb-3 text-base">
-            Ostateczny koszt usługi może się nieznacznie różnić, np. w przypadku bardzo silnych zabrudzeń.
+            {t('booking.priceNote') || 'Ostateczny koszt usługi może się nieznacznie różnić.'}
           </p>
 
           {/* First 5 services always visible */}
@@ -994,7 +996,7 @@ export default function CustomerBookingWizard({
               <div className="my-4">
                 <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2 w-full sm:w-auto">
                   {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showAllServices ? 'Zwiń' : `Więcej (${hiddenServices.length})`}
+                  {showAllServices ? t('booking.lessServices') : t('booking.moreServices', { count: hiddenServices.length })}
                 </Button>
               </div>
 
@@ -1006,7 +1008,7 @@ export default function CustomerBookingWizard({
           {/* CTA Button */}
           <div className="mt-6">
             <Button onClick={() => goToStep('datetime', 'forward')} className="w-full h-12 text-base" disabled={!canContinue}>
-              Dalej {allSelectedIds.length > 0 && `(${allSelectedIds.length} ${allSelectedIds.length === 1 ? 'usługa' : allSelectedIds.length < 5 ? 'usługi' : 'usług'})`}
+              {t('common.next')} {allSelectedIds.length > 0 && `(${allSelectedIds.length})`}
             </Button>
           </div>
         </div>
@@ -1062,12 +1064,12 @@ export default function CustomerBookingWizard({
             setSelectedTime(null);
           }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-base">
               <ArrowLeft className="w-4 h-4" />
-              Wróć
+              {t('common.back')}
             </button>
           </div>
 
           {/* Page title */}
-          <h2 className="text-xl font-semibold mb-2">Wybierz termin</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('booking.selectDateTime')}</h2>
 
           {/* Service info */}
           <p className="mb-4 text-base text-inherit">
@@ -1135,18 +1137,18 @@ export default function CustomerBookingWizard({
                       </button>;
             })}
                 </div> : <p className="text-center text-base text-muted-foreground py-4">
-                  Brak dostępnych godzin w tym dniu
+                  {t('booking.noSlotsForDay')}
                 </p>}
             </div>}
 
           {!selectedDate && <p className="text-center text-base text-muted-foreground py-4">
-              Wybierz dzień, aby zobaczyć dostępne godziny
+              {t('booking.selectDate')}
             </p>}
 
           {/* CTA Button */}
           <div className="mt-6">
             <Button onClick={handleConfirmDateTime} className="w-full h-12 text-base" disabled={!selectedDate || !selectedTime}>
-              Dalej
+              {t('common.next')}
             </Button>
           </div>
         </div>
@@ -1163,11 +1165,11 @@ export default function CustomerBookingWizard({
           setVerificationCode('');
         }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-3 text-base">
             <ArrowLeft className="w-4 h-4" />
-            Wróć
+            {t('common.back')}
           </button>
 
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold">Sprawdź i potwierdź</h2>
+            <h2 className="text-base font-semibold">{t('booking.summary')}</h2>
             
             {/* Dev Mode Checkbox */}
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
@@ -1180,19 +1182,19 @@ export default function CustomerBookingWizard({
           {/* Booking summary */}
           <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">Usługa</span>
+              <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
               <span className="font-medium text-base">{selectedService?.name}</span>
             </div>
             {selectedAddons.length > 0 && <div className="flex justify-between">
-                <span className="text-muted-foreground">Dodatki</span>
+                <span className="text-muted-foreground">{t('booking.addons')}</span>
                 <span className="font-medium">{selectedAddons.length}</span>
               </div>}
             {carModel && <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">Samochód</span>
+              <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
               <span className="font-medium text-base">{carModel}</span>
             </div>}
             <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">Data</span>
+              <span className="text-muted-foreground text-base">{t('common.date')}</span>
               <span className="font-medium text-base">
                 {selectedDate && format(selectedDate, 'd MMMM', {
                 locale: pl
@@ -1200,11 +1202,11 @@ export default function CustomerBookingWizard({
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">Godzina</span>
+              <span className="text-muted-foreground text-base">{t('common.time')}</span>
               <span className="font-medium text-base">{selectedTime}</span>
             </div>
             <div className="flex justify-between pt-1.5 border-t border-border">
-              <span className="text-muted-foreground text-base">Cena</span>
+              <span className="text-muted-foreground text-base">{t('common.price')}</span>
               <span className="font-bold text-primary text-base">{getTotalPrice()} zł</span>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -1222,12 +1224,12 @@ export default function CustomerBookingWizard({
             {/* VAT Invoice checkbox */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <Checkbox checked={wantsInvoice} onCheckedChange={checked => setWantsInvoice(checked === true)} className="h-5 w-5" disabled={smsSent} />
-              <span className="text-sm font-medium">Proszę o fakturę VAT</span>
+              <span className="text-sm font-medium">{t('booking.needInvoice')}</span>
             </label>
 
             {/* NIP input - shown when invoice is requested */}
             {wantsInvoice && <div className="animate-fade-in">
-                <Label htmlFor="nip" className="text-xs">Numer NIP</Label>
+                <Label htmlFor="nip" className="text-xs">{t('booking.nipNumber')}</Label>
                 <Input id="nip" value={nipNumber} onChange={e => setNipNumber(e.target.value)} placeholder="np. 1234567890" className="mt-1 h-9 text-sm" disabled={smsSent} maxLength={13} />
               </div>}
           </div>
@@ -1236,10 +1238,10 @@ export default function CustomerBookingWizard({
           <Collapsible open={showNotes} onOpenChange={setShowNotes} className="mb-3">
             <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
               {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              <span className="text-base">Zostaw wiadomość (opcjonalnie)</span>
+              <span className="text-base">{t('booking.additionalNotes')} ({t('common.optional')})</span>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2">
-              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder="np. bardzo brudne felgi, pies w aucie..." className="text-sm resize-none" rows={2} disabled={smsSent} />
+              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder={t('booking.notesPlaceholder')} className="text-sm resize-none" rows={2} disabled={smsSent} />
             </CollapsibleContent>
           </Collapsible>
 
@@ -1251,7 +1253,7 @@ export default function CustomerBookingWizard({
                 </div>}
               <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Potwierdź i umów
+                {t('booking.confirmBooking')}
               </Button>
             </> : <div className="glass-card p-4 text-center">
               <p className="text-xs text-muted-foreground mb-3">
@@ -1284,20 +1286,18 @@ export default function CustomerBookingWizard({
             </div>
 
             <h2 className="text-lg font-semibold mb-2">
-              {isPending ? 'Rezerwacja przyjęta!' : 'Rezerwacja potwierdzona!'}
+              {isPending ? t('booking.bookingPending') : t('booking.bookingSuccess')}
             </h2>
             
-            {isPending && <p className="text-sm text-muted-foreground mb-4">
-                Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.
-              </p>}
+            {isPending && <p className="text-sm text-muted-foreground mb-4">{t('booking.bookingPendingMessage') || 'Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.'}</p>}
 
             <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Usługa</span>
+                <span className="text-muted-foreground">{t('reservations.service')}</span>
                 <span className="font-medium">{confirmationData.serviceName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Data</span>
+                <span className="text-muted-foreground">{t('common.date')}</span>
                 <span className="font-medium">
                   {format(parseISO(confirmationData.date), 'd MMM yyyy', {
                   locale: pl
@@ -1305,13 +1305,13 @@ export default function CustomerBookingWizard({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Godzina</span>
+                <span className="text-muted-foreground">{t('common.time')}</span>
                 <span className="font-medium">{confirmationData.time}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
+                <span className="text-muted-foreground">{t('common.status')}</span>
                 <span className={cn("font-medium px-2 py-0.5 rounded text-xs", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
-                  {isPending ? 'Oczekuje na potwierdzenie' : 'Potwierdzona'}
+                  {isPending ? t('reservations.pending') : t('reservations.confirmed')}
                 </span>
               </div>
             </div>
@@ -1328,7 +1328,7 @@ export default function CustomerBookingWizard({
             }
           }}>
                 <MessageSquare className="w-4 h-4" />
-                Napisz do nas
+                {t('booking.contactUs')}
               </Button>}
 
             <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
@@ -1341,7 +1341,7 @@ export default function CustomerBookingWizard({
                   <Instagram className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">Zaobserwuj nas na Instagramie!</p>
+                  <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">{t('booking.followUsOnInstagram')}</p>
                   <p className="text-xs text-muted-foreground">Bądź na bieżąco z naszymi realizacjami</p>
                 </div>
               </a>}

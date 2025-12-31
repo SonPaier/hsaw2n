@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, ArrowUpDown, User, Building2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ type SortDirection = 'asc' | 'desc';
 const ITEMS_PER_PAGE = 10;
 
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +141,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   if (loading) {
     return (
       <div className="glass-card p-8 text-center text-muted-foreground">
-        Ładowanie klientów...
+        {t('common.loading')}
       </div>
     );
   }
@@ -151,7 +153,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder={activeTab === 'oferty' ? "Szukaj po nazwie, firmie, NIP, telefonie..." : "Szukaj po imieniu, telefonie lub email..."}
+            placeholder={t('customers.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -160,10 +162,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => handleSort('name')} className="gap-2">
             <ArrowUpDown className="w-4 h-4" />
-            Nazwa {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {t('common.name')} {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => handleSort('created_at')} className="gap-2">
-            Data {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {t('common.date')} {sortField === 'created_at' && (sortDirection === 'asc' ? '↑' : '↓')}
           </Button>
         </div>
       </div>
@@ -172,7 +174,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       <div className="glass-card overflow-hidden">
         {paginatedCustomers.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            {searchQuery ? 'Nie znaleziono klientów' : 'Brak klientów'}
+            {searchQuery ? t('common.noResults') : t('customers.noCustomers')}
           </div>
         ) : (
           <div className="divide-y divide-border/50">

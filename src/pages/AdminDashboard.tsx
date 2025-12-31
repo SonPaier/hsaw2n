@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ interface ClosedDay {
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings'];
 const AdminDashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     view
@@ -548,7 +550,7 @@ const AdminDashboard = () => {
         error: deleteError
       } = await supabase.from('reservations').delete().eq('id', reservationId);
       if (deleteError) {
-        toast.error('Błąd podczas usuwania rezerwacji');
+        toast.error(t('errors.generic'));
         console.error('Error deleting reservation:', deleteError);
         return;
       }
@@ -556,10 +558,10 @@ const AdminDashboard = () => {
       // Remove from local state
       setReservations(prev => prev.filter(r => r.id !== reservationId));
       setSelectedReservation(null);
-      toast.success('Rezerwacja została anulowana, dane klienta zachowane');
+      toast.success(t('reservations.reservationRejected'));
     } catch (error) {
       console.error('Error in delete operation:', error);
-      toast.error('Wystąpił błąd');
+      toast.error(t('errors.generic'));
     }
   };
   
@@ -595,23 +597,23 @@ const AdminDashboard = () => {
           console.error('Error rejecting reservation:', error);
           // Restore if delete failed
           setReservations(prev => [...prev, reservation]);
-          toast.error('Błąd podczas odrzucania rezerwacji');
+          toast.error(t('errors.generic'));
         }
       } catch (error) {
         console.error('Error rejecting reservation:', error);
         setReservations(prev => [...prev, reservation]);
-        toast.error('Wystąpił błąd');
+        toast.error(t('errors.generic'));
       }
     };
 
     // Show toast with undo option - delete happens when toast disappears
-    toast('Rezerwacja odrzucona', {
+    toast(t('reservations.reservationRejected'), {
       action: {
-        label: 'Cofnij',
+        label: t('common.undo'),
         onClick: () => {
           deleteExecuted = true; // Prevent delete
           setReservations(prev => [...prev, reservation]);
-          toast.success('Przywrócono rezerwację');
+          toast.success(t('common.success'));
         },
       },
       duration: 5000,
@@ -629,7 +631,7 @@ const AdminDashboard = () => {
       ...data
     } : r));
     setSelectedReservation(null);
-    toast.success('Rezerwacja została zaktualizowana');
+    toast.success(t('reservations.reservationUpdated'));
   };
   const handleAddReservation = (stationId: string, date: string, time: string) => {
     const station = stations.find(s => s.id === stationId);
@@ -664,7 +666,7 @@ const AdminDashboard = () => {
   const handleReservationAdded = () => {
     // Refresh reservations from database
     fetchReservations();
-    toast.success('Rezerwacja została dodana');
+    toast.success(t('reservations.reservationCreated'));
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
     setNewBreakData({
@@ -684,13 +686,13 @@ const AdminDashboard = () => {
       error
     } = await supabase.from('breaks').delete().eq('id', breakId);
     if (error) {
-      toast.error('Błąd podczas usuwania przerwy');
+      toast.error(t('errors.generic'));
       console.error('Error deleting break:', error);
       // Revert on error - refetch breaks
       fetchBreaks();
       return;
     }
-    toast.success('Przerwa została usunięta');
+    toast.success(t('common.success'));
   };
   const handleToggleClosedDay = async (date: string) => {
     if (!instanceId) return;
@@ -702,12 +704,12 @@ const AdminDashboard = () => {
         error
       } = await supabase.from('closed_days').delete().eq('id', existingClosedDay.id);
       if (error) {
-        toast.error('Błąd podczas otwierania dnia');
+        toast.error(t('errors.generic'));
         console.error('Error opening day:', error);
         fetchClosedDays();
         return;
       }
-      toast.success('Dzień został otwarty');
+      toast.success(t('common.success'));
     } else {
       // Day is open - close it (insert to closed_days)
       const newClosedDay = {
@@ -720,14 +722,14 @@ const AdminDashboard = () => {
         error
       } = await supabase.from('closed_days').insert(newClosedDay).select().single();
       if (error) {
-        toast.error('Błąd podczas zamykania dnia');
+        toast.error(t('errors.generic'));
         console.error('Error closing day:', error);
         return;
       }
       if (data) {
         setClosedDays(prev => [...prev, data]);
       }
-      toast.success('Dzień został zamknięty');
+      toast.success(t('common.success'));
     }
   };
   const handleConfirmReservation = async (reservationId: string) => {
@@ -762,7 +764,7 @@ const AdminDashboard = () => {
         status: previousStatus
       } : prev);
 
-      toast.error('Błąd podczas potwierdzania rezerwacji');
+      toast.error(t('errors.generic'));
       console.error('Error confirming reservation:', error);
       return;
     }
@@ -783,10 +785,10 @@ const AdminDashboard = () => {
           instanceId
         }
       });
-      toast.success('Rezerwacja potwierdzona, SMS wysłany do klienta');
+      toast.success(t('reservations.reservationConfirmed'));
     } catch (smsError) {
       console.error('Failed to send confirmation SMS:', smsError);
-      toast.success('Rezerwacja potwierdzona (SMS nieudany)');
+      toast.success(t('reservations.reservationConfirmed'));
     }
   };
   const handleCompleteReservation = async (reservationId: string) => {
@@ -798,7 +800,7 @@ const AdminDashboard = () => {
       status: 'completed'
     }).eq('id', reservationId);
     if (updateError) {
-      toast.error('Błąd podczas aktualizacji statusu');
+      toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
       return;
     }
@@ -818,10 +820,10 @@ const AdminDashboard = () => {
           instanceId
         }
       });
-      toast.success('Wizyta zakończona, SMS wysłany do klienta');
+      toast.success(t('common.success'));
     } catch (smsError) {
       console.error('SMS error:', smsError);
-      toast.warning('Wizyta zakończona, ale SMS nie został wysłany');
+      toast.warning(t('common.success'));
     }
   };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
@@ -857,7 +859,7 @@ const AdminDashboard = () => {
       error
     } = await supabase.from('reservations').update(updates).eq('id', reservationId);
     if (error) {
-      toast.error('Błąd podczas przenoszenia rezerwacji');
+      toast.error(t('errors.generic'));
       console.error('Error moving reservation:', error);
       return;
     }
@@ -875,14 +877,14 @@ const AdminDashboard = () => {
     toast.success(message, {
       duration: 5000,
       action: {
-        label: 'Cofnij',
+        label: t('common.undo'),
         onClick: async () => {
           // Restore original state in database
           const {
             error: undoError
           } = await supabase.from('reservations').update(originalState).eq('id', reservationId);
           if (undoError) {
-            toast.error('Błąd podczas cofania zmiany');
+            toast.error(t('errors.generic'));
             console.error('Error undoing move:', undoError);
             return;
           }
@@ -892,7 +894,7 @@ const AdminDashboard = () => {
             ...r,
             ...originalState
           } : r));
-          toast.success('Zmiana została cofnięta');
+          toast.success(t('common.success'));
         }
       }
     });
@@ -1024,7 +1026,7 @@ const AdminDashboard = () => {
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
             {/* Header - only shown for non-calendar views */}
             {currentView !== 'calendar' && <h1 className="text-2xl font-bold text-foreground">
-                {currentView === 'reservations' ? 'Lista rezerwacji' : currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
+                {currentView === 'reservations' ? t('reservations.title') : currentView === 'customers' ? t('customers.title') : t('settings.title')}
               </h1>}
 
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}

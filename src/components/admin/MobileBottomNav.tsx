@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, List, Clock, ChevronLeft, ChevronRight, UserCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -72,6 +73,7 @@ const MobileBottomNav = ({
   onAddReservation,
   onAddReservationWithSlot,
 }: MobileBottomNavProps) => {
+  const { t } = useTranslation();
   const [freeSlotsOpen, setFreeSlotsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -209,7 +211,7 @@ const MobileBottomNav = ({
             onClick={() => onViewChange('calendar')}
           >
             <Calendar className="w-5 h-5" />
-            <span className="text-[10px]">Kalendarz</span>
+            <span className="text-[10px]">{t('navigation.calendar')}</span>
           </Button>
 
           <Button
@@ -219,7 +221,7 @@ const MobileBottomNav = ({
             onClick={() => setFreeSlotsOpen(true)}
           >
             <Clock className="w-5 h-5" />
-            <span className="text-[10px]">Wolne</span>
+            <span className="text-[10px]">{t('navigation.freeSlots')}</span>
           </Button>
 
           {/* Add Reservation Button */}
@@ -241,7 +243,7 @@ const MobileBottomNav = ({
             onClick={() => onViewChange('customers')}
           >
             <UserCircle className="w-5 h-5" />
-            <span className="text-[10px]">Klienci</span>
+            <span className="text-[10px]">{t('navigation.customers')}</span>
           </Button>
 
           <Button
@@ -254,7 +256,7 @@ const MobileBottomNav = ({
             onClick={() => onViewChange('reservations')}
           >
             <List className="w-5 h-5" />
-            <span className="text-[10px]">Lista</span>
+            <span className="text-[10px]">{t('navigation.reservations')}</span>
           </Button>
         </div>
       </nav>
@@ -265,7 +267,7 @@ const MobileBottomNav = ({
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              Wolne terminy
+              {t('freeSlots.title')}
             </SheetTitle>
           </SheetHeader>
 
@@ -281,7 +283,7 @@ const MobileBottomNav = ({
               </span>
               {!isToday(selectedDate) && (
                 <Button variant="outline" size="sm" onClick={goToToday}>
-                  Dziś
+                  {t('common.today')}
                 </Button>
               )}
             </div>
@@ -310,7 +312,7 @@ const MobileBottomNav = ({
                       ))}
                     </div>
                   ) : (
-                    <span className="text-base text-muted-foreground">Brak wolnych terminów</span>
+                    <span className="text-base text-muted-foreground">{t('freeSlots.noSlots')}</span>
                   )}
                 </div>
               ))}
