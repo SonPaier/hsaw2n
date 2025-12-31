@@ -12,6 +12,7 @@ import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
+import ReservationsView from '@/components/admin/ReservationsView';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
@@ -561,6 +562,37 @@ const AdminDashboard = () => {
       toast.error('Wystąpił błąd');
     }
   };
+  
+  // Reject reservation - delete from DB but keep customer data
+  const handleRejectReservation = async (reservationId: string) => {
+    try {
+      const reservation = reservations.find(r => r.id === reservationId);
+      if (reservation && instanceId) {
+        // Save customer data before deleting
+        await supabase.from('customers').upsert({
+          instance_id: instanceId,
+          name: reservation.customer_name,
+          phone: reservation.customer_phone,
+        }, {
+          onConflict: 'instance_id,phone',
+          ignoreDuplicates: false
+        });
+      }
+
+      const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
+      if (error) {
+        toast.error('Błąd podczas odrzucania rezerwacji');
+        console.error('Error rejecting reservation:', error);
+        return;
+      }
+
+      setReservations(prev => prev.filter(r => r.id !== reservationId));
+      toast.success('Rezerwacja została odrzucona');
+    } catch (error) {
+      console.error('Error rejecting reservation:', error);
+      toast.error('Wystąpił błąd');
+    }
+  };
   const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
     setReservations(prev => prev.map(r => r.id === reservationId ? {
       ...r,
@@ -956,126 +988,15 @@ const AdminDashboard = () => {
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} />
               </div>}
 
-            {currentView === 'reservations' && <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold text-foreground">
-                    Do potwierdzenia
-                    {pendingCount > 0 && <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full">
-                        {pendingCount}
-                      </span>}
-                  </h2>
-                </div>
-
-                {pendingCount === 0 ? <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center mb-6">
-                      <CheckCircle2 className="w-10 h-10 text-green-500" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">
-                      Wszystko potwierdzone!
-                    </h3>
-                    <p className="text-muted-foreground max-w-sm">
-                      Nie masz żadnych rezerwacji oczekujących na potwierdzenie. Nowe rezerwacje pojawią się tutaj automatycznie.
-                    </p>
-                  </div> : <div className="glass-card overflow-hidden">
-                    <div className="divide-y divide-border/50">
-                      {reservations.filter(r => (r.status || 'pending') === 'pending').sort((a, b) => {
-                  const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
-                  if (d !== 0) return d;
-                  return (a.start_time || '').localeCompare(b.start_time || '');
-                }).map(reservation => {
-                  const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
-                  const dateStr = format(new Date(reservation.reservation_date), 'd MMM', {
-                    locale: pl
-                  });
-                  return <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 transition-colors cursor-pointer bg-amber-500/10">
-                              {/* Desktop layout */}
-                              <div className="hidden sm:flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-4 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
-                                    <AlertCircle className="w-5 h-5" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="font-medium text-foreground truncate">
-                                      {reservation.vehicle_plate}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground truncate">
-                                      {reservation.customer_name}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <div className="text-right">
-                                    <div className="font-medium text-foreground tabular-nums">
-                                      {timeRange}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {dateStr}
-                                    </div>
-                                  </div>
-                                  <Button variant="outline" size="icon" className="w-9 h-9" asChild>
-                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Zadzwoń">
-                                      <Phone className="w-4 h-4" />
-                                    </a>
-                                  </Button>
-                                  <Button variant="outline" size="icon" className="w-9 h-9" asChild>
-                                    <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Wyślij SMS">
-                                      <MessageSquare className="w-4 h-4" />
-                                    </a>
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
-                          e.stopPropagation();
-                          handleConfirmReservation(reservation.id);
-                        }}>
-                                    <Check className="w-4 h-4" />
-                                    Potwierdź
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Mobile layout - stacked with buttons at bottom */}
-                              <div className="sm:hidden space-y-3">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-600">
-                                    <AlertCircle className="w-5 h-5" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-foreground">
-                                      {reservation.vehicle_plate}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {reservation.customer_name}
-                                    </div>
-                                    <div className="mt-1 text-sm font-medium text-foreground tabular-nums">
-                                      {timeRange} · {dateStr}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-end gap-2 pt-1">
-                                  <Button variant="outline" size="icon" className="h-10 w-10" asChild>
-                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
-                                      <Phone className="w-4 h-4" />
-                                    </a>
-                                  </Button>
-                                  <Button variant="outline" size="icon" className="h-10 w-10" asChild>
-                                    <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
-                                      <MessageSquare className="w-4 h-4" />
-                                    </a>
-                                  </Button>
-                                  <Button variant="outline" className="h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
-                          e.stopPropagation();
-                          handleConfirmReservation(reservation.id);
-                        }}>
-                                    <Check className="w-4 h-4" />
-                                    Potwierdź
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>;
-                })}
-                    </div>
-                  </div>}
-              </div>}
+            {currentView === 'reservations' && (
+              <ReservationsView
+                reservations={reservations}
+                allServices={allServices}
+                onReservationClick={handleReservationClick}
+                onConfirmReservation={handleConfirmReservation}
+                onRejectReservation={handleRejectReservation}
+              />
+            )}
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
