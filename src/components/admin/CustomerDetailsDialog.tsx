@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Customer {
   id: string;
@@ -47,6 +48,7 @@ interface CustomerDetailsDialogProps {
 }
 
 const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomerUpdated }: CustomerDetailsDialogProps) => {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [visits, setVisits] = useState<VisitHistory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,11 +140,11 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
       
       if (error) throw error;
       
-      toast.success('SMS wysłany');
+      toast.success(t('sms.sent'));
       setSmsMessage('');
     } catch (error) {
       console.error('Error sending SMS:', error);
-      toast.error('Błąd podczas wysyłania SMS');
+      toast.error(t('sms.sendFailed'));
     } finally {
       setSendingSms(false);
     }
@@ -165,12 +167,12 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
       
       if (error) throw error;
       
-      toast.success('Dane klienta zapisane');
+      toast.success(t('customers.saved'));
       setIsEditing(false);
       onCustomerUpdated?.();
     } catch (error) {
       console.error('Error saving customer:', error);
-      toast.error('Błąd podczas zapisywania');
+      toast.error(t('errors.generic'));
     } finally {
       setSaving(false);
     }
@@ -186,11 +188,11 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
 
   const getStatusLabel = (status: string | null) => {
     switch (status) {
-      case 'confirmed': return 'Potwierdzona';
-      case 'completed': return 'Zakończona';
-      case 'cancelled': return 'Anulowana';
-      case 'in_progress': return 'W trakcie';
-      default: return 'Oczekująca';
+      case 'confirmed': return t('reservations.confirmed');
+      case 'completed': return t('hall.completed');
+      case 'cancelled': return t('reservations.cancelled');
+      case 'in_progress': return t('hall.inProgress');
+      default: return t('reservations.pending');
     }
   };
 
@@ -231,11 +233,11 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
           {isEditing ? (
             <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50">
               <div>
-                <label className="text-sm font-medium mb-1 block">Imię i nazwisko</label>
+                <label className="text-sm font-medium mb-1 block">{t('customers.fullName')}</label>
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Imię i nazwisko"
+                  placeholder={t('customers.fullName')}
                 />
               </div>
               <div>
@@ -249,20 +251,20 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
               </div>
               {customer.source === 'oferty' && (
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Firma</label>
+                  <label className="text-sm font-medium mb-1 block">{t('customers.company')}</label>
                   <Input
                     value={editCompany}
                     onChange={(e) => setEditCompany(e.target.value)}
-                    placeholder="Nazwa firmy"
+                    placeholder={t('customers.company')}
                   />
                 </div>
               )}
               <div>
-                <label className="text-sm font-medium mb-1 block">Notatki</label>
+                <label className="text-sm font-medium mb-1 block">{t('common.notes')}</label>
                 <Textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Notatki o kliencie..."
+                  placeholder={t('customers.notesPlaceholder')}
                   rows={3}
                 />
               </div>
@@ -273,7 +275,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                   className="flex-1 gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  {saving ? 'Zapisywanie...' : 'Zapisz'}
+                  {saving ? t('common.loading') : t('common.save')}
                 </Button>
                 <Button
                   variant="outline"
@@ -282,7 +284,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                   className="gap-2"
                 >
                   <X className="w-4 h-4" />
-                  Anuluj
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -296,7 +298,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                   onClick={handleCall}
                 >
                   <Phone className="w-4 h-4 text-success" />
-                  Zadzwoń
+                  {t('common.call')}
                 </Button>
                 <Button
                   variant="outline"
@@ -346,7 +348,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
             <div>
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                 <Car className="w-4 h-4" />
-                Pojazdy
+                {t('customers.vehicles')}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {uniqueVehicles.map((plate) => (
@@ -366,10 +368,10 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
           {/* Send SMS - only on web */}
           {!isMobile && (
             <div>
-              <h4 className="text-sm font-medium mb-2">Wyślij wiadomość SMS</h4>
+              <h4 className="text-sm font-medium mb-2">{t('sms.sendSms')}</h4>
               <div className="space-y-2">
                 <Textarea
-                  placeholder="Treść wiadomości..."
+                  placeholder={t('sms.messagePlaceholder')}
                   value={smsMessage}
                   onChange={(e) => setSmsMessage(e.target.value)}
                   rows={3}
@@ -379,7 +381,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                   disabled={!smsMessage.trim() || sendingSms}
                   className="w-full"
                 >
-                  {sendingSms ? 'Wysyłanie...' : 'Wyślij SMS'}
+                  {sendingSms ? t('common.loading') : t('sms.send')}
                 </Button>
               </div>
             </div>
@@ -391,16 +393,16 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
           <div>
             <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Historia wizyt ({visits.length})
+              {t('customers.visitHistory')} ({visits.length})
             </h4>
             
             {loading ? (
               <div className="text-center text-muted-foreground py-4">
-                Ładowanie...
+                {t('common.loading')}
               </div>
             ) : visits.length === 0 ? (
               <div className="text-center text-muted-foreground py-4">
-                Brak historii wizyt
+                {t('customers.noVisitHistory')}
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -448,7 +450,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
             <>
               <Separator />
               <div>
-                <h4 className="text-sm font-medium mb-2">Notatki</h4>
+                <h4 className="text-sm font-medium mb-2">{t('common.notes')}</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
               </div>
             </>

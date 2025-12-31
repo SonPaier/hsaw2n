@@ -197,7 +197,12 @@
     "reservationsCount": "Liczba rezerwacji",
     "lastVisit": "Ostatnia wizyta",
     "vehicles": "Pojazdy",
-    "noVehicles": "Brak pojazdów"
+    "noVehicles": "Brak pojazdów",
+    "fullName": "Imię i nazwisko",
+    "notesPlaceholder": "Notatki o kliencie...",
+    "saved": "Dane klienta zapisane",
+    "visitHistory": "Historia wizyt",
+    "noVisitHistory": "Brak historii wizyt"
   },
   "services": {
     "title": "Usługi",
@@ -335,7 +340,10 @@
     "offerViewed": "Oferta obejrzana",
     "offerAccepted": "Oferta zaakceptowana",
     "offerRejected": "Oferta odrzucona",
-    "unread": "nieprzeczytanych"
+    "unread": "nieprzeczytanych",
+    "new": "Nowe",
+    "earlier": "Wcześniejsze",
+    "viewAll": "Zobacz wszystkie powiadomienia"
   },
   "settings": {
     "title": "Ustawienia",
@@ -394,7 +402,8 @@
     "sendSms": "Wyślij SMS",
     "recipient": "Odbiorca",
     "message": "Wiadomość",
-    "send": "Wyślij",
+    "messagePlaceholder": "Treść wiadomości...",
+    "send": "Wyślij SMS",
     "sent": "SMS wysłany",
     "sendFailed": "Błąd podczas wysyłania SMS",
     "usage": "Zużycie SMS",
@@ -451,6 +460,7 @@
   },
   "hall": {
     "title": "Widok hali",
+    "employeePanel": "Panel pracownika",
     "noActiveReservations": "Brak aktywnych rezerwacji",
     "currentReservation": "Aktualna rezerwacja",
     "nextReservation": "Następna rezerwacja",
