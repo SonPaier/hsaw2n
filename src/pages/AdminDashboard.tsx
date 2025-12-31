@@ -834,15 +834,18 @@ const AdminDashboard = () => {
           <div className="flex flex-col h-full">
             {/* Logo */}
             <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
-              <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "gap-3")}>
+              <button 
+                onClick={() => setCurrentView('calendar')} 
+                className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
+              >
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-primary-foreground" />
                 </div>
-                {!sidebarCollapsed && <div>
+                {!sidebarCollapsed && <div className="text-left">
                     <h1 className="font-bold text-foreground">ARM CAR</h1>
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
-              </div>
+              </button>
               {!sidebarCollapsed && instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
               const reservation = reservations.find(r => r.id === reservationId);
               if (reservation) {
