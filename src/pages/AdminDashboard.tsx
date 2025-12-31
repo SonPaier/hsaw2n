@@ -568,13 +568,14 @@ const AdminDashboard = () => {
     try {
       const reservation = reservations.find(r => r.id === reservationId);
       if (reservation && instanceId) {
-        // Save customer data before deleting
+        // Save customer data before deleting - use correct constraint columns
         await supabase.from('customers').upsert({
           instance_id: instanceId,
           name: reservation.customer_name,
           phone: reservation.customer_phone,
+          source: 'myjnia',
         }, {
-          onConflict: 'instance_id,phone',
+          onConflict: 'instance_id,source,phone',
           ignoreDuplicates: false
         });
       }
@@ -586,6 +587,7 @@ const AdminDashboard = () => {
         return;
       }
 
+      // Update local state immediately
       setReservations(prev => prev.filter(r => r.id !== reservationId));
       toast.success('Rezerwacja została odrzucona');
     } catch (error) {
