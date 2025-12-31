@@ -190,7 +190,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:sticky top-0 left-0 z-50 h-dvh glass-card border-r border-border/50 flex flex-col transition-all duration-300",
+        "fixed lg:sticky top-0 left-0 z-50 h-dvh glass-card border-r border-border/50 flex flex-col transition-all duration-300 overflow-hidden",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         sidebarCollapsed ? "lg:w-16" : "lg:w-64",
         "w-64"
