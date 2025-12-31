@@ -72,12 +72,14 @@ interface ClosedDay {
   reason: string | null;
 }
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
-
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings'];
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { view } = useParams<{ view?: string }>();
+  const {
+    view
+  } = useParams<{
+    view?: string;
+  }>();
   const {
     user,
     signOut
@@ -87,12 +89,9 @@ const AdminDashboard = () => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
     return saved === 'true';
   });
-  
+
   // Derive currentView from URL param
-  const currentView: ViewType = view && validViews.includes(view as ViewType) 
-    ? (view as ViewType) 
-    : 'calendar';
-  
+  const currentView: ViewType = view && validViews.includes(view as ViewType) ? view as ViewType : 'calendar';
   const setCurrentView = (newView: ViewType) => {
     if (newView === 'calendar') {
       navigate('/admin');
@@ -100,10 +99,13 @@ const AdminDashboard = () => {
       navigate(`/admin/${newView}`);
     }
   };
-  
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [allServices, setAllServices] = useState<Array<{ id: string; name: string; shortcut?: string | null }>>([]);
+  const [allServices, setAllServices] = useState<Array<{
+    id: string;
+    name: string;
+    shortcut?: string | null;
+  }>>([]);
   const [stations, setStations] = useState<Station[]>([]);
 
   // Add reservation dialog state
@@ -123,7 +125,7 @@ const AdminDashboard = () => {
     date: '',
     time: ''
   });
-  
+
   // Closed days state
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
 
@@ -138,7 +140,9 @@ const AdminDashboard = () => {
   const [instanceData, setInstanceData] = useState<any>(null);
 
   // Instance features
-  const { hasFeature } = useInstanceFeatures(instanceId);
+  const {
+    hasFeature
+  } = useInstanceFeatures(instanceId);
 
   // Working hours for calendar
   const [workingHours, setWorkingHours] = useState<Record<string, {
@@ -205,16 +209,13 @@ const AdminDashboard = () => {
   // Fetch instance data for settings
   const fetchInstanceData = async () => {
     if (!instanceId) return;
-    const { data } = await supabase
-      .from('instances')
-      .select('*')
-      .eq('id', instanceId)
-      .maybeSingle();
+    const {
+      data
+    } = await supabase.from('instances').select('*').eq('id', instanceId).maybeSingle();
     if (data) {
       setInstanceData(data);
     }
   };
-
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
@@ -239,11 +240,9 @@ const AdminDashboard = () => {
   // Fetch all services for multi-service mapping
   const fetchAllServices = async () => {
     if (!instanceId) return;
-    const { data } = await supabase
-      .from('services')
-      .select('id, name, shortcut')
-      .eq('instance_id', instanceId)
-      .eq('active', true);
+    const {
+      data
+    } = await supabase.from('services').select('id, name, shortcut').eq('instance_id', instanceId).eq('active', true);
     if (data) {
       setAllServices(data);
     }
@@ -252,19 +251,21 @@ const AdminDashboard = () => {
   // Fetch reservations from database
   const fetchReservations = async () => {
     if (!instanceId) return;
-    
+
     // First fetch services to map service_ids
-    const { data: servicesData } = await supabase
-      .from('services')
-      .select('id, name, shortcut')
-      .eq('instance_id', instanceId)
-      .eq('active', true);
-    
-    const servicesMap = new Map<string, { name: string; shortcut?: string | null }>();
+    const {
+      data: servicesData
+    } = await supabase.from('services').select('id, name, shortcut').eq('instance_id', instanceId).eq('active', true);
+    const servicesMap = new Map<string, {
+      name: string;
+      shortcut?: string | null;
+    }>();
     if (servicesData) {
-      servicesData.forEach(s => servicesMap.set(s.id, { name: s.name, shortcut: s.shortcut }));
+      servicesData.forEach(s => servicesMap.set(s.id, {
+        name: s.name,
+        shortcut: s.shortcut
+      }));
     }
-    
     const {
       data,
       error
@@ -293,15 +294,16 @@ const AdminDashboard = () => {
       setReservations(data.map(r => {
         // Map service_ids to services_data if available
         const serviceIds = (r as any).service_ids as string[] | null;
-        const servicesData: Array<{ name: string; shortcut?: string | null }> = [];
-        
+        const servicesData: Array<{
+          name: string;
+          shortcut?: string | null;
+        }> = [];
         if (serviceIds && serviceIds.length > 0) {
           serviceIds.forEach(id => {
             const svc = servicesMap.get(id);
             if (svc) servicesData.push(svc);
           });
         }
-        
         return {
           ...r,
           status: r.status || 'pending',
@@ -330,19 +332,18 @@ const AdminDashboard = () => {
       setBreaks(data);
     }
   };
-  
+
   // Fetch closed days from database
   const fetchClosedDays = async () => {
     if (!instanceId) return;
-    const { data, error } = await supabase
-      .from('closed_days')
-      .select('*')
-      .eq('instance_id', instanceId);
+    const {
+      data,
+      error
+    } = await supabase.from('closed_days').select('*').eq('instance_id', instanceId);
     if (!error && data) {
       setClosedDays(data);
     }
   };
-  
   useEffect(() => {
     fetchReservations();
     fetchBreaks();
@@ -355,18 +356,16 @@ const AdminDashboard = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       // Pleasant notification melody
       oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
       oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
       oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-      
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.4);
     } catch (e) {
@@ -386,12 +385,12 @@ const AdminDashboard = () => {
       console.log('Realtime reservation update:', payload);
       if (payload.eventType === 'INSERT') {
         const newRecord = payload.new as any;
-        
+
         // Play sound only for customer reservations
         if (newRecord.source === 'customer') {
           playNotificationSound();
         }
-        
+
         // Fetch the new reservation with service and station info
         supabase.from('reservations').select(`
                 id,
@@ -427,7 +426,6 @@ const AdminDashboard = () => {
               } : undefined
             };
             setReservations(prev => [...prev, newReservation as Reservation]);
-            
             const isCustomerReservation = (data as any).source === 'customer';
             toast.success(isCustomerReservation ? '🔔 Nowa rezerwacja od klienta!' : 'Nowa rezerwacja!', {
               description: `${data.customer_name} - ${data.start_time}`
@@ -593,7 +591,6 @@ const AdminDashboard = () => {
       now.setMinutes(0);
     }
     const timeStr = format(now, 'HH:mm');
-    
     setNewReservationData({
       stationId: firstStation?.id || '',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -621,8 +618,9 @@ const AdminDashboard = () => {
   const handleDeleteBreak = async (breakId: string) => {
     // Optimistic update - remove from UI immediately
     setBreaks(prev => prev.filter(b => b.id !== breakId));
-    
-    const { error } = await supabase.from('breaks').delete().eq('id', breakId);
+    const {
+      error
+    } = await supabase.from('breaks').delete().eq('id', breakId);
     if (error) {
       toast.error('Błąd podczas usuwania przerwy');
       console.error('Error deleting break:', error);
@@ -632,21 +630,15 @@ const AdminDashboard = () => {
     }
     toast.success('Przerwa została usunięta');
   };
-  
   const handleToggleClosedDay = async (date: string) => {
     if (!instanceId) return;
-    
     const existingClosedDay = closedDays.find(cd => cd.closed_date === date);
-    
     if (existingClosedDay) {
       // Day is closed - open it (delete from closed_days)
       setClosedDays(prev => prev.filter(cd => cd.id !== existingClosedDay.id));
-      
-      const { error } = await supabase
-        .from('closed_days')
-        .delete()
-        .eq('id', existingClosedDay.id);
-      
+      const {
+        error
+      } = await supabase.from('closed_days').delete().eq('id', existingClosedDay.id);
       if (error) {
         toast.error('Błąd podczas otwierania dnia');
         console.error('Error opening day:', error);
@@ -661,46 +653,41 @@ const AdminDashboard = () => {
         closed_date: date,
         reason: null
       };
-      
-      const { data, error } = await supabase
-        .from('closed_days')
-        .insert(newClosedDay)
-        .select()
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('closed_days').insert(newClosedDay).select().single();
       if (error) {
         toast.error('Błąd podczas zamykania dnia');
         console.error('Error closing day:', error);
         return;
       }
-      
       if (data) {
         setClosedDays(prev => [...prev, data]);
       }
       toast.success('Dzień został zamknięty');
     }
   };
-
   const handleConfirmReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
-
-    const { error } = await supabase
-      .from('reservations')
-      .update({ status: 'confirmed' })
-      .eq('id', reservationId);
-    
+    const {
+      error
+    } = await supabase.from('reservations').update({
+      status: 'confirmed'
+    }).eq('id', reservationId);
     if (error) {
       toast.error('Błąd podczas potwierdzania rezerwacji');
       console.error('Error confirming reservation:', error);
       return;
     }
-    
+
     // Update local state
-    setReservations(prev => prev.map(r => 
-      r.id === reservationId ? { ...r, status: 'confirmed' } : r
-    ));
-    
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'confirmed'
+    } : r));
+
     // Send confirmation SMS
     try {
       const dateObj = new Date(reservation.reservation_date);
@@ -709,9 +696,7 @@ const AdminDashboard = () => {
       const dayName = dayNames[dateObj.getDay()];
       const dayNum = dateObj.getDate();
       const monthName = monthNames[dateObj.getMonth()];
-      
       const message = `Twoja rezerwacja została potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservation.start_time?.slice(0, 5)}-${reservation.end_time?.slice(0, 5)}. Do zobaczenia!`;
-      
       await supabase.functions.invoke('send-sms-message', {
         body: {
           phone: reservation.customer_phone,
@@ -719,23 +704,20 @@ const AdminDashboard = () => {
           instanceId
         }
       });
-      
       toast.success('Rezerwacja potwierdzona, SMS wysłany do klienta');
     } catch (smsError) {
       console.error('Failed to send confirmation SMS:', smsError);
       toast.success('Rezerwacja potwierdzona (SMS nieudany)');
     }
   };
-
   const handleCompleteReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
-
-    const { error: updateError } = await supabase
-      .from('reservations')
-      .update({ status: 'completed' })
-      .eq('id', reservationId);
-
+    const {
+      error: updateError
+    } = await supabase.from('reservations').update({
+      status: 'completed'
+    }).eq('id', reservationId);
     if (updateError) {
       toast.error('Błąd podczas aktualizacji statusu');
       console.error('Update error:', updateError);
@@ -743,9 +725,10 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => 
-      r.id === reservationId ? { ...r, status: 'completed' } : r
-    ));
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'completed'
+    } : r));
 
     // Send SMS about visit completion
     try {
@@ -762,11 +745,10 @@ const AdminDashboard = () => {
       toast.warning('Wizyta zakończona, ale SMS nie został wysłany');
     }
   };
-
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
-    
+
     // Store original state for undo
     const originalState = {
       station_id: reservation.station_id,
@@ -774,7 +756,6 @@ const AdminDashboard = () => {
       start_time: reservation.start_time,
       end_time: reservation.end_time
     };
-    
     const updates: any = {
       station_id: newStationId,
       reservation_date: newDate
@@ -807,13 +788,10 @@ const AdminDashboard = () => {
       ...r,
       ...updates
     } : r));
-    
     const station = stations.find(s => s.id === newStationId);
     const dateChanged = reservation.reservation_date !== newDate;
-    const message = dateChanged 
-      ? `Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})`
-      : `Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`;
-    
+    const message = dateChanged ? `Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})` : `Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`;
+
     // Show toast with undo action
     toast.success(message, {
       duration: 5000,
@@ -821,31 +799,26 @@ const AdminDashboard = () => {
         label: 'Cofnij',
         onClick: async () => {
           // Restore original state in database
-          const { error: undoError } = await supabase
-            .from('reservations')
-            .update(originalState)
-            .eq('id', reservationId);
-          
+          const {
+            error: undoError
+          } = await supabase.from('reservations').update(originalState).eq('id', reservationId);
           if (undoError) {
             toast.error('Błąd podczas cofania zmiany');
             console.error('Error undoing move:', undoError);
             return;
           }
-          
+
           // Restore local state
           setReservations(prev => prev.map(r => r.id === reservationId ? {
             ...r,
             ...originalState
           } : r));
-          
           toast.success('Zmiana została cofnięta');
         }
       }
     });
   };
-
   const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
-
   return <>
       <Helmet>
         <title>Panel Admina - ARM CAR AUTO SPA</title>
@@ -870,17 +843,12 @@ const AdminDashboard = () => {
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
               </div>
-              {!sidebarCollapsed && instanceId && (
-                <NotificationBell 
-                  instanceId={instanceId} 
-                  onOpenReservation={(reservationId) => {
-                    const reservation = reservations.find(r => r.id === reservationId);
-                    if (reservation) {
-                      setSelectedReservation(reservation);
-                    }
-                  }}
-                />
-              )}
+              {!sidebarCollapsed && instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
+              const reservation = reservations.find(r => r.id === reservationId);
+              if (reservation) {
+                setSelectedReservation(reservation);
+              }
+            }} />}
             </div>
 
             {/* Navigation */}
@@ -892,39 +860,29 @@ const AdminDashboard = () => {
               <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('reservations')} title="Rezerwacje">
                 <div className="relative">
                   <Users className="w-4 h-4 shrink-0" />
-                  {sidebarCollapsed && pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                  {sidebarCollapsed && pendingCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
                       {pendingCount}
-                    </span>
-                  )}
+                    </span>}
                 </div>
-                {!sidebarCollapsed && (
-                  <>
+                {!sidebarCollapsed && <>
                     <span className="flex-1 text-left">Rezerwacje</span>
-                    {pendingCount > 0 && (
-                      <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
+                    {pendingCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
                         {pendingCount}
-                      </span>
-                    )}
-                  </>
-                )}
+                      </span>}
+                  </>}
               </Button>
               <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('customers')} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
-              {hasFeature('offers') && (
-                <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/oferty')} title="Oferty">
+              {hasFeature('offers') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/oferty')} title="Oferty">
                   <FileText className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Oferty"}
-                </Button>
-              )}
-              {hasFeature('followup') && (
-                <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/followup')} title="Follow-up">
+                </Button>}
+              {hasFeature('followup') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/followup')} title="Follow-up">
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
-                </Button>
-              )}
+                </Button>}
               <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('settings')} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
@@ -965,17 +923,12 @@ const AdminDashboard = () => {
                 <span className="font-bold">ARM CAR</span>
               </div>
               <div className="flex items-center gap-1">
-                {instanceId && (
-                  <NotificationBell 
-                    instanceId={instanceId} 
-                    onOpenReservation={(reservationId) => {
-                      const reservation = reservations.find(r => r.id === reservationId);
-                      if (reservation) {
-                        setSelectedReservation(reservation);
-                      }
-                    }}
-                  />
-                )}
+                {instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
+                const reservation = reservations.find(r => r.id === reservationId);
+                if (reservation) {
+                  setSelectedReservation(reservation);
+                }
+              }} />}
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -984,28 +937,14 @@ const AdminDashboard = () => {
           </header>
 
           {/* Desktop Notification Bell - fixed position */}
-          {instanceId && (
-            <div className="hidden lg:block fixed top-[11px] right-[11px] z-40">
-              <NotificationBell 
-                instanceId={instanceId} 
-                onOpenReservation={(reservationId) => {
-                  const reservation = reservations.find(r => r.id === reservationId);
-                  if (reservation) {
-                    setSelectedReservation(reservation);
-                  }
-                }}
-              />
-            </div>
-          )}
+          {instanceId}
 
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
             {/* Header - only shown for non-calendar views */}
-            {currentView !== 'calendar' && (
-              <h1 className="text-2xl font-bold text-foreground">
+            {currentView !== 'calendar' && <h1 className="text-2xl font-bold text-foreground">
                 {currentView === 'reservations' ? 'Lista rezerwacji' : currentView === 'customers' ? 'Klienci' : 'Ustawienia'}
-              </h1>
-            )}
+              </h1>}
 
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
@@ -1018,16 +957,13 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-base font-semibold text-foreground">
                     Do potwierdzenia
-                    {pendingCount > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full">
+                    {pendingCount > 0 && <span className="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full">
                         {pendingCount}
-                      </span>
-                    )}
+                      </span>}
                   </h2>
                 </div>
 
-                {pendingCount === 0 ? (
-                  <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+                {pendingCount === 0 ? <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center mb-6">
                       <CheckCircle2 className="w-10 h-10 text-green-500" />
                     </div>
@@ -1037,22 +973,18 @@ const AdminDashboard = () => {
                     <p className="text-muted-foreground max-w-sm">
                       Nie masz żadnych rezerwacji oczekujących na potwierdzenie. Nowe rezerwacje pojawią się tutaj automatycznie.
                     </p>
-                  </div>
-                ) : (
-                  <div className="glass-card overflow-hidden">
+                  </div> : <div className="glass-card overflow-hidden">
                     <div className="divide-y divide-border/50">
-                      {reservations
-                        .filter(r => (r.status || 'pending') === 'pending')
-                        .sort((a, b) => {
-                          const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
-                          if (d !== 0) return d;
-                          return (a.start_time || '').localeCompare(b.start_time || '');
-                        })
-                        .map(reservation => {
-                          const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
-                          const dateStr = format(new Date(reservation.reservation_date), 'd MMM', { locale: pl });
-                          return (
-                            <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 transition-colors cursor-pointer bg-amber-500/10">
+                      {reservations.filter(r => (r.status || 'pending') === 'pending').sort((a, b) => {
+                  const d = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+                  if (d !== 0) return d;
+                  return (a.start_time || '').localeCompare(b.start_time || '');
+                }).map(reservation => {
+                  const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
+                  const dateStr = format(new Date(reservation.reservation_date), 'd MMM', {
+                    locale: pl
+                  });
+                  return <div key={reservation.id} onClick={() => handleReservationClick(reservation)} className="p-4 transition-colors cursor-pointer bg-amber-500/10">
                               {/* Desktop layout */}
                               <div className="hidden sm:flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-4 min-w-0">
@@ -1078,43 +1010,20 @@ const AdminDashboard = () => {
                                       {dateStr}
                                     </div>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="w-9 h-9"
-                                    asChild
-                                  >
-                                    <a
-                                      href={`tel:${reservation.customer_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      title="Zadzwoń"
-                                    >
+                                  <Button variant="outline" size="icon" className="w-9 h-9" asChild>
+                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Zadzwoń">
                                       <Phone className="w-4 h-4" />
                                     </a>
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="w-9 h-9"
-                                    asChild
-                                  >
-                                    <a
-                                      href={`sms:${reservation.customer_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      title="Wyślij SMS"
-                                    >
+                                  <Button variant="outline" size="icon" className="w-9 h-9" asChild>
+                                    <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title="Wyślij SMS">
                                       <MessageSquare className="w-4 h-4" />
                                     </a>
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleConfirmReservation(reservation.id);
-                                    }}
-                                  >
+                                  <Button size="sm" variant="outline" className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
+                          e.stopPropagation();
+                          handleConfirmReservation(reservation.id);
+                        }}>
                                     <Check className="w-4 h-4" />
                                     Potwierdź
                                   </Button>
@@ -1140,51 +1049,29 @@ const AdminDashboard = () => {
                                   </div>
                                 </div>
                                 <div className="flex items-center justify-end gap-2 pt-1">
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-10 w-10"
-                                    asChild
-                                  >
-                                    <a
-                                      href={`tel:${reservation.customer_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
+                                  <Button variant="outline" size="icon" className="h-10 w-10" asChild>
+                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
                                       <Phone className="w-4 h-4" />
                                     </a>
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-10 w-10"
-                                    asChild
-                                  >
-                                    <a
-                                      href={`sms:${reservation.customer_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
+                                  <Button variant="outline" size="icon" className="h-10 w-10" asChild>
+                                    <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
                                       <MessageSquare className="w-4 h-4" />
                                     </a>
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    className="h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleConfirmReservation(reservation.id);
-                                    }}
-                                  >
+                                  <Button variant="outline" className="h-10 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
+                          e.stopPropagation();
+                          handleConfirmReservation(reservation.id);
+                        }}>
                                     <Check className="w-4 h-4" />
                                     Potwierdź
                                   </Button>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            </div>;
+                })}
                     </div>
-                  </div>
-                )}
+                  </div>}
               </div>}
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
@@ -1192,8 +1079,7 @@ const AdminDashboard = () => {
             {currentView === 'settings' && <div className="space-y-6">
 
                 {/* Company Settings Button */}
-                {instanceData && (
-                  <div className="glass-card p-6 bg-secondary-foreground">
+                {instanceData && <div className="glass-card p-6 bg-secondary-foreground">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -1208,12 +1094,9 @@ const AdminDashboard = () => {
                         Edytuj
                       </Button>
                     </div>
-                  </div>
-                )}
+                  </div>}
 
-                {instanceId && (
-                  <SmsUsageCard instanceId={instanceId} />
-                )}
+                {instanceId && <SmsUsageCard instanceId={instanceId} />}
 
                 {/* Reservation Confirm Settings */}
                 <div className="glass-card p-6 bg-secondary-foreground">
@@ -1237,21 +1120,13 @@ const AdminDashboard = () => {
       </div>
 
       {/* Reservation Details Modal */}
-      <ReservationDetails 
-        reservation={selectedReservation} 
-        open={!!selectedReservation} 
-        onClose={() => setSelectedReservation(null)} 
-        onDelete={handleDeleteReservation} 
-        onSave={handleReservationSave}
-        onConfirm={async (id) => {
-          await handleConfirmReservation(id);
-          setSelectedReservation(null);
-        }}
-        onComplete={async (id) => {
-          await handleCompleteReservation(id);
-          setSelectedReservation(null);
-        }}
-      />
+      <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} onConfirm={async id => {
+      await handleConfirmReservation(id);
+      setSelectedReservation(null);
+    }} onComplete={async id => {
+      await handleCompleteReservation(id);
+      setSelectedReservation(null);
+    }} />
 
       {/* Add Reservation Dialog */}
       {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} workingHours={workingHours} />}
@@ -1260,24 +1135,12 @@ const AdminDashboard = () => {
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
       {/* Instance Settings Dialog */}
-      <InstanceSettingsDialog 
-        open={instanceSettingsOpen}
-        onOpenChange={setInstanceSettingsOpen}
-        instance={instanceData}
-        onUpdate={(updated) => {
-          setInstanceData(updated);
-        }}
-      />
+      <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={updated => {
+      setInstanceData(updated);
+    }} />
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav 
-        currentView={currentView} 
-        onViewChange={setCurrentView} 
-        stations={stations} 
-        reservations={reservations} 
-        currentDate={format(new Date(), 'yyyy-MM-dd')}
-        onAddReservation={handleQuickAddReservation}
-      />
+      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} stations={stations} reservations={reservations} currentDate={format(new Date(), 'yyyy-MM-dd')} onAddReservation={handleQuickAddReservation} />
     </>;
 };
 export default AdminDashboard;
