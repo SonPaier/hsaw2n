@@ -141,7 +141,6 @@ const Auth = () => {
                   <Input
                     id="username"
                     type="text"
-                    placeholder="Twój login"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
@@ -156,7 +155,6 @@ const Auth = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
