@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, User, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Auth = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -60,7 +62,7 @@ const Auth = () => {
     e.preventDefault();
     
     if (!username || !password) {
-      toast.error('Wypełnij wszystkie pola');
+      toast.error(t('errors.requiredField'));
       return;
     }
 
@@ -75,7 +77,7 @@ const Auth = () => {
         .single();
 
       if (lookupError || !profile?.email) {
-        toast.error('Nieprawidłowy login lub hasło');
+        toast.error(t('auth.invalidCredentials'));
         setLoading(false);
         return;
       }
@@ -83,16 +85,16 @@ const Auth = () => {
       const { error } = await signIn(profile.email, password);
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Nieprawidłowy login lub hasło');
+          toast.error(t('auth.invalidCredentials'));
         } else {
           toast.error(error.message);
         }
       } else {
-        toast.success('Zalogowano pomyślnie');
+        toast.success(t('auth.loginSuccess'));
         navigate(returnTo);
       }
     } catch (err) {
-      toast.error('Wystąpił błąd. Spróbuj ponownie.');
+      toast.error(t('errors.generic'));
     } finally {
       setLoading(false);
     }
@@ -109,8 +111,8 @@ const Auth = () => {
   return (
     <>
       <Helmet>
-        <title>Logowanie - ARM CAR AUTO SPA</title>
-        <meta name="description" content="Zaloguj się do systemu rezerwacji ARM CAR AUTO SPA" />
+        <title>{t('auth.login')} - ARM CAR AUTO SPA</title>
+        <meta name="description" content={t('auth.login')} />
       </Helmet>
 
       <div className="min-h-screen bg-background flex flex-col">
@@ -125,17 +127,17 @@ const Auth = () => {
                 <Car className="w-8 h-8 text-primary-foreground" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
-                Zaloguj się
+                {t('auth.login')}
               </h1>
               <p className="text-muted-foreground">
-                Zaloguj się do panelu administracyjnego
+                {t('auth.login')}
               </p>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username">Login</Label>
+                <Label htmlFor="username">{t('auth.username')}</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
@@ -149,7 +151,7 @@ const Auth = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Hasło</Label>
+                <Label htmlFor="password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
@@ -182,14 +184,14 @@ const Auth = () => {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    Zaloguj się
+                    {t('auth.login')}
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
-                Konta tworzone są przez administratora systemu
+                {t('auth.login')}
               </p>
             </form>
 
@@ -200,7 +202,7 @@ const Auth = () => {
                 onClick={() => navigate('/')}
                 className="text-muted-foreground"
               >
-                ← Powrót do strony głównej
+                ← {t('common.back')}
               </Button>
             </div>
           </div>
