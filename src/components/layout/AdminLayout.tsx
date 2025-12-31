@@ -218,8 +218,8 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             </Button>
           </div>
 
-          {/* Navigation - scrollable area */}
-          <nav className={cn("flex-1 overflow-y-auto space-y-1", sidebarCollapsed ? "p-2" : "p-4")}>
+          {/* Navigation - non-scrollable */}
+          <nav className={cn("flex-1 overflow-hidden space-y-1", sidebarCollapsed ? "p-2" : "p-4")}>
             {navItems.map((item) => (
               <Button
                 key={item.path}
