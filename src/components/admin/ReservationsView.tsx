@@ -185,10 +185,16 @@ const ReservationsView = ({
     setRejectDialogOpen(true);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = (e: React.MouseEvent) => {
+    // Radix AlertDialogAction closes the dialog by default.
+    // For the first confirmation step we keep it open by preventing default.
     if (confirmRejectStep === 1) {
+      e.preventDefault();
       setConfirmRejectStep(2);
-    } else if (confirmRejectStep === 2 && reservationToReject) {
+      return;
+    }
+
+    if (confirmRejectStep === 2 && reservationToReject) {
       onRejectReservation(reservationToReject);
       setRejectDialogOpen(false);
       setReservationToReject(null);
@@ -446,7 +452,12 @@ const ReservationsView = ({
       </Tabs>
 
       {/* Reject confirmation dialog - double confirmation */}
-      <AlertDialog open={rejectDialogOpen} onOpenChange={handleCancelReject}>
+      <AlertDialog
+        open={rejectDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCancelReject();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
