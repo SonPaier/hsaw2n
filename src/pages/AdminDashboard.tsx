@@ -1115,7 +1115,8 @@ const AdminDashboard = () => {
         onViewChange={setCurrentView} 
         stations={stations} 
         reservations={reservations} 
-        currentDate={format(new Date(), 'yyyy-MM-dd')} 
+        currentDate={format(new Date(), 'yyyy-MM-dd')}
+        workingHours={workingHours}
         onAddReservation={handleQuickAddReservation} 
         onAddReservationWithSlot={handleAddReservation}
       />
