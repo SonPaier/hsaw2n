@@ -89,7 +89,6 @@ const ReservationsView = ({
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<string | null>(null);
-  const [confirmRejectStep, setConfirmRejectStep] = useState(0);
 
   // Debounce search query
   useEffect(() => {
@@ -181,31 +180,20 @@ const ReservationsView = ({
   const handleRejectClick = (e: React.MouseEvent, reservationId: string) => {
     e.stopPropagation();
     setReservationToReject(reservationId);
-    setConfirmRejectStep(1);
     setRejectDialogOpen(true);
   };
 
-  const handleConfirmReject = (e: React.MouseEvent) => {
-    // Radix AlertDialogAction closes the dialog by default.
-    // For the first confirmation step we keep it open by preventing default.
-    if (confirmRejectStep === 1) {
-      e.preventDefault();
-      setConfirmRejectStep(2);
-      return;
-    }
-
-    if (confirmRejectStep === 2 && reservationToReject) {
+  const handleConfirmReject = () => {
+    if (reservationToReject) {
       onRejectReservation(reservationToReject);
       setRejectDialogOpen(false);
       setReservationToReject(null);
-      setConfirmRejectStep(0);
     }
   };
 
   const handleCancelReject = () => {
     setRejectDialogOpen(false);
     setReservationToReject(null);
-    setConfirmRejectStep(0);
   };
 
   const renderServicePills = (reservation: Reservation) => {
@@ -460,13 +448,9 @@ const ReservationsView = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmRejectStep === 1 ? 'Odrzucić rezerwację?' : 'Czy na pewno?'}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Odrzucić rezerwację?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmRejectStep === 1
-                ? 'Rezerwacja zostanie trwale usunięta z systemu. Dane klienta zostaną zachowane.'
-                : 'To działanie jest nieodwracalne. Rezerwacja zostanie permanentnie usunięta.'}
+              Rezerwacja zostanie usunięta z systemu. Dane klienta zostaną zachowane.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -475,7 +459,7 @@ const ReservationsView = ({
               onClick={handleConfirmReject}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {confirmRejectStep === 1 ? 'Tak, odrzuć' : 'Potwierdzam usunięcie'}
+              Tak, odrzuć
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
