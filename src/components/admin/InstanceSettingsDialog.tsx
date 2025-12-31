@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Building2, Palette, Upload, Loader2, Save, Trash2, Image as ImageIcon, Users
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import InstanceUsersTab from './InstanceUsersTab';
@@ -45,6 +46,7 @@ const InstanceSettingsDialog = ({
   instance, 
   onUpdate 
 }: InstanceSettingsDialogProps) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,12 +99,12 @@ const InstanceSettingsDialog = ({
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      toast.error('Proszę wybrać plik obrazu');
+      toast.error(t('instanceSettings.selectImageFile'));
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Maksymalny rozmiar pliku to 2MB');
+      toast.error(t('instanceSettings.maxFileSize'));
       return;
     }
 
@@ -132,10 +134,10 @@ const InstanceSettingsDialog = ({
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, logo_url: publicUrl }));
-      toast.success('Logo zostało przesłane');
+      toast.success(t('instanceSettings.logoUploaded'));
     } catch (error) {
       console.error('Error uploading logo:', error);
-      toast.error('Błąd podczas przesyłania logo');
+      toast.error(t('instanceSettings.logoUploadError'));
     } finally {
       setUploadingLogo(false);
     }
@@ -150,10 +152,10 @@ const InstanceSettingsDialog = ({
         await supabase.storage.from('instance-logos').remove([urlParts[1]]);
       }
       setFormData(prev => ({ ...prev, logo_url: '' }));
-      toast.success('Logo zostało usunięte');
+      toast.success(t('instanceSettings.logoRemoved'));
     } catch (error) {
       console.error('Error removing logo:', error);
-      toast.error('Błąd podczas usuwania logo');
+      toast.error(t('instanceSettings.logoRemoveError'));
     }
   };
 
@@ -185,11 +187,11 @@ const InstanceSettingsDialog = ({
       if (error) throw error;
 
       onUpdate({ ...instance, ...formData });
-      toast.success('Ustawienia zostały zapisane');
+      toast.success(t('instanceSettings.saved'));
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Błąd podczas zapisywania ustawień');
+      toast.error(t('instanceSettings.saveError'));
     } finally {
       setLoading(false);
     }
@@ -203,28 +205,28 @@ const InstanceSettingsDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Ustawienia instancji
+            {t('instanceSettings.title')}
           </DialogTitle>
           <DialogDescription>
-            Personalizuj wygląd i dane firmy dla {instance.name}
+            {t('instanceSettings.description', { name: instance.name })}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="company" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="company">Firma</TabsTrigger>
-            <TabsTrigger value="branding">Branding</TabsTrigger>
-            <TabsTrigger value="contact">Kontakt</TabsTrigger>
+            <TabsTrigger value="company">{t('instanceSettings.companyTab')}</TabsTrigger>
+            <TabsTrigger value="branding">{t('instanceSettings.brandingTab')}</TabsTrigger>
+            <TabsTrigger value="contact">{t('instanceSettings.contactTab')}</TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              Użytkownicy
+              {t('instanceSettings.usersTab')}
             </TabsTrigger>
           </TabsList>
 
           {/* Company Tab */}
           <TabsContent value="company" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nazwa firmy *</Label>
+              <Label htmlFor="name">{t('instanceSettings.companyName')} *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -234,7 +236,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (URL) *</Label>
+              <Label htmlFor="slug">{t('instanceSettings.slug')} *</Label>
               <Input
                 id="slug"
                 value={formData.slug}
@@ -242,12 +244,12 @@ const InstanceSettingsDialog = ({
                 placeholder="armcar-gdansk"
               />
               <p className="text-xs text-muted-foreground">
-                Adres aplikacji: /rezerwacje/{formData.slug}
+                {t('instanceSettings.slugDescription', { slug: formData.slug })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nip">NIP</Label>
+              <Label htmlFor="nip">{t('instanceSettings.nip')}</Label>
               <Input
                 id="nip"
                 value={formData.nip}
@@ -258,7 +260,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Adres</Label>
+              <Label htmlFor="address">{t('instanceSettings.address')}</Label>
               <Input
                 id="address"
                 value={formData.address}
@@ -272,7 +274,7 @@ const InstanceSettingsDialog = ({
           <TabsContent value="branding" className="space-y-6 mt-4">
             {/* Logo Upload */}
             <div className="space-y-3">
-              <Label>Logo firmy</Label>
+              <Label>{t('instanceSettings.logo')}</Label>
               <div className="flex items-center gap-4">
                 <div 
                   className="w-24 h-24 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/50 overflow-hidden cursor-pointer hover:border-primary transition-colors"
@@ -299,7 +301,7 @@ const InstanceSettingsDialog = ({
                     disabled={uploadingLogo}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {formData.logo_url ? 'Zmień logo' : 'Prześlij logo'}
+                    {formData.logo_url ? t('instanceSettings.changeLogo') : t('instanceSettings.uploadLogo')}
                   </Button>
                   {formData.logo_url && (
                     <Button 
@@ -310,11 +312,11 @@ const InstanceSettingsDialog = ({
                       className="text-destructive"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Usuń logo
+                      {t('instanceSettings.removeLogo')}
                     </Button>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG do 2MB. Zalecane: 200x200px
+                    {t('instanceSettings.logoInfo')}
                   </p>
                 </div>
               </div>
@@ -330,7 +332,7 @@ const InstanceSettingsDialog = ({
             {/* Colors */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="primary_color">Kolor główny</Label>
+                <Label htmlFor="primary_color">{t('instanceSettings.primaryColor')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="primary_color"
@@ -349,7 +351,7 @@ const InstanceSettingsDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="secondary_color">Kolor dodatkowy</Label>
+                <Label htmlFor="secondary_color">{t('instanceSettings.secondaryColor')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="secondary_color"
@@ -368,7 +370,7 @@ const InstanceSettingsDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="background_color">Kolor tła</Label>
+                <Label htmlFor="background_color">{t('instanceSettings.backgroundColor')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="background_color"
@@ -393,20 +395,20 @@ const InstanceSettingsDialog = ({
               style={{ backgroundColor: formData.background_color }}
             >
               <p className="text-sm mb-3" style={{ color: formData.background_color === '#ffffff' || formData.background_color.toLowerCase() === '#fff' ? '#666' : '#fff' }}>
-                Podgląd kolorów:
+                {t('instanceSettings.colorPreview')}
               </p>
               <div className="flex gap-3">
                 <div 
                   className="h-10 flex-1 rounded-lg flex items-center justify-center text-white font-medium text-sm"
                   style={{ backgroundColor: formData.primary_color }}
                 >
-                  Przycisk główny
+                  {t('instanceSettings.primaryButton')}
                 </div>
                 <div 
                   className="h-10 flex-1 rounded-lg flex items-center justify-center text-white font-medium text-sm"
                   style={{ backgroundColor: formData.secondary_color }}
                 >
-                  Przycisk dodatkowy
+                  {t('instanceSettings.secondaryButton')}
                 </div>
               </div>
             </div>
@@ -415,7 +417,7 @@ const InstanceSettingsDialog = ({
           {/* Contact Tab */}
           <TabsContent value="contact" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefon</Label>
+              <Label htmlFor="phone">{t('instanceSettings.phone')}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -426,7 +428,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('instanceSettings.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -437,7 +439,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website">Strona WWW</Label>
+              <Label htmlFor="website">{t('instanceSettings.website')}</Label>
               <Input
                 id="website"
                 type="url"
@@ -448,7 +450,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="social_facebook">Facebook</Label>
+              <Label htmlFor="social_facebook">{t('instanceSettings.facebook')}</Label>
               <Input
                 id="social_facebook"
                 value={formData.social_facebook}
@@ -458,7 +460,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="social_instagram">Instagram</Label>
+              <Label htmlFor="social_instagram">{t('instanceSettings.instagram')}</Label>
               <Input
                 id="social_instagram"
                 value={formData.social_instagram}
@@ -468,7 +470,7 @@ const InstanceSettingsDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="google_maps_url">Link do Google Maps</Label>
+              <Label htmlFor="google_maps_url">{t('instanceSettings.googleMaps')}</Label>
               <Input
                 id="google_maps_url"
                 value={formData.google_maps_url}
@@ -476,7 +478,7 @@ const InstanceSettingsDialog = ({
                 placeholder="https://maps.app.goo.gl/..."
               />
               <p className="text-xs text-muted-foreground">
-                Link będzie dodany do SMS-ów z potwierdzeniem rezerwacji
+                {t('instanceSettings.googleMapsInfo')}
               </p>
             </div>
           </TabsContent>
