@@ -8,6 +8,7 @@ import HallReservationDetails from '@/components/admin/HallReservationDetails';
 import HallNextReservations from '@/components/admin/HallNextReservations';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Station {
   id: string;
@@ -50,6 +51,7 @@ interface Break {
 }
 
 const HallView = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
@@ -276,7 +278,7 @@ const HallView = () => {
                 setReservations(prev => [...prev, newReservation as Reservation]);
                 
                 const isCustomerReservation = (data as any).source === 'customer';
-                toast.success(isCustomerReservation ? '🔔 Nowa rezerwacja!' : 'Nowa rezerwacja!', {
+                toast.success(isCustomerReservation ? `🔔 ${t('notifications.newReservation')}!` : `${t('notifications.newReservation')}!`, {
                   description: `${data.start_time.slice(0, 5)} - ${data.vehicle_plate}`
                 });
               }
@@ -315,7 +317,7 @@ const HallView = () => {
   return (
     <>
       <Helmet>
-        <title>Widok hali | Panel pracownika</title>
+        <title>{t('hall.title')} | {t('hall.employeePanel')}</title>
       </Helmet>
 
       <div className="h-screen w-screen overflow-hidden bg-background pb-16">

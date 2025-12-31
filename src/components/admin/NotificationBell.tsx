@@ -9,6 +9,7 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Notification {
   id: string;
@@ -28,6 +29,7 @@ interface NotificationBellProps {
 }
 
 export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReservation }: NotificationBellProps) => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -141,7 +143,7 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
 
     if (onConfirmReservation) {
       onConfirmReservation(notification.entity_id);
-      toast.success('Rezerwacja potwierdzona');
+      toast.success(t('reservations.reservationConfirmed'));
     }
   };
 
@@ -183,20 +185,20 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
         sideOffset={8}
       >
         <div className="p-4 border-b border-border">
-          <h3 className="font-semibold text-lg">Powiadomienia</h3>
+          <h3 className="font-semibold text-lg">{t('notifications.title')}</h3>
         </div>
         
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
-              Brak powiadomień
+              {t('notifications.noNotifications')}
             </div>
           ) : (
             <div className="p-2">
               {newNotifications.length > 0 && (
                 <>
                   <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                    Nowe
+                    {t('notifications.new')}
                   </div>
                   {newNotifications.map(notification => (
                     <button
@@ -232,7 +234,7 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
                               onClick={(e) => handleConfirmReservation(e, notification)}
                             >
                               <Check className="w-3 h-3" />
-                              Potwierdź
+                              {t('common.confirm')}
                             </Button>
                           )}
                         </div>
@@ -248,7 +250,7 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
               {earlierNotifications.length > 0 && (
                 <>
                   <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase mt-2">
-                    Wcześniejsze
+                    {t('notifications.earlier')}
                   </div>
                   {earlierNotifications.map(notification => (
                     <button
@@ -291,7 +293,7 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
                 navigate('/admin/notifications');
               }}
             >
-              Zobacz wszystkie powiadomienia
+              {t('notifications.viewAll')}
             </Button>
           </div>
         )}
