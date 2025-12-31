@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Notification {
   id: string;
@@ -24,9 +24,10 @@ interface Notification {
 interface NotificationBellProps {
   instanceId: string;
   onOpenReservation?: (reservationId: string) => void;
+  onConfirmReservation?: (reservationId: string) => void;
 }
 
-export const NotificationBell = ({ instanceId, onOpenReservation }: NotificationBellProps) => {
+export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReservation }: NotificationBellProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -124,6 +125,26 @@ export const NotificationBell = ({ instanceId, onOpenReservation }: Notification
     }
   };
 
+  const handleConfirmReservation = async (e: React.MouseEvent, notification: Notification) => {
+    e.stopPropagation();
+    if (!notification.entity_id) return;
+    
+    // Mark notification as read
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notification.id);
+    
+    setNotifications(prev => 
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    );
+
+    if (onConfirmReservation) {
+      onConfirmReservation(notification.entity_id);
+      toast.success('Rezerwacja potwierdzona');
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'reservation_new':
@@ -196,12 +217,25 @@ export const NotificationBell = ({ instanceId, onOpenReservation }: Notification
                             {notification.description}
                           </p>
                         )}
-                        <p className="text-xs text-primary mt-1">
-                          {formatDistanceToNow(new Date(notification.created_at), { 
-                            addSuffix: true, 
-                            locale: pl 
-                          })}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-primary flex-1">
+                            {formatDistanceToNow(new Date(notification.created_at), { 
+                              addSuffix: true, 
+                              locale: pl 
+                            })}
+                          </p>
+                          {notification.type === 'reservation_new' && notification.entity_id && onConfirmReservation && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-xs gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                              onClick={(e) => handleConfirmReservation(e, notification)}
+                            >
+                              <Check className="w-3 h-3" />
+                              Potwierdź
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {!notification.read && (
                         <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />

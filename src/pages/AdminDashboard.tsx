@@ -563,12 +563,23 @@ const AdminDashboard = () => {
     }
   };
   
-  // Reject reservation - delete from DB but keep customer data
+  // Reject reservation - soft delete with undo option
   const handleRejectReservation = async (reservationId: string) => {
-    try {
-      const reservation = reservations.find(r => r.id === reservationId);
-      if (reservation && instanceId) {
-        // Save customer data before deleting - use correct constraint columns
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation || !instanceId) return;
+
+    // Immediately hide from UI
+    setReservations(prev => prev.filter(r => r.id !== reservationId));
+
+    // Store timeout ID so we can cancel if user clicks Cofnij
+    let deleteExecuted = false;
+
+    const executeDelete = async () => {
+      if (deleteExecuted) return;
+      deleteExecuted = true;
+      
+      try {
+        // Save customer data before deleting
         await supabase.from('customers').upsert({
           instance_id: instanceId,
           name: reservation.customer_name,
@@ -578,22 +589,39 @@ const AdminDashboard = () => {
           onConflict: 'instance_id,source,phone',
           ignoreDuplicates: false
         });
-      }
 
-      const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
-      if (error) {
-        toast.error('Błąd podczas odrzucania rezerwacji');
+        const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
+        if (error) {
+          console.error('Error rejecting reservation:', error);
+          // Restore if delete failed
+          setReservations(prev => [...prev, reservation]);
+          toast.error('Błąd podczas odrzucania rezerwacji');
+        }
+      } catch (error) {
         console.error('Error rejecting reservation:', error);
-        return;
+        setReservations(prev => [...prev, reservation]);
+        toast.error('Wystąpił błąd');
       }
+    };
 
-      // Update local state immediately
-      setReservations(prev => prev.filter(r => r.id !== reservationId));
-      toast.success('Rezerwacja została odrzucona');
-    } catch (error) {
-      console.error('Error rejecting reservation:', error);
-      toast.error('Wystąpił błąd');
-    }
+    // Show toast with undo option - delete happens when toast disappears
+    toast('Rezerwacja odrzucona', {
+      action: {
+        label: 'Cofnij',
+        onClick: () => {
+          deleteExecuted = true; // Prevent delete
+          setReservations(prev => [...prev, reservation]);
+          toast.success('Przywrócono rezerwację');
+        },
+      },
+      duration: 5000,
+      onDismiss: () => {
+        executeDelete();
+      },
+      onAutoClose: () => {
+        executeDelete();
+      },
+    });
   };
   const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
     setReservations(prev => prev.map(r => r.id === reservationId ? {
@@ -859,13 +887,13 @@ const AdminDashboard = () => {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen h-screen bg-background flex overflow-hidden">
         {/* Sidebar - Mobile Overlay */}
         {sidebarOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-        {/* Sidebar */}
-        <aside className={cn("fixed lg:static inset-y-0 left-0 z-50 bg-card border-r border-border/50 transition-all duration-300", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64")}>
-          <div className="flex flex-col h-full">
+        {/* Sidebar - fixed height, never scrolls */}
+        <aside className={cn("fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64")}>
+          <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
               <button 
@@ -885,7 +913,7 @@ const AdminDashboard = () => {
               if (reservation) {
                 setSelectedReservation(reservation);
               }
-            }} />}
+            }} onConfirmReservation={handleConfirmReservation} />}
             </div>
 
             {/* Navigation */}
@@ -947,8 +975,8 @@ const AdminDashboard = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col min-w-0">
+        {/* Main Content - scrollable */}
+        <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           {/* Mobile Header */}
           <header className="lg:hidden sticky top-0 z-30 glass-card border-b border-border/50 p-4">
             <div className="flex items-center justify-between">
@@ -965,7 +993,7 @@ const AdminDashboard = () => {
                 if (reservation) {
                   setSelectedReservation(reservation);
                 }
-              }} />}
+              }} onConfirmReservation={handleConfirmReservation} />}
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -973,8 +1001,7 @@ const AdminDashboard = () => {
             </div>
           </header>
 
-          {/* Desktop Notification Bell - fixed position */}
-          {instanceId}
+          {/* Desktop Notification Bell - now in fixed position via AdminLayout */}
 
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">

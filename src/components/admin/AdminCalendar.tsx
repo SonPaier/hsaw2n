@@ -131,16 +131,16 @@ const getStatusColor = (status: string, stationType?: string) => {
   
   switch (status) {
     case 'confirmed':
-      // Zielony - potwierdzona, stonowany
-      return 'bg-emerald-400/80 border-emerald-500/70 text-emerald-950';
+      // Niebieski - potwierdzona
+      return 'bg-blue-400/80 border-blue-500/70 text-blue-950';
     case 'pending':
-      // Bursztynowy - oczekuje na potwierdzenie, stonowany
+      // Żółty/Bursztynowy - oczekuje na potwierdzenie
       return 'bg-amber-400/80 border-amber-500/70 text-amber-950';
     case 'in_progress':
-      // Niebieski - w trakcie realizacji, stonowany
-      return 'bg-blue-400/80 border-blue-500/70 text-blue-950';
+      // Jasno niebieski - zakończony i gotowy do wydania
+      return 'bg-sky-300/80 border-sky-400/70 text-sky-950';
     case 'completed':
-      // Szary - zakończona
+      // Szary - wydany/zakończony
       return 'bg-slate-400/80 border-slate-500/70 text-white';
     case 'cancelled':
       // Czerwony - anulowana
@@ -1859,6 +1859,26 @@ const AdminCalendar = ({
           </div>
         </>
       )}
+
+      {/* Color Legend */}
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-2 border-t border-border/50 mt-4">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-amber-400/80 border border-amber-500/70" />
+          <span className="text-xs text-muted-foreground">Do potwierdzenia</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-blue-400/80 border border-blue-500/70" />
+          <span className="text-xs text-muted-foreground">Potwierdzony</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-sky-300/80 border border-sky-400/70" />
+          <span className="text-xs text-muted-foreground">Gotowy do wydania</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-slate-400/80 border border-slate-500/70" />
+          <span className="text-xs text-muted-foreground">Wydany</span>
+        </div>
+      </div>
 
     </div>
   );
