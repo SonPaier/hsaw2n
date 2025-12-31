@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Plus, UserPlus, MoreVertical, Shield, User, Lock, Unlock, Trash2, KeyRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -40,6 +41,7 @@ interface InstanceUsersTabProps {
 }
 
 const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<InstanceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -83,7 +85,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
         const userRole = roles?.find(r => r.user_id === profile.id);
         return {
           id: profile.id,
-          username: profile.username || 'Brak nazwy',
+          username: profile.username || t('common.noName', 'Brak nazwy'),
           email: profile.email || '',
           is_blocked: profile.is_blocked || false,
           created_at: profile.created_at || new Date().toISOString(),
@@ -94,7 +96,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
       setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Nie udało się pobrać listy użytkowników');
+      toast.error(t('instanceUsers.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.error('Sesja wygasła');
+        toast.error(t('instanceUsers.sessionExpired'));
         return;
       }
 
@@ -131,11 +133,11 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
         throw new Error(response.data.error);
       }
 
-      toast.success(user.is_blocked ? 'Użytkownik odblokowany' : 'Użytkownik zablokowany');
+      toast.success(user.is_blocked ? t('instanceUsers.userUnblocked') : t('instanceUsers.userBlocked'));
       fetchUsers();
     } catch (error: any) {
       console.error('Error blocking/unblocking user:', error);
-      toast.error(error.message || 'Wystąpił błąd');
+      toast.error(error.message || t('errors.generic'));
     } finally {
       setActionLoading(null);
     }
@@ -161,23 +163,23 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
       return (
         <Badge variant="default" className="gap-1">
           <Shield className="w-3 h-3" />
-          Admin
+          {t('instanceUsers.admin')}
         </Badge>
       );
     }
     return (
       <Badge variant="secondary" className="gap-1">
         <User className="w-3 h-3" />
-        Pracownik
+        {t('instanceUsers.employee')}
       </Badge>
     );
   };
 
   const getStatusBadge = (isBlocked: boolean) => {
     if (isBlocked) {
-      return <Badge variant="destructive">Zablokowany</Badge>;
+      return <Badge variant="destructive">{t('instanceUsers.blocked')}</Badge>;
     }
-    return <Badge variant="outline" className="border-green-500 text-green-700">Aktywny</Badge>;
+    return <Badge variant="outline" className="border-green-500 text-green-700">{t('instanceUsers.active')}</Badge>;
   };
 
   if (loading) {
@@ -191,23 +193,23 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Użytkownicy instancji</h3>
+        <h3 className="text-lg font-medium">{t('instanceUsers.title')}</h3>
         <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
           <UserPlus className="w-4 h-4" />
-          Dodaj użytkownika
+          {t('instanceUsers.addUser')}
         </Button>
       </div>
 
       {users.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <User className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>Brak użytkowników w tej instancji</p>
+          <p>{t('instanceUsers.noUsers')}</p>
           <Button 
             variant="link" 
             onClick={() => setAddDialogOpen(true)}
             className="mt-2"
           >
-            Dodaj pierwszego użytkownika
+            {t('instanceUsers.addFirstUser')}
           </Button>
         </div>
       ) : (
@@ -215,10 +217,10 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Użytkownik</TableHead>
-                <TableHead>Rola</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data utworzenia</TableHead>
+                <TableHead>{t('instanceUsers.user')}</TableHead>
+                <TableHead>{t('instanceUsers.role')}</TableHead>
+                <TableHead>{t('instanceUsers.status')}</TableHead>
+                <TableHead>{t('instanceUsers.createdAt')}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -246,26 +248,26 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
                           )}
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(user)}>
                           <User className="w-4 h-4 mr-2" />
-                          Edytuj
+                          {t('instanceUsers.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleResetPassword(user)}>
                           <KeyRound className="w-4 h-4 mr-2" />
-                          Resetuj hasło
+                          {t('instanceUsers.resetPassword')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleBlockUnblock(user)}>
                           {user.is_blocked ? (
                             <>
                               <Unlock className="w-4 h-4 mr-2" />
-                              Odblokuj
+                              {t('instanceUsers.unblock')}
                             </>
                           ) : (
                             <>
                               <Lock className="w-4 h-4 mr-2" />
-                              Zablokuj
+                              {t('instanceUsers.block')}
                             </>
                           )}
                         </DropdownMenuItem>
@@ -275,7 +277,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Usuń
+                          {t('instanceUsers.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Loader2, Save, Droplets, Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,38 +36,44 @@ interface StationsSettingsProps {
   instanceId: string | null;
 }
 
-const STATION_TYPE_CONFIG = {
-  washing: {
-    label: 'Myjnia',
-    icon: Droplets,
-    description: 'Mycie, detailing, pranie tapicerki',
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-  },
-  ppf: {
-    label: 'Folia PPF',
-    icon: Shield,
-    description: 'Tylko usługi folii ochronnej',
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-500/10',
-  },
-  detailing: {
-    label: 'Detailing',
-    icon: Droplets,
-    description: 'Usługi detailingowe',
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
-  },
-  universal: {
-    label: 'Uniwersalne',
-    icon: Droplets,
-    description: 'Wszystkie rodzaje usług',
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-  },
+const useStationTypeConfig = () => {
+  const { t } = useTranslation();
+  
+  return {
+    washing: {
+      label: t('stationsSettings.typeWashing'),
+      icon: Droplets,
+      description: t('stationsSettings.typeWashingDesc'),
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+    },
+    ppf: {
+      label: t('stationsSettings.typePpf'),
+      icon: Shield,
+      description: t('stationsSettings.typePpfDesc'),
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10',
+    },
+    detailing: {
+      label: t('stationsSettings.typeDetailing'),
+      icon: Droplets,
+      description: t('stationsSettings.typeDetailingDesc'),
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
+    },
+    universal: {
+      label: t('stationsSettings.typeUniversal'),
+      icon: Droplets,
+      description: t('stationsSettings.typeUniversalDesc'),
+      color: 'text-green-500',
+      bgColor: 'bg-green-500/10',
+    },
+  };
 };
 
 const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
+  const { t } = useTranslation();
+  const STATION_TYPE_CONFIG = useStationTypeConfig();
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,7 +101,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       setStations(data || []);
     } catch (error) {
       console.error('Error fetching stations:', error);
-      toast.error('Błąd podczas pobierania stanowisk');
+      toast.error(t('stationsSettings.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -126,7 +133,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const handleSave = async () => {
     if (!instanceId) return;
     if (!formData.name.trim()) {
-      toast.error('Nazwa stanowiska jest wymagana');
+      toast.error(t('stationsSettings.stationNameRequired'));
       return;
     }
 
@@ -147,28 +154,28 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
           .eq('id', editingStation.id);
         
         if (error) throw error;
-        toast.success('Stanowisko zostało zaktualizowane');
+        toast.success(t('stationsSettings.stationUpdated'));
       } else {
         const { error } = await supabase
           .from('stations')
           .insert(stationData);
         
         if (error) throw error;
-        toast.success('Stanowisko zostało dodane');
+        toast.success(t('stationsSettings.stationAdded'));
       }
 
       setEditDialogOpen(false);
       fetchStations();
     } catch (error) {
       console.error('Error saving station:', error);
-      toast.error('Błąd podczas zapisywania stanowiska');
+      toast.error(t('stationsSettings.saveError'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (stationId: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć to stanowisko?')) return;
+    if (!confirm(t('stationsSettings.deleteConfirm'))) return;
 
     try {
       const { error } = await supabase
@@ -177,11 +184,11 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
         .eq('id', stationId);
       
       if (error) throw error;
-      toast.success('Stanowisko zostało usunięte');
+      toast.success(t('stationsSettings.stationDeleted'));
       fetchStations();
     } catch (error) {
       console.error('Error deleting station:', error);
-      toast.error('Błąd podczas usuwania stanowiska');
+      toast.error(t('stationsSettings.deleteError'));
     }
   };
 
@@ -196,7 +203,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       fetchStations();
     } catch (error) {
       console.error('Error toggling station:', error);
-      toast.error('Błąd podczas zmiany statusu stanowiska');
+      toast.error(t('stationsSettings.toggleError'));
     }
   };
 
@@ -211,16 +218,16 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">Stanowiska</h3>
+        <h3 className="text-lg font-semibold">{t('stationsSettings.title')}</h3>
         <Button onClick={() => openEditDialog()} size="sm" className="gap-2 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
-          Dodaj stanowisko
+          {t('stationsSettings.addStation')}
         </Button>
       </div>
 
       {stations.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          <p>Brak stanowisk. Dodaj pierwsze stanowisko, aby rozpocząć.</p>
+          <p>{t('stationsSettings.noStations')}</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -244,7 +251,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm sm:text-base">{station.name}</span>
                       {!station.active && (
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded">Nieaktywne</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('stationsSettings.inactive')}</span>
                       )}
                     </div>
                     <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
@@ -286,25 +293,25 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingStation ? 'Edytuj stanowisko' : 'Dodaj nowe stanowisko'}
+              {editingStation ? t('stationsSettings.editStation') : t('stationsSettings.addNewStation')}
             </DialogTitle>
             <DialogDescription>
-              Stanowiska określają jakie usługi mogą być na nich wykonywane
+              {t('stationsSettings.stationDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nazwa stanowiska *</Label>
+              <Label>{t('stationsSettings.stationName')} *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="np. Stanowisko 1"
+                placeholder={t('stationsSettings.stationNamePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Typ stanowiska</Label>
+              <Label>{t('stationsSettings.stationType')}</Label>
               <Select
                 value={formData.type}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, type: v as Station['type'] }))}
@@ -316,18 +323,18 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                   <SelectItem value="washing">
                     <div className="flex items-center gap-2">
                       <Droplets className="w-4 h-4 text-blue-500" />
-                      <span>Myjnia</span>
+                      <span>{t('stationsSettings.typeWashing')}</span>
                       <span className="text-xs text-muted-foreground ml-2">
-                        (mycie, detailing, pranie)
+                        ({t('stationsSettings.typeWashingDesc')})
                       </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="ppf">
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-orange-500" />
-                      <span>Folia PPF</span>
+                      <span>{t('stationsSettings.typePpf')}</span>
                       <span className="text-xs text-muted-foreground ml-2">
-                        (tylko folia)
+                        ({t('stationsSettings.typePpfDesc')})
                       </span>
                     </div>
                   </SelectItem>
@@ -336,7 +343,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <Label>Stanowisko aktywne</Label>
+              <Label>{t('stationsSettings.stationActive')}</Label>
               <Switch
                 checked={formData.active}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, active: v }))}
@@ -346,12 +353,12 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={saving} className="gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               <Save className="w-4 h-4" />
-              Zapisz
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
