@@ -935,11 +935,11 @@ const AdminDashboard = () => {
 
             {/* Navigation */}
             <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
-              <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('calendar')} title="Kalendarz">
+              <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('calendar'); setSidebarOpen(false); }} title="Kalendarz">
                 <Calendar className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Kalendarz"}
               </Button>
-              <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('reservations')} title="Rezerwacje">
+              <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('reservations'); setSidebarOpen(false); }} title="Rezerwacje">
                 <div className="relative">
                   <Users className="w-4 h-4 shrink-0" />
                   {sidebarCollapsed && pendingCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
@@ -953,19 +953,19 @@ const AdminDashboard = () => {
                       </span>}
                   </>}
               </Button>
-              <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('customers')} title="Klienci">
+              <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('customers'); setSidebarOpen(false); }} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
-              {hasFeature('offers') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/oferty')} title="Oferty">
+              {hasFeature('offers') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { navigate('/admin/oferty'); setSidebarOpen(false); }} title="Oferty">
                   <FileText className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Oferty"}
                 </Button>}
-              {hasFeature('followup') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => navigate('/admin/followup')} title="Follow-up">
+              {hasFeature('followup') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { navigate('/admin/followup'); setSidebarOpen(false); }} title="Follow-up">
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>}
-              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setCurrentView('settings')} title="Ustawienia">
+              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
               </Button>
@@ -1110,7 +1110,15 @@ const AdminDashboard = () => {
     }} />
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} stations={stations} reservations={reservations} currentDate={format(new Date(), 'yyyy-MM-dd')} onAddReservation={handleQuickAddReservation} />
+      <MobileBottomNav 
+        currentView={currentView} 
+        onViewChange={setCurrentView} 
+        stations={stations} 
+        reservations={reservations} 
+        currentDate={format(new Date(), 'yyyy-MM-dd')} 
+        onAddReservation={handleQuickAddReservation} 
+        onAddReservationWithSlot={handleAddReservation}
+      />
     </>;
 };
 export default AdminDashboard;

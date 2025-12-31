@@ -36,11 +36,22 @@ interface MobileBottomNavProps {
   reservations: Reservation[];
   currentDate: string;
   onAddReservation?: () => void;
+  onAddReservationWithSlot?: (stationId: string, date: string, time: string) => void;
 }
 
 // Working hours
 const START_HOUR = 8;
 const END_HOUR = 18;
+
+// Round minutes UP to nearest quarter (0, 15, 30, 45)
+const roundUpToQuarter = (minutes: number): number => {
+  return Math.ceil(minutes / 15) * 15;
+};
+
+// Round minutes DOWN to nearest quarter
+const roundDownToQuarter = (minutes: number): number => {
+  return Math.floor(minutes / 15) * 15;
+};
 
 const MobileBottomNav = ({
   currentView,
@@ -48,6 +59,7 @@ const MobileBottomNav = ({
   stations,
   reservations,
   onAddReservation,
+  onAddReservationWithSlot,
 }: MobileBottomNavProps) => {
   const [freeSlotsOpen, setFreeSlotsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -81,37 +93,60 @@ const MobileBottomNav = ({
         .sort((a, b) => a.start - b.start);
       
       // Find gaps
-      const gaps: { start: number; end: number }[] = [];
+      const gaps: { start: number; end: number; startFormatted: string; endFormatted: string }[] = [];
       let searchStart = isViewingToday ? Math.max(workStart, currentTimeMinutes) : workStart;
       
+      // Round searchStart UP to nearest quarter
+      searchStart = roundUpToQuarter(searchStart);
+      
       for (const res of stationReservations) {
-        if (res.start > searchStart) {
-          gaps.push({ start: searchStart, end: res.start });
+        // Round res.start down to previous quarter for gap calculation
+        const resStartRounded = roundDownToQuarter(res.start);
+        if (resStartRounded > searchStart) {
+          const gapStart = searchStart;
+          const gapEnd = resStartRounded;
+          const startHour = Math.floor(gapStart / 60);
+          const startMin = gapStart % 60;
+          const endHour = Math.floor(gapEnd / 60);
+          const endMin = gapEnd % 60;
+          gaps.push({ 
+            start: gapStart, 
+            end: gapEnd,
+            startFormatted: `${startHour}:${startMin.toString().padStart(2, '0')}`,
+            endFormatted: `${endHour}:${endMin.toString().padStart(2, '0')}`,
+          });
         }
-        searchStart = Math.max(searchStart, res.end);
+        searchStart = Math.max(searchStart, roundUpToQuarter(res.end));
       }
       
       if (searchStart < workEnd) {
-        gaps.push({ start: searchStart, end: workEnd });
+        const gapStart = searchStart;
+        const gapEnd = workEnd;
+        const startHour = Math.floor(gapStart / 60);
+        const startMin = gapStart % 60;
+        const endHour = Math.floor(gapEnd / 60);
+        const endMin = gapEnd % 60;
+        gaps.push({ 
+          start: gapStart, 
+          end: gapEnd,
+          startFormatted: `${startHour}:${startMin.toString().padStart(2, '0')}`,
+          endFormatted: `${endHour}:${endMin.toString().padStart(2, '0')}`,
+        });
       }
       
-      // Format gaps as readable strings
+      // Format gaps as clickable slots
       const freeRanges = gaps.map(gap => {
-        const startHour = Math.floor(gap.start / 60);
-        const startMin = gap.start % 60;
-        const endHour = Math.floor(gap.end / 60);
-        const endMin = gap.end % 60;
-        const durationHours = (gap.end - gap.start) / 60;
-        
-        const startStr = `${startHour}:${startMin.toString().padStart(2, '0')}`;
-        const endStr = `${endHour}:${endMin.toString().padStart(2, '0')}`;
+        const durationMinutes = gap.end - gap.start;
+        const durationHours = durationMinutes / 60;
         const durationStr = durationHours >= 1 
-          ? `${Math.floor(durationHours)}h${durationHours % 1 > 0 ? ` ${Math.round((durationHours % 1) * 60)}min` : ''}`
-          : `${Math.round(durationHours * 60)}min`;
+          ? `${Math.floor(durationHours)}h${durationMinutes % 60 > 0 ? ` ${durationMinutes % 60}min` : ''}`
+          : `${durationMinutes}min`;
         
         return {
-          label: `${startStr} - ${endStr}`,
+          label: `${gap.startFormatted} - ${gap.endFormatted}`,
           duration: durationStr,
+          startTime: gap.startFormatted,
+          startMinutes: gap.start,
         };
       });
       
@@ -127,6 +162,13 @@ const MobileBottomNav = ({
   const goToPrevDay = () => setSelectedDate(prev => subDays(prev, 1));
   const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
   const goToToday = () => setSelectedDate(new Date());
+
+  const handleSlotClick = (stationId: string, startTime: string) => {
+    if (onAddReservationWithSlot) {
+      onAddReservationWithSlot(stationId, selectedDateStr, startTime);
+      setFreeSlotsOpen(false);
+    }
+  };
 
   return (
     <>
@@ -225,23 +267,25 @@ const MobileBottomNav = ({
             </Button>
           </div>
 
-          <div className="space-y-4 overflow-y-auto pb-8">
+          <div className="space-y-5 overflow-y-auto pb-8">
             {stationsWithRanges.map(station => (
-              <div key={station.id} className="bg-muted/20 rounded-lg p-3 border border-border/50">
-                <div className="text-sm font-medium mb-2">{station.name}</div>
+              <div key={station.id} className="bg-muted/20 rounded-xl p-4 border border-border/50">
+                <div className="text-lg font-semibold mb-3">{station.name}</div>
                 {station.freeRanges.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2">
                     {station.freeRanges.map((range, idx) => (
-                      <span 
+                      <button 
                         key={idx} 
-                        className="text-xs bg-success/20 text-success px-2 py-1 rounded"
+                        onClick={() => handleSlotClick(station.id, range.startTime)}
+                        className="flex items-center justify-between bg-success/20 hover:bg-success/30 active:bg-success/40 text-success px-4 py-3 rounded-lg transition-colors text-left"
                       >
-                        {range.label} <span className="opacity-70">({range.duration})</span>
-                      </span>
+                        <span className="text-base font-medium">{range.label}</span>
+                        <span className="text-sm opacity-70">({range.duration})</span>
+                      </button>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Brak wolnych terminów</span>
+                  <span className="text-sm text-muted-foreground">Brak wolnych terminów</span>
                 )}
               </div>
             ))}
