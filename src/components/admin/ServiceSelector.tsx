@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,6 +22,7 @@ interface ServiceSelectorProps {
 }
 
 const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: ServiceSelectorProps) => {
+  const { t } = useTranslation();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
@@ -89,10 +91,10 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
   if (loading) {
     return (
       <div className="space-y-2">
-        <Label>Usługi</Label>
+        <Label>{t('reservations.services')}</Label>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Ładowanie usług...</span>
+          <span className="text-sm">{t('serviceSelector.loadingServices')}</span>
         </div>
       </div>
     );
@@ -100,12 +102,12 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
 
   return (
     <div className="space-y-2">
-      <Label>Usługi</Label>
+      <Label>{t('reservations.services')}</Label>
 
       {/* Search input with dropdown */}
       <div className="relative">
         <Input
-          placeholder="Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
+          placeholder={t('serviceSelector.searchPlaceholder')}
           value={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={handleSearchKeyDown}
