@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Phone, Car, Clock, Loader2, Sparkles, Check, ChevronDown, CalendarIcon } from 'lucide-react';
+import { User, Phone, Car, Loader2, Sparkles, Check, ChevronDown, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
@@ -27,12 +27,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { VoiceReservationInput } from './VoiceReservationInput';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -186,7 +191,7 @@ const AddReservationDialog = ({
       setCustomerName('');
       setPhone('');
       setCarModel('');
-      setCarSize('');
+      setCarSize('medium'); // Default to medium
       setSelectedServices([]);
       setStartTime(time);
       setEndTime('');
@@ -606,25 +611,18 @@ const AddReservationDialog = ({
   }, [pendingAutoSubmit, loading]);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-3 pr-8">
-            <DialogTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              {t('addReservation.title')}
-            </DialogTitle>
-            <VoiceReservationInput 
-              services={services} 
-              onParsed={handleVoiceParsed} 
-            />
-          </div>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="shrink-0">
+          <DialogTitle>
+            {t('addReservation.title')}
+          </DialogTitle>
           <DialogDescription className="sr-only">
             {t('addReservation.formDescription')}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4 py-4">
           {/* Date and Time Info - with range picker for PPF */}
           {isPPFStation ? (
             <div className="space-y-3">
@@ -676,8 +674,7 @@ const AddReservationDialog = ({
               </Popover>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ppfStartTime" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
+                  <Label htmlFor="ppfStartTime">
                     {t('addReservation.startTime')}
                   </Label>
                   <Input
@@ -689,7 +686,6 @@ const AddReservationDialog = ({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ppfEndTime" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
                     <span className="flex-1">{t('addReservation.endTime')}</span>
                     {dateRange?.to && ppfEndDateWorkingHours && (
                       <span className="text-xs text-muted-foreground font-normal">
@@ -720,7 +716,7 @@ const AddReservationDialog = ({
               </p>
             </div>
           ) : (
-            <div className="flex gap-4 p-3 bg-muted/50 rounded-lg text-sm">
+            <div className="flex gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">{t('common.date')}:</span>{' '}
                 <span className="font-medium">{date}</span>
@@ -810,27 +806,66 @@ const AddReservationDialog = ({
             </div>
           </div>
 
-          {/* Car Size */}
+          {/* Car Size - S/M/L with tooltips */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               {t('reservations.carSize')}
               {suggestingSize && (
-                <span className="text-xs text-muted-foreground">({t('addReservation.aiSuggesting')})</span>
+                <Sparkles className="w-4 h-4 animate-pulse text-primary" />
               )}
             </Label>
-            <div className="flex gap-2">
-              {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
-                <Button
-                  key={size}
-                  type="button"
-                  variant={carSize === size ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setCarSize(size)}
-                >
-                  {CAR_SIZE_LABELS[size]}
-                </Button>
-              ))}
-            </div>
+            <TooltipProvider>
+              <div className="flex gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={carSize === 'small' ? 'default' : 'outline'}
+                      className="flex-1 font-bold"
+                      onClick={() => setCarSize('small')}
+                    >
+                      S
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{t('reservations.carSizes.small')}</p>
+                    <p className="text-xs text-muted-foreground">Fiat 500, Smart, Mini</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={carSize === 'medium' ? 'default' : 'outline'}
+                      className="flex-1 font-bold"
+                      onClick={() => setCarSize('medium')}
+                    >
+                      M
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{t('reservations.carSizes.medium')}</p>
+                    <p className="text-xs text-muted-foreground">Golf, A4, 3 Series</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={carSize === 'large' ? 'default' : 'outline'}
+                      className="flex-1 font-bold"
+                      onClick={() => setCarSize('large')}
+                    >
+                      L
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{t('reservations.carSizes.large')}</p>
+                    <p className="text-xs text-muted-foreground">SUV, Van, Kombi</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           </div>
 
           {/* Services Multi-Select - hidden for PPF */}
@@ -1068,7 +1103,7 @@ const AddReservationDialog = ({
           )}
         </div>
 
-        <DialogFooter className="flex-row gap-2 sm:justify-end">
+        <DialogFooter className="shrink-0 flex-row gap-2 sm:justify-end border-t pt-4 mt-4">
           <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1 sm:flex-none">
             {t('common.cancel')}
           </Button>

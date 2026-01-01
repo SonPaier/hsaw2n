@@ -254,36 +254,33 @@ const AdminCalendar = ({
     displayStartTime: number; // decimal, start of display (with margin)
     displayEndTime: number;   // decimal, end of display (with margin)
     startSlotOffset: number;  // slots to skip in first hour (0-3)
+    isClosed: boolean;        // true if this day has no working hours
   } => {
+    const defaultResult = {
+      hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
+      startHour: DEFAULT_START_HOUR,
+      endHour: DEFAULT_END_HOUR,
+      closeTime: `${DEFAULT_END_HOUR}:00`,
+      workingStartTime: DEFAULT_START_HOUR,
+      workingEndTime: DEFAULT_END_HOUR,
+      displayStartTime: DEFAULT_START_HOUR,
+      displayEndTime: DEFAULT_END_HOUR,
+      startSlotOffset: 0,
+      isClosed: false
+    };
+    
     if (!workingHours) {
-      return {
-        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
-        startHour: DEFAULT_START_HOUR,
-        endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR,
-        displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR,
-        startSlotOffset: 0
-      };
+      return defaultResult;
     }
     
     const dayName = format(date, 'EEEE').toLowerCase();
     const dayHours = workingHours[dayName];
     
-    // Day is closed or has invalid hours - show default hours
+    // Day is closed (null in workingHours) - mark as closed
     if (!dayHours || !dayHours.open || !dayHours.close) {
       return {
-        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
-        startHour: DEFAULT_START_HOUR,
-        endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR,
-        displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR,
-        startSlotOffset: 0
+        ...defaultResult,
+        isClosed: true
       };
     }
     
@@ -298,17 +295,7 @@ const AdminCalendar = ({
     
     // If parsing failed, use defaults
     if (isNaN(workingStartTime) || isNaN(workingEndTime) || workingEndTime <= workingStartTime) {
-      return {
-        hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
-        startHour: DEFAULT_START_HOUR,
-        endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR,
-        displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR,
-        startSlotOffset: 0
-      };
+      return defaultResult;
     }
     
     // Add exactly 30min (0.5 hour) display margin before and after working hours for hatched areas
@@ -335,7 +322,8 @@ const AdminCalendar = ({
       workingEndTime,
       displayStartTime, // e.g., 8.5 for 8:30 start
       displayEndTime,   // e.g., 19.5 for 19:30 end
-      startSlotOffset   // number of slots to skip in first hour (0-3)
+      startSlotOffset,  // number of slots to skip in first hour (0-3)
+      isClosed: false
     };
   };
   
@@ -1327,10 +1315,10 @@ const AdminCalendar = ({
                   {/* Drag preview ghost - enhanced visibility */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
                     <div
-                      className="absolute left-1 right-1 rounded-lg border-3 border-dashed border-primary bg-primary/30 pointer-events-none z-20 flex items-center justify-center shadow-lg"
+                      className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-50 flex items-center justify-center"
                       style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
                     >
-                      <span className="text-sm font-bold text-primary bg-background px-3 py-1 rounded shadow">
+                      <span className="text-sm font-bold text-foreground bg-background px-3 py-1.5 rounded-md shadow-lg border border-border">
                         Przenieś na {dragPreviewStyle.time}
                       </span>
                     </div>
@@ -1546,6 +1534,8 @@ const AdminCalendar = ({
             {twoDays.map((day, dayIdx) => {
               const dayStr = format(day, 'yyyy-MM-dd');
               const isDayToday = isSameDay(day, new Date());
+              const dayHoursInfo = getHoursForDate(day);
+              const isDayClosed = dayHoursInfo.isClosed || isDateClosed(dayStr);
               
               return (
                 <div key={dayStr} className={cn("flex-1 flex flex-col", dayIdx < 1 && "border-r-2 border-border")}>
@@ -1553,15 +1543,17 @@ const AdminCalendar = ({
                   <div 
                     className={cn(
                       "p-1 md:p-2 text-center font-medium text-xs border-b border-border cursor-pointer hover:bg-muted/50 transition-colors",
-                      isDayToday && "bg-primary/10"
+                      isDayToday && "bg-primary/10",
+                      isDayClosed && "bg-red-500/10"
                     )}
                     onClick={() => {
                       setCurrentDate(day);
                       setViewMode('day');
                     }}
                   >
-                    <span className={cn("font-bold", isDayToday && "text-primary")}>
+                    <span className={cn("font-bold", isDayToday && "text-primary", isDayClosed && "text-red-500")}>
                       {format(day, 'EEEE d MMM', { locale: pl })}
+                      {isDayClosed && <span className="text-xs ml-1">(zamknięte)</span>}
                     </span>
                   </div>
                   {/* Station headers for this day */}
@@ -1680,8 +1672,16 @@ const AdminCalendar = ({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, station.id, dayStr)}
                       >
+                        {/* Hatched area for CLOSED DAY (covers entire column) */}
+                        {dayHours.isClosed && (
+                          <div 
+                            className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                            style={{ height: totalVisibleHeight }}
+                          />
+                        )}
+                        
                         {/* Hatched area for PAST time slots */}
-                        {pastHatchHeight > 0 && (
+                        {!dayHours.isClosed && pastHatchHeight > 0 && (
                           <div 
                             className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
                             style={{ height: pastHatchHeight }}
@@ -1689,7 +1689,7 @@ const AdminCalendar = ({
                         )}
                         
                         {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
-                        {dayHours.displayStartTime < dayHours.workingStartTime && (
+                        {!dayHours.isClosed && dayHours.displayStartTime < dayHours.workingStartTime && (
                           <div 
                             className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                             style={{ 
@@ -1700,7 +1700,7 @@ const AdminCalendar = ({
                         )}
                         
                         {/* Hatched area AFTER working hours (exactly 30 min margin) */}
-                        {dayHours.displayEndTime > dayHours.workingEndTime && (
+                        {!dayHours.isClosed && dayHours.displayEndTime > dayHours.workingEndTime && (
                           <div 
                             className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                             style={{ 
@@ -1741,9 +1741,9 @@ const AdminCalendar = ({
                               // Check if this slot is outside working hours (in hatched area)
                               const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
                               
-                              // Disable if past OR outside working hours OR day is closed
-                              const isDayClosed = isDateClosed(dayStr);
-                              const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosed;
+                              // Disable if past OR outside working hours OR day is closed (either via closed_days OR workingHours being null)
+                              const isDayClosedInDb = isDateClosed(dayStr);
+                              const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosedInDb || dayHours.isClosed;
                               
                               return (
                                 <div
@@ -1782,11 +1782,11 @@ const AdminCalendar = ({
                         {/* Drag preview ghost */}
                         {draggedReservation && dragOverStation === station.id && dragOverDate === dayStr && dragPreviewStyle && (
                           <div
-                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-10 flex items-center justify-center"
+                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-50 flex items-center justify-center"
                             style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
                           >
-                            <span className="text-[9px] font-semibold text-primary bg-background/80 px-1 py-0.5 rounded">
-                              {dragPreviewStyle.time}
+                            <span className="text-[10px] font-bold text-foreground bg-background px-2 py-1 rounded-md shadow-lg border border-border">
+                              Przenieś na {dragPreviewStyle.time}
                             </span>
                           </div>
                         )}
