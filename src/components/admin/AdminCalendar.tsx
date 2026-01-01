@@ -9,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { YardVehiclesList } from './YardVehiclesList';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -107,6 +108,7 @@ interface AdminCalendarProps {
   showStationFilter?: boolean;
   showWeekView?: boolean;
   hallMode?: boolean; // Simplified view for hall workers
+  instanceId?: string; // Instance ID for yard vehicles
 }
 
 // Default hours from 9:00 to 19:00
@@ -184,7 +186,8 @@ const AdminCalendar = ({
   readOnly = false,
   showStationFilter = true,
   showWeekView = true,
-  hallMode = false
+  hallMode = false,
+  instanceId
 }: AdminCalendarProps) => {
   const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -1918,9 +1921,9 @@ const AdminCalendar = ({
               <X className="w-4 h-4" />
             </Button>
           </SheetHeader>
-          <div className="flex-1 p-4 overflow-auto">
-            {/* Empty content for now */}
-          </div>
+          {instanceId && (
+            <YardVehiclesList instanceId={instanceId} />
+          )}
         </SheetContent>
       </Sheet>
 
