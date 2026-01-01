@@ -242,14 +242,15 @@ const AdminCalendar = ({
   };
   
   // Calculate hours based on working hours for current day
-  // Returns expanded range with 1-hour margins before open and after close for hatched areas
+  // Returns expanded range with 30-min margins before open and after close for hatched areas
+  // Supports half-hour working hours like 8:30 or 16:30
   const getHoursForDate = (date: Date): { 
     hours: number[]; 
     startHour: number; 
     endHour: number; 
     closeTime: string;
-    workingStartHour: number;
-    workingEndHour: number;
+    workingStartTime: number; // decimal, e.g., 8.5 for 8:30
+    workingEndTime: number;   // decimal, e.g., 16.5 for 16:30
   } => {
     if (!workingHours) {
       return {
@@ -257,8 +258,8 @@ const AdminCalendar = ({
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartHour: DEFAULT_START_HOUR,
-        workingEndHour: DEFAULT_END_HOUR
+        workingStartTime: DEFAULT_START_HOUR,
+        workingEndTime: DEFAULT_END_HOUR
       };
     }
     
@@ -272,41 +273,48 @@ const AdminCalendar = ({
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartHour: DEFAULT_START_HOUR,
-        workingEndHour: DEFAULT_END_HOUR
+        workingStartTime: DEFAULT_START_HOUR,
+        workingEndTime: DEFAULT_END_HOUR
       };
     }
     
-    const workingStartHour = parseInt(dayHours.open.split(':')[0]);
-    const workingEndHour = parseInt(dayHours.close.split(':')[0]);
+    // Parse time as decimal to support half-hours (e.g., "8:30" -> 8.5)
+    const parseTimeDecimal = (time: string): number => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours + (minutes || 0) / 60;
+    };
+    
+    const workingStartTime = parseTimeDecimal(dayHours.open);
+    const workingEndTime = parseTimeDecimal(dayHours.close);
     
     // If parsing failed, use defaults
-    if (isNaN(workingStartHour) || isNaN(workingEndHour) || workingEndHour <= workingStartHour) {
+    if (isNaN(workingStartTime) || isNaN(workingEndTime) || workingEndTime <= workingStartTime) {
       return {
         hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
-        workingStartHour: DEFAULT_START_HOUR,
-        workingEndHour: DEFAULT_END_HOUR
+        workingStartTime: DEFAULT_START_HOUR,
+        workingEndTime: DEFAULT_END_HOUR
       };
     }
     
     // Add 30min (0.5 hour) display margin before and after working hours for hatched areas
-    const displayStartHour = Math.max(0, workingStartHour - 1);
-    const displayEndHour = Math.min(24, workingEndHour + 1);
+    // Round down to nearest hour for display start, round up for display end
+    const displayStartHour = Math.max(0, Math.floor(workingStartTime - 0.5));
+    const displayEndHour = Math.min(24, Math.ceil(workingEndTime + 0.5));
     
     return {
       hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
       startHour: displayStartHour,
       endHour: displayEndHour,
       closeTime: dayHours.close,
-      workingStartHour,
-      workingEndHour
+      workingStartTime,
+      workingEndTime
     };
   };
   
-  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartHour: WORKING_START_HOUR, workingEndHour: WORKING_END_HOUR } = getHoursForDate(currentDate);
+  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartTime: WORKING_START_TIME, workingEndTime: WORKING_END_TIME } = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -1138,11 +1146,11 @@ const AdminCalendar = ({
                 } else if (isToday) {
                   const currentHour = now.getHours();
                   const currentMinute = now.getMinutes();
+                  const currentTimeDecimal = currentHour + currentMinute / 60;
                   // Calculate how much of the calendar is in the past
-                  if (currentHour >= WORKING_START_HOUR) {
-                    const hoursFromStart = currentHour - WORKING_START_HOUR;
-                    const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
-                    pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                  if (currentTimeDecimal >= DAY_START_HOUR) {
+                    const timeFromStart = currentTimeDecimal - DAY_START_HOUR;
+                    pastHatchHeight = timeFromStart * HOUR_HEIGHT;
                   }
                 }
                 
@@ -1167,19 +1175,19 @@ const AdminCalendar = ({
                   )}
                   
                   {/* Hatched area BEFORE working hours (30 min margin) */}
-                  {DAY_START_HOUR < WORKING_START_HOUR && (
+                  {DAY_START_HOUR < WORKING_START_TIME && (
                     <div 
                       className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
-                      style={{ height: (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT }}
+                      style={{ height: (WORKING_START_TIME - DAY_START_HOUR) * HOUR_HEIGHT }}
                     />
                   )}
                   
                   {/* Hatched area AFTER working hours (30 min margin) */}
                   {(() => {
-                    const { workingEndHour, endHour } = getHoursForDate(currentDate);
-                    if (endHour > workingEndHour) {
-                      const afterTop = (workingEndHour - DAY_START_HOUR) * HOUR_HEIGHT;
-                      const afterHeight = (endHour - workingEndHour) * HOUR_HEIGHT;
+                    const { workingEndTime, endHour } = getHoursForDate(currentDate);
+                    if (endHour > workingEndTime) {
+                      const afterTop = (workingEndTime - DAY_START_HOUR) * HOUR_HEIGHT;
+                      const afterHeight = (endHour - workingEndTime) * HOUR_HEIGHT;
                       return (
                         <div 
                           className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
@@ -1544,11 +1552,11 @@ const AdminCalendar = ({
                       } else if (isDayToday) {
                         const currentHour = nowDate.getHours();
                         const currentMinute = nowDate.getMinutes();
+                        const currentTimeDecimal = currentHour + currentMinute / 60;
                         const dayHours = getHoursForDate(day);
-                        if (currentHour >= dayHours.workingStartHour) {
-                          const hoursFromStart = currentHour - dayHours.startHour;
-                          const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
-                          pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                        if (currentTimeDecimal >= dayHours.startHour) {
+                          const timeFromStart = currentTimeDecimal - dayHours.startHour;
+                          pastHatchHeight = timeFromStart * HOUR_HEIGHT;
                         }
                       }
                       
@@ -1572,6 +1580,36 @@ const AdminCalendar = ({
                             style={{ height: pastHatchHeight }}
                           />
                         )}
+                        
+                        {/* Hatched area BEFORE working hours (30 min margin) */}
+                        {(() => {
+                          const dayHours = getHoursForDate(day);
+                          if (dayHours.startHour < dayHours.workingStartTime) {
+                            return (
+                              <div 
+                                className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
+                                style={{ height: (dayHours.workingStartTime - dayHours.startHour) * HOUR_HEIGHT }}
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
+                        
+                        {/* Hatched area AFTER working hours (30 min margin) */}
+                        {(() => {
+                          const dayHours = getHoursForDate(day);
+                          if (dayHours.endHour > dayHours.workingEndTime) {
+                            const afterTop = (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT;
+                            const afterHeight = (dayHours.endHour - dayHours.workingEndTime) * HOUR_HEIGHT;
+                            return (
+                              <div 
+                                className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                                style={{ top: afterTop, height: afterHeight }}
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
                         {/* 5-minute grid slots */}
                         {HOURS.map((hour) => (
                           <div key={hour} style={{ height: HOUR_HEIGHT }}>
@@ -1841,10 +1879,10 @@ const AdminCalendar = ({
                 } else if (isDayToday) {
                   const currentHour = nowDate.getHours();
                   const currentMinute = nowDate.getMinutes();
-                  if (currentHour >= dayHours.workingStartHour) {
-                    const hoursFromStart = currentHour - dayHours.startHour;
-                    const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
-                    pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                  const currentTimeDecimal = currentHour + currentMinute / 60;
+                  if (currentTimeDecimal >= dayHours.startHour) {
+                    const timeFromStart = currentTimeDecimal - dayHours.startHour;
+                    pastHatchHeight = timeFromStart * HOUR_HEIGHT;
                   }
                 }
                 
@@ -1866,6 +1904,25 @@ const AdminCalendar = ({
                       <div 
                         className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
                         style={{ height: pastHatchHeight }}
+                      />
+                    )}
+                    
+                    {/* Hatched area BEFORE working hours (30 min margin) */}
+                    {!isDayClosed && dayHours.startHour < dayHours.workingStartTime && (
+                      <div 
+                        className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
+                        style={{ height: (dayHours.workingStartTime - dayHours.startHour) * HOUR_HEIGHT }}
+                      />
+                    )}
+                    
+                    {/* Hatched area AFTER working hours (30 min margin) */}
+                    {!isDayClosed && dayHours.endHour > dayHours.workingEndTime && (
+                      <div 
+                        className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                        style={{ 
+                          top: (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT, 
+                          height: (dayHours.endHour - dayHours.workingEndTime) * HOUR_HEIGHT 
+                        }}
                       />
                     )}
                     
