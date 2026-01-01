@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import {
   Dialog,
@@ -20,6 +21,7 @@ interface SendSmsDialogProps {
 }
 
 const SendSmsDialog = ({ phone, customerName, instanceId, open, onClose }: SendSmsDialogProps) => {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -38,12 +40,12 @@ const SendSmsDialog = ({ phone, customerName, instanceId, open, onClose }: SendS
       
       if (error) throw error;
       
-      toast.success('SMS wysłany');
+      toast.success(t('sms.sent'));
       setMessage('');
       onClose();
     } catch (error) {
       console.error('Error sending SMS:', error);
-      toast.error('Błąd podczas wysyłania SMS');
+      toast.error(t('sms.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -55,17 +57,17 @@ const SendSmsDialog = ({ phone, customerName, instanceId, open, onClose }: SendS
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-primary" />
-            Wyślij SMS
+            {t('sms.sendSms')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Do: <span className="font-medium text-foreground">{customerName}</span> ({phone})
+            {t('sms.to')}: <span className="font-medium text-foreground">{customerName}</span> ({phone})
           </div>
           
           <Textarea
-            placeholder="Treść wiadomości..."
+            placeholder={t('sms.messagePlaceholder')}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
@@ -74,13 +76,13 @@ const SendSmsDialog = ({ phone, customerName, instanceId, open, onClose }: SendS
           
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={onClose}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleSend}
               disabled={!message.trim() || sending}
             >
-              {sending ? 'Wysyłanie...' : 'Wyślij'}
+              {sending ? t('common.saving') : t('sms.send')}
             </Button>
           </div>
         </div>

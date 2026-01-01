@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { Car } from 'lucide-react';
 
@@ -23,48 +24,47 @@ interface HallNextReservationsProps {
   reservations: Reservation[];
 }
 
-const formatTimeRemaining = (minutes: number): string => {
-  if (minutes <= 0) {
-    return 'Teraz';
-  }
-  
-  if (minutes < 60) {
-    if (minutes === 1) return 'Za 1 minutę';
-    if (minutes >= 2 && minutes <= 4) return `Za ${minutes} minuty`;
-    return `Za ${minutes} minut`;
-  }
-  
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  
-  let hoursText = '';
-  if (hours === 1) {
-    hoursText = 'Za godzinę';
-  } else if (hours >= 2 && hours <= 4) {
-    hoursText = `Za ${hours} godziny`;
-  } else {
-    hoursText = `Za ${hours} godzin`;
-  }
-  
-  if (remainingMinutes === 0) {
-    return hoursText;
-  }
-  
-  // For "Za godzinę" we need to change to "Za godzinę i X minut"
-  if (hours === 1) {
-    if (remainingMinutes === 1) return `Za godzinę i 1 minutę`;
-    if (remainingMinutes >= 2 && remainingMinutes <= 4) return `Za godzinę i ${remainingMinutes} minuty`;
-    return `Za godzinę i ${remainingMinutes} minut`;
-  }
-  
-  // For multiple hours
-  if (remainingMinutes === 1) return `${hoursText} i 1 minutę`;
-  if (remainingMinutes >= 2 && remainingMinutes <= 4) return `${hoursText} i ${remainingMinutes} minuty`;
-  return `${hoursText} i ${remainingMinutes} minut`;
-};
-
 const HallNextReservations = ({ stations, reservations }: HallNextReservationsProps) => {
+  const { t } = useTranslation();
   const [now, setNow] = useState(new Date());
+
+  const formatTimeRemaining = (minutes: number): string => {
+    if (minutes <= 0) {
+      return t('hall.now');
+    }
+    
+    if (minutes < 60) {
+      if (minutes === 1) return t('hall.inOneMinute');
+      if (minutes >= 2 && minutes <= 4) return t('hall.inMinutesFew', { minutes });
+      return t('hall.inMinutesMany', { minutes });
+    }
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    let hoursText = '';
+    if (hours === 1) {
+      hoursText = t('hall.inOneHour');
+    } else if (hours >= 2 && hours <= 4) {
+      hoursText = t('hall.inHoursFew', { hours });
+    } else {
+      hoursText = t('hall.inHoursMany', { hours });
+    }
+    
+    if (remainingMinutes === 0) {
+      return hoursText;
+    }
+    
+    if (hours === 1) {
+      if (remainingMinutes === 1) return t('hall.inHourAndMinuteOne', { remainingMinutes });
+      if (remainingMinutes >= 2 && remainingMinutes <= 4) return t('hall.inHourAndMinutesFew', { remainingMinutes });
+      return t('hall.inHourAndMinutesMany', { remainingMinutes });
+    }
+    
+    if (remainingMinutes === 1) return `${hoursText} ${t('hall.andMinuteOne')}`;
+    if (remainingMinutes >= 2 && remainingMinutes <= 4) return `${hoursText} ${t('hall.andMinutesFew', { remainingMinutes })}`;
+    return `${hoursText} ${t('hall.andMinutesMany', { remainingMinutes })}`;
+  };
 
   // Refresh every minute
   useEffect(() => {

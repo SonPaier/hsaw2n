@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, Car, Wrench, Loader2 } from 'lucide-react';
@@ -36,6 +37,7 @@ const HallReservationDetails = ({
   onOpenChange,
   onStatusChange 
 }: HallReservationDetailsProps) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCompleteVisit = async () => {
@@ -50,7 +52,7 @@ const HallReservationDetails = ({
         .eq('id', reservation.id);
 
       if (updateError) {
-        toast.error('Błąd podczas aktualizacji statusu');
+        toast.error(t('hall.updateError'));
         console.error('Update error:', updateError);
         setIsLoading(false);
         return;
@@ -60,7 +62,7 @@ const HallReservationDetails = ({
       const { error: smsError } = await supabase.functions.invoke('send-sms-message', {
         body: {
           phone: reservation.customer_phone,
-          message: `Dziękujemy za wizytę! Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Do zobaczenia!`,
+          message: t('hall.visitCompleteSmsMessage', { plate: reservation.vehicle_plate }),
           instanceId: reservation.instance_id
         }
       });
@@ -68,16 +70,16 @@ const HallReservationDetails = ({
       if (smsError) {
         console.error('SMS error:', smsError);
         // Don't fail the operation if SMS fails
-        toast.warning('Wizyta zakończona, ale SMS nie został wysłany');
+        toast.warning(t('hall.visitCompletedNoSms'));
       } else {
-        toast.success('Wizyta zakończona, SMS wysłany do klienta');
+        toast.success(t('hall.visitCompletedWithSms'));
       }
 
       onStatusChange?.(reservation.id, 'completed');
       onOpenChange(false);
     } catch (error) {
       console.error('Error completing visit:', error);
-      toast.error('Wystąpił błąd');
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +93,7 @@ const HallReservationDetails = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Szczegóły wizyty</DialogTitle>
+          <DialogTitle className="text-xl">{t('hall.visitDetails')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3 py-4">
@@ -107,8 +109,8 @@ const HallReservationDetails = ({
           <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
             <Wrench className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <div className="text-xs text-muted-foreground">Zakres usług</div>
-              <div className="text-lg font-medium">{reservation.service?.name || 'Brak danych'}</div>
+              <div className="text-xs text-muted-foreground">{t('hall.serviceScope')}</div>
+              <div className="text-lg font-medium">{reservation.service?.name || t('hall.noData')}</div>
             </div>
           </div>
 
@@ -116,7 +118,7 @@ const HallReservationDetails = ({
           <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
             <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <div className="text-xs text-muted-foreground">Termin</div>
+              <div className="text-xs text-muted-foreground">{t('hall.term')}</div>
               <div className="font-medium">
                 {isMultiDay ? (
                   <>
@@ -146,10 +148,10 @@ const HallReservationDetails = ({
                 ? 'bg-emerald-100 text-emerald-700'
                 : 'bg-amber-100 text-amber-700'
             }`}>
-              {reservation.status === 'completed' && 'Zakończona'}
-              {reservation.status === 'in_progress' && 'W trakcie'}
-              {reservation.status === 'confirmed' && 'Potwierdzona'}
-              {reservation.status === 'pending' && 'Oczekująca'}
+              {reservation.status === 'completed' && t('hall.completed')}
+              {reservation.status === 'in_progress' && t('hall.inProgress')}
+              {reservation.status === 'confirmed' && t('reservations.confirmed')}
+              {reservation.status === 'pending' && t('reservations.pending')}
             </span>
           </div>
         </div>
@@ -165,12 +167,12 @@ const HallReservationDetails = ({
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Wysyłanie...
+                {t('hall.sending')}
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                Zakończ wizytę
+                {t('reservations.completeVisit')}
               </>
             )}
           </Button>
