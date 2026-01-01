@@ -46,9 +46,23 @@ interface Service {
   name: string;
   shortcut?: string | null;
   duration_minutes: number | null;
+  duration_small: number | null;
+  duration_medium: number | null;
+  duration_large: number | null;
   price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
   station_type: string | null;
   is_popular?: boolean | null;
+}
+
+interface CustomerVehicle {
+  id: string;
+  phone: string;
+  model: string;
+  plate: string | null;
+  customer_id: string | null;
 }
 
 interface Customer {
@@ -121,13 +135,15 @@ const AddReservationDialog = ({
   const [suggestingSize, setSuggestingSize] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
+  const [foundVehicles, setFoundVehicles] = useState<CustomerVehicle[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [carModel, setCarModel] = useState('');
-  const [carSize, setCarSize] = useState<CarSize | ''>('');
+  const [carSize, setCarSize] = useState<CarSize>('medium');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [startTime, setStartTime] = useState(time);
   const [endTime, setEndTime] = useState('');
@@ -170,7 +186,7 @@ const AddReservationDialog = ({
     const fetchServices = async () => {
       const { data, error } = await supabase
         .from('services')
-        .select('id, name, shortcut, duration_minutes, price_from, station_type, is_popular')
+        .select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('sort_order');
@@ -209,11 +225,48 @@ const AddReservationDialog = ({
     }
   }, [open, time, date, stationType]);
 
-  // Calculate total duration from selected services
+  // Get duration and price for selected car size
+  const getServiceDuration = (service: Service): number => {
+    if (carSize === 'small' && service.duration_small) return service.duration_small;
+    if (carSize === 'large' && service.duration_large) return service.duration_large;
+    if (carSize === 'medium' && service.duration_medium) return service.duration_medium;
+    return service.duration_minutes || 60;
+  };
+
+  const getServicePrice = (service: Service): number | null => {
+    if (carSize === 'small' && service.price_small) return service.price_small;
+    if (carSize === 'large' && service.price_large) return service.price_large;
+    if (carSize === 'medium' && service.price_medium) return service.price_medium;
+    return service.price_from;
+  };
+
+  // Calculate total duration from selected services based on car size
   const totalDurationMinutes = selectedServices.reduce((total, serviceId) => {
     const service = services.find(s => s.id === serviceId);
-    return total + (service?.duration_minutes || 0);
+    return total + (service ? getServiceDuration(service) : 0);
   }, 0);
+
+  // Generate time slots based on working hours (15min intervals)
+  const generateTimeSlots = (): string[] => {
+    const dayWorkingHours = getWorkingHoursForDate(date);
+    const openTime = dayWorkingHours?.open || '08:00';
+    const closeTime = dayWorkingHours?.close || '18:00';
+    
+    const [openH, openM] = openTime.split(':').map(Number);
+    const [closeH, closeM] = closeTime.split(':').map(Number);
+    const startMinutes = openH * 60 + openM;
+    const endMinutes = closeH * 60 + closeM;
+    
+    const slots: string[] = [];
+    for (let m = startMinutes; m < endMinutes; m += 15) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      slots.push(`${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    }
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
 
   // Base duration options for dropdown (15min increments from 30min to 4h)
   const BASE_DURATION_OPTIONS = [
@@ -338,6 +391,68 @@ const AddReservationDialog = ({
     }, 500);
     return () => clearTimeout(timer);
   }, [carModel, suggestCarSize]);
+
+  // Search customer by phone
+  const searchByPhone = useCallback(async (searchPhone: string) => {
+    if (searchPhone.length < 3) {
+      setFoundVehicles([]);
+      setShowPhoneDropdown(false);
+      return;
+    }
+    
+    setSearchingCustomer(true);
+    try {
+      const { data, error } = await supabase
+        .from('customer_vehicles')
+        .select('id, phone, model, plate, customer_id')
+        .eq('instance_id', instanceId)
+        .ilike('phone', `%${searchPhone}%`)
+        .order('last_used_at', { ascending: false })
+        .limit(5);
+      
+      if (!error && data) {
+        setFoundVehicles(data);
+        setShowPhoneDropdown(data.length > 0);
+      }
+    } finally {
+      setSearchingCustomer(false);
+    }
+  }, [instanceId]);
+
+  // Debounced phone search
+  useEffect(() => {
+    if (selectedCustomerId) return; // Don't search if customer already selected
+    
+    const timer = setTimeout(() => {
+      searchByPhone(phone);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [phone, searchByPhone, selectedCustomerId]);
+
+  const selectVehicle = async (vehicle: CustomerVehicle) => {
+    setPhone(vehicle.phone);
+    setCarModel(vehicle.model);
+    setShowPhoneDropdown(false);
+    
+    // Fetch customer name if we have customer_id
+    if (vehicle.customer_id) {
+      const { data } = await supabase
+        .from('customers')
+        .select('name')
+        .eq('id', vehicle.customer_id)
+        .maybeSingle();
+      
+      if (data?.name) {
+        setCustomerName(data.name);
+        setSelectedCustomerId(vehicle.customer_id);
+      }
+    }
+    
+    // Trigger AI car size suggestion
+    if (vehicle.model && vehicle.model.length >= 3) {
+      suggestCarSize(vehicle.model);
+    }
+  };
 
   // Search customer by name
   const searchCustomer = useCallback(async (searchName: string) => {
@@ -774,17 +889,53 @@ const AddReservationDialog = ({
             )}
           </div>
 
-          {/* Phone */}
+          {/* Phone - with autocomplete from database */}
           <div className="space-y-2">
             <Label htmlFor="phone" className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
               {t('common.phone')}
             </Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setSelectedCustomerId(null);
+                }}
+                className="pr-10"
+                autoComplete="off"
+              />
+              {searchingCustomer && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            
+            {/* Vehicle suggestions dropdown */}
+            {showPhoneDropdown && foundVehicles.length > 0 && (
+              <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-50">
+                {foundVehicles.map((vehicle) => (
+                  <button
+                    key={vehicle.id}
+                    type="button"
+                    className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex items-center gap-3 border-b border-border last:border-0"
+                    onClick={() => selectVehicle(vehicle)}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Car className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">
+                        {vehicle.phone}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {vehicle.model}{vehicle.plate && ` • ${vehicle.plate}`}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Car Model */}
@@ -961,8 +1112,8 @@ const AddReservationDialog = ({
                               {service.shortcut ? ` - ${service.name}` : service.name}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {service.duration_minutes} min
-                              {service.price_from && ` • ${t('priceList.from')} ${service.price_from} zł`}
+                              {getServiceDuration(service)} min
+                              {getServicePrice(service) && ` • ${getServicePrice(service)} zł`}
                             </div>
                           </div>
                         </div>
@@ -1029,60 +1180,34 @@ const AddReservationDialog = ({
             </>
           )}
 
-          {/* Time Range - hidden for PPF as it's already in the date range section */}
+          {/* Time and Duration - hidden for PPF as it's already in the date range section */}
           {!isPPFStation && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startTime">{t('addReservation.startTime')}</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endTime">{t('addReservation.endTime')}</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => {
-                      setEndTime(e.target.value);
-                      setManualDuration(null); // Reset manual duration when end time is manually changed
-                    }}
-                    placeholder={t('addReservation.automatic')}
-                  />
-                </div>
-              </div>
-              
-              {/* Duration Quick Select */}
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between">
-                  <span>{t('addReservation.duration')}</span>
-                  <div className="flex items-center gap-2">
-                    {maxAvailableMinutes !== null && (
-                      <span className="text-xs text-muted-foreground">
-                        ({t('addReservation.max')} {maxAvailableMinutes >= 60 
-                          ? `${Math.floor(maxAvailableMinutes / 60)}h${maxAvailableMinutes % 60 > 0 ? ` ${maxAvailableMinutes % 60}min` : ''}` 
-                          : `${maxAvailableMinutes}min`} {t('addReservation.toNextReservation')})
-                      </span>
-                    )}
-                    {effectiveDuration && (
-                      <span className="text-sm font-normal text-primary">
-                        {Math.floor(effectiveDuration / 60) > 0 && `${Math.floor(effectiveDuration / 60)}h `}
-                        {effectiveDuration % 60 > 0 && `${effectiveDuration % 60}min`}
-                      </span>
-                    )}
-                  </div>
-                </Label>
+            <div className="space-y-2">
+              <Label>{t('addReservation.timeAndDuration')}</Label>
+              <div className="flex items-center gap-2">
+                {/* Start Time - 15min intervals dropdown */}
+                <Select value={startTime} onValueChange={setStartTime}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder={t('addReservation.selectTime')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover max-h-60">
+                    {timeSlots.map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <span className="text-muted-foreground">→</span>
+                
+                {/* Duration dropdown */}
                 {DURATION_OPTIONS.length > 0 ? (
                   <Select 
                     value={manualDuration?.toString() || ''} 
                     onValueChange={handleDurationChange}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="flex-1">
                       <SelectValue placeholder={t('addReservation.selectDuration')} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
@@ -1094,11 +1219,27 @@ const AddReservationDialog = ({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="text-sm text-destructive p-2 border border-destructive/30 rounded-md bg-destructive/10">
+                  <div className="flex-1 text-sm text-destructive p-2 border border-destructive/30 rounded-md bg-destructive/10">
                     {t('addReservation.noDurationOptions', { minutes: maxAvailableMinutes })}
                   </div>
                 )}
+                
+                <span className="text-muted-foreground">→</span>
+                
+                {/* End time display */}
+                <div className="flex-1 px-3 py-2 rounded-md bg-muted text-center font-medium">
+                  {endTime || '--:--'}
+                </div>
               </div>
+              
+              {/* Max available time hint */}
+              {maxAvailableMinutes !== null && (
+                <p className="text-xs text-muted-foreground">
+                  {t('addReservation.max')} {maxAvailableMinutes >= 60 
+                    ? `${Math.floor(maxAvailableMinutes / 60)}h${maxAvailableMinutes % 60 > 0 ? ` ${maxAvailableMinutes % 60}min` : ''}` 
+                    : `${maxAvailableMinutes}min`} {t('addReservation.toNextReservation')}
+                </p>
+              )}
             </div>
           )}
         </div>
