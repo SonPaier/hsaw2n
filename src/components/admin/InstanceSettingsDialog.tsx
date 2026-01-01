@@ -491,7 +491,7 @@ const InstanceSettingsDialog = ({
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={loading}>
             {loading ? (
@@ -499,7 +499,7 @@ const InstanceSettingsDialog = ({
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Zapisz zmiany
+            {t('instanceSettings.saveChanges')}
           </Button>
         </div>
       </DialogContent>

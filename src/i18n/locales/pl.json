@@ -694,7 +694,8 @@
     "googleMaps": "Link do Google Maps",
     "googleMapsInfo": "Link będzie dodany do SMS-ów z potwierdzeniem rezerwacji",
     "saved": "Ustawienia zostały zapisane",
-    "saveError": "Błąd podczas zapisywania ustawień"
+    "saveError": "Błąd podczas zapisywania ustawień",
+    "saveChanges": "Zapisz zmiany"
   },
   "stationsSettings": {
     "title": "Stanowiska",
@@ -1169,6 +1170,39 @@
     "metadata": {
       "width": "szer.",
       "years": "lat"
+    }
+  },
+  "editUser": {
+    "title": "Edytuj użytkownika",
+    "description": "Zmień dane użytkownika {{username}}.",
+    "username": "Nazwa użytkownika",
+    "usernamePlaceholder": "np. jan.kowalski",
+    "usernameRequired": "Nazwa użytkownika jest wymagana",
+    "usernameMinLength": "Nazwa użytkownika musi mieć co najmniej 3 znaki",
+    "role": "Rola",
+    "roleEmployee": "Pracownik",
+    "roleAdmin": "Admin Instancji",
+    "adminHint": "Admin ma pełny dostęp do ustawień i zarządzania użytkownikami",
+    "employeeHint": "Pracownik ma ograniczony dostęp do wybranych modułów",
+    "permissions": "Uprawnienia pracownika",
+    "saveChanges": "Zapisz zmiany",
+    "userUpdated": "Dane użytkownika zostały zaktualizowane",
+    "updateError": "Nie udało się zaktualizować użytkownika",
+    "features": {
+      "offers": "Oferty",
+      "offersDesc": "Dostęp do modułu generowania ofert",
+      "followup": "Follow-up",
+      "followupDesc": "Dostęp do modułu follow-up klientów"
+    },
+    "adminConfirm": {
+      "title": "Uprawnienia administratora",
+      "description": "Administrator instancji będzie miał dostęp do:",
+      "access1": "Wszystkich ustawień instancji",
+      "access2": "Zarządzania użytkownikami",
+      "access3": "Wszystkich modułów aplikacji",
+      "access4": "Tworzenia i usuwania innych kont",
+      "warning": "Przyznawaj te uprawnienia tylko zaufanym osobom.",
+      "confirm": "Rozumiem, nadaj uprawnienia"
     }
   }
 }
