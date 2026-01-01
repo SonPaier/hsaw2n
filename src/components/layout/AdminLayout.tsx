@@ -2,8 +2,15 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Car, Calendar, LogOut, Menu, Settings, UserCircle, 
-  PanelLeftClose, PanelLeft, FileText, Package, X, CalendarClock, ClipboardList
+  PanelLeftClose, PanelLeft, FileText, Package, X, CalendarClock, ClipboardList, ChevronUp
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -258,9 +265,10 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
 
           {/* Footer - always visible at bottom */}
           <div className={cn(
-            "border-t border-border/50 space-y-2 shrink-0",
+            "border-t border-border/50 shrink-0",
             sidebarCollapsed ? "p-2" : "p-4"
           )}>
+            {/* Collapse button */}
             <Button
               variant="ghost"
               className={cn(
@@ -279,24 +287,43 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                 </>
               )}
             </Button>
-            
-            {!sidebarCollapsed && user && (
-              <div className="px-3 py-2 text-sm text-muted-foreground truncate">
-                {user.email}
-              </div>
+
+            {/* Divider - only when not collapsed */}
+            {!sidebarCollapsed && (
+              <Separator className="my-3" />
             )}
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full text-muted-foreground gap-3",
-                sidebarCollapsed ? "justify-center px-2" : "justify-start"
-              )}
-              onClick={handleLogout}
-              title="Wyloguj się"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && "Wyloguj się"}
-            </Button>
+            
+            {/* User menu dropdown */}
+            {sidebarCollapsed ? (
+              <Button
+                variant="ghost"
+                className="w-full justify-center px-2 text-muted-foreground"
+                onClick={handleLogout}
+                title="Wyloguj się"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+              </Button>
+            ) : (
+              user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between text-muted-foreground px-3 h-auto py-2"
+                    >
+                      <span className="text-sm truncate">{user.email}</span>
+                      <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" align="start" className="w-56">
+                    <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                      <LogOut className="w-4 h-4" />
+                      Wyloguj się
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+            )}
           </div>
         </div>
       </aside>
