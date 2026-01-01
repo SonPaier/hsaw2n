@@ -147,6 +147,9 @@ const AdminDashboard = () => {
   // Closed days state
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
 
+  // Yard vehicle count for badge
+  const [yardVehicleCount, setYardVehicleCount] = useState(0);
+
   // Reservation list filter
   const [showPendingOnly, setShowPendingOnly] = useState(false);
 
@@ -234,10 +237,50 @@ const AdminDashboard = () => {
       setInstanceData(data);
     }
   };
+
+  // Fetch yard vehicle count for badge
+  const fetchYardVehicleCount = async () => {
+    if (!instanceId) return;
+    const { count, error } = await supabase
+      .from('yard_vehicles')
+      .select('*', { count: 'exact', head: true })
+      .eq('instance_id', instanceId)
+      .eq('status', 'waiting');
+    if (!error && count !== null) {
+      setYardVehicleCount(count);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
     fetchInstanceData();
+    fetchYardVehicleCount();
+  }, [instanceId]);
+
+  // Subscribe to yard_vehicles changes for real-time count updates
+  useEffect(() => {
+    if (!instanceId) return;
+    
+    const channel = supabase
+      .channel('yard-count-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'yard_vehicles',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchYardVehicleCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [instanceId]);
 
   // Save sidebar collapsed state
@@ -1188,7 +1231,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} />
               </div>}
 
             {currentView === 'reservations' && (

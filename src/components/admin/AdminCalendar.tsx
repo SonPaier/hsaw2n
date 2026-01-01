@@ -110,6 +110,7 @@ interface AdminCalendarProps {
   showWeekView?: boolean;
   hallMode?: boolean; // Simplified view for hall workers
   instanceId?: string; // Instance ID for yard vehicles
+  yardVehicleCount?: number; // Count of vehicles on yard for badge
 }
 
 // Default hours from 9:00 to 19:00
@@ -189,7 +190,8 @@ const AdminCalendar = ({
   showStationFilter = true,
   showWeekView = true,
   hallMode = false,
-  instanceId
+  instanceId,
+  yardVehicleCount = 0
 }: AdminCalendarProps) => {
   const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -996,10 +998,15 @@ const AdminCalendar = ({
             variant="outline"
             size="sm"
             onClick={() => setPlacDrawerOpen(true)}
-            className="gap-1"
+            className="gap-1 relative"
           >
             <ParkingSquare className="w-4 h-4" />
             <span className="hidden md:inline">Plac</span>
+            {yardVehicleCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {yardVehicleCount > 99 ? '99+' : yardVehicleCount}
+              </span>
+            )}
           </Button>
         </div>
       </div>
