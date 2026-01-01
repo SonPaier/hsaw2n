@@ -73,17 +73,17 @@ interface PriceListSettingsProps {
 }
 
 const STATION_TYPES = [
-  { value: 'washing', label: 'Myjnia' },
-  { value: 'detailing', label: 'Detailing' },
-  { value: 'ppf', label: 'Folia PPF' },
-  { value: 'universal', label: 'Uniwersalne' },
+  { value: 'washing', labelKey: 'priceList.stationTypes.washing' },
+  { value: 'detailing', labelKey: 'priceList.stationTypes.detailing' },
+  { value: 'ppf', labelKey: 'priceList.stationTypes.ppf' },
+  { value: 'universal', labelKey: 'priceList.stationTypes.universal' },
 ];
 
 const CATEGORY_SECTIONS = [
-  { key: 'washing', label: 'Mycie', stationType: 'washing' },
-  { key: 'detailing', label: 'Detailing', stationType: 'detailing' },
-  { key: 'ppf', label: 'Folia PPF', stationType: 'ppf' },
-  { key: 'universal', label: 'Pranie tapicerki', stationType: 'universal' },
+  { key: 'washing', labelKey: 'priceList.categories.washing', stationType: 'washing' },
+  { key: 'detailing', labelKey: 'priceList.categories.detailing', stationType: 'detailing' },
+  { key: 'ppf', labelKey: 'priceList.categories.ppf', stationType: 'ppf' },
+  { key: 'universal', labelKey: 'priceList.categories.universal', stationType: 'universal' },
 ];
 
 // Sortable service item component
@@ -177,6 +177,7 @@ const SortableServiceItem = ({
 };
 
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
+  const { t } = useTranslation();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -225,7 +226,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
-      toast.error('Błąd podczas pobierania usług');
+      toast.error(t('priceList.errors.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -293,7 +294,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const handleSave = async () => {
     if (!instanceId) return;
     if (!formData.name.trim()) {
-      toast.error('Nazwa usługi jest wymagana');
+      toast.error(t('priceList.errors.nameRequired'));
       return;
     }
 
@@ -326,28 +327,28 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           .eq('id', editingService.id);
         
         if (error) throw error;
-        toast.success('Usługa została zaktualizowana');
+        toast.success(t('priceList.serviceUpdated'));
       } else {
         const { error } = await supabase
           .from('services')
           .insert(serviceData);
         
         if (error) throw error;
-        toast.success('Usługa została dodana');
+        toast.success(t('priceList.serviceAdded'));
       }
 
       setEditDialogOpen(false);
       fetchServices();
     } catch (error) {
       console.error('Error saving service:', error);
-      toast.error('Błąd podczas zapisywania usługi');
+      toast.error(t('priceList.errors.saveError'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (serviceId: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
+    if (!confirm(t('priceList.confirmDelete'))) return;
 
     try {
       const { error } = await supabase
@@ -356,11 +357,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         .eq('id', serviceId);
       
       if (error) throw error;
-      toast.success('Usługa została usunięta');
+      toast.success(t('priceList.serviceDeleted'));
       fetchServices();
     } catch (error) {
       console.error('Error deleting service:', error);
-      toast.error('Błąd podczas usuwania usługi');
+      toast.error(t('priceList.errors.deleteError'));
     }
   };
 
@@ -381,7 +382,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error toggling service:', error);
-      toast.error('Błąd podczas zmiany statusu usługi');
+      toast.error(t('priceList.errors.statusError'));
       // Revert on error
       setServices(prev => prev.map(s => 
         s.id === service.id ? { ...s, active: !newValue } : s
@@ -406,7 +407,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error toggling popular:', error);
-      toast.error('Błąd podczas zmiany statusu popularności');
+      toast.error(t('priceList.errors.popularError'));
       // Revert on error
       setServices(prev => prev.map(s => 
         s.id === service.id ? { ...s, is_popular: !newValue } : s
@@ -441,10 +442,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           .update({ sort_order: i })
           .eq('id', reorderedServices[i].id);
       }
-      toast.success('Kolejność zapisana');
+      toast.success(t('priceList.orderSaved'));
     } catch (error) {
       console.error('Error updating order:', error);
-      toast.error('Błąd podczas zapisywania kolejności');
+      toast.error(t('priceList.errors.orderError'));
       fetchServices();
     }
   };
@@ -460,10 +461,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Cennik usług</h3>
+        <h3 className="text-lg font-semibold">{t('priceList.title')}</h3>
         <Button onClick={() => openEditDialog()} size="sm" className="gap-2">
           <Plus className="w-4 h-4" />
-          Dodaj usługę
+          {t('priceList.addService')}
         </Button>
       </div>
 
@@ -485,9 +486,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                   ) : (
                     <ChevronRight className="w-4 h-4" />
                   )}
-                  <span className="font-medium">{section.label}</span>
+                  <span className="font-medium">{t(section.labelKey)}</span>
                   <span className="text-sm text-muted-foreground">
-                    ({sectionServices.length} usług)
+                    ({sectionServices.length} {t('priceList.servicesCount')})
                   </span>
                 </div>
               </div>
@@ -506,7 +507,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                   <div className="mt-2 space-y-2">
                     {sectionServices.length === 0 ? (
                       <p className="text-sm text-muted-foreground p-4 text-center">
-                        Brak usług w tej kategorii
+                        {t('priceList.noServicesInCategory')}
                       </p>
                     ) : (
                       sectionServices.map(service => (
@@ -533,46 +534,46 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingService ? 'Edytuj usługę' : 'Dodaj nową usługę'}
+              {editingService ? t('priceList.editService') : t('priceList.addNewService')}
             </DialogTitle>
             <DialogDescription>
-              Uzupełnij dane usługi i zapisz zmiany
+              {t('priceList.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2 col-span-2">
-                <Label>Nazwa usługi *</Label>
+                <Label>{t('priceList.form.serviceName')} *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="np. Mycie podstawowe"
+                  placeholder={t('priceList.form.serviceNamePlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Skrót</Label>
+                <Label>{t('priceList.form.shortcut')}</Label>
                 <Input
                   value={formData.shortcut}
                   onChange={(e) => setFormData(prev => ({ ...prev, shortcut: e.target.value.toUpperCase() }))}
-                  placeholder="np. KPL"
+                  placeholder={t('priceList.form.shortcutPlaceholder')}
                   maxLength={10}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Opis (wyświetlany klientowi)</Label>
+              <Label>{t('priceList.form.description')}</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Opis usługi widoczny dla klienta podczas rezerwacji"
+                placeholder={t('priceList.form.descriptionPlaceholder')}
                 rows={2}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Kategoria</Label>
+              <Label>{t('priceList.form.category')}</Label>
               <Select
                 value={formData.station_type}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, station_type: v }))}
@@ -583,7 +584,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 <SelectContent className="bg-popover">
                   {STATION_TYPES.map(type => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                      {t(type.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -591,7 +592,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Czas trwania (minuty)</Label>
+              <Label>{t('priceList.form.duration')}</Label>
               <Input
                 type="number"
                 value={formData.duration_minutes}
@@ -600,7 +601,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <Label>Ceny zależne od wielkości auta</Label>
+              <Label>{t('priceList.form.priceBySize')}</Label>
               <Switch
                 checked={formData.requires_size}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, requires_size: v }))}
@@ -611,7 +612,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               <>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
-                    <Label className="text-xs">Mały (zł)</Label>
+                    <Label className="text-xs">{t('priceList.form.sizeSmall')}</Label>
                     <Input
                       type="number"
                       value={formData.price_small}
@@ -619,7 +620,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Średni (zł)</Label>
+                    <Label className="text-xs">{t('priceList.form.sizeMedium')}</Label>
                     <Input
                       type="number"
                       value={formData.price_medium}
@@ -627,7 +628,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Duży (zł)</Label>
+                    <Label className="text-xs">{t('priceList.form.sizeLarge')}</Label>
                     <Input
                       type="number"
                       value={formData.price_large}
@@ -636,10 +637,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                   </div>
                 </div>
 
-                <Label className="text-sm text-muted-foreground">Czas trwania wg wielkości (min)</Label>
+                <Label className="text-sm text-muted-foreground">{t('priceList.form.durationBySize')}</Label>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
-                    <Label className="text-xs">Mały</Label>
+                    <Label className="text-xs">{t('priceList.form.small')}</Label>
                     <Input
                       type="number"
                       value={formData.duration_small}
@@ -647,7 +648,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Średni</Label>
+                    <Label className="text-xs">{t('priceList.form.medium')}</Label>
                     <Input
                       type="number"
                       value={formData.duration_medium}
@@ -655,7 +656,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Duży</Label>
+                    <Label className="text-xs">{t('priceList.form.large')}</Label>
                     <Input
                       type="number"
                       value={formData.duration_large}
@@ -666,7 +667,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               </>
             ) : (
               <div className="space-y-2">
-                <Label>Cena od (zł)</Label>
+                <Label>{t('priceList.form.priceFrom')}</Label>
                 <Input
                   type="number"
                   value={formData.price_from}
@@ -676,7 +677,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             )}
 
             <div className="flex items-center justify-between">
-              <Label>Usługa aktywna</Label>
+              <Label>{t('priceList.form.serviceActive')}</Label>
               <Switch
                 checked={formData.active}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, active: v }))}
@@ -691,19 +692,19 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               />
               <Label htmlFor="is_popular" className="flex items-center gap-2 cursor-pointer">
                 <Star className="w-4 h-4 text-amber-500" />
-                Popularna usługa (pokazuj jako pierwszą)
+                {t('priceList.form.popularService')}
               </Label>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={saving} className="gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               <Save className="w-4 h-4" />
-              Zapisz
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

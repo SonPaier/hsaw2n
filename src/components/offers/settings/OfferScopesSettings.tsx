@@ -1,4 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ export interface OfferScopesSettingsRef {
 
 export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScopesSettingsProps>(
   ({ instanceId, onChange }, ref) => {
+    const { t } = useTranslation();
     const [scopes, setScopes] = useState<OfferScope[]>([]);
     const [allVariants, setAllVariants] = useState<OfferVariant[]>([]);
     const [loading, setLoading] = useState(true);
@@ -193,7 +195,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
           return true;
         } catch (error) {
           console.error('Error saving scopes:', error);
-          toast.error('Błąd podczas zapisywania usług');
+          toast.error(t('offerSettings.scopes.saveError'));
           return false;
         }
       },
@@ -268,7 +270,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         })));
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Błąd podczas pobierania danych');
+        toast.error(t('offerSettings.scopes.fetchError'));
       } finally {
         setLoading(false);
       }
@@ -277,7 +279,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
     const handleAddScope = () => {
       const newScope: OfferScope = {
         id: crypto.randomUUID(),
-        name: 'Nowa usługa',
+        name: t('offerSettings.scopes.newService'),
         description: null,
         sort_order: scopes.filter(s => !s.isDeleted).length,
         active: true,
@@ -300,7 +302,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
     };
 
     const handleDeleteScope = (id: string) => {
-      if (!confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
+      if (!confirm(t('offerSettings.scopes.confirmDelete'))) return;
       
       const scope = scopes.find(s => s.id === id);
       if (scope?.isNew) {
@@ -341,7 +343,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         
         const newExtra: ScopeExtra = {
           id: crypto.randomUUID(),
-          name: 'Nowa opcja',
+          name: t('offerSettings.scopes.newOption'),
           description: null,
           is_upsell: true,
           sort_order: scope.extras.filter(e => !e.isDeleted).length,
@@ -415,7 +417,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
     };
 
     if (loading) {
-      return <div className="text-muted-foreground">Ładowanie...</div>;
+      return <div className="text-muted-foreground">{t('common.loading')}</div>;
     }
 
     const visibleScopes = scopes.filter(s => !s.isDeleted);
@@ -424,21 +426,21 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium">Usługi oferty</h3>
+            <h3 className="text-lg font-medium">{t('offerSettings.scopes.title')}</h3>
             <p className="text-sm text-muted-foreground">
-              Zdefiniuj usługi, przypisz warianty i dodatkowe opcje
+              {t('offerSettings.scopes.description')}
             </p>
           </div>
           <Button onClick={handleAddScope} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Dodaj usługę
+            {t('offerSettings.scopes.addService')}
           </Button>
         </div>
 
         {visibleScopes.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Brak zdefiniowanych usług. Kliknij "Dodaj usługę" aby utworzyć pierwszą.
+              {t('offerSettings.scopes.noScopes')}
             </CardContent>
           </Card>
         ) : (
@@ -455,7 +457,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                         <Input
                           value={scope.name}
                           onChange={(e) => handleUpdateScope(scope.id, { name: e.target.value })}
-                          placeholder="Nazwa usługi"
+                          placeholder={t('offerSettings.scopes.namePlaceholder')}
                           className="flex-1"
                         />
                         <div className="flex items-center gap-2">
@@ -463,13 +465,13 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                             checked={scope.active}
                             onCheckedChange={(checked) => handleUpdateScope(scope.id, { active: checked })}
                           />
-                          <span className="text-sm text-muted-foreground">Aktywny</span>
+                          <span className="text-sm text-muted-foreground">{t('common.active')}</span>
                         </div>
                       </div>
                       <Input
                         value={scope.description || ''}
                         onChange={(e) => handleUpdateScope(scope.id, { description: e.target.value })}
-                        placeholder="Opis (opcjonalny)"
+                        placeholder={t('offerSettings.scopes.descriptionPlaceholder')}
                       />
                       
                       {/* Extras scope toggle */}
@@ -480,9 +482,9 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           onCheckedChange={(checked) => handleUpdateScope(scope.id, { is_extras_scope: !!checked })}
                         />
                         <label htmlFor={`extras-${scope.id}`} className="text-sm cursor-pointer">
-                          <span className="font-medium">Usługa typu "Dodatki"</span>
+                          <span className="font-medium">{t('offerSettings.scopes.extrasType')}</span>
                           <span className="text-muted-foreground ml-2">
-                            — każda opcja jest niezależna, można dodać dowolne kombinacje
+                            — {t('offerSettings.scopes.extrasTypeDescription')}
                           </span>
                         </label>
                       </div>
@@ -493,13 +495,13 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm" className="gap-2 px-2">
                               <Tag className="h-4 w-4" />
-                              <span>Warianty</span>
+                              <span>{t('offerSettings.scopes.variants')}</span>
                               <Badge variant="secondary" className="ml-1">
                                 {getLinkedVariantsCount(scope)}
                               </Badge>
                               <span className="mx-2 text-muted-foreground">|</span>
                               <Sparkles className="h-4 w-4" />
-                              <span>Opcje</span>
+                              <span>{t('offerSettings.scopes.options')}</span>
                               <Badge variant="secondary" className="ml-1">
                                 {getExtrasCount(scope)}
                               </Badge>
@@ -520,11 +522,11 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           <div className="space-y-2">
                             <h4 className="text-sm font-medium flex items-center gap-2">
                               <Tag className="h-4 w-4" />
-                              Przypisane warianty
+                              {t('offerSettings.scopes.assignedVariants')}
                             </h4>
                             {allVariants.length === 0 ? (
                               <p className="text-sm text-muted-foreground">
-                                Brak zdefiniowanych wariantów. Dodaj je w zakładce "Warianty".
+                                {t('offerSettings.scopes.noVariantsDefined')}
                               </p>
                             ) : (
                               <div className="flex flex-wrap gap-2">
@@ -556,7 +558,7 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-medium flex items-center gap-2">
                                 <Sparkles className="h-4 w-4" />
-                                Dodatkowe opcje (np. Powłoka)
+                                {t('offerSettings.scopes.extraOptions')}
                               </h4>
                               <Button
                                 variant="outline"
@@ -564,12 +566,12 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                                 onClick={() => handleAddExtra(scope.id)}
                               >
                                 <Plus className="h-4 w-4 mr-1" />
-                                Dodaj opcję
+                                {t('offerSettings.scopes.addOption')}
                               </Button>
                             </div>
                             {scope.extras.filter(e => !e.isDeleted).length === 0 ? (
                               <p className="text-sm text-muted-foreground">
-                                Brak dodatkowych opcji. Kliknij "Dodaj opcję" aby utworzyć.
+                                {t('offerSettings.scopes.noExtras')}
                               </p>
                             ) : (
                               <div className="space-y-2">
@@ -578,13 +580,13 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                                     <Input
                                       value={extra.name}
                                       onChange={(e) => handleUpdateExtra(scope.id, extra.id, { name: e.target.value })}
-                                      placeholder="Nazwa opcji"
+                                      placeholder={t('offerSettings.scopes.optionName')}
                                       className="flex-1"
                                     />
                                     <Input
                                       value={extra.description || ''}
                                       onChange={(e) => handleUpdateExtra(scope.id, extra.id, { description: e.target.value })}
-                                      placeholder="Opis (opcjonalny)"
+                                      placeholder={t('offerSettings.scopes.optionDescription')}
                                       className="flex-1"
                                     />
                                     <Button
