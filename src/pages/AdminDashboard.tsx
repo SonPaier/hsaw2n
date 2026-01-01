@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -82,9 +87,7 @@ interface ClosedDay {
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications';
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications'];
 const AdminDashboard = () => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     view
@@ -146,6 +149,9 @@ const AdminDashboard = () => {
 
   // Yard vehicle count for badge
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
+
+  // Unread notifications count for badge
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   // Reservation list filter
   const [showPendingOnly, setShowPendingOnly] = useState(false);
@@ -238,35 +244,82 @@ const AdminDashboard = () => {
   // Fetch yard vehicle count for badge
   const fetchYardVehicleCount = async () => {
     if (!instanceId) return;
-    const {
-      count,
-      error
-    } = await supabase.from('yard_vehicles').select('*', {
-      count: 'exact',
-      head: true
-    }).eq('instance_id', instanceId).eq('status', 'waiting');
+    const { count, error } = await supabase
+      .from('yard_vehicles')
+      .select('*', { count: 'exact', head: true })
+      .eq('instance_id', instanceId)
+      .eq('status', 'waiting');
     if (!error && count !== null) {
       setYardVehicleCount(count);
     }
   };
+
+  // Fetch unread notifications count for badge
+  const fetchUnreadNotificationsCount = async () => {
+    if (!instanceId) return;
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('instance_id', instanceId)
+      .eq('read', false);
+    if (!error && count !== null) {
+      setUnreadNotificationsCount(count);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
     fetchInstanceData();
     fetchYardVehicleCount();
+    fetchUnreadNotificationsCount();
   }, [instanceId]);
 
   // Subscribe to yard_vehicles changes for real-time count updates
   useEffect(() => {
     if (!instanceId) return;
-    const channel = supabase.channel('yard-count-changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'yard_vehicles',
-      filter: `instance_id=eq.${instanceId}`
-    }, () => {
-      fetchYardVehicleCount();
-    }).subscribe();
+    
+    const channel = supabase
+      .channel('yard-count-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'yard_vehicles',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchYardVehicleCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
+  // Subscribe to notifications changes for real-time count updates
+  useEffect(() => {
+    if (!instanceId) return;
+    
+    const channel = supabase
+      .channel('notifications-count-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchUnreadNotificationsCount();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -611,7 +664,7 @@ const AdminDashboard = () => {
       toast.error(t('errors.generic'));
     }
   };
-
+  
   // Reject reservation - soft delete with undo option
   const handleRejectReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
@@ -622,23 +675,24 @@ const AdminDashboard = () => {
 
     // Store timeout ID so we can cancel if user clicks Cofnij
     let deleteExecuted = false;
+
     const executeDelete = async () => {
       if (deleteExecuted) return;
       deleteExecuted = true;
+      
       try {
         // Save customer data before deleting
         await supabase.from('customers').upsert({
           instance_id: instanceId,
           name: reservation.customer_name,
           phone: reservation.customer_phone,
-          source: 'myjnia'
+          source: 'myjnia',
         }, {
           onConflict: 'instance_id,source,phone',
           ignoreDuplicates: false
         });
-        const {
-          error
-        } = await supabase.from('reservations').delete().eq('id', reservationId);
+
+        const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
         if (error) {
           console.error('Error rejecting reservation:', error);
           // Restore if delete failed
@@ -660,7 +714,7 @@ const AdminDashboard = () => {
           deleteExecuted = true; // Prevent delete
           setReservations(prev => [...prev, reservation]);
           toast.success(t('common.success'));
-        }
+        },
       },
       duration: 5000,
       onDismiss: () => {
@@ -668,7 +722,7 @@ const AdminDashboard = () => {
       },
       onAutoClose: () => {
         executeDelete();
-      }
+      },
     });
   };
   const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
@@ -781,6 +835,7 @@ const AdminDashboard = () => {
   const handleConfirmReservation = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
+
     const previousStatus = reservation.status;
 
     // Optimistic UI update (so it disappears from "Niepotwierdzone" instantly)
@@ -792,11 +847,12 @@ const AdminDashboard = () => {
       ...prev,
       status: 'confirmed'
     } : prev);
-    const {
-      error
-    } = await supabase.from('reservations').update({
-      status: 'confirmed'
-    }).eq('id', reservationId);
+
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: 'confirmed' })
+      .eq('id', reservationId);
+
     if (error) {
       // Rollback optimistic update
       setReservations(prev => prev.map(r => r.id === reservationId ? {
@@ -807,6 +863,7 @@ const AdminDashboard = () => {
         ...prev,
         status: previousStatus
       } : prev);
+
       toast.error(t('errors.generic'));
       console.error('Error confirming reservation:', error);
       return;
@@ -944,25 +1001,17 @@ const AdminDashboard = () => {
   };
 
   // Handle yard vehicle drop onto calendar
-  const handleYardVehicleDrop = async (vehicle: {
-    id: string;
-    customer_name: string;
-    customer_phone: string;
-    vehicle_plate: string;
-    car_size: 'small' | 'medium' | 'large' | null;
-    service_ids: string[];
-    notes: string | null;
-  }, stationId: string, date: string, time: string) => {
+  const handleYardVehicleDrop = async (vehicle: { id: string; customer_name: string; customer_phone: string; vehicle_plate: string; car_size: 'small' | 'medium' | 'large' | null; service_ids: string[]; notes: string | null }, stationId: string, date: string, time: string) => {
     if (!instanceId) return;
-
+    
     // Calculate total duration based on services
     let totalDuration = 60; // Default 1 hour if no services
-
+    
     if (vehicle.service_ids && vehicle.service_ids.length > 0) {
       totalDuration = vehicle.service_ids.reduce((total, serviceId) => {
         const service = allServices.find(s => s.id === serviceId);
         if (!service) return total;
-
+        
         // Get duration based on car size
         let duration = service.duration_minutes || 60;
         if (vehicle.car_size === 'small' && service.duration_small) {
@@ -972,35 +1021,36 @@ const AdminDashboard = () => {
         } else if (vehicle.car_size === 'large' && service.duration_large) {
           duration = service.duration_large;
         }
+        
         return total + duration;
       }, 0);
-
+      
       // Minimum 30 minutes
       if (totalDuration < 30) totalDuration = 30;
     }
-
+    
     // Calculate end time based on duration
     const [hours, mins] = time.split(':').map(Number);
     const endMinutes = hours * 60 + mins + totalDuration;
     const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-
+    
     // Generate confirmation code
     const confirmationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
+    
     // Get first service ID or fetch a default one
     let primaryServiceId = vehicle.service_ids?.[0];
     if (!primaryServiceId && allServices.length > 0) {
       primaryServiceId = allServices[0].id;
     }
+    
     if (!primaryServiceId) {
       toast.error('Brak usług - dodaj usługę do pojazdu lub utwórz usługę w systemie');
       return;
     }
+    
     try {
       // Create reservation from yard vehicle data
-      const {
-        error: reservationError
-      } = await supabase.from('reservations').insert([{
+      const { error: reservationError } = await supabase.from('reservations').insert([{
         instance_id: instanceId,
         station_id: stationId,
         reservation_date: date,
@@ -1017,13 +1067,13 @@ const AdminDashboard = () => {
         status: 'confirmed' as const,
         source: 'admin'
       }]);
+      
       if (reservationError) throw reservationError;
-
+      
       // Delete from yard_vehicles
-      const {
-        error: deleteError
-      } = await supabase.from('yard_vehicles').delete().eq('id', vehicle.id);
+      const { error: deleteError } = await supabase.from('yard_vehicles').delete().eq('id', vehicle.id);
       if (deleteError) console.error('Error deleting yard vehicle:', deleteError);
+      
       fetchReservations();
       toast.success('Rezerwacja utworzona z placu');
     } catch (error) {
@@ -1031,6 +1081,7 @@ const AdminDashboard = () => {
       toast.error('Błąd podczas tworzenia rezerwacji');
     }
   };
+
   const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
   return <>
       <Helmet>
@@ -1047,7 +1098,10 @@ const AdminDashboard = () => {
           <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
-              <button onClick={() => setCurrentView('calendar')} className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}>
+              <button 
+                onClick={() => setCurrentView('calendar')} 
+                className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
+              >
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
                   <Car className="w-5 h-5 text-primary-foreground" />
                 </div>
@@ -1056,27 +1110,28 @@ const AdminDashboard = () => {
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
               </button>
-              {!sidebarCollapsed && instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
-              const reservation = reservations.find(r => r.id === reservationId);
-              if (reservation) {
-                setSelectedReservation(reservation);
-              }
-            }} onConfirmReservation={handleConfirmReservation} onViewAllNotifications={() => setCurrentView('notifications')} onNavigateToOffers={() => setCurrentView('offers')} onNavigateToReservations={() => setCurrentView('reservations')} />}
+              {!sidebarCollapsed && instanceId && <NotificationBell 
+                instanceId={instanceId} 
+                onOpenReservation={reservationId => {
+                  const reservation = reservations.find(r => r.id === reservationId);
+                  if (reservation) {
+                    setSelectedReservation(reservation);
+                  }
+                }} 
+                onConfirmReservation={handleConfirmReservation}
+                onViewAllNotifications={() => setCurrentView('notifications')}
+                onNavigateToOffers={() => setCurrentView('offers')}
+                onNavigateToReservations={() => setCurrentView('reservations')}
+              />}
             </div>
 
             {/* Navigation */}
             <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
-              <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('calendar');
-              setSidebarOpen(false);
-            }} title="Kalendarz">
+              <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('calendar'); setSidebarOpen(false); }} title="Kalendarz">
                 <Calendar className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Kalendarz"}
               </Button>
-              <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('reservations');
-              setSidebarOpen(false);
-            }} title="Rezerwacje">
+              <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('reservations'); setSidebarOpen(false); }} title="Rezerwacje">
                 <div className="relative">
                   <Users className="w-4 h-4 shrink-0" />
                   {sidebarCollapsed && pendingCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
@@ -1090,32 +1145,37 @@ const AdminDashboard = () => {
                       </span>}
                   </>}
               </Button>
-              <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('customers');
-              setSidebarOpen(false);
-            }} title="Klienci">
+              <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('notifications'); setSidebarOpen(false); }} title="Powiadomienia">
+                <div className="relative">
+                  <Bell className="w-4 h-4 shrink-0" />
+                  {sidebarCollapsed && unreadNotificationsCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>}
+                </div>
+                {!sidebarCollapsed && <>
+                    <span className="flex-1 text-left">Powiadomienia</span>
+                    {unreadNotificationsCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                      </span>}
+                  </>}
+              </Button>
+              <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('customers'); setSidebarOpen(false); }} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
-              {hasFeature('offers')}
-              {hasFeature('offers') && <Button variant={currentView === 'products' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('products');
-              setSidebarOpen(false);
-            }} title="Produkty">
+              {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('offers'); setSidebarOpen(false); }} title="Oferty">
+                  <FileText className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && "Oferty"}
+                </Button>}
+              {hasFeature('offers') && <Button variant={currentView === 'products' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('products'); setSidebarOpen(false); }} title="Produkty">
                   <Package className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Produkty"}
                 </Button>}
-              {hasFeature('followup') && <Button variant={currentView === 'followup' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('followup');
-              setSidebarOpen(false);
-            }} title="Follow-up">
+              {hasFeature('followup') && <Button variant={currentView === 'followup' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('followup'); setSidebarOpen(false); }} title="Follow-up">
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>}
-              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {
-              setCurrentView('settings');
-              setSidebarOpen(false);
-            }} title="Ustawienia">
+              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
               </Button>
@@ -1124,22 +1184,46 @@ const AdminDashboard = () => {
             {/* Collapse toggle & User menu */}
             <div className={cn("border-t border-border/50", sidebarCollapsed ? "p-2" : "p-4")}>
               {/* Collapse button - desktop only */}
-              <Button variant="ghost" className={cn("w-full text-muted-foreground hidden lg:flex gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}>
-                {sidebarCollapsed ? <PanelLeft className="w-4 h-4 shrink-0" /> : <>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full text-muted-foreground hidden lg:flex gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start",
+                )}
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="w-4 h-4 shrink-0" />
+                ) : (
+                  <>
                     <PanelLeftClose className="w-4 h-4 shrink-0" />
                     Zwiń menu
-                  </>}
+                  </>
+                )}
               </Button>
 
               {/* Divider - only when not collapsed */}
               {!sidebarCollapsed && <Separator className="my-3" />}
 
               {/* Email -> dropdown (logout) */}
-              {sidebarCollapsed ? <Button variant="ghost" className="w-full justify-center px-2 text-muted-foreground" onClick={handleLogout} title="Wyloguj się">
+              {sidebarCollapsed ? (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2 text-muted-foreground"
+                  onClick={handleLogout}
+                  title="Wyloguj się"
+                >
                   <LogOut className="w-4 h-4 shrink-0" />
-                </Button> : user && <DropdownMenu>
+                </Button>
+              ) : (
+                user && (
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between text-muted-foreground px-3 h-auto py-2">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between text-muted-foreground px-3 h-auto py-2"
+                      >
                         <span className="text-sm truncate">{user.email}</span>
                         <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
                       </Button>
@@ -1150,7 +1234,9 @@ const AdminDashboard = () => {
                         Wyloguj się
                       </DropdownMenuItem>
                     </DropdownMenuContent>
-                  </DropdownMenu>}
+                  </DropdownMenu>
+                )
+              )}
             </div>
           </div>
         </aside>
@@ -1168,12 +1254,19 @@ const AdminDashboard = () => {
                 <span className="font-bold">ARM CAR</span>
               </div>
               <div className="flex items-center gap-1">
-                {instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
-                const reservation = reservations.find(r => r.id === reservationId);
-                if (reservation) {
-                  setSelectedReservation(reservation);
-                }
-              }} onConfirmReservation={handleConfirmReservation} onViewAllNotifications={() => setCurrentView('notifications')} onNavigateToOffers={() => setCurrentView('offers')} onNavigateToReservations={() => setCurrentView('reservations')} />}
+                {instanceId && <NotificationBell 
+                  instanceId={instanceId} 
+                  onOpenReservation={reservationId => {
+                    const reservation = reservations.find(r => r.id === reservationId);
+                    if (reservation) {
+                      setSelectedReservation(reservation);
+                    }
+                  }} 
+                  onConfirmReservation={handleConfirmReservation}
+                  onViewAllNotifications={() => setCurrentView('notifications')}
+                  onNavigateToOffers={() => setCurrentView('offers')}
+                  onNavigateToReservations={() => setCurrentView('reservations')}
+                />}
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -1197,7 +1290,15 @@ const AdminDashboard = () => {
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} />
               </div>}
 
-            {currentView === 'reservations' && <ReservationsView reservations={reservations} allServices={allServices} onReservationClick={handleReservationClick} onConfirmReservation={handleConfirmReservation} onRejectReservation={handleRejectReservation} />}
+            {currentView === 'reservations' && (
+              <ReservationsView
+                reservations={reservations}
+                allServices={allServices}
+                onReservationClick={handleReservationClick}
+                onConfirmReservation={handleConfirmReservation}
+                onRejectReservation={handleRejectReservation}
+              />
+            )}
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
@@ -1247,7 +1348,12 @@ const AdminDashboard = () => {
 
             {currentView === 'followup' && <FollowUpView instanceId={instanceId} />}
 
-            {currentView === 'notifications' && <NotificationsView instanceId={instanceId} onNavigateBack={() => setCurrentView('calendar')} onNavigateToOffers={() => setCurrentView('offers')} onNavigateToReservations={() => setCurrentView('reservations')} />}
+            {currentView === 'notifications' && <NotificationsView 
+              instanceId={instanceId} 
+              onNavigateBack={() => setCurrentView('calendar')} 
+              onNavigateToOffers={() => setCurrentView('offers')}
+              onNavigateToReservations={() => setCurrentView('reservations')}
+            />}
           </div>
         </main>
       </div>
@@ -1273,7 +1379,16 @@ const AdminDashboard = () => {
     }} />
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} stations={stations} reservations={reservations} currentDate={format(new Date(), 'yyyy-MM-dd')} workingHours={workingHours} onAddReservation={handleQuickAddReservation} onAddReservationWithSlot={handleAddReservation} />
+      <MobileBottomNav 
+        currentView={currentView} 
+        onViewChange={setCurrentView} 
+        stations={stations} 
+        reservations={reservations} 
+        currentDate={format(new Date(), 'yyyy-MM-dd')}
+        workingHours={workingHours}
+        onAddReservation={handleQuickAddReservation} 
+        onAddReservationWithSlot={handleAddReservation}
+      />
     </>;
 };
 export default AdminDashboard;
