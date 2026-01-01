@@ -217,18 +217,14 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
           <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
             <div className="w-full max-w-md space-y-8">
               {/* Logo */}
-              <div className="space-y-2">
-                {instance?.logo_url ? (
-                  <img 
-                    src={instance.logo_url} 
-                    alt={instance.name}
-                    className="h-12 object-contain mb-6"
-                  />
-                ) : (
-                  <div 
-                    className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-6 bg-primary"
-                  >
-                    <Car className="w-6 h-6 text-primary-foreground" />
+              <div className="space-y-4 text-center">
+                {instance?.logo_url && (
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src={instance.logo_url} 
+                      alt={instance.name}
+                      className="h-20 object-contain"
+                    />
                   </div>
                 )}
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
@@ -304,15 +300,15 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="w-full h-12 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold"
                   disabled={loading}
                 >
                   {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       Zaloguj się
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
                 </Button>
@@ -366,7 +362,7 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
                 <Car className="w-10 h-10" />
               </div>
               <h2 className="text-3xl font-bold">
-                {instance?.name || 'Panel Administracyjny'}
+                N2Wash
               </h2>
               <p className="text-white/70 text-lg">
                 Zarządzaj rezerwacjami, usługami i klientami w jednym miejscu.
