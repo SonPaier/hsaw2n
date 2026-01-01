@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -30,12 +31,7 @@ interface OfferGeneratorProps {
   onSaved?: (offerId: string) => void;
 }
 
-const steps = [
-  { id: 1, label: 'Dane klienta', icon: User },
-  { id: 2, label: 'Zakres', icon: Layers },
-  { id: 3, label: 'Opcje i produkty', icon: Package },
-  { id: 4, label: 'Podsumowanie', icon: FileCheck },
-];
+// Steps defined inside component for i18n
 
 export const OfferGenerator = ({
   instanceId,
@@ -44,7 +40,15 @@ export const OfferGenerator = ({
   onClose,
   onSaved,
 }: OfferGeneratorProps) => {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
+
+  const steps = [
+    { id: 1, label: t('offers.steps.customerData'), icon: User },
+    { id: 2, label: t('offers.steps.scope'), icon: Layers },
+    { id: 3, label: t('offers.steps.optionsProducts'), icon: Package },
+    { id: 4, label: t('offers.steps.summary'), icon: FileCheck },
+  ];
   
   const {
     offer,
@@ -112,7 +116,7 @@ export const OfferGenerator = ({
     try {
       await saveOffer();
       updateOffer({ status: 'sent' });
-      toast.success('Oferta została zapisana i gotowa do wysłania');
+      toast.success(t('offers.savedReadyToSend'));
     } catch (error) {
       // Error already handled in hook
     }
@@ -120,7 +124,7 @@ export const OfferGenerator = ({
 
   const handleDownloadPdf = async () => {
     if (!offer.id) {
-      toast.error('Najpierw zapisz ofertę');
+      toast.error(t('offers.saveFirst'));
       return;
     }
     
@@ -147,11 +151,11 @@ export const OfferGenerator = ({
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.info('Otwórz plik i użyj Drukuj → Zapisz jako PDF');
+        toast.info(t('offers.openFilePrintPdf'));
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast.error('Błąd podczas generowania PDF');
+      toast.error(t('offers.pdfError'));
     }
   };
 
@@ -273,14 +277,14 @@ export const OfferGenerator = ({
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              Wstecz
+              {t('common.back')}
             </Button>
           ) : onClose ? (
             <Button
               variant="outline"
               onClick={onClose}
             >
-              Anuluj
+              {t('common.cancel')}
             </Button>
           ) : null}
         </div>
@@ -297,7 +301,7 @@ export const OfferGenerator = ({
             ) : (
               <Save className="w-4 h-4" />
             )}
-            Zapisz
+            {t('common.save')}
           </Button>
 
           {currentStep < 4 ? (
@@ -306,7 +310,7 @@ export const OfferGenerator = ({
               disabled={!canProceed}
               className="gap-2"
             >
-              Dalej
+              {t('common.next')}
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
@@ -318,7 +322,7 @@ export const OfferGenerator = ({
                   className="gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Pobierz PDF
+                  {t('offers.downloadPdf')}
                 </Button>
               )}
               <Button
@@ -331,7 +335,7 @@ export const OfferGenerator = ({
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                Wyślij ofertę
+                {t('offers.sendOffer')}
               </Button>
             </>
           )}
