@@ -1905,12 +1905,12 @@ const AdminCalendar = ({
       <Drawer open={placDrawerOpen} onOpenChange={setPlacDrawerOpen} direction="right">
         <DrawerContent 
           hideOverlay 
-          className="fixed right-0 top-0 bottom-0 left-auto inset-x-auto w-full max-w-md h-full rounded-none border-l border-border"
+          className="fixed right-0 top-0 bottom-0 left-auto inset-x-auto w-[20%] min-w-[280px] h-full rounded-none border-l border-border bg-white shadow-[-8px_0_30px_-10px_rgba(0,0,0,0.15)]"
         >
           <DrawerHeader className="flex items-center justify-between border-b border-border px-4 py-3">
-            <DrawerTitle className="text-lg font-semibold">Plac</DrawerTitle>
+            <DrawerTitle className="text-lg font-semibold text-slate-900">Plac</DrawerTitle>
             <DrawerClose asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-600 hover:text-slate-900">
                 <X className="w-4 h-4" />
               </Button>
             </DrawerClose>
