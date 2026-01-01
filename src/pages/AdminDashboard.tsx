@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
-import { NotificationBell } from '@/components/admin/NotificationBell';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1110,19 +1110,6 @@ const AdminDashboard = () => {
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
               </button>
-              {!sidebarCollapsed && instanceId && <NotificationBell 
-                instanceId={instanceId} 
-                onOpenReservation={reservationId => {
-                  const reservation = reservations.find(r => r.id === reservationId);
-                  if (reservation) {
-                    setSelectedReservation(reservation);
-                  }
-                }} 
-                onConfirmReservation={handleConfirmReservation}
-                onViewAllNotifications={() => setCurrentView('notifications')}
-                onNavigateToOffers={() => setCurrentView('offers')}
-                onNavigateToReservations={() => setCurrentView('reservations')}
-              />}
             </div>
 
             {/* Navigation */}
@@ -1254,19 +1241,6 @@ const AdminDashboard = () => {
                 <span className="font-bold">ARM CAR</span>
               </div>
               <div className="flex items-center gap-1">
-                {instanceId && <NotificationBell 
-                  instanceId={instanceId} 
-                  onOpenReservation={reservationId => {
-                    const reservation = reservations.find(r => r.id === reservationId);
-                    if (reservation) {
-                      setSelectedReservation(reservation);
-                    }
-                  }} 
-                  onConfirmReservation={handleConfirmReservation}
-                  onViewAllNotifications={() => setCurrentView('notifications')}
-                  onNavigateToOffers={() => setCurrentView('offers')}
-                  onNavigateToReservations={() => setCurrentView('reservations')}
-                />}
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="w-5 h-5" />
                 </Button>
