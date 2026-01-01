@@ -91,21 +91,48 @@
     "vehiclePlate": "Numer rejestracyjny",
     "carModel": "Model auta",
     "carSize": "Rozmiar auta",
-    "carSizeSmall": "Małe",
-    "carSizeMedium": "Średnie",
-    "carSizeLarge": "Duże",
+    "car": "Samochód",
+    "carSizes": {
+      "small": "Mały",
+      "medium": "Średni",
+      "large": "Duży"
+    },
     "startTime": "Godzina rozpoczęcia",
     "endTime": "Godzina zakończenia",
     "reservationDate": "Data rezerwacji",
+    "date": "Data rezerwacji",
+    "datesRange": "Daty rezerwacji (od - do)",
+    "selectDate": "Wybierz datę",
+    "selectDates": "Wybierz daty",
+    "start": "Początek",
+    "end": "Koniec",
+    "additionalNotes": "Dodatkowe uwagi...",
+    "suggestedPrice": "Sugerowana cena",
+    "carSizeRequiredWarning": "Brak wybranej wielkości auta - wymagane przy potwierdzeniu",
     "addedByAdmin": "Dodane przez admina",
     "addedByCustomer": "Dodane przez klienta",
     "reservationConfirmed": "Rezerwacja potwierdzona",
     "reservationRejected": "Rezerwacja odrzucona",
     "reservationUpdated": "Rezerwacja zaktualizowana",
     "reservationCreated": "Rezerwacja utworzona",
-    "rejectConfirmTitle": "Odrzucić rezerwację?",
-    "rejectConfirmDescription": "Rezerwacja zostanie usunięta z systemu. Dane klienta zostaną zachowane.",
-    "yesReject": "Tak, odrzuć"
+    "confirmRejectTitle": "Czy na pewno chcesz odrzucić rezerwację?",
+    "confirmRejectDescription": "Rezerwacja zostanie usunięta z systemu. Dane klienta ({{name}}, {{phone}}) zostaną zachowane w bazie klientów.",
+    "yesReject": "Tak, odrzuć rezerwację",
+    "reject": "Odrzuć",
+    "completeVisit": "Zakończ wizytę",
+    "statuses": {
+      "confirmed": "Potwierdzone",
+      "pending": "Oczekujące",
+      "inProgress": "W trakcie",
+      "completed": "Zakończone",
+      "cancelled": "Anulowane"
+    },
+    "sources": {
+      "employee": "Źródło: Pracownik",
+      "system": "Źródło: System rezerwacji",
+      "booksy": "Źródło: Booksy",
+      "generic": "Źródło: {{source}}"
+    }
   },
   "booking": {
     "title": "Rezerwacja online",
@@ -278,7 +305,17 @@
     "stepCustomerData": "Dane klienta",
     "stepScopes": "Zakresy",
     "stepOptions": "Opcje i produkty",
-    "stepSummary": "Podsumowanie"
+    "stepSummary": "Podsumowanie",
+    "steps": {
+      "customerData": "Dane klienta",
+      "scope": "Zakres",
+      "optionsProducts": "Opcje i produkty",
+      "summary": "Podsumowanie"
+    },
+    "savedReadyToSend": "Oferta została zapisana i gotowa do wysłania",
+    "saveFirst": "Najpierw zapisz ofertę",
+    "openFilePrintPdf": "Otwórz plik i użyj Drukuj → Zapisz jako PDF",
+    "pdfError": "Błąd podczas generowania PDF"
   },
   "products": {
     "title": "Produkty",

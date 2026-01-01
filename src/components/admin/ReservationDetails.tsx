@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check, CheckCircle2 } from 'lucide-react';
@@ -91,43 +92,14 @@ interface ReservationDetailsProps {
   onComplete?: (reservationId: string) => void;
 }
 
-const CAR_SIZE_LABELS: Record<CarSize, string> = {
-  small: 'Mały',
-  medium: 'Średni',
-  large: 'Duży',
-};
+// CAR_SIZE_LABELS moved inside component for i18n
 
-const getSourceLabel = (source?: string | null) => {
-  if (!source || source === 'admin') {
-    return <Badge variant="outline" className="text-xs font-normal">Źródło: Pracownik</Badge>;
-  }
-  if (source === 'customer' || source === 'calendar' || source === 'online') {
-    return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">Źródło: System rezerwacji</Badge>;
-  }
-  if (source === 'booksy') {
-    return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">Źródło: Booksy</Badge>;
-  }
-  return <Badge variant="outline" className="text-xs font-normal">Źródło: {source}</Badge>;
-};
+// getSourceLabel moved inside component for i18n
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return <Badge className="bg-success/20 text-success border-success/30">Potwierdzone</Badge>;
-    case 'pending':
-      return <Badge className="bg-warning/20 text-warning border-warning/30">Oczekujące</Badge>;
-    case 'in_progress':
-      return <Badge className="bg-primary/20 text-primary border-primary/30">W trakcie</Badge>;
-    case 'completed':
-      return <Badge className="bg-muted text-muted-foreground">Zakończone</Badge>;
-    case 'cancelled':
-      return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Anulowane</Badge>;
-    default:
-      return <Badge>{status}</Badge>;
-  }
-};
+// getStatusBadge moved inside component for i18n
 
 const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onComplete }: ReservationDetailsProps) => {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -136,6 +108,42 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const CAR_SIZE_LABELS: Record<CarSize, string> = {
+    small: t('reservations.carSizes.small'),
+    medium: t('reservations.carSizes.medium'),
+    large: t('reservations.carSizes.large'),
+  };
+
+  const getSourceLabel = (source?: string | null) => {
+    if (!source || source === 'admin') {
+      return <Badge variant="outline" className="text-xs font-normal">{t('reservations.sources.employee')}</Badge>;
+    }
+    if (source === 'customer' || source === 'calendar' || source === 'online') {
+      return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">{t('reservations.sources.system')}</Badge>;
+    }
+    if (source === 'booksy') {
+      return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">{t('reservations.sources.booksy')}</Badge>;
+    }
+    return <Badge variant="outline" className="text-xs font-normal">{t('reservations.sources.generic', { source })}</Badge>;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <Badge className="bg-success/20 text-success border-success/30">{t('reservations.statuses.confirmed')}</Badge>;
+      case 'pending':
+        return <Badge className="bg-warning/20 text-warning border-warning/30">{t('reservations.statuses.pending')}</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-primary/20 text-primary border-primary/30">{t('reservations.statuses.inProgress')}</Badge>;
+      case 'completed':
+        return <Badge className="bg-muted text-muted-foreground">{t('reservations.statuses.completed')}</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">{t('reservations.statuses.cancelled')}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
   
   // Editable fields
   const [customerName, setCustomerName] = useState('');
@@ -262,7 +270,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {isEditing ? 'Edytuj rezerwację' : (
+            {isEditing ? t('reservations.editReservation') : (
               <span className="flex items-center gap-3">
                 <span>{formatTime(startTime)} - {formatTime(endTime)}</span>
                 <span className="text-muted-foreground font-normal">•</span>
@@ -283,7 +291,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               <div className="space-y-2">
                 <Label htmlFor="edit-name" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Imię i nazwisko
+                  {t('common.name')}
                 </Label>
                 <Input
                   id="edit-name"
@@ -296,7 +304,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               <div className="space-y-2">
                 <Label htmlFor="edit-phone" className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  Telefon
+                  {t('common.phone')}
                 </Label>
                 <Input
                   id="edit-phone"
@@ -309,7 +317,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               <div className="space-y-2">
                 <Label htmlFor="edit-car" className="flex items-center gap-2">
                   <Car className="w-4 h-4" />
-                  Model samochodu
+                  {t('reservations.carModel')}
                 </Label>
                 <Input
                   id="edit-car"
@@ -320,7 +328,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
 
               {/* Car Size */}
               <div className="space-y-2">
-                <Label>Wielkość samochodu</Label>
+                <Label>{t('reservations.carSize')}</Label>
                 <div className="flex gap-2">
                   {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
                     <Button
@@ -347,7 +355,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4" />
-                  {isPPFStation ? 'Daty rezerwacji (od - do)' : 'Data rezerwacji'}
+                  {isPPFStation ? t('reservations.datesRange') : t('reservations.date')}
                 </Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
@@ -366,9 +374,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                           ) : (
                             format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl })
                           )
-                        ) : 'Wybierz daty'
+                        ) : t('reservations.selectDates')
                       ) : (
-                        reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : 'Wybierz datę'
+                        reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : t('reservations.selectDate')
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -421,7 +429,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 <div className="space-y-2">
                   <Label htmlFor="edit-start" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {isPPFStation && endDate && endDate !== reservationDate ? `Początek (${format(new Date(reservationDate), 'd.MM', { locale: pl })})` : 'Początek'}
+                    {isPPFStation && endDate && endDate !== reservationDate ? `${t('reservations.start')} (${format(new Date(reservationDate), 'd.MM', { locale: pl })})` : t('reservations.start')}
                   </Label>
                   <Input
                     id="edit-start"
@@ -433,7 +441,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 <div className="space-y-2">
                   <Label htmlFor="edit-end" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {isPPFStation && endDate && endDate !== reservationDate ? `Koniec (${format(new Date(endDate), 'd.MM', { locale: pl })})` : 'Koniec'}
+                    {isPPFStation && endDate && endDate !== reservationDate ? `${t('reservations.end')} (${format(new Date(endDate), 'd.MM', { locale: pl })})` : t('reservations.end')}
                   </Label>
                   <Input
                     id="edit-end"
@@ -447,12 +455,12 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
 
               {/* Notes */}
               <div className="space-y-2">
-                <Label htmlFor="edit-notes">Notatki</Label>
+                <Label htmlFor="edit-notes">{t('common.notes')}</Label>
                 <Textarea
                   id="edit-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Dodatkowe uwagi..."
+                  placeholder={t('reservations.additionalNotes')}
                   rows={3}
                 />
               </div>
@@ -464,7 +472,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   className="flex-1" 
                   onClick={handleCancelEdit}
                 >
-                  Anuluj
+                  {t('common.cancel')}
                 </Button>
                 <Button 
                   className="flex-1 gap-2" 
@@ -476,7 +484,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  Zapisz
+                  {t('common.save')}
                 </Button>
               </div>
             </>
@@ -489,7 +497,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <div className="text-xs text-muted-foreground">Klient</div>
+                      <div className="text-xs text-muted-foreground">{t('reservations.customer')}</div>
                       <div className="font-medium">{customerName}</div>
                     </div>
                   </div>
@@ -499,7 +507,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleCall}
-                      title="Zadzwoń"
+                      title={t('common.call')}
                     >
                       <PhoneCall className="w-5 h-5" />
                     </Button>
@@ -508,7 +516,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent"
                       onClick={handleSMS}
-                      title="Wyślij SMS"
+                      title={t('common.sendSms')}
                     >
                       <MessageSquare className="w-5 h-5" />
                     </Button>
@@ -519,7 +527,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <div className="text-xs text-muted-foreground">Telefon</div>
+                    <div className="text-xs text-muted-foreground">{t('common.phone')}</div>
                     <div className="font-medium">{customerPhone}</div>
                   </div>
                 </div>
@@ -529,7 +537,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   <div className="flex items-center gap-3">
                     <Car className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <div className="text-xs text-muted-foreground">Samochód</div>
+                      <div className="text-xs text-muted-foreground">{t('reservations.car')}</div>
                       <div className="font-medium">{carModel}</div>
                     </div>
                   </div>
@@ -539,7 +547,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 {!carSize && reservation.status === 'pending' && (
                   <div className="flex items-center gap-2 p-2 bg-warning/10 border border-warning/30 rounded-lg text-warning text-sm">
                     <Car className="w-4 h-4 shrink-0" />
-                    <span>Brak wybranej wielkości auta - wymagane przy potwierdzeniu</span>
+                    <span>{t('reservations.carSizeRequiredWarning')}</span>
                   </div>
                 )}
 
@@ -548,7 +556,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   <div className="flex items-start gap-3">
                     <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm mt-1">U</div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Usługi</div>
+                      <div className="text-xs text-muted-foreground">{t('reservations.services')}</div>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {reservation.services_data && reservation.services_data.length > 0 ? (
                           reservation.services_data.map((svc, idx) => (
@@ -569,7 +577,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 {/* Notes - always visible if present */}
                 {notes && (
                   <div className="border-t border-border/30 pt-3">
-                    <div className="text-xs text-muted-foreground mb-1">Notatki</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('common.notes')}</div>
                     <div className="text-sm whitespace-pre-wrap">{notes}</div>
                   </div>
                 )}
@@ -579,7 +587,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <div className="w-5 h-5 flex items-center justify-center font-bold text-sm">zł</div>
                     <div>
-                      <div className="text-xs">Sugerowana cena</div>
+                      <div className="text-xs">{t('reservations.suggestedPrice')}</div>
                       <div className="font-medium">{price} PLN</div>
                     </div>
                   </div>
@@ -596,25 +604,25 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                         className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
                         disabled={deleting}
                       >
-                        {deleting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                        Odrzuć
+                      {deleting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      {t('reservations.reject')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Czy na pewno chcesz odrzucić rezerwację?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('reservations.confirmRejectTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Rezerwacja zostanie usunięta z systemu. Dane klienta ({customerName}, {customerPhone}) zostaną zachowane w bazie klientów.
+                          {t('reservations.confirmRejectDescription', { name: customerName, phone: customerPhone })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Nie, wróć</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.no')}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Tak, odrzuć rezerwację
+                          {t('reservations.yesReject')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -628,7 +636,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     onClick={() => setIsEditing(true)}
                   >
                     <Pencil className="w-4 h-4" />
-                    Edytuj
+                    {t('common.edit')}
                   </Button>
                 )}
                 
@@ -654,7 +662,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     ) : (
                       <Check className="w-4 h-4" />
                     )}
-                    Potwierdź
+                    {t('common.confirm')}
                   </Button>
                 )}
 
@@ -676,7 +684,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     ) : (
                       <CheckCircle2 className="w-4 h-4" />
                     )}
-                    Zakończ wizytę
+                    {t('reservations.completeVisit')}
                   </Button>
                 )}
               </div>
