@@ -1224,13 +1224,12 @@ const AddReservationDialog = ({
                           {option.label}
                         </SelectItem>
                       ))}
-                      {/* Extra options showing actual time beyond maxAvailableMinutes */}
+                      {/* Extra options showing time beyond maxAvailableMinutes */}
                       {(() => {
-                        const lastOptionMinutes = DURATION_OPTIONS.length > 0 
-                          ? DURATION_OPTIONS[DURATION_OPTIONS.length - 1].value 
-                          : 30;
-                        const overlapOption1 = lastOptionMinutes + 15;
-                        const overlapOption2 = lastOptionMinutes + 30;
+                        // Red options are based on maxAvailableMinutes, not the last dropdown option
+                        const baseForOverlap = maxAvailableMinutes;
+                        const overlapOption1 = baseForOverlap + 15;
+                        const overlapOption2 = baseForOverlap + 30;
                         
                         const formatDuration = (mins: number) => {
                           const h = Math.floor(mins / 60);
