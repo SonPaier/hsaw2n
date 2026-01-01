@@ -41,7 +41,12 @@
     "from": "od",
     "to": "do",
     "pln": "zł",
-    "showingPagination": "Pokazano {{from}}-{{to}} z {{total}}"
+    "showingPagination": "Pokazano {{from}}-{{to}} z {{total}}",
+    "show": "Pokaż",
+    "perPage": "na stronie",
+    "saving": "Zapisywanie...",
+    "active": "Aktywny",
+    "adminPanel": "Panel Admina"
   },
   "auth": {
     "login": "Zaloguj się",
@@ -1399,12 +1404,5 @@
     "noServicesAvailable": "Brak dostępnych usług w systemie",
     "reservationAdded": "Rezerwacja została dodana",
     "reservationError": "Błąd podczas tworzenia rezerwacji"
-  },
-  "common": {
-    "show": "Pokaż",
-    "perPage": "na stronie",
-    "saving": "Zapisywanie...",
-    "active": "Aktywny",
-    "adminPanel": "Panel Admina"
   }
 }
