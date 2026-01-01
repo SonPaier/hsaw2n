@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Phone, Car, Clock, Loader2, Sparkles, Check, ChevronDown, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -32,7 +33,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { VoiceReservationInput } from './VoiceReservationInput';
-import { useTranslation } from 'react-i18next';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -88,11 +88,7 @@ interface AddReservationDialogProps {
   workingHours?: Record<string, WorkingHours | null> | null;
 }
 
-const CAR_SIZE_LABELS: Record<CarSize, string> = {
-  small: 'Mały',
-  medium: 'Średni',
-  large: 'Duży',
-};
+// CAR_SIZE_LABELS moved inside component for i18n
 
 const AddReservationDialog = ({
   open,
@@ -107,7 +103,14 @@ const AddReservationDialog = ({
   existingBreaks = [],
   workingHours = null,
 }: AddReservationDialogProps) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+
+  const CAR_SIZE_LABELS: Record<CarSize, string> = {
+    small: t('reservations.carSizes.small'),
+    medium: t('reservations.carSizes.medium'),
+    large: t('reservations.carSizes.large'),
+  };
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [suggestingSize, setSuggestingSize] = useState(false);
@@ -386,14 +389,14 @@ const AddReservationDialog = ({
     // Service is required for washing stations, optional for others
     const isWashingStation = stationType === 'washing';
     if (isWashingStation && selectedServices.length === 0) {
-      newErrors.services = 'Wybierz przynajmniej jedną usługę';
+      newErrors.services = t('addReservation.selectAtLeastOneService');
     }
     
     // For non-washing stations without selected service, we need a placeholder service
     // since service_id is required in the database
     
     if (!stationId) {
-      toast.error('Brak stanowiska');
+      toast.error(t('addReservation.noStation'));
       return;
     }
     
@@ -456,7 +459,7 @@ const AddReservationDialog = ({
             
             if (customerError) throw customerError;
             customerId = newCustomer.id;
-            toast.success('Dodano nowego klienta do bazy');
+            toast.success(t('addReservation.customerAdded'));
           }
         } else {
           // Create customer without phone
@@ -472,7 +475,7 @@ const AddReservationDialog = ({
           
           if (customerError) throw customerError;
           customerId = newCustomer.id;
-          toast.success('Dodano nowego klienta do bazy');
+          toast.success(t('addReservation.customerAdded'));
         }
       }
 
@@ -503,7 +506,7 @@ const AddReservationDialog = ({
         end_date: endDate,
         start_time: startTime,
         end_time: finalEndTime,
-        customer_name: customerName || 'Klient',
+        customer_name: customerName || t('addReservation.defaultCustomer'),
         customer_phone: phone || '',
         vehicle_plate: carModel || '', // Using vehicle_plate field for car model temporarily
         car_size: carSize || null,
@@ -528,7 +531,7 @@ const AddReservationDialog = ({
           reservationData.service_id = services[0].id;
           reservationData.service_ids = [services[0].id];
         } else {
-          toast.error('Brak dostępnych usług w systemie');
+          toast.error(t('addReservation.noServicesAvailable'));
           setLoading(false);
           return;
         }
@@ -540,12 +543,12 @@ const AddReservationDialog = ({
 
       if (reservationError) throw reservationError;
 
-      toast.success('Rezerwacja została dodana');
+      toast.success(t('addReservation.reservationAdded'));
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error creating reservation:', error);
-      toast.error('Błąd podczas tworzenia rezerwacji');
+      toast.error(t('addReservation.reservationError'));
     } finally {
       setLoading(false);
     }
@@ -609,7 +612,7 @@ const AddReservationDialog = ({
           <div className="flex items-center gap-3 pr-8">
             <DialogTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              Nowa rezerwacja
+              {t('addReservation.title')}
             </DialogTitle>
             <VoiceReservationInput 
               services={services} 
@@ -617,7 +620,7 @@ const AddReservationDialog = ({
             />
           </div>
           <DialogDescription className="sr-only">
-            Formularz dodawania nowej rezerwacji
+            {t('addReservation.formDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -627,7 +630,7 @@ const AddReservationDialog = ({
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4" />
-                Zakres dat (folia - rezerwacja wielodniowa)
+                {t('addReservation.dateRangePpf')}
               </Label>
               <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
                 <PopoverTrigger asChild>
@@ -649,7 +652,7 @@ const AddReservationDialog = ({
                         format(dateRange.from, "d MMM yyyy", { locale: pl })
                       )
                     ) : (
-                      <span>Wybierz zakres dat</span>
+                      <span>{t('addReservation.selectDateRange')}</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -675,7 +678,7 @@ const AddReservationDialog = ({
                 <div className="space-y-2">
                   <Label htmlFor="ppfStartTime" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Godzina rozpoczęcia
+                    {t('addReservation.startTime')}
                   </Label>
                   <Input
                     id="ppfStartTime"
@@ -687,10 +690,10 @@ const AddReservationDialog = ({
                 <div className="space-y-2">
                   <Label htmlFor="ppfEndTime" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span className="flex-1">Godzina zakończenia</span>
+                    <span className="flex-1">{t('addReservation.endTime')}</span>
                     {dateRange?.to && ppfEndDateWorkingHours && (
                       <span className="text-xs text-muted-foreground font-normal">
-                        (max {ppfMaxEndTime})
+                        ({t('addReservation.max')} {ppfMaxEndTime})
                       </span>
                     )}
                   </Label>
@@ -703,7 +706,7 @@ const AddReservationDialog = ({
                       const newEndTime = e.target.value;
                       // Validate against working hours
                       if (newEndTime > ppfMaxEndTime) {
-                        toast.error(`Godzina zakończenia nie może być późniejsza niż ${ppfMaxEndTime}`);
+                        toast.error(t('addReservation.endTimeError', { time: ppfMaxEndTime }));
                         setEndTime(ppfMaxEndTime);
                       } else {
                         setEndTime(newEndTime);
@@ -713,17 +716,17 @@ const AddReservationDialog = ({
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Dla rezerwacji wielodniowych: godzina rozpoczęcia dotyczy pierwszego dnia, godzina zakończenia - ostatniego dnia.
+                {t('addReservation.multiDayHint')}
               </p>
             </div>
           ) : (
             <div className="flex gap-4 p-3 bg-muted/50 rounded-lg text-sm">
               <div>
-                <span className="text-muted-foreground">Data:</span>{' '}
+                <span className="text-muted-foreground">{t('common.date')}:</span>{' '}
                 <span className="font-medium">{date}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Godzina:</span>{' '}
+                <span className="text-muted-foreground">{t('addReservation.time')}:</span>{' '}
                 <span className="font-medium">{time}</span>
               </div>
             </div>
@@ -733,7 +736,7 @@ const AddReservationDialog = ({
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              Imię i nazwisko / Alias
+              {t('addReservation.customerNameAlias')}
             </Label>
             <div className="relative">
               <Input
@@ -779,7 +782,7 @@ const AddReservationDialog = ({
           <div className="space-y-2">
             <Label htmlFor="phone" className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              Numer telefonu
+              {t('common.phone')}
             </Label>
             <Input
               id="phone"
@@ -792,7 +795,7 @@ const AddReservationDialog = ({
           <div className="space-y-2">
             <Label htmlFor="carModel" className="flex items-center gap-2">
               <Car className="w-4 h-4" />
-              Model samochodu
+              {t('reservations.carModel')}
             </Label>
             <div className="relative">
               <Input
@@ -810,9 +813,9 @@ const AddReservationDialog = ({
           {/* Car Size */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Wielkość samochodu
+              {t('reservations.carSize')}
               {suggestingSize && (
-                <span className="text-xs text-muted-foreground">(AI sugeruje...)</span>
+                <span className="text-xs text-muted-foreground">({t('addReservation.aiSuggesting')})</span>
               )}
             </Label>
             <div className="flex gap-2">
@@ -837,10 +840,10 @@ const AddReservationDialog = ({
                 "flex items-center justify-between",
                 errors.services && "text-destructive"
               )}>
-                <span>Usługi *</span>
+                <span>{t('addReservation.services')} *</span>
                 {selectedServices.length > 0 && (
                   <span className="text-sm font-normal text-primary">
-                    Suma: {totalDurationMinutes} min
+                    {t('addReservation.total')}: {totalDurationMinutes} min
                   </span>
                 )}
               </Label>
@@ -858,8 +861,8 @@ const AddReservationDialog = ({
                     )}
                   >
                     {selectedServices.length === 0 
-                      ? "Wybierz usługi..." 
-                      : `Wybrano ${selectedServices.length} usług`}
+                      ? t('addReservation.selectServices') 
+                      : t('addReservation.servicesSelected', { count: selectedServices.length })}
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -867,7 +870,7 @@ const AddReservationDialog = ({
                   {/* Search input */}
                   <div className="p-2 border-b border-border">
                     <Input
-                      placeholder="Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
+                      placeholder={t('addReservation.searchServicePlaceholder')}
                       className="h-9"
                       onChange={(e) => {
                         const searchValue = e.target.value.toLowerCase();
@@ -924,7 +927,7 @@ const AddReservationDialog = ({
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {service.duration_minutes} min
-                              {service.price_from && ` • od ${service.price_from} zł`}
+                              {service.price_from && ` • ${t('priceList.from')} ${service.price_from} zł`}
                             </div>
                           </div>
                         </div>
@@ -971,21 +974,21 @@ const AddReservationDialog = ({
           {isPPFStation && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="offerNumber">Numer oferty</Label>
+                <Label htmlFor="offerNumber">{t('addReservation.offerNumber')}</Label>
                 <Input
                   id="offerNumber"
                   value={offerNumber}
                   onChange={(e) => setOfferNumber(e.target.value)}
-                  placeholder="np. OF-2024-001"
+                  placeholder={t('addReservation.offerNumberPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ppfNotes">Notatki</Label>
+                <Label htmlFor="ppfNotes">{t('common.notes')}</Label>
                 <Input
                   id="ppfNotes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Dodatkowe informacje..."
+                  placeholder={t('addReservation.additionalInfoPlaceholder')}
                 />
               </div>
             </>
@@ -996,7 +999,7 @@ const AddReservationDialog = ({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startTime">Godzina rozpoczęcia</Label>
+                  <Label htmlFor="startTime">{t('addReservation.startTime')}</Label>
                   <Input
                     id="startTime"
                     type="time"
@@ -1005,7 +1008,7 @@ const AddReservationDialog = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endTime">Godzina zakończenia</Label>
+                  <Label htmlFor="endTime">{t('addReservation.endTime')}</Label>
                   <Input
                     id="endTime"
                     type="time"
@@ -1014,7 +1017,7 @@ const AddReservationDialog = ({
                       setEndTime(e.target.value);
                       setManualDuration(null); // Reset manual duration when end time is manually changed
                     }}
-                    placeholder="Automatycznie"
+                    placeholder={t('addReservation.automatic')}
                   />
                 </div>
               </div>
@@ -1022,13 +1025,13 @@ const AddReservationDialog = ({
               {/* Duration Quick Select */}
               <div className="space-y-2">
                 <Label className="flex items-center justify-between">
-                  <span>Czas trwania</span>
+                  <span>{t('addReservation.duration')}</span>
                   <div className="flex items-center gap-2">
                     {maxAvailableMinutes !== null && (
                       <span className="text-xs text-muted-foreground">
-                        (max {maxAvailableMinutes >= 60 
+                        ({t('addReservation.max')} {maxAvailableMinutes >= 60 
                           ? `${Math.floor(maxAvailableMinutes / 60)}h${maxAvailableMinutes % 60 > 0 ? ` ${maxAvailableMinutes % 60}min` : ''}` 
-                          : `${maxAvailableMinutes}min`} do następnej rezerwacji)
+                          : `${maxAvailableMinutes}min`} {t('addReservation.toNextReservation')})
                       </span>
                     )}
                     {effectiveDuration && (
@@ -1045,7 +1048,7 @@ const AddReservationDialog = ({
                     onValueChange={handleDurationChange}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Wybierz czas trwania..." />
+                      <SelectValue placeholder={t('addReservation.selectDuration')} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       {DURATION_OPTIONS.map((option) => (
@@ -1057,8 +1060,7 @@ const AddReservationDialog = ({
                   </Select>
                 ) : (
                   <div className="text-sm text-destructive p-2 border border-destructive/30 rounded-md bg-destructive/10">
-                    Brak dostępnych opcji czasu trwania - następna rezerwacja zaczyna się za {maxAvailableMinutes} min. 
-                    Możesz ręcznie ustawić godzinę zakończenia powyżej.
+                    {t('addReservation.noDurationOptions', { minutes: maxAvailableMinutes })}
                   </div>
                 )}
               </div>
@@ -1068,11 +1070,11 @@ const AddReservationDialog = ({
 
         <DialogFooter className="flex-row gap-2 sm:justify-end">
           <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1 sm:flex-none">
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="flex-1 sm:flex-none">
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Dodaj
+            {t('common.add')}
           </Button>
         </DialogFooter>
       </DialogContent>
