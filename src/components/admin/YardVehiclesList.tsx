@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, DragEvent } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Phone, Clock, Car, Trash2, Plus } from 'lucide-react';
+import { Phone, Clock, Car, Trash2, Plus, GripVertical, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { AddYardVehicleDialog } from './AddYardVehicleDialog';
+import { YardVehicleDialog } from './YardVehicleDialog';
 import { cn } from '@/lib/utils';
 
 interface YardVehicle {
@@ -35,13 +35,15 @@ interface Service {
 
 interface YardVehiclesListProps {
   instanceId: string;
+  onVehicleDragStart?: (e: DragEvent<HTMLDivElement>, vehicle: YardVehicle) => void;
 }
 
-export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
+export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehiclesListProps) {
   const [vehicles, setVehicles] = useState<YardVehicle[]>([]);
   const [services, setServices] = useState<Record<string, Service>>({});
   const [loading, setLoading] = useState(true);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<YardVehicle | null>(null);
 
   const fetchVehicles = async () => {
     const { data, error } = await supabase
@@ -127,6 +129,16 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
     window.location.href = `tel:${phone}`;
   };
 
+  const handleEdit = (vehicle: YardVehicle) => {
+    setEditingVehicle(vehicle);
+    setDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingVehicle(null);
+    setDialogOpen(true);
+  };
+
   const getServiceNames = (serviceIds: string[]) => {
     return serviceIds
       .map(id => services[id]?.shortcut || services[id]?.name || '')
@@ -134,12 +146,18 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
       .join(', ');
   };
 
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, vehicle: YardVehicle) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/yard-vehicle', JSON.stringify(vehicle));
+    onVehicleDragStart?.(e, vehicle);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Add button */}
       <div className="p-4 border-b border-border">
         <Button 
-          onClick={() => setAddDialogOpen(true)} 
+          onClick={handleAdd} 
           className="w-full"
           size="sm"
         >
@@ -162,22 +180,35 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
           vehicles.map((vehicle) => (
             <div
               key={vehicle.id}
-              className="bg-slate-100 rounded-lg p-3 space-y-2 border border-slate-200"
+              draggable
+              onDragStart={(e) => handleDragStart(e, vehicle)}
+              className="bg-slate-100 rounded-lg p-3 space-y-2 border border-slate-200 cursor-grab active:cursor-grabbing hover:border-slate-300 transition-colors"
             >
-              {/* Vehicle info */}
+              {/* Drag handle + Vehicle info */}
               <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                    <Car className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                    <span className="truncate">{vehicle.vehicle_plate}</span>
-                  </div>
-                  <div className="text-sm text-slate-600 mt-1 truncate">
-                    {vehicle.customer_name}
+                <div className="flex items-start gap-2 flex-1 min-w-0">
+                  <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                      <Car className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <span className="truncate">{vehicle.vehicle_plate}</span>
+                    </div>
+                    <div className="text-sm text-slate-600 mt-1 truncate">
+                      {vehicle.customer_name}
+                    </div>
                   </div>
                 </div>
                 
                 {/* Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-600 hover:text-slate-700 hover:bg-slate-200"
+                    onClick={() => handleEdit(vehicle)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -199,14 +230,14 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
 
               {/* Services */}
               {vehicle.service_ids.length > 0 && (
-                <div className="text-xs text-slate-500 truncate">
+                <div className="text-xs text-slate-500 truncate pl-6">
                   {getServiceNames(vehicle.service_ids)}
                 </div>
               )}
 
               {/* Deadline */}
               {vehicle.deadline_time && (
-                <div className="flex items-center gap-1 text-xs text-orange-600">
+                <div className="flex items-center gap-1 text-xs text-orange-600 pl-6">
                   <Clock className="w-3 h-3" />
                   <span>do {vehicle.deadline_time.slice(0, 5)}</span>
                 </div>
@@ -214,7 +245,7 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
 
               {/* Arrival date if not today */}
               {vehicle.arrival_date !== format(new Date(), 'yyyy-MM-dd') && (
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-400 pl-6">
                   Przyjazd: {format(new Date(vehicle.arrival_date), 'd MMM', { locale: pl })}
                 </div>
               )}
@@ -223,13 +254,20 @@ export function YardVehiclesList({ instanceId }: YardVehiclesListProps) {
         )}
       </div>
 
-      {/* Add dialog */}
-      <AddYardVehicleDialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
+      {/* Dialog for add/edit */}
+      <YardVehicleDialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setEditingVehicle(null);
+        }}
         instanceId={instanceId}
         onSuccess={fetchVehicles}
+        editingVehicle={editingVehicle}
       />
     </div>
   );
 }
+
+// Export the YardVehicle type for use in other components
+export type { YardVehicle };

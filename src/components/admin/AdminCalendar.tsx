@@ -9,7 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { YardVehiclesList } from './YardVehiclesList';
+import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -102,6 +102,7 @@ interface AdminCalendarProps {
   onToggleClosedDay?: (date: string) => void;
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
   onConfirmReservation?: (reservationId: string) => void;
+  onYardVehicleDrop?: (vehicle: YardVehicle, stationId: string, date: string, time: string) => void;
   // Hall view props
   allowedViews?: ViewMode[];
   readOnly?: boolean;
@@ -182,6 +183,7 @@ const AdminCalendar = ({
   onToggleClosedDay,
   onReservationMove, 
   onConfirmReservation,
+  onYardVehicleDrop,
   allowedViews = ['day', 'two-days', 'week'],
   readOnly = false,
   showStationFilter = true,
@@ -643,6 +645,19 @@ const AdminCalendar = ({
     setDragOverStation(null);
     setDragOverDate(null);
     setDragOverSlot(null);
+    
+    // Check if this is a yard vehicle drop
+    const yardVehicleData = e.dataTransfer.getData('application/yard-vehicle');
+    if (yardVehicleData && hour !== undefined && slotIndex !== undefined) {
+      try {
+        const vehicle = JSON.parse(yardVehicleData) as YardVehicle;
+        const dropTime = formatTimeSlot(hour, slotIndex);
+        onYardVehicleDrop?.(vehicle, stationId, dateStr, dropTime);
+      } catch (err) {
+        console.error('Error parsing yard vehicle data:', err);
+      }
+      return;
+    }
     
     if (draggedReservation) {
       // Check station type compatibility

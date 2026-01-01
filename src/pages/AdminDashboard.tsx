@@ -910,6 +910,53 @@ const AdminDashboard = () => {
       }
     });
   };
+
+  // Handle yard vehicle drop onto calendar
+  const handleYardVehicleDrop = async (vehicle: { id: string; customer_name: string; customer_phone: string; vehicle_plate: string; car_size: 'small' | 'medium' | 'large' | null; service_ids: string[]; notes: string | null }, stationId: string, date: string, time: string) => {
+    if (!instanceId) return;
+    
+    // Calculate end time (1 hour default)
+    const [hours, mins] = time.split(':').map(Number);
+    const endMinutes = hours * 60 + mins + 60;
+    const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+    
+    // Generate confirmation code
+    const confirmationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    try {
+      // Create reservation from yard vehicle data
+      const { error: reservationError } = await supabase.from('reservations').insert([{
+        instance_id: instanceId,
+        station_id: stationId,
+        reservation_date: date,
+        start_time: time,
+        end_time: endTime,
+        customer_name: vehicle.customer_name,
+        customer_phone: vehicle.customer_phone,
+        vehicle_plate: vehicle.vehicle_plate,
+        car_size: vehicle.car_size,
+        service_id: vehicle.service_ids[0] || stations[0]?.id,
+        service_ids: vehicle.service_ids,
+        notes: vehicle.notes,
+        confirmation_code: confirmationCode,
+        status: 'confirmed' as const,
+        source: 'yard'
+      }]);
+      
+      if (reservationError) throw reservationError;
+      
+      // Delete from yard_vehicles
+      const { error: deleteError } = await supabase.from('yard_vehicles').delete().eq('id', vehicle.id);
+      if (deleteError) console.error('Error deleting yard vehicle:', deleteError);
+      
+      fetchReservations();
+      toast.success('Rezerwacja utworzona z placu');
+    } catch (error) {
+      console.error('Error creating reservation from yard:', error);
+      toast.error('Błąd podczas tworzenia rezerwacji');
+    }
+  };
+
   const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
   return <>
       <Helmet>
@@ -1101,7 +1148,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} instanceId={instanceId || undefined} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} />
               </div>}
 
             {currentView === 'reservations' && (
