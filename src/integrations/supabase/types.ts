@@ -1818,6 +1818,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+        | "released"
       service_category:
         | "car_wash"
         | "ppf"
@@ -1960,6 +1961,7 @@ export const Constants = {
         "in_progress",
         "completed",
         "cancelled",
+        "released",
       ],
       service_category: ["car_wash", "ppf", "detailing", "upholstery", "other"],
       station_type: ["washing", "ppf", "detailing", "universal"],

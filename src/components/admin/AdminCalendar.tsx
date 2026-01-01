@@ -2,7 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -59,6 +59,7 @@ interface Reservation {
   end_time: string;
   station_id: string | null;
   status: string;
+  notes?: string | null;
   service?: {
     name: string;
     shortcut?: string | null;
@@ -122,42 +123,48 @@ const SLOT_HEIGHT = 32; // pixels per 15 minutes (increased for 3 lines in 30min
 const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR; // 108px per hour
 
 const getStatusColor = (status: string, stationType?: string) => {
-  // PPF reservations get yellow color
+  // PPF reservations get special colors
   if (stationType === 'ppf') {
     switch (status) {
       case 'confirmed':
-        return 'bg-yellow-400 border-yellow-500 text-yellow-950';
+        return 'bg-emerald-200 border-emerald-400 text-emerald-900';
       case 'pending':
-        return 'bg-orange-300 border-orange-400 text-orange-950';
+        return 'bg-amber-100 border-amber-300 text-amber-900';
       case 'in_progress':
-        return 'bg-yellow-500 border-yellow-600 text-yellow-950';
+        return 'bg-emerald-300 border-emerald-600 text-emerald-900';
       case 'completed':
-        return 'bg-yellow-200 border-yellow-400 text-yellow-800';
+        return 'bg-sky-200 border-sky-400 text-sky-900';
+      case 'released':
+        return 'bg-slate-200 border-slate-400 text-slate-700';
       case 'cancelled':
-        return 'bg-yellow-100/40 border-yellow-200 text-yellow-600 line-through opacity-60';
+        return 'bg-slate-100/40 border-slate-200 text-slate-500 line-through opacity-60';
       default:
-        return 'bg-yellow-300 border-yellow-400 text-yellow-900';
+        return 'bg-amber-100 border-amber-300 text-amber-900';
     }
   }
   
+  // Pastel colors for regular stations
   switch (status) {
-    case 'confirmed':
-      // Niebieski - potwierdzona
-      return 'bg-blue-400/80 border-blue-500/70 text-blue-950';
     case 'pending':
-      // Żółty/Bursztynowy - oczekuje na potwierdzenie
-      return 'bg-amber-400/80 border-amber-500/70 text-amber-950';
+      // Żółty pastelowy - oczekuje na potwierdzenie
+      return 'bg-amber-100 border-amber-300 text-amber-900';
+    case 'confirmed':
+      // Zielony pastelowy - potwierdzona
+      return 'bg-emerald-200 border-emerald-400 text-emerald-900';
     case 'in_progress':
-      // Jasno niebieski - zakończony i gotowy do wydania
-      return 'bg-sky-300/80 border-sky-400/70 text-sky-950';
+      // Zielony z ciemniejszym borderem - w trakcie
+      return 'bg-emerald-300 border-emerald-600 text-emerald-900';
     case 'completed':
-      // Szary - wydany/zakończony
-      return 'bg-slate-400/80 border-slate-500/70 text-white';
+      // Niebieski pastelowy - gotowy do wydania
+      return 'bg-sky-200 border-sky-400 text-sky-900';
+    case 'released':
+      // Szary - wydane
+      return 'bg-slate-200 border-slate-400 text-slate-700';
     case 'cancelled':
       // Czerwony - anulowana
-      return 'bg-red-400/60 border-red-500/70 text-white line-through opacity-60';
+      return 'bg-red-100/60 border-red-300 text-red-700 line-through opacity-60';
     default:
-      return 'bg-secondary border-border text-foreground';
+      return 'bg-amber-100 border-amber-300 text-amber-900';
   }
 };
 
@@ -780,9 +787,9 @@ const AdminCalendar = ({
   const currentTimeTop = (currentHour - DAY_START_HOUR) * HOUR_HEIGHT;
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 flex-wrap gap-2">
+    <div className="flex flex-col h-full bg-card rounded-xl overflow-hidden">
+      {/* Calendar Header - sticky */}
+      <div className="flex items-center justify-between p-2 lg:p-3 bg-card sticky top-0 z-40 flex-wrap gap-2">
         {/* Navigation */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
@@ -896,7 +903,7 @@ const AdminCalendar = ({
             </Select>
           )}
           
-          {/* View mode toggle - hide 2-days and week on mobile */}
+          {/* View mode toggle - icons only */}
           {!isMobile && (
             <div className="flex border border-border rounded-lg overflow-hidden">
               {allowedViews.includes('day') && (
@@ -904,10 +911,10 @@ const AdminCalendar = ({
                   variant={viewMode === 'day' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('day')}
-                  className="rounded-none border-0 px-2 md:px-3"
+                  className="rounded-none border-0 px-2.5"
+                  title="Dzień"
                 >
-                  <CalendarIcon className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline">Dzień</span>
+                  <CalendarIcon className="w-4 h-4" />
                 </Button>
               )}
               {allowedViews.includes('two-days') && (
@@ -915,10 +922,10 @@ const AdminCalendar = ({
                   variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('two-days')}
-                  className="rounded-none border-0 px-2 md:px-3"
+                  className="rounded-none border-0 px-2.5"
+                  title="2 dni"
                 >
-                  <Columns2 className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline">2 dni</span>
+                  <Columns2 className="w-4 h-4" />
                 </Button>
               )}
               {allowedViews.includes('week') && showWeekView && (
@@ -926,10 +933,10 @@ const AdminCalendar = ({
                   variant={viewMode === 'week' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('week')}
-                  className="rounded-none border-0 px-2 md:px-3"
+                  className="rounded-none border-0 px-2.5"
+                  title="Tydzień"
                 >
-                  <CalendarDays className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline">Tydzień</span>
+                  <CalendarDays className="w-4 h-4" />
                 </Button>
               )}
             </div>
@@ -1015,11 +1022,11 @@ const AdminCalendar = ({
       {/* DAY VIEW */}
       {viewMode === 'day' && (
         <>
-          {/* Station Headers */}
-          <div className="flex border-b border-border bg-muted/20">
+          {/* Station Headers - sticky */}
+          <div className="flex border-b border-border/50 bg-card sticky top-12 z-30">
             {/* Time column header */}
-            <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
-              <Clock className="w-4 h-4 mx-auto" />
+            <div className="w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50">
+              <Clock className="w-5 h-5" />
             </div>
             
             {/* Station headers */}
@@ -1029,8 +1036,8 @@ const AdminCalendar = ({
                 <div 
                   key={station.id}
                   className={cn(
-                    "flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px]",
-                    idx < visibleStations.length - 1 && "border-r border-border"
+                    "flex-1 p-1 md:p-2 text-center font-semibold text-sm md:text-base min-w-[80px]",
+                    idx < visibleStations.length - 1 && "border-r border-border/50"
                   )}
                 >
                   <div className="text-foreground truncate">{station.name}</div>
@@ -1060,15 +1067,15 @@ const AdminCalendar = ({
                   </div>
                 </div>
               )}
-              {/* Time column */}
-              <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
+              {/* Time column with quarter-hour marks */}
+              <div className="w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10">
                 {HOURS.map((hour) => (
                   <div 
                     key={hour}
                     className="relative"
                     style={{ height: HOUR_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
+                    <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </span>
                     <div className="absolute left-0 right-0 top-0 h-full">
@@ -1076,11 +1083,18 @@ const AdminCalendar = ({
                         <div 
                           key={i} 
                           className={cn(
-                            "border-b",
-                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                            "border-b relative",
+                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/30"
                           )}
                           style={{ height: SLOT_HEIGHT }}
-                        />
+                        >
+                          {/* Quarter-hour labels: 15, 30, 45 */}
+                          {i > 0 && i < SLOTS_PER_HOUR - 1 && (
+                            <span className="absolute -top-1.5 right-1 md:right-2 text-[9px] md:text-[10px] text-muted-foreground/70 bg-background px-0.5">
+                              {(i * SLOT_MINUTES).toString()}
+                            </span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1139,14 +1153,14 @@ const AdminCalendar = ({
                     </div>
                   ))}
 
-                  {/* Drag preview ghost */}
+                  {/* Drag preview ghost - enhanced visibility */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
                     <div
-                      className="absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-10 flex items-center justify-center"
+                      className="absolute left-1 right-1 rounded-lg border-3 border-dashed border-primary bg-primary/30 pointer-events-none z-20 flex items-center justify-center shadow-lg"
                       style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
                     >
-                      <span className="text-xs font-semibold text-primary bg-background/80 px-2 py-0.5 rounded">
-                        {dragPreviewStyle.time}
+                      <span className="text-sm font-bold text-primary bg-background px-3 py-1 rounded shadow">
+                        Przenieś na {dragPreviewStyle.time}
                       </span>
                     </div>
                   )}
@@ -1179,7 +1193,7 @@ const AdminCalendar = ({
                             "transition-all duration-150 hover:shadow-lg hover:z-20",
                             "overflow-hidden select-none",
                             getStatusColor(reservation.status, reservation.station?.type || station.type),
-                            isDragging && "opacity-50 scale-95",
+                            isDragging && "opacity-30 scale-95",
                             overlapInfo.hasOverlap && "border-2 border-dashed"
                           )}
                           style={{
@@ -1194,15 +1208,9 @@ const AdminCalendar = ({
                             onReservationClick?.(reservation);
                           }}
                         >
-                        {/* Drag handle - hidden in hallMode and on mobile */}
-                        {!hallMode && !isMobile && (
-                          <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-40 hover:opacity-100 touch-none">
-                            <GripVertical className="w-3 h-3" />
-                          </div>
-                        )}
-                        <div className={cn(!hallMode && !isMobile && "pl-3")}>
+                        <div className="px-0.5">
+                          {/* Line 1: Time range + action buttons */}
                           <div className="flex items-center justify-between gap-0.5">
-                            {/* In hallMode show time instead of name */}
                             {hallMode ? (
                               <div className="text-[11px] md:text-sm font-bold truncate">
                                 {isMultiDay 
@@ -1211,47 +1219,69 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              <div className="text-[10px] md:text-xs font-semibold truncate">
-                                {reservation.vehicle_plate}
+                              <span className="text-[10px] md:text-xs font-bold tabular-nums shrink-0">
+                                {isMultiDay
+                                  ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
+                                  : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
+                              </span>
+                            )}
+                            {/* Action buttons: Phone, SMS, Notes indicator */}
+                            {!hallMode && (
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                {reservation.notes && (
+                                  <div 
+                                    className="p-0.5 rounded"
+                                    title={reservation.notes}
+                                  >
+                                    <FileText className="w-3 h-3 opacity-70" />
+                                  </div>
+                                )}
+                                {reservation.customer_phone && (
+                                  <>
+                                    <a
+                                      href={`sms:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-0.5 rounded hover:bg-white/20 transition-colors"
+                                      title="Wyślij SMS"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                    </a>
+                                    <a
+                                      href={`tel:${reservation.customer_phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="p-0.5 rounded hover:bg-white/20 transition-colors"
+                                      title={reservation.customer_phone}
+                                    >
+                                      <Phone className="w-3.5 h-3.5" />
+                                    </a>
+                                  </>
+                                )}
                               </div>
                             )}
-                            {/* Hide phone button in hallMode */}
-                            {!hallMode && reservation.customer_phone && (
-                              <a
-                                href={`tel:${reservation.customer_phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                title={reservation.customer_phone}
-                              >
-                                <Phone className="w-4 h-4" />
-                              </a>
-                            )}
                           </div>
-                          {/* Line 2: Godzina (pełna) + klient (ucięty) */}
+                          {/* Line 2: Vehicle plate + customer name with ellipsis */}
                           {!hallMode && (
                             <div className="flex items-center gap-1 text-[10px] md:text-xs opacity-90 min-w-0">
-                              <span className="shrink-0 font-semibold tabular-nums">
-                                {isMultiDay
-                                  ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
-                                  : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
+                              <span className="font-semibold truncate max-w-[50%]">
+                                {reservation.vehicle_plate}
                               </span>
-                              <span className="truncate min-w-0">
+                              <span className="truncate min-w-0 opacity-80">
                                 {reservation.customer_name}
                               </span>
                             </div>
                           )}
-                          {/* Show all services as chips */}
+                          {/* Line 3: Service chips */}
                           {reservation.services_data && reservation.services_data.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 mt-0.5">
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
                               {reservation.services_data.map((svc, idx) => (
-                                <span key={idx} className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                <span key={idx} className="inline-block px-1 py-0.5 text-[8px] md:text-[9px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                   {svc.shortcut || svc.name}
                                 </span>
                               ))}
                             </div>
                           ) : reservation.service && (
-                            <div className="flex flex-wrap gap-1 mt-0.5">
-                              <span className="inline-block px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              <span className="inline-block px-1 py-0.5 text-[8px] md:text-[9px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
                             </div>
@@ -1302,15 +1332,18 @@ const AdminCalendar = ({
                 </div>
               ))}
 
-              {/* Current time indicator */}
+              {/* Current time indicator with time label */}
               {showCurrentTime && (
                 <div 
                   className="absolute left-0 right-0 z-30 pointer-events-none"
                   style={{ top: currentTimeTop }}
                 >
                   <div className="flex items-center">
-                    <div className="w-14 md:w-16 flex justify-end pr-1">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <div className="w-12 md:w-16 flex items-center justify-end pr-1 gap-0.5">
+                      <span className="text-[10px] md:text-xs font-semibold text-red-500 bg-background/90 px-1 rounded">
+                        {`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`}
+                      </span>
+                      <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
                     </div>
                     <div className="flex-1 h-0.5 bg-red-500" />
                   </div>
@@ -1504,11 +1537,6 @@ const AdminCalendar = ({
                               }}
                             >
                               {/* Drag handle - hidden in hallMode */}
-                              {!hallMode && (
-                                <div className="absolute left-0 top-0 bottom-0 w-4 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
-                                  <GripVertical className="w-2.5 h-2.5" />
-                                </div>
-                              )}
                               <div className={cn(!hallMode && "pl-3")}>
                                 <div className="flex items-center justify-between gap-0.5">
                                   {/* In hallMode show time instead of name */}
@@ -1792,11 +1820,6 @@ const AdminCalendar = ({
                           }}
                         >
                           {/* Drag handle */}
-                          {!hallMode && !readOnly && (
-                            <div className="absolute left-0 top-0 bottom-0 w-3 flex items-center justify-center opacity-60 hover:opacity-100 touch-none">
-                              <GripVertical className="w-2 h-2" />
-                            </div>
-                          )}
                           <div className={cn(!hallMode && !readOnly && "pl-2")}>
                             <div className="flex items-center justify-between gap-0.5">
                               {hallMode ? (
