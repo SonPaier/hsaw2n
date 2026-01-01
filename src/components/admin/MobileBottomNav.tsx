@@ -29,7 +29,7 @@ interface Reservation {
   status: string;
 }
 
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications';
 
 type WorkingHoursMap = Record<string, { open: string; close: string } | null>;
 

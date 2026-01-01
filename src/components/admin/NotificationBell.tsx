@@ -26,9 +26,19 @@ interface NotificationBellProps {
   instanceId: string;
   onOpenReservation?: (reservationId: string) => void;
   onConfirmReservation?: (reservationId: string) => void;
+  onViewAllNotifications?: () => void;
+  onNavigateToOffers?: () => void;
+  onNavigateToReservations?: () => void;
 }
 
-export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReservation }: NotificationBellProps) => {
+export const NotificationBell = ({ 
+  instanceId, 
+  onOpenReservation, 
+  onConfirmReservation,
+  onViewAllNotifications,
+  onNavigateToOffers,
+  onNavigateToReservations 
+}: NotificationBellProps) => {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
@@ -113,16 +123,24 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
     // Navigate based on entity type
     if (notification.entity_type === 'offer' && notification.entity_id) {
       setOpen(false);
-      navigate(`/admin/oferty?id=${notification.entity_id}`);
+      if (onNavigateToOffers) {
+        onNavigateToOffers();
+      } else {
+        navigate(`/admin/offers`);
+      }
     } else if (notification.entity_type === 'reservation' && notification.entity_id) {
       setOpen(false);
       if (onOpenReservation) {
-        navigate('/admin/reservations');
+        if (onNavigateToReservations) {
+          onNavigateToReservations();
+        }
         setTimeout(() => {
           onOpenReservation(notification.entity_id!);
         }, 100);
+      } else if (onNavigateToReservations) {
+        onNavigateToReservations();
       } else {
-        navigate(`/admin/reservations?open=${notification.entity_id}`);
+        navigate(`/admin/reservations`);
       }
     }
   };
@@ -290,7 +308,11 @@ export const NotificationBell = ({ instanceId, onOpenReservation, onConfirmReser
               className="w-full text-sm text-muted-foreground"
               onClick={() => {
                 setOpen(false);
-                navigate('/admin/notifications');
+                if (onViewAllNotifications) {
+                  onViewAllNotifications();
+                } else {
+                  navigate('/admin/notifications');
+                }
               }}
             >
               {t('notifications.viewAll')}
