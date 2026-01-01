@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ export function TaskNotesDialog({
   task,
   onComplete,
 }: TaskNotesDialogProps) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export function TaskNotesDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            Zakończ zadanie
+            {t('followup.completeTask')}
           </DialogTitle>
         </DialogHeader>
 
@@ -63,12 +65,12 @@ export function TaskNotesDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notatka (opcjonalnie)</Label>
+            <Label htmlFor="notes">{t('followup.taskNotes')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Zapisz efekt rozmowy, ustalenia..."
+              placeholder={t('followup.taskNotesPlaceholder')}
               rows={4}
             />
           </div>
@@ -76,11 +78,11 @@ export function TaskNotesDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleComplete}>
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Zakończ zadanie
+            {t('followup.completeTask')}
           </Button>
         </DialogFooter>
       </DialogContent>

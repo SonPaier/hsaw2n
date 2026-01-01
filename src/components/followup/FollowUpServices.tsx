@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ interface FollowUpServicesProps {
 }
 
 export function FollowUpServices({ instanceId }: FollowUpServicesProps) {
+  const { t } = useTranslation();
   const [services, setServices] = useState<FollowUpService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -39,7 +41,7 @@ export function FollowUpServices({ instanceId }: FollowUpServicesProps) {
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching followup services:', error);
-      toast.error('Błąd podczas pobierania usług');
+      toast.error(t('followup.fetchServicesError'));
     } finally {
       setLoading(false);
     }
@@ -62,21 +64,21 @@ export function FollowUpServices({ instanceId }: FollowUpServicesProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Usługi cykliczne</h2>
+        <h2 className="text-lg font-semibold">{t('followup.services')}</h2>
         <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Dodaj usługę
+          {t('followup.addService')}
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Ładowanie...</div>
+        <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
       ) : services.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Brak usług cyklicznych</p>
-            <p className="text-sm">Dodaj pierwszą usługę, aby rozpocząć</p>
+            <p>{t('followup.noServices')}</p>
+            <p className="text-sm">{t('followup.addFirstService')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -97,7 +99,7 @@ export function FollowUpServices({ instanceId }: FollowUpServicesProps) {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>co {service.default_interval_months} mies.</span>
+                    <span>{t('followup.intervalLabel', { months: service.default_interval_months })}</span>
                   </div>
                   {service.description && (
                     <span className="truncate">{service.description}</span>

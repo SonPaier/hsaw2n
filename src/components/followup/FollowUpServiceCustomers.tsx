@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +38,7 @@ export function FollowUpServiceCustomers({
   service,
   onBack,
 }: FollowUpServiceCustomersProps) {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<FollowUpEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +58,7 @@ export function FollowUpServiceCustomers({
       setEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      toast.error('Błąd podczas pobierania klientów');
+      toast.error(t('followup.fetchCustomersError'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +69,7 @@ export function FollowUpServiceCustomers({
   }, [instanceId, service.id]);
 
   const handleRemoveCustomer = async (eventId: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć tego klienta z usługi?')) return;
+    if (!confirm(t('followup.confirmRemoveCustomer'))) return;
 
     try {
       const { error } = await supabase
@@ -77,11 +79,11 @@ export function FollowUpServiceCustomers({
 
       if (error) throw error;
 
-      toast.success('Klient został usunięty z usługi');
+      toast.success(t('followup.customerRemoved'));
       fetchEvents();
     } catch (error) {
       console.error('Error removing customer:', error);
-      toast.error('Błąd podczas usuwania klienta');
+      toast.error(t('followup.removeCustomerError'));
     }
   };
 
@@ -117,19 +119,19 @@ export function FollowUpServiceCustomers({
         <div className="flex-1">
           <h2 className="text-lg font-semibold">{service.name}</h2>
           <p className="text-sm text-muted-foreground">
-            Interwał: co {service.default_interval_months} mies.
+            {t('followup.intervalLabel', { months: service.default_interval_months })}
           </p>
         </div>
         <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Dodaj klienta
+          {t('followup.addCustomer')}
         </Button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Szukaj klienta..."
+          placeholder={t('followup.searchCustomer')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -137,13 +139,13 @@ export function FollowUpServiceCustomers({
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Ładowanie...</div>
+        <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
       ) : filteredEvents.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Brak przypisanych klientów</p>
-            <p className="text-sm">Dodaj klientów do tej usługi cyklicznej</p>
+            <p>{t('followup.noCustomers')}</p>
+            <p className="text-sm">{t('followup.addCustomersHint')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -178,10 +180,10 @@ export function FollowUpServiceCustomers({
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getReminderBadgeColor(daysUntil)}`}>
                         {daysUntil < 0
-                          ? `${Math.abs(daysUntil)} dni temu`
+                          ? t('followup.daysAgo', { days: Math.abs(daysUntil) })
                           : daysUntil === 0
-                          ? 'Dziś'
-                          : `za ${daysUntil} dni`}
+                          ? t('common.today')
+                          : t('followup.inDays', { days: daysUntil })}
                       </span>
                       <Button
                         variant="ghost"
