@@ -339,8 +339,14 @@ const AddReservationDialog = ({
 
   // Handle manual duration change
   const handleDurationChange = (value: string) => {
-    const duration = parseInt(value);
-    setManualDuration(duration);
+    if (value === 'plus15') {
+      setManualDuration((prev) => (prev || effectiveDuration || 60) + 15);
+    } else if (value === 'plus30') {
+      setManualDuration((prev) => (prev || effectiveDuration || 60) + 30);
+    } else {
+      const duration = parseInt(value);
+      setManualDuration(duration);
+    }
   };
 
   // Toggle service selection
@@ -1200,44 +1206,31 @@ const AddReservationDialog = ({
                   </Select>
                 </div>
                 
-                {/* Duration dropdown with +15/+30 min quick buttons */}
+                {/* Duration dropdown with +15/+30 as options inside */}
                 <div className="flex-1 space-y-1">
                   <span className="text-xs text-muted-foreground">{t('addReservation.duration')}</span>
-                  <div className="flex gap-1">
-                    <Select 
-                      value={manualDuration?.toString() || ''} 
-                      onValueChange={handleDurationChange}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder={t('addReservation.selectDuration')} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {DURATION_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value.toString()}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      className="px-2 h-9 text-xs"
-                      onClick={() => setManualDuration((prev) => (prev || effectiveDuration || 60) + 15)}
-                    >
-                      +15
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      className="px-2 h-9 text-xs"
-                      onClick={() => setManualDuration((prev) => (prev || effectiveDuration || 60) + 30)}
-                    >
-                      +30
-                    </Button>
-                  </div>
+                  <Select 
+                    value={manualDuration?.toString() || ''} 
+                    onValueChange={handleDurationChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('addReservation.selectDuration')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {DURATION_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                      {/* +15 and +30 min relative options */}
+                      <SelectItem value="plus15" className="text-primary font-medium border-t">
+                        +15 min
+                      </SelectItem>
+                      <SelectItem value="plus30" className="text-primary font-medium">
+                        +30 min
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {/* End Time - 15min intervals dropdown */}
