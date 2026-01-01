@@ -18,8 +18,14 @@ interface Instance {
   active: boolean;
 }
 
-const InstanceAuth = () => {
-  const { slug } = useParams<{ slug: string }>();
+interface InstanceAuthProps {
+  subdomainSlug?: string;
+}
+
+const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
+  // Use subdomain slug if provided (from App.tsx), otherwise use URL param
+  const slug = subdomainSlug || paramSlug;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading, signIn, hasRole, hasInstanceRole } = useAuth();
