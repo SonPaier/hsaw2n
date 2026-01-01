@@ -980,7 +980,7 @@ const AdminDashboard = () => {
         notes: vehicle.notes,
         confirmation_code: confirmationCode,
         status: 'confirmed' as const,
-        source: 'yard'
+        source: 'admin'
       }]);
       
       if (reservationError) throw reservationError;
