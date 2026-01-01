@@ -687,7 +687,9 @@
     "multiDayHint": "Dla rezerwacji wielodniowych wybierz datę rozpoczęcia i zakończenia.",
     "endTimeError": "Godzina zakończenia nie może być późniejsza niż {{time}}",
     "timeAndDuration": "Godzina i czas trwania",
-    "selectTime": "Wybierz godzinę"
+    "selectTime": "Wybierz godzinę",
+    "from": "Od",
+    "to": "Do"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",
