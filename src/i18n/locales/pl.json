@@ -1094,5 +1094,81 @@
     "productUpdated": "Produkt został zaktualizowany",
     "addError": "Nie udało się dodać produktu",
     "updateError": "Nie udało się zaktualizować produktu"
+  },
+  "priceListUpload": {
+    "title": "Wgraj cennik",
+    "description": "Wgraj plik PDF lub Excel z cennikiem. AI automatycznie wyekstrahuje produkty.",
+    "unsupportedFormat": "Nieobsługiwany format pliku. Użyj PDF lub Excel.",
+    "fileReadError": "Nie udało się odczytać pliku",
+    "authError": "Brak autoryzacji (Invalid JWT). Odśwież stronę i zaloguj się ponownie.",
+    "selectFileAndName": "Wybierz plik i podaj nazwę cennika",
+    "noSession": "Brak aktywnej sesji. Zaloguj się ponownie.",
+    "extractionStarted": "Ekstrakcja uruchomiona. Status zobaczysz na liście cenników.",
+    "priceListName": "Nazwa cennika",
+    "priceListNamePlaceholder": "np. Folie samochodowe 2024",
+    "uploading": "Wgrywanie...",
+    "uploadAndExtract": "Wgraj i ekstrahuj",
+    "dropzone": {
+      "dragHere": "Przeciągnij plik tutaj lub",
+      "selectFromDisk": "wybierz z dysku",
+      "formats": "PDF, XLSX lub XLS (max 10MB)"
+    },
+    "salesperson": {
+      "title": "Dane handlowca (opcjonalnie)",
+      "name": "Imię i nazwisko",
+      "namePlaceholder": "Jan Kowalski",
+      "phone": "Telefon",
+      "phonePlaceholder": "+48 123 456 789",
+      "email": "Email",
+      "emailPlaceholder": "handlowiec@firma.pl"
+    },
+    "stages": {
+      "preparing": "Przygotowuję upload...",
+      "uploading": "Wgrywam plik do magazynu...",
+      "saving": "Zapisuję cennik w bazie...",
+      "reading": "Odczytuję plik...",
+      "extracting": "Uruchamiam ekstrakcję AI...",
+      "done": "Gotowe — przetwarzanie trwa w tle.",
+      "processing": "Przetwarzam..."
+    },
+    "aiExtraction": {
+      "title": "Automatyczna ekstrakcja AI",
+      "description": "Po wgraniu cennika, AI automatycznie wyekstrahuje produkty z ich cenami i parametrami."
+    }
+  },
+  "productDetails": {
+    "title": "Szczegóły produktu",
+    "perUnit": "za {{unit}}",
+    "global": "Globalny",
+    "local": "Własny",
+    "active": "Aktywny",
+    "inactive": "Nieaktywny",
+    "description": "Opis",
+    "technicalParams": "Parametry techniczne",
+    "metadata": {
+      "thickness": "Grubość",
+      "width": "Szerokość",
+      "length": "Długość",
+      "durability": "Trwałość",
+      "color": "Kolor",
+      "finish": "Wykończenie",
+      "prices": "Ceny wariantów",
+      "years": "lat"
+    }
+  },
+  "priceListViewer": {
+    "noProducts": "Brak wyekstrahowanych produktów z tego cennika.",
+    "columns": {
+      "product": "Produkt",
+      "brand": "Marka",
+      "category": "Kategoria",
+      "params": "Parametry",
+      "priceNet": "Cena netto",
+      "unit": "Jednostka"
+    },
+    "metadata": {
+      "width": "szer.",
+      "years": "lat"
+    }
   }
 }

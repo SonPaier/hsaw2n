@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ export function PriceListUploadDialog({
   onOpenChange,
   onSuccess,
 }: PriceListUploadDialogProps) {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState('');
   const [salespersonName, setSalespersonName] = useState('');
@@ -66,16 +68,16 @@ export function PriceListUploadDialog({
           setName(droppedFile.name.replace(/\.[^/.]+$/, ''));
         }
       } else {
-        toast.error('Nieobsługiwany format pliku. Użyj PDF lub Excel.');
+        toast.error(t('priceListUpload.unsupportedFormat'));
       }
     }
-  }, [name]);
+  }, [name, t]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!acceptedTypes.includes(selectedFile.type)) {
-        toast.error('Nieobsługiwany format pliku. Użyj PDF lub Excel.');
+        toast.error(t('priceListUpload.unsupportedFormat'));
         return;
       }
       setFile(selectedFile);
@@ -95,24 +97,22 @@ export function PriceListUploadDialog({
   const readFileContent = (file: File, fileType: string) => {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onerror = () => reject(new Error('Nie udało się odczytać pliku'));
+      reader.onerror = () => reject(new Error(t('priceListUpload.fileReadError')));
       reader.onload = (e) => resolve(String(e.target?.result ?? ''));
 
       if (fileType === 'pdf') {
-        // PDF wysyłamy jako base64 (DataURL)
         reader.readAsDataURL(file);
       } else {
-        // Excel na razie jako tekst (uproszczenie)
         reader.readAsText(file);
       }
     });
   };
 
   const normalizeInvokeError = (err: unknown) => {
-    const raw = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : 'Wystąpił nieznany błąd.';
+    const raw = err && typeof err === 'object' && 'message' in err ? String((err as any).message) : t('errors.generic');
 
     if (/401|invalid jwt/i.test(raw)) {
-      return 'Brak autoryzacji (Invalid JWT). Odśwież stronę i zaloguj się ponownie.';
+      return t('priceListUpload.authError');
     }
 
     return raw;
@@ -120,33 +120,31 @@ export function PriceListUploadDialog({
 
   const handleUpload = async () => {
     if (!file || !name.trim()) {
-      toast.error('Wybierz plik i podaj nazwę cennika');
+      toast.error(t('priceListUpload.selectFileAndName'));
       return;
     }
 
     setIsUploading(true);
     setProgress(8);
-    setStageLabel('Przygotowuję upload...');
+    setStageLabel(t('priceListUpload.stages.preparing'));
     setErrorMessage(null);
 
     let priceListId: string | null = null;
 
     try {
-      // Upewnij się, że mamy sesję (żeby nie wysłać błędnego Authorization i nie dostać 401)
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) {
-        throw new Error('Brak aktywnej sesji. Zaloguj się ponownie.');
+        throw new Error(t('priceListUpload.noSession'));
       }
 
       const fileType = getFileType(file);
       const filePath = `${instanceId}/${Date.now()}_${file.name}`;
 
       setProgress(20);
-      setStageLabel('Wgrywam plik do magazynu...');
+      setStageLabel(t('priceListUpload.stages.uploading'));
 
-      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('price-lists')
         .upload(filePath, file);
@@ -154,9 +152,8 @@ export function PriceListUploadDialog({
       if (uploadError) throw uploadError;
 
       setProgress(38);
-      setStageLabel('Zapisuję cennik w bazie...');
+      setStageLabel(t('priceListUpload.stages.saving'));
 
-      // Create price list record
       const { data: priceList, error: insertError } = await supabase
         .from('price_lists')
         .insert({
@@ -177,12 +174,12 @@ export function PriceListUploadDialog({
       priceListId = priceList.id;
 
       setProgress(55);
-      setStageLabel('Odczytuję plik...');
+      setStageLabel(t('priceListUpload.stages.reading'));
 
       const fileContent = await readFileContent(file, fileType);
 
       setProgress(78);
-      setStageLabel('Uruchamiam ekstrakcję AI...');
+      setStageLabel(t('priceListUpload.stages.extracting'));
 
       const { error: extractError } = await supabase.functions.invoke('extract-price-list', {
         headers: {
@@ -198,7 +195,6 @@ export function PriceListUploadDialog({
       if (extractError) {
         const msg = normalizeInvokeError(extractError);
 
-        // jeśli funkcja nie wystartowała (np. 401), to UI przynajmniej pokaże błąd na liście
         await supabase
           .from('price_lists')
           .update({ status: 'failed', error_message: msg })
@@ -208,8 +204,8 @@ export function PriceListUploadDialog({
       }
 
       setProgress(100);
-      setStageLabel('Gotowe — przetwarzanie trwa w tle.');
-      toast.success('Ekstrakcja uruchomiona. Status zobaczysz na liście cenników.');
+      setStageLabel(t('priceListUpload.stages.done'));
+      toast.success(t('priceListUpload.extractionStarted'));
 
       onSuccess();
     } catch (error) {
@@ -247,10 +243,10 @@ export function PriceListUploadDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Wgraj cennik
+            {t('priceListUpload.title')}
           </DialogTitle>
           <DialogDescription>
-            Wgraj plik PDF lub Excel z cennikiem. AI automatycznie wyekstrahuje produkty.
+            {t('priceListUpload.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -290,11 +286,11 @@ export function PriceListUploadDialog({
               <>
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground mb-2">
-                  Przeciągnij plik tutaj lub
+                  {t('priceListUpload.dropzone.dragHere')}
                 </p>
                 <label>
                   <span className="text-primary hover:underline cursor-pointer">
-                    wybierz z dysku
+                    {t('priceListUpload.dropzone.selectFromDisk')}
                   </span>
                   <input
                     type="file"
@@ -304,7 +300,7 @@ export function PriceListUploadDialog({
                   />
                 </label>
                 <p className="text-xs text-muted-foreground mt-2">
-                  PDF, XLSX lub XLS (max 10MB)
+                  {t('priceListUpload.dropzone.formats')}
                 </p>
               </>
             )}
@@ -312,50 +308,50 @@ export function PriceListUploadDialog({
 
           {/* Name input */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nazwa cennika</Label>
+            <Label htmlFor="name">{t('priceListUpload.priceListName')}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="np. Folie samochodowe 2024"
+              placeholder={t('priceListUpload.priceListNamePlaceholder')}
               disabled={isUploading}
             />
           </div>
 
           {/* Salesperson fields (optional) */}
           <div className="space-y-3 p-3 border border-border rounded-lg">
-            <p className="text-sm font-medium text-muted-foreground">Dane handlowca (opcjonalnie)</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('priceListUpload.salesperson.title')}</p>
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="salesperson-name" className="text-xs">Imię i nazwisko</Label>
+                <Label htmlFor="salesperson-name" className="text-xs">{t('priceListUpload.salesperson.name')}</Label>
                 <Input
                   id="salesperson-name"
                   value={salespersonName}
                   onChange={(e) => setSalespersonName(e.target.value)}
-                  placeholder="Jan Kowalski"
+                  placeholder={t('priceListUpload.salesperson.namePlaceholder')}
                   disabled={isUploading}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label htmlFor="salesperson-phone" className="text-xs">Telefon</Label>
+                  <Label htmlFor="salesperson-phone" className="text-xs">{t('priceListUpload.salesperson.phone')}</Label>
                   <Input
                     id="salesperson-phone"
                     type="tel"
                     value={salespersonPhone}
                     onChange={(e) => setSalespersonPhone(e.target.value)}
-                    placeholder="+48 123 456 789"
+                    placeholder={t('priceListUpload.salesperson.phonePlaceholder')}
                     disabled={isUploading}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="salesperson-email" className="text-xs">Email</Label>
+                  <Label htmlFor="salesperson-email" className="text-xs">{t('priceListUpload.salesperson.email')}</Label>
                   <Input
                     id="salesperson-email"
                     type="email"
                     value={salespersonEmail}
                     onChange={(e) => setSalespersonEmail(e.target.value)}
-                    placeholder="handlowiec@firma.pl"
+                    placeholder={t('priceListUpload.salesperson.emailPlaceholder')}
                     disabled={isUploading}
                   />
                 </div>
@@ -367,7 +363,7 @@ export function PriceListUploadDialog({
           {isUploading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{stageLabel || 'Przetwarzam...'}</span>
+                <span>{stageLabel || t('priceListUpload.stages.processing')}</span>
                 <span>{Math.min(100, Math.max(0, progress))}%</span>
               </div>
               <Progress value={progress} />
@@ -385,9 +381,9 @@ export function PriceListUploadDialog({
           <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
             <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium">Automatyczna ekstrakcja AI</p>
+              <p className="font-medium">{t('priceListUpload.aiExtraction.title')}</p>
               <p className="text-muted-foreground">
-                Po wgraniu cennika, AI automatycznie wyekstrahuje produkty z ich cenami i parametrami.
+                {t('priceListUpload.aiExtraction.description')}
               </p>
             </div>
           </div>
@@ -395,18 +391,18 @@ export function PriceListUploadDialog({
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleUpload} disabled={!file || !name.trim() || isUploading}>
             {isUploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Wgrywanie...
+                {t('priceListUpload.uploading')}
               </>
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                Wgraj i ekstrahuj
+                {t('priceListUpload.uploadAndExtract')}
               </>
             )}
           </Button>

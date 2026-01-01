@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function PriceListViewer({
   open,
   onOpenChange,
 }: PriceListViewerProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [extractedProducts, setExtractedProducts] = useState<Product[]>([]);
 
@@ -59,8 +61,6 @@ export function PriceListViewer({
     const fetchProducts = async () => {
       setLoading(true);
       
-      // For now, show all products since we don't have direct linkage
-      // In a full implementation, we'd link products to price lists via a junction table
       const { data } = await supabase
         .from('products_library')
         .select('*')
@@ -89,9 +89,9 @@ export function PriceListViewer({
     const items: string[] = [];
     
     if (metadata.thickness_um) items.push(`${metadata.thickness_um}μm`);
-    if (metadata.width_cm) items.push(`szer. ${metadata.width_cm}cm`);
+    if (metadata.width_cm) items.push(`${t('priceListViewer.metadata.width')} ${metadata.width_cm}cm`);
     if (metadata.length_m) items.push(`${metadata.length_m}mb`);
-    if (metadata.durability_years) items.push(`${metadata.durability_years} lat`);
+    if (metadata.durability_years) items.push(`${metadata.durability_years} ${t('priceListViewer.metadata.years')}`);
     if (metadata.finish) items.push(String(metadata.finish));
     
     return items.length > 0 ? items.join(' • ') : null;
@@ -115,19 +115,19 @@ export function PriceListViewer({
           ) : extractedProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground">
-                Brak wyekstrahowanych produktów z tego cennika.
+                {t('priceListViewer.noProducts')}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="bg-primary/10 border border-border">
-                  <TableHead>Produkt</TableHead>
-                  <TableHead>Marka</TableHead>
-                  <TableHead>Kategoria</TableHead>
-                  <TableHead>Parametry</TableHead>
-                  <TableHead className="text-right">Cena netto</TableHead>
-                  <TableHead>Jednostka</TableHead>
+                  <TableHead>{t('priceListViewer.columns.product')}</TableHead>
+                  <TableHead>{t('priceListViewer.columns.brand')}</TableHead>
+                  <TableHead>{t('priceListViewer.columns.category')}</TableHead>
+                  <TableHead>{t('priceListViewer.columns.params')}</TableHead>
+                  <TableHead className="text-right">{t('priceListViewer.columns.priceNet')}</TableHead>
+                  <TableHead>{t('priceListViewer.columns.unit')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
