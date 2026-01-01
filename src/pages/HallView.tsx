@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
@@ -61,6 +62,7 @@ const HallView = () => {
   const [workingHours, setWorkingHours] = useState<Record<string, { open: string; close: string } | null> | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [yardVehicleCount, setYardVehicleCount] = useState(0);
 
   // Prevent navigation away - capture back button and history manipulation
   useEffect(() => {
@@ -194,10 +196,58 @@ const HallView = () => {
         setBreaks(breaksData);
       }
 
+      // Fetch yard vehicles count (today or earlier only)
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const { count } = await supabase
+        .from('yard_vehicles')
+        .select('*', { count: 'exact', head: true })
+        .eq('instance_id', instanceId)
+        .eq('status', 'waiting')
+        .lte('arrival_date', todayStr);
+
+      setYardVehicleCount(count || 0);
+
       setLoading(false);
     };
 
     fetchData();
+  }, [instanceId]);
+
+  // Subscribe to yard vehicles changes for counter
+  useEffect(() => {
+    if (!instanceId) return;
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    
+    const fetchYardCount = async () => {
+      const { count } = await supabase
+        .from('yard_vehicles')
+        .select('*', { count: 'exact', head: true })
+        .eq('instance_id', instanceId)
+        .eq('status', 'waiting')
+        .lte('arrival_date', todayStr);
+      setYardVehicleCount(count || 0);
+    };
+
+    const channel = supabase
+      .channel('hall-yard-vehicles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'yard_vehicles',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchYardCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [instanceId]);
 
   // Play notification sound for new customer reservations
@@ -333,6 +383,7 @@ const HallView = () => {
           showWeekView={false}
           hallMode={true}
           instanceId={instanceId || undefined}
+          yardVehicleCount={yardVehicleCount}
         />
         
         <HallNextReservations 
