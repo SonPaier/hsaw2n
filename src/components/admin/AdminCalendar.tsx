@@ -1,4 +1,5 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check, Ban, CalendarOff } from 'lucide-react';
@@ -179,6 +180,7 @@ const AdminCalendar = ({
   showWeekView = true,
   hallMode = false
 }: AdminCalendarProps) => {
+  const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [hiddenStationIds, setHiddenStationIds] = useState<Set<string>>(() => {
@@ -471,10 +473,10 @@ const AdminCalendar = ({
     const freeTime = getFreeTimeForStation(stationId, dateStr);
     if (!freeTime) return null;
     const { hours, minutes } = freeTime;
-    if (hours === 0 && minutes === 0) return 'brak wolnego';
-    if (hours === 0) return `wolne ${minutes} min`;
-    if (minutes === 0) return `wolne ${hours}h`;
-    return `wolne ${hours}h ${minutes}min`;
+    if (hours === 0 && minutes === 0) return t('calendar.noFreeTime');
+    if (hours === 0) return t('calendar.freeMinutes', { minutes });
+    if (minutes === 0) return t('calendar.freeHours', { hours });
+    return t('calendar.freeHoursMinutes', { hours, minutes });
   };
 
   // Calculate position and height based on time
@@ -798,7 +800,7 @@ const AdminCalendar = ({
                   variant={currentDateClosed ? "destructive" : "ghost"}
                   size="icon"
                   className="h-9 w-9"
-                  title={currentDateClosed ? "Otwórz dzień" : "Zamknij dzień"}
+                  title={currentDateClosed ? t('calendar.openDay') : t('calendar.closeDay')}
                 >
                   {currentDateClosed ? (
                     <CalendarOff className="w-4 h-4" />
@@ -810,22 +812,22 @@ const AdminCalendar = ({
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    {currentDateClosed ? "Otworzyć dzień?" : "Zamknąć dzień?"}
+                    {currentDateClosed ? t('calendar.openDayTitle') : t('calendar.closeDayTitle')}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     {currentDateClosed 
-                      ? `Czy na pewno chcesz otworzyć dzień ${format(currentDate, 'd MMMM yyyy', { locale: pl })}? Klienci będą mogli rezerwować wizyty.`
-                      : `Czy na pewno chcesz zamknąć dzień ${format(currentDate, 'd MMMM yyyy', { locale: pl })}? Klienci nie będą mogli rezerwować wizyt w tym dniu.`
+                      ? t('calendar.openDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
+                      : t('calendar.closeDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
                     }
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={() => onToggleClosedDay(currentDateStr)}
                     className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
                   >
-                    {currentDateClosed ? "Otwórz" : "Zamknij"}
+                    {currentDateClosed ? t('calendar.open') : t('calendar.close')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -855,7 +857,7 @@ const AdminCalendar = ({
               onValueChange={(value) => setWeekViewStationId(value)}
             >
               <SelectTrigger className="h-9 w-[140px] text-sm">
-                <SelectValue placeholder="Stanowisko" />
+                <SelectValue placeholder={t('stations.title')} />
               </SelectTrigger>
               <SelectContent>
                 {stations.map((station) => (
@@ -1231,7 +1233,7 @@ const AdminCalendar = ({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1 text-[10px] md:text-xs font-semibold truncate">
                             <Coffee className="w-3 h-3 shrink-0" />
-                            Przerwa
+                            {t('calendar.break')}
                           </div>
                           <button
                             onClick={(e) => {
@@ -1239,7 +1241,7 @@ const AdminCalendar = ({
                               onDeleteBreak?.(breakItem.id);
                             }}
                             className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Usuń przerwę"
+                            title={t('calendar.deleteBreak')}
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1816,7 +1818,7 @@ const AdminCalendar = ({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-semibold truncate">
                               <Coffee className="w-2.5 h-2.5 shrink-0" />
-                              Przerwa
+                              {t('calendar.break')}
                             </div>
                             {!readOnly && (
                               <button
@@ -1825,7 +1827,7 @@ const AdminCalendar = ({
                                   onDeleteBreak?.(breakItem.id);
                                 }}
                                 className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
-                                title="Usuń przerwę"
+                                title={t('calendar.deleteBreak')}
                               >
                                 <X className="w-2.5 h-2.5" />
                               </button>

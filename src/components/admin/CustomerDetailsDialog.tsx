@@ -325,17 +325,17 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                 <div className="text-sm space-y-1">
                   {customer.email && (
                     <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Email:</span> {customer.email}
+                      <span className="font-medium text-foreground">{t('common.email')}:</span> {customer.email}
                     </div>
                   )}
                   {customer.company && (
                     <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Firma:</span> {customer.company}
+                      <span className="font-medium text-foreground">{t('customers.company')}:</span> {customer.company}
                     </div>
                   )}
                   {customer.nip && (
                     <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">NIP:</span> {customer.nip}
+                      <span className="font-medium text-foreground">{t('customers.nip')}:</span> {customer.nip}
                     </div>
                   )}
                 </div>
@@ -422,7 +422,7 @@ const CustomerDetailsDialog = ({ customer, instanceId, open, onClose, onCustomer
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <div className="text-muted-foreground">
-                        {visit.service_name || 'Usługa'} • {visit.vehicle_plate}
+                        {visit.service_name || t('reservations.service')} • {visit.vehicle_plate}
                       </div>
                       {visit.price && (
                         <div className="font-medium">
