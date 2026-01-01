@@ -41,6 +41,7 @@
     "from": "od",
     "to": "do",
     "pln": "zł",
+    "currency": "zł",
     "showingPagination": "Pokazano {{from}}-{{to}} z {{total}}",
     "show": "Pokaż",
     "perPage": "na stronie",
@@ -188,17 +189,25 @@
     "totalPrice": "Razem",
     "priceFrom": "od {{price}} zł",
     "priceNote": "Ostateczny koszt usługi może się nieznacznie różnić.",
+    "priceDisclaimer": "Cena może ulec zmianie w zależności od stanu samochodu",
     "selectCarSize": "Wybierz rozmiar auta",
     "closedDay": "Zamknięte",
     "verifiedCustomer": "Witaj ponownie!",
     "newCustomer": "Nowy klient",
     "previousVehicles": "Poprzednie auta",
     "followUsOnInstagram": "Zaobserwuj nas na Instagramie!",
+    "instagramSubtitle": "Bądź na bieżąco z naszymi realizacjami",
     "contactUs": "Napisz do nas",
     "smsSendError": "Błąd podczas wysyłania SMS",
     "smsLimitExceeded": "Przekroczono limit SMS",
     "verificationError": "Błąd weryfikacji",
-    "bookingPendingMessage": "Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko."
+    "bookingPendingMessage": "Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.",
+    "devModeForced": "Dev Mode: wymuszono weryfikację SMS",
+    "enterSmsCode": "Wpisz 4-cyfrowy kod z SMS",
+    "devCode": "Kod",
+    "verifying": "Weryfikacja...",
+    "reminderInfo": "Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą",
+    "bookAnother": "Zarezerwuj kolejną wizytę"
   },
   "calendar": {
     "title": "Kalendarz",
@@ -223,7 +232,16 @@
     "closeDayDescription": "Czy na pewno chcesz zamknąć dzień {{date}}? Klienci nie będą mogli rezerwować wizyt w tym dniu.",
     "open": "Otwórz",
     "close": "Zamknij",
-    "deleteBreak": "Usuń przerwę"
+    "deleteBreak": "Usuń przerwę",
+    "dayNamesShort": {
+      "mon": "PON.",
+      "tue": "WT.",
+      "wed": "ŚR.",
+      "thu": "CZW.",
+      "fri": "PT.",
+      "sat": "SOB.",
+      "sun": "NIEDZ."
+    }
   },
   "customers": {
     "title": "Klienci",
@@ -1364,6 +1382,9 @@
     "serviceAdded": "Usługa została dodana",
     "serviceDeleted": "Usługa została usunięta",
     "orderSaved": "Kolejność zapisana",
+    "inactive": "Nieaktywna",
+    "removeFromPopular": "Usuń z popularnych",
+    "markAsPopular": "Oznacz jako popularna",
     "stationTypes": {
       "washing": "Myjnia",
       "detailing": "Detailing",

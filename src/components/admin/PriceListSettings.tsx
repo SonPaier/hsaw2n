@@ -92,13 +92,15 @@ const SortableServiceItem = ({
   onEdit, 
   onDelete, 
   onToggleActive,
-  onTogglePopular 
+  onTogglePopular,
+  t
 }: { 
   service: Service; 
   onEdit: () => void; 
   onDelete: () => void; 
   onToggleActive: () => void;
   onTogglePopular: () => void;
+  t: (key: string) => string;
 }) => {
   const {
     attributes,
@@ -137,7 +139,7 @@ const SortableServiceItem = ({
           {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
           <span className="font-medium truncate">{service.name}</span>
           {!service.active && (
-            <span className="text-xs bg-muted px-2 py-0.5 rounded">Nieaktywna</span>
+            <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('priceList.inactive')}</span>
           )}
         </div>
         <div className="text-sm text-muted-foreground mt-1">
@@ -157,7 +159,7 @@ const SortableServiceItem = ({
           variant="ghost"
           size="icon"
           onClick={onTogglePopular}
-          title={service.is_popular ? "Usuń z popularnych" : "Oznacz jako popularna"}
+          title={service.is_popular ? t('priceList.removeFromPopular') : t('priceList.markAsPopular')}
         >
           <Star className={cn("w-4 h-4", service.is_popular ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
         </Button>
@@ -518,6 +520,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                           onDelete={() => handleDelete(service.id)}
                           onToggleActive={() => toggleServiceActive(service)}
                           onTogglePopular={() => toggleServicePopular(service)}
+                          t={t}
                         />
                       ))
                     )}

@@ -969,7 +969,7 @@ export default function CustomerBookingWizard({
             </div>
             
             <span className="font-semibold text-primary whitespace-nowrap">
-              od {price} zł
+              {t('booking.priceFrom', { price })}
             </span>
           </div>
         </button>;
@@ -1032,7 +1032,7 @@ export default function CustomerBookingWizard({
       calendarDays.push(day);
       day = addDays(day, 1);
     }
-    const dayNames = ['PON.', 'WT.', 'ŚR.', 'CZW.', 'PT.', 'SOB.', 'NIEDZ.'];
+    const dayNames = [t('calendar.dayNamesShort.mon'), t('calendar.dayNamesShort.tue'), t('calendar.dayNamesShort.wed'), t('calendar.dayNamesShort.thu'), t('calendar.dayNamesShort.fri'), t('calendar.dayNamesShort.sat'), t('calendar.dayNamesShort.sun')];
 
     // Check if a date has available slots
     const hasAvailableSlots = (date: Date): boolean => {
@@ -1074,7 +1074,7 @@ export default function CustomerBookingWizard({
           {/* Service info */}
           <p className="mb-4 text-base text-inherit">
             {selectedService?.name} • {getTotalDuration()} min
-            {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} dodatki)`}
+            {selectedAddons.length > 0 && ` (+ ${selectedAddons.length} ${t('booking.addons')})`}
           </p>
 
           {/* Month header with navigation */}
@@ -1207,10 +1207,10 @@ export default function CustomerBookingWizard({
             </div>
             <div className="flex justify-between pt-1.5 border-t border-border">
               <span className="text-muted-foreground text-base">{t('common.price')}</span>
-              <span className="font-bold text-primary text-base">{getTotalPrice()} zł</span>
+              <span className="font-bold text-primary text-base">{getTotalPrice()} {t('common.currency')}</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              * Cena może ulec zmianie w zależności od stanu samochodu
+              * {t('booking.priceDisclaimer')}
             </p>
           </div>
 
@@ -1249,7 +1249,7 @@ export default function CustomerBookingWizard({
           {!smsSent ? <>
               {devMode && <div className="mb-3 p-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
                   <Bug className="w-3 h-3 inline-block mr-1" />
-                  Dev Mode: wymuszono weryfikację SMS
+                  {t('booking.devModeForced')}
                 </div>}
               <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -1257,18 +1257,18 @@ export default function CustomerBookingWizard({
               </Button>
             </> : <div className="glass-card p-4 text-center">
               <p className="text-xs text-muted-foreground mb-3">
-                Wpisz 4-cyfrowy kod z SMS
+                {t('booking.enterSmsCode')}
               </p>
               
               {devMode && devCode && <div className="mb-3 p-2 rounded-md bg-green-500/10 border border-green-500/30 text-sm font-mono text-green-600 dark:text-green-400">
                   <Bug className="w-3 h-3 inline-block mr-1" />
-                  Kod: <strong>{devCode}</strong>
+                  {t('booking.devCode')}: <strong>{devCode}</strong>
                 </div>}
               
               <OTPInputWithAutoFocus value={verificationCode} onChange={setVerificationCode} onComplete={handleVerifyCode} smsSent={smsSent} isVerifying={isVerifying} />
               {isVerifying && <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Weryfikacja...
+                  {t('booking.verifying')}
                 </div>}
             </div>}
         </div>
@@ -1333,7 +1333,7 @@ export default function CustomerBookingWizard({
 
             <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
               <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
-              Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą
+              {t('booking.reminderInfo')}
             </div>
 
             {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group">
@@ -1342,12 +1342,12 @@ export default function CustomerBookingWizard({
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium group-hover:text-pink-500 transition-colors">{t('booking.followUsOnInstagram')}</p>
-                  <p className="text-xs text-muted-foreground">Bądź na bieżąco z naszymi realizacjami</p>
+                  <p className="text-xs text-muted-foreground">{t('booking.instagramSubtitle')}</p>
                 </div>
               </a>}
 
             <Button variant="ghost" onClick={() => window.location.reload()} className="w-full text-muted-foreground" size="sm">
-              Zarezerwuj kolejną wizytę
+              {t('booking.bookAnother')}
             </Button>
           </div>
         </div>
