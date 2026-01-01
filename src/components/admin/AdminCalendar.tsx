@@ -808,7 +808,7 @@ const AdminCalendar = ({
   return (
     <div className="flex flex-col h-full bg-card rounded-xl overflow-hidden relative">
       {/* Calendar Header - sticky */}
-      <div className="flex items-center justify-between p-2 lg:p-3 bg-card sticky top-0 z-50 flex-wrap gap-2">
+      <div className="flex items-center justify-between p-2 lg:p-3 bg-background sticky top-0 z-50 flex-wrap gap-2">
         {/* Navigation */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
@@ -1262,7 +1262,7 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              <span className="text-[10px] md:text-xs font-bold tabular-nums shrink-0">
+                              <span className="text-xs md:text-sm font-bold tabular-nums shrink-0">
                                 {isMultiDay
                                   ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
                                   : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
@@ -1304,7 +1304,7 @@ const AdminCalendar = ({
                           </div>
                           {/* Line 2: Vehicle plate + customer name with ellipsis */}
                           {!hallMode && (
-                            <div className="flex items-center gap-1 text-[10px] md:text-xs opacity-90 min-w-0">
+                            <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
                               <span className="font-semibold truncate max-w-[50%]">
                                 {reservation.vehicle_plate}
                               </span>
@@ -1317,14 +1317,14 @@ const AdminCalendar = ({
                           {reservation.services_data && reservation.services_data.length > 0 ? (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
                               {reservation.services_data.map((svc, idx) => (
-                                <span key={idx} className="inline-block px-1 py-0.5 text-[8px] md:text-[9px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                <span key={idx} className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                   {svc.shortcut || svc.name}
                                 </span>
                               ))}
                             </div>
                           ) : reservation.service && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
-                              <span className="inline-block px-1 py-0.5 text-[8px] md:text-[9px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                              <span className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
                             </div>
