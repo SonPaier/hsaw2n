@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -973,23 +980,62 @@ const AdminDashboard = () => {
               </Button>
             </nav>
 
-            {/* Collapse toggle & User Info & Logout */}
-            <div className={cn("border-t border-border/50 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
+            {/* Collapse toggle & User menu */}
+            <div className={cn("border-t border-border/50", sidebarCollapsed ? "p-2" : "p-4")}>
               {/* Collapse button - desktop only */}
-              <Button variant="ghost" className={cn("w-full text-muted-foreground hidden lg:flex gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}>
-                {sidebarCollapsed ? <PanelLeft className="w-4 h-4 shrink-0" /> : <>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full text-muted-foreground hidden lg:flex gap-3",
+                  sidebarCollapsed ? "justify-center px-2" : "justify-start",
+                )}
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="w-4 h-4 shrink-0" />
+                ) : (
+                  <>
                     <PanelLeftClose className="w-4 h-4 shrink-0" />
                     Zwiń menu
-                  </>}
+                  </>
+                )}
               </Button>
-              
-              {!sidebarCollapsed && user && <div className="px-3 py-2 text-sm text-muted-foreground truncate">
-                  {user.email}
-                </div>}
-              <Button variant="ghost" className={cn("w-full text-muted-foreground gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={handleLogout} title="Wyloguj się">
-                <LogOut className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && "Wyloguj się"}
-              </Button>
+
+              {/* Divider - only when not collapsed */}
+              {!sidebarCollapsed && <Separator className="my-3" />}
+
+              {/* Email -> dropdown (logout) */}
+              {sidebarCollapsed ? (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2 text-muted-foreground"
+                  onClick={handleLogout}
+                  title="Wyloguj się"
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                </Button>
+              ) : (
+                user && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between text-muted-foreground px-3 h-auto py-2"
+                      >
+                        <span className="text-sm truncate">{user.email}</span>
+                        <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="start" className="w-56">
+                      <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                        <LogOut className="w-4 h-4" />
+                        Wyloguj się
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )
+              )}
             </div>
           </div>
         </aside>
