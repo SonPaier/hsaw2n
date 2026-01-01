@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface MetadataField {
   key: string;
@@ -43,6 +44,7 @@ export function AddProductDialog({
   categories,
   onProductAdded,
 }: AddProductDialogProps) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
@@ -89,13 +91,13 @@ export function AddProductDialog({
     e.preventDefault();
     
     if (!name.trim()) {
-      toast.error('Nazwa produktu jest wymagana');
+      toast.error(t('productDialog.nameRequired'));
       return;
     }
 
     const priceValue = parseFloat(price.replace(',', '.'));
     if (isNaN(priceValue) || priceValue < 0) {
-      toast.error('Podaj prawidłową cenę');
+      toast.error(t('productDialog.invalidPrice'));
       return;
     }
 
@@ -132,12 +134,12 @@ export function AddProductDialog({
 
       if (error) throw error;
 
-      toast.success('Produkt został dodany');
+      toast.success(t('productDialog.productAdded'));
       handleClose();
       onProductAdded();
     } catch (error) {
       console.error('Error adding product:', error);
-      toast.error('Nie udało się dodać produktu');
+      toast.error(t('productDialog.addError'));
     } finally {
       setSaving(false);
     }
@@ -147,35 +149,35 @@ export function AddProductDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Dodaj produkt</DialogTitle>
+          <DialogTitle>{t('productDialog.addTitle')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic info */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nazwa *</Label>
+            <Label htmlFor="name">{t('productDialog.name')} *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nazwa produktu"
+              placeholder={t('productDialog.namePlaceholder')}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="brand">Marka</Label>
+              <Label htmlFor="brand">{t('productDialog.brand')}</Label>
               <Input
                 id="brand"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                placeholder="np. 3M, Koch Chemie"
+                placeholder={t('productDialog.brandPlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Cena (PLN) *</Label>
+              <Label htmlFor="price">{t('productDialog.price')} *</Label>
               <Input
                 id="price"
                 value={price}
@@ -189,31 +191,31 @@ export function AddProductDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Kategoria</Label>
+              <Label>{t('productDialog.category')}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Wybierz kategorię" />
+                  <SelectValue placeholder={t('productDialog.selectCategory')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Brak kategorii</SelectItem>
+                  <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
-                  <SelectItem value="__custom__">+ Nowa kategoria</SelectItem>
+                  <SelectItem value="__custom__">{t('productDialog.newCategory')}</SelectItem>
                 </SelectContent>
               </Select>
               {category === '__custom__' && (
                 <Input
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
-                  placeholder="Nazwa nowej kategorii"
+                  placeholder={t('productDialog.newCategoryPlaceholder')}
                   className="mt-2"
                 />
               )}
             </div>
 
             <div className="space-y-2">
-              <Label>Jednostka</Label>
+              <Label>{t('productDialog.unit')}</Label>
               <Select value={unit} onValueChange={setUnit}>
                 <SelectTrigger>
                   <SelectValue />
@@ -222,14 +224,14 @@ export function AddProductDialog({
                   {COMMON_UNITS.map(u => (
                     <SelectItem key={u} value={u}>{u}</SelectItem>
                   ))}
-                  <SelectItem value="__custom__">+ Inna</SelectItem>
+                  <SelectItem value="__custom__">{t('productDialog.otherUnit')}</SelectItem>
                 </SelectContent>
               </Select>
               {unit === '__custom__' && (
                 <Input
                   value={customUnit}
                   onChange={(e) => setCustomUnit(e.target.value)}
-                  placeholder="Własna jednostka"
+                  placeholder={t('productDialog.customUnitPlaceholder')}
                   className="mt-2"
                 />
               )}
@@ -237,12 +239,12 @@ export function AddProductDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Opis</Label>
+            <Label htmlFor="description">{t('productDialog.description')}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opis produktu (opcjonalnie)"
+              placeholder={t('productDialog.descriptionPlaceholder')}
               rows={3}
             />
           </div>
@@ -250,7 +252,7 @@ export function AddProductDialog({
           {/* Custom metadata */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Dodatkowe parametry</Label>
+              <Label>{t('productDialog.additionalParams')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -259,13 +261,13 @@ export function AddProductDialog({
                 className="gap-1"
               >
                 <Plus className="h-3 w-3" />
-                Dodaj
+                {t('common.add')}
               </Button>
             </div>
             
             {metadataFields.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Brak dodatkowych parametrów. Kliknij "Dodaj" aby dodać własne pola.
+                {t('productDialog.noParams')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -274,13 +276,13 @@ export function AddProductDialog({
                     <Input
                       value={field.key}
                       onChange={(e) => updateMetadataField(index, 'key', e.target.value)}
-                      placeholder="Nazwa parametru"
+                      placeholder={t('productDialog.paramName')}
                       className="flex-1"
                     />
                     <Input
                       value={field.value}
                       onChange={(e) => updateMetadataField(index, 'value', e.target.value)}
-                      placeholder="Wartość"
+                      placeholder={t('productDialog.paramValue')}
                       className="flex-1"
                     />
                     <Button
@@ -300,11 +302,11 @@ export function AddProductDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Dodaj produkt
+              {t('productDialog.addProduct')}
             </Button>
           </DialogFooter>
         </form>

@@ -1063,5 +1063,36 @@
       "completed": "Zakończono",
       "failed": "Błąd"
     }
+  },
+  "productDialog": {
+    "addTitle": "Dodaj produkt",
+    "editTitle": "Edytuj produkt",
+    "name": "Nazwa",
+    "namePlaceholder": "Nazwa produktu",
+    "nameRequired": "Nazwa produktu jest wymagana",
+    "brand": "Marka",
+    "brandPlaceholder": "np. 3M, Koch Chemie",
+    "price": "Cena (PLN)",
+    "invalidPrice": "Podaj prawidłową cenę",
+    "category": "Kategoria",
+    "selectCategory": "Wybierz kategorię",
+    "noCategory": "Brak kategorii",
+    "newCategory": "+ Nowa kategoria",
+    "newCategoryPlaceholder": "Nazwa nowej kategorii",
+    "unit": "Jednostka",
+    "otherUnit": "+ Inna",
+    "customUnitPlaceholder": "Własna jednostka",
+    "description": "Opis",
+    "descriptionPlaceholder": "Opis produktu (opcjonalnie)",
+    "additionalParams": "Dodatkowe parametry",
+    "noParams": "Brak dodatkowych parametrów. Kliknij \"Dodaj\" aby dodać własne pola.",
+    "paramName": "Nazwa parametru",
+    "paramValue": "Wartość",
+    "addProduct": "Dodaj produkt",
+    "saveChanges": "Zapisz zmiany",
+    "productAdded": "Produkt został dodany",
+    "productUpdated": "Produkt został zaktualizowany",
+    "addError": "Nie udało się dodać produktu",
+    "updateError": "Nie udało się zaktualizować produktu"
   }
 }
