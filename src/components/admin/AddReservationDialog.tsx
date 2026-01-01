@@ -938,85 +938,82 @@ const AddReservationDialog = ({
             )}
           </div>
 
-          {/* Car Model */}
+          {/* Car Model + Car Size (S/M/L) in one row */}
           <div className="space-y-2">
             <Label htmlFor="carModel" className="flex items-center gap-2">
               <Car className="w-4 h-4" />
               {t('reservations.carModel')}
             </Label>
-            <div className="relative">
-              <Input
-                id="carModel"
-                value={carModel}
-                onChange={(e) => setCarModel(e.target.value)}
-                className="pr-10"
-              />
-              {suggestingSize && (
-                <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
-              )}
-            </div>
-          </div>
-
-          {/* Car Size - S/M/L with tooltips */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              {t('reservations.carSize')}
-              {suggestingSize && (
-                <Sparkles className="w-4 h-4 animate-pulse text-primary" />
-              )}
-            </Label>
-            <TooltipProvider>
-              <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={carSize === 'small' ? 'default' : 'outline'}
-                      className="flex-1 font-bold"
-                      onClick={() => setCarSize('small')}
-                    >
-                      S
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{t('reservations.carSizes.small')}</p>
-                    <p className="text-xs text-muted-foreground">Fiat 500, Smart, Mini</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={carSize === 'medium' ? 'default' : 'outline'}
-                      className="flex-1 font-bold"
-                      onClick={() => setCarSize('medium')}
-                    >
-                      M
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{t('reservations.carSizes.medium')}</p>
-                    <p className="text-xs text-muted-foreground">Golf, A4, 3 Series</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={carSize === 'large' ? 'default' : 'outline'}
-                      className="flex-1 font-bold"
-                      onClick={() => setCarSize('large')}
-                    >
-                      L
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{t('reservations.carSizes.large')}</p>
-                    <p className="text-xs text-muted-foreground">SUV, Van, Kombi</p>
-                  </TooltipContent>
-                </Tooltip>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="carModel"
+                  value={carModel}
+                  onChange={(e) => setCarModel(e.target.value)}
+                  className="pr-10"
+                />
+                {suggestingSize && (
+                  <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
+                )}
               </div>
-            </TooltipProvider>
+              
+              {/* Car Size - compact S/M/L buttons */}
+              <TooltipProvider>
+                <div className="flex gap-1 shrink-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={carSize === 'small' ? 'default' : 'outline'}
+                        className="w-9 h-9 font-bold p-0"
+                        onClick={() => setCarSize('small')}
+                      >
+                        S
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{t('reservations.carSizes.small')}</p>
+                      <p className="text-xs text-muted-foreground">Fiat 500, Smart, Mini</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={carSize === 'medium' ? 'default' : 'outline'}
+                        className="w-9 h-9 font-bold p-0"
+                        onClick={() => setCarSize('medium')}
+                      >
+                        M
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{t('reservations.carSizes.medium')}</p>
+                      <p className="text-xs text-muted-foreground">Golf, A4, 3 Series</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={carSize === 'large' ? 'default' : 'outline'}
+                        className="w-9 h-9 font-bold p-0"
+                        onClick={() => setCarSize('large')}
+                      >
+                        L
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{t('reservations.carSizes.large')}</p>
+                      <p className="text-xs text-muted-foreground">SUV, Van, Kombi</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            </div>
           </div>
 
           {/* Services Multi-Select - hidden for PPF */}
@@ -1026,7 +1023,7 @@ const AddReservationDialog = ({
                 "flex items-center justify-between",
                 errors.services && "text-destructive"
               )}>
-                <span>{t('addReservation.services')} *</span>
+                <span>{t('addReservation.services')} <span className="text-destructive">*</span></span>
                 {selectedServices.length > 0 && (
                   <span className="text-sm font-normal text-primary">
                     {t('addReservation.total')}: {totalDurationMinutes} min
@@ -1052,7 +1049,7 @@ const AddReservationDialog = ({
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
+                <PopoverContent className="w-[280px] p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
                   {/* Search input */}
                   <div className="p-2 border-b border-border">
                     <Input
@@ -1095,7 +1092,7 @@ const AddReservationDialog = ({
                         <div
                           key={service.id}
                           className={cn(
-                            "flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
+                            "flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
                             isSelected && "bg-primary/10"
                           )}
                           onClick={() => toggleService(service.id)}
@@ -1103,13 +1100,14 @@ const AddReservationDialog = ({
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleService(service.id)}
+                            className="shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-sm truncate">{service.name}</span>
                               {service.shortcut && (
-                                <span className="text-primary font-semibold">[{service.shortcut}]</span>
+                                <span className="text-xs text-primary font-semibold shrink-0">{service.shortcut}</span>
                               )}
-                              {service.shortcut ? ` - ${service.name}` : service.name}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {getServiceDuration(service)} min
