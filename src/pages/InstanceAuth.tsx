@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, User, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Car, User, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface Instance {
   id: string;
@@ -22,12 +21,16 @@ interface InstanceAuthProps {
   subdomainSlug?: string;
 }
 
+interface FormErrors {
+  username?: string;
+  password?: string;
+  general?: string;
+}
+
 const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
   const { slug: paramSlug } = useParams<{ slug: string }>();
-  // Use subdomain slug if provided (from App.tsx), otherwise use URL param
   const slug = subdomainSlug || paramSlug;
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user, loading: authLoading, signIn, hasRole, hasInstanceRole } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -37,7 +40,7 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // Always redirect to /admin for both admin and employee roles
+  const [errors, setErrors] = useState<FormErrors>({});
   const returnTo = '/admin';
 
   // Fetch instance by slug
@@ -84,13 +87,11 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
   useEffect(() => {
     if (authLoading || instanceLoading || !user || !instance) return;
 
-    // Check if user has access to this instance
     const hasAccess = hasRole('super_admin') || 
                       hasInstanceRole('admin', instance.id) || 
                       hasInstanceRole('employee', instance.id);
 
     if (hasAccess) {
-      // Check if user is blocked
       supabase
         .from('profiles')
         .select('is_blocked')
@@ -98,7 +99,7 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
         .single()
         .then(({ data }) => {
           if (data?.is_blocked) {
-            toast.error('Twoje konto zostało zablokowane');
+            setErrors({ general: 'Twoje konto zostało zablokowane' });
             return;
           }
           navigate(returnTo, { replace: true });
@@ -106,23 +107,37 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
     }
   }, [authLoading, instanceLoading, user, instance, hasRole, hasInstanceRole, navigate, returnTo]);
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    
+    if (!username.trim()) {
+      newErrors.username = 'Login jest wymagany';
+    }
+    
+    if (!password) {
+      newErrors.password = 'Hasło jest wymagane';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
-    if (!username || !password) {
-      toast.error('Wypełnij wszystkie pola');
+    if (!validateForm()) {
       return;
     }
 
     if (!instance) {
-      toast.error('Nie można zalogować - brak instancji');
+      setErrors({ general: 'Nie można zalogować - brak instancji' });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Look up email by username AND instance_id (username unique per instance)
       const { data: profile, error: lookupError } = await supabase
         .from('profiles')
         .select('id, email, is_blocked')
@@ -131,14 +146,13 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
         .maybeSingle();
 
       if (lookupError || !profile?.email) {
-        toast.error('Nieprawidłowy login lub hasło');
+        setErrors({ general: 'Nieprawidłowy login lub hasło' });
         setLoading(false);
         return;
       }
 
-      // Check if user is blocked
       if (profile.is_blocked) {
-        toast.error('Twoje konto zostało zablokowane. Skontaktuj się z administratorem.');
+        setErrors({ general: 'Twoje konto zostało zablokowane. Skontaktuj się z administratorem.' });
         setLoading(false);
         return;
       }
@@ -146,18 +160,23 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
       const { error } = await signIn(profile.email, password);
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Nieprawidłowy login lub hasło');
+          setErrors({ general: 'Nieprawidłowy login lub hasło' });
         } else {
-          toast.error(error.message);
+          setErrors({ general: error.message });
         }
       } else {
-        toast.success('Zalogowano pomyślnie');
         navigate(returnTo);
       }
     } catch (err) {
-      toast.error('Wystąpił błąd. Spróbuj ponownie.');
+      setErrors({ general: 'Wystąpił błąd. Spróbuj ponownie.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearFieldError = (field: keyof FormErrors) => {
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -180,13 +199,6 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
           <p className="text-muted-foreground">
             Sprawdź czy adres URL jest poprawny
           </p>
-          <Button
-            variant="link"
-            onClick={() => navigate('/')}
-            className="text-muted-foreground"
-          >
-            ← Powrót do strony głównej
-          </Button>
         </div>
       </div>
     );
@@ -199,126 +211,176 @@ const InstanceAuth = ({ subdomainSlug }: InstanceAuthProps) => {
         <meta name="description" content={`Zaloguj się do panelu ${instance?.name}`} />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Gradient background with instance color */}
-        <div 
-          className="fixed inset-0 pointer-events-none"
-          style={{
-            background: instance?.primary_color 
-              ? `linear-gradient(to bottom right, ${instance.primary_color}10, transparent, ${instance.primary_color}05)`
-              : undefined
-          }}
-        />
-        
-        <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-          <div className="w-full max-w-md space-y-8">
-            {/* Logo */}
-            <div className="text-center space-y-2">
-              {instance?.logo_url ? (
-                <img 
-                  src={instance.logo_url} 
-                  alt={instance.name}
-                  className="h-16 mx-auto object-contain mb-4"
-                />
-              ) : (
-                <div 
-                  className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                  style={{ 
-                    background: instance?.primary_color 
-                      ? `linear-gradient(to bottom right, ${instance.primary_color}, ${instance.primary_color}cc)`
-                      : 'linear-gradient(to bottom right, hsl(var(--primary)), hsl(217.2 91.2% 59.8%))'
-                  }}
-                >
-                  <Car className="w-8 h-8 text-primary-foreground" />
+      <div className="min-h-screen flex">
+        {/* Left side - Form */}
+        <div className="w-full lg:w-1/2 flex flex-col bg-white dark:bg-slate-950">
+          <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+            <div className="w-full max-w-md space-y-8">
+              {/* Logo */}
+              <div className="space-y-2">
+                {instance?.logo_url ? (
+                  <img 
+                    src={instance.logo_url} 
+                    alt={instance.name}
+                    className="h-12 object-contain mb-6"
+                  />
+                ) : (
+                  <div 
+                    className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-6 bg-primary"
+                  >
+                    <Car className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                )}
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                  Logowanie do panelu administracyjnego
+                </h1>
+              </div>
+
+              {/* General error */}
+              {errors.general && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm text-destructive">{errors.general}</p>
                 </div>
               )}
-              <h1 className="text-2xl font-bold text-foreground">
-                {instance?.name}
-              </h1>
-              <p className="text-muted-foreground">
-                Zaloguj się do panelu
-              </p>
-            </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="username">Login</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Twój login"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10"
-                    autoComplete="username"
-                  />
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">Login</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        clearFieldError('username');
+                      }}
+                      className={`pl-10 h-12 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 ${
+                        errors.username ? 'border-destructive focus-visible:ring-destructive' : ''
+                      }`}
+                      autoComplete="username"
+                    />
+                  </div>
+                  {errors.username && (
+                    <p className="text-sm text-destructive">{errors.username}</p>
+                  )}
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Hasło</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Hasło</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearFieldError('password');
+                      }}
+                      className={`pl-10 pr-10 h-12 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 ${
+                        errors.password ? 'border-destructive focus-visible:ring-destructive' : ''
+                      }`}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
                 </div>
-              </div>
 
-              <Button
-                type="submit"
-                className="w-full gap-2"
-                disabled={loading}
-                style={{
-                  backgroundColor: instance?.primary_color || undefined
-                }}
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    Zaloguj się
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                Konta tworzone są przez administratora
-              </p>
-            </form>
-
-            {/* Back to home */}
-            <div className="text-center">
-              <Button
-                variant="link"
-                onClick={() => navigate(`/rezerwacje?instance=${slug}`)}
-                className="text-muted-foreground"
-              >
-                ← Powrót do rezerwacji
-              </Button>
+                <Button
+                  type="submit"
+                  className="w-full h-12 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      Zaloguj się
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-xs text-slate-400">
+              <span>© {new Date().getFullYear()} N2Works</span>
+              <a 
+                href="https://n2works.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                n2works.com
+              </a>
+              <a 
+                href="tel:+48666610222" 
+                className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <Phone className="w-3 h-3" />
+                +48 666 610 222
+              </a>
+              <a 
+                href="mailto:hey@n2works.com" 
+                className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <Mail className="w-3 h-3" />
+                hey@n2works.com
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Decorative */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-blue-600 relative overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute inset-0">
+            <div className="absolute top-20 right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-40 left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          </div>
+          
+          {/* Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
+            <div className="max-w-md text-center space-y-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
+                <Car className="w-10 h-10" />
+              </div>
+              <h2 className="text-3xl font-bold">
+                {instance?.name || 'Panel Administracyjny'}
+              </h2>
+              <p className="text-white/70 text-lg">
+                Zarządzaj rezerwacjami, usługami i klientami w jednym miejscu.
+              </p>
+            </div>
+          </div>
+
+          {/* Grid pattern overlay */}
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
         </div>
       </div>
     </>
