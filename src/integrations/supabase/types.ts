@@ -470,6 +470,7 @@ export type Database = {
           sms_used: number
           social_facebook: string | null
           social_instagram: string | null
+          subdomain: string | null
           updated_at: string | null
           use_global_products: boolean
           website: string | null
@@ -496,6 +497,7 @@ export type Database = {
           sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
+          subdomain?: string | null
           updated_at?: string | null
           use_global_products?: boolean
           website?: string | null
@@ -522,6 +524,7 @@ export type Database = {
           sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
+          subdomain?: string | null
           updated_at?: string | null
           use_global_products?: boolean
           website?: string | null
