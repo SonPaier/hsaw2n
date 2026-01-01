@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 import {
   DropdownMenu,
@@ -150,6 +150,9 @@ const AdminDashboard = () => {
   // Yard vehicle count for badge
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
 
+  // Unread notifications count for badge
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
   // Reservation list filter
   const [showPendingOnly, setShowPendingOnly] = useState(false);
 
@@ -251,11 +254,25 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fetch unread notifications count for badge
+  const fetchUnreadNotificationsCount = async () => {
+    if (!instanceId) return;
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('instance_id', instanceId)
+      .eq('read', false);
+    if (!error && count !== null) {
+      setUnreadNotificationsCount(count);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
     fetchWorkingHours();
     fetchInstanceData();
     fetchYardVehicleCount();
+    fetchUnreadNotificationsCount();
   }, [instanceId]);
 
   // Subscribe to yard_vehicles changes for real-time count updates
@@ -274,6 +291,31 @@ const AdminDashboard = () => {
         },
         () => {
           fetchYardVehicleCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [instanceId]);
+
+  // Subscribe to notifications changes for real-time count updates
+  useEffect(() => {
+    if (!instanceId) return;
+    
+    const channel = supabase
+      .channel('notifications-count-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `instance_id=eq.${instanceId}`
+        },
+        () => {
+          fetchUnreadNotificationsCount();
         }
       )
       .subscribe();
@@ -1100,6 +1142,20 @@ const AdminDashboard = () => {
                     <span className="flex-1 text-left">Rezerwacje</span>
                     {pendingCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
                         {pendingCount}
+                      </span>}
+                  </>}
+              </Button>
+              <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('notifications'); setSidebarOpen(false); }} title="Powiadomienia">
+                <div className="relative">
+                  <Bell className="w-4 h-4 shrink-0" />
+                  {sidebarCollapsed && unreadNotificationsCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>}
+                </div>
+                {!sidebarCollapsed && <>
+                    <span className="flex-1 text-left">Powiadomienia</span>
+                    {unreadNotificationsCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                       </span>}
                   </>}
               </Button>
