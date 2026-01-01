@@ -322,9 +322,10 @@ const AddReservationDialog = ({
     return nextBlockStart - startTotalMinutes;
   })();
 
-  // Filter duration options based on max available time (+30min buffer for overlaps)
+  // Filter duration options based on max available time (only up to maxAvailableMinutes)
+  // Red options (+15 and +30 beyond max) are added separately in the dropdown
   const DURATION_OPTIONS = maxAvailableMinutes !== null
-    ? BASE_DURATION_OPTIONS.filter(opt => opt.value <= maxAvailableMinutes + 30)
+    ? BASE_DURATION_OPTIONS.filter(opt => opt.value <= maxAvailableMinutes)
     : BASE_DURATION_OPTIONS;
 
   // Effective duration: manual override or service-based
@@ -1224,12 +1225,10 @@ const AddReservationDialog = ({
                           {option.label}
                         </SelectItem>
                       ))}
-                      {/* Extra options showing time beyond maxAvailableMinutes */}
-                      {(() => {
-                        // Red options are based on maxAvailableMinutes, not the last dropdown option
-                        const baseForOverlap = maxAvailableMinutes;
-                        const overlapOption1 = baseForOverlap + 15;
-                        const overlapOption2 = baseForOverlap + 30;
+                      {/* Extra options showing time beyond maxAvailableMinutes - only when there's a limit */}
+                      {maxAvailableMinutes !== null && (() => {
+                        const overlapOption1 = maxAvailableMinutes + 15;
+                        const overlapOption2 = maxAvailableMinutes + 30;
                         
                         const formatDuration = (mins: number) => {
                           const h = Math.floor(mins / 60);
