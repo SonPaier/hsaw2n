@@ -253,6 +253,7 @@ const AdminCalendar = ({
     workingEndTime: number;   // decimal, e.g., 16.5 for 16:30
     displayStartTime: number; // decimal, start of display (with margin)
     displayEndTime: number;   // decimal, end of display (with margin)
+    startSlotOffset: number;  // slots to skip in first hour (0-3)
   } => {
     if (!workingHours) {
       return {
@@ -263,7 +264,8 @@ const AdminCalendar = ({
         workingStartTime: DEFAULT_START_HOUR,
         workingEndTime: DEFAULT_END_HOUR,
         displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR
+        displayEndTime: DEFAULT_END_HOUR,
+        startSlotOffset: 0
       };
     }
     
@@ -280,7 +282,8 @@ const AdminCalendar = ({
         workingStartTime: DEFAULT_START_HOUR,
         workingEndTime: DEFAULT_END_HOUR,
         displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR
+        displayEndTime: DEFAULT_END_HOUR,
+        startSlotOffset: 0
       };
     }
     
@@ -303,7 +306,8 @@ const AdminCalendar = ({
         workingStartTime: DEFAULT_START_HOUR,
         workingEndTime: DEFAULT_END_HOUR,
         displayStartTime: DEFAULT_START_HOUR,
-        displayEndTime: DEFAULT_END_HOUR
+        displayEndTime: DEFAULT_END_HOUR,
+        startSlotOffset: 0
       };
     }
     
@@ -312,9 +316,15 @@ const AdminCalendar = ({
     const displayStartTime = Math.max(0, workingStartTime - 0.5);
     const displayEndTime = Math.min(24, workingEndTime + 0.5);
     
-    // Calculate the starting full hour for rendering (floor of displayStartTime)
+    // Calculate the starting full hour for rendering
+    // If displayStartTime is e.g. 8.5, we start from hour 8 but will only show slots from :30
+    // If displayStartTime is e.g. 9.0, we start from hour 9
     const displayStartHour = Math.floor(displayStartTime);
     const displayEndHour = Math.ceil(displayEndTime);
+    
+    // Calculate starting slot offset within the first hour
+    // e.g., if displayStartTime = 8.5, startSlotOffset = 2 (skip 8:00 and 8:15 slots)
+    const startSlotOffset = Math.round((displayStartTime - displayStartHour) * SLOTS_PER_HOUR);
     
     return {
       hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
@@ -324,11 +334,12 @@ const AdminCalendar = ({
       workingStartTime,
       workingEndTime,
       displayStartTime, // e.g., 8.5 for 8:30 start
-      displayEndTime    // e.g., 19.5 for 19:30 end
+      displayEndTime,   // e.g., 19.5 for 19:30 end
+      startSlotOffset   // number of slots to skip in first hour (0-3)
     };
   };
   
-  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartTime: WORKING_START_TIME, workingEndTime: WORKING_END_TIME, displayStartTime: DISPLAY_START_TIME, displayEndTime: DISPLAY_END_TIME } = getHoursForDate(currentDate);
+  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartTime: WORKING_START_TIME, workingEndTime: WORKING_END_TIME, displayStartTime: DISPLAY_START_TIME, displayEndTime: DISPLAY_END_TIME, startSlotOffset: START_SLOT_OFFSET } = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -545,11 +556,12 @@ const AdminCalendar = ({
   };
 
   // Calculate position and height based on time
-  const getReservationStyle = (startTime: string, endTime: string, dayStartHour?: number) => {
-    const startHour = dayStartHour ?? DAY_START_HOUR;
+  // Note: position is relative to DISPLAY_START_TIME (the visible start of calendar)
+  const getReservationStyle = (startTime: string, endTime: string, displayStartTime?: number) => {
+    const referenceStart = displayStartTime ?? DISPLAY_START_TIME;
     const start = parseTime(startTime);
     const end = parseTime(endTime);
-    const top = (start - startHour) * HOUR_HEIGHT + 1; // +1px offset from top
+    const top = (start - referenceStart) * HOUR_HEIGHT + 1; // +1px offset from top
     const height = (end - start) * HOUR_HEIGHT - 2; // -2px to create 1px gap top and bottom
     return { top: `${top}px`, height: `${Math.max(height, 28)}px` };
   };
@@ -803,7 +815,7 @@ const AdminCalendar = ({
     setDraggedReservation(null);
   };
 
-  // Calculate drag preview position
+  // Calculate drag preview position (relative to displayStartTime)
   const getDragPreviewStyle = () => {
     if (!draggedReservation || !dragOverSlot) return null;
     
@@ -812,7 +824,7 @@ const AdminCalendar = ({
     const duration = end - start;
     
     const newStartTime = dragOverSlot.hour + (dragOverSlot.slotIndex * SLOT_MINUTES) / 60;
-    const top = (newStartTime - DAY_START_HOUR) * HOUR_HEIGHT;
+    const top = (newStartTime - DISPLAY_START_TIME) * HOUR_HEIGHT;
     const height = duration * HOUR_HEIGHT;
     
     return { 
@@ -824,11 +836,11 @@ const AdminCalendar = ({
 
   const dragPreviewStyle = getDragPreviewStyle();
 
-  // Current time indicator position
+  // Current time indicator position (relative to displayStartTime)
   const now = new Date();
   const currentHour = now.getHours() + now.getMinutes() / 60;
-  const showCurrentTime = isToday && currentHour >= DAY_START_HOUR && currentHour <= parseTime(DAY_CLOSE_TIME);
-  const currentTimeTop = (currentHour - DAY_START_HOUR) * HOUR_HEIGHT;
+  const showCurrentTime = isToday && currentHour >= DISPLAY_START_TIME && currentHour <= parseTime(DAY_CLOSE_TIME);
+  const currentTimeTop = (currentHour - DISPLAY_START_TIME) * HOUR_HEIGHT;
 
   return (
     <div className="flex flex-col h-full bg-card rounded-xl relative">
@@ -1099,7 +1111,7 @@ const AdminCalendar = ({
             <div className={cn(
               "flex relative",
               currentDateClosed && "opacity-50"
-            )} style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+            )} style={{ minHeight: (HOURS.length * SLOTS_PER_HOUR - START_SLOT_OFFSET) * SLOT_HEIGHT }}>
               {/* Closed day overlay */}
               {currentDateClosed && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
@@ -1112,40 +1124,67 @@ const AdminCalendar = ({
               )}
               {/* Time column with quarter-hour marks */}
               <div className="w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10">
-                {HOURS.map((hour) => (
-                  <div 
-                    key={hour}
-                    className="relative"
-                    style={{ height: HOUR_HEIGHT }}
-                  >
-                    <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </span>
-                    <div className="absolute left-0 right-0 top-0 h-full">
-                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={cn(
-                            "border-b relative",
-                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/30"
-                          )}
-                          style={{ height: SLOT_HEIGHT }}
-                        >
-                        {/* Quarter-hour labels: 15, 30, 45 */}
-                          {i > 0 && (
-                            <span className="absolute -top-1.5 right-1 md:right-2 text-[9px] md:text-[10px] text-muted-foreground/70 bg-background px-0.5">
-                              {(i * SLOT_MINUTES).toString()}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                {HOURS.map((hour, hourIndex) => {
+                  // Calculate which slots to show for this hour
+                  const isFirstHour = hourIndex === 0;
+                  const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                  const slotsToRender = SLOTS_PER_HOUR - slotsToSkip;
+                  
+                  // Don't render anything for this hour if all slots are skipped
+                  if (slotsToRender <= 0) return null;
+                  
+                  const hourBlockHeight = slotsToRender * SLOT_HEIGHT;
+                  
+                  return (
+                    <div 
+                      key={hour}
+                      className="relative"
+                      style={{ height: hourBlockHeight }}
+                    >
+                      {/* Hour label - show at top of first visible slot */}
+                      {slotsToSkip === 0 ? (
+                        <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
+                          {`${hour.toString().padStart(2, '0')}:00`}
+                        </span>
+                      ) : (
+                        // For partial first hour, show the starting time label (e.g., 8:30)
+                        <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
+                          {`${hour.toString().padStart(2, '0')}:${(slotsToSkip * SLOT_MINUTES).toString().padStart(2, '0')}`}
+                        </span>
+                      )}
+                      <div className="absolute left-0 right-0 top-0 h-full">
+                        {Array.from({ length: slotsToRender }, (_, i) => {
+                          const actualSlotIndex = i + slotsToSkip;
+                          return (
+                            <div 
+                              key={actualSlotIndex} 
+                              className={cn(
+                                "border-b relative",
+                                actualSlotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/30"
+                              )}
+                              style={{ height: SLOT_HEIGHT }}
+                            >
+                              {/* Quarter-hour labels: show for slots after first in this render */}
+                              {i > 0 && (
+                                <span className="absolute -top-1.5 right-1 md:right-2 text-[9px] md:text-[10px] text-muted-foreground/70 bg-background px-0.5">
+                                  {(actualSlotIndex * SLOT_MINUTES).toString()}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Station columns */}
               {visibleStations.map((station, idx) => {
+                // Calculate total visible height (accounting for skipped slots in first hour)
+                const totalVisibleSlots = HOURS.length * SLOTS_PER_HOUR - START_SLOT_OFFSET;
+                const totalVisibleHeight = totalVisibleSlots * SLOT_HEIGHT;
+                
                 // Calculate past time overlay - everything before current time should be hatched
                 const now = new Date();
                 const currentDateObj = new Date(currentDateStr);
@@ -1156,15 +1195,15 @@ const AdminCalendar = ({
                 // For today, hatch everything before current time
                 let pastHatchHeight = 0;
                 if (isPastDay) {
-                  pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                  pastHatchHeight = totalVisibleHeight;
                 } else if (isToday) {
                   const currentHour = now.getHours();
                   const currentMinute = now.getMinutes();
                   const currentTimeDecimal = currentHour + currentMinute / 60;
-                  // Calculate how much of the calendar is in the past
-                  if (currentTimeDecimal >= DAY_START_HOUR) {
-                    const timeFromStart = currentTimeDecimal - DAY_START_HOUR;
-                    pastHatchHeight = timeFromStart * HOUR_HEIGHT;
+                  // Calculate how much of the calendar is in the past (from displayStartTime)
+                  if (currentTimeDecimal >= DISPLAY_START_TIME) {
+                    const timeFromDisplayStart = currentTimeDecimal - DISPLAY_START_TIME;
+                    pastHatchHeight = timeFromDisplayStart * HOUR_HEIGHT;
                   }
                 }
                 
@@ -1188,12 +1227,11 @@ const AdminCalendar = ({
                     />
                   )}
                   
-                  {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
+                  {/* Hatched area BEFORE working hours (exactly 30 min margin) - now at top since we start from displayStartTime */}
                   {DISPLAY_START_TIME < WORKING_START_TIME && (
                     <div 
-                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
                       style={{ 
-                        top: (DISPLAY_START_TIME - DAY_START_HOUR) * HOUR_HEIGHT,
                         height: (WORKING_START_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT 
                       }}
                     />
@@ -1204,76 +1242,75 @@ const AdminCalendar = ({
                     <div 
                       className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                       style={{ 
-                        top: (WORKING_END_TIME - DAY_START_HOUR) * HOUR_HEIGHT, 
+                        top: (WORKING_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT, 
                         height: (DISPLAY_END_TIME - WORKING_END_TIME) * HOUR_HEIGHT 
                       }}
                     />
                   )}
                   
                   {/* 15-minute grid slots */}
-                  {HOURS.map((hour) => (
-                    <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                      {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
-                        const slotMinutes = slotIndex * SLOT_MINUTES;
-                        const slotTimeDecimal = hour + slotMinutes / 60;
-                        
-                        // Skip slots outside the display range (before displayStartTime or after displayEndTime)
-                        const isOutsideDisplayRange = slotTimeDecimal < DISPLAY_START_TIME || slotTimeDecimal >= DISPLAY_END_TIME;
-                        if (isOutsideDisplayRange) {
+                  {HOURS.map((hour, hourIndex) => {
+                    const isFirstHour = hourIndex === 0;
+                    const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                    const slotsToRender = SLOTS_PER_HOUR - slotsToSkip;
+                    
+                    if (slotsToRender <= 0) return null;
+                    
+                    const hourBlockHeight = slotsToRender * SLOT_HEIGHT;
+                    
+                    return (
+                      <div key={hour} style={{ height: hourBlockHeight }}>
+                        {Array.from({ length: slotsToRender }, (_, i) => {
+                          const slotIndex = i + slotsToSkip;
+                          const slotMinutes = slotIndex * SLOT_MINUTES;
+                          const slotTimeDecimal = hour + slotMinutes / 60;
+                          
+                          const isDropTarget = dragOverStation === station.id && 
+                            dragOverSlot?.hour === hour && 
+                            dragOverSlot?.slotIndex === slotIndex;
+                          
+                          // Check if this slot is in the past
+                          const slotTime = hour * 60 + slotMinutes;
+                          const nowTime = now.getHours() * 60 + now.getMinutes();
+                          const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
+                          
+                          // Check if this slot is outside working hours (in hatched area)
+                          const isOutsideWorkingHours = slotTimeDecimal < WORKING_START_TIME || slotTimeDecimal >= WORKING_END_TIME;
+                          
+                          // Disable if past OR outside working hours OR day is closed
+                          const isDisabled = isSlotInPast || isOutsideWorkingHours || currentDateClosed;
                           return (
-                            <div 
-                              key={slotIndex} 
-                              style={{ height: SLOT_HEIGHT }} 
-                              className="border-b border-transparent"
-                            />
+                            <div
+                              key={slotIndex}
+                              className={cn(
+                                "border-b group transition-colors",
+                                slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
+                                isDropTarget && !isDisabled && "bg-primary/30 border-primary",
+                                !isDropTarget && !isDisabled && "hover:bg-primary/10 cursor-pointer",
+                                isDisabled && "cursor-not-allowed"
+                              )}
+                              style={{ height: SLOT_HEIGHT }}
+                              onClick={() => !isDisabled && handleSlotClick(station.id, hour, slotIndex)}
+                              onContextMenu={(e) => !isDisabled && handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
+                              onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
+                              onTouchEnd={handleTouchEnd}
+                              onTouchMove={handleTouchMove}
+                              onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
+                              onDrop={(e) => !isDisabled && handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
+                            >
+                              {/* Hide + on hover in hallMode or disabled slots */}
+                              {!hallMode && !isDisabled && (
+                                <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Plus className="w-3 h-3 text-primary/50" />
+                                  <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                                </div>
+                              )}
+                            </div>
                           );
-                        }
-                        
-                        const isDropTarget = dragOverStation === station.id && 
-                          dragOverSlot?.hour === hour && 
-                          dragOverSlot?.slotIndex === slotIndex;
-                        
-                        // Check if this slot is in the past
-                        const slotTime = hour * 60 + slotMinutes;
-                        const nowTime = now.getHours() * 60 + now.getMinutes();
-                        const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
-                        
-                        // Check if this slot is outside working hours (in hatched area)
-                        const isOutsideWorkingHours = slotTimeDecimal < WORKING_START_TIME || slotTimeDecimal >= WORKING_END_TIME;
-                        
-                        // Disable if past OR outside working hours OR day is closed
-                        const isDisabled = isSlotInPast || isOutsideWorkingHours || currentDateClosed;
-                        return (
-                          <div
-                            key={slotIndex}
-                            className={cn(
-                              "border-b group transition-colors",
-                              slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
-                              isDropTarget && !isDisabled && "bg-primary/30 border-primary",
-                              !isDropTarget && !isDisabled && "hover:bg-primary/10 cursor-pointer",
-                              isDisabled && "cursor-not-allowed"
-                            )}
-                            style={{ height: SLOT_HEIGHT }}
-                            onClick={() => !isDisabled && handleSlotClick(station.id, hour, slotIndex)}
-                            onContextMenu={(e) => !isDisabled && handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
-                            onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
-                            onTouchEnd={handleTouchEnd}
-                            onTouchMove={handleTouchMove}
-                            onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
-                            onDrop={(e) => !isDisabled && handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
-                          >
-                            {/* Hide + on hover in hallMode or disabled slots */}
-                            {!hallMode && !isDisabled && (
-                              <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Plus className="w-3 h-3 text-primary/50" />
-                                <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                        })}
+                      </div>
+                    );
+                  })}
 
                   {/* Drag preview ghost - enhanced visibility */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
