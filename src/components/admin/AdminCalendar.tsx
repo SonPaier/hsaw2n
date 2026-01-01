@@ -251,6 +251,8 @@ const AdminCalendar = ({
     closeTime: string;
     workingStartTime: number; // decimal, e.g., 8.5 for 8:30
     workingEndTime: number;   // decimal, e.g., 16.5 for 16:30
+    displayStartTime: number; // decimal, start of display (with margin)
+    displayEndTime: number;   // decimal, end of display (with margin)
   } => {
     if (!workingHours) {
       return {
@@ -259,7 +261,9 @@ const AdminCalendar = ({
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
         workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR
+        workingEndTime: DEFAULT_END_HOUR,
+        displayStartTime: DEFAULT_START_HOUR,
+        displayEndTime: DEFAULT_END_HOUR
       };
     }
     
@@ -274,7 +278,9 @@ const AdminCalendar = ({
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
         workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR
+        workingEndTime: DEFAULT_END_HOUR,
+        displayStartTime: DEFAULT_START_HOUR,
+        displayEndTime: DEFAULT_END_HOUR
       };
     }
     
@@ -295,15 +301,20 @@ const AdminCalendar = ({
         endHour: DEFAULT_END_HOUR,
         closeTime: `${DEFAULT_END_HOUR}:00`,
         workingStartTime: DEFAULT_START_HOUR,
-        workingEndTime: DEFAULT_END_HOUR
+        workingEndTime: DEFAULT_END_HOUR,
+        displayStartTime: DEFAULT_START_HOUR,
+        displayEndTime: DEFAULT_END_HOUR
       };
     }
     
     // Add exactly 30min (0.5 hour) display margin before and after working hours for hatched areas
-    // For display start: round down working start minus 30min to nearest hour
-    // For display end: round up working end plus 30min to nearest hour
-    const displayStartHour = Math.max(0, Math.floor(workingStartTime - 0.5));
-    const displayEndHour = Math.min(24, Math.ceil(workingEndTime + 0.5));
+    // displayStartTime and displayEndTime are in decimal hours (e.g., 8.5 = 8:30)
+    const displayStartTime = Math.max(0, workingStartTime - 0.5);
+    const displayEndTime = Math.min(24, workingEndTime + 0.5);
+    
+    // Calculate the starting full hour for rendering (floor of displayStartTime)
+    const displayStartHour = Math.floor(displayStartTime);
+    const displayEndHour = Math.ceil(displayEndTime);
     
     return {
       hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
@@ -311,11 +322,13 @@ const AdminCalendar = ({
       endHour: displayEndHour,
       closeTime: dayHours.close,
       workingStartTime,
-      workingEndTime
+      workingEndTime,
+      displayStartTime, // e.g., 8.5 for 8:30 start
+      displayEndTime    // e.g., 19.5 for 19:30 end
     };
   };
   
-  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartTime: WORKING_START_TIME, workingEndTime: WORKING_END_TIME } = getHoursForDate(currentDate);
+  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartTime: WORKING_START_TIME, workingEndTime: WORKING_END_TIME, displayStartTime: DISPLAY_START_TIME, displayEndTime: DISPLAY_END_TIME } = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -1175,46 +1188,57 @@ const AdminCalendar = ({
                     />
                   )}
                   
-                  {/* Hatched area BEFORE working hours (30 min margin) */}
-                  {DAY_START_HOUR < WORKING_START_TIME && (
+                  {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
+                  {DISPLAY_START_TIME < WORKING_START_TIME && (
                     <div 
-                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
-                      style={{ height: (WORKING_START_TIME - DAY_START_HOUR) * HOUR_HEIGHT }}
+                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                      style={{ 
+                        top: (DISPLAY_START_TIME - DAY_START_HOUR) * HOUR_HEIGHT,
+                        height: (WORKING_START_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT 
+                      }}
                     />
                   )}
                   
-                  {/* Hatched area AFTER working hours (30 min margin) */}
-                  {(() => {
-                    const { workingEndTime, endHour } = getHoursForDate(currentDate);
-                    if (endHour > workingEndTime) {
-                      const afterTop = (workingEndTime - DAY_START_HOUR) * HOUR_HEIGHT;
-                      const afterHeight = (endHour - workingEndTime) * HOUR_HEIGHT;
-                      return (
-                        <div 
-                          className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
-                          style={{ top: afterTop, height: afterHeight }}
-                        />
-                      );
-                    }
-                    return null;
-                  })()}
+                  {/* Hatched area AFTER working hours (exactly 30 min margin) */}
+                  {DISPLAY_END_TIME > WORKING_END_TIME && (
+                    <div 
+                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                      style={{ 
+                        top: (WORKING_END_TIME - DAY_START_HOUR) * HOUR_HEIGHT, 
+                        height: (DISPLAY_END_TIME - WORKING_END_TIME) * HOUR_HEIGHT 
+                      }}
+                    />
+                  )}
                   
                   {/* 15-minute grid slots */}
                   {HOURS.map((hour) => (
                     <div key={hour} style={{ height: HOUR_HEIGHT }}>
                       {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                        const slotMinutes = slotIndex * SLOT_MINUTES;
+                        const slotTimeDecimal = hour + slotMinutes / 60;
+                        
+                        // Skip slots outside the display range (before displayStartTime or after displayEndTime)
+                        const isOutsideDisplayRange = slotTimeDecimal < DISPLAY_START_TIME || slotTimeDecimal >= DISPLAY_END_TIME;
+                        if (isOutsideDisplayRange) {
+                          return (
+                            <div 
+                              key={slotIndex} 
+                              style={{ height: SLOT_HEIGHT }} 
+                              className="border-b border-transparent"
+                            />
+                          );
+                        }
+                        
                         const isDropTarget = dragOverStation === station.id && 
                           dragOverSlot?.hour === hour && 
                           dragOverSlot?.slotIndex === slotIndex;
                         
                         // Check if this slot is in the past
-                        const slotMinutes = slotIndex * SLOT_MINUTES;
                         const slotTime = hour * 60 + slotMinutes;
                         const nowTime = now.getHours() * 60 + now.getMinutes();
                         const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
                         
                         // Check if this slot is outside working hours (in hatched area)
-                        const slotTimeDecimal = hour + slotMinutes / 60;
                         const isOutsideWorkingHours = slotTimeDecimal < WORKING_START_TIME || slotTimeDecimal >= WORKING_END_TIME;
                         
                         // Disable if past OR outside working hours OR day is closed
@@ -1588,30 +1612,34 @@ const AdminCalendar = ({
                           />
                         )}
                         
-                        {/* Hatched area BEFORE working hours (30 min margin) */}
+                        {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
                         {(() => {
                           const dayHours = getHoursForDate(day);
-                          if (dayHours.startHour < dayHours.workingStartTime) {
+                          if (dayHours.displayStartTime < dayHours.workingStartTime) {
                             return (
                               <div 
-                                className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
-                                style={{ height: (dayHours.workingStartTime - dayHours.startHour) * HOUR_HEIGHT }}
+                                className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                                style={{ 
+                                  top: (dayHours.displayStartTime - dayHours.startHour) * HOUR_HEIGHT,
+                                  height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
+                                }}
                               />
                             );
                           }
                           return null;
                         })()}
                         
-                        {/* Hatched area AFTER working hours (30 min margin) */}
+                        {/* Hatched area AFTER working hours (exactly 30 min margin) */}
                         {(() => {
                           const dayHours = getHoursForDate(day);
-                          if (dayHours.endHour > dayHours.workingEndTime) {
-                            const afterTop = (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT;
-                            const afterHeight = (dayHours.endHour - dayHours.workingEndTime) * HOUR_HEIGHT;
+                          if (dayHours.displayEndTime > dayHours.workingEndTime) {
                             return (
                               <div 
                                 className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
-                                style={{ top: afterTop, height: afterHeight }}
+                                style={{ 
+                                  top: (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT, 
+                                  height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
+                                }}
                               />
                             );
                           }
@@ -1623,19 +1651,32 @@ const AdminCalendar = ({
                           return (
                           <div key={hour} style={{ height: HOUR_HEIGHT }}>
                             {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                              const slotMinutes = slotIndex * SLOT_MINUTES;
+                              const slotTimeDecimal = hour + slotMinutes / 60;
+                              
+                              // Skip slots outside the display range
+                              const isOutsideDisplayRange = slotTimeDecimal < dayHoursForSlots.displayStartTime || slotTimeDecimal >= dayHoursForSlots.displayEndTime;
+                              if (isOutsideDisplayRange) {
+                                return (
+                                  <div 
+                                    key={slotIndex} 
+                                    style={{ height: SLOT_HEIGHT }} 
+                                    className="border-b border-transparent"
+                                  />
+                                );
+                              }
+                              
                               const isDropTarget = dragOverStation === station.id && 
                                 dragOverDate === dayStr &&
                                 dragOverSlot?.hour === hour && 
                                 dragOverSlot?.slotIndex === slotIndex;
                               
                               // Check if this slot is in the past
-                              const slotMinutes = slotIndex * SLOT_MINUTES;
                               const slotTime = hour * 60 + slotMinutes;
                               const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
                               const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
                               
                               // Check if this slot is outside working hours (in hatched area)
-                              const slotTimeDecimal = hour + slotMinutes / 60;
                               const isOutsideWorkingHours = slotTimeDecimal < dayHoursForSlots.workingStartTime || slotTimeDecimal >= dayHoursForSlots.workingEndTime;
                               
                               // Disable if past OR outside working hours OR day is closed
@@ -1932,21 +1973,24 @@ const AdminCalendar = ({
                       />
                     )}
                     
-                    {/* Hatched area BEFORE working hours (30 min margin) */}
-                    {!isDayClosed && dayHours.startHour < dayHours.workingStartTime && (
+                    {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
+                    {!isDayClosed && dayHours.displayStartTime < dayHours.workingStartTime && (
                       <div 
-                        className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
-                        style={{ height: (dayHours.workingStartTime - dayHours.startHour) * HOUR_HEIGHT }}
+                        className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                        style={{ 
+                          top: (dayHours.displayStartTime - dayHours.startHour) * HOUR_HEIGHT,
+                          height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
+                        }}
                       />
                     )}
                     
-                    {/* Hatched area AFTER working hours (30 min margin) */}
-                    {!isDayClosed && dayHours.endHour > dayHours.workingEndTime && (
+                    {/* Hatched area AFTER working hours (exactly 30 min margin) */}
+                    {!isDayClosed && dayHours.displayEndTime > dayHours.workingEndTime && (
                       <div 
                         className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                         style={{ 
                           top: (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT, 
-                          height: (dayHours.endHour - dayHours.workingEndTime) * HOUR_HEIGHT 
+                          height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
                         }}
                       />
                     )}
@@ -1966,6 +2010,21 @@ const AdminCalendar = ({
                     {HOURS.map((hour) => (
                       <div key={hour} style={{ height: HOUR_HEIGHT }}>
                         {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                          const slotMinutes = slotIndex * SLOT_MINUTES;
+                          const slotTimeDecimal = hour + slotMinutes / 60;
+                          
+                          // Skip slots outside the display range
+                          const isOutsideDisplayRange = slotTimeDecimal < dayHours.displayStartTime || slotTimeDecimal >= dayHours.displayEndTime;
+                          if (isOutsideDisplayRange) {
+                            return (
+                              <div 
+                                key={slotIndex} 
+                                style={{ height: SLOT_HEIGHT }} 
+                                className="border-b border-transparent"
+                              />
+                            );
+                          }
+                          
                           const isDropTarget = selectedStationId && 
                             dragOverStation === selectedStationId && 
                             dragOverDate === dayStr &&
@@ -1973,13 +2032,11 @@ const AdminCalendar = ({
                             dragOverSlot?.slotIndex === slotIndex;
                           
                           // Check if this slot is in the past
-                          const slotMinutes = slotIndex * SLOT_MINUTES;
                           const slotTime = hour * 60 + slotMinutes;
                           const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
                           const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
                           
                           // Check if this slot is outside working hours (in hatched area)
-                          const slotTimeDecimal = hour + slotMinutes / 60;
                           const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
                           
                           // Disable if past OR outside working hours OR day is closed
