@@ -1,6 +1,6 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText } from 'lucide-react';
 import {
@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
+import SendSmsDialog from './SendSmsDialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -215,6 +216,8 @@ const AdminCalendar = ({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [weekViewStationId, setWeekViewStationId] = useState<string | null>(null);
   const [placDrawerOpen, setPlacDrawerOpen] = useState(false);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [smsDialogData, setSmsDialogData] = useState<{ phone: string; customerName: string } | null>(null);
   const isMobile = useIsMobile();
 
   // Save hidden stations to localStorage
@@ -289,11 +292,14 @@ const AdminCalendar = ({
       };
     }
     
-    // No extra hours before/after - we'll add 30min hatched overlay at edges
+    // Add 30min (0.5 hour) display margin before and after working hours for hatched areas
+    const displayStartHour = Math.max(0, workingStartHour - 1);
+    const displayEndHour = Math.min(24, workingEndHour + 1);
+    
     return {
-      hours: Array.from({ length: workingEndHour - workingStartHour }, (_, i) => i + workingStartHour),
-      startHour: workingStartHour,
-      endHour: workingEndHour,
+      hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
+      startHour: displayStartHour,
+      endHour: displayEndHour,
       closeTime: dayHours.close,
       workingStartHour,
       workingEndHour
@@ -803,9 +809,9 @@ const AdminCalendar = ({
   const currentTimeTop = (currentHour - DAY_START_HOUR) * HOUR_HEIGHT;
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl overflow-hidden relative">
+    <div className="flex flex-col h-full bg-card rounded-xl relative">
       {/* Calendar Header - sticky */}
-      <div className="flex items-center justify-between p-2 lg:p-3 bg-background sticky top-0 z-50 flex-wrap gap-2">
+      <div className="flex items-center justify-between py-2 lg:py-3 px-0 bg-background sticky top-0 z-50 flex-wrap gap-2">
         {/* Navigation */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
@@ -1057,11 +1063,10 @@ const AdminCalendar = ({
                   )}
                 >
                   <div className="text-foreground truncate">{station.name}</div>
-                  {freeTimeText && (
-                    <div className="text-xs text-primary hidden md:block">
-                      {freeTimeText}
-                    </div>
-                  )}
+                  {/* Always reserve height for free time text */}
+                  <div className="text-xs text-primary hidden md:block h-4">
+                    {freeTimeText || '\u00A0'}
+                  </div>
                 </div>
               );
             })}
@@ -1160,6 +1165,30 @@ const AdminCalendar = ({
                       style={{ height: pastHatchHeight }}
                     />
                   )}
+                  
+                  {/* Hatched area BEFORE working hours (30 min margin) */}
+                  {DAY_START_HOUR < WORKING_START_HOUR && (
+                    <div 
+                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-5"
+                      style={{ height: (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT }}
+                    />
+                  )}
+                  
+                  {/* Hatched area AFTER working hours (30 min margin) */}
+                  {(() => {
+                    const { workingEndHour, endHour } = getHoursForDate(currentDate);
+                    if (endHour > workingEndHour) {
+                      const afterTop = (workingEndHour - DAY_START_HOUR) * HOUR_HEIGHT;
+                      const afterHeight = (endHour - workingEndHour) * HOUR_HEIGHT;
+                      return (
+                        <div 
+                          className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                          style={{ top: afterTop, height: afterHeight }}
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
                   
                   {/* 5-minute grid slots */}
                   {HOURS.map((hour) => (
@@ -1292,14 +1321,20 @@ const AdminCalendar = ({
                                 )}
                                 {reservation.customer_phone && (
                                   <>
-                                    <a
-                                      href={`sms:${reservation.customer_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSmsDialogData({
+                                          phone: reservation.customer_phone!,
+                                          customerName: reservation.customer_name
+                                        });
+                                        setSmsDialogOpen(true);
+                                      }}
                                       className="p-0.5 rounded hover:bg-white/20 transition-colors"
                                       title="Wyślij SMS"
                                     >
                                       <MessageSquare className="w-3.5 h-3.5" />
-                                    </a>
+                                    </button>
                                     <a
                                       href={`tel:${reservation.customer_phone}`}
                                       onClick={(e) => e.stopPropagation()}
@@ -1494,10 +1529,30 @@ const AdminCalendar = ({
               {twoDays.map((day, dayIdx) => {
                 const dayStr = format(day, 'yyyy-MM-dd');
                 const isDayToday = isSameDay(day, new Date());
+                const today = startOfDay(new Date());
+                const dayDate = startOfDay(day);
+                const isPastDay = isBefore(dayDate, today);
                 
                 return (
                   <div key={dayStr} className={cn("flex-1 flex", dayIdx < 1 && "border-r-2 border-border")}>
-                    {visibleStations.map((station, stationIdx) => (
+                    {visibleStations.map((station, stationIdx) => {
+                      // Calculate past hatch height for this day
+                      const nowDate = new Date();
+                      let pastHatchHeight = 0;
+                      if (isPastDay) {
+                        pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                      } else if (isDayToday) {
+                        const currentHour = nowDate.getHours();
+                        const currentMinute = nowDate.getMinutes();
+                        const dayHours = getHoursForDate(day);
+                        if (currentHour >= dayHours.workingStartHour) {
+                          const hoursFromStart = currentHour - dayHours.startHour;
+                          const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
+                          pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                        }
+                      }
+                      
+                      return (
                       <div 
                         key={`${dayStr}-${station.id}`}
                         className={cn(
@@ -1510,6 +1565,13 @@ const AdminCalendar = ({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, station.id, dayStr)}
                       >
+                        {/* Hatched area for PAST time slots */}
+                        {pastHatchHeight > 0 && (
+                          <div 
+                            className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                            style={{ height: pastHatchHeight }}
+                          />
+                        )}
                         {/* 5-minute grid slots */}
                         {HOURS.map((hour) => (
                           <div key={hour} style={{ height: HOUR_HEIGHT }}>
@@ -1640,7 +1702,8 @@ const AdminCalendar = ({
                           );
                         })}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -1767,6 +1830,24 @@ const AdminCalendar = ({
                   : [];
                 const dayHours = getHoursForDate(day);
                 
+                // Calculate past hatch height
+                const today = startOfDay(new Date());
+                const dayDate = startOfDay(day);
+                const isPastDay = isBefore(dayDate, today);
+                const nowDate = new Date();
+                let pastHatchHeight = 0;
+                if (isPastDay) {
+                  pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                } else if (isDayToday) {
+                  const currentHour = nowDate.getHours();
+                  const currentMinute = nowDate.getMinutes();
+                  if (currentHour >= dayHours.workingStartHour) {
+                    const hoursFromStart = currentHour - dayHours.startHour;
+                    const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
+                    pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                  }
+                }
+                
                 return (
                   <div 
                     key={dayStr}
@@ -1780,6 +1861,14 @@ const AdminCalendar = ({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => selectedStationId && handleDrop(e, selectedStationId, dayStr)}
                   >
+                    {/* Hatched area for PAST time slots */}
+                    {pastHatchHeight > 0 && !isDayClosed && (
+                      <div 
+                        className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                        style={{ height: pastHatchHeight }}
+                      />
+                    )}
+                    
                     {/* Closed day overlay */}
                     {isDayClosed && (
                       <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
@@ -2026,6 +2115,20 @@ const AdminCalendar = ({
           )}
         </SheetContent>
       </Sheet>
+
+      {/* SMS Dialog */}
+      {smsDialogData && (
+        <SendSmsDialog
+          open={smsDialogOpen}
+          onClose={() => {
+            setSmsDialogOpen(false);
+            setSmsDialogData(null);
+          }}
+          phone={smsDialogData.phone}
+          customerName={smsDialogData.customerName}
+          instanceId={instanceId || null}
+        />
+      )}
 
     </div>
   );
