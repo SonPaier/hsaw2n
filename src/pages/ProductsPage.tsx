@@ -63,6 +63,7 @@ import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { EditProductDialog } from '@/components/products/EditProductDialog';
 import AdminLayout from '@/components/layout/AdminLayout';
+import { useTranslation } from 'react-i18next';
 
 interface PriceList {
   id: string;
@@ -94,13 +95,6 @@ interface Product {
   instance_id: string | null;
 }
 
-const statusLabels: Record<string, string> = {
-  pending: 'Oczekuje',
-  processing: 'Przetwarzanie',
-  completed: 'Zakończono',
-  failed: 'Błąd',
-};
-
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
   processing: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
@@ -111,6 +105,7 @@ const statusColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -286,12 +281,12 @@ export default function ProductsPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Nie udało się pobrać pliku');
+      toast.error(t('products.downloadError'));
     }
   };
 
   const handleDeletePriceList = async (priceList: PriceList) => {
-    if (!confirm(`Czy na pewno chcesz usunąć cennik "${priceList.name}"?`)) return;
+    if (!confirm(t('products.confirmDeletePriceList', { name: priceList.name }))) return;
 
     try {
       // Delete from storage
@@ -308,10 +303,10 @@ export default function ProductsPage() {
       if (error) throw error;
 
       setPriceLists(prev => prev.filter(p => p.id !== priceList.id));
-      toast.success('Cennik został usunięty');
+      toast.success(t('products.priceListDeleted'));
     } catch (error) {
       console.error('Error deleting price list:', error);
-      toast.error('Nie udało się usunąć cennika');
+      toast.error(t('products.deletePriceListError'));
     }
   };
 
@@ -327,15 +322,15 @@ export default function ProductsPage() {
       setProducts(prev => 
         prev.map(p => p.id === product.id ? { ...p, active: !p.active } : p)
       );
-      toast.success(product.active ? 'Produkt dezaktywowany' : 'Produkt aktywowany');
+      toast.success(product.active ? t('products.productDeactivated') : t('products.productActivated'));
     } catch (error) {
       console.error('Error toggling product:', error);
-      toast.error('Nie udało się zmienić statusu produktu');
+      toast.error(t('products.toggleError'));
     }
   };
 
   const handleDeleteProduct = async (product: Product) => {
-    if (!confirm(`Czy na pewno chcesz usunąć produkt "${product.name}"?`)) return;
+    if (!confirm(t('products.confirmDeleteProduct', { name: product.name }))) return;
 
     try {
       const { error } = await supabase
@@ -346,10 +341,10 @@ export default function ProductsPage() {
       if (error) throw error;
 
       setProducts(prev => prev.filter(p => p.id !== product.id));
-      toast.success('Produkt został usunięty');
+      toast.success(t('products.productDeleted'));
     } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error('Nie udało się usunąć produktu');
+      toast.error(t('products.deleteProductError'));
     }
   };
 
@@ -371,18 +366,18 @@ export default function ProductsPage() {
   };
 
   return (
-    <AdminLayout title="Produkty">
+    <AdminLayout title={t('products.title')}>
       <div className="p-4 lg:p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Produkty</h1>
+          <h1 className="text-2xl font-bold">{t('products.title')}</h1>
           <div className="flex gap-2">
             <Button onClick={() => setShowAddProductDialog(true)} variant="outline" className="gap-2">
               <Plus className="h-4 w-4" />
-              Dodaj produkt
+              {t('products.addProduct')}
             </Button>
             <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
               <Upload className="h-4 w-4" />
-              Wgraj cennik
+              {t('products.uploadPriceList')}
             </Button>
           </div>
         </div>
@@ -391,15 +386,15 @@ export default function ProductsPage() {
           <TabsList className="mb-6 bg-muted/50">
             <TabsTrigger value="products" className="gap-2 data-[state=active]:bg-background">
               <Package className="h-4 w-4" />
-              Produkty ({products.length})
+              {t('products.tabs.products')} ({products.length})
             </TabsTrigger>
             <TabsTrigger value="price-lists" className="gap-2 data-[state=active]:bg-background">
               <FileText className="h-4 w-4" />
-              Cenniki ({priceLists.length})
+              {t('products.tabs.priceLists')} ({priceLists.length})
             </TabsTrigger>
             <TabsTrigger value="global" className="gap-2 data-[state=active]:bg-background">
               <Sparkles className="h-4 w-4" />
-              Globalne ({globalPriceLists.length})
+              {t('products.tabs.global')} ({globalPriceLists.length})
             </TabsTrigger>
           </TabsList>
 
@@ -409,12 +404,12 @@ export default function ProductsPage() {
               <CardHeader>
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle>Biblioteka produktów</CardTitle>
+                    <CardTitle>{t('products.library')}</CardTitle>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          placeholder="Szukaj produktów..."
+                          placeholder={t('products.searchPlaceholder')}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="pl-9 w-full sm:w-64"
@@ -425,7 +420,7 @@ export default function ProductsPage() {
                         onChange={(e) => setCategoryFilter(e.target.value)}
                         className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                       >
-                        <option value="all">Wszystkie kategorie</option>
+                        <option value="all">{t('products.allCategories')}</option>
                         {categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -440,7 +435,7 @@ export default function ProductsPage() {
                         onChange={(e) => setShowPriceListProducts(e.target.checked)}
                         className="h-4 w-4 rounded border-input"
                       />
-                      <span className="text-muted-foreground">Pokaż produkty z cenników</span>
+                      <span className="text-muted-foreground">{t('products.showPriceListProducts')}</span>
                     </label>
                   </div>
                 </div>
@@ -455,8 +450,8 @@ export default function ProductsPage() {
                     <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
                     <p className="text-muted-foreground">
                       {products.length === 0 
-                        ? 'Brak produktów. Wgraj cennik, aby rozpocząć.'
-                        : 'Nie znaleziono produktów spełniających kryteria.'}
+                        ? t('products.noProducts')
+                        : t('products.noProductsFound')}
                     </p>
                   </div>
                 ) : (
@@ -464,12 +459,12 @@ export default function ProductsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-primary/10 border border-border">
-                          <TableHead>Nazwa</TableHead>
-                          <TableHead>Marka</TableHead>
-                          <TableHead>Kategoria</TableHead>
-                          <TableHead className="text-right">Cena</TableHead>
-                          <TableHead>Jednostka</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>{t('products.columns.name')}</TableHead>
+                          <TableHead>{t('products.columns.brand')}</TableHead>
+                          <TableHead>{t('products.columns.category')}</TableHead>
+                          <TableHead className="text-right">{t('products.columns.price')}</TableHead>
+                          <TableHead>{t('products.columns.unit')}</TableHead>
+                          <TableHead>{t('products.columns.status')}</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -504,7 +499,7 @@ export default function ProductsPage() {
                                 variant={product.source === 'global' ? 'secondary' : 'default'}
                                 className="text-xs"
                               >
-                                {product.source === 'global' ? 'Globalny' : 'Własny'}
+                                {product.source === 'global' ? t('products.global') : t('products.own')}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -517,24 +512,24 @@ export default function ProductsPage() {
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => setSelectedProduct(product)}>
                                     <Eye className="mr-2 h-4 w-4" />
-                                    Szczegóły
+                                    {t('products.details')}
                                   </DropdownMenuItem>
                                   {product.source !== 'global' && (
                                     <DropdownMenuItem onClick={() => setEditingProduct(product)}>
                                       <Pencil className="mr-2 h-4 w-4" />
-                                      Edytuj
+                                      {t('products.edit')}
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem onClick={() => handleToggleProduct(product)}>
                                     {product.active ? (
                                       <>
                                         <ToggleLeft className="mr-2 h-4 w-4" />
-                                        Dezaktywuj
+                                        {t('products.deactivate')}
                                       </>
                                     ) : (
                                       <>
                                         <ToggleRight className="mr-2 h-4 w-4" />
-                                        Aktywuj
+                                        {t('products.activate')}
                                       </>
                                     )}
                                   </DropdownMenuItem>
@@ -544,7 +539,7 @@ export default function ProductsPage() {
                                       className="text-destructive"
                                     >
                                       <Trash2 className="mr-2 h-4 w-4" />
-                                      Usuń
+                                      {t('common.delete')}
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>
@@ -558,7 +553,7 @@ export default function ProductsPage() {
                     {/* Pagination */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Pokaż</span>
+                        <span>{t('products.show')}</span>
                         <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
                           <SelectTrigger className="w-20 h-8">
                             <SelectValue />
@@ -569,8 +564,8 @@ export default function ProductsPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <span>na stronie</span>
-                        <span className="ml-2">({filteredProducts.length} produktów{totalPages > 1 && `, strona ${currentPage} z ${totalPages}`})</span>
+                        <span>{t('products.perPage')}</span>
+                        <span className="ml-2">({t('products.productsCount', { count: filteredProducts.length })}{totalPages > 1 && `, ${t('products.pageOfPages', { current: currentPage, total: totalPages })}`})</span>
                       </div>
                       
                       {totalPages > 1 && (
@@ -629,7 +624,7 @@ export default function ProductsPage() {
           <TabsContent value="price-lists">
             <Card>
               <CardHeader>
-                <CardTitle>Twoje cenniki</CardTitle>
+                <CardTitle>{t('products.yourPriceLists')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -640,11 +635,11 @@ export default function ProductsPage() {
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
                     <p className="text-muted-foreground mb-4">
-                      Brak wgranych cenników
+                      {t('products.noPriceLists')}
                     </p>
                     <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
                       <Upload className="h-4 w-4" />
-                      Wgraj pierwszy cennik
+                      {t('products.uploadFirstPriceList')}
                     </Button>
                   </div>
                 ) : (
@@ -686,7 +681,7 @@ export default function ProductsPage() {
                                 </p>
                                 {(priceList.salesperson_name || priceList.salesperson_phone || priceList.salesperson_email) && (
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Handlowiec: {priceList.salesperson_name}
+                                    {t('products.salesperson')}: {priceList.salesperson_name}
                                     {priceList.salesperson_phone && (
                                       <>
                                         {' • '}
@@ -727,7 +722,7 @@ export default function ProductsPage() {
                                 {priceList.status === 'failed' && (
                                   <X className="mr-1 h-3 w-3" />
                                 )}
-                                {statusLabels[priceList.status]}
+                                {t(`products.status.${priceList.status}`)}
                               </Badge>
 
                               <DropdownMenu>
@@ -739,14 +734,14 @@ export default function ProductsPage() {
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => setSelectedPriceList(priceList)}>
                                     <Eye className="mr-2 h-4 w-4" />
-                                    Zobacz cennik
+                                    {t('products.viewPriceList')}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => handleDeletePriceList(priceList)}
                                     className="text-destructive"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Usuń
+                                    {t('common.delete')}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -758,8 +753,8 @@ export default function ProductsPage() {
                               <Progress value={progressValue} />
                               <p className="text-xs text-muted-foreground">
                                 {priceList.status === 'pending'
-                                  ? 'Czeka w kolejce do przetworzenia.'
-                                  : 'AI przetwarza cennik — możesz pracować dalej.'}
+                                  ? t('products.pendingQueue')
+                                  : t('products.processingQueue')}
                               </p>
                             </div>
                           )}
@@ -783,9 +778,9 @@ export default function ProductsPage() {
           <TabsContent value="global">
             <Card>
               <CardHeader>
-                <CardTitle>Globalne cenniki</CardTitle>
+                <CardTitle>{t('products.globalPriceLists')}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Cenniki dostarczone przez administratora systemu. Możesz aktywować produkty z tych cenników.
+                  {t('products.globalPriceListsDescription')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -797,7 +792,7 @@ export default function ProductsPage() {
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
                     <p className="text-muted-foreground">
-                      Brak globalnych cenników
+                      {t('products.noGlobalPriceLists')}
                     </p>
                   </div>
                 ) : (
@@ -814,19 +809,19 @@ export default function ProductsPage() {
                           <div>
                             <p className="font-medium">{priceList.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {priceList.products_count} produktów
+                              {t('products.productsCount', { count: priceList.products_count })}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge variant="secondary">Globalny</Badge>
+                          <Badge variant="secondary">{t('products.global')}</Badge>
                           <Button 
                             variant="outline" 
                             size="sm"
                             onClick={() => setSelectedPriceList(priceList)}
                           >
                             <Eye className="mr-2 h-4 w-4" />
-                            Zobacz
+                            {t('products.view')}
                           </Button>
                         </div>
                       </div>

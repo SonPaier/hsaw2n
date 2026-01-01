@@ -993,5 +993,75 @@
     "saveChanges": "Zapisz zmiany",
     "cancelEdit": "Anuluj edycję",
     "contactUs": "Skontaktuj się z nami"
+  },
+  "followupPage": {
+    "title": "Follow-up",
+    "description": "Zarządzaj usługami cyklicznymi i przypomnieniami",
+    "noAccess": "Brak dostępu do instancji",
+    "tabs": {
+      "tasks": "Zadania",
+      "services": "Usługi cykliczne"
+    }
+  },
+  "products": {
+    "title": "Produkty",
+    "addProduct": "Dodaj produkt",
+    "uploadPriceList": "Wgraj cennik",
+    "library": "Biblioteka produktów",
+    "searchPlaceholder": "Szukaj produktów...",
+    "allCategories": "Wszystkie kategorie",
+    "showPriceListProducts": "Pokaż produkty z cenników",
+    "noProducts": "Brak produktów. Wgraj cennik, aby rozpocząć.",
+    "noProductsFound": "Nie znaleziono produktów spełniających kryteria.",
+    "global": "Globalny",
+    "own": "Własny",
+    "details": "Szczegóły",
+    "edit": "Edytuj",
+    "deactivate": "Dezaktywuj",
+    "activate": "Aktywuj",
+    "show": "Pokaż",
+    "perPage": "na stronie",
+    "productsCount": "{{count}} produktów",
+    "pageOfPages": "strona {{current}} z {{total}}",
+    "yourPriceLists": "Twoje cenniki",
+    "noPriceLists": "Brak wgranych cenników",
+    "uploadFirstPriceList": "Wgraj pierwszy cennik",
+    "salesperson": "Handlowiec",
+    "viewPriceList": "Zobacz cennik",
+    "pendingQueue": "Czeka w kolejce do przetworzenia.",
+    "processingQueue": "AI przetwarza cennik — możesz pracować dalej.",
+    "globalPriceLists": "Globalne cenniki",
+    "globalPriceListsDescription": "Cenniki dostarczone przez administratora systemu. Możesz aktywować produkty z tych cenników.",
+    "noGlobalPriceLists": "Brak globalnych cenników",
+    "view": "Zobacz",
+    "downloadError": "Nie udało się pobrać pliku",
+    "confirmDeletePriceList": "Czy na pewno chcesz usunąć cennik \"{{name}}\"?",
+    "priceListDeleted": "Cennik został usunięty",
+    "deletePriceListError": "Nie udało się usunąć cennika",
+    "productDeactivated": "Produkt dezaktywowany",
+    "productActivated": "Produkt aktywowany",
+    "toggleError": "Nie udało się zmienić statusu produktu",
+    "confirmDeleteProduct": "Czy na pewno chcesz usunąć produkt \"{{name}}\"?",
+    "productDeleted": "Produkt został usunięty",
+    "deleteProductError": "Nie udało się usunąć produktu",
+    "tabs": {
+      "products": "Produkty",
+      "priceLists": "Cenniki",
+      "global": "Globalne"
+    },
+    "columns": {
+      "name": "Nazwa",
+      "brand": "Marka",
+      "category": "Kategoria",
+      "price": "Cena",
+      "unit": "Jednostka",
+      "status": "Status"
+    },
+    "status": {
+      "pending": "Oczekuje",
+      "processing": "Przetwarzanie",
+      "completed": "Zakończono",
+      "failed": "Błąd"
+    }
   }
 }
