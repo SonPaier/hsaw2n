@@ -1111,7 +1111,7 @@ const AdminCalendar = ({
             <div className={cn(
               "flex relative",
               currentDateClosed && "opacity-50"
-            )} style={{ minHeight: (HOURS.length * SLOTS_PER_HOUR - START_SLOT_OFFSET) * SLOT_HEIGHT }}>
+            )} style={{ minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT }}>
               {/* Closed day overlay */}
               {currentDateClosed && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
@@ -1127,8 +1127,14 @@ const AdminCalendar = ({
                 {HOURS.map((hour, hourIndex) => {
                   // Calculate which slots to show for this hour
                   const isFirstHour = hourIndex === 0;
+                  const isLastHour = hourIndex === HOURS.length - 1;
                   const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
-                  const slotsToRender = SLOTS_PER_HOUR - slotsToSkip;
+                  
+                  // For the last hour, we may need to cut off early based on DISPLAY_END_TIME
+                  const endSlotOffset = isLastHour 
+                    ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                    : SLOTS_PER_HOUR;
+                  const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
                   
                   // Don't render anything for this hour if all slots are skipped
                   if (slotsToRender <= 0) return null;
@@ -1181,9 +1187,8 @@ const AdminCalendar = ({
 
               {/* Station columns */}
               {visibleStations.map((station, idx) => {
-                // Calculate total visible height (accounting for skipped slots in first hour)
-                const totalVisibleSlots = HOURS.length * SLOTS_PER_HOUR - START_SLOT_OFFSET;
-                const totalVisibleHeight = totalVisibleSlots * SLOT_HEIGHT;
+                // Calculate total visible height based on display time range
+                const totalVisibleHeight = (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT;
                 
                 // Calculate past time overlay - everything before current time should be hatched
                 const now = new Date();
@@ -1251,8 +1256,15 @@ const AdminCalendar = ({
                   {/* 15-minute grid slots */}
                   {HOURS.map((hour, hourIndex) => {
                     const isFirstHour = hourIndex === 0;
+                    const isLastHour = hourIndex === HOURS.length - 1;
                     const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
-                    const slotsToRender = SLOTS_PER_HOUR - slotsToSkip;
+                    
+                    // Calculate how many slots to render in this hour
+                    // For the last hour, we may need to cut off early based on DISPLAY_END_TIME
+                    const endSlotOffset = isLastHour 
+                      ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                      : SLOTS_PER_HOUR;
+                    const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
                     
                     if (slotsToRender <= 0) return null;
                     
