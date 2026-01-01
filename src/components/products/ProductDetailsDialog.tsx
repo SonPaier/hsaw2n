@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,8 @@ export function ProductDetailsDialog({
   open,
   onOpenChange,
 }: ProductDetailsDialogProps) {
+  const { t } = useTranslation();
+
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
@@ -39,20 +42,20 @@ export function ProductDetailsDialog({
   };
 
   const metadataLabels: Record<string, string> = {
-    thickness_um: 'Grubość',
-    width_cm: 'Szerokość',
-    length_m: 'Długość',
-    durability_years: 'Trwałość',
-    color: 'Kolor',
-    finish: 'Wykończenie',
-    prices: 'Ceny wariantów',
+    thickness_um: t('productDetails.metadata.thickness'),
+    width_cm: t('productDetails.metadata.width'),
+    length_m: t('productDetails.metadata.length'),
+    durability_years: t('productDetails.metadata.durability'),
+    color: t('productDetails.metadata.color'),
+    finish: t('productDetails.metadata.finish'),
+    prices: t('productDetails.metadata.prices'),
   };
 
   const formatMetadataValue = (key: string, value: unknown): string => {
     if (key === 'thickness_um') return `${value} μm`;
     if (key === 'width_cm') return `${value} cm`;
     if (key === 'length_m') return `${value} mb`;
-    if (key === 'durability_years') return `${value} lat`;
+    if (key === 'durability_years') return `${value} ${t('productDetails.metadata.years')}`;
     if (key === 'prices' && typeof value === 'object') {
       return Object.entries(value as Record<string, number>)
         .map(([k, v]) => `${k}: ${formatPrice(v)}`)
@@ -67,7 +70,7 @@ export function ProductDetailsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            Szczegóły produktu
+            {t('productDetails.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -86,7 +89,7 @@ export function ProductDetailsDialog({
                   {formatPrice(product.default_price)}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  za {product.unit}
+                  {t('productDetails.perUnit', { unit: product.unit })}
                 </span>
               </div>
             </div>
@@ -98,17 +101,17 @@ export function ProductDetailsDialog({
               <Badge variant="outline">{product.category}</Badge>
             )}
             <Badge variant={product.source === 'global' ? 'secondary' : 'default'}>
-              {product.source === 'global' ? 'Globalny' : 'Własny'}
+              {product.source === 'global' ? t('productDetails.global') : t('productDetails.local')}
             </Badge>
             <Badge variant={product.active ? 'default' : 'outline'}>
-              {product.active ? 'Aktywny' : 'Nieaktywny'}
+              {product.active ? t('productDetails.active') : t('productDetails.inactive')}
             </Badge>
           </div>
 
           {/* Description */}
           {product.description && (
             <div>
-              <h4 className="text-sm font-medium mb-1">Opis</h4>
+              <h4 className="text-sm font-medium mb-1">{t('productDetails.description')}</h4>
               <p className="text-sm text-muted-foreground">{product.description}</p>
             </div>
           )}
@@ -116,7 +119,7 @@ export function ProductDetailsDialog({
           {/* Metadata */}
           {product.metadata && Object.keys(product.metadata).length > 0 && (
             <div>
-              <h4 className="text-sm font-medium mb-3">Parametry techniczne</h4>
+              <h4 className="text-sm font-medium mb-3">{t('productDetails.technicalParams')}</h4>
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(product.metadata).map(([key, value]) => {
                   if (value === null || value === undefined) return null;
