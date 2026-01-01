@@ -184,12 +184,18 @@ const AddReservationDialog = ({
   // Fetch services on mount
   useEffect(() => {
     const fetchServices = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('services')
         .select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('sort_order');
+        .eq('active', true);
+      
+      // Filter by station type if specified
+      if (stationType && ['washing', 'ppf', 'detailing', 'universal'].includes(stationType)) {
+        query = query.eq('station_type', stationType as 'washing' | 'ppf' | 'detailing' | 'universal');
+      }
+      
+      const { data, error } = await query.order('sort_order');
       
       if (!error && data) {
         setServices(data);
@@ -199,7 +205,7 @@ const AddReservationDialog = ({
     if (open && instanceId) {
       fetchServices();
     }
-  }, [open, instanceId]);
+  }, [open, instanceId, stationType]);
 
   // Reset form when dialog opens
   useEffect(() => {
