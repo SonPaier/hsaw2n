@@ -1,10 +1,20 @@
 import { useState, useEffect, DragEvent } from 'react';
-import { format } from 'date-fns';
+import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Phone, Clock, Car, Trash2, Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { YardVehicleDialog } from './YardVehicleDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface YardVehicle {
   id: string;
@@ -37,12 +47,42 @@ interface YardVehiclesListProps {
   onVehicleDragStart?: (e: DragEvent<HTMLDivElement>, vehicle: YardVehicle) => void;
 }
 
+// Group vehicles by arrival date
+const groupVehiclesByDate = (vehicles: YardVehicle[]) => {
+  const groups: Record<string, YardVehicle[]> = {};
+  
+  vehicles.forEach(vehicle => {
+    const date = vehicle.arrival_date;
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(vehicle);
+  });
+
+  // Sort by date (earliest first)
+  const sortedDates = Object.keys(groups).sort();
+  
+  return sortedDates.map(date => ({
+    date,
+    vehicles: groups[date],
+  }));
+};
+
+const getDateLabel = (dateStr: string): string => {
+  const date = parseISO(dateStr);
+  if (isToday(date)) return 'Dzisiaj';
+  if (isTomorrow(date)) return 'Jutro';
+  return format(date, 'd MMMM', { locale: pl });
+};
+
 export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehiclesListProps) {
   const [vehicles, setVehicles] = useState<YardVehicle[]>([]);
   const [services, setServices] = useState<Record<string, Service>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<YardVehicle | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<YardVehicle | null>(null);
 
   const fetchVehicles = async () => {
     const { data, error } = await supabase
@@ -50,6 +90,7 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
       .select('*')
       .eq('instance_id', instanceId)
       .eq('status', 'waiting')
+      .order('arrival_date', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -111,17 +152,27 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
     };
   }, [instanceId]);
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteClick = (vehicle: YardVehicle) => {
+    setVehicleToDelete(vehicle);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!vehicleToDelete) return;
+    
     const { error } = await supabase
       .from('yard_vehicles')
       .delete()
-      .eq('id', id);
+      .eq('id', vehicleToDelete.id);
 
     if (error) {
       console.error('Error deleting yard vehicle:', error);
     } else {
       fetchVehicles();
     }
+    
+    setDeleteDialogOpen(false);
+    setVehicleToDelete(null);
   };
 
   const handleCall = (phone: string) => {
@@ -151,6 +202,8 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
     onVehicleDragStart?.(e, vehicle);
   };
 
+  const groupedVehicles = groupVehiclesByDate(vehicles);
+
   return (
     <div className="flex flex-col h-full">
       {/* Add button */}
@@ -166,7 +219,7 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
       </div>
 
       {/* Vehicles list */}
-      <div className="flex-1 overflow-auto p-2 space-y-2">
+      <div className="flex-1 overflow-auto p-2 space-y-4">
         {loading ? (
           <div className="text-center text-muted-foreground py-8">
             Ładowanie...
@@ -176,75 +229,77 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
             Brak pojazdów na placu
           </div>
         ) : (
-          vehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, vehicle)}
-              className="bg-slate-100 rounded-lg p-3 space-y-2 border border-slate-200 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-sm transition-all select-none"
-            >
-              {/* Vehicle info */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                    <Car className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                    <span className="truncate">{vehicle.vehicle_plate}</span>
-                  </div>
-                  <div className="text-sm text-slate-600 mt-1 truncate">
-                    {vehicle.customer_name}
-                  </div>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-600 hover:text-slate-700 hover:bg-slate-200"
-                    onClick={() => handleEdit(vehicle)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                    onClick={() => handleCall(vehicle.customer_phone)}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                    onClick={() => handleDelete(vehicle.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+          groupedVehicles.map((group) => (
+            <div key={group.date} className="space-y-2">
+              {/* Date header */}
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1">
+                {getDateLabel(group.date)}
               </div>
+              
+              {group.vehicles.map((vehicle) => (
+                <div
+                  key={vehicle.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, vehicle)}
+                  className="bg-slate-100 rounded-lg p-3 space-y-2 border border-slate-200 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-sm transition-all select-none"
+                >
+                  {/* Vehicle info */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                        <Car className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <span className="truncate">{vehicle.vehicle_plate}</span>
+                      </div>
+                      <div className="text-sm text-slate-600 mt-1 truncate">
+                        {vehicle.customer_name}
+                      </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-600 hover:text-slate-700 hover:bg-slate-200"
+                        onClick={() => handleEdit(vehicle)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => handleCall(vehicle.customer_phone)}
+                      >
+                        <Phone className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteClick(vehicle)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
 
-              {/* Services */}
-              {vehicle.service_ids.length > 0 && (
-                <div className="text-xs text-slate-500 truncate">
-                  {getServiceNames(vehicle.service_ids)}
-                </div>
-              )}
+                  {/* Services */}
+                  {vehicle.service_ids.length > 0 && (
+                    <div className="text-xs text-slate-500 truncate">
+                      {getServiceNames(vehicle.service_ids)}
+                    </div>
+                  )}
 
-              {/* Deadline */}
-              {vehicle.deadline_time && (
-                <div className="flex items-center gap-1 text-xs text-orange-600">
-                  <Clock className="w-3 h-3" />
-                  <span>do {vehicle.deadline_time.slice(0, 5)}</span>
+                  {/* Deadline */}
+                  {vehicle.deadline_time && (
+                    <div className="flex items-center gap-1 text-xs text-orange-600">
+                      <Clock className="w-3 h-3" />
+                      <span>do {vehicle.deadline_time.slice(0, 5)}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* Arrival date if not today */}
-              {vehicle.arrival_date !== format(new Date(), 'yyyy-MM-dd') && (
-                <div className="text-xs text-slate-400">
-                  Przyjazd: {format(new Date(vehicle.arrival_date), 'd MMM', { locale: pl })}
-                </div>
-              )}
+              ))}
             </div>
           ))
         )}
@@ -261,6 +316,24 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
         onSuccess={fetchVehicles}
         editingVehicle={editingVehicle}
       />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń pojazd z placu</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć pojazd {vehicleToDelete?.vehicle_plate} ({vehicleToDelete?.customer_name}) z placu?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
