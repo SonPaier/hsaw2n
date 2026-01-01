@@ -1031,123 +1031,126 @@ const AddReservationDialog = ({
                 )}
               </Label>
               
-              {/* Autocomplete dropdown */}
-              <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={servicesOpen}
-                    className={cn(
-                      "w-full justify-between font-normal",
-                      errors.services && "border-destructive ring-destructive focus:ring-destructive"
-                    )}
-                  >
-                    {selectedServices.length === 0 
-                      ? t('addReservation.selectServices') 
-                      : t('addReservation.servicesSelected', { count: selectedServices.length })}
-                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[280px] p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
-                  {/* Search input */}
-                  <div className="p-2 border-b border-border">
-                    <Input
-                      placeholder={t('addReservation.searchServicePlaceholder')}
-                      className="h-9"
-                      onChange={(e) => {
-                        const searchValue = e.target.value.toLowerCase();
-                        // Find matching service by shortcut or name
-                        if (searchValue.length >= 2) {
-                          const matchingService = services.find(s => 
-                            s.shortcut?.toLowerCase() === searchValue ||
-                            s.name.toLowerCase().includes(searchValue)
-                          );
-                          if (matchingService && !selectedServices.includes(matchingService.id)) {
-                            toggleService(matchingService.id);
-                            e.target.value = '';
+              {/* Services input + shortcut chips in one row */}
+              <div className="flex gap-2 items-center">
+                {/* Autocomplete dropdown - narrower input */}
+                <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={servicesOpen}
+                      className={cn(
+                        "flex-1 justify-between font-normal",
+                        errors.services && "border-destructive ring-destructive focus:ring-destructive"
+                      )}
+                    >
+                      {selectedServices.length === 0 
+                        ? t('addReservation.selectServices') 
+                        : t('addReservation.servicesSelected', { count: selectedServices.length })}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover" align="start" onWheel={(e) => e.stopPropagation()}>
+                    {/* Search input */}
+                    <div className="p-2 border-b border-border">
+                      <Input
+                        placeholder={t('addReservation.searchServicePlaceholder')}
+                        className="h-9"
+                        onChange={(e) => {
+                          const searchValue = e.target.value.toLowerCase();
+                          // Find matching service by shortcut or name
+                          if (searchValue.length >= 2) {
+                            const matchingService = services.find(s => 
+                              s.shortcut?.toLowerCase() === searchValue ||
+                              s.name.toLowerCase().includes(searchValue)
+                            );
+                            if (matchingService && !selectedServices.includes(matchingService.id)) {
+                              toggleService(matchingService.id);
+                              e.target.value = '';
+                            }
                           }
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const searchValue = (e.target as HTMLInputElement).value.toLowerCase();
-                          const matchingService = services.find(s => 
-                            s.shortcut?.toLowerCase() === searchValue ||
-                            s.name.toLowerCase().includes(searchValue)
-                          );
-                          if (matchingService) {
-                            toggleService(matchingService.id);
-                            (e.target as HTMLInputElement).value = '';
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const searchValue = (e.target as HTMLInputElement).value.toLowerCase();
+                            const matchingService = services.find(s => 
+                              s.shortcut?.toLowerCase() === searchValue ||
+                              s.name.toLowerCase().includes(searchValue)
+                            );
+                            if (matchingService) {
+                              toggleService(matchingService.id);
+                              (e.target as HTMLInputElement).value = '';
+                            }
                           }
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
-                    {services.map((service) => {
-                      const isSelected = selectedServices.includes(service.id);
-                      return (
-                        <div
-                          key={service.id}
-                          className={cn(
-                            "flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
-                            isSelected && "bg-primary/10"
-                          )}
-                          onClick={() => toggleService(service.id)}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleService(service.id)}
-                            className="shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-medium text-sm truncate">{service.name}</span>
-                              {service.shortcut && (
-                                <span className="text-xs text-primary font-semibold shrink-0">{service.shortcut}</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {getServiceDuration(service)} min
-                              {getServicePrice(service) && ` • ${getServicePrice(service)} zł`}
+                        }}
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto overscroll-contain p-2 space-y-1">
+                      {services.map((service) => {
+                        const isSelected = selectedServices.includes(service.id);
+                        return (
+                          <div
+                            key={service.id}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
+                              isSelected && "bg-primary/10"
+                            )}
+                            onClick={() => toggleService(service.id)}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleService(service.id)}
+                              className="shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-sm truncate">{service.name}</span>
+                                {service.shortcut && (
+                                  <span className="text-xs text-primary font-semibold shrink-0">{service.shortcut}</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getServiceDuration(service)} min
+                                {getServicePrice(service) && ` • ${getServicePrice(service)} zł`}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              
-              {/* Popular/Quick service chips - below dropdown */}
-              {(() => {
-                const popularServices = services.filter(s => s.is_popular);
-                const displayServices = popularServices.length > 0 ? popularServices : services.slice(0, 4);
-                return displayServices.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {displayServices.map((service) => {
-                      const isSelected = selectedServices.includes(service.id);
-                      return (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => toggleService(service.id)}
-                          className={cn(
-                            "px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px]",
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-accent"
-                          )}
-                        >
-                          {service.shortcut || service.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Popular/Quick service chips - next to dropdown */}
+                {(() => {
+                  const popularServices = services.filter(s => s.is_popular);
+                  const displayServices = popularServices.length > 0 ? popularServices : services.slice(0, 2);
+                  return displayServices.length > 0 && (
+                    <div className="flex gap-1 shrink-0">
+                      {displayServices.map((service) => {
+                        const isSelected = selectedServices.includes(service.id);
+                        return (
+                          <button
+                            key={service.id}
+                            type="button"
+                            onClick={() => toggleService(service.id)}
+                            className={cn(
+                              "px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px]",
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground hover:bg-accent"
+                            )}
+                          >
+                            {service.shortcut || service.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
               
               {errors.services && (
                 <p className="text-sm text-destructive">{errors.services}</p>
