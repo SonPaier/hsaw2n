@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package } from 'lucide-react';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 import {
   DropdownMenu,
@@ -31,6 +31,10 @@ import CustomersView from '@/components/admin/CustomersView';
 import { SmsUsageCard } from '@/components/admin/SmsUsageCard';
 import { ReservationConfirmSettings } from '@/components/admin/ReservationConfirmSettings';
 import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
+import OffersView from '@/components/admin/OffersView';
+import ProductsView from '@/components/admin/ProductsView';
+import FollowUpView from '@/components/admin/FollowUpView';
+import NotificationsView from '@/components/admin/NotificationsView';
 import { toast } from 'sonner';
 interface Station {
   id: string;
@@ -80,8 +84,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -934,12 +938,19 @@ const AdminDashboard = () => {
                     <p className="text-xs text-muted-foreground">Panel Admina</p>
                   </div>}
               </button>
-              {!sidebarCollapsed && instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
-              const reservation = reservations.find(r => r.id === reservationId);
-              if (reservation) {
-                setSelectedReservation(reservation);
-              }
-            }} onConfirmReservation={handleConfirmReservation} />}
+              {!sidebarCollapsed && instanceId && <NotificationBell 
+                instanceId={instanceId} 
+                onOpenReservation={reservationId => {
+                  const reservation = reservations.find(r => r.id === reservationId);
+                  if (reservation) {
+                    setSelectedReservation(reservation);
+                  }
+                }} 
+                onConfirmReservation={handleConfirmReservation}
+                onViewAllNotifications={() => setCurrentView('notifications')}
+                onNavigateToOffers={() => setCurrentView('offers')}
+                onNavigateToReservations={() => setCurrentView('reservations')}
+              />}
             </div>
 
             {/* Navigation */}
@@ -966,11 +977,15 @@ const AdminDashboard = () => {
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
-              {hasFeature('offers') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { navigate('/admin/oferty'); setSidebarOpen(false); }} title="Oferty">
+              {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('offers'); setSidebarOpen(false); }} title="Oferty">
                   <FileText className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Oferty"}
                 </Button>}
-              {hasFeature('followup') && <Button variant="ghost" className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { navigate('/admin/followup'); setSidebarOpen(false); }} title="Follow-up">
+              {hasFeature('offers') && <Button variant={currentView === 'products' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('products'); setSidebarOpen(false); }} title="Produkty">
+                  <Package className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && "Produkty"}
+                </Button>}
+              {hasFeature('followup') && <Button variant={currentView === 'followup' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('followup'); setSidebarOpen(false); }} title="Follow-up">
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>}
@@ -1053,12 +1068,19 @@ const AdminDashboard = () => {
                 <span className="font-bold">ARM CAR</span>
               </div>
               <div className="flex items-center gap-1">
-                {instanceId && <NotificationBell instanceId={instanceId} onOpenReservation={reservationId => {
-                const reservation = reservations.find(r => r.id === reservationId);
-                if (reservation) {
-                  setSelectedReservation(reservation);
-                }
-              }} onConfirmReservation={handleConfirmReservation} />}
+                {instanceId && <NotificationBell 
+                  instanceId={instanceId} 
+                  onOpenReservation={reservationId => {
+                    const reservation = reservations.find(r => r.id === reservationId);
+                    if (reservation) {
+                      setSelectedReservation(reservation);
+                    }
+                  }} 
+                  onConfirmReservation={handleConfirmReservation}
+                  onViewAllNotifications={() => setCurrentView('notifications')}
+                  onNavigateToOffers={() => setCurrentView('offers')}
+                  onNavigateToReservations={() => setCurrentView('reservations')}
+                />}
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -1070,8 +1092,8 @@ const AdminDashboard = () => {
 
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-6 overflow-auto pb-20 lg:pb-8">
-            {/* Header - only shown for non-calendar views */}
-            {currentView !== 'calendar' && <h1 className="text-2xl font-bold text-foreground">
+            {/* Header - only shown for non-calendar views that need it */}
+            {['reservations', 'customers', 'settings'].includes(currentView) && <h1 className="text-2xl font-bold text-foreground">
                 {currentView === 'reservations' ? t('reservations.title') : currentView === 'customers' ? t('customers.title') : t('settings.title')}
               </h1>}
 
@@ -1133,6 +1155,19 @@ const AdminDashboard = () => {
                   <PriceListSettings instanceId={instanceId} />
                 </div>
               </div>}
+
+            {currentView === 'offers' && <OffersView instanceId={instanceId} onNavigateToProducts={() => setCurrentView('products')} />}
+
+            {currentView === 'products' && <ProductsView instanceId={instanceId} />}
+
+            {currentView === 'followup' && <FollowUpView instanceId={instanceId} />}
+
+            {currentView === 'notifications' && <NotificationsView 
+              instanceId={instanceId} 
+              onNavigateBack={() => setCurrentView('calendar')} 
+              onNavigateToOffers={() => setCurrentView('offers')}
+              onNavigateToReservations={() => setCurrentView('reservations')}
+            />}
           </div>
         </main>
       </div>
