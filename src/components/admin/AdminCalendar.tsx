@@ -787,9 +787,9 @@ const AdminCalendar = ({
   const currentTimeTop = (currentHour - DAY_START_HOUR) * HOUR_HEIGHT;
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl overflow-hidden">
+    <div className="flex flex-col h-full bg-card rounded-xl overflow-hidden relative">
       {/* Calendar Header - sticky */}
-      <div className="flex items-center justify-between p-2 lg:p-3 bg-card sticky top-0 z-40 flex-wrap gap-2">
+      <div className="flex items-center justify-between p-2 lg:p-3 bg-card sticky top-0 z-50 flex-wrap gap-2">
         {/* Navigation */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
@@ -948,13 +948,13 @@ const AdminCalendar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className={cn("gap-1", hasHiddenStations && "border-primary text-primary")}
+                  size="icon"
+                  className={cn("h-9 w-9 relative", hasHiddenStations && "border-primary text-primary")}
+                  title="Kolumny"
                 >
                   <Settings2 className="w-4 h-4" />
-                  <span className="hidden md:inline">Kolumny</span>
                   {hasHiddenStations && (
-                    <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground rounded-full">
+                    <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                       {hiddenStationIds.size}
                     </span>
                   )}
@@ -1088,8 +1088,8 @@ const AdminCalendar = ({
                           )}
                           style={{ height: SLOT_HEIGHT }}
                         >
-                          {/* Quarter-hour labels: 15, 30, 45 */}
-                          {i > 0 && i < SLOTS_PER_HOUR - 1 && (
+                        {/* Quarter-hour labels: 15, 30, 45 */}
+                          {i > 0 && (
                             <span className="absolute -top-1.5 right-1 md:right-2 text-[9px] md:text-[10px] text-muted-foreground/70 bg-background px-0.5">
                               {(i * SLOT_MINUTES).toString()}
                             </span>
