@@ -263,15 +263,14 @@ export function AddYardVehicleDialog({ open, onClose, instanceId, onSuccess }: A
             </Popover>
           </div>
 
-          {/* Deadline Time */}
           <div className="space-y-2">
             <Label>Do kiedy skończyć (opcjonalne)</Label>
-            <Select value={deadlineTime} onValueChange={setDeadlineTime}>
+            <Select value={deadlineTime || "none"} onValueChange={(val) => setDeadlineTime(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Wybierz godzinę" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Brak</SelectItem>
+                <SelectItem value="none">Brak</SelectItem>
                 {timeOptions.map((time) => (
                   <SelectItem key={time} value={time}>{time}</SelectItem>
                 ))}
