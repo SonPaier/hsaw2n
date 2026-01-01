@@ -345,14 +345,8 @@ const AddReservationDialog = ({
 
   // Handle manual duration change
   const handleDurationChange = (value: string) => {
-    if (value === 'plus15') {
-      setManualDuration((prev) => (prev || effectiveDuration || 60) + 15);
-    } else if (value === 'plus30') {
-      setManualDuration((prev) => (prev || effectiveDuration || 60) + 30);
-    } else {
-      const duration = parseInt(value);
-      setManualDuration(duration);
-    }
+    const duration = parseInt(value);
+    setManualDuration(duration);
   };
 
   // Toggle service selection
@@ -846,7 +840,9 @@ const AddReservationDialog = ({
             <div className="flex gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">{t('common.date')}:</span>{' '}
-                <span className="font-medium">{date}</span>
+                <span className="font-medium">
+                  {date && format(new Date(date), 'EEEE, d MMMM yyyy', { locale: pl })}
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('addReservation.time')}:</span>{' '}
@@ -1228,13 +1224,39 @@ const AddReservationDialog = ({
                           {option.label}
                         </SelectItem>
                       ))}
-                      {/* +15 and +30 min relative options */}
-                      <SelectItem value="plus15" className="text-primary font-medium border-t">
-                        +15 min
-                      </SelectItem>
-                      <SelectItem value="plus30" className="text-primary font-medium">
-                        +30 min
-                      </SelectItem>
+                      {/* Extra options showing actual time beyond maxAvailableMinutes */}
+                      {(() => {
+                        const lastOptionMinutes = DURATION_OPTIONS.length > 0 
+                          ? DURATION_OPTIONS[DURATION_OPTIONS.length - 1].value 
+                          : 30;
+                        const overlapOption1 = lastOptionMinutes + 15;
+                        const overlapOption2 = lastOptionMinutes + 30;
+                        
+                        const formatDuration = (mins: number) => {
+                          const h = Math.floor(mins / 60);
+                          const m = mins % 60;
+                          if (h === 0) return `${m} min`;
+                          if (m === 0) return `${h}h`;
+                          return `${h}h ${m}min`;
+                        };
+                        
+                        return (
+                          <>
+                            <SelectItem 
+                              value={overlapOption1.toString()} 
+                              className="text-destructive font-medium border-t border-border"
+                            >
+                              {formatDuration(overlapOption1)}
+                            </SelectItem>
+                            <SelectItem 
+                              value={overlapOption2.toString()} 
+                              className="text-destructive font-medium"
+                            >
+                              {formatDuration(overlapOption2)}
+                            </SelectItem>
+                          </>
+                        );
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
