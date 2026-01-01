@@ -661,7 +661,7 @@
     "searchCustomer": "Szukaj klienta...",
     "carModel": "Marka i model auta",
     "carSize": "Wielkość samochodu",
-    "services": "Usługi *",
+    "services": "Usługi",
     "total": "Razem",
     "selectServices": "Wybierz usługi...",
     "servicesSelected": "Wybrano: {{count}}",
