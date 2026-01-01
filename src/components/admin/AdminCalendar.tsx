@@ -239,13 +239,23 @@ const AdminCalendar = ({
   };
   
   // Calculate hours based on working hours for current day
-  const getHoursForDate = (date: Date): { hours: number[]; startHour: number; endHour: number; closeTime: string } => {
+  // Returns expanded range with 1-hour margins before open and after close for hatched areas
+  const getHoursForDate = (date: Date): { 
+    hours: number[]; 
+    startHour: number; 
+    endHour: number; 
+    closeTime: string;
+    workingStartHour: number;
+    workingEndHour: number;
+  } => {
     if (!workingHours) {
       return {
         hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`
+        closeTime: `${DEFAULT_END_HOUR}:00`,
+        workingStartHour: DEFAULT_START_HOUR,
+        workingEndHour: DEFAULT_END_HOUR
       };
     }
     
@@ -258,33 +268,42 @@ const AdminCalendar = ({
         hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`
+        closeTime: `${DEFAULT_END_HOUR}:00`,
+        workingStartHour: DEFAULT_START_HOUR,
+        workingEndHour: DEFAULT_END_HOUR
       };
     }
     
-    const startHour = parseInt(dayHours.open.split(':')[0]);
-    const endHour = parseInt(dayHours.close.split(':')[0]);
+    const workingStartHour = parseInt(dayHours.open.split(':')[0]);
+    const workingEndHour = parseInt(dayHours.close.split(':')[0]);
     
     // If parsing failed, use defaults
-    if (isNaN(startHour) || isNaN(endHour) || endHour <= startHour) {
+    if (isNaN(workingStartHour) || isNaN(workingEndHour) || workingEndHour <= workingStartHour) {
       return {
         hours: Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR),
         startHour: DEFAULT_START_HOUR,
         endHour: DEFAULT_END_HOUR,
-        closeTime: `${DEFAULT_END_HOUR}:00`
+        closeTime: `${DEFAULT_END_HOUR}:00`,
+        workingStartHour: DEFAULT_START_HOUR,
+        workingEndHour: DEFAULT_END_HOUR
       };
     }
     
-    // Show hours from open to close-1 (the last hour row shows slots up to close time)
+    // Add 1-hour margin before open and after close for hatched areas
+    const displayStartHour = Math.max(0, workingStartHour - 1);
+    const displayEndHour = Math.min(24, workingEndHour + 1);
+    
     return {
-      hours: Array.from({ length: endHour - startHour }, (_, i) => i + startHour),
-      startHour,
-      endHour,
-      closeTime: dayHours.close
+      hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
+      startHour: displayStartHour,
+      endHour: displayEndHour,
+      closeTime: dayHours.close,
+      workingStartHour,
+      workingEndHour
     };
   };
   
-  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME } = getHoursForDate(currentDate);
+  const { hours: HOURS, startHour: DAY_START_HOUR, closeTime: DAY_CLOSE_TIME, workingStartHour: WORKING_START_HOUR, workingEndHour: WORKING_END_HOUR } = getHoursForDate(currentDate);
   
   // Long-press handling for mobile
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -1102,7 +1121,13 @@ const AdminCalendar = ({
               </div>
 
               {/* Station columns */}
-              {visibleStations.map((station, idx) => (
+              {visibleStations.map((station, idx) => {
+                // Calculate hatched areas position and height
+                const beforeOpenHeight = (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
+                const afterCloseTop = (WORKING_END_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
+                const afterCloseHeight = HOURS.length * HOUR_HEIGHT - afterCloseTop;
+                
+                return (
                 <div 
                   key={station.id}
                   className={cn(
@@ -1114,6 +1139,22 @@ const AdminCalendar = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
                 >
+                  {/* Hatched area BEFORE opening hours */}
+                  {beforeOpenHeight > 0 && (
+                    <div 
+                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                      style={{ height: beforeOpenHeight }}
+                    />
+                  )}
+                  
+                  {/* Hatched area AFTER closing hours */}
+                  {afterCloseHeight > 0 && (
+                    <div 
+                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-10"
+                      style={{ top: afterCloseTop, height: afterCloseHeight }}
+                    />
+                  )}
+                  
                   {/* 5-minute grid slots */}
                   {HOURS.map((hour) => (
                     <div key={hour} style={{ height: HOUR_HEIGHT }}>
@@ -1121,27 +1162,29 @@ const AdminCalendar = ({
                         const isDropTarget = dragOverStation === station.id && 
                           dragOverSlot?.hour === hour && 
                           dragOverSlot?.slotIndex === slotIndex;
+                        const isOutsideWorkingHours = hour < WORKING_START_HOUR || hour >= WORKING_END_HOUR;
                         
                         return (
                           <div
                             key={slotIndex}
                             className={cn(
-                              "border-b group cursor-pointer transition-colors",
+                              "border-b group transition-colors",
                               slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
                               isDropTarget && "bg-primary/30 border-primary",
-                              !isDropTarget && "hover:bg-primary/10"
+                              !isDropTarget && !isOutsideWorkingHours && "hover:bg-primary/10 cursor-pointer",
+                              isOutsideWorkingHours && "cursor-not-allowed"
                             )}
                             style={{ height: SLOT_HEIGHT }}
-                            onClick={() => handleSlotClick(station.id, hour, slotIndex)}
-                            onContextMenu={(e) => handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
-                            onTouchStart={() => handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
+                            onClick={() => !isOutsideWorkingHours && handleSlotClick(station.id, hour, slotIndex)}
+                            onContextMenu={(e) => !isOutsideWorkingHours && handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
+                            onTouchStart={() => !isOutsideWorkingHours && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
                             onTouchEnd={handleTouchEnd}
                             onTouchMove={handleTouchMove}
                             onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
                             onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
-                            {/* Hide + on hover in hallMode */}
-                            {!hallMode && (
+                            {/* Hide + on hover in hallMode or outside working hours */}
+                            {!hallMode && !isOutsideWorkingHours && (
                               <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Plus className="w-3 h-3 text-primary/50" />
                                 <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
@@ -1330,7 +1373,8 @@ const AdminCalendar = ({
                     );
                   })}
                 </div>
-              ))}
+                );
+              })}
 
               {/* Current time indicator with time label */}
               {showCurrentTime && (
