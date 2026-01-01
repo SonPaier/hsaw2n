@@ -1918,12 +1918,13 @@ const AdminCalendar = ({
         </div>
       </div>
 
-      {/* Plac Sheet - from right side, no overlay */}
-      <Sheet open={placDrawerOpen} onOpenChange={setPlacDrawerOpen}>
+      {/* Plac Sheet - from right side, no overlay, non-modal for drag & drop */}
+      <Sheet open={placDrawerOpen} onOpenChange={setPlacDrawerOpen} modal={false}>
         <SheetContent 
           side="right"
           hideOverlay
           className="w-[20%] min-w-[280px] bg-white border-l border-border shadow-[-8px_0_30px_-10px_rgba(0,0,0,0.15)] p-0 [&>button]:hidden"
+          onInteractOutside={(e) => e.preventDefault()}
         >
           <SheetHeader className="flex flex-row items-center justify-between border-b border-border px-4 py-3 space-y-0">
             <SheetTitle className="text-lg font-semibold text-slate-900">Plac</SheetTitle>
