@@ -3,6 +3,7 @@ import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 
 interface Service {
   id: string;
@@ -26,6 +27,7 @@ interface VoiceReservationInputProps {
 }
 
 export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationInputProps) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -48,12 +50,12 @@ export const VoiceReservationInput = ({ services, onParsed }: VoiceReservationIn
       const transcript = await transcribeWithBrowserAPI(audioBlob);
       
       if (!transcript) {
-        toast.error('Nie rozpoznano mowy. Spróbuj ponownie.');
+        toast.error(t('voice.noSpeech'));
         return;
       }
 
       console.log('Transcript:', transcript);
-      toast.info(`Rozpoznano: "${transcript}"`);
+      toast.info(`${t('voice.recognized')}: "${transcript}"`);
 
       // Parse the transcript with AI
       const { data, error } = await supabase.functions.invoke('parse-voice-reservation', {
