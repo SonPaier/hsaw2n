@@ -1,7 +1,7 @@
 import { useState, useEffect, DragEvent } from 'react';
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { format, isToday, isTomorrow, parseISO, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Phone, Clock, Car, Trash2, Plus, Pencil } from 'lucide-react';
+import { Phone, Clock, Trash2, Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { YardVehicleDialog } from './YardVehicleDialog';
@@ -45,6 +45,7 @@ interface Service {
 interface YardVehiclesListProps {
   instanceId: string;
   onVehicleDragStart?: (e: DragEvent<HTMLDivElement>, vehicle: YardVehicle) => void;
+  hallMode?: boolean; // When true, only show vehicles from today or earlier
 }
 
 // Group vehicles by arrival date
@@ -75,7 +76,7 @@ const getDateLabel = (dateStr: string): string => {
   return format(date, 'd MMMM', { locale: pl });
 };
 
-export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehiclesListProps) {
+export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = false }: YardVehiclesListProps) {
   const [vehicles, setVehicles] = useState<YardVehicle[]>([]);
   const [services, setServices] = useState<Record<string, Service>>({});
   const [loading, setLoading] = useState(true);
@@ -189,11 +190,10 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
     setDialogOpen(true);
   };
 
-  const getServiceNames = (serviceIds: string[]) => {
+  const getServicesData = (serviceIds: string[]) => {
     return serviceIds
-      .map(id => services[id]?.shortcut || services[id]?.name || '')
-      .filter(Boolean)
-      .join(', ');
+      .map(id => services[id])
+      .filter(Boolean);
   };
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>, vehicle: YardVehicle) => {
@@ -202,7 +202,16 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
     onVehicleDragStart?.(e, vehicle);
   };
 
-  const groupedVehicles = groupVehiclesByDate(vehicles);
+  // Filter vehicles for hall mode (only today or earlier)
+  const filteredVehicles = hallMode 
+    ? vehicles.filter(v => {
+        const arrivalDate = parseISO(v.arrival_date);
+        const today = startOfDay(new Date());
+        return isBefore(arrivalDate, today) || isToday(arrivalDate);
+      })
+    : vehicles;
+
+  const groupedVehicles = groupVehiclesByDate(filteredVehicles);
 
   return (
     <div className="flex flex-col h-full">
@@ -224,7 +233,7 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
           <div className="text-center text-muted-foreground py-8">
             Ładowanie...
           </div>
-        ) : vehicles.length === 0 ? (
+        ) : filteredVehicles.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             Brak pojazdów na placu
           </div>
@@ -246,11 +255,10 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
                   {/* Vehicle info */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
-                        <Car className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                        <span className="truncate">{vehicle.vehicle_plate}</span>
+                      <div className="text-sm font-medium text-slate-900 truncate">
+                        {vehicle.vehicle_plate}
                       </div>
-                      <div className="text-sm text-slate-600 mt-1 truncate">
+                      <div className="text-sm text-slate-600 mt-0.5 truncate">
                         {vehicle.customer_name}
                       </div>
                     </div>
@@ -284,10 +292,14 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart }: YardVehicle
                     </div>
                   </div>
 
-                  {/* Services */}
+                  {/* Services - styled like calendar reservation chips */}
                   {vehicle.service_ids.length > 0 && (
-                    <div className="text-xs text-slate-500 truncate">
-                      {getServiceNames(vehicle.service_ids)}
+                    <div className="flex flex-wrap gap-1">
+                      {getServicesData(vehicle.service_ids).map((svc, idx) => (
+                        <span key={idx} className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                          {svc.shortcut || svc.name}
+                        </span>
+                      ))}
                     </div>
                   )}
 

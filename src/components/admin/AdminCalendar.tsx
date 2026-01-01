@@ -1211,9 +1211,8 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              <div className="flex items-center gap-0.5 text-[10px] md:text-xs font-semibold truncate">
-                                <Car className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{reservation.vehicle_plate}</span>
+                              <div className="text-[10px] md:text-xs font-semibold truncate">
+                                {reservation.vehicle_plate}
                               </div>
                             )}
                             {/* Hide phone button in hallMode */}
@@ -1945,7 +1944,7 @@ const AdminCalendar = ({
             </Button>
           </SheetHeader>
           {instanceId && (
-            <YardVehiclesList instanceId={instanceId} />
+            <YardVehiclesList instanceId={instanceId} hallMode={hallMode} />
           )}
         </SheetContent>
       </Sheet>
