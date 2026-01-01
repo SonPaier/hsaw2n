@@ -289,7 +289,8 @@ const AdminCalendar = ({
       };
     }
     
-    // Add 1-hour margin before open and after close for hatched areas
+    // Add 30-min margin before open and after close for hatched areas
+    // We still need to start from a full hour, so we go 1 hour back but show only 30min hatched
     const displayStartHour = Math.max(0, workingStartHour - 1);
     const displayEndHour = Math.min(24, workingEndHour + 1);
     
@@ -1122,10 +1123,15 @@ const AdminCalendar = ({
 
               {/* Station columns */}
               {visibleStations.map((station, idx) => {
-                // Calculate hatched areas position and height
-                const beforeOpenHeight = (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
+                // Calculate hatched areas position and height - 30 min (half hour) only
+                const HALF_HOUR_HEIGHT = HOUR_HEIGHT / 2;
+                const fullBeforeHeight = (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
+                const beforeOpenHeight = Math.min(fullBeforeHeight, HALF_HOUR_HEIGHT);
+                const beforeOpenTop = fullBeforeHeight - beforeOpenHeight; // Position at bottom of margin area
+                
                 const afterCloseTop = (WORKING_END_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
-                const afterCloseHeight = HOURS.length * HOUR_HEIGHT - afterCloseTop;
+                const fullAfterHeight = HOURS.length * HOUR_HEIGHT - afterCloseTop;
+                const afterCloseHeight = Math.min(fullAfterHeight, HALF_HOUR_HEIGHT);
                 
                 return (
                 <div 
@@ -1139,11 +1145,11 @@ const AdminCalendar = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
                 >
-                  {/* Hatched area BEFORE opening hours */}
+                  {/* Hatched area BEFORE opening hours - 30min strip just before open */}
                   {beforeOpenHeight > 0 && (
                     <div 
-                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
-                      style={{ height: beforeOpenHeight }}
+                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-10"
+                      style={{ top: beforeOpenTop, height: beforeOpenHeight }}
                     />
                   )}
                   
