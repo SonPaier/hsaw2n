@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface WorkingHoursSettingsProps {
   instanceId: string | null;
@@ -19,13 +20,13 @@ interface DayHours {
 type WorkingHours = Record<string, DayHours | null>;
 
 const DAYS = [
-  { key: 'monday', label: 'Poniedziałek' },
-  { key: 'tuesday', label: 'Wtorek' },
-  { key: 'wednesday', label: 'Środa' },
-  { key: 'thursday', label: 'Czwartek' },
-  { key: 'friday', label: 'Piątek' },
-  { key: 'saturday', label: 'Sobota' },
-  { key: 'sunday', label: 'Niedziela' },
+  { key: 'monday', labelKey: 'workingHours.monday' },
+  { key: 'tuesday', labelKey: 'workingHours.tuesday' },
+  { key: 'wednesday', labelKey: 'workingHours.wednesday' },
+  { key: 'thursday', labelKey: 'workingHours.thursday' },
+  { key: 'friday', labelKey: 'workingHours.friday' },
+  { key: 'saturday', labelKey: 'workingHours.saturday' },
+  { key: 'sunday', labelKey: 'workingHours.sunday' },
 ];
 
 const DEFAULT_HOURS: WorkingHours = {
@@ -39,6 +40,7 @@ const DEFAULT_HOURS: WorkingHours = {
 };
 
 const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [workingHours, setWorkingHours] = useState<WorkingHours>(DEFAULT_HOURS);
@@ -96,10 +98,10 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
       console.log('[WorkingHoursSettings] RPC response:', { data, error });
 
       if (error) throw error;
-      toast.success('Godziny pracy zostały zapisane');
+      toast.success(t('workingHours.saved'));
     } catch (error) {
       console.error('Error saving working hours:', error);
-      toast.error('Błąd podczas zapisywania godzin pracy');
+      toast.error(t('workingHours.saveError'));
     } finally {
       setSaving(false);
     }
@@ -108,7 +110,7 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
   if (!instanceId) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Brak przypisanej instancji
+        {t('workingHours.noInstance')}
       </div>
     );
   }
@@ -126,7 +128,7 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Godziny pracy</h3>
+          <h3 className="text-lg font-semibold">{t('workingHours.title')}</h3>
         </div>
         <Button onClick={handleSave} disabled={saving} size="sm">
           {saving ? (
@@ -134,12 +136,12 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
           ) : (
             <Save className="w-4 h-4 mr-2" />
           )}
-          Zapisz
+          {t('common.save')}
         </Button>
       </div>
 
       <div className="space-y-3">
-        {DAYS.map(({ key, label }) => {
+        {DAYS.map(({ key, labelKey }) => {
           const dayHours = workingHours[key];
           const isOpen = dayHours !== null;
 
@@ -154,10 +156,10 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
                     checked={isOpen}
                     onCheckedChange={(checked) => handleDayToggle(key, checked)}
                   />
-                  <Label className="font-medium text-sm sm:text-base">{label}</Label>
+                  <Label className="font-medium text-sm sm:text-base">{t(labelKey)}</Label>
                 </div>
                 {!isOpen && (
-                  <span className="text-muted-foreground text-xs sm:hidden">Zamknięte</span>
+                  <span className="text-muted-foreground text-xs sm:hidden">{t('workingHours.closed')}</span>
                 )}
               </div>
 
@@ -178,7 +180,7 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
                   />
                 </div>
               ) : (
-                <span className="text-muted-foreground text-sm hidden sm:inline">Zamknięte</span>
+                <span className="text-muted-foreground text-sm hidden sm:inline">{t('workingHours.closed')}</span>
               )}
             </div>
           );

@@ -3,6 +3,7 @@ import { Loader2, AlertTriangle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ const AddInstanceUserDialog = ({
   instanceId, 
   onSuccess 
 }: AddInstanceUserDialogProps) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,27 +88,27 @@ const AddInstanceUserDialog = ({
     e.preventDefault();
 
     if (!username.trim()) {
-      toast.error('Nazwa użytkownika jest wymagana');
+      toast.error(t('addUser.usernameRequired'));
       return;
     }
 
     if (username.length < 3) {
-      toast.error('Nazwa użytkownika musi mieć co najmniej 3 znaki');
+      toast.error(t('addUser.usernameMinLength'));
       return;
     }
 
     if (!password) {
-      toast.error('Hasło jest wymagane');
+      toast.error(t('addUser.passwordRequired'));
       return;
     }
 
     if (password.length < 6) {
-      toast.error('Hasło musi mieć co najmniej 6 znaków');
+      toast.error(t('addUser.passwordMinLength'));
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Hasła nie są identyczne');
+      toast.error(t('addUser.passwordMismatch'));
       return;
     }
 

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { TaskNotesDialog } from './TaskNotesDialog';
+import { useTranslation } from 'react-i18next';
 
 interface FollowUpTask {
   id: string;
@@ -32,6 +33,7 @@ interface FollowUpTasksProps {
 }
 
 export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<FollowUpTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
       setTasks((data as unknown as FollowUpTask[]) || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      toast.error('Błąd podczas pobierania zadań');
+      toast.error(t('followupTasks.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -99,11 +101,11 @@ export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
         if (eventError) throw eventError;
       }
 
-      toast.success('Zadanie zostało ukończone');
+      toast.success(t('followupTasks.taskCompleted'));
       fetchTasks();
     } catch (error) {
       console.error('Error completing task:', error);
-      toast.error('Błąd podczas ukończania zadania');
+      toast.error(t('followupTasks.taskError'));
     } finally {
       setCompletingTaskId(null);
     }
@@ -141,8 +143,8 @@ export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
           <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Brak zadań do wykonania</p>
-          <p className="text-sm">Zadania pojawią się automatycznie w dniu przypomnienia</p>
+          <p>{t('followupTasks.noTasks')}</p>
+          <p className="text-sm">{t('followupTasks.noTasksDescription')}</p>
         </CardContent>
       </Card>
     );
@@ -150,7 +152,7 @@ export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Zadania do wykonania ({tasks.length})</h2>
+      <h2 className="text-lg font-semibold">{t('followupTasks.title')} ({tasks.length})</h2>
 
       <div className="space-y-2">
         {tasks.map((task) => {
@@ -188,8 +190,8 @@ export function FollowUpTasks({ instanceId }: FollowUpTasksProps) {
                         <Calendar className="h-3 w-3" />
                         <span className={isOverdue ? 'text-destructive' : isToday ? 'text-orange-500' : ''}>
                           {format(new Date(task.due_date), 'd MMM yyyy', { locale: pl })}
-                          {isOverdue && ` (${daysOverdue} dni temu)`}
-                          {isToday && ' (dziś)'}
+                          {isOverdue && ` (${daysOverdue} ${t('followupTasks.daysAgo')})`}
+                          {isToday && ` (${t('followupTasks.today')})`}
                         </span>
                       </div>
                     </div>
