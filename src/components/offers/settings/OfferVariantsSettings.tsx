@@ -1,4 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ export interface OfferVariantsSettingsRef {
 
 export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferVariantsSettingsProps>(
   ({ instanceId, onChange }, ref) => {
+    const { t } = useTranslation();
     const [variants, setVariants] = useState<OfferVariant[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -86,7 +88,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
           return true;
         } catch (error) {
           console.error('Error saving variants:', error);
-          toast.error('Błąd podczas zapisywania wariantów');
+          toast.error(t('offerSettings.variants.saveError'));
           return false;
         }
       },
@@ -104,7 +106,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
         setVariants((data || []).map(v => ({ ...v, isNew: false, isDeleted: false, isDirty: false })));
       } catch (error) {
         console.error('Error fetching variants:', error);
-        toast.error('Błąd podczas pobierania wariantów');
+        toast.error(t('offerSettings.variants.fetchError'));
       } finally {
         setLoading(false);
       }
@@ -113,7 +115,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
     const handleAddVariant = () => {
       const newVariant: OfferVariant = {
         id: crypto.randomUUID(),
-        name: 'Nowy wariant',
+        name: t('offerSettings.variants.newVariant'),
         description: null,
         sort_order: variants.filter(v => !v.isDeleted).length,
         active: true,
@@ -132,7 +134,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
     };
 
     const handleDeleteVariant = (id: string) => {
-      if (!confirm('Czy na pewno chcesz usunąć ten wariant?')) return;
+      if (!confirm(t('offerSettings.variants.confirmDelete'))) return;
       
       const variant = variants.find(v => v.id === id);
       if (variant?.isNew) {
@@ -144,7 +146,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
     };
 
     if (loading) {
-      return <div className="text-muted-foreground">Ładowanie...</div>;
+      return <div className="text-muted-foreground">{t('common.loading')}</div>;
     }
 
     const visibleVariants = variants.filter(v => !v.isDeleted);
@@ -153,21 +155,21 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium">Warianty oferty</h3>
+            <h3 className="text-lg font-medium">{t('offerSettings.variants.title')}</h3>
             <p className="text-sm text-muted-foreground">
-              Zdefiniuj warianty cenowe (np. Standard, Premium)
+              {t('offerSettings.variants.description')}
             </p>
           </div>
           <Button onClick={handleAddVariant} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Dodaj wariant
+            {t('offerSettings.variants.addVariant')}
           </Button>
         </div>
 
         {visibleVariants.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Brak zdefiniowanych wariantów. Kliknij "Dodaj wariant" aby utworzyć pierwszy.
+              {t('offerSettings.variants.noVariants')}
             </CardContent>
           </Card>
         ) : (
@@ -184,7 +186,7 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
                         <Input
                           value={variant.name}
                           onChange={(e) => handleUpdateVariant(variant.id, { name: e.target.value })}
-                          placeholder="Nazwa wariantu"
+                          placeholder={t('offerSettings.variants.namePlaceholder')}
                           className="flex-1"
                         />
                         <div className="flex items-center gap-2">
@@ -192,14 +194,14 @@ export const OfferVariantsSettings = forwardRef<OfferVariantsSettingsRef, OfferV
                             checked={variant.active}
                             onCheckedChange={(checked) => handleUpdateVariant(variant.id, { active: checked })}
                           />
-                          <span className="text-sm text-muted-foreground">Aktywny</span>
+                          <span className="text-sm text-muted-foreground">{t('common.active')}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <Input
                           value={variant.description || ''}
                           onChange={(e) => handleUpdateVariant(variant.id, { description: e.target.value })}
-                          placeholder="Opis (opcjonalny)"
+                          placeholder={t('offerSettings.variants.descriptionPlaceholder')}
                           className="flex-1"
                         />
                         <Button

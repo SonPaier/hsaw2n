@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ interface OfferSettingsDialogProps {
 }
 
 export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSettingsDialogProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('scopes');
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -34,12 +36,12 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
       const allSuccessful = results.every(r => r !== false);
       if (allSuccessful) {
-        toast.success('Zapisano wszystkie zmiany');
+        toast.success(t('offerSettings.saveSuccess'));
         setHasChanges(false);
       }
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Błąd podczas zapisywania');
+      toast.error(t('offerSettings.saveError'));
     } finally {
       setSaving(false);
     }
@@ -51,7 +53,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
   const handleClose = (open: boolean) => {
     if (!open && hasChanges) {
-      if (confirm('Masz niezapisane zmiany. Czy na pewno chcesz zamknąć?')) {
+      if (confirm(t('offerSettings.unsavedChanges'))) {
         setHasChanges(false);
         onOpenChange(false);
       }
@@ -66,7 +68,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Ustawienia ofert
+            {t('offerSettings.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -74,15 +76,15 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="scopes" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
-              Usługi
+              {t('offerSettings.services')}
             </TabsTrigger>
             <TabsTrigger value="variants" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              Warianty
+              {t('offerSettings.variants')}
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Produkty
+              {t('offerSettings.products')}
             </TabsTrigger>
           </TabsList>
 
@@ -101,18 +103,18 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={() => handleClose(false)}>
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSaveAll} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Zapisywanie...
+                {t('common.saving')}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Zapisz
+                {t('common.save')}
               </>
             )}
           </Button>

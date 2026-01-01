@@ -78,15 +78,6 @@ interface OfferSettings {
   number_format: string;
 }
 
-const statusLabels: Record<string, string> = {
-  draft: 'Szkic',
-  sent: 'Wysłana',
-  viewed: 'Obejrzana',
-  accepted: 'Zaakceptowana',
-  rejected: 'Odrzucona',
-  expired: 'Wygasła',
-};
-
 const statusColors: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
   sent: 'bg-blue-500/20 text-blue-600',
@@ -97,6 +88,7 @@ const statusColors: Record<string, string> = {
 };
 
 const OffersPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -175,7 +167,7 @@ const OffersPage = () => {
       setOffers((data || []) as OfferWithOptions[]);
     } catch (error) {
       console.error('Error fetching offers:', error);
-      toast.error('Błąd podczas pobierania ofert');
+      toast.error(t('offers.errors.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -218,16 +210,16 @@ const OffersPage = () => {
   }, [instanceId]);
 
   const handleDeleteOffer = async (offerId: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć tę ofertę?')) return;
+    if (!confirm(t('offers.confirmDelete'))) return;
     
     try {
       const { error } = await supabase.from('offers').delete().eq('id', offerId);
       if (error) throw error;
       setOffers(prev => prev.filter(o => o.id !== offerId));
-      toast.success('Oferta została usunięta');
+      toast.success(t('offers.deleteSuccess'));
     } catch (error) {
       console.error('Error deleting offer:', error);
-      toast.error('Błąd podczas usuwania oferty');
+      toast.error(t('offers.errors.deleteError'));
     }
   };
 
@@ -240,13 +232,13 @@ const OffersPage = () => {
   const handleCopyLink = (token: string) => {
     const url = `${window.location.origin}/oferta/${token}`;
     navigator.clipboard.writeText(url);
-    toast.success('Link skopiowany do schowka');
+    toast.success(t('offers.linkCopied'));
   };
 
   const handleCopyOfferNumber = (offerNumber: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(offerNumber);
-    toast.success('Numer oferty skopiowany');
+    toast.success(t('offers.offerNumberCopied'));
   };
 
   const handleSaveSettings = async () => {
@@ -255,7 +247,7 @@ const OffersPage = () => {
     setTimeout(() => {
       setSavingSettings(false);
       setShowSettings(false);
-      toast.success('Ustawienia zapisane');
+      toast.success(t('offers.settingsSaved'));
     }, 500);
   };
 
@@ -331,20 +323,20 @@ const OffersPage = () => {
 
   if (showGenerator && instanceId) {
     return (
-      <AdminLayout title={editingOfferId ? (duplicatingOfferId ? 'Duplikuj ofertę' : 'Edytuj ofertę') : 'Nowa oferta'}>
+      <AdminLayout title={editingOfferId ? (duplicatingOfferId ? t('offers.duplicateOffer') : t('offers.editOffer')) : t('offers.newOffer')}>
         <Helmet>
-          <title>{editingOfferId ? (duplicatingOfferId ? 'Duplikuj ofertę' : 'Edytuj ofertę') : 'Nowa oferta'} - Generator ofert</title>
+          <title>{editingOfferId ? (duplicatingOfferId ? t('offers.duplicateOffer') : t('offers.editOffer')) : t('offers.newOffer')} - {t('offers.generator')}</title>
         </Helmet>
         <div className="p-4 lg:p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }} className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Wróć do listy
+                {t('offers.backToList')}
               </Button>
             </div>
             <h1 className="text-2xl font-bold mb-6">
-              {duplicatingOfferId ? 'Duplikuj ofertę' : (editingOfferId ? 'Edytuj ofertę' : 'Nowa oferta')}
+              {duplicatingOfferId ? t('offers.duplicateOffer') : (editingOfferId ? t('offers.editOffer') : t('offers.newOffer'))}
             </h1>
             <OfferGenerator
               instanceId={instanceId}
@@ -360,29 +352,29 @@ const OffersPage = () => {
   }
 
   return (
-    <AdminLayout title="Oferty">
+    <AdminLayout title={t('offers.title')}>
       <Helmet>
-        <title>Oferty - Panel Admina</title>
+        <title>{t('offers.title')} - {t('common.adminPanel')}</title>
       </Helmet>
       <div className="p-4 lg:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <h1 className="text-2xl font-bold">Oferty</h1>
+            <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => navigate('/admin/produkty')} className="gap-2">
                 <Package className="w-4 h-4" />
-                Produkty
+                {t('offers.products')}
               </Button>
               <Button variant="outline" onClick={() => setShowScopesSettings(true)} className="gap-2">
                 <Layers className="w-4 h-4" />
-                Usługi
+                {t('offers.services')}
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title="Ustawienia numeracji">
+              <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title={t('offers.numberingSettings')}>
                 <Settings className="w-4 h-4" />
               </Button>
               <Button onClick={() => setShowGenerator(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
-                Nowa oferta
+                {t('offers.newOffer')}
               </Button>
             </div>
           </div>
@@ -392,7 +384,7 @@ const OffersPage = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Szukaj po numerze, kliencie, pojeździe, produkcie..."
+                placeholder={t('offers.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -402,15 +394,15 @@ const OffersPage = () => {
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t('offers.status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Wszystkie</SelectItem>
-                  <SelectItem value="draft">Szkice</SelectItem>
-                  <SelectItem value="sent">Wysłane</SelectItem>
-                  <SelectItem value="viewed">Obejrzane</SelectItem>
-                  <SelectItem value="accepted">Zaakceptowane</SelectItem>
-                  <SelectItem value="rejected">Odrzucone</SelectItem>
+                  <SelectItem value="all">{t('offers.statusAll')}</SelectItem>
+                  <SelectItem value="draft">{t('offers.statusDraft')}</SelectItem>
+                  <SelectItem value="sent">{t('offers.statusSent')}</SelectItem>
+                  <SelectItem value="viewed">{t('offers.statusViewed')}</SelectItem>
+                  <SelectItem value="accepted">{t('offers.statusAccepted')}</SelectItem>
+                  <SelectItem value="rejected">{t('offers.statusRejected')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -418,9 +410,9 @@ const OffersPage = () => {
 
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-muted-foreground">
-              {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofert'}
-              {searchQuery && ` dla "${searchQuery}"`}
-              {totalPages > 1 && ` • Strona ${currentPage} z ${totalPages}`}
+              {filteredOffers.length} {t('offers.offersCount', { count: filteredOffers.length })}
+              {searchQuery && ` ${t('offers.forQuery', { query: searchQuery })}`}
+              {totalPages > 1 && ` • ${t('offers.pageOf', { current: currentPage, total: totalPages })}`}
             </div>
           </div>
           
@@ -433,10 +425,10 @@ const OffersPage = () => {
               <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
                 {searchQuery 
-                  ? `Brak wyników dla "${searchQuery}"`
+                  ? t('offers.noResultsFor', { query: searchQuery })
                   : statusFilter === 'all' 
-                    ? 'Brak ofert. Kliknij "Nowa oferta" aby utworzyć pierwszą.'
-                    : 'Brak ofert o wybranym statusie.'}
+                    ? t('offers.noOffers')
+                    : t('offers.noOffersForStatus')}
               </p>
             </div>
           ) : (
@@ -459,12 +451,12 @@ const OffersPage = () => {
                             <button
                               onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
                               className="p-1 hover:bg-secondary/80 rounded transition-colors"
-                              title="Kopiuj numer oferty"
+                              title={t('offers.copyOfferNumber')}
                             >
                               <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                             </button>
                             <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
-                              {offer.approved_at ? 'Zaakceptowana' : (statusLabels[offer.status] || offer.status)}
+                              {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground truncate">
@@ -491,26 +483,26 @@ const OffersPage = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/oferta/${offer.public_token}`, '_blank'); }}>
                               <Eye className="w-4 h-4 mr-2" />
-                              Podgląd publiczny
+                              {t('offers.publicPreview')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(offer.public_token); }}>
                               <Copy className="w-4 h-4 mr-2" />
-                              Kopiuj link
+                              {t('offers.copyLink')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateOffer(offer.id); }}>
                               <CopyPlus className="w-4 h-4 mr-2" />
-                              Duplikuj
+                              {t('offers.duplicate')}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info('Wysyłka oferty - wkrótce'); }}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info(t('offers.sendComingSoon')); }}>
                               <Send className="w-4 h-4 mr-2" />
-                              Wyślij
+                              {t('offers.send')}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
                               className="text-destructive"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Usuń
+                              {t('common.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -523,7 +515,7 @@ const OffersPage = () => {
               {/* Pagination */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Pokaż</span>
+                  <span>{t('common.show')}</span>
                   <Select value={String(pageSize)} onValueChange={(val) => setPageSize(Number(val))}>
                     <SelectTrigger className="w-20 h-8">
                       <SelectValue />
@@ -534,7 +526,7 @@ const OffersPage = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <span>na stronie</span>
+                  <span>{t('common.perPage')}</span>
                 </div>
                 
                 {totalPages > 1 && (

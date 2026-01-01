@@ -1,4 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ export interface OfferScopeProductsSettingsRef {
 
 export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsRef, OfferScopeProductsSettingsProps>(
   ({ instanceId, onChange }, ref) => {
+    const { t } = useTranslation();
     const [scopes, setScopes] = useState<OfferScope[]>([]);
     const [allVariants, setAllVariants] = useState<OfferVariant[]>([]);
     const [scopeVariantLinks, setScopeVariantLinks] = useState<{ scope_id: string; variant_id: string }[]>([]);
@@ -151,7 +153,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
           return true;
         } catch (error) {
           console.error('Error saving products:', error);
-          toast.error('Błąd podczas zapisywania produktów');
+          toast.error(t('offerSettings.products.saveError'));
           return false;
         }
       },
@@ -188,7 +190,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Błąd podczas pobierania danych');
+        toast.error(t('offerSettings.products.fetchError'));
       } finally {
         setLoading(false);
       }
@@ -221,10 +223,10 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         scope_id: selectedScope,
         variant_id: selectedVariant,
         product_id: null,
-        custom_name: 'Nowa pozycja',
+        custom_name: t('offerSettings.products.newItem'),
         custom_description: null,
         quantity: 1,
-        unit: 'szt',
+        unit: t('offerSettings.products.defaultUnit'),
         unit_price: 0,
         sort_order: scopeProducts.filter(p => !p.isDeleted).length,
         isNew: true,
@@ -271,7 +273,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
     };
 
     if (loading) {
-      return <div className="text-muted-foreground">Ładowanie...</div>;
+      return <div className="text-muted-foreground">{t('common.loading')}</div>;
     }
 
     if (scopes.length === 0 || allVariants.length === 0) {
@@ -279,7 +281,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Najpierw zdefiniuj usługi i warianty w odpowiednich zakładkach.</p>
+            <p>{t('offerSettings.products.setupRequired')}</p>
           </CardContent>
         </Card>
       );
@@ -290,18 +292,18 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
     return (
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-medium">Produkty dla usług</h3>
+          <h3 className="text-lg font-medium">{t('offerSettings.products.title')}</h3>
           <p className="text-sm text-muted-foreground">
-            Przypisz produkty do kombinacji usługa × wariant
+            {t('offerSettings.products.description')}
           </p>
         </div>
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Usługa</label>
+            <label className="text-sm font-medium mb-2 block">{t('offerSettings.products.service')}</label>
             <Select value={selectedScope || ''} onValueChange={setSelectedScope}>
               <SelectTrigger>
-                <SelectValue placeholder="Wybierz usługę" />
+                <SelectValue placeholder={t('offerSettings.products.selectService')} />
               </SelectTrigger>
               <SelectContent>
                 {scopes.map((scope) => (
@@ -313,15 +315,15 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
             </Select>
           </div>
           <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Wariant</label>
+            <label className="text-sm font-medium mb-2 block">{t('offerSettings.products.variant')}</label>
             {availableVariants.length === 0 ? (
               <div className="h-10 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted/50 flex items-center">
-                Brak przypisanych wariantów dla tej usługi
+                {t('offerSettings.products.noVariantsForService')}
               </div>
             ) : (
               <Select value={selectedVariant || ''} onValueChange={setSelectedVariant}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Wybierz wariant" />
+                  <SelectValue placeholder={t('offerSettings.products.selectVariant')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableVariants.map((variant) => (
@@ -344,14 +346,14 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
                 </CardTitle>
                 <Button onClick={handleAddProduct} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Dodaj pozycję
+                  {t('offerSettings.products.addItem')}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {visibleProducts.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
-                  Brak produktów dla tej kombinacji. Dodaj pierwszą pozycję.
+                  {t('offerSettings.products.noProducts')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -372,10 +374,10 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
                           }}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Wybierz produkt lub wpisz własny" />
+                            <SelectValue placeholder={t('offerSettings.products.selectOrCustom')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="custom">Własna pozycja</SelectItem>
+                            <SelectItem value="custom">{t('offerSettings.products.customItem')}</SelectItem>
                             {products.map((product) => (
                               <SelectItem key={product.id} value={product.id}>
                                 {product.name} - {formatPrice(product.default_price)}
@@ -387,7 +389,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
                       <Input
                         value={sp.custom_name || ''}
                         onChange={(e) => handleUpdateProduct(sp.id, { custom_name: e.target.value })}
-                        placeholder="Nazwa"
+                        placeholder={t('offerSettings.products.name')}
                         className="w-48"
                       />
                       <Input
