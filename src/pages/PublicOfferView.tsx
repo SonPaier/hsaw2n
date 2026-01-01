@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { 
   FileText, 
@@ -120,14 +121,14 @@ interface Offer {
   };
 }
 
-const statusLabels: Record<string, string> = {
-  draft: 'Szkic',
-  sent: 'Wysłana',
-  viewed: 'Obejrzana',
-  accepted: 'Zaakceptowana',
-  rejected: 'Odrzucona',
-  expired: 'Wygasła',
-};
+const getStatusLabels = (t: (key: string) => string): Record<string, string> => ({
+  draft: t('offers.statusDraft'),
+  sent: t('offers.statusSent'),
+  viewed: t('offers.statusViewed'),
+  accepted: t('offers.statusAccepted'),
+  rejected: t('offers.statusRejected'),
+  expired: t('offers.statusExpired'),
+});
 
 // Helper to render description - supports HTML or plain text with line breaks
 const renderDescription = (text: string) => {
@@ -151,6 +152,7 @@ const renderDescription = (text: string) => {
 };
 
 const PublicOfferView = () => {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const { user, hasRole, hasInstanceRole } = useAuth();
   const [offer, setOffer] = useState<Offer | null>(null);
@@ -175,7 +177,7 @@ const PublicOfferView = () => {
   useEffect(() => {
     const fetchOffer = async () => {
       if (!token) {
-        setError('Nieprawidłowy link do oferty');
+        setError(t('publicOffer.invalidLink'));
         setLoading(false);
         return;
       }
@@ -215,7 +217,7 @@ const PublicOfferView = () => {
 
         if (error) throw error;
         if (!data) {
-          setError('Oferta nie została znaleziona');
+          setError(t('publicOffer.notFound'));
           return;
         }
 
@@ -274,7 +276,7 @@ const PublicOfferView = () => {
         }
       } catch (err) {
         console.error('Error fetching offer:', err);
-        setError('Błąd podczas wczytywania oferty');
+        setError(t('publicOffer.loadError'));
       } finally {
         setLoading(false);
       }
@@ -316,8 +318,8 @@ const PublicOfferView = () => {
         .insert({
           instance_id: offer.instance_id,
           type: 'offer_approved',
-          title: `Oferta ${offer.offer_number} zaakceptowana`,
-          description: `${offer.customer_data?.name || 'Klient'} zaakceptował ofertę na ${formatPrice(dynamicTotals.gross)}`,
+          title: t('publicOffer.notificationAcceptedTitle', { number: offer.offer_number }),
+          description: t('publicOffer.notificationAcceptedDesc', { name: offer.customer_data?.name || t('customers.customer'), price: formatPrice(dynamicTotals.gross) }),
           entity_type: 'offer',
           entity_id: offer.id,
         });
@@ -331,9 +333,9 @@ const PublicOfferView = () => {
         total_gross: dynamicTotals.gross,
       });
       setIsEditMode(false);
-      toast.success('Oferta została zatwierdzona!');
+      toast.success(t('publicOffer.offerApproved'));
     } catch (err) {
-      toast.error('Błąd podczas zatwierdzania oferty');
+      toast.error(t('publicOffer.approvalError'));
     } finally {
       setResponding(false);
     }
@@ -353,16 +355,16 @@ const PublicOfferView = () => {
         .update({ 
           status: 'rejected', 
           responded_at: new Date().toISOString(),
-          notes: rejectionReason ? `${offer.notes || ''}\n\nPowód odrzucenia: ${rejectionReason}` : offer.notes
+          notes: rejectionReason ? `${offer.notes || ''}\n\n${t('publicOffer.rejectionReason')}: ${rejectionReason}` : offer.notes
         })
         .eq('id', offer.id);
 
       if (error) throw error;
       setOffer({ ...offer, status: 'rejected' });
       setShowRejectionForm(false);
-      toast.success('Oferta została odrzucona');
+      toast.success(t('publicOffer.offerRejected'));
     } catch (err) {
-      toast.error('Błąd podczas odrzucania oferty');
+      toast.error(t('publicOffer.rejectionError'));
     } finally {
       setResponding(false);
     }
@@ -508,10 +510,10 @@ const PublicOfferView = () => {
       // Note: This is for admin state save, don't create notification
       
       setOffer({ ...offer, selected_state: stateToSave });
-      toast.success('Zapisano wybory w ofercie');
+      toast.success(t('publicOffer.selectionSaved'));
     } catch (err) {
       console.error('Error saving state:', err);
-      toast.error('Błąd podczas zapisywania');
+      toast.error(t('publicOffer.saveError'));
     } finally {
       setSavingState(false);
     }
@@ -542,17 +544,17 @@ const PublicOfferView = () => {
         .insert({
           instance_id: offer.instance_id,
           type: 'offer_modified',
-          title: `Oferta ${offer.offer_number} zmieniona`,
-          description: `${offer.customer_data?.name || 'Klient'} zmienił wybory w ofercie`,
+          title: t('publicOffer.notificationModifiedTitle', { number: offer.offer_number }),
+          description: t('publicOffer.notificationModifiedDesc', { name: offer.customer_data?.name || t('customers.customer') }),
           entity_type: 'offer',
           entity_id: offer.id,
         });
       
       setOffer({ ...offer, selected_state: stateToSave });
-      toast.success('Zapisano Twoje wybory');
+      toast.success(t('publicOffer.yourSelectionSaved'));
     } catch (err) {
       console.error('Error saving state:', err);
-      toast.error('Błąd podczas zapisywania');
+      toast.error(t('publicOffer.saveError'));
     } finally {
       setSavingState(false);
     }
@@ -572,8 +574,8 @@ const PublicOfferView = () => {
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="w-12 h-12 mx-auto text-destructive mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Błąd</h2>
-            <p className="text-muted-foreground">{error || 'Oferta nie została znaleziona'}</p>
+            <h2 className="text-xl font-semibold mb-2">{t('common.error')}</h2>
+            <p className="text-muted-foreground">{error || t('publicOffer.notFound')}</p>
           </CardContent>
         </Card>
       </div>
@@ -677,7 +679,7 @@ const PublicOfferView = () => {
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
-                    Zapisz
+                    {t('publicOffer.save')}
                   </Button>
                 )}
                 <Button
@@ -701,13 +703,13 @@ const PublicOfferView = () => {
                       document.body.removeChild(link);
                       URL.revokeObjectURL(url);
                     } catch (err) {
-                      toast.error('Błąd podczas pobierania oferty');
+                      toast.error(t('publicOffer.downloadError'));
                     }
                   }}
                   className="gap-1"
                 >
                   <Download className="w-4 h-4" />
-                  Pobierz PDF
+                  {t('publicOffer.downloadPdf')}
                 </Button>
                 <Badge 
                   className={cn(
@@ -717,7 +719,7 @@ const PublicOfferView = () => {
                     offer.status === 'sent' && 'bg-blue-500/20 text-blue-600',
                   )}
                 >
-                  {statusLabels[offer.status] || offer.status}
+                  {getStatusLabels(t)[offer.status] || offer.status}
                 </Badge>
               </div>
             </div>
@@ -730,7 +732,7 @@ const PublicOfferView = () => {
             <Card className="border-destructive bg-destructive/10">
               <CardContent className="py-4 flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-destructive" />
-                <p className="text-destructive font-medium">Ta oferta wygasła</p>
+                <p className="text-destructive font-medium">{t('publicOffer.offerExpired')}</p>
               </CardContent>
             </Card>
           )}
@@ -739,9 +741,9 @@ const PublicOfferView = () => {
           <Card className="bg-card border-primary/20">
             <CardContent className="pt-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold mb-2">Dlaczego warto nam zaufać?</h2>
+                <h2 className="text-xl font-bold mb-2">{t('publicOffer.whyTrustUs')}</h2>
                 <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-                  Nasze studio powstało z pasji do motoryzacji i perfekcji w każdym detalu. Specjalizujemy się w profesjonalnym zabezpieczaniu i pielęgnacji pojazdów klasy premium.
+                  {t('publicOffer.trustDescription')}
                 </p>
               </div>
 
@@ -751,10 +753,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Sparkles className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">Metoda z brytu</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.methodBryt')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Zaawansowana technika montażu PPF z zawijaniem krawędzi – folia niewidoczna, nie zbiera brudu.
+                    {t('publicOffer.methodBrytDesc')}
                   </p>
                 </div>
 
@@ -763,10 +765,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Award className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">Produkty premium</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.premiumProducts')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    UltraFit, Perfect Shield, Gyeon, WinCrest – marki gwarantujące najwyższą trwałość.
+                    {t('publicOffer.premiumProductsDesc')}
                   </p>
                 </div>
 
@@ -775,10 +777,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">Precyzja OEM</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.oemPrecision')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Każdą realizację wykonujemy ręcznie, z dbałością o detale i estetykę na poziomie fabrycznym.
+                    {t('publicOffer.oemPrecisionDesc')}
                   </p>
                 </div>
 
@@ -787,10 +789,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Car className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">Kompleksowa ochrona</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.fullProtection')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Folie PPF, powłoki ceramiczne, impregnacja skóry, ochrona felg, szyb i wnętrza.
+                    {t('publicOffer.fullProtectionDesc')}
                   </p>
                 </div>
 
@@ -799,10 +801,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Star className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">700+ opinii, 5.0 ★</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.reviews')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Zaufanie setek klientów potwierdzone najwyższymi ocenami w Google.
+                    {t('publicOffer.reviewsDesc')}
                   </p>
                 </div>
 
@@ -811,10 +813,10 @@ const PublicOfferView = () => {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Heart className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">Indywidualne podejście</h3>
+                    <h3 className="font-semibold text-sm">{t('publicOffer.individualApproach')}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Każdy samochód traktujemy jak unikatowy projekt, idealnie dopasowany do potrzeb właściciela.
+                    {t('publicOffer.individualApproachDesc')}
                   </p>
                 </div>
               </div>
@@ -827,7 +829,7 @@ const PublicOfferView = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <User className="w-4 h-4" />
-                  Dla
+                  {t('publicOffer.forClient')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-1">
@@ -852,7 +854,7 @@ const PublicOfferView = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Car className="w-4 h-4" />
-                    Pojazd
+                    {t('publicOffer.vehicle')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
@@ -871,7 +873,7 @@ const PublicOfferView = () => {
           {scopeSections.length === 0 ? (
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
-                Brak wybranych pozycji w ofercie.
+                {t('publicOffer.noPositions')}
               </CardContent>
             </Card>
           ) : (
@@ -892,7 +894,7 @@ const PublicOfferView = () => {
                     <section key={section.key} className="space-y-3">
                       <div className="flex items-center gap-2">
                         <h2 className="text-base font-semibold">{section.scopeName}</h2>
-                        <Badge variant="secondary" className="text-xs">Dodatki</Badge>
+                        <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
                       </div>
 
                       {allItems.map((item) => {
@@ -1250,7 +1252,7 @@ const PublicOfferView = () => {
           <Card className="sticky bottom-4 shadow-lg border-primary/20">
             <CardContent className="pt-6 space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Suma netto</span>
+                <span className="text-muted-foreground">{t('publicOffer.netSum')}</span>
                 <span>{formatPrice(dynamicTotals.net)}</span>
               </div>
               <div className="flex justify-between">
@@ -1259,7 +1261,7 @@ const PublicOfferView = () => {
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>Razem brutto</span>
+                <span>{t('publicOffer.grossTotal')}</span>
                 <span className="text-primary">{formatPrice(dynamicTotals.gross)}</span>
               </div>
             </CardContent>
@@ -1273,14 +1275,14 @@ const PublicOfferView = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span>
-                      Oferta ważna do: <strong>{format(new Date(offer.valid_until), 'd MMMM yyyy', { locale: pl })}</strong>
+                      {t('publicOffer.offerValidUntil')}: <strong>{format(new Date(offer.valid_until), 'd MMMM yyyy', { locale: pl })}</strong>
                     </span>
                   </div>
                 )}
                 {offer.payment_terms && (
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span>Warunki płatności: {offer.payment_terms}</span>
+                    <span>{t('publicOffer.paymentTerms')}: {offer.payment_terms}</span>
                   </div>
                 )}
                 {offer.notes && (
@@ -1304,7 +1306,7 @@ const PublicOfferView = () => {
                     disabled={responding || !selectedScopeId}
                   >
                     {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
-                    Zatwierdź wybór
+                    {t('publicOffer.confirmSelection')}
                   </Button>
                 </div>
               </CardContent>
@@ -1317,7 +1319,7 @@ const PublicOfferView = () => {
               <CardContent className="py-6">
                 <div className="text-center mb-4">
                   <Check className="w-12 h-12 mx-auto text-green-600 mb-3" />
-                  <h3 className="text-lg font-semibold text-green-700">Oferta zaakceptowana</h3>
+                  <h3 className="text-lg font-semibold text-green-700">{t('publicOffer.offerAccepted')}</h3>
                   <p className="text-muted-foreground">
                     {isEditMode 
                       ? 'Możesz teraz zmienić swoje wybory i zatwierdzić ponownie.' 
@@ -1347,7 +1349,7 @@ const PublicOfferView = () => {
                         className="gap-2"
                       >
                         <X className="w-4 h-4" />
-                        Anuluj edycję
+                        {t('publicOffer.cancelEdit')}
                       </Button>
                       <Button 
                         onClick={handleConfirmSelection}
@@ -1355,7 +1357,7 @@ const PublicOfferView = () => {
                         className="gap-2"
                       >
                         {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        Zatwierdź zmiany
+                        {t('publicOffer.saveChanges')}
                       </Button>
                     </>
                   ) : (
@@ -1365,7 +1367,7 @@ const PublicOfferView = () => {
                       className="gap-2"
                     >
                       <Pencil className="w-4 h-4" />
-                      Edytuj wybór
+                      {t('publicOffer.editSelection')}
                     </Button>
                   )}
                 </div>

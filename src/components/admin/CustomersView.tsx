@@ -203,7 +203,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     </div>
                     {customer.company && (
                       <div className="text-xs text-muted-foreground truncate">
-                        Firma: {customer.company}
+                        {t('customers.company')}: {customer.company}
                       </div>
                     )}
                   </div>
@@ -236,9 +236,11 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Pokazano {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredCustomers.length)} z{' '}
-            {filteredCustomers.length}
+            {t('common.showingPagination', { 
+              from: (currentPage - 1) * ITEMS_PER_PAGE + 1, 
+              to: Math.min(currentPage * ITEMS_PER_PAGE, filteredCustomers.length), 
+              total: filteredCustomers.length 
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -272,7 +274,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="myjnia" className="gap-2">
             <User className="w-4 h-4" />
-            Myjnia
+            {t('customers.tabs.carWash')}
             {myjniaCount > 0 && (
               <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
                 {myjniaCount}
@@ -281,7 +283,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
           </TabsTrigger>
           <TabsTrigger value="oferty" className="gap-2">
             <Building2 className="w-4 h-4" />
-            Oferty
+            {t('customers.tabs.offers')}
             {ofertyCount > 0 && (
               <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
                 {ofertyCount}
