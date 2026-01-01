@@ -20,10 +20,18 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({ children, 
 
   useEffect(() => {
     const fetchInstance = async () => {
+      // Get subdomain from hostname
+      const hostname = window.location.hostname;
+      let slug = 'armcar'; // default fallback
+      
+      if (hostname.endsWith('.n2wash.com')) {
+        slug = hostname.replace('.n2wash.com', '');
+      }
+      
       const { data } = await supabase
         .from('instances')
         .select('id, name, phone, logo_url')
-        .eq('slug', 'armcar')
+        .eq('slug', slug)
         .single();
       if (data) {
         setInstance(data);
