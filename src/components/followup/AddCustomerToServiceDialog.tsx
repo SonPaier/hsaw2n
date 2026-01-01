@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -43,6 +44,7 @@ export function AddCustomerToServiceDialog({
   service,
   onSuccess,
 }: AddCustomerToServiceDialogProps) {
+  const { t } = useTranslation();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -92,12 +94,12 @@ export function AddCustomerToServiceDialog({
     e.preventDefault();
 
     if (!selectedCustomer) {
-      toast.error('Wybierz klienta');
+      toast.error(t('followup.selectCustomer'));
       return;
     }
 
     if (!reminderDate) {
-      toast.error('Wybierz datę przypomnienia');
+      toast.error(t('followup.selectReminderDate'));
       return;
     }
 
@@ -114,7 +116,7 @@ export function AddCustomerToServiceDialog({
         .maybeSingle();
 
       if (existing) {
-        toast.error('Ten klient jest już przypisany do tej usługi');
+        toast.error(t('followup.customerAlreadyAssigned'));
         setSaving(false);
         return;
       }
@@ -132,12 +134,12 @@ export function AddCustomerToServiceDialog({
 
       if (error) throw error;
 
-      toast.success('Klient został dodany do usługi');
+      toast.success(t('followup.customerAdded'));
       onSuccess();
       handleClose();
     } catch (error) {
       console.error('Error adding customer to service:', error);
-      toast.error('Błąd podczas dodawania klienta');
+      toast.error(t('followup.addCustomerError'));
     } finally {
       setSaving(false);
     }
@@ -155,16 +157,16 @@ export function AddCustomerToServiceDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Dodaj klienta do usługi</DialogTitle>
+          <DialogTitle>{t('followup.addCustomerToService')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Wyszukaj klienta</Label>
+            <Label>{t('followup.searchCustomerLabel')}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Imię lub numer telefonu..."
+                placeholder={t('followup.searchCustomerPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -174,7 +176,7 @@ export function AddCustomerToServiceDialog({
             {loading && (
               <div className="text-sm text-muted-foreground flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Szukanie...
+                {t('followup.searching')}
               </div>
             )}
 
@@ -217,14 +219,14 @@ export function AddCustomerToServiceDialog({
                   size="sm"
                   onClick={() => setSelectedCustomer(null)}
                 >
-                  Zmień
+                  {t('followup.change')}
                 </Button>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reminderDate">Data przypomnienia</Label>
+            <Label htmlFor="reminderDate">{t('followup.reminderDate')}</Label>
             <Input
               id="reminderDate"
               type="date"
@@ -232,28 +234,28 @@ export function AddCustomerToServiceDialog({
               onChange={(e) => setReminderDate(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Domyślnie: {service.default_interval_months} mies. od dziś
+              {t('followup.defaultFromToday', { months: service.default_interval_months })}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notatki (opcjonalnie)</Label>
+            <Label htmlFor="notes">{t('followup.notesOptional')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Dodatkowe informacje..."
+              placeholder={t('followup.notesPlaceholder')}
               rows={2}
             />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={saving || !selectedCustomer}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Dodaj
+              {t('common.add')}
             </Button>
           </DialogFooter>
         </form>

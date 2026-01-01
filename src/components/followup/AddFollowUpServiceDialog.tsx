@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -27,6 +28,7 @@ export function AddFollowUpServiceDialog({
   instanceId,
   onSuccess,
 }: AddFollowUpServiceDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [intervalMonths, setIntervalMonths] = useState(12);
@@ -36,7 +38,7 @@ export function AddFollowUpServiceDialog({
     e.preventDefault();
     
     if (!name.trim()) {
-      toast.error('Podaj nazwę usługi');
+      toast.error(t('followup.enterServiceName'));
       return;
     }
 
@@ -51,7 +53,7 @@ export function AddFollowUpServiceDialog({
 
       if (error) throw error;
 
-      toast.success('Usługa cykliczna została dodana');
+      toast.success(t('followup.serviceAdded'));
       onSuccess();
       onOpenChange(false);
       setName('');
@@ -59,7 +61,7 @@ export function AddFollowUpServiceDialog({
       setIntervalMonths(12);
     } catch (error) {
       console.error('Error adding followup service:', error);
-      toast.error('Błąd podczas dodawania usługi');
+      toast.error(t('followup.addServiceError'));
     } finally {
       setSaving(false);
     }
@@ -69,33 +71,33 @@ export function AddFollowUpServiceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nowa usługa cykliczna</DialogTitle>
+          <DialogTitle>{t('followup.newService')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nazwa usługi</Label>
+            <Label htmlFor="name">{t('followup.serviceName')}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="np. Odnowienie powłoki ceramicznej"
+              placeholder={t('followup.serviceNamePlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Opis (opcjonalnie)</Label>
+            <Label htmlFor="description">{t('followup.descriptionOptional')}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Dodatkowe informacje o usłudze..."
+              placeholder={t('followup.descriptionPlaceholder')}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="interval">Domyślny interwał (miesiące)</Label>
+            <Label htmlFor="interval">{t('followup.defaultInterval')}</Label>
             <Input
               id="interval"
               type="number"
@@ -105,17 +107,17 @@ export function AddFollowUpServiceDialog({
               onChange={(e) => setIntervalMonths(parseInt(e.target.value) || 12)}
             />
             <p className="text-xs text-muted-foreground">
-              Domyślny czas między przypomnieniami dla tej usługi
+              {t('followup.intervalHint')}
             </p>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Anuluj
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Dodaj usługę
+              {t('followup.addService')}
             </Button>
           </DialogFooter>
         </form>
