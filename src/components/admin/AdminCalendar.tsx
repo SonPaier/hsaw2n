@@ -2,7 +2,14 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check, Ban, CalendarOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, GripVertical, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare } from 'lucide-react';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -194,6 +201,7 @@ const AdminCalendar = ({
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [weekViewStationId, setWeekViewStationId] = useState<string | null>(null);
+  const [placDrawerOpen, setPlacDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Save hidden stations to localStorage
@@ -965,6 +973,17 @@ const AdminCalendar = ({
               </PopoverContent>
             </Popover>
           )}
+          
+          {/* Plac button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPlacDrawerOpen(true)}
+            className="gap-1"
+          >
+            <ParkingSquare className="w-4 h-4" />
+            <span className="hidden md:inline">Plac</span>
+          </Button>
         </div>
       </div>
       
@@ -1881,6 +1900,26 @@ const AdminCalendar = ({
           <span className="text-xs text-muted-foreground">Wydany</span>
         </div>
       </div>
+
+      {/* Plac Drawer - from right side, no overlay */}
+      <Drawer open={placDrawerOpen} onOpenChange={setPlacDrawerOpen} direction="right">
+        <DrawerContent 
+          hideOverlay 
+          className="fixed right-0 top-0 bottom-0 left-auto inset-x-auto w-full max-w-md h-full rounded-none border-l border-border"
+        >
+          <DrawerHeader className="flex items-center justify-between border-b border-border px-4 py-3">
+            <DrawerTitle className="text-lg font-semibold">Plac</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <X className="w-4 h-4" />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <div className="flex-1 p-4 overflow-auto">
+            {/* Empty content for now */}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
     </div>
   );
