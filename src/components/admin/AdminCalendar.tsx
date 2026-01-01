@@ -299,8 +299,9 @@ const AdminCalendar = ({
       };
     }
     
-    // Add 30min (0.5 hour) display margin before and after working hours for hatched areas
-    // Round down to nearest hour for display start, round up for display end
+    // Add exactly 30min (0.5 hour) display margin before and after working hours for hatched areas
+    // For display start: round down working start minus 30min to nearest hour
+    // For display end: round up working end plus 30min to nearest hour
     const displayStartHour = Math.max(0, Math.floor(workingStartTime - 0.5));
     const displayEndHour = Math.min(24, Math.ceil(workingEndTime + 0.5));
     
@@ -1198,7 +1199,7 @@ const AdminCalendar = ({
                     return null;
                   })()}
                   
-                  {/* 5-minute grid slots */}
+                  {/* 15-minute grid slots */}
                   {HOURS.map((hour) => (
                     <div key={hour} style={{ height: HOUR_HEIGHT }}>
                       {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
@@ -1211,14 +1212,20 @@ const AdminCalendar = ({
                         const slotTime = hour * 60 + slotMinutes;
                         const nowTime = now.getHours() * 60 + now.getMinutes();
                         const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
-                        const isDisabled = isSlotInPast;
+                        
+                        // Check if this slot is outside working hours (in hatched area)
+                        const slotTimeDecimal = hour + slotMinutes / 60;
+                        const isOutsideWorkingHours = slotTimeDecimal < WORKING_START_TIME || slotTimeDecimal >= WORKING_END_TIME;
+                        
+                        // Disable if past OR outside working hours OR day is closed
+                        const isDisabled = isSlotInPast || isOutsideWorkingHours || currentDateClosed;
                         return (
                           <div
                             key={slotIndex}
                             className={cn(
                               "border-b group transition-colors",
                               slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
-                              isDropTarget && "bg-primary/30 border-primary",
+                              isDropTarget && !isDisabled && "bg-primary/30 border-primary",
                               !isDropTarget && !isDisabled && "hover:bg-primary/10 cursor-pointer",
                               isDisabled && "cursor-not-allowed"
                             )}
@@ -1228,8 +1235,8 @@ const AdminCalendar = ({
                             onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
                             onTouchEnd={handleTouchEnd}
                             onTouchMove={handleTouchMove}
-                            onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
-                            onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
+                            onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
+                            onDrop={(e) => !isDisabled && handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
                             {/* Hide + on hover in hallMode or disabled slots */}
                             {!hallMode && !isDisabled && (
@@ -1610,8 +1617,10 @@ const AdminCalendar = ({
                           }
                           return null;
                         })()}
-                        {/* 5-minute grid slots */}
-                        {HOURS.map((hour) => (
+                        {/* 15-minute grid slots */}
+                        {HOURS.map((hour) => {
+                          const dayHoursForSlots = getHoursForDate(day);
+                          return (
                           <div key={hour} style={{ height: HOUR_HEIGHT }}>
                             {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
                               const isDropTarget = dragOverStation === station.id && 
@@ -1619,27 +1628,42 @@ const AdminCalendar = ({
                                 dragOverSlot?.hour === hour && 
                                 dragOverSlot?.slotIndex === slotIndex;
                               
+                              // Check if this slot is in the past
+                              const slotMinutes = slotIndex * SLOT_MINUTES;
+                              const slotTime = hour * 60 + slotMinutes;
+                              const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
+                              const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
+                              
+                              // Check if this slot is outside working hours (in hatched area)
+                              const slotTimeDecimal = hour + slotMinutes / 60;
+                              const isOutsideWorkingHours = slotTimeDecimal < dayHoursForSlots.workingStartTime || slotTimeDecimal >= dayHoursForSlots.workingEndTime;
+                              
+                              // Disable if past OR outside working hours OR day is closed
+                              const isDayClosed = isDateClosed(dayStr);
+                              const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosed;
+                              
                               return (
                                 <div
                                   key={slotIndex}
                                   className={cn(
-                                    "border-b group cursor-pointer transition-colors",
+                                    "border-b group transition-colors",
                                     slotIndex % 3 === 0 && "border-border/50",
                                     slotIndex % 3 !== 0 && "border-border/20",
-                                    isDropTarget && "bg-primary/30 border-primary",
-                                    !isDropTarget && "hover:bg-primary/5"
+                                    isDropTarget && !isDisabled && "bg-primary/30 border-primary",
+                                    !isDropTarget && !isDisabled && "hover:bg-primary/5 cursor-pointer",
+                                    isDisabled && "cursor-not-allowed"
                                   )}
                                   style={{ height: SLOT_HEIGHT }}
-                                  onClick={() => handleSlotClick(station.id, hour, slotIndex, dayStr)}
-                                  onContextMenu={(e) => handleSlotContextMenu(e, station.id, hour, slotIndex, dayStr)}
-                                  onTouchStart={() => handleTouchStart(station.id, hour, slotIndex, dayStr)}
+                                  onClick={() => !isDisabled && handleSlotClick(station.id, hour, slotIndex, dayStr)}
+                                  onContextMenu={(e) => !isDisabled && handleSlotContextMenu(e, station.id, hour, slotIndex, dayStr)}
+                                  onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, dayStr)}
                                   onTouchEnd={handleTouchEnd}
                                   onTouchMove={handleTouchMove}
-                                  onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
-                                  onDrop={(e) => handleDrop(e, station.id, dayStr, hour, slotIndex)}
+                                  onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
+                                  onDrop={(e) => !isDisabled && handleDrop(e, station.id, dayStr, hour, slotIndex)}
                                 >
-                                  {/* Hide + on hover in hallMode */}
-                                  {!hallMode && (
+                                  {/* Hide + on hover in hallMode or disabled slots */}
+                                  {!hallMode && !isDisabled && (
                                     <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <Plus className="w-2 h-2 text-primary/50" />
                                       <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
@@ -1649,7 +1673,8 @@ const AdminCalendar = ({
                               );
                             })}
                           </div>
-                        ))}
+                          );
+                        })}
 
                         {/* Drag preview ghost */}
                         {draggedReservation && dragOverStation === station.id && dragOverDate === dayStr && dragPreviewStyle && (
@@ -1947,27 +1972,40 @@ const AdminCalendar = ({
                             dragOverSlot?.hour === hour && 
                             dragOverSlot?.slotIndex === slotIndex;
                           
+                          // Check if this slot is in the past
+                          const slotMinutes = slotIndex * SLOT_MINUTES;
+                          const slotTime = hour * 60 + slotMinutes;
+                          const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
+                          const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
+                          
+                          // Check if this slot is outside working hours (in hatched area)
+                          const slotTimeDecimal = hour + slotMinutes / 60;
+                          const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
+                          
+                          // Disable if past OR outside working hours OR day is closed
+                          const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosed;
+                          
                           return (
                             <div
                               key={slotIndex}
                               className={cn(
-                                "border-b group cursor-pointer transition-colors",
+                                "border-b group transition-colors",
                                 slotIndex % 2 === 0 && "border-border/50",
                                 slotIndex % 2 !== 0 && "border-border/20",
-                                isDropTarget && "bg-primary/30 border-primary",
-                                !isDropTarget && !isDayClosed && "hover:bg-primary/5",
-                                isDayClosed && "pointer-events-none"
+                                isDropTarget && !isDisabled && "bg-primary/30 border-primary",
+                                !isDropTarget && !isDisabled && "hover:bg-primary/5 cursor-pointer",
+                                isDisabled && "cursor-not-allowed pointer-events-none"
                               )}
                               style={{ height: SLOT_HEIGHT }}
-                              onClick={() => !isDayClosed && selectedStationId && handleSlotClick(selectedStationId, hour, slotIndex, dayStr)}
-                              onContextMenu={(e) => !isDayClosed && selectedStationId && handleSlotContextMenu(e, selectedStationId, hour, slotIndex, dayStr)}
-                              onTouchStart={() => !isDayClosed && selectedStationId && handleTouchStart(selectedStationId, hour, slotIndex, dayStr)}
+                              onClick={() => !isDisabled && selectedStationId && handleSlotClick(selectedStationId, hour, slotIndex, dayStr)}
+                              onContextMenu={(e) => !isDisabled && selectedStationId && handleSlotContextMenu(e, selectedStationId, hour, slotIndex, dayStr)}
+                              onTouchStart={() => !isDisabled && selectedStationId && handleTouchStart(selectedStationId, hour, slotIndex, dayStr)}
                               onTouchEnd={handleTouchEnd}
                               onTouchMove={handleTouchMove}
-                              onDragOver={(e) => selectedStationId && handleSlotDragOver(e, selectedStationId, hour, slotIndex, dayStr)}
-                              onDrop={(e) => selectedStationId && handleDrop(e, selectedStationId, dayStr, hour, slotIndex)}
+                              onDragOver={(e) => !isDisabled && selectedStationId && handleSlotDragOver(e, selectedStationId, hour, slotIndex, dayStr)}
+                              onDrop={(e) => !isDisabled && selectedStationId && handleDrop(e, selectedStationId, dayStr, hour, slotIndex)}
                             >
-                              {!hallMode && !isDayClosed && (
+                              {!hallMode && !isDisabled && (
                                 <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Plus className="w-2 h-2 text-primary/50" />
                                   <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
