@@ -316,9 +316,9 @@ const AddReservationDialog = ({
     return nextBlockStart - startTotalMinutes;
   })();
 
-  // Filter duration options based on max available time
+  // Filter duration options based on max available time (+30min buffer for overlaps)
   const DURATION_OPTIONS = maxAvailableMinutes !== null
-    ? BASE_DURATION_OPTIONS.filter(opt => opt.value <= maxAvailableMinutes)
+    ? BASE_DURATION_OPTIONS.filter(opt => opt.value <= maxAvailableMinutes + 30)
     : BASE_DURATION_OPTIONS;
 
   // Effective duration: manual override or service-based
@@ -1132,19 +1132,16 @@ const AddReservationDialog = ({
                       {displayServices.map((service) => {
                         const isSelected = selectedServices.includes(service.id);
                         return (
-                          <button
+                          <Button
                             key={service.id}
                             type="button"
+                            size="sm"
+                            variant={isSelected ? 'default' : 'outline'}
+                            className="w-auto px-3 h-9 font-bold"
                             onClick={() => toggleService(service.id)}
-                            className={cn(
-                              "px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px]",
-                              isSelected
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground hover:bg-accent"
-                            )}
                           >
                             {service.shortcut || service.name}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -1187,49 +1184,77 @@ const AddReservationDialog = ({
               <Label>{t('addReservation.timeAndDuration')}</Label>
               <div className="flex items-center gap-2">
                 {/* Start Time - 15min intervals dropdown */}
-                <Select value={startTime} onValueChange={setStartTime}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder={t('addReservation.selectTime')} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover max-h-60">
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot}>
-                        {slot}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <span className="text-muted-foreground">→</span>
-                
-                {/* Duration dropdown */}
-                {DURATION_OPTIONS.length > 0 ? (
-                  <Select 
-                    value={manualDuration?.toString() || ''} 
-                    onValueChange={handleDurationChange}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder={t('addReservation.selectDuration')} />
+                <div className="flex-1 space-y-1">
+                  <span className="text-xs text-muted-foreground">{t('addReservation.from')}</span>
+                  <Select value={startTime} onValueChange={setStartTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('addReservation.selectTime')} />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {DURATION_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value.toString()}>
-                          {option.label}
+                    <SelectContent className="bg-popover max-h-60">
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {slot}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <div className="flex-1 text-sm text-destructive p-2 border border-destructive/30 rounded-md bg-destructive/10">
-                    {t('addReservation.noDurationOptions', { minutes: maxAvailableMinutes })}
+                </div>
+                
+                {/* Duration dropdown with +15/+30 min quick buttons */}
+                <div className="flex-1 space-y-1">
+                  <span className="text-xs text-muted-foreground">{t('addReservation.duration')}</span>
+                  <div className="flex gap-1">
+                    <Select 
+                      value={manualDuration?.toString() || ''} 
+                      onValueChange={handleDurationChange}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder={t('addReservation.selectDuration')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {DURATION_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="px-2 h-9 text-xs"
+                      onClick={() => setManualDuration((prev) => (prev || effectiveDuration || 60) + 15)}
+                    >
+                      +15
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="px-2 h-9 text-xs"
+                      onClick={() => setManualDuration((prev) => (prev || effectiveDuration || 60) + 30)}
+                    >
+                      +30
+                    </Button>
                   </div>
-                )}
+                </div>
                 
-                <span className="text-muted-foreground">→</span>
-                
-                {/* End time display */}
-                <div className="flex-1 px-3 py-2 rounded-md bg-muted text-center font-medium">
-                  {endTime || '--:--'}
+                {/* End Time - 15min intervals dropdown */}
+                <div className="flex-1 space-y-1">
+                  <span className="text-xs text-muted-foreground">{t('addReservation.to')}</span>
+                  <Select value={endTime} onValueChange={setEndTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="--:--" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover max-h-60">
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {slot}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
