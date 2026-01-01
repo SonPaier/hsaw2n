@@ -23,30 +23,39 @@ const queryClient = new QueryClient();
 const getSubdomainInfo = () => {
   const hostname = window.location.hostname;
   
+  // Debug logging
+  console.log('[Subdomain Detection] hostname:', hostname);
+  
   // Local development - no subdomain detection
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('[Subdomain Detection] → dev mode');
     return { type: 'dev', subdomain: null };
   }
   
   // Check for n2wash.com domain
   if (hostname.endsWith('.n2wash.com')) {
     const subdomain = hostname.replace('.n2wash.com', '');
+    console.log('[Subdomain Detection] subdomain extracted:', subdomain);
     
     // Super admin subdomain
     if (subdomain === 'super.admin') {
+      console.log('[Subdomain Detection] → super_admin mode');
       return { type: 'super_admin', subdomain: 'super.admin' };
     }
     
     // Instance subdomain (e.g., armcar, demo)
+    console.log('[Subdomain Detection] → instance mode:', subdomain);
     return { type: 'instance', subdomain };
   }
   
   // Lovable staging domain - treat as dev
   if (hostname.endsWith('.lovable.app')) {
+    console.log('[Subdomain Detection] → dev mode (lovable.app)');
     return { type: 'dev', subdomain: null };
   }
   
   // Default - unknown domain
+  console.log('[Subdomain Detection] → unknown domain');
   return { type: 'unknown', subdomain: null };
 };
 
