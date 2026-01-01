@@ -1263,7 +1263,7 @@ const AdminDashboard = () => {
           {/* Desktop Notification Bell - now in fixed position via AdminLayout */}
 
           {/* Content */}
-          <div className="flex-1 p-4 space-y-6 overflow-auto pb-20 lg:pb-8">
+          <div className="flex-1 p-4 pt-0 space-y-6 overflow-auto pb-20 lg:pb-8">
             {/* Header - only shown for non-calendar views that need it */}
             {['reservations', 'customers', 'settings'].includes(currentView) && <h1 className="text-2xl font-bold text-foreground">
                 {currentView === 'reservations' ? t('reservations.title') : currentView === 'customers' ? t('customers.title') : t('settings.title')}
