@@ -48,9 +48,9 @@ interface EditInstanceUserDialogProps {
   onSuccess: () => void;
 }
 
-const EMPLOYEE_FEATURES = [
-  { key: 'offers', label: 'Oferty', description: 'Dostęp do modułu generowania ofert' },
-  { key: 'followup', label: 'Follow-up', description: 'Dostęp do modułu follow-up klientów' },
+const getEmployeeFeatures = (t: (key: string) => string) => [
+  { key: 'offers', label: t('editUser.features.offers'), description: t('editUser.features.offersDesc') },
+  { key: 'followup', label: t('editUser.features.followup'), description: t('editUser.features.followupDesc') },
 ];
 
 const EditInstanceUserDialog = ({ 
@@ -138,7 +138,8 @@ const EditInstanceUserDialog = ({
   };
 
   const savePermissions = async (userId: string) => {
-    for (const feature of EMPLOYEE_FEATURES) {
+    const employeeFeatures = getEmployeeFeatures(t);
+    for (const feature of employeeFeatures) {
       const enabled = permissions[feature.key] || false;
       
       const { error } = await supabase
@@ -165,12 +166,12 @@ const EditInstanceUserDialog = ({
     if (!user) return;
 
     if (!username.trim()) {
-      toast.error('Nazwa użytkownika jest wymagana');
+      toast.error(t('editUser.usernameRequired'));
       return;
     }
 
     if (username.length < 3) {
-      toast.error('Nazwa użytkownika musi mieć co najmniej 3 znaki');
+      toast.error(t('editUser.usernameMinLength'));
       return;
     }
 
@@ -179,7 +180,7 @@ const EditInstanceUserDialog = ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.error('Sesja wygasła');
+        toast.error(t('auth.sessionExpired'));
         return;
       }
 
@@ -206,12 +207,12 @@ const EditInstanceUserDialog = ({
         await savePermissions(user.id);
       }
 
-      toast.success('Dane użytkownika zostały zaktualizowane');
+      toast.success(t('editUser.userUpdated'));
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
       console.error('Error updating user:', error);
-      toast.error(error.message || 'Nie udało się zaktualizować użytkownika');
+      toast.error(error.message || t('editUser.updateError'));
     } finally {
       setLoading(false);
     }
@@ -219,53 +220,54 @@ const EditInstanceUserDialog = ({
 
   if (!user) return null;
 
-  const availableFeatures = EMPLOYEE_FEATURES.filter(f => hasFeature(f.key as 'offers' | 'followup'));
+  const employeeFeatures = getEmployeeFeatures(t);
+  const availableFeatures = employeeFeatures.filter(f => hasFeature(f.key as 'offers' | 'followup'));
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edytuj użytkownika</DialogTitle>
+            <DialogTitle>{t('editUser.title')}</DialogTitle>
             <DialogDescription>
-              Zmień dane użytkownika {user.username}.
+              {t('editUser.description', { username: user.username })}
             </DialogDescription>
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Nazwa użytkownika</Label>
+              <Label htmlFor="username">{t('editUser.username')}</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="np. jan.kowalski"
+                placeholder={t('editUser.usernamePlaceholder')}
                 autoComplete="off"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Rola</Label>
+              <Label htmlFor="role">{t('editUser.role')}</Label>
               <Select value={role} onValueChange={handleRoleChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employee">Pracownik</SelectItem>
-                  <SelectItem value="admin">Admin Instancji</SelectItem>
+                  <SelectItem value="employee">{t('editUser.roleEmployee')}</SelectItem>
+                  <SelectItem value="admin">{t('editUser.roleAdmin')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {role === 'admin' 
-                  ? 'Admin ma pełny dostęp do ustawień i zarządzania użytkownikami'
-                  : 'Pracownik ma ograniczony dostęp do wybranych modułów'}
+                  ? t('editUser.adminHint')
+                  : t('editUser.employeeHint')}
               </p>
             </div>
 
             {/* Employee Permissions */}
             {role === 'employee' && availableFeatures.length > 0 && (
               <div className="space-y-3 pt-2 border-t">
-                <Label className="text-sm font-medium">Uprawnienia pracownika</Label>
+                <Label className="text-sm font-medium">{t('editUser.permissions')}</Label>
                 {loadingPermissions ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -299,11 +301,11 @@ const EditInstanceUserDialog = ({
                 onClick={() => onOpenChange(false)}
                 disabled={loading}
               >
-                Anuluj
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Zapisz zmiany
+                {t('editUser.saveChanges')}
               </Button>
             </DialogFooter>
           </form>
@@ -315,30 +317,30 @@ const EditInstanceUserDialog = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
-              Uprawnienia administratora
+              {t('editUser.adminConfirm.title')}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                Administrator instancji będzie miał dostęp do:
+                {t('editUser.adminConfirm.description')}
               </p>
               <ul className="list-disc list-inside text-left space-y-1 text-sm">
-                <li>Wszystkich ustawień instancji</li>
-                <li>Zarządzania użytkownikami</li>
-                <li>Wszystkich modułów aplikacji</li>
-                <li>Tworzenia i usuwania innych kont</li>
+                <li>{t('editUser.adminConfirm.access1')}</li>
+                <li>{t('editUser.adminConfirm.access2')}</li>
+                <li>{t('editUser.adminConfirm.access3')}</li>
+                <li>{t('editUser.adminConfirm.access4')}</li>
               </ul>
               <p className="text-amber-600 flex items-center gap-1 mt-2">
                 <AlertTriangle className="w-4 h-4" />
-                Przyznawaj te uprawnienia tylko zaufanym osobom.
+                {t('editUser.adminConfirm.warning')}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelAdminRole}>
-              Anuluj
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmAdminRole}>
-              Rozumiem, nadaj uprawnienia
+              {t('editUser.adminConfirm.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
