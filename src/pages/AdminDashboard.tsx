@@ -119,6 +119,10 @@ const AdminDashboard = () => {
     id: string;
     name: string;
     shortcut?: string | null;
+    duration_minutes?: number | null;
+    duration_small?: number | null;
+    duration_medium?: number | null;
+    duration_large?: number | null;
   }>>([]);
   const [stations, setStations] = useState<Station[]>([]);
 
@@ -256,7 +260,7 @@ const AdminDashboard = () => {
     if (!instanceId) return;
     const {
       data
-    } = await supabase.from('services').select('id, name, shortcut').eq('instance_id', instanceId).eq('active', true);
+    } = await supabase.from('services').select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large').eq('instance_id', instanceId).eq('active', true);
     if (data) {
       setAllServices(data);
     }
@@ -915,13 +919,49 @@ const AdminDashboard = () => {
   const handleYardVehicleDrop = async (vehicle: { id: string; customer_name: string; customer_phone: string; vehicle_plate: string; car_size: 'small' | 'medium' | 'large' | null; service_ids: string[]; notes: string | null }, stationId: string, date: string, time: string) => {
     if (!instanceId) return;
     
-    // Calculate end time (1 hour default)
+    // Calculate total duration based on services
+    let totalDuration = 60; // Default 1 hour if no services
+    
+    if (vehicle.service_ids && vehicle.service_ids.length > 0) {
+      totalDuration = vehicle.service_ids.reduce((total, serviceId) => {
+        const service = allServices.find(s => s.id === serviceId);
+        if (!service) return total;
+        
+        // Get duration based on car size
+        let duration = service.duration_minutes || 60;
+        if (vehicle.car_size === 'small' && service.duration_small) {
+          duration = service.duration_small;
+        } else if (vehicle.car_size === 'medium' && service.duration_medium) {
+          duration = service.duration_medium;
+        } else if (vehicle.car_size === 'large' && service.duration_large) {
+          duration = service.duration_large;
+        }
+        
+        return total + duration;
+      }, 0);
+      
+      // Minimum 30 minutes
+      if (totalDuration < 30) totalDuration = 30;
+    }
+    
+    // Calculate end time based on duration
     const [hours, mins] = time.split(':').map(Number);
-    const endMinutes = hours * 60 + mins + 60;
+    const endMinutes = hours * 60 + mins + totalDuration;
     const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
     
     // Generate confirmation code
     const confirmationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Get first service ID or fetch a default one
+    let primaryServiceId = vehicle.service_ids?.[0];
+    if (!primaryServiceId && allServices.length > 0) {
+      primaryServiceId = allServices[0].id;
+    }
+    
+    if (!primaryServiceId) {
+      toast.error('Brak usług - dodaj usługę do pojazdu lub utwórz usługę w systemie');
+      return;
+    }
     
     try {
       // Create reservation from yard vehicle data
@@ -935,8 +975,8 @@ const AdminDashboard = () => {
         customer_phone: vehicle.customer_phone,
         vehicle_plate: vehicle.vehicle_plate,
         car_size: vehicle.car_size,
-        service_id: vehicle.service_ids[0] || stations[0]?.id,
-        service_ids: vehicle.service_ids,
+        service_id: primaryServiceId,
+        service_ids: vehicle.service_ids || [],
         notes: vehicle.notes,
         confirmation_code: confirmationCode,
         status: 'confirmed' as const,
