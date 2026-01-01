@@ -7,8 +7,10 @@ import { FollowUpServices } from '@/components/followup/FollowUpServices';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 export default function FollowUpPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export default function FollowUpPage() {
 
   if (loading) {
     return (
-      <AdminLayout title="Follow-up">
+      <AdminLayout title={t('followupPage.title')}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -116,26 +118,26 @@ export default function FollowUpPage() {
 
   if (!instanceId) {
     return (
-      <AdminLayout title="Follow-up">
+      <AdminLayout title={t('followupPage.title')}>
         <div className="text-center py-8 text-muted-foreground">
-          Brak dostępu do instancji
+          {t('followupPage.noAccess')}
         </div>
       </AdminLayout>
     );
   }
 
   return (
-    <AdminLayout title="Follow-up">
+    <AdminLayout title={t('followupPage.title')}>
       <div className="p-4 lg:p-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Follow-up</h1>
-          <p className="text-muted-foreground">Zarządzaj usługami cyklicznymi i przypomnieniami</p>
+          <h1 className="text-2xl font-bold">{t('followupPage.title')}</h1>
+          <p className="text-muted-foreground">{t('followupPage.description')}</p>
         </div>
 
         <Tabs defaultValue="tasks" className="w-full">
           <TabsList>
-            <TabsTrigger value="tasks">Zadania</TabsTrigger>
-            <TabsTrigger value="services">Usługi cykliczne</TabsTrigger>
+            <TabsTrigger value="tasks">{t('followupPage.tabs.tasks')}</TabsTrigger>
+            <TabsTrigger value="services">{t('followupPage.tabs.services')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="tasks" className="mt-4">
