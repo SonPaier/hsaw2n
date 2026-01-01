@@ -289,15 +289,11 @@ const AdminCalendar = ({
       };
     }
     
-    // Add 30-min margin before open and after close for hatched areas
-    // We still need to start from a full hour, so we go 1 hour back but show only 30min hatched
-    const displayStartHour = Math.max(0, workingStartHour - 1);
-    const displayEndHour = Math.min(24, workingEndHour + 1);
-    
+    // No extra hours before/after - we'll add 30min hatched overlay at edges
     return {
-      hours: Array.from({ length: displayEndHour - displayStartHour }, (_, i) => i + displayStartHour),
-      startHour: displayStartHour,
-      endHour: displayEndHour,
+      hours: Array.from({ length: workingEndHour - workingStartHour }, (_, i) => i + workingStartHour),
+      startHour: workingStartHour,
+      endHour: workingEndHour,
       closeTime: dayHours.close,
       workingStartHour,
       workingEndHour
@@ -1123,15 +1119,27 @@ const AdminCalendar = ({
 
               {/* Station columns */}
               {visibleStations.map((station, idx) => {
-                // Calculate hatched areas position and height - 30 min (half hour) only
-                const HALF_HOUR_HEIGHT = HOUR_HEIGHT / 2;
-                const fullBeforeHeight = (WORKING_START_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
-                const beforeOpenHeight = Math.min(fullBeforeHeight, HALF_HOUR_HEIGHT);
-                const beforeOpenTop = fullBeforeHeight - beforeOpenHeight; // Position at bottom of margin area
+                // Calculate past time overlay - everything before current time should be hatched
+                const now = new Date();
+                const currentDateObj = new Date(currentDateStr);
+                const isToday = format(now, 'yyyy-MM-dd') === currentDateStr;
+                const isPastDay = currentDateObj < new Date(format(now, 'yyyy-MM-dd'));
                 
-                const afterCloseTop = (WORKING_END_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
-                const fullAfterHeight = HOURS.length * HOUR_HEIGHT - afterCloseTop;
-                const afterCloseHeight = Math.min(fullAfterHeight, HALF_HOUR_HEIGHT);
+                // For past days, hatch the entire column
+                // For today, hatch everything before current time
+                let pastHatchHeight = 0;
+                if (isPastDay) {
+                  pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                } else if (isToday) {
+                  const currentHour = now.getHours();
+                  const currentMinute = now.getMinutes();
+                  // Calculate how much of the calendar is in the past
+                  if (currentHour >= WORKING_START_HOUR) {
+                    const hoursFromStart = currentHour - WORKING_START_HOUR;
+                    const minuteSlots = Math.floor(currentMinute / SLOT_MINUTES);
+                    pastHatchHeight = hoursFromStart * HOUR_HEIGHT + minuteSlots * SLOT_HEIGHT;
+                  }
+                }
                 
                 return (
                 <div 
@@ -1145,19 +1153,11 @@ const AdminCalendar = ({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
                 >
-                  {/* Hatched area BEFORE opening hours - 30min strip just before open */}
-                  {beforeOpenHeight > 0 && (
+                  {/* Hatched area for PAST time slots */}
+                  {pastHatchHeight > 0 && (
                     <div 
-                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-10"
-                      style={{ top: beforeOpenTop, height: beforeOpenHeight }}
-                    />
-                  )}
-                  
-                  {/* Hatched area AFTER closing hours */}
-                  {afterCloseHeight > 0 && (
-                    <div 
-                      className="absolute left-0 right-0 hatched-pattern pointer-events-none z-10"
-                      style={{ top: afterCloseTop, height: afterCloseHeight }}
+                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                      style={{ height: pastHatchHeight }}
                     />
                   )}
                   
@@ -1168,8 +1168,13 @@ const AdminCalendar = ({
                         const isDropTarget = dragOverStation === station.id && 
                           dragOverSlot?.hour === hour && 
                           dragOverSlot?.slotIndex === slotIndex;
-                        const isOutsideWorkingHours = hour < WORKING_START_HOUR || hour >= WORKING_END_HOUR;
                         
+                        // Check if this slot is in the past
+                        const slotMinutes = slotIndex * SLOT_MINUTES;
+                        const slotTime = hour * 60 + slotMinutes;
+                        const nowTime = now.getHours() * 60 + now.getMinutes();
+                        const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
+                        const isDisabled = isSlotInPast;
                         return (
                           <div
                             key={slotIndex}
@@ -1177,20 +1182,20 @@ const AdminCalendar = ({
                               "border-b group transition-colors",
                               slotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
                               isDropTarget && "bg-primary/30 border-primary",
-                              !isDropTarget && !isOutsideWorkingHours && "hover:bg-primary/10 cursor-pointer",
-                              isOutsideWorkingHours && "cursor-not-allowed"
+                              !isDropTarget && !isDisabled && "hover:bg-primary/10 cursor-pointer",
+                              isDisabled && "cursor-not-allowed"
                             )}
                             style={{ height: SLOT_HEIGHT }}
-                            onClick={() => !isOutsideWorkingHours && handleSlotClick(station.id, hour, slotIndex)}
-                            onContextMenu={(e) => !isOutsideWorkingHours && handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
-                            onTouchStart={() => !isOutsideWorkingHours && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
+                            onClick={() => !isDisabled && handleSlotClick(station.id, hour, slotIndex)}
+                            onContextMenu={(e) => !isDisabled && handleSlotContextMenu(e, station.id, hour, slotIndex, currentDateStr)}
+                            onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
                             onTouchEnd={handleTouchEnd}
                             onTouchMove={handleTouchMove}
                             onDragOver={(e) => handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
                             onDrop={(e) => handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
                           >
-                            {/* Hide + on hover in hallMode or outside working hours */}
-                            {!hallMode && !isOutsideWorkingHours && (
+                            {/* Hide + on hover in hallMode or disabled slots */}
+                            {!hallMode && !isDisabled && (
                               <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Plus className="w-3 h-3 text-primary/50" />
                                 <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
