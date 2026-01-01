@@ -79,6 +79,7 @@ export function YardVehicleDialog({ open, onClose, instanceId, onSuccess, editin
   const [carSize, setCarSize] = useState<CarSize | ''>('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
+  const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
   const [deadlineTime, setDeadlineTime] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -481,7 +482,7 @@ export function YardVehicleDialog({ open, onClose, instanceId, onSuccess, editin
               <CalendarIcon className="w-4 h-4" />
               Data przyjazdu *
             </Label>
-            <Popover>
+            <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -498,7 +499,12 @@ export function YardVehicleDialog({ open, onClose, instanceId, onSuccess, editin
                 <Calendar
                   mode="single"
                   selected={arrivalDate}
-                  onSelect={(date) => date && setArrivalDate(date)}
+                  onSelect={(date) => {
+                    if (date) {
+                      setArrivalDate(date);
+                      setArrivalDateOpen(false);
+                    }
+                  }}
                   locale={pl}
                   className="pointer-events-auto"
                 />
