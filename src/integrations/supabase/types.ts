@@ -1698,6 +1698,62 @@ export type Database = {
           },
         ]
       }
+      yard_vehicles: {
+        Row: {
+          arrival_date: string
+          car_size: Database["public"]["Enums"]["car_size"] | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          deadline_time: string | null
+          id: string
+          instance_id: string
+          notes: string | null
+          service_ids: Json | null
+          status: string
+          updated_at: string
+          vehicle_plate: string
+        }
+        Insert: {
+          arrival_date?: string
+          car_size?: Database["public"]["Enums"]["car_size"] | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          deadline_time?: string | null
+          id?: string
+          instance_id: string
+          notes?: string | null
+          service_ids?: Json | null
+          status?: string
+          updated_at?: string
+          vehicle_plate: string
+        }
+        Update: {
+          arrival_date?: string
+          car_size?: Database["public"]["Enums"]["car_size"] | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          deadline_time?: string | null
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          service_ids?: Json | null
+          status?: string
+          updated_at?: string
+          vehicle_plate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yard_vehicles_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1101,7 +1101,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} instanceId={instanceId || undefined} />
               </div>}
 
             {currentView === 'reservations' && (
