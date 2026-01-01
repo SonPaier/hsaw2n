@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Check, ArrowLeft } from 'lucide-react';
+import { Trash2, Check } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -136,17 +136,7 @@ export default function NotificationsView({
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onNavigateBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Powiadomienia</h1>
-            <p className="text-sm text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} nieprzeczytanych` : 'Wszystko przeczytane'}
-            </p>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold">Powiadomienia</h1>
         <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
