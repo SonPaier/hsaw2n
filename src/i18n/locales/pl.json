@@ -685,7 +685,9 @@
     "aiSuggesting": "AI sugeruje...",
     "automatic": "Automatycznie",
     "multiDayHint": "Dla rezerwacji wielodniowych wybierz datę rozpoczęcia i zakończenia.",
-    "endTimeError": "Godzina zakończenia nie może być późniejsza niż {{time}}"
+    "endTimeError": "Godzina zakończenia nie może być późniejsza niż {{time}}",
+    "timeAndDuration": "Godzina i czas trwania",
+    "selectTime": "Wybierz godzinę"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",
