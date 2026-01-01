@@ -65,8 +65,9 @@ interface AvailabilityBlock {
   end_time: string;
   station_id: string;
 }
-interface CustomerBookingWizardProps {
+export interface CustomerBookingWizardProps {
   onLayoutChange?: (hidden: boolean) => void;
+  instanceSubdomain?: string;
 }
 const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
 const MIN_LEAD_TIME_MINUTES = 30;
@@ -117,7 +118,8 @@ function OTPInputWithAutoFocus({
     </div>;
 }
 export default function CustomerBookingWizard({
-  onLayoutChange
+  onLayoutChange,
+  instanceSubdomain
 }: CustomerBookingWizardProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('phone');
@@ -439,9 +441,35 @@ export default function CustomerBookingWizard({
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const {
-        data: instanceData
-      } = await supabase.from('instances').select('*').eq('active', true).limit(1).maybeSingle();
+      
+      let instanceData;
+      
+      // If subdomain is provided, fetch instance by subdomain
+      if (instanceSubdomain) {
+        const { data } = await supabase
+          .from('instances')
+          .select('*')
+          .eq('subdomain', instanceSubdomain)
+          .eq('active', true)
+          .maybeSingle();
+        instanceData = data;
+        
+        // Fallback: try by slug if subdomain not found
+        if (!instanceData) {
+          const { data: slugData } = await supabase
+            .from('instances')
+            .select('*')
+            .eq('slug', instanceSubdomain)
+            .eq('active', true)
+            .maybeSingle();
+          instanceData = slugData;
+        }
+      } else {
+        // Default: get first active instance (for dev/local)
+        const { data } = await supabase.from('instances').select('*').eq('active', true).limit(1).maybeSingle();
+        instanceData = data;
+      }
+      
       if (instanceData) {
         const parsedInstance: Instance = {
           id: instanceData.id,
@@ -479,7 +507,7 @@ export default function CustomerBookingWizard({
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [instanceSubdomain]);
   const popularServices = services.filter(s => POPULAR_KEYWORDS.some(k => s.name.toLowerCase().includes(k))).slice(0, 3);
   const otherServices = services.filter(s => !popularServices.includes(s));
   const getServicePrice = (service: Service): number => {

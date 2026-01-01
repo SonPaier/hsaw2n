@@ -3,7 +3,11 @@ import { Helmet } from 'react-helmet-async';
 import ClientLayout from '@/components/layout/ClientLayout';
 import CustomerBookingWizard from '@/components/booking/CustomerBookingWizard';
 
-const Rezerwacje = () => {
+interface RezerwacjeProps {
+  instanceSubdomain?: string;
+}
+
+const Rezerwacje = ({ instanceSubdomain }: RezerwacjeProps) => {
   const [hideLayout, setHideLayout] = useState(false);
 
   return (
@@ -14,7 +18,7 @@ const Rezerwacje = () => {
       </Helmet>
 
       <ClientLayout hideHeader={hideLayout} hideFooter={hideLayout}>
-        <CustomerBookingWizard onLayoutChange={setHideLayout} />
+        <CustomerBookingWizard onLayoutChange={setHideLayout} instanceSubdomain={instanceSubdomain} />
       </ClientLayout>
     </>
   );

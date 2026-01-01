@@ -19,65 +19,174 @@ import IOSInstallPrompt from "./components/pwa/IOSInstallPrompt";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <IOSInstallPrompt />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
-              <Route path="/rezerwacje" element={<Rezerwacje />} />
-              <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
-              <Route path="/oferta/:token" element={<PublicOfferView />} />
-              {/* Instance-specific login route */}
-              <Route path="/:slug/login" element={<InstanceAuth />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin/hall" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <HallView />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route
-                path="/admin/:view" 
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/super-admin" 
-                element={
-                  <ProtectedRoute requiredRole="super_admin">
-                    <SuperAdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              {/* Legacy routes - redirect to new auth */}
-              <Route path="/admin/login" element={<Auth />} />
-              <Route path="/super-admin/login" element={<Auth />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+// Helper function to detect subdomain from hostname
+const getSubdomainInfo = () => {
+  const hostname = window.location.hostname;
+  
+  // Local development - no subdomain detection
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return { type: 'dev', subdomain: null };
+  }
+  
+  // Check for n2wash.com domain
+  if (hostname.endsWith('.n2wash.com')) {
+    const subdomain = hostname.replace('.n2wash.com', '');
+    
+    // Super admin subdomain
+    if (subdomain === 'super.admin') {
+      return { type: 'super_admin', subdomain: 'super.admin' };
+    }
+    
+    // Instance subdomain (e.g., armcar, demo)
+    return { type: 'instance', subdomain };
+  }
+  
+  // Lovable staging domain - treat as dev
+  if (hostname.endsWith('.lovable.app')) {
+    return { type: 'dev', subdomain: null };
+  }
+  
+  // Default - unknown domain
+  return { type: 'unknown', subdomain: null };
+};
+
+// Super Admin Routes Component
+const SuperAdminRoutes = () => (
+  <Routes>
+    <Route 
+      path="/" 
+      element={
+        <ProtectedRoute requiredRole="super_admin">
+          <SuperAdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route path="/login" element={<Auth />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
 );
+
+// Instance Routes Component - for xyz.n2wash.com subdomains
+const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
+  <Routes>
+    {/* Public booking view at root */}
+    <Route path="/" element={<Rezerwacje instanceSubdomain={subdomain} />} />
+    <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
+    <Route path="/oferta/:token" element={<PublicOfferView />} />
+    
+    {/* Admin login - redirects to instance-specific auth */}
+    <Route path="/admin/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
+    
+    {/* Protected admin routes */}
+    <Route 
+      path="/admin" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/hall" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <HallView />
+        </ProtectedRoute>
+      } 
+    />
+    <Route
+      path="/admin/:view" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
+// Development Routes - full access for local testing
+const DevRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
+    <Route path="/rezerwacje" element={<Rezerwacje />} />
+    <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
+    <Route path="/oferta/:token" element={<PublicOfferView />} />
+    {/* Instance-specific login route */}
+    <Route path="/:slug/login" element={<InstanceAuth />} />
+    <Route path="/auth" element={<Auth />} />
+    <Route 
+      path="/admin" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/hall" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <HallView />
+        </ProtectedRoute>
+      } 
+    />
+    <Route
+      path="/admin/:view" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/super-admin" 
+      element={
+        <ProtectedRoute requiredRole="super_admin">
+          <SuperAdminDashboard />
+        </ProtectedRoute>
+      } 
+    />
+    {/* Legacy routes - redirect to new auth */}
+    <Route path="/admin/login" element={<Auth />} />
+    <Route path="/super-admin/login" element={<Auth />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
+const App = () => {
+  const subdomainInfo = getSubdomainInfo();
+
+  const renderRoutes = () => {
+    switch (subdomainInfo.type) {
+      case 'super_admin':
+        return <SuperAdminRoutes />;
+      case 'instance':
+        return <InstanceRoutes subdomain={subdomainInfo.subdomain!} />;
+      case 'dev':
+      default:
+        return <DevRoutes />;
+    }
+  };
+
+  return (
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <IOSInstallPrompt />
+            <BrowserRouter>
+              {renderRoutes()}
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  );
+};
 
 export default App;
