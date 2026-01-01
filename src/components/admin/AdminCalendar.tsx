@@ -1471,7 +1471,7 @@ const AdminCalendar = ({
 
                   {/* Breaks */}
                   {getBreaksForStation(station.id).map((breakItem) => {
-                    const style = getReservationStyle(breakItem.start_time, breakItem.end_time);
+                    const style = getReservationStyle(breakItem.start_time, breakItem.end_time, DISPLAY_START_TIME);
                     
                     return (
                       <div
@@ -1585,32 +1585,56 @@ const AdminCalendar = ({
 
           {/* Calendar Grid - Two Days View */}
           <div className="flex-1 overflow-auto">
-            <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+            <div className="flex relative" style={{ minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT }}>
               {/* Time column */}
               <div className="w-10 md:w-16 shrink-0 border-r border-border bg-muted/10">
-                {HOURS.map((hour) => (
+                {HOURS.map((hour, hourIndex) => {
+                  // Calculate which slots to show for this hour
+                  const isFirstHour = hourIndex === 0;
+                  const isLastHour = hourIndex === HOURS.length - 1;
+                  const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                  const endSlotOffset = isLastHour 
+                    ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                    : SLOTS_PER_HOUR;
+                  const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
+                  
+                  if (slotsToRender <= 0) return null;
+                  
+                  return (
                   <div 
                     key={hour}
                     className="relative"
-                    style={{ height: HOUR_HEIGHT }}
+                    style={{ height: slotsToRender * SLOT_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </span>
+                    {/* Only show hour label if we're showing the :00 slot */}
+                    {slotsToSkip === 0 && (
+                      <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
+                        {`${hour.toString().padStart(2, '0')}:00`}
+                      </span>
+                    )}
+                    {slotsToSkip > 0 && (
+                      <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
+                        {`${hour.toString().padStart(2, '0')}:${(slotsToSkip * SLOT_MINUTES).toString().padStart(2, '0')}`}
+                      </span>
+                    )}
                     <div className="absolute left-0 right-0 top-0 h-full">
-                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
+                      {Array.from({ length: slotsToRender }, (_, i) => {
+                        const actualSlotIndex = i + slotsToSkip;
+                        return (
                         <div 
                           key={i} 
                           className={cn(
                             "border-b",
-                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                            actualSlotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
                           )}
                           style={{ height: SLOT_HEIGHT }}
                         />
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Day columns with stations */}
@@ -1624,19 +1648,22 @@ const AdminCalendar = ({
                 return (
                   <div key={dayStr} className={cn("flex-1 flex", dayIdx < 1 && "border-r-2 border-border")}>
                     {visibleStations.map((station, stationIdx) => {
-                      // Calculate past hatch height for this day
+                      // Get hours info for this specific day
+                      const dayHours = getHoursForDate(day);
+                      const totalVisibleHeight = (dayHours.displayEndTime - dayHours.displayStartTime) * HOUR_HEIGHT;
+                      
+                      // Calculate past hatch height for this day (relative to displayStartTime)
                       const nowDate = new Date();
                       let pastHatchHeight = 0;
                       if (isPastDay) {
-                        pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                        pastHatchHeight = totalVisibleHeight;
                       } else if (isDayToday) {
                         const currentHour = nowDate.getHours();
                         const currentMinute = nowDate.getMinutes();
                         const currentTimeDecimal = currentHour + currentMinute / 60;
-                        const dayHours = getHoursForDate(day);
-                        if (currentTimeDecimal >= dayHours.startHour) {
-                          const timeFromStart = currentTimeDecimal - dayHours.startHour;
-                          pastHatchHeight = timeFromStart * HOUR_HEIGHT;
+                        if (currentTimeDecimal >= dayHours.displayStartTime) {
+                          const timeFromStart = currentTimeDecimal - dayHours.displayStartTime;
+                          pastHatchHeight = Math.min(timeFromStart * HOUR_HEIGHT, totalVisibleHeight);
                         }
                       }
                       
@@ -1662,58 +1689,44 @@ const AdminCalendar = ({
                         )}
                         
                         {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
-                        {(() => {
-                          const dayHours = getHoursForDate(day);
-                          if (dayHours.displayStartTime < dayHours.workingStartTime) {
-                            return (
-                              <div 
-                                className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
-                                style={{ 
-                                  top: (dayHours.displayStartTime - dayHours.startHour) * HOUR_HEIGHT,
-                                  height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
-                                }}
-                              />
-                            );
-                          }
-                          return null;
-                        })()}
+                        {dayHours.displayStartTime < dayHours.workingStartTime && (
+                          <div 
+                            className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                            style={{ 
+                              top: 0,
+                              height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
+                            }}
+                          />
+                        )}
                         
                         {/* Hatched area AFTER working hours (exactly 30 min margin) */}
-                        {(() => {
-                          const dayHours = getHoursForDate(day);
-                          if (dayHours.displayEndTime > dayHours.workingEndTime) {
-                            return (
-                              <div 
-                                className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
-                                style={{ 
-                                  top: (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT, 
-                                  height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
-                                }}
-                              />
-                            );
-                          }
-                          return null;
-                        })()}
+                        {dayHours.displayEndTime > dayHours.workingEndTime && (
+                          <div 
+                            className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
+                            style={{ 
+                              top: (dayHours.workingEndTime - dayHours.displayStartTime) * HOUR_HEIGHT, 
+                              height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
+                            }}
+                          />
+                        )}
                         {/* 15-minute grid slots */}
-                        {HOURS.map((hour) => {
-                          const dayHoursForSlots = getHoursForDate(day);
+                        {HOURS.map((hour, hourIndex) => {
+                          const isFirstHour = hourIndex === 0;
+                          const isLastHour = hourIndex === HOURS.length - 1;
+                          const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                          const endSlotOffset = isLastHour 
+                            ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                            : SLOTS_PER_HOUR;
+                          const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
+                          
+                          if (slotsToRender <= 0) return null;
+                          
                           return (
-                          <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                            {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                          <div key={hour} style={{ height: slotsToRender * SLOT_HEIGHT }}>
+                            {Array.from({ length: slotsToRender }, (_, i) => {
+                              const slotIndex = i + slotsToSkip;
                               const slotMinutes = slotIndex * SLOT_MINUTES;
                               const slotTimeDecimal = hour + slotMinutes / 60;
-                              
-                              // Skip slots outside the display range
-                              const isOutsideDisplayRange = slotTimeDecimal < dayHoursForSlots.displayStartTime || slotTimeDecimal >= dayHoursForSlots.displayEndTime;
-                              if (isOutsideDisplayRange) {
-                                return (
-                                  <div 
-                                    key={slotIndex} 
-                                    style={{ height: SLOT_HEIGHT }} 
-                                    className="border-b border-transparent"
-                                  />
-                                );
-                              }
                               
                               const isDropTarget = dragOverStation === station.id && 
                                 dragOverDate === dayStr &&
@@ -1726,7 +1739,7 @@ const AdminCalendar = ({
                               const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
                               
                               // Check if this slot is outside working hours (in hatched area)
-                              const isOutsideWorkingHours = slotTimeDecimal < dayHoursForSlots.workingStartTime || slotTimeDecimal >= dayHoursForSlots.workingEndTime;
+                              const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
                               
                               // Disable if past OR outside working hours OR day is closed
                               const isDayClosed = isDateClosed(dayStr);
@@ -1781,7 +1794,7 @@ const AdminCalendar = ({
                         {/* Reservations */}
                         {getReservationsForStationAndDate(station.id, dayStr).map((reservation) => {
                           const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, dayStr);
-                          const style = getReservationStyle(displayStart, displayEnd);
+                          const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                           const isDragging = draggedReservation?.id === reservation.id;
                           const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                           
@@ -1941,32 +1954,55 @@ const AdminCalendar = ({
 
           {/* Calendar Grid - Week View with single station */}
           <div className="flex-1 overflow-auto">
-            <div className="flex relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
+            <div className="flex relative" style={{ minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT }}>
               {/* Time column */}
               <div className="w-16 md:w-20 shrink-0 border-r border-border bg-muted/10">
-                {HOURS.map((hour) => (
+                {HOURS.map((hour, hourIndex) => {
+                  // Calculate which slots to show for this hour
+                  const isFirstHour = hourIndex === 0;
+                  const isLastHour = hourIndex === HOURS.length - 1;
+                  const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                  const endSlotOffset = isLastHour 
+                    ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                    : SLOTS_PER_HOUR;
+                  const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
+                  
+                  if (slotsToRender <= 0) return null;
+                  
+                  return (
                   <div 
                     key={hour}
                     className="relative"
-                    style={{ height: HOUR_HEIGHT }}
+                    style={{ height: slotsToRender * SLOT_HEIGHT }}
                   >
-                    <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </span>
+                    {slotsToSkip === 0 && (
+                      <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
+                        {`${hour.toString().padStart(2, '0')}:00`}
+                      </span>
+                    )}
+                    {slotsToSkip > 0 && (
+                      <span className="absolute -top-2 right-1 md:right-2 text-[10px] md:text-xs text-foreground bg-background px-1 z-10">
+                        {`${hour.toString().padStart(2, '0')}:${(slotsToSkip * SLOT_MINUTES).toString().padStart(2, '0')}`}
+                      </span>
+                    )}
                     <div className="absolute left-0 right-0 top-0 h-full">
-                      {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
+                      {Array.from({ length: slotsToRender }, (_, i) => {
+                        const actualSlotIndex = i + slotsToSkip;
+                        return (
                         <div 
                           key={i} 
                           className={cn(
                             "border-b",
-                            i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
+                            actualSlotIndex === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40"
                           )}
                           style={{ height: SLOT_HEIGHT }}
                         />
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Day columns for selected station */}
@@ -1982,22 +2018,23 @@ const AdminCalendar = ({
                   ? getBreaksForStationAndDate(selectedStationId, dayStr)
                   : [];
                 const dayHours = getHoursForDate(day);
+                const totalVisibleHeight = (dayHours.displayEndTime - dayHours.displayStartTime) * HOUR_HEIGHT;
                 
-                // Calculate past hatch height
+                // Calculate past hatch height (relative to displayStartTime)
                 const today = startOfDay(new Date());
                 const dayDate = startOfDay(day);
                 const isPastDay = isBefore(dayDate, today);
                 const nowDate = new Date();
                 let pastHatchHeight = 0;
                 if (isPastDay) {
-                  pastHatchHeight = HOURS.length * HOUR_HEIGHT;
+                  pastHatchHeight = totalVisibleHeight;
                 } else if (isDayToday) {
                   const currentHour = nowDate.getHours();
                   const currentMinute = nowDate.getMinutes();
                   const currentTimeDecimal = currentHour + currentMinute / 60;
-                  if (currentTimeDecimal >= dayHours.startHour) {
-                    const timeFromStart = currentTimeDecimal - dayHours.startHour;
-                    pastHatchHeight = timeFromStart * HOUR_HEIGHT;
+                  if (currentTimeDecimal >= dayHours.displayStartTime) {
+                    const timeFromStart = currentTimeDecimal - dayHours.displayStartTime;
+                    pastHatchHeight = Math.min(timeFromStart * HOUR_HEIGHT, totalVisibleHeight);
                   }
                 }
                 
@@ -2027,7 +2064,7 @@ const AdminCalendar = ({
                       <div 
                         className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                         style={{ 
-                          top: (dayHours.displayStartTime - dayHours.startHour) * HOUR_HEIGHT,
+                          top: 0,
                           height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
                         }}
                       />
@@ -2038,7 +2075,7 @@ const AdminCalendar = ({
                       <div 
                         className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                         style={{ 
-                          top: (dayHours.workingEndTime - dayHours.startHour) * HOUR_HEIGHT, 
+                          top: (dayHours.workingEndTime - dayHours.displayStartTime) * HOUR_HEIGHT, 
                           height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
                         }}
                       />
@@ -2056,23 +2093,23 @@ const AdminCalendar = ({
                     )}
 
                     {/* Hour grid slots */}
-                    {HOURS.map((hour) => (
-                      <div key={hour} style={{ height: HOUR_HEIGHT }}>
-                        {Array.from({ length: SLOTS_PER_HOUR }, (_, slotIndex) => {
+                    {HOURS.map((hour, hourIndex) => {
+                      const isFirstHour = hourIndex === 0;
+                      const isLastHour = hourIndex === HOURS.length - 1;
+                      const slotsToSkip = isFirstHour ? START_SLOT_OFFSET : 0;
+                      const endSlotOffset = isLastHour 
+                        ? Math.round((DISPLAY_END_TIME - hour) * SLOTS_PER_HOUR)
+                        : SLOTS_PER_HOUR;
+                      const slotsToRender = Math.max(0, endSlotOffset - slotsToSkip);
+                      
+                      if (slotsToRender <= 0) return null;
+                      
+                      return (
+                      <div key={hour} style={{ height: slotsToRender * SLOT_HEIGHT }}>
+                        {Array.from({ length: slotsToRender }, (_, i) => {
+                          const slotIndex = i + slotsToSkip;
                           const slotMinutes = slotIndex * SLOT_MINUTES;
                           const slotTimeDecimal = hour + slotMinutes / 60;
-                          
-                          // Skip slots outside the display range
-                          const isOutsideDisplayRange = slotTimeDecimal < dayHours.displayStartTime || slotTimeDecimal >= dayHours.displayEndTime;
-                          if (isOutsideDisplayRange) {
-                            return (
-                              <div 
-                                key={slotIndex} 
-                                style={{ height: SLOT_HEIGHT }} 
-                                className="border-b border-transparent"
-                              />
-                            );
-                          }
                           
                           const isDropTarget = selectedStationId && 
                             dragOverStation === selectedStationId && 
@@ -2121,7 +2158,8 @@ const AdminCalendar = ({
                           );
                         })}
                       </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Drag preview ghost */}
                     {selectedStationId && draggedReservation && dragOverStation === selectedStationId && dragOverDate === dayStr && dragPreviewStyle && (
@@ -2138,7 +2176,7 @@ const AdminCalendar = ({
                     {/* Reservations */}
                     {dayReservations.map((reservation) => {
                       const { displayStart, displayEnd } = getDisplayTimesForDate(reservation, dayStr);
-                      const style = getReservationStyle(displayStart, displayEnd, dayHours.startHour);
+                      const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                       const isDragging = draggedReservation?.id === reservation.id;
                       const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                       const selectedStation = stations.find(s => s.id === selectedStationId);
@@ -2217,7 +2255,7 @@ const AdminCalendar = ({
 
                     {/* Breaks */}
                     {dayBreaks.map((breakItem) => {
-                      const style = getReservationStyle(breakItem.start_time, breakItem.end_time, dayHours.startHour);
+                      const style = getReservationStyle(breakItem.start_time, breakItem.end_time, dayHours.displayStartTime);
                       
                       return (
                         <div
