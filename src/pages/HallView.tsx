@@ -332,6 +332,7 @@ const HallView = () => {
           showStationFilter={false}
           showWeekView={false}
           hallMode={true}
+          instanceId={instanceId || undefined}
         />
         
         <HallNextReservations 
