@@ -256,9 +256,9 @@ const CustomerEditDrawer = ({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-3">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
+          <SheetHeader className="pr-8">
+            <SheetTitle className="flex items-center gap-2">
               <div className="flex-1 min-w-0">
                 <div className="text-xl font-semibold truncate">
                   {isAddMode ? t('customers.newCustomer') : (isEditing ? editName || customer?.name : customer?.name)}
@@ -270,7 +270,7 @@ const CustomerEditDrawer = ({
                     variant="ghost"
                     size="icon"
                     onClick={handleSmsButton}
-                    className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
                     <MessageSquare className="w-4 h-4" />
                   </Button>
@@ -278,7 +278,7 @@ const CustomerEditDrawer = ({
                     variant="ghost"
                     size="icon"
                     onClick={handleCall}
-                    className="h-9 w-9 text-success hover:text-success hover:bg-success/10"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -305,7 +305,6 @@ const CustomerEditDrawer = ({
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     placeholder={t('common.phone')}
-                    disabled={!isAddMode}
                   />
                 </div>
                 <div>

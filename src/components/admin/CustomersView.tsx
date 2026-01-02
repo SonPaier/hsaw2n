@@ -239,7 +239,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                       onClick={e => handleSms(customer, e)}
                     >
                       <MessageSquare className="w-4 h-4" />
@@ -247,7 +247,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-success hover:text-success hover:bg-success/10"
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                       onClick={e => handleCall(customer.phone, e)}
                     >
                       <Phone className="w-4 h-4" />
