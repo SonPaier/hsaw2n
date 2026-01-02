@@ -283,6 +283,9 @@
     "saved": "Dane klienta zapisane",
     "visitHistory": "Historia wizyt",
     "noVisitHistory": "Brak historii wizyt",
+    "deleted": "Klient został usunięty",
+    "confirmDeleteTitle": "Usuń klienta",
+    "confirmDeleteDescription": "Czy na pewno chcesz usunąć klienta {{name}}? Ta operacja jest nieodwracalna.",
     "tabs": {
       "carWash": "Myjnia",
       "offers": "Oferty"

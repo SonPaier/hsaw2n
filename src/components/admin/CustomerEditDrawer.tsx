@@ -11,7 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -345,10 +346,10 @@ const CustomerEditDrawer = ({
             ) : (
               // View mode with tabs
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'visits')}>
-                <TabsList variant="light" className="w-full grid grid-cols-2 mb-4">
-                  <TabsTrigger value="info">{t('common.details')}</TabsTrigger>
-                  <TabsTrigger value="visits">{t('customers.visitHistory')}</TabsTrigger>
-                </TabsList>
+                <AdminTabsList className="mb-4">
+                  <AdminTabsTrigger value="info">{t('common.details')}</AdminTabsTrigger>
+                  <AdminTabsTrigger value="visits">{t('customers.visitHistory')}</AdminTabsTrigger>
+                </AdminTabsList>
 
                 <TabsContent value="info" className="space-y-4 mt-0">
                   {/* Phone */}
