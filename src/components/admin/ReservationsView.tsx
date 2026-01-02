@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Search, Phone, MessageSquare, Check, Pencil, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
+import { Search, Phone, MessageSquare, Check, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,11 +11,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceTag from './ServiceTag';
+import CustomerDetailsDrawer from './CustomerDetailsDrawer';
+import { supabase } from '@/integrations/supabase/client';
+
 interface Service {
   id: string;
   name: string;
   shortcut?: string | null;
 }
+
 interface Reservation {
   id: string;
   instance_id: string;
@@ -43,6 +47,19 @@ interface Reservation {
   };
   price: number | null;
 }
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  notes: string | null;
+  company?: string | null;
+  nip?: string | null;
+  address?: string | null;
+  source?: string;
+}
+
 interface ReservationsViewProps {
   reservations: Reservation[];
   allServices: Service[];
@@ -50,8 +67,11 @@ interface ReservationsViewProps {
   onConfirmReservation: (reservationId: string) => void;
   onRejectReservation: (reservationId: string) => void;
 }
+
 type TabValue = 'all' | 'confirmed' | 'pending';
+
 const DEBOUNCE_MS = 300;
+
 const ReservationsView = ({
   reservations,
   allServices,
@@ -59,30 +79,28 @@ const ReservationsView = ({
   onConfirmReservation,
   onRejectReservation
 }: ReservationsViewProps) => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [reservationToReject, setReservationToReject] = useState<string | null>(null);
+  const [reservationToReject, setReservationToReject] = useState<Reservation | null>(null);
+  
+  // Customer drawer state
+  const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+
   const formatDateHeader = (dateStr: string): string => {
     const date = parseISO(dateStr);
     if (isToday(date)) {
-      return `${t('dates.today')}, ${format(date, 'd MMMM', {
-        locale: pl
-      })}`;
+      return `${t('dates.today')}, ${format(date, 'd MMMM', { locale: pl })}`;
     }
     if (isTomorrow(date)) {
-      return `${t('dates.tomorrow')}, ${format(date, 'd MMMM', {
-        locale: pl
-      })}`;
+      return `${t('dates.tomorrow')}, ${format(date, 'd MMMM', { locale: pl })}`;
     }
-    return format(date, 'EEEE, d MMMM', {
-      locale: pl
-    });
+    return format(date, 'EEEE, d MMMM', { locale: pl });
   };
 
   // Debounce search query
@@ -104,6 +122,7 @@ const ReservationsView = ({
       resDate.setHours(0, 0, 0, 0);
       return resDate >= today;
     });
+
     switch (tab) {
       case 'confirmed':
         return upcomingItems.filter(r => r.status === 'confirmed');
@@ -137,6 +156,7 @@ const ReservationsView = ({
       if (dateCompare !== 0) return dateCompare;
       return (a.start_time || '').localeCompare(b.start_time || '');
     });
+
     const groups: Record<string, Reservation[]> = {};
     for (const reservation of sorted) {
       const date = reservation.reservation_date;
@@ -147,6 +167,7 @@ const ReservationsView = ({
     }
     return groups;
   }, [searchFilteredReservations]);
+
   const groupDates = Object.keys(groupedReservations).sort();
 
   // Counts for tabs
@@ -164,157 +185,306 @@ const ReservationsView = ({
       pending: upcomingItems.filter(r => r.status === 'pending' || !r.status).length
     };
   }, [reservations]);
-  const handleRejectClick = (e: React.MouseEvent, reservationId: string) => {
+
+  const handleRejectClick = (e: React.MouseEvent, reservation: Reservation) => {
     e.stopPropagation();
-    setReservationToReject(reservationId);
+    setReservationToReject(reservation);
     setRejectDialogOpen(true);
   };
+
   const handleConfirmReject = () => {
     if (reservationToReject) {
-      onRejectReservation(reservationToReject);
+      onRejectReservation(reservationToReject.id);
       setRejectDialogOpen(false);
       setReservationToReject(null);
     }
   };
+
   const handleCancelReject = () => {
     setRejectDialogOpen(false);
     setReservationToReject(null);
   };
+
+  const handleCustomerClick = async (e: React.MouseEvent, reservation: Reservation) => {
+    e.stopPropagation();
+    
+    // Fetch customer data from database
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('instance_id', reservation.instance_id)
+      .eq('phone', reservation.customer_phone)
+      .maybeSingle();
+    
+    if (customer) {
+      setSelectedCustomer(customer);
+    } else {
+      // Create a temporary customer object from reservation data
+      setSelectedCustomer({
+        id: '',
+        name: reservation.customer_name,
+        phone: reservation.customer_phone,
+        email: null,
+        notes: null,
+      });
+    }
+    setSelectedInstanceId(reservation.instance_id);
+    setCustomerDrawerOpen(true);
+  };
+
   const renderServicePills = (reservation: Reservation) => {
     const services = reservation.services_data || (reservation.service ? [reservation.service] : []);
     if (services.length === 0) return null;
-    return <div className="flex flex-wrap gap-1 mt-1">
-        {services.map((service, idx) => <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />)}
-      </div>;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {services.map((service, idx) => (
+          <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />
+        ))}
+      </div>
+    );
   };
+
   const renderReservationCard = (reservation: Reservation) => {
     const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
     const isPending = reservation.status === 'pending' || !reservation.status;
-    return <div key={reservation.id} onClick={() => onReservationClick(reservation)} className={cn("p-4 transition-colors cursor-pointer hover:bg-muted/50", isPending && "bg-amber-500/5")}>
+
+    return (
+      <div
+        key={reservation.id}
+        onClick={() => onReservationClick(reservation)}
+        className={cn(
+          "p-4 transition-colors cursor-pointer hover:bg-muted/50",
+          isPending && "bg-amber-500/5"
+        )}
+      >
         {/* Desktop layout */}
-        <div className="hidden sm:flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
-              {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+        <div className="hidden sm:flex items-start justify-between gap-4">
+          {/* Left side - info */}
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className={cn(
+              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+              isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600"
+            )}>
+              {isPending ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
             </div>
-            <div className="min-w-0 flex-1">
+            
+            <div className="min-w-0 flex-1 space-y-1.5">
+              {/* Row 1: Time, Station */}
+              <div className="flex items-center gap-3 text-sm">
+                <span className="font-medium text-foreground tabular-nums flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  {timeRange}
+                </span>
+                {reservation.station && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">{reservation.station.name}</span>
+                  </>
+                )}
+              </div>
+              
+              {/* Row 2: Car, Customer name (clickable) */}
               <div className="flex items-center gap-2">
                 <span className="font-medium text-foreground">{reservation.vehicle_plate}</span>
                 <span className="text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground truncate">{reservation.customer_name}</span>
+                <button
+                  onClick={(e) => handleCustomerClick(e, reservation)}
+                  className="text-sm text-primary hover:underline truncate"
+                >
+                  {reservation.customer_name}
+                </button>
               </div>
+              
+              {/* Row 3: Services */}
               {renderServicePills(reservation)}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right">
-              <div className="font-medium text-foreground tabular-nums flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                {timeRange}
-              </div>
-              {reservation.station && <div className="text-xs text-muted-foreground">{reservation.station.name}</div>}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-                <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title={t('common.call')}>
-                  <Phone className="w-4 h-4" />
-                </a>
+          {/* Right side - actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isPending && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white h-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConfirmReservation(reservation.id);
+                }}
+              >
+                <Check className="w-4 h-4" />
+                {t('common.confirm')}
               </Button>
-              <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-                <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} title={t('common.sendSms')}>
-                  <MessageSquare className="w-4 h-4" />
-                </a>
-              </Button>
-              {isPending && <Button size="sm" variant="outline" className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white h-8" onClick={e => {
-              e.stopPropagation();
-              onConfirmReservation(reservation.id);
-            }}>
-                  <Check className="w-4 h-4" />
-                  {t('common.confirm')}
-                </Button>}
-              <Button size="icon" variant="ghost" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)} title={t('reservations.rejectReservation')}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+              asChild
+            >
+              <a
+                href={`sms:${reservation.customer_phone}`}
+                onClick={(e) => e.stopPropagation()}
+                title={t('common.sendSms')}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+              asChild
+            >
+              <a
+                href={`tel:${reservation.customer_phone}`}
+                onClick={(e) => e.stopPropagation()}
+                title={t('common.call')}
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+              onClick={(e) => handleRejectClick(e, reservation)}
+              title={t('reservations.rejectReservation')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
         {/* Mobile layout */}
         <div className="sm:hidden space-y-3">
           <div className="flex items-start gap-3">
-            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
-              {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+            <div className={cn(
+              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+              isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600"
+            )}>
+              {isPending ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-foreground">{reservation.vehicle_plate}</div>
-              <div className="text-sm text-muted-foreground">{reservation.customer_name}</div>
-              <div className="mt-1 text-sm font-medium text-foreground tabular-nums">
+            <div className="flex-1 min-w-0 space-y-1">
+              {/* Row 1: Time, Station */}
+              <div className="text-sm font-medium text-foreground tabular-nums flex items-center gap-2">
                 {timeRange}
-                {reservation.station && <span className="text-muted-foreground font-normal"> • {reservation.station.name}</span>}
+                {reservation.station && (
+                  <span className="text-muted-foreground font-normal">• {reservation.station.name}</span>
+                )}
               </div>
+              
+              {/* Row 2: Car, Customer name */}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground">{reservation.vehicle_plate}</span>
+                <span className="text-muted-foreground">•</span>
+                <button
+                  onClick={(e) => handleCustomerClick(e, reservation)}
+                  className="text-sm text-primary hover:underline truncate"
+                >
+                  {reservation.customer_name}
+                </button>
+              </div>
+              
+              {/* Row 3: Services */}
               {renderServicePills(reservation)}
             </div>
           </div>
+          
+          {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-1">
-            <Button variant="outline" size="icon" className="h-9 w-9" asChild>
-              <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
-                <Phone className="w-4 h-4" />
-              </a>
-            </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9" asChild>
-              <a href={`sms:${reservation.customer_phone}`} onClick={e => e.stopPropagation()}>
+            {isPending && (
+              <Button
+                variant="outline"
+                className="h-9 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConfirmReservation(reservation.id);
+                }}
+              >
+                <Check className="w-4 h-4" />
+                {t('common.confirm')}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+              asChild
+            >
+              <a href={`sms:${reservation.customer_phone}`} onClick={(e) => e.stopPropagation()}>
                 <MessageSquare className="w-4 h-4" />
               </a>
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+              asChild
+            >
+              <a href={`tel:${reservation.customer_phone}`} onClick={(e) => e.stopPropagation()}>
+                <Phone className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-muted"
+              onClick={(e) => handleRejectClick(e, reservation)}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
-            {isPending && <Button variant="outline" className="h-9 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
-            e.stopPropagation();
-            onConfirmReservation(reservation.id);
-          }}>
-                <Check className="w-4 h-4" />
-                {t('common.confirm')}
-              </Button>}
           </div>
         </div>
-      </div>;
+      </div>
+    );
   };
-  return <div className="space-y-4">
+
+  return (
+    <div className="space-y-4">
       {/* Search bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder={t('reservations.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+        <Input
+          placeholder={t('reservations.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all" className="gap-1.5">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+        <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsTrigger value="all" className="gap-1.5 data-[state=active]:bg-background">
             {t('common.all')}
-            {counts.all > 0 && <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+            {counts.all > 0 && (
+              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.all}
-              </Badge>}
+              </Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="confirmed" className="gap-1.5">
+          <TabsTrigger value="confirmed" className="gap-1.5 data-[state=active]:bg-background">
             {t('reservations.confirmed')}
-            {counts.confirmed > 0 && <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+            {counts.confirmed > 0 && (
+              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.confirmed}
-              </Badge>}
+              </Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-1.5">
+          <TabsTrigger value="pending" className="gap-1.5 data-[state=active]:bg-background">
             {t('reservations.pending')}
-            {counts.pending > 0 && <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
+            {counts.pending > 0 && (
+              <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
                 {counts.pending}
-              </Badge>}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4">
-          {groupDates.length === 0 ? <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          {groupDates.length === 0 ? (
+            <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center mb-6">
                 <Calendar className="w-10 h-10 text-muted-foreground" />
               </div>
@@ -322,10 +492,19 @@ const ReservationsView = ({
                 {t('reservations.noReservations')}
               </h3>
               <p className="text-muted-foreground max-w-sm">
-                {debouncedQuery ? t('reservations.noSearchResults') : activeTab === 'pending' ? t('reservations.noPending') : activeTab === 'confirmed' ? t('reservations.noConfirmed') : t('reservations.noUpcoming')}
+                {debouncedQuery
+                  ? t('reservations.noSearchResults')
+                  : activeTab === 'pending'
+                    ? t('reservations.noPending')
+                    : activeTab === 'confirmed'
+                      ? t('reservations.noConfirmed')
+                      : t('reservations.noUpcoming')}
               </p>
-            </div> : <div>
-              {groupDates.map(date => <div key={date}>
+            </div>
+          ) : (
+            <div>
+              {groupDates.map((date) => (
+                <div key={date}>
                   {/* Sticky date header */}
                   <div className="sticky top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
                     <div className="px-4 py-1 rounded-full bg-transparent">
@@ -337,32 +516,53 @@ const ReservationsView = ({
 
                   {/* Reservations for this date */}
                   <div className="glass-card overflow-hidden divide-y divide-border/50 mb-4">
-                    {groupedReservations[date].map(reservation => renderReservationCard(reservation))}
+                    {groupedReservations[date].map((reservation) =>
+                      renderReservationCard(reservation)
+                    )}
                   </div>
-                </div>)}
-            </div>}
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Reject confirmation dialog */}
-      <AlertDialog open={rejectDialogOpen} onOpenChange={open => {
-      if (!open) handleCancelReject();
-    }}>
+      {/* Reject confirmation dialog - same flow as calendar */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReject(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('reservations.rejectConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('reservations.confirmRejectTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('reservations.rejectConfirmDescription')}
+              {t('reservations.confirmRejectDescription', { 
+                name: reservationToReject?.customer_name || '', 
+                phone: reservationToReject?.customer_phone || '' 
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelReject}>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmReject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleConfirmReject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               {t('reservations.yesReject')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>;
+
+      {/* Customer details drawer */}
+      <CustomerDetailsDrawer
+        customer={selectedCustomer}
+        instanceId={selectedInstanceId}
+        open={customerDrawerOpen}
+        onClose={() => {
+          setCustomerDrawerOpen(false);
+          setSelectedCustomer(null);
+        }}
+      />
+    </div>
+  );
 };
+
 export default ReservationsView;
