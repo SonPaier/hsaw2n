@@ -506,8 +506,17 @@
     "backgroundColor": "Kolor tła",
     "bookingDaysAhead": "Dni rezerwacji z wyprzedzeniem",
     "autoConfirmReservations": "Automatyczne potwierdzanie rezerwacji",
-    "saved": "Zapisano",
-    "saveFailed": "Błąd podczas zapisywania"
+    "saved": "Ustawienia zapisane",
+    "saveError": "Błąd podczas zapisywania ustawień",
+    "tabs": {
+      "company": "Dane firmy",
+      "pricelist": "Cennik",
+      "stations": "Stanowiska",
+      "hours": "Godziny pracy",
+      "app": "Ustawienia aplikacji",
+      "sms": "Wiadomości SMS",
+      "users": "Użytkownicy"
+    }
   },
   "users": {
     "title": "Użytkownicy",
