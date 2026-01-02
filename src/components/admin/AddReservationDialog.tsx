@@ -110,13 +110,25 @@ interface EditingReservation {
   price?: number | null;
 }
 
+interface YardVehicle {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  car_size: CarSize | null;
+  service_ids: string[];
+  arrival_date: string;
+  deadline_time: string | null;
+  notes: string | null;
+}
+
 interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
-  stationId: string;
+  stationId?: string;
   stationType?: string;
-  date: string;
-  time: string;
+  date?: string;
+  time?: string;
   instanceId: string;
   onSuccess: () => void;
   existingReservations?: ExistingReservation[];
@@ -124,6 +136,10 @@ interface AddReservationDialogProps {
   workingHours?: Record<string, WorkingHours | null> | null;
   /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
+  /** Mode: 'reservation' (default) or 'yard' for yard vehicle management */
+  mode?: 'reservation' | 'yard';
+  /** Yard vehicle to edit when mode='yard' */
+  editingYardVehicle?: YardVehicle | null;
 }
 
 // CAR_SIZE_LABELS moved inside component for i18n
@@ -133,19 +149,22 @@ const AddReservationDialog = ({
   onClose,
   stationId,
   stationType,
-  date,
-  time,
+  date = '',
+  time = '',
   instanceId,
   onSuccess,
   existingReservations = [],
   existingBreaks = [],
   workingHours = null,
   editingReservation = null,
+  mode = 'reservation',
+  editingYardVehicle = null,
 }: AddReservationDialogProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   
-  const isEditMode = !!editingReservation;
+  const isYardMode = mode === 'yard';
+  const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
 
   const CAR_SIZE_LABELS: Record<CarSize, string> = {
     small: t('reservations.carSizes.small'),
@@ -183,6 +202,11 @@ const AddReservationDialog = ({
   // PPF specific fields
   const [offerNumber, setOfferNumber] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Yard mode fields
+  const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
+  const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
+  const [deadlineTime, setDeadlineTime] = useState('');
   
   const isPPFStation = stationType === 'ppf';
 
@@ -232,7 +256,37 @@ const AddReservationDialog = ({
   // Reset form when dialog opens or populate with editing data
   useEffect(() => {
     if (open) {
-      if (editingReservation) {
+      if (isYardMode && editingYardVehicle) {
+        // Yard edit mode - populate with yard vehicle data
+        setCustomerName(editingYardVehicle.customer_name || '');
+        setPhone(editingYardVehicle.customer_phone || '');
+        setCarModel(editingYardVehicle.vehicle_plate || '');
+        setCarSize(editingYardVehicle.car_size || 'medium');
+        setSelectedServices(editingYardVehicle.service_ids || []);
+        setArrivalDate(new Date(editingYardVehicle.arrival_date));
+        setDeadlineTime(editingYardVehicle.deadline_time || '');
+        setNotes(editingYardVehicle.notes || '');
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowCustomerDropdown(false);
+        setServicesOpen(false);
+        setErrors({});
+      } else if (isYardMode) {
+        // Yard create mode - reset for yard
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setArrivalDate(new Date());
+        setDeadlineTime('');
+        setNotes('');
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowCustomerDropdown(false);
+        setServicesOpen(false);
+        setErrors({});
+      } else if (editingReservation) {
         // Edit mode - populate with existing reservation data
         setCustomerName(editingReservation.customer_name || '');
         setPhone(editingReservation.customer_phone || '');
@@ -302,10 +356,12 @@ const AddReservationDialog = ({
         setDateRangeOpen(false);
         setOfferNumber('');
         setNotes('');
+        setArrivalDate(new Date());
+        setDeadlineTime('');
         setErrors({});
       }
     }
-  }, [open, time, date, stationType, editingReservation, isPPFStation]);
+  }, [open, time, date, stationType, editingReservation, isPPFStation, isYardMode, editingYardVehicle]);
 
   // Get duration and price for selected car size
   const getServiceDuration = (service: Service): number => {
@@ -589,6 +645,79 @@ const AddReservationDialog = ({
     // Validate required fields
     const newErrors: Record<string, string> = {};
     
+    // Yard mode validation
+    if (isYardMode) {
+      if (!customerName.trim()) {
+        toast.error(t('addReservation.customerNameRequired'));
+        return;
+      }
+      if (!phone.trim()) {
+        toast.error(t('addReservation.phoneRequired'));
+        return;
+      }
+      if (!carModel.trim()) {
+        toast.error(t('addReservation.carModelRequired'));
+        return;
+      }
+      if (selectedServices.length === 0) {
+        newErrors.services = t('addReservation.selectAtLeastOneService');
+      }
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+      
+      setErrors({});
+      setLoading(true);
+      
+      try {
+        const vehicleData = {
+          instance_id: instanceId,
+          customer_name: customerName.trim(),
+          customer_phone: phone.trim(),
+          vehicle_plate: carModel.trim(),
+          car_size: carSize || null,
+          service_ids: selectedServices,
+          arrival_date: format(arrivalDate, 'yyyy-MM-dd'),
+          deadline_time: deadlineTime || null,
+          notes: notes.trim() || null,
+        };
+
+        if (editingYardVehicle) {
+          // Update existing
+          const { error } = await supabase
+            .from('yard_vehicles')
+            .update(vehicleData)
+            .eq('id', editingYardVehicle.id);
+
+          if (error) throw error;
+          toast.success(t('addReservation.yardVehicleUpdated'));
+        } else {
+          // Insert new
+          const { error } = await supabase
+            .from('yard_vehicles')
+            .insert({
+              ...vehicleData,
+              status: 'waiting'
+            });
+
+          if (error) throw error;
+          toast.success(t('addReservation.yardVehicleAdded'));
+        }
+
+        onSuccess();
+        onClose();
+      } catch (error) {
+        console.error('Error saving yard vehicle:', error);
+        toast.error(t('addReservation.yardVehicleError'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Regular reservation validation
     // Service is required for washing stations, optional for others
     const isWashingStation = stationType === 'washing';
     if (isWashingStation && selectedServices.length === 0) {
@@ -837,21 +966,91 @@ const AddReservationDialog = ({
     }
   }, [pendingAutoSubmit, loading]);
 
+  // Generate time options (every 15 min) for yard deadline
+  const yardTimeOptions = [];
+  for (let h = 6; h <= 22; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      yardTimeOptions.push(timeStr);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader className="shrink-0">
           <DialogTitle>
-            {isEditMode ? t('reservations.editReservation') : t('addReservation.title')}
+            {isYardMode 
+              ? (isEditMode ? t('addReservation.yardEditTitle') : t('addReservation.yardTitle'))
+              : (isEditMode ? t('reservations.editReservation') : t('addReservation.title'))
+            }
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            {isEditMode ? t('reservations.editReservation') : t('addReservation.formDescription')}
+          <DialogDescription>
+            {isYardMode 
+              ? t('addReservation.yardDescription')
+              : (isEditMode ? t('reservations.editReservation') : t('addReservation.formDescription'))
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
-          {/* Date and Time Info - with range picker for PPF */}
-          {isPPFStation ? (
+          {/* Yard mode: Arrival Date and Deadline */}
+          {isYardMode ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4" />
+                  {t('addReservation.arrivalDate')}
+                </Label>
+                <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !arrivalDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {arrivalDate ? format(arrivalDate, 'PPP', { locale: pl }) : t('addReservation.selectDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={arrivalDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setArrivalDate(date);
+                          setArrivalDateOpen(false);
+                        }
+                      }}
+                      locale={pl}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  {t('addReservation.deadline')}
+                </Label>
+                <Select value={deadlineTime} onValueChange={setDeadlineTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="--:--" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover max-h-60">
+                    <SelectItem value="none">{t('common.noResults')}</SelectItem>
+                    {yardTimeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : isPPFStation ? (
+            /* Date and Time Info - with range picker for PPF */
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4" />
@@ -1130,8 +1329,8 @@ const AddReservationDialog = ({
             </div>
           </div>
 
-          {/* Services Multi-Select - hidden for PPF */}
-          {!isPPFStation && (
+          {/* Services Multi-Select - shown for yard mode and non-PPF stations */}
+          {(isYardMode || !isPPFStation) && (
             <div className="space-y-2">
               <Label className={cn(
                 "flex items-center justify-between",
@@ -1292,8 +1491,8 @@ const AddReservationDialog = ({
             </>
           )}
 
-          {/* Time and Duration - hidden for PPF as it's already in the date range section */}
-          {!isPPFStation && (
+          {/* Time and Duration - hidden for PPF and Yard mode */}
+          {!isPPFStation && !isYardMode && (
             <div className="space-y-2">
               <Label>{t('addReservation.timeAndDuration')}</Label>
               <div className="flex items-center gap-2">
