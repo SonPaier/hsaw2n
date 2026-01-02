@@ -1,0 +1,526 @@
+import { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { Phone, MessageSquare, Mail, Car, Calendar, Clock, Save, X, Plus } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import SendSmsDialog from './SendSmsDialog';
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  notes: string | null;
+  company?: string | null;
+  nip?: string | null;
+  address?: string | null;
+  source?: string;
+}
+
+interface VisitHistory {
+  id: string;
+  reservation_date: string;
+  start_time: string;
+  vehicle_plate: string;
+  service_name: string | null;
+  price: number | null;
+  status: string | null;
+}
+
+interface CustomerEditDrawerProps {
+  customer: Customer | null;
+  instanceId: string | null;
+  open: boolean;
+  onClose: () => void;
+  onCustomerUpdated?: () => void;
+  isAddMode?: boolean;
+}
+
+const CustomerEditDrawer = ({ 
+  customer, 
+  instanceId, 
+  open, 
+  onClose, 
+  onCustomerUpdated,
+  isAddMode = false 
+}: CustomerEditDrawerProps) => {
+  const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  const [visits, setVisits] = useState<VisitHistory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'info' | 'visits'>('info');
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(isAddMode);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [editNip, setEditNip] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      if (isAddMode) {
+        // Reset for new customer
+        setIsEditing(true);
+        setEditName('');
+        setEditPhone('');
+        setEditEmail('');
+        setEditNotes('');
+        setEditCompany('');
+        setEditNip('');
+        setEditAddress('');
+        setVisits([]);
+        setActiveTab('info');
+      } else if (customer && instanceId) {
+        fetchVisitHistory();
+        setIsEditing(false);
+        setEditName(customer.name);
+        setEditPhone(customer.phone);
+        setEditEmail(customer.email || '');
+        setEditNotes(customer.notes || '');
+        setEditCompany(customer.company || '');
+        setEditNip(customer.nip || '');
+        setEditAddress(customer.address || '');
+        setActiveTab('info');
+      }
+    }
+  }, [customer, instanceId, open, isAddMode]);
+
+  const fetchVisitHistory = async () => {
+    if (!customer || !instanceId) return;
+    
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        reservation_date,
+        start_time,
+        vehicle_plate,
+        price,
+        status,
+        services:service_id (name)
+      `)
+      .eq('instance_id', instanceId)
+      .eq('customer_phone', customer.phone)
+      .order('reservation_date', { ascending: false })
+      .order('start_time', { ascending: false });
+    
+    if (!error && data) {
+      setVisits(data.map(v => ({
+        id: v.id,
+        reservation_date: v.reservation_date,
+        start_time: v.start_time,
+        vehicle_plate: v.vehicle_plate,
+        service_name: v.services ? (v.services as any).name : null,
+        price: v.price,
+        status: v.status,
+      })));
+    }
+    setLoading(false);
+  };
+
+  const handleCall = () => {
+    if (customer) {
+      window.location.href = `tel:${customer.phone}`;
+    }
+  };
+
+  const handleSmsButton = () => {
+    if (!customer) return;
+    if (isMobile) {
+      window.location.href = `sms:${customer.phone}`;
+    } else {
+      setSmsDialogOpen(true);
+    }
+  };
+
+  const handleSaveCustomer = async () => {
+    if (!instanceId) return;
+    
+    if (!editName.trim() || !editPhone.trim()) {
+      toast.error(t('common.required'));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (isAddMode) {
+        // Create new customer
+        const { error } = await supabase
+          .from('customers')
+          .insert({
+            instance_id: instanceId,
+            name: editName.trim(),
+            phone: editPhone.trim(),
+            email: editEmail.trim() || null,
+            notes: editNotes.trim() || null,
+            company: editCompany.trim() || null,
+            nip: editNip.trim() || null,
+            address: editAddress.trim() || null,
+            source: 'myjnia',
+          });
+        
+        if (error) throw error;
+        toast.success(t('customers.saved'));
+      } else if (customer) {
+        // Update existing customer
+        const { error } = await supabase
+          .from('customers')
+          .update({
+            name: editName.trim(),
+            email: editEmail.trim() || null,
+            notes: editNotes.trim() || null,
+            company: editCompany.trim() || null,
+            nip: editNip.trim() || null,
+            address: editAddress.trim() || null,
+          })
+          .eq('id', customer.id);
+        
+        if (error) throw error;
+        toast.success(t('customers.saved'));
+      }
+      
+      setIsEditing(false);
+      onCustomerUpdated?.();
+      if (isAddMode) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error(t('errors.generic'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (isAddMode) {
+      onClose();
+    } else {
+      setIsEditing(false);
+      setEditName(customer?.name || '');
+      setEditPhone(customer?.phone || '');
+      setEditEmail(customer?.email || '');
+      setEditNotes(customer?.notes || '');
+      setEditCompany(customer?.company || '');
+      setEditNip(customer?.nip || '');
+      setEditAddress(customer?.address || '');
+    }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case 'confirmed': return t('reservations.confirmed');
+      case 'completed': return t('hall.completed');
+      case 'cancelled': return t('reservations.cancelled');
+      case 'in_progress': return t('hall.inProgress');
+      case 'released': return t('reservations.statuses.released');
+      default: return t('reservations.pending');
+    }
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'confirmed': return 'bg-green-500/10 text-green-600';
+      case 'completed': return 'bg-sky-500/10 text-sky-600';
+      case 'cancelled': return 'bg-destructive/10 text-destructive';
+      case 'in_progress': return 'bg-green-500/10 text-green-600';
+      case 'released': return 'bg-gray-500/10 text-gray-600';
+      case 'pending': return 'bg-yellow-500/10 text-yellow-600';
+      default: return 'bg-yellow-500/10 text-yellow-600';
+    }
+  };
+
+  // Get unique vehicles from visits
+  const uniqueVehicles = useMemo(() => {
+    return [...new Set(visits.map(v => v.vehicle_plate))];
+  }, [visits]);
+
+  const handleClose = () => {
+    setIsEditing(isAddMode);
+    onClose();
+  };
+
+  if (!customer && !isAddMode) return null;
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={handleClose}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto" hideOverlay>
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary text-lg font-semibold">
+                {(isEditing ? editName : customer?.name || '?').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="truncate">
+                  {isAddMode ? t('customers.newCustomer') : (isEditing ? editName || customer?.name : customer?.name)}
+                </div>
+                {!isAddMode && customer && (
+                  <div className="text-base font-normal text-muted-foreground">{customer.phone}</div>
+                )}
+              </div>
+              {!isAddMode && !isEditing && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSmsButton}
+                    className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCall}
+                    className="h-9 w-9 text-success hover:text-success hover:bg-success/10"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6">
+            {isAddMode || isEditing ? (
+              // Edit/Add Form
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('customers.fullName')} *</label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder={t('customers.fullName')}
+                  />
+                </div>
+                {isAddMode && (
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">{t('common.phone')} *</label>
+                    <Input
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder={t('common.phone')}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('common.email')}</label>
+                  <Input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder={t('common.email')}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('customers.company')}</label>
+                  <Input
+                    value={editCompany}
+                    onChange={(e) => setEditCompany(e.target.value)}
+                    placeholder={t('customers.company')}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('customers.nip')}</label>
+                  <Input
+                    value={editNip}
+                    onChange={(e) => setEditNip(e.target.value)}
+                    placeholder={t('customers.nip')}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('customers.address')}</label>
+                  <Input
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder={t('customers.address')}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('common.notes')}</label>
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder={t('customers.notesPlaceholder')}
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={handleSaveCustomer}
+                    disabled={saving}
+                    className="flex-1 gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {saving ? t('common.loading') : t('common.save')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
+                    className="gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    {t('common.cancel')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // View mode with tabs
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'visits')}>
+                <TabsList variant="light" className="w-full grid grid-cols-2 mb-4">
+                  <TabsTrigger value="info">{t('common.details')}</TabsTrigger>
+                  <TabsTrigger value="visits">{t('customers.visitHistory')}</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="info" className="space-y-4 mt-0">
+                  {/* Contact info */}
+                  <div className="space-y-2 text-sm">
+                    {customer?.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{customer.email}</span>
+                      </div>
+                    )}
+                    {customer?.company && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{t('customers.company')}:</span> {customer.company}
+                      </div>
+                    )}
+                    {customer?.nip && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{t('customers.nip')}:</span> {customer.nip}
+                      </div>
+                    )}
+                    {customer?.address && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{t('customers.address')}:</span> {customer.address}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Vehicles */}
+                  {uniqueVehicles.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Car className="w-4 h-4" />
+                        {t('customers.vehicles')}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {uniqueVehicles.map((plate) => (
+                          <div
+                            key={plate}
+                            className="px-3 py-1.5 bg-slate-700/90 text-white rounded-full text-sm font-mono"
+                          >
+                            {plate}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {customer?.notes && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">{t('common.notes')}</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Edit button */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="w-full mt-4"
+                  >
+                    {t('common.edit')}
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="visits" className="mt-0">
+                  {loading ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      {t('common.loading')}
+                    </div>
+                  ) : visits.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      {t('customers.noVisitHistory')}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visits.map((visit) => (
+                        <div
+                          key={visit.id}
+                          className="p-3 bg-muted/30 rounded-lg border border-border/50"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="font-medium text-sm">
+                              {format(new Date(visit.reservation_date), 'd MMMM yyyy', { locale: pl })}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {visit.start_time?.slice(0, 5)}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-muted-foreground">
+                              {visit.service_name || t('reservations.service')} • {visit.vehicle_plate}
+                            </div>
+                            {visit.price && (
+                              <div className="font-medium">
+                                {visit.price} zł
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-1">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(visit.status)}`}>
+                              {getStatusLabel(visit.status)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* SMS Dialog */}
+      {customer && (
+        <SendSmsDialog
+          phone={customer.phone}
+          customerName={customer.name}
+          instanceId={instanceId}
+          open={smsDialogOpen}
+          onClose={() => setSmsDialogOpen(false)}
+        />
+      )}
+    </>
+  );
+};
+
+export default CustomerEditDrawer;
