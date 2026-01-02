@@ -1067,7 +1067,7 @@ const AdminCalendar = ({
       {viewMode === 'day' && (
         <>
           {/* Station Headers - sticky */}
-          <div className="flex border-b border-border/50 bg-card sticky top-12 z-30">
+          <div className="flex border-b border-border/50 bg-card sticky top-12 z-40">
             {/* Time column header */}
             <div className="w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50">
               <Clock className="w-5 h-5" />
@@ -1492,7 +1492,7 @@ const AdminCalendar = ({
               {/* Current time indicator with time label */}
               {showCurrentTime && (
                 <div 
-                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  className="absolute left-0 right-0 z-20 pointer-events-none"
                   style={{ top: currentTimeTop }}
                 >
                   <div className="flex items-center">
@@ -1515,7 +1515,7 @@ const AdminCalendar = ({
       {viewMode === 'two-days' && (
         <>
           {/* Day and Station Headers */}
-          <div className="flex border-b border-border bg-muted/20">
+          <div className="flex border-b border-border bg-muted/20 sticky top-12 z-40">
             {/* Time column header */}
             <div className="w-10 md:w-16 shrink-0 p-1 md:p-2 text-center text-xs font-medium text-muted-foreground border-r border-border">
               <Clock className="w-4 h-4 mx-auto" />
@@ -1861,7 +1861,7 @@ const AdminCalendar = ({
               {/* Current time indicator */}
               {twoDays.some(d => isSameDay(d, new Date())) && currentHour >= 8 && currentHour <= 18 && (
                 <div 
-                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  className="absolute left-0 right-0 z-20 pointer-events-none"
                   style={{ top: currentTimeTop }}
                 >
                   <div className="flex items-center">
@@ -2278,7 +2278,7 @@ const AdminCalendar = ({
               {/* Current time indicator */}
               {weekDays.some(d => isSameDay(d, new Date())) && showCurrentTime && (
                 <div 
-                  className="absolute left-0 right-0 z-30 pointer-events-none"
+                  className="absolute left-0 right-0 z-20 pointer-events-none"
                   style={{ top: currentTimeTop }}
                 >
                   <div className="flex items-center">
