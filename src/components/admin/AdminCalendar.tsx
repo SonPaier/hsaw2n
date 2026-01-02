@@ -132,7 +132,7 @@ const getStatusColor = (status: string, stationType?: string) => {
       case 'pending':
         return 'bg-amber-100 border-amber-300 text-amber-900';
       case 'in_progress':
-        return 'bg-emerald-300 border-emerald-700 text-emerald-900 border-2';
+        return 'bg-emerald-200 border-emerald-400 text-emerald-900';
       case 'completed':
         return 'bg-sky-200 border-sky-400 text-sky-900';
       case 'released':
@@ -153,8 +153,8 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Zielony pastelowy - potwierdzona
       return 'bg-emerald-200 border-emerald-400 text-emerald-900';
     case 'in_progress':
-      // Ciemniejszy zielony z 2px borderem - w trakcie pracy
-      return 'bg-emerald-300 border-emerald-700 text-emerald-900 border-2';
+      // Taki sam jak confirmed - z pulsującą kropką przy godzinach
+      return 'bg-emerald-200 border-emerald-400 text-emerald-900';
     case 'completed':
       // Niebieski pastelowy - gotowy do wydania
       return 'bg-sky-200 border-sky-400 text-sky-900';
@@ -1369,7 +1369,10 @@ const AdminCalendar = ({
                                 }
                               </div>
                             ) : (
-                              <span className="text-xs md:text-sm font-bold tabular-nums shrink-0">
+                              <span className="text-xs md:text-sm font-bold tabular-nums shrink-0 flex items-center gap-1">
+                                {reservation.status === 'in_progress' && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                )}
                                 {isMultiDay
                                   ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
                                   : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
@@ -1840,7 +1843,10 @@ const AdminCalendar = ({
                                 )}
                                 {/* Hide time row in hallMode */}
                                 {!hallMode && (
-                                  <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block">
+                                  <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block flex items-center gap-1">
+                                    {reservation.status === 'in_progress' && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                    )}
                                     {isMultiDay 
                                       ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
                                       : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
@@ -2207,7 +2213,10 @@ const AdminCalendar = ({
                                 <Car className="w-2 h-2 shrink-0" />
                                 <span className="truncate">{reservation.vehicle_plate}</span>
                                 {!hallMode && (
-                                  <span className="opacity-80 shrink-0 ml-0.5">
+                                  <span className="opacity-80 shrink-0 ml-0.5 flex items-center gap-0.5">
+                                    {reservation.status === 'in_progress' && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    )}
                                     {isMultiDay 
                                       ? `${displayStart.slice(0, 5)}`
                                       : reservation.start_time.slice(0, 5)
