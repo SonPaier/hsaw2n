@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceTag from './ServiceTag';
-import CustomerDetailsDrawer from './CustomerDetailsDrawer';
+import CustomerEditDrawer from './CustomerEditDrawer';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Service {
@@ -551,8 +551,8 @@ const ReservationsView = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Customer details drawer */}
-      <CustomerDetailsDrawer
+      {/* Customer edit drawer */}
+      <CustomerEditDrawer
         customer={selectedCustomer}
         instanceId={selectedInstanceId}
         open={customerDrawerOpen}
