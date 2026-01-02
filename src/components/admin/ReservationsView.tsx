@@ -195,7 +195,7 @@ const ReservationsView = ({
         {/* Desktop layout */}
         <div className="hidden sm:flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary")}>
+            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
               {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
             </div>
             <div className="min-w-0 flex-1">
@@ -246,7 +246,7 @@ const ReservationsView = ({
         {/* Mobile layout */}
         <div className="sm:hidden space-y-3">
           <div className="flex items-start gap-3">
-            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary")}>
+            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
               {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
             </div>
             <div className="flex-1 min-w-0">
