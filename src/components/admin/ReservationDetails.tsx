@@ -89,7 +89,9 @@ interface ReservationDetailsProps {
   onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
   onSave?: (reservationId: string, data: Partial<Reservation>) => void;
   onConfirm?: (reservationId: string) => void;
-  onComplete?: (reservationId: string) => void;
+  onStartWork?: (reservationId: string) => void;
+  onEndWork?: (reservationId: string) => void;
+  onRelease?: (reservationId: string) => void;
 }
 
 // CAR_SIZE_LABELS moved inside component for i18n
@@ -98,12 +100,14 @@ interface ReservationDetailsProps {
 
 // getStatusBadge moved inside component for i18n
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onComplete }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease }: ReservationDetailsProps) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [completing, setCompleting] = useState(false);
+  const [startingWork, setStartingWork] = useState(false);
+  const [endingWork, setEndingWork] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -595,96 +599,188 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t border-border/50">
-                {onDelete && reservation.status === 'pending' && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+              <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
+                {/* Row 1: Edit and Delete for pending/confirmed */}
+                {(reservation.status === 'pending' || reservation.status === 'confirmed') && (
+                  <div className="flex gap-2">
+                    {onSave && (
                       <Button 
                         variant="outline" 
-                        className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
-                        disabled={deleting}
+                        className="flex-1 gap-2"
+                        onClick={() => setIsEditing(true)}
                       >
-                      {deleting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                      {t('reservations.reject')}
+                        <Pencil className="w-4 h-4" />
+                        {t('common.edit')}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('reservations.confirmRejectTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('reservations.confirmRejectDescription', { name: customerName, phone: customerPhone })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.no')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          {t('reservations.yesReject')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    )}
+                    
+                    {onDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            disabled={deleting}
+                          >
+                            {deleting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                            {t('common.delete')}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('reservations.confirmDeleteTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.no')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {t('reservations.yesDelete')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 )}
-                
-                {onSave && (
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 gap-2"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                    {t('common.edit')}
-                  </Button>
+
+                {/* Row 2: Status-specific primary actions */}
+                {/* Pending: Reject and Confirm */}
+                {reservation.status === 'pending' && (
+                  <div className="flex gap-2">
+                    {onDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            disabled={deleting}
+                          >
+                            {deleting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                            {t('reservations.reject')}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('reservations.confirmRejectTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('reservations.confirmRejectDescription', { name: customerName, phone: customerPhone })}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.no')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {t('reservations.yesReject')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    
+                    {onConfirm && (
+                      <Button 
+                        className="flex-1 gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                        onClick={async () => {
+                          if (!carSize) {
+                            setIsEditing(true);
+                            return;
+                          }
+                          setConfirming(true);
+                          try {
+                            await onConfirm(reservation.id);
+                          } finally {
+                            setConfirming(false);
+                          }
+                        }}
+                        disabled={confirming}
+                      >
+                        {confirming ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        {t('common.confirm')}
+                      </Button>
+                    )}
+                  </div>
                 )}
-                
-                {onConfirm && reservation.status === 'pending' && (
+
+                {/* Confirmed: Start Work */}
+                {reservation.status === 'confirmed' && onStartWork && (
                   <Button 
-                    className="flex-1 gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                    className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={async () => {
-                      if (!carSize) {
-                        setIsEditing(true);
-                        return;
-                      }
-                      setConfirming(true);
+                      setStartingWork(true);
                       try {
-                        await onConfirm(reservation.id);
+                        await onStartWork(reservation.id);
                       } finally {
-                        setConfirming(false);
+                        setStartingWork(false);
                       }
                     }}
-                    disabled={confirming}
+                    disabled={startingWork}
                   >
-                    {confirming ? (
+                    {startingWork ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Check className="w-4 h-4" />
+                      <Clock className="w-4 h-4" />
                     )}
-                    {t('common.confirm')}
+                    {t('reservations.startWork')}
                   </Button>
                 )}
 
-                {onComplete && (reservation.status === 'confirmed' || reservation.status === 'in_progress') && (
+                {/* In Progress: End Work */}
+                {reservation.status === 'in_progress' && onEndWork && (
                   <Button 
-                    className="flex-1 gap-2"
+                    className="w-full gap-2 bg-sky-500 hover:bg-sky-600 text-white"
                     onClick={async () => {
-                      setCompleting(true);
+                      setEndingWork(true);
                       try {
-                        await onComplete(reservation.id);
+                        await onEndWork(reservation.id);
                       } finally {
-                        setCompleting(false);
+                        setEndingWork(false);
                       }
                     }}
-                    disabled={completing}
+                    disabled={endingWork}
                   >
-                    {completing ? (
+                    {endingWork ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <CheckCircle2 className="w-4 h-4" />
                     )}
-                    {t('reservations.completeVisit')}
+                    {t('reservations.endWork')}
+                  </Button>
+                )}
+
+                {/* Completed: Release Vehicle */}
+                {reservation.status === 'completed' && onRelease && (
+                  <Button 
+                    className="w-full gap-2"
+                    variant="outline"
+                    onClick={async () => {
+                      setReleasing(true);
+                      try {
+                        await onRelease(reservation.id);
+                      } finally {
+                        setReleasing(false);
+                      }
+                    }}
+                    disabled={releasing}
+                  >
+                    {releasing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Car className="w-4 h-4" />
+                    )}
+                    {t('reservations.releaseVehicle')}
                   </Button>
                 )}
               </div>

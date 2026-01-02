@@ -893,14 +893,44 @@ const AdminDashboard = () => {
       toast.success(t('reservations.reservationConfirmed'));
     }
   };
-  const handleCompleteReservation = async (reservationId: string) => {
+  const handleStartWork = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
+    
+    const {
+      error: updateError
+    } = await supabase.from('reservations').update({
+      status: 'in_progress',
+      started_at: new Date().toISOString()
+    }).eq('id', reservationId);
+    
+    if (updateError) {
+      toast.error(t('errors.generic'));
+      console.error('Update error:', updateError);
+      return;
+    }
+
+    // Update local state
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'in_progress'
+    } : r));
+
+    toast.success(t('reservations.workStarted'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
+  };
+
+  const handleEndWork = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+    
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'completed'
     }).eq('id', reservationId);
+    
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -913,20 +943,51 @@ const AdminDashboard = () => {
       status: 'completed'
     } : r));
 
-    // Send SMS about visit completion
+    // Send SMS about work completion
     try {
       await supabase.functions.invoke('send-sms-message', {
         body: {
           phone: reservation.customer_phone,
-          message: `Dziękujemy za wizytę! Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Do zobaczenia!`,
+          message: `Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Zapraszamy!`,
           instanceId
         }
       });
-      toast.success(t('common.success'));
+      toast.success(t('reservations.workEnded'), {
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      });
     } catch (smsError) {
       console.error('SMS error:', smsError);
-      toast.warning(t('common.success'));
+      toast.success(t('reservations.workEnded'), {
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      });
     }
+  };
+
+  const handleReleaseVehicle = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+    
+    const {
+      error: updateError
+    } = await supabase.from('reservations').update({
+      status: 'released'
+    }).eq('id', reservationId);
+    
+    if (updateError) {
+      toast.error(t('errors.generic'));
+      console.error('Update error:', updateError);
+      return;
+    }
+
+    // Update local state
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'released'
+    } : r));
+
+    toast.success(t('reservations.vehicleReleased'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
   };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
@@ -1353,13 +1414,29 @@ const AdminDashboard = () => {
       </div>
 
       {/* Reservation Details Modal */}
-      <ReservationDetails reservation={selectedReservation} open={!!selectedReservation} onClose={() => setSelectedReservation(null)} onDelete={handleDeleteReservation} onSave={handleReservationSave} onConfirm={async id => {
-      await handleConfirmReservation(id);
-      setSelectedReservation(null);
-    }} onComplete={async id => {
-      await handleCompleteReservation(id);
-      setSelectedReservation(null);
-    }} />
+      <ReservationDetails 
+        reservation={selectedReservation} 
+        open={!!selectedReservation} 
+        onClose={() => setSelectedReservation(null)} 
+        onDelete={handleDeleteReservation} 
+        onSave={handleReservationSave} 
+        onConfirm={async id => {
+          await handleConfirmReservation(id);
+          setSelectedReservation(null);
+        }} 
+        onStartWork={async id => {
+          await handleStartWork(id);
+          setSelectedReservation(null);
+        }}
+        onEndWork={async id => {
+          await handleEndWork(id);
+          setSelectedReservation(null);
+        }}
+        onRelease={async id => {
+          await handleReleaseVehicle(id);
+          setSelectedReservation(null);
+        }}
+      />
 
       {/* Add Reservation Dialog */}
       {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} workingHours={workingHours} />}
