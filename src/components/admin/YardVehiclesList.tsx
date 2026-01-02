@@ -4,7 +4,7 @@ import { pl } from 'date-fns/locale';
 import { Phone, Clock, Trash2, Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { YardVehicleDialog } from './YardVehicleDialog';
+import AddReservationDialog from './AddReservationDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -317,8 +317,8 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
         )}
       </div>
 
-      {/* Dialog for add/edit */}
-      <YardVehicleDialog
+      {/* Dialog for add/edit - now using unified AddReservationDialog */}
+      <AddReservationDialog
         open={dialogOpen}
         onClose={() => {
           setDialogOpen(false);
@@ -326,7 +326,8 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
         }}
         instanceId={instanceId}
         onSuccess={fetchVehicles}
-        editingVehicle={editingVehicle}
+        mode="yard"
+        editingYardVehicle={editingVehicle}
       />
 
       {/* Delete confirmation dialog */}
