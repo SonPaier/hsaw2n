@@ -157,6 +157,16 @@ export default {
 					opacity: '1',
 					transform: 'translateY(0)'
 				}
+			},
+			'pulse-dot': {
+				'0%, 100%': {
+					opacity: '1',
+					backgroundColor: 'rgb(5 150 105)' // emerald-600
+				},
+				'50%': {
+					opacity: '0.6',
+					backgroundColor: 'rgb(16 185 129)' // emerald-500
+				}
 			}
 		},
 		animation: {
@@ -165,7 +175,8 @@ export default {
 			shimmer: 'shimmer 2s linear infinite',
 			'slide-in-left': 'slide-in-left 0.3s ease-out',
 			'slide-in-right': 'slide-in-right 0.3s ease-out',
-			'fade-in': 'fade-in 0.3s ease-out'
+			'fade-in': 'fade-in 0.3s ease-out',
+			'pulse-dot': 'pulse-dot 1.5s ease-in-out infinite'
 		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',

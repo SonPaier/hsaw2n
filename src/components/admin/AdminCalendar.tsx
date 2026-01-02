@@ -1370,12 +1370,12 @@ const AdminCalendar = ({
                               </div>
                             ) : (
                               <span className="text-xs md:text-sm font-bold tabular-nums shrink-0 flex items-center gap-1">
-                                {reservation.status === 'in_progress' && (
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                )}
                                 {isMultiDay
                                   ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}`
                                   : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
+                                {reservation.status === 'in_progress' && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />
+                                )}
                               </span>
                             )}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
@@ -1844,13 +1844,13 @@ const AdminCalendar = ({
                                 {/* Hide time row in hallMode */}
                                 {!hallMode && (
                                   <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block flex items-center gap-1">
-                                    {reservation.status === 'in_progress' && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                                    )}
                                     {isMultiDay 
                                       ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}`
                                       : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`
                                     }
+                                    {reservation.status === 'in_progress' && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot shrink-0" />
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -2042,24 +2042,24 @@ const AdminCalendar = ({
                       />
                     )}
                     
-                    {/* Hatched area BEFORE working hours (exactly 30 min margin) */}
-                    {!isDayClosed && dayHours.displayStartTime < dayHours.workingStartTime && (
+                    {/* Hatched area BEFORE working hours - from global start to day's working start */}
+                    {!isDayClosed && dayHours.workingStartTime > DISPLAY_START_TIME && (
                       <div 
                         className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                         style={{ 
                           top: 0,
-                          height: (dayHours.workingStartTime - dayHours.displayStartTime) * HOUR_HEIGHT 
+                          height: (dayHours.workingStartTime - DISPLAY_START_TIME) * HOUR_HEIGHT 
                         }}
                       />
                     )}
                     
-                    {/* Hatched area AFTER working hours (exactly 30 min margin) */}
-                    {!isDayClosed && dayHours.displayEndTime > dayHours.workingEndTime && (
+                    {/* Hatched area AFTER working hours - extend to match the global display end time */}
+                    {!isDayClosed && DISPLAY_END_TIME > dayHours.workingEndTime && (
                       <div 
                         className="absolute left-0 right-0 hatched-pattern pointer-events-none z-5"
                         style={{ 
-                          top: (dayHours.workingEndTime - dayHours.displayStartTime) * HOUR_HEIGHT, 
-                          height: (dayHours.displayEndTime - dayHours.workingEndTime) * HOUR_HEIGHT 
+                          top: (dayHours.workingEndTime - DISPLAY_START_TIME) * HOUR_HEIGHT, 
+                          height: (DISPLAY_END_TIME - dayHours.workingEndTime) * HOUR_HEIGHT 
                         }}
                       />
                     )}
@@ -2214,13 +2214,13 @@ const AdminCalendar = ({
                                 <span className="truncate">{reservation.vehicle_plate}</span>
                                 {!hallMode && (
                                   <span className="opacity-80 shrink-0 ml-0.5 flex items-center gap-0.5">
-                                    {reservation.status === 'in_progress' && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    )}
                                     {isMultiDay 
                                       ? `${displayStart.slice(0, 5)}`
                                       : reservation.start_time.slice(0, 5)
                                     }
+                                    {reservation.status === 'in_progress' && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot" />
+                                    )}
                                   </span>
                                 )}
                               </div>
