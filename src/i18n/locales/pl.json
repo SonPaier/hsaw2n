@@ -578,6 +578,11 @@
         "label": "Przypomnienie 1 godzinę przed",
         "description": "Automatyczne przypomnienie wysyłane godzinę przed wizytą.",
         "example": "Przypomnienie: za godzinę o 10:00 masz wizytę. Do zobaczenia! ARM CAR AUTO SPA"
+      },
+      "vehicle_ready": {
+        "label": "Samochód do odbioru",
+        "description": "SMS wysyłany gdy auto jest gotowe do odebrania.",
+        "example": "Twój samochód jest już gotowy do odbioru! Zapraszamy. ARM CAR AUTO SPA"
       }
     },
     "templates": {
