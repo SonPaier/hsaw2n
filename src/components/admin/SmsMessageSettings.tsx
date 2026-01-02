@@ -13,7 +13,7 @@ interface SmsMessageSettingsProps {
   instanceId: string | null;
 }
 
-type SmsMessageType = 'verification_code' | 'reservation_confirmed' | 'reminder_1day' | 'reminder_1hour';
+type SmsMessageType = 'verification_code' | 'reservation_confirmed' | 'reminder_1day' | 'reminder_1hour' | 'vehicle_ready';
 
 interface MessageSetting {
   type: SmsMessageType;
@@ -24,7 +24,8 @@ const SMS_MESSAGE_TYPES: SmsMessageType[] = [
   'verification_code',
   'reservation_confirmed', 
   'reminder_1day',
-  'reminder_1hour'
+  'reminder_1hour',
+  'vehicle_ready'
 ];
 
 const SmsMessageSettings = ({ instanceId }: SmsMessageSettingsProps) => {
