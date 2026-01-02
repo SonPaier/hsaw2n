@@ -2299,7 +2299,7 @@ const AdminCalendar = ({
           <span className="text-xs text-muted-foreground">Do potwierdzenia</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-blue-400/80 border border-blue-500/70" />
+          <div className="w-3 h-3 rounded bg-green-400/80 border border-green-500/70" />
           <span className="text-xs text-muted-foreground">Potwierdzony</span>
         </div>
         <div className="flex items-center gap-1.5">
