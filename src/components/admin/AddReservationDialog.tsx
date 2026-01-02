@@ -502,15 +502,15 @@ const AddReservationDialog = ({
     }
   }, [instanceId]);
 
-  // Debounced phone search
+  // Debounced phone search (disabled in edit mode)
   useEffect(() => {
-    if (selectedCustomerId) return; // Don't search if customer already selected
+    if (selectedCustomerId || editingReservation) return; // Don't search if customer already selected or in edit mode
     
     const timer = setTimeout(() => {
       searchByPhone(phone);
     }, 300);
     return () => clearTimeout(timer);
-  }, [phone, searchByPhone, selectedCustomerId]);
+  }, [phone, searchByPhone, selectedCustomerId, editingReservation]);
 
   const selectVehicle = async (vehicle: CustomerVehicle) => {
     setPhone(vehicle.phone);
@@ -563,15 +563,15 @@ const AddReservationDialog = ({
     }
   }, [instanceId]);
 
-  // Debounced name search
+  // Debounced name search (disabled in edit mode)
   useEffect(() => {
-    if (selectedCustomerId) return; // Don't search if customer already selected
+    if (selectedCustomerId || editingReservation) return; // Don't search if customer already selected or in edit mode
     
     const timer = setTimeout(() => {
       searchCustomer(customerName);
     }, 300);
     return () => clearTimeout(timer);
-  }, [customerName, searchCustomer, selectedCustomerId]);
+  }, [customerName, searchCustomer, selectedCustomerId, editingReservation]);
 
   const selectCustomer = (customer: Customer) => {
     setCustomerName(customer.name);
