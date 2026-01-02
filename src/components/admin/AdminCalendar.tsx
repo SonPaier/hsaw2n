@@ -1286,8 +1286,16 @@ const AdminCalendar = ({
                               onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, currentDateStr)}
                               onTouchEnd={handleTouchEnd}
                               onTouchMove={handleTouchMove}
-                              onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr)}
-                              onDrop={(e) => !isDisabled && handleDrop(e, station.id, currentDateStr, hour, slotIndex)}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isDisabled) handleSlotDragOver(e, station.id, hour, slotIndex, currentDateStr);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isDisabled) handleDrop(e, station.id, currentDateStr, hour, slotIndex);
+                              }}
                             >
                               {/* Hide + on hover in hallMode or disabled slots */}
                               {!hallMode && !isDisabled && (
@@ -1749,8 +1757,16 @@ const AdminCalendar = ({
                                   onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, dayStr)}
                                   onTouchEnd={handleTouchEnd}
                                   onTouchMove={handleTouchMove}
-                                  onDragOver={(e) => !isDisabled && handleSlotDragOver(e, station.id, hour, slotIndex, dayStr)}
-                                  onDrop={(e) => !isDisabled && handleDrop(e, station.id, dayStr, hour, slotIndex)}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!isDisabled) handleSlotDragOver(e, station.id, hour, slotIndex, dayStr);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!isDisabled) handleDrop(e, station.id, dayStr, hour, slotIndex);
+                                  }}
                                 >
                                   {/* Hide + on hover in hallMode or disabled slots */}
                                   {!hallMode && !isDisabled && (
@@ -2116,7 +2132,7 @@ const AdminCalendar = ({
                                 slotIndex % 2 !== 0 && "border-border/20",
                                 isDropTarget && !isDisabled && "bg-primary/30 border-primary",
                                 !isDropTarget && !isDisabled && "hover:bg-primary/5 cursor-pointer",
-                                isDisabled && "cursor-not-allowed pointer-events-none"
+                                isDisabled && "cursor-not-allowed"
                               )}
                               style={{ height: SLOT_HEIGHT }}
                               onClick={() => !isDisabled && selectedStationId && handleSlotClick(selectedStationId, hour, slotIndex, dayStr)}
@@ -2124,8 +2140,16 @@ const AdminCalendar = ({
                               onTouchStart={() => !isDisabled && selectedStationId && handleTouchStart(selectedStationId, hour, slotIndex, dayStr)}
                               onTouchEnd={handleTouchEnd}
                               onTouchMove={handleTouchMove}
-                              onDragOver={(e) => !isDisabled && selectedStationId && handleSlotDragOver(e, selectedStationId, hour, slotIndex, dayStr)}
-                              onDrop={(e) => !isDisabled && selectedStationId && handleDrop(e, selectedStationId, dayStr, hour, slotIndex)}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isDisabled && selectedStationId) handleSlotDragOver(e, selectedStationId, hour, slotIndex, dayStr);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isDisabled && selectedStationId) handleDrop(e, selectedStationId, dayStr, hour, slotIndex);
+                              }}
                             >
                               {!hallMode && !isDisabled && (
                                 <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
