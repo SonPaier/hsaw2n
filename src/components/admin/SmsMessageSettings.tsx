@@ -11,6 +11,7 @@ import { SmsUsageCard } from './SmsUsageCard';
 
 interface SmsMessageSettingsProps {
   instanceId: string | null;
+  instanceName?: string;
 }
 
 type SmsMessageType = 'verification_code' | 'reservation_confirmed' | 'reminder_1day' | 'reminder_1hour' | 'vehicle_ready';
@@ -28,17 +29,35 @@ const SMS_MESSAGE_TYPES: SmsMessageType[] = [
   'vehicle_ready'
 ];
 
-const SmsMessageSettings = ({ instanceId }: SmsMessageSettingsProps) => {
+const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<MessageSetting[]>([]);
+  const [currentInstanceName, setCurrentInstanceName] = useState(instanceName || '');
 
   useEffect(() => {
     if (instanceId) {
       fetchSettings();
+      if (!instanceName) {
+        fetchInstanceName();
+      }
     }
-  }, [instanceId]);
+  }, [instanceId, instanceName]);
+
+  const fetchInstanceName = async () => {
+    if (!instanceId) return;
+    
+    const { data } = await supabase
+      .from('instances')
+      .select('name')
+      .eq('id', instanceId)
+      .single();
+    
+    if (data) {
+      setCurrentInstanceName(data.name);
+    }
+  };
 
   const fetchSettings = async () => {
     if (!instanceId) return;
@@ -114,7 +133,8 @@ const SmsMessageSettings = ({ instanceId }: SmsMessageSettingsProps) => {
   };
 
   const getExampleMessage = (type: SmsMessageType): string => {
-    return t(`sms.messageTypes.${type}.example`);
+    const template = t(`sms.messageTypes.${type}.exampleTemplate`);
+    return template.replace('{{instanceName}}', currentInstanceName || 'Nazwa myjni');
   };
 
   if (loading) {
@@ -156,14 +176,14 @@ const SmsMessageSettings = ({ instanceId }: SmsMessageSettingsProps) => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+              <div className="bg-slate-100 rounded-lg p-3 border border-slate-200">
                 <div className="flex items-start gap-2">
-                  <MessageSquare className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <MessageSquare className="w-4 h-4 mt-0.5 text-slate-500 shrink-0" />
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground font-medium">
+                    <Label className="text-xs text-slate-500 font-medium">
                       {t('sms.exampleMessage')}
                     </Label>
-                    <p className="text-sm text-foreground font-mono whitespace-pre-wrap">
+                    <p className="text-sm text-slate-900 font-mono whitespace-pre-wrap">
                       {getExampleMessage(setting.type)}
                     </p>
                   </div>

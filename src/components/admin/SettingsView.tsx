@@ -40,6 +40,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
   
   const [companyForm, setCompanyForm] = useState({
     name: '',
+    invoice_company_name: '',
     nip: '',
     phone: '',
     email: '',
@@ -56,6 +57,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
     if (instanceData) {
       setCompanyForm({
         name: instanceData.name || '',
+        invoice_company_name: instanceData.invoice_company_name || '',
         nip: instanceData.nip || '',
         phone: instanceData.phone || '',
         email: instanceData.email || '',
@@ -154,6 +156,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
         .from('instances')
         .update({
           name: companyForm.name,
+          invoice_company_name: companyForm.invoice_company_name || null,
           nip: companyForm.nip || null,
           phone: companyForm.phone || null,
           email: companyForm.email || null,
@@ -239,14 +242,25 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
               />
             </div>
 
-            {/* Company Name */}
+            {/* Car Wash Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">{t('instanceSettings.companyName')} *</Label>
+              <Label htmlFor="name">{t('instanceSettings.carWashName')} *</Label>
               <Input
                 id="name"
                 value={companyForm.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="ARM CAR AUTO SPA"
+              />
+            </div>
+
+            {/* Invoice Company Name */}
+            <div className="space-y-2">
+              <Label htmlFor="invoice_company_name">{t('instanceSettings.invoiceCompanyName')}</Label>
+              <Input
+                id="invoice_company_name"
+                value={companyForm.invoice_company_name}
+                onChange={(e) => handleInputChange('invoice_company_name', e.target.value)}
+                placeholder="ARM CAR Sp. z o.o."
               />
             </div>
 
@@ -361,7 +375,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
         return <ReservationConfirmSettings instanceId={instanceId} />;
 
       case 'sms':
-        return <SmsMessageSettings instanceId={instanceId} />;
+        return <SmsMessageSettings instanceId={instanceId} instanceName={instanceData?.name} />;
 
       case 'users':
         return instanceId ? <InstanceUsersTab instanceId={instanceId} /> : null;
