@@ -93,6 +93,23 @@ interface WorkingHours {
   close: string;
 }
 
+interface EditingReservation {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  car_size?: 'small' | 'medium' | 'large' | null;
+  reservation_date: string;
+  end_date?: string | null;
+  start_time: string;
+  end_time: string;
+  station_id: string | null;
+  service_ids?: string[];
+  service_id?: string;
+  notes?: string;
+  price?: number | null;
+}
+
 interface AddReservationDialogProps {
   open: boolean;
   onClose: () => void;
@@ -105,6 +122,8 @@ interface AddReservationDialogProps {
   existingReservations?: ExistingReservation[];
   existingBreaks?: ExistingBreak[];
   workingHours?: Record<string, WorkingHours | null> | null;
+  /** Optional reservation to edit - when provided, dialog works in edit mode */
+  editingReservation?: EditingReservation | null;
 }
 
 // CAR_SIZE_LABELS moved inside component for i18n
@@ -121,9 +140,12 @@ const AddReservationDialog = ({
   existingReservations = [],
   existingBreaks = [],
   workingHours = null,
+  editingReservation = null,
 }: AddReservationDialogProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  
+  const isEditMode = !!editingReservation;
 
   const CAR_SIZE_LABELS: Record<CarSize, string> = {
     small: t('reservations.carSizes.small'),
@@ -207,29 +229,83 @@ const AddReservationDialog = ({
     }
   }, [open, instanceId, stationType]);
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or populate with editing data
   useEffect(() => {
     if (open) {
-      setCustomerName('');
-      setPhone('');
-      setCarModel('');
-      setCarSize('medium'); // Default to medium
-      setSelectedServices([]);
-      setStartTime(time);
-      setEndTime('');
-      // Set default duration to 30 minutes for washing stations
-      setManualDuration(stationType === 'washing' ? 30 : null);
-      setFoundCustomers([]);
-      setSelectedCustomerId(null);
-      setShowCustomerDropdown(false);
-      setServicesOpen(false);
-      setDateRange(undefined); // Reset to allow fresh selection
-      setDateRangeOpen(false);
-      setOfferNumber('');
-      setNotes('');
-      setErrors({}); // Reset validation errors
+      if (editingReservation) {
+        // Edit mode - populate with existing reservation data
+        setCustomerName(editingReservation.customer_name || '');
+        setPhone(editingReservation.customer_phone || '');
+        setCarModel(editingReservation.vehicle_plate || '');
+        setCarSize(editingReservation.car_size || 'medium');
+        const serviceIds = editingReservation.service_ids || (editingReservation.service_id ? [editingReservation.service_id] : []);
+        setSelectedServices(serviceIds);
+        setStartTime(editingReservation.start_time?.substring(0, 5) || time);
+        setEndTime(editingReservation.end_time?.substring(0, 5) || '');
+        
+        // Calculate duration from start and end times
+        if (editingReservation.start_time && editingReservation.end_time) {
+          const [startH, startM] = editingReservation.start_time.split(':').map(Number);
+          const [endH, endM] = editingReservation.end_time.split(':').map(Number);
+          const durationMins = (endH * 60 + endM) - (startH * 60 + startM);
+          setManualDuration(durationMins > 0 ? durationMins : null);
+        } else {
+          setManualDuration(stationType === 'washing' ? 30 : null);
+        }
+        
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowCustomerDropdown(false);
+        setServicesOpen(false);
+        
+        // Set date range for PPF
+        if (isPPFStation && editingReservation.reservation_date) {
+          const fromDate = new Date(editingReservation.reservation_date);
+          const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
+          setDateRange({ from: fromDate, to: toDate });
+        } else {
+          setDateRange(undefined);
+        }
+        setDateRangeOpen(false);
+        
+        // Extract offer number from notes for PPF
+        if (isPPFStation && editingReservation.notes) {
+          const offerMatch = editingReservation.notes.match(/Oferta:\s*([^\n]+)/);
+          if (offerMatch) {
+            setOfferNumber(offerMatch[1].trim());
+            setNotes(editingReservation.notes.replace(/Oferta:\s*[^\n]+\n?/, '').trim());
+          } else {
+            setOfferNumber('');
+            setNotes(editingReservation.notes);
+          }
+        } else {
+          setOfferNumber('');
+          setNotes(editingReservation.notes || '');
+        }
+        
+        setErrors({});
+      } else {
+        // Create mode - reset everything
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setStartTime(time);
+        setEndTime('');
+        setManualDuration(stationType === 'washing' ? 30 : null);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowCustomerDropdown(false);
+        setServicesOpen(false);
+        setDateRange(undefined);
+        setDateRangeOpen(false);
+        setOfferNumber('');
+        setNotes('');
+        setErrors({});
+      }
     }
-  }, [open, time, date, stationType]);
+  }, [open, time, date, stationType, editingReservation, isPPFStation]);
 
   // Get duration and price for selected car size
   const getServiceDuration = (service: Service): number => {
@@ -625,7 +701,6 @@ const AddReservationDialog = ({
       }
 
       const reservationData: any = {
-        instance_id: instanceId,
         station_id: stationId,
         reservation_date: reservationDate,
         end_date: endDate,
@@ -633,10 +708,8 @@ const AddReservationDialog = ({
         end_time: finalEndTime,
         customer_name: customerName || t('addReservation.defaultCustomer'),
         customer_phone: phone || '',
-        vehicle_plate: carModel || '', // Using vehicle_plate field for car model temporarily
+        vehicle_plate: carModel || '',
         car_size: carSize || null,
-        confirmation_code: generateConfirmationCode(),
-        status: 'confirmed',
         notes: reservationNotes || null,
       };
 
@@ -662,27 +735,52 @@ const AddReservationDialog = ({
         }
       }
 
-      const { error: reservationError } = await supabase
-        .from('reservations')
-        .insert(reservationData);
+      if (isEditMode && editingReservation) {
+        // Update existing reservation
+        const { error: reservationError } = await supabase
+          .from('reservations')
+          .update(reservationData)
+          .eq('id', editingReservation.id);
 
-      if (reservationError) throw reservationError;
+        if (reservationError) throw reservationError;
 
-      // Show single toast with reservation details
-      toast.success(t('addReservation.reservationCreated'), {
-        description: (
-          <div className="flex flex-col">
-            <span>{startTime} - {finalEndTime}</span>
-            <span>{carModel || t('addReservation.defaultVehicle')}</span>
-          </div>
-        ),
-        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-      });
+        toast.success(t('reservations.reservationUpdated'), {
+          description: (
+            <div className="flex flex-col">
+              <span>{startTime} - {finalEndTime}</span>
+              <span>{carModel || t('addReservation.defaultVehicle')}</span>
+            </div>
+          ),
+          icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+        });
+      } else {
+        // Create new reservation
+        reservationData.instance_id = instanceId;
+        reservationData.confirmation_code = generateConfirmationCode();
+        reservationData.status = 'confirmed';
+
+        const { error: reservationError } = await supabase
+          .from('reservations')
+          .insert(reservationData);
+
+        if (reservationError) throw reservationError;
+
+        toast.success(t('addReservation.reservationCreated'), {
+          description: (
+            <div className="flex flex-col">
+              <span>{startTime} - {finalEndTime}</span>
+              <span>{carModel || t('addReservation.defaultVehicle')}</span>
+            </div>
+          ),
+          icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+        });
+      }
+      
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error creating reservation:', error);
-      toast.error(t('addReservation.reservationError'));
+      console.error('Error saving reservation:', error);
+      toast.error(isEditMode ? t('errors.generic') : t('addReservation.reservationError'));
     } finally {
       setLoading(false);
     }
@@ -744,10 +842,10 @@ const AddReservationDialog = ({
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader className="shrink-0">
           <DialogTitle>
-            {t('addReservation.title')}
+            {isEditMode ? t('reservations.editReservation') : t('addReservation.title')}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {t('addReservation.formDescription')}
+            {isEditMode ? t('reservations.editReservation') : t('addReservation.formDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -1302,7 +1400,7 @@ const AddReservationDialog = ({
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="flex-1 sm:flex-none">
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {t('common.add')}
+            {isEditMode ? t('common.save') : t('common.add')}
           </Button>
         </DialogFooter>
       </DialogContent>

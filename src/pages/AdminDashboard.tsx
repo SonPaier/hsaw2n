@@ -126,8 +126,9 @@ const AdminDashboard = () => {
   }>>([]);
   const [stations, setStations] = useState<Station[]>([]);
 
-  // Add reservation dialog state
+  // Add/Edit reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [newReservationData, setNewReservationData] = useState({
     stationId: '',
     date: '',
@@ -738,12 +739,27 @@ const AdminDashboard = () => {
   };
   const handleAddReservation = (stationId: string, date: string, time: string) => {
     const station = stations.find(s => s.id === stationId);
+    setEditingReservation(null); // Clear editing mode
     setNewReservationData({
       stationId,
       date,
       time,
       stationType: station?.type || ''
     });
+    setAddReservationOpen(true);
+  };
+
+  // Open edit reservation dialog
+  const handleEditReservation = (reservation: Reservation) => {
+    const station = stations.find(s => s.id === reservation.station_id);
+    setEditingReservation(reservation);
+    setNewReservationData({
+      stationId: reservation.station_id || '',
+      date: reservation.reservation_date,
+      time: reservation.start_time?.substring(0, 5) || '',
+      stationType: station?.type || ''
+    });
+    setSelectedReservation(null); // Close details dialog
     setAddReservationOpen(true);
   };
 
@@ -758,6 +774,7 @@ const AdminDashboard = () => {
       now.setMinutes(0);
     }
     const timeStr = format(now, 'HH:mm');
+    setEditingReservation(null); // Clear editing mode
     setNewReservationData({
       stationId: firstStation?.id || '',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -769,6 +786,7 @@ const AdminDashboard = () => {
   const handleReservationAdded = () => {
     // Refresh reservations from database - toast is shown in AddReservationDialog
     fetchReservations();
+    setEditingReservation(null);
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
     setNewBreakData({
@@ -1474,7 +1492,7 @@ const AdminDashboard = () => {
         open={!!selectedReservation} 
         onClose={() => setSelectedReservation(null)} 
         onDelete={handleDeleteReservation} 
-        onSave={handleReservationSave} 
+        onEdit={handleEditReservation}
         onConfirm={async id => {
           await handleConfirmReservation(id);
           setSelectedReservation(null);
@@ -1501,8 +1519,41 @@ const AdminDashboard = () => {
         }}
       />
 
-      {/* Add Reservation Dialog */}
-      {instanceId && <AddReservationDialog open={addReservationOpen} onClose={() => setAddReservationOpen(false)} stationId={newReservationData.stationId} stationType={newReservationData.stationType} date={newReservationData.date} time={newReservationData.time} instanceId={instanceId} onSuccess={handleReservationAdded} existingReservations={reservations} existingBreaks={breaks} workingHours={workingHours} />}
+      {/* Add/Edit Reservation Dialog */}
+      {instanceId && (
+        <AddReservationDialog 
+          open={addReservationOpen} 
+          onClose={() => {
+            setAddReservationOpen(false);
+            setEditingReservation(null);
+          }} 
+          stationId={newReservationData.stationId} 
+          stationType={newReservationData.stationType} 
+          date={newReservationData.date} 
+          time={newReservationData.time} 
+          instanceId={instanceId} 
+          onSuccess={handleReservationAdded} 
+          existingReservations={reservations.filter(r => editingReservation ? r.id !== editingReservation.id : true)} 
+          existingBreaks={breaks} 
+          workingHours={workingHours}
+          editingReservation={editingReservation ? {
+            id: editingReservation.id,
+            customer_name: editingReservation.customer_name,
+            customer_phone: editingReservation.customer_phone,
+            vehicle_plate: editingReservation.vehicle_plate,
+            car_size: (editingReservation as any).car_size || null,
+            reservation_date: editingReservation.reservation_date,
+            end_date: editingReservation.end_date,
+            start_time: editingReservation.start_time,
+            end_time: editingReservation.end_time,
+            station_id: editingReservation.station_id,
+            service_ids: (editingReservation as any).service_ids,
+            service_id: (editingReservation as any).service_id,
+            notes: (editingReservation as any).notes,
+            price: editingReservation.price,
+          } : null}
+        />
+      )}
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
