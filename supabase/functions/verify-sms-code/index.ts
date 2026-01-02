@@ -108,15 +108,16 @@ serve(async (req: Request): Promise<Response> => {
 
     const confirmationCode = generateConfirmationCode();
 
-    // Check instance auto_confirm setting and get google maps URL
+    // Check instance auto_confirm setting and get google maps URL and name
     const { data: instanceSettings } = await supabase
       .from("instances")
-      .select("auto_confirm_reservations, google_maps_url")
+      .select("auto_confirm_reservations, google_maps_url, name, social_facebook, social_instagram, slug")
       .eq("id", instanceId)
       .single();
 
     const autoConfirm = instanceSettings?.auto_confirm_reservations !== false;
     const googleMapsUrl = instanceSettings?.google_maps_url || null;
+    const instanceName = instanceSettings?.name || "Myjnia";
     const reservationStatus = autoConfirm ? "confirmed" : "pending";
 
     // Create reservation
@@ -225,14 +226,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // Fetch instance info for social links
-    const { data: instanceData } = await supabase
-      .from("instances")
-      .select("social_facebook, social_instagram, name, slug")
-      .eq("id", instanceId)
-      .single();
-
-    // Send SMS based on confirmation status
+    // Send SMS based on confirmation status with dynamic instance name
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
     const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://armcar.pl";
     const reservationUrl = `${FRONTEND_URL}/moja-rezerwacja?code=${confirmationCode}`;
@@ -245,11 +239,11 @@ serve(async (req: Request): Promise<Response> => {
     const dayNum = dateObj.getDate();
     const monthName = monthNames[dateObj.getMonth()];
     
-    // Different message based on auto-confirm setting, include maps link if available
+    // Different message based on auto-confirm setting, include maps link if available, use dynamic instance name
     const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
     const smsMessage = autoConfirm 
-      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart} Szczegóły: ${reservationUrl}`
-      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart} Szczegóły: ${reservationUrl}`;
+      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart} Szczegóły: ${reservationUrl}`
+      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart} Szczegóły: ${reservationUrl}`;
     
     if (SMSAPI_TOKEN) {
       try {
@@ -289,7 +283,7 @@ serve(async (req: Request): Promise<Response> => {
           reservationUrl,
           status: reservationStatus,
         },
-        instance: instanceData,
+        instance: instanceSettings,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );

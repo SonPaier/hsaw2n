@@ -54,6 +54,15 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get instance name for SMS
+    const { data: instanceData } = await supabase
+      .from("instances")
+      .select("name")
+      .eq("id", instanceId)
+      .single();
+
+    const instanceName = instanceData?.name || "Myjnia";
+
     // Check SMS limit before proceeding
     const { data: canSend, error: limitCheckError } = await supabase
       .rpc('check_sms_available', { _instance_id: instanceId });
@@ -105,10 +114,8 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Simple SMS format until SMSAPI link restriction is removed
-    // TODO: After SMSAPI unblocks links, use WebOTP format:
-    // const smsMessage = `Kod: ${code}\n@${domain} #${code}`;
-    const smsMessage = `ARM CAR kod: ${code}`;
+    // Use dynamic instance name in SMS
+    const smsMessage = `${instanceName} kod: ${code}`;
     
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
@@ -120,8 +127,6 @@ serve(async (req: Request): Promise<Response> => {
         to: normalizedPhone.replace("+", ""),
         message: smsMessage,
         format: "json",
-        // Note: "from" field removed - requires registered sender name in SMSAPI panel
-        // To use custom sender name like "ARMCAR", register it at smsapi.pl/sendernames
       }),
     });
 

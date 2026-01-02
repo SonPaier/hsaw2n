@@ -22,6 +22,10 @@ interface Service {
   name: string;
 }
 
+interface Instance {
+  name: string;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -74,6 +78,25 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error fetching hour reminders:", hourError);
     }
 
+    // Cache instance names to avoid multiple queries
+    const instanceCache: Record<string, string> = {};
+    
+    const getInstanceName = async (instanceId: string): Promise<string> => {
+      if (instanceCache[instanceId]) {
+        return instanceCache[instanceId];
+      }
+      
+      const { data: instanceData } = await supabase
+        .from("instances")
+        .select("name")
+        .eq("id", instanceId)
+        .single() as { data: Instance | null };
+      
+      const name = instanceData?.name || "Myjnia";
+      instanceCache[instanceId] = name;
+      return name;
+    };
+
     let sentCount = 0;
     const results: { type: string; reservationId: string; success: boolean }[] = [];
 
@@ -92,14 +115,13 @@ serve(async (req: Request): Promise<Response> => {
           .eq("id", reservation.service_id)
           .single() as { data: Service | null };
 
+        // Get instance name dynamically
+        const instanceName = await getInstanceName(reservation.instance_id);
+
         const serviceName = service?.name || "wizyta";
-        const formattedDate = new Date(reservation.reservation_date).toLocaleDateString("pl-PL", {
-          day: "numeric",
-          month: "long",
-        });
         const formattedTime = reservation.start_time.slice(0, 5);
 
-        const message = `Przypomnienie: jutro o ${formattedTime} masz wizyte - ${serviceName}. ARM CAR AUTO SPA`;
+        const message = `Przypomnienie: jutro o ${formattedTime} masz wizyte - ${serviceName}. ${instanceName}`;
 
         const success = await sendSms(reservation.customer_phone, message, smsapiToken);
         
@@ -124,9 +146,12 @@ serve(async (req: Request): Promise<Response> => {
 
       // Send if between 55 and 65 minutes before
       if (minutesDiff >= 55 && minutesDiff <= 65) {
+        // Get instance name dynamically
+        const instanceName = await getInstanceName(reservation.instance_id);
+        
         const formattedTime = reservation.start_time.slice(0, 5);
 
-        const message = `Przypomnienie: za godzine o ${formattedTime} masz wizyte. Do zobaczenia! ARM CAR AUTO SPA`;
+        const message = `Przypomnienie: za godzine o ${formattedTime} masz wizyte. Do zobaczenia! ${instanceName}`;
 
         const success = await sendSms(reservation.customer_phone, message, smsapiToken);
         
