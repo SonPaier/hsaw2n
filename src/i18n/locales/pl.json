@@ -562,27 +562,27 @@
       "verification_code": {
         "label": "Kod weryfikacyjny",
         "description": "SMS z 4-cyfrowym kodem wysyłany podczas rezerwacji online.",
-        "example": "ARM CAR kod: 1234"
+        "exampleTemplate": "{{instanceName}} kod: 1234"
       },
       "reservation_confirmed": {
         "label": "Potwierdzenie rezerwacji",
         "description": "SMS z potwierdzeniem rezerwacji i linkiem do szczegółów.",
-        "example": "Rezerwacja potwierdzona! Środa 15 sty o 10:00-11:30. Dojazd: [link Google Maps] Szczegóły: [link]"
+        "exampleTemplate": "Rezerwacja potwierdzona! Środa 15 sty o 10:00-11:30. Dojazd: [link Google Maps] Szczegóły: [link]"
       },
       "reminder_1day": {
         "label": "Przypomnienie 1 dzień przed",
         "description": "Automatyczne przypomnienie wysyłane dzień przed wizytą.",
-        "example": "Przypomnienie: jutro o 10:00 masz wizytę - Mycie premium. ARM CAR AUTO SPA"
+        "exampleTemplate": "Przypomnienie: jutro o 10:00 masz wizytę - Mycie premium. {{instanceName}}"
       },
       "reminder_1hour": {
         "label": "Przypomnienie 1 godzinę przed",
         "description": "Automatyczne przypomnienie wysyłane godzinę przed wizytą.",
-        "example": "Przypomnienie: za godzinę o 10:00 masz wizytę. Do zobaczenia! ARM CAR AUTO SPA"
+        "exampleTemplate": "Przypomnienie: za godzinę o 10:00 masz wizytę. Do zobaczenia! {{instanceName}}"
       },
       "vehicle_ready": {
         "label": "Samochód do odbioru",
         "description": "SMS wysyłany gdy auto jest gotowe do odebrania.",
-        "example": "Twój samochód jest już gotowy do odbioru! Zapraszamy. ARM CAR AUTO SPA"
+        "exampleTemplate": "Twój samochód jest już gotowy do odbioru! Zapraszamy. {{instanceName}}"
       }
     },
     "templates": {
@@ -806,7 +806,8 @@
     "brandingTab": "Branding",
     "contactTab": "Kontakt",
     "usersTab": "Użytkownicy",
-    "companyName": "Nazwa firmy",
+    "carWashName": "Nazwa myjni",
+    "invoiceCompanyName": "Nazwa firmy (do faktury)",
     "slug": "Slug (URL)",
     "slugDescription": "Adres aplikacji: /rezerwacje/{{slug}}",
     "nip": "NIP",

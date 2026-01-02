@@ -459,6 +459,7 @@ export type Database = {
           email: string | null
           google_maps_url: string | null
           id: string
+          invoice_company_name: string | null
           logo_url: string | null
           name: string
           nip: string | null
@@ -486,6 +487,7 @@ export type Database = {
           email?: string | null
           google_maps_url?: string | null
           id?: string
+          invoice_company_name?: string | null
           logo_url?: string | null
           name: string
           nip?: string | null
@@ -513,6 +515,7 @@ export type Database = {
           email?: string | null
           google_maps_url?: string | null
           id?: string
+          invoice_company_name?: string | null
           logo_url?: string | null
           name?: string
           nip?: string | null

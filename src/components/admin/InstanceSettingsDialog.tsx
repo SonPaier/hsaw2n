@@ -19,6 +19,7 @@ interface Instance {
   name: string;
   slug: string;
   active: boolean;
+  invoice_company_name?: string;
   phone?: string;
   email?: string;
   address?: string;
@@ -54,6 +55,7 @@ const InstanceSettingsDialog = ({
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
+    invoice_company_name: '',
     phone: '',
     email: '',
     address: '',
@@ -73,6 +75,7 @@ const InstanceSettingsDialog = ({
       setFormData({
         name: instance.name || '',
         slug: instance.slug || '',
+        invoice_company_name: instance.invoice_company_name || '',
         phone: instance.phone || '',
         email: instance.email || '',
         address: instance.address || '',
@@ -169,6 +172,7 @@ const InstanceSettingsDialog = ({
         .update({
           name: formData.name,
           slug: formData.slug,
+          invoice_company_name: formData.invoice_company_name || null,
           phone: formData.phone || null,
           email: formData.email || null,
           address: formData.address || null,
@@ -226,7 +230,7 @@ const InstanceSettingsDialog = ({
           {/* Company Tab */}
           <TabsContent value="company" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="name">{t('instanceSettings.companyName')} *</Label>
+              <Label htmlFor="name">{t('instanceSettings.carWashName')} *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -246,6 +250,16 @@ const InstanceSettingsDialog = ({
               <p className="text-xs text-muted-foreground">
                 {t('instanceSettings.slugDescription', { slug: formData.slug })}
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invoice_company_name">{t('instanceSettings.invoiceCompanyName')}</Label>
+              <Input
+                id="invoice_company_name"
+                value={formData.invoice_company_name}
+                onChange={(e) => handleInputChange('invoice_company_name', e.target.value)}
+                placeholder="ARM CAR Sp. z o.o."
+              />
             </div>
 
             <div className="space-y-2">
