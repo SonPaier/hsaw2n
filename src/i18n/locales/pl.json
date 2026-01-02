@@ -145,7 +145,8 @@
       "pending": "Oczekujące",
       "inProgress": "W trakcie",
       "completed": "Zakończone",
-      "cancelled": "Anulowane"
+      "cancelled": "Anulowane",
+      "released": "Pojazd wydany"
     },
     "sources": {
       "employee": "Pracownik",
