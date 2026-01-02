@@ -87,7 +87,7 @@ interface ReservationDetailsProps {
   open: boolean;
   onClose: () => void;
   onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
-  onSave?: (reservationId: string, data: Partial<Reservation>) => void;
+  onEdit?: (reservation: Reservation) => void;
   onConfirm?: (reservationId: string) => void;
   onStartWork?: (reservationId: string) => void;
   onEndWork?: (reservationId: string) => void;
@@ -102,7 +102,7 @@ interface ReservationDetailsProps {
 
 // getStatusBadge moved inside component for i18n
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease, onRevertToConfirmed, onRevertToInProgress }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onEdit, onConfirm, onStartWork, onEndWork, onRelease, onRevertToConfirmed, onRevertToInProgress }: ReservationDetailsProps) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -193,29 +193,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
     }
   }, [reservation]);
 
-  const handleSave = async () => {
-    if (!reservation || !onSave) return;
-    
-    setSaving(true);
-    try {
-      await onSave(reservation.id, {
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        vehicle_plate: carModel,
-        car_size: carSize || null,
-        reservation_date: reservationDate,
-        end_date: isPPFStation ? (endDate || reservationDate) : reservationDate,
-        start_time: startTime,
-        end_time: endTime,
-        notes: notes || undefined,
-        price: price ? parseFloat(price) : undefined,
-        service_ids: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
-        service_id: selectedServiceIds[0] || reservation.service_id,
-      });
-      setIsEditing(false);
-    } finally {
-      setSaving(false);
-    }
+  const handleEdit = () => {
+    if (!reservation || !onEdit) return;
+    onEdit(reservation);
   };
 
   const handleDelete = async () => {
@@ -296,213 +276,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
         </DialogHeader>
 
         <div className="space-y-4">
-          {isEditing ? (
-            <>
-              {/* Customer Name */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-name" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {t('common.name')}
-                </Label>
-                <Input
-                  id="edit-name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-phone" className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  {t('common.phone')}
-                </Label>
-                <Input
-                  id="edit-phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                />
-              </div>
-
-              {/* Car Model */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-car" className="flex items-center gap-2">
-                  <Car className="w-4 h-4" />
-                  {t('reservations.carModel')}
-                </Label>
-                <Input
-                  id="edit-car"
-                  value={carModel}
-                  onChange={(e) => setCarModel(e.target.value)}
-                />
-              </div>
-
-              {/* Car Size */}
-              <div className="space-y-2">
-                <Label>{t('reservations.carSize')}</Label>
-                <div className="flex gap-2">
-                  {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
-                    <Button
-                      key={size}
-                      type="button"
-                      variant={carSize === size ? 'default' : 'outline'}
-                      className="flex-1"
-                      onClick={() => setCarSize(size)}
-                    >
-                      {CAR_SIZE_LABELS[size]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Service editing - show all services with ability to toggle them */}
-              <ServiceSelector
-                instanceId={reservation.instance_id}
-                selectedServiceIds={selectedServiceIds}
-                onServicesChange={setSelectedServiceIds}
-              />
-
-              {/* Date - Range for PPF, Single for others */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4" />
-                  {isPPFStation ? t('reservations.datesRange') : t('reservations.date')}
-                </Label>
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !reservationDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {isPPFStation ? (
-                        reservationDate ? (
-                          endDate && endDate !== reservationDate ? (
-                            `${format(new Date(reservationDate), 'd MMM', { locale: pl })} - ${format(new Date(endDate), 'd MMM yyyy', { locale: pl })}`
-                          ) : (
-                            format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl })
-                          )
-                        ) : t('reservations.selectDates')
-                      ) : (
-                        reservationDate ? format(new Date(reservationDate), 'd MMMM yyyy', { locale: pl }) : t('reservations.selectDate')
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    {isPPFStation ? (
-                      <Calendar
-                        mode="range"
-                        selected={{
-                          from: reservationDate ? new Date(reservationDate) : undefined,
-                          to: endDate ? new Date(endDate) : (reservationDate ? new Date(reservationDate) : undefined),
-                        }}
-                        onSelect={(range: DateRange | undefined) => {
-                          if (range?.from) {
-                            setReservationDate(format(range.from, 'yyyy-MM-dd'));
-                            if (range.to) {
-                              setEndDate(format(range.to, 'yyyy-MM-dd'));
-                              setDatePickerOpen(false);
-                            } else {
-                              setEndDate(null);
-                            }
-                          }
-                        }}
-                        initialFocus
-                        className="pointer-events-auto"
-                        locale={pl}
-                        numberOfMonths={1}
-                      />
-                    ) : (
-                      <Calendar
-                        mode="single"
-                        selected={reservationDate ? new Date(reservationDate) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            setReservationDate(format(date, 'yyyy-MM-dd'));
-                            setEndDate(null);
-                            setDatePickerOpen(false);
-                          }
-                        }}
-                        initialFocus
-                        className="pointer-events-auto"
-                        locale={pl}
-                      />
-                    )}
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Time Range */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-start" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {isPPFStation && endDate && endDate !== reservationDate ? `${t('reservations.start')} (${format(new Date(reservationDate), 'd.MM', { locale: pl })})` : t('reservations.start')}
-                  </Label>
-                  <Input
-                    id="edit-start"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-end" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {isPPFStation && endDate && endDate !== reservationDate ? `${t('reservations.end')} (${format(new Date(endDate), 'd.MM', { locale: pl })})` : t('reservations.end')}
-                  </Label>
-                  <Input
-                    id="edit-end"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-notes">{t('common.notes')}</Label>
-                <Textarea
-                  id="edit-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t('reservations.additionalNotes')}
-                  rows={3}
-                />
-              </div>
-
-              {/* Edit Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t border-border/50">
-                <Button 
-                  variant="outline"
-                  className="flex-1" 
-                  onClick={handleCancelEdit}
-                >
-                  {t('common.cancel')}
-                </Button>
-                <Button 
-                  className="flex-1 gap-2" 
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  {t('common.save')}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Read-only view - simplified layout */}
-              <div className="space-y-4">
+            {/* Read-only view - simplified layout */}
+            <div className="space-y-4">
                 {/* Customer info row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -610,11 +385,11 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
                 {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
                   <div className="flex gap-2">
-                    {onSave && (
+                    {onEdit && (
                       <Button 
                         variant="outline" 
                         className="flex-1 gap-2"
-                        onClick={() => setIsEditing(true)}
+                        onClick={handleEdit}
                       >
                         <Pencil className="w-4 h-4" />
                         {t('common.edit')}
@@ -660,11 +435,11 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                 {/* Pending: Edit and Reject/Confirm actions */}
                 {reservation.status === 'pending' && (
                   <div className="flex gap-2">
-                    {onSave && (
+                    {onEdit && (
                       <Button 
                         variant="outline" 
                         className="flex-1 gap-2"
-                        onClick={() => setIsEditing(true)}
+                        onClick={handleEdit}
                       >
                         <Pencil className="w-4 h-4" />
                         {t('common.edit')}
@@ -885,8 +660,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   </div>
                 )}
               </div>
-            </>
-          )}
+            </div>
         </div>
       </DialogContent>
     </Dialog>
