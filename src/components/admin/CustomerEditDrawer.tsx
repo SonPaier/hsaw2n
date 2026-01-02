@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Phone, MessageSquare, Mail, Car, Calendar, Clock, Save, X, Plus } from 'lucide-react';
+import { Phone, MessageSquare, Mail, Car, Clock, X } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -26,7 +26,6 @@ interface Customer {
   notes: string | null;
   company?: string | null;
   nip?: string | null;
-  address?: string | null;
   source?: string;
 }
 
@@ -72,7 +71,6 @@ const CustomerEditDrawer = ({
   const [editNotes, setEditNotes] = useState('');
   const [editCompany, setEditCompany] = useState('');
   const [editNip, setEditNip] = useState('');
-  const [editAddress, setEditAddress] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -86,7 +84,6 @@ const CustomerEditDrawer = ({
         setEditNotes('');
         setEditCompany('');
         setEditNip('');
-        setEditAddress('');
         setVisits([]);
         setActiveTab('info');
       } else if (customer && instanceId) {
@@ -98,7 +95,6 @@ const CustomerEditDrawer = ({
         setEditNotes(customer.notes || '');
         setEditCompany(customer.company || '');
         setEditNip(customer.nip || '');
-        setEditAddress(customer.address || '');
         setActiveTab('info');
       }
     }
@@ -175,7 +171,6 @@ const CustomerEditDrawer = ({
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
             nip: editNip.trim() || null,
-            address: editAddress.trim() || null,
             source: 'myjnia',
           });
         
@@ -187,11 +182,11 @@ const CustomerEditDrawer = ({
           .from('customers')
           .update({
             name: editName.trim(),
+            phone: editPhone.trim(),
             email: editEmail.trim() || null,
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
             nip: editNip.trim() || null,
-            address: editAddress.trim() || null,
           })
           .eq('id', customer.id);
         
@@ -199,11 +194,8 @@ const CustomerEditDrawer = ({
         toast.success(t('customers.saved'));
       }
       
-      setIsEditing(false);
       onCustomerUpdated?.();
-      if (isAddMode) {
-        onClose();
-      }
+      onClose();
     } catch (error) {
       console.error('Error saving customer:', error);
       toast.error(t('errors.generic'));
@@ -223,7 +215,6 @@ const CustomerEditDrawer = ({
       setEditNotes(customer?.notes || '');
       setEditCompany(customer?.company || '');
       setEditNip(customer?.nip || '');
-      setEditAddress(customer?.address || '');
     }
   };
 
@@ -265,19 +256,13 @@ const CustomerEditDrawer = ({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto" hideOverlay>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary text-lg font-semibold">
-                {(isEditing ? editName : customer?.name || '?').charAt(0).toUpperCase()}
-              </div>
               <div className="flex-1 min-w-0">
-                <div className="truncate">
+                <div className="text-xl font-semibold truncate">
                   {isAddMode ? t('customers.newCustomer') : (isEditing ? editName || customer?.name : customer?.name)}
                 </div>
-                {!isAddMode && customer && (
-                  <div className="text-base font-normal text-muted-foreground">{customer.phone}</div>
-                )}
               </div>
               {!isAddMode && !isEditing && (
                 <div className="flex items-center gap-1">
@@ -302,7 +287,7 @@ const CustomerEditDrawer = ({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6">
+          <div className="mt-6 pb-20">
             {isAddMode || isEditing ? (
               // Edit/Add Form
               <div className="space-y-4">
@@ -314,16 +299,15 @@ const CustomerEditDrawer = ({
                     placeholder={t('customers.fullName')}
                   />
                 </div>
-                {isAddMode && (
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">{t('common.phone')} *</label>
-                    <Input
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder={t('common.phone')}
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('common.phone')} *</label>
+                  <Input
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder={t('common.phone')}
+                    disabled={!isAddMode}
+                  />
+                </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">{t('common.email')}</label>
                   <Input
@@ -350,14 +334,6 @@ const CustomerEditDrawer = ({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">{t('customers.address')}</label>
-                  <Input
-                    value={editAddress}
-                    onChange={(e) => setEditAddress(e.target.value)}
-                    placeholder={t('customers.address')}
-                  />
-                </div>
-                <div>
                   <label className="text-sm font-medium mb-1.5 block">{t('common.notes')}</label>
                   <Textarea
                     value={editNotes}
@@ -365,25 +341,6 @@ const CustomerEditDrawer = ({
                     placeholder={t('customers.notesPlaceholder')}
                     rows={3}
                   />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={handleSaveCustomer}
-                    disabled={saving}
-                    className="flex-1 gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    {saving ? t('common.loading') : t('common.save')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={saving}
-                    className="gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    {t('common.cancel')}
-                  </Button>
                 </div>
               </div>
             ) : (
@@ -395,6 +352,12 @@ const CustomerEditDrawer = ({
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-4 mt-0">
+                  {/* Phone */}
+                  <div className="flex items-center gap-3 text-lg">
+                    <Phone className="w-5 h-5 text-muted-foreground" />
+                    <span className="font-medium">{customer?.phone}</span>
+                  </div>
+                  
                   {/* Contact info */}
                   <div className="space-y-2 text-sm">
                     {customer?.email && (
@@ -411,11 +374,6 @@ const CustomerEditDrawer = ({
                     {customer?.nip && (
                       <div className="text-muted-foreground">
                         <span className="font-medium text-foreground">{t('customers.nip')}:</span> {customer.nip}
-                      </div>
-                    )}
-                    {customer?.address && (
-                      <div className="text-muted-foreground">
-                        <span className="font-medium text-foreground">{t('customers.address')}:</span> {customer.address}
                       </div>
                     )}
                   </div>
@@ -447,15 +405,6 @@ const CustomerEditDrawer = ({
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
                     </div>
                   )}
-
-                  {/* Edit button */}
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="w-full mt-4"
-                  >
-                    {t('common.edit')}
-                  </Button>
                 </TabsContent>
 
                 <TabsContent value="visits" className="mt-0">
@@ -504,6 +453,36 @@ const CustomerEditDrawer = ({
                   )}
                 </TabsContent>
               </Tabs>
+            )}
+          </div>
+          
+          {/* Sticky footer buttons */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t sm:absolute sm:left-auto sm:w-full sm:max-w-md">
+            {isAddMode || isEditing ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={saving}
+                  className="flex-1"
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  onClick={handleSaveCustomer}
+                  disabled={saving}
+                  className="flex-1"
+                >
+                  {saving ? t('common.loading') : t('common.save')}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setIsEditing(true)}
+                className="w-full"
+              >
+                {t('common.edit')}
+              </Button>
             )}
           </div>
         </SheetContent>

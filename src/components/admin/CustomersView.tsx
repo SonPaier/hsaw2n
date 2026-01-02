@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus, Car } from 'lucide-react';
+import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -207,34 +207,31 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   }}
                   className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground hover:bg-muted/50"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-foreground">
-                        {customer.name}
-                      </span>
-                      {/* Vehicle pills */}
-                      {customerVehicles.slice(0, 2).map((v, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/90 text-white rounded-full text-xs"
-                        >
-                          <Car className="w-3 h-3" />
-                          {v.model}
-                        </span>
-                      ))}
-                      {customerVehicles.length > 2 && (
-                        <span className="text-xs text-muted-foreground">
-                          +{customerVehicles.length - 2}
-                        </span>
-                      )}
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    {/* Line 1: Name */}
+                    <div className="font-medium text-foreground">
+                      {customer.name}
                     </div>
-                    <div className="text-base text-foreground font-medium mt-0.5">
+                    {/* Line 2: Phone */}
+                    <div className="text-sm text-muted-foreground">
                       {customer.phone}
                     </div>
-                    {customer.company && (
-                      <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        {customer.company}
+                    {/* Line 3: Vehicles */}
+                    {customerVehicles.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        {customerVehicles.slice(0, 3).map((v, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/90 text-white rounded-full text-xs"
+                          >
+                            {v.model}
+                          </span>
+                        ))}
+                        {customerVehicles.length > 3 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{customerVehicles.length - 3}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
