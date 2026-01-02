@@ -93,6 +93,7 @@ interface ReservationDetailsProps {
   onEndWork?: (reservationId: string) => void;
   onRelease?: (reservationId: string) => void;
   onRevertToConfirmed?: (reservationId: string) => void;
+  onRevertToInProgress?: (reservationId: string) => void;
 }
 
 // CAR_SIZE_LABELS moved inside component for i18n
@@ -101,7 +102,7 @@ interface ReservationDetailsProps {
 
 // getStatusBadge moved inside component for i18n
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease, onRevertToConfirmed }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease, onRevertToConfirmed, onRevertToInProgress }: ReservationDetailsProps) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -111,6 +112,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
   const [releasing, setReleasing] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
+  const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -605,8 +607,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                {/* Row 1: Edit and Delete for confirmed only (pending uses reject) */}
-                {reservation.status === 'confirmed' && (
+                {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
+                {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
                   <div className="flex gap-2">
                     {onSave && (
                       <Button 
@@ -619,7 +621,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                       </Button>
                     )}
                     
-                    {onDelete && (
+                    {/* Delete only for confirmed */}
+                    {reservation.status === 'confirmed' && onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button 
@@ -819,28 +822,67 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   </div>
                 )}
 
-                {/* Completed: Release Vehicle */}
+                {/* Completed: Release Vehicle with dropdown for revert to in_progress */}
                 {reservation.status === 'completed' && onRelease && (
-                  <Button 
-                    className="w-full gap-2"
-                    variant="outline"
-                    onClick={async () => {
-                      setReleasing(true);
-                      try {
-                        await onRelease(reservation.id);
-                      } finally {
-                        setReleasing(false);
-                      }
-                    }}
-                    disabled={releasing}
-                  >
-                    {releasing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Car className="w-4 h-4" />
+                  <div className="flex gap-0">
+                    <Button 
+                      className="flex-1 gap-2 rounded-r-none"
+                      variant="outline"
+                      onClick={async () => {
+                        setReleasing(true);
+                        try {
+                          await onRelease(reservation.id);
+                        } finally {
+                          setReleasing(false);
+                        }
+                      }}
+                      disabled={releasing || reverting}
+                    >
+                      {releasing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Car className="w-4 h-4" />
+                      )}
+                      {t('reservations.releaseVehicle')}
+                    </Button>
+                    
+                    {onRevertToInProgress && (
+                      <Popover open={completedDropdownOpen} onOpenChange={setCompletedDropdownOpen}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            className="px-2 rounded-l-none border-l-0"
+                            disabled={releasing || reverting}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start gap-2 text-sm"
+                            onClick={async () => {
+                              setCompletedDropdownOpen(false);
+                              setReverting(true);
+                              try {
+                                await onRevertToInProgress(reservation.id);
+                              } finally {
+                                setReverting(false);
+                              }
+                            }}
+                            disabled={reverting}
+                          >
+                            {reverting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4" />
+                            )}
+                            {t('reservations.revertToInProgress')}
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
                     )}
-                    {t('reservations.releaseVehicle')}
-                  </Button>
+                  </div>
                 )}
               </div>
             </>

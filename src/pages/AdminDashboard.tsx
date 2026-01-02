@@ -1017,6 +1017,33 @@ const AdminDashboard = () => {
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     });
   };
+
+  const handleRevertToInProgress = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+    
+    const {
+      error: updateError
+    } = await supabase.from('reservations').update({
+      status: 'in_progress'
+    }).eq('id', reservationId);
+    
+    if (updateError) {
+      toast.error(t('errors.generic'));
+      console.error('Update error:', updateError);
+      return;
+    }
+
+    // Update local state
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'in_progress'
+    } : r));
+
+    toast.success(t('reservations.revertedToInProgress'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
+  };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -1466,6 +1493,10 @@ const AdminDashboard = () => {
         }}
         onRevertToConfirmed={async id => {
           await handleRevertToConfirmed(id);
+          setSelectedReservation(null);
+        }}
+        onRevertToInProgress={async id => {
+          await handleRevertToInProgress(id);
           setSelectedReservation(null);
         }}
       />
