@@ -1340,6 +1340,7 @@ export type Database = {
           service_ids: Json | null
           source: string | null
           start_time: string
+          started_at: string | null
           station_id: string | null
           status: Database["public"]["Enums"]["reservation_status"] | null
           updated_at: string | null
@@ -1363,6 +1364,7 @@ export type Database = {
           service_ids?: Json | null
           source?: string | null
           start_time: string
+          started_at?: string | null
           station_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"] | null
           updated_at?: string | null
@@ -1386,6 +1388,7 @@ export type Database = {
           service_ids?: Json | null
           source?: string | null
           start_time?: string
+          started_at?: string | null
           station_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"] | null
           updated_at?: string | null

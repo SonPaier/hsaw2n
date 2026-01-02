@@ -132,7 +132,7 @@ const getStatusColor = (status: string, stationType?: string) => {
       case 'pending':
         return 'bg-amber-100 border-amber-300 text-amber-900';
       case 'in_progress':
-        return 'bg-emerald-300 border-emerald-600 text-emerald-900';
+        return 'bg-emerald-300 border-emerald-700 text-emerald-900 border-2';
       case 'completed':
         return 'bg-sky-200 border-sky-400 text-sky-900';
       case 'released':
@@ -153,8 +153,8 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Zielony pastelowy - potwierdzona
       return 'bg-emerald-200 border-emerald-400 text-emerald-900';
     case 'in_progress':
-      // Zielony z ciemniejszym borderem - w trakcie
-      return 'bg-emerald-300 border-emerald-600 text-emerald-900';
+      // Ciemniejszy zielony z 2px borderem - w trakcie pracy
+      return 'bg-emerald-300 border-emerald-700 text-emerald-900 border-2';
     case 'completed':
       // Niebieski pastelowy - gotowy do wydania
       return 'bg-sky-200 border-sky-400 text-sky-900';
