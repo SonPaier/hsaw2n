@@ -1260,16 +1260,12 @@ const AdminCalendar = ({
                             dragOverSlot?.hour === hour && 
                             dragOverSlot?.slotIndex === slotIndex;
                           
-                          // Check if this slot is in the past
-                          const slotTime = hour * 60 + slotMinutes;
-                          const nowTime = now.getHours() * 60 + now.getMinutes();
-                          const isSlotInPast = isPastDay || (isToday && slotTime < nowTime);
-                          
                           // Check if this slot is outside working hours (in hatched area)
                           const isOutsideWorkingHours = slotTimeDecimal < WORKING_START_TIME || slotTimeDecimal >= WORKING_END_TIME;
                           
-                          // Disable if past OR outside working hours OR day is closed
-                          const isDisabled = isSlotInPast || isOutsideWorkingHours || currentDateClosed;
+                          // Disable only for past days (not today's past hours) OR outside working hours OR day is closed
+                          // Today's earlier hours remain clickable for admin flexibility
+                          const isDisabled = isPastDay || isOutsideWorkingHours || currentDateClosed;
                           return (
                             <div
                               key={slotIndex}
@@ -1314,8 +1310,8 @@ const AdminCalendar = ({
                   {/* Drag preview ghost - enhanced visibility */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
                     <div
-                      className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-50 flex items-center justify-center"
-                      style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
+                      className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none flex items-center justify-center"
+                      style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height, zIndex: 10000 }}
                     >
                       <span className="text-sm font-bold text-foreground bg-background px-3 py-1.5 rounded-md shadow-lg border border-border">
                         Przenieś na {dragPreviewStyle.time}
@@ -1727,18 +1723,13 @@ const AdminCalendar = ({
                                 dragOverSlot?.hour === hour && 
                                 dragOverSlot?.slotIndex === slotIndex;
                               
-                              // Check if this slot is in the past
-                              const slotTime = hour * 60 + slotMinutes;
-                              const nowDateCalc = new Date();
-                              const nowTime = nowDateCalc.getHours() * 60 + nowDateCalc.getMinutes();
-                              const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
-                              
                               // Check if this slot is outside working hours (in hatched area)
                               const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
                               
-                              // Disable if past OR outside working hours OR day is closed (either via closed_days OR workingHours being null)
+                              // Disable only for past days (not today's past hours) OR outside working hours OR day is closed
+                              // Today's earlier hours remain clickable for admin flexibility
                               const isDayClosedInDb = isDateClosed(dayStr);
-                              const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosedInDb || dayHours.isClosed;
+                              const isDisabled = isPastDay || isOutsideWorkingHours || isDayClosedInDb || dayHours.isClosed;
                               
                               return (
                                 <div
@@ -1785,8 +1776,8 @@ const AdminCalendar = ({
                         {/* Drag preview ghost */}
                         {draggedReservation && dragOverStation === station.id && dragOverDate === dayStr && dragPreviewStyle && (
                           <div
-                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none z-50 flex items-center justify-center"
-                            style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height }}
+                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none flex items-center justify-center"
+                            style={{ top: dragPreviewStyle.top, height: dragPreviewStyle.height, zIndex: 10000 }}
                           >
                             <span className="text-[10px] font-bold text-foreground bg-background px-2 py-1 rounded-md shadow-lg border border-border">
                               Przenieś na {dragPreviewStyle.time}
