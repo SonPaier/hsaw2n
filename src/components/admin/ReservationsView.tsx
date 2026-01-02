@@ -7,25 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 interface Service {
   id: string;
   name: string;
   shortcut?: string | null;
 }
-
 interface Reservation {
   id: string;
   instance_id: string;
@@ -53,7 +42,6 @@ interface Reservation {
   };
   price: number | null;
 }
-
 interface ReservationsViewProps {
   reservations: Reservation[];
   allServices: Service[];
@@ -61,35 +49,39 @@ interface ReservationsViewProps {
   onConfirmReservation: (reservationId: string) => void;
   onRejectReservation: (reservationId: string) => void;
 }
-
 type TabValue = 'all' | 'confirmed' | 'pending';
-
 const DEBOUNCE_MS = 300;
-
 const ReservationsView = ({
   reservations,
   allServices,
   onReservationClick,
   onConfirmReservation,
-  onRejectReservation,
+  onRejectReservation
 }: ReservationsViewProps) => {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<string | null>(null);
-
   const formatDateHeader = (dateStr: string): string => {
     const date = parseISO(dateStr);
     if (isToday(date)) {
-      return `${t('dates.today')}, ${format(date, 'd MMMM', { locale: pl })}`;
+      return `${t('dates.today')}, ${format(date, 'd MMMM', {
+        locale: pl
+      })}`;
     }
     if (isTomorrow(date)) {
-      return `${t('dates.tomorrow')}, ${format(date, 'd MMMM', { locale: pl })}`;
+      return `${t('dates.tomorrow')}, ${format(date, 'd MMMM', {
+        locale: pl
+      })}`;
     }
-    return format(date, 'EEEE, d MMMM', { locale: pl });
+    return format(date, 'EEEE, d MMMM', {
+      locale: pl
+    });
   };
 
   // Debounce search query
@@ -104,14 +96,13 @@ const ReservationsView = ({
   const getTabFilteredReservations = useCallback((tab: TabValue, items: Reservation[]) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Only show upcoming reservations (today and future)
     const upcomingItems = items.filter(r => {
       const resDate = parseISO(r.reservation_date);
       resDate.setHours(0, 0, 0, 0);
       return resDate >= today;
     });
-    
     switch (tab) {
       case 'confirmed':
         return upcomingItems.filter(r => r.status === 'confirmed');
@@ -125,11 +116,9 @@ const ReservationsView = ({
   // Search filter
   const searchFilteredReservations = useMemo(() => {
     const tabFiltered = getTabFilteredReservations(activeTab, reservations);
-    
     if (!debouncedQuery.trim()) {
       return tabFiltered;
     }
-
     const query = debouncedQuery.toLowerCase().trim();
     return tabFiltered.filter(r => {
       const matchesCode = r.confirmation_code?.toLowerCase().includes(query);
@@ -147,7 +136,6 @@ const ReservationsView = ({
       if (dateCompare !== 0) return dateCompare;
       return (a.start_time || '').localeCompare(b.start_time || '');
     });
-
     const groups: Record<string, Reservation[]> = {};
     for (const reservation of sorted) {
       const date = reservation.reservation_date;
@@ -158,33 +146,28 @@ const ReservationsView = ({
     }
     return groups;
   }, [searchFilteredReservations]);
-
   const groupDates = Object.keys(groupedReservations).sort();
 
   // Counts for tabs
   const counts = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const upcomingItems = reservations.filter(r => {
       const resDate = parseISO(r.reservation_date);
       resDate.setHours(0, 0, 0, 0);
       return resDate >= today;
     });
-    
     return {
       all: upcomingItems.length,
       confirmed: upcomingItems.filter(r => r.status === 'confirmed').length,
-      pending: upcomingItems.filter(r => r.status === 'pending' || !r.status).length,
+      pending: upcomingItems.filter(r => r.status === 'pending' || !r.status).length
     };
   }, [reservations]);
-
   const handleRejectClick = (e: React.MouseEvent, reservationId: string) => {
     e.stopPropagation();
     setReservationToReject(reservationId);
     setRejectDialogOpen(true);
   };
-
   const handleConfirmReject = () => {
     if (reservationToReject) {
       onRejectReservation(reservationToReject);
@@ -192,51 +175,27 @@ const ReservationsView = ({
       setReservationToReject(null);
     }
   };
-
   const handleCancelReject = () => {
     setRejectDialogOpen(false);
     setReservationToReject(null);
   };
-
   const renderServicePills = (reservation: Reservation) => {
     const services = reservation.services_data || (reservation.service ? [reservation.service] : []);
     if (services.length === 0) return null;
-
-    return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {services.map((service, idx) => (
-          <Badge
-            key={idx}
-            variant="secondary"
-            className="text-xs font-normal px-2 py-0.5"
-          >
+    return <div className="flex flex-wrap gap-1 mt-1">
+        {services.map((service, idx) => <Badge key={idx} variant="secondary" className="text-xs font-normal px-2 py-0.5">
             {service.shortcut || service.name}
-          </Badge>
-        ))}
-      </div>
-    );
+          </Badge>)}
+      </div>;
   };
-
   const renderReservationCard = (reservation: Reservation) => {
     const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
     const isPending = reservation.status === 'pending' || !reservation.status;
-
-    return (
-      <div
-        key={reservation.id}
-        onClick={() => onReservationClick(reservation)}
-        className={cn(
-          "p-4 transition-colors cursor-pointer hover:bg-muted/50",
-          isPending && "bg-amber-500/5"
-        )}
-      >
+    return <div key={reservation.id} onClick={() => onReservationClick(reservation)} className={cn("p-4 transition-colors cursor-pointer hover:bg-muted/50", isPending && "bg-amber-500/5")}>
         {/* Desktop layout */}
         <div className="hidden sm:flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-              isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary"
-            )}>
+            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary")}>
               {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
             </div>
             <div className="min-w-0 flex-1">
@@ -255,9 +214,7 @@ const ReservationsView = ({
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                 {timeRange}
               </div>
-              {reservation.station && (
-                <div className="text-xs text-muted-foreground">{reservation.station.name}</div>
-              )}
+              {reservation.station && <div className="text-xs text-muted-foreground">{reservation.station.name}</div>}
             </div>
 
             {/* Action buttons */}
@@ -272,27 +229,14 @@ const ReservationsView = ({
                   <MessageSquare className="w-4 h-4" />
                 </a>
               </Button>
-              {isPending && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white h-8"
-                  onClick={e => {
-                    e.stopPropagation();
-                    onConfirmReservation(reservation.id);
-                  }}
-                >
+              {isPending && <Button size="sm" variant="outline" className="gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white h-8" onClick={e => {
+              e.stopPropagation();
+              onConfirmReservation(reservation.id);
+            }}>
                   <Check className="w-4 h-4" />
                   {t('common.confirm')}
-                </Button>
-              )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="w-8 h-8 text-muted-foreground hover:text-destructive"
-                onClick={e => handleRejectClick(e, reservation.id)}
-                title={t('reservations.rejectReservation')}
-              >
+                </Button>}
+              <Button size="icon" variant="ghost" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)} title={t('reservations.rejectReservation')}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -302,10 +246,7 @@ const ReservationsView = ({
         {/* Mobile layout */}
         <div className="sm:hidden space-y-3">
           <div className="flex items-start gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-              isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary"
-            )}>
+            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isPending ? "bg-amber-500/20 text-amber-600" : "bg-primary/10 text-primary")}>
               {isPending ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
             </div>
             <div className="flex-1 min-w-0">
@@ -329,78 +270,52 @@ const ReservationsView = ({
                 <MessageSquare className="w-4 h-4" />
               </a>
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-destructive"
-              onClick={e => handleRejectClick(e, reservation.id)}
-            >
+            <Button variant="outline" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)}>
               <X className="w-4 h-4" />
             </Button>
-            {isPending && (
-              <Button
-                variant="outline"
-                className="h-9 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                onClick={e => {
-                  e.stopPropagation();
-                  onConfirmReservation(reservation.id);
-                }}
-              >
+            {isPending && <Button variant="outline" className="h-9 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
+            e.stopPropagation();
+            onConfirmReservation(reservation.id);
+          }}>
                 <Check className="w-4 h-4" />
                 {t('common.confirm')}
-              </Button>
-            )}
+              </Button>}
           </div>
         </div>
-      </div>
-    );
+      </div>;
   };
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       {/* Search bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder={t('reservations.searchPlaceholder')}
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+        <Input placeholder={t('reservations.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all" className="gap-1.5">
             {t('common.all')}
-            {counts.all > 0 && (
-              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+            {counts.all > 0 && <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.all}
-              </Badge>
-            )}
+              </Badge>}
           </TabsTrigger>
           <TabsTrigger value="confirmed" className="gap-1.5">
             {t('reservations.confirmed')}
-            {counts.confirmed > 0 && (
-              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+            {counts.confirmed > 0 && <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.confirmed}
-              </Badge>
-            )}
+              </Badge>}
           </TabsTrigger>
           <TabsTrigger value="pending" className="gap-1.5">
             {t('reservations.pending')}
-            {counts.pending > 0 && (
-              <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
+            {counts.pending > 0 && <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
                 {counts.pending}
-              </Badge>
-            )}
+              </Badge>}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4">
-          {groupDates.length === 0 ? (
-            <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          {groupDates.length === 0 ? <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center mb-6">
                 <Calendar className="w-10 h-10 text-muted-foreground" />
               </div>
@@ -408,23 +323,14 @@ const ReservationsView = ({
                 {t('reservations.noReservations')}
               </h3>
               <p className="text-muted-foreground max-w-sm">
-                {debouncedQuery
-                  ? t('reservations.noSearchResults')
-                  : activeTab === 'pending'
-                    ? t('reservations.noPending')
-                    : activeTab === 'confirmed'
-                      ? t('reservations.noConfirmed')
-                      : t('reservations.noUpcoming')}
+                {debouncedQuery ? t('reservations.noSearchResults') : activeTab === 'pending' ? t('reservations.noPending') : activeTab === 'confirmed' ? t('reservations.noConfirmed') : t('reservations.noUpcoming')}
               </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {groupDates.map(date => (
-                <div key={date}>
+            </div> : <div className="space-y-6">
+              {groupDates.map(date => <div key={date}>
                   {/* Date header */}
                   <div className="flex items-center justify-center mb-3">
-                    <div className="bg-muted/50 px-4 py-1.5 rounded-full">
-                      <span className="text-sm font-medium text-foreground capitalize">
+                    <div className="px-4 py-1.5 rounded-full bg-transparent">
+                      <span className="font-medium capitalize text-inherit text-lg">
                         {formatDateHeader(date)}
                       </span>
                     </div>
@@ -434,20 +340,15 @@ const ReservationsView = ({
                   <div className="glass-card overflow-hidden divide-y divide-border/50">
                     {groupedReservations[date].map(reservation => renderReservationCard(reservation))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                </div>)}
+            </div>}
         </TabsContent>
       </Tabs>
 
       {/* Reject confirmation dialog */}
-      <AlertDialog
-        open={rejectDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) handleCancelReject();
-        }}
-      >
+      <AlertDialog open={rejectDialogOpen} onOpenChange={open => {
+      if (!open) handleCancelReject();
+    }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('reservations.rejectConfirmTitle')}</AlertDialogTitle>
@@ -457,17 +358,12 @@ const ReservationsView = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelReject}>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmReject}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleConfirmReject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {t('reservations.yesReject')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 };
-
 export default ReservationsView;
