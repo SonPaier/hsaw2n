@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Search, Phone, MessageSquare, Check, Pencil, X, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
+import { Search, Phone, MessageSquare, Check, Pencil, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -237,7 +237,7 @@ const ReservationsView = ({
                   {t('common.confirm')}
                 </Button>}
               <Button size="icon" variant="ghost" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)} title={t('reservations.rejectReservation')}>
-                <X className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -271,7 +271,7 @@ const ReservationsView = ({
               </a>
             </Button>
             <Button variant="outline" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={e => handleRejectClick(e, reservation.id)}>
-              <X className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" />
             </Button>
             {isPending && <Button variant="outline" className="h-9 gap-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white" onClick={e => {
             e.stopPropagation();
