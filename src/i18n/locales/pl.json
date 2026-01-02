@@ -135,6 +135,9 @@
     "workStarted": "Praca rozpoczęta",
     "workEnded": "Praca zakończona",
     "vehicleReleased": "Pojazd wydany",
+    "revertToConfirmed": "Cofnij do potwierdzonej",
+    "revertedToConfirmed": "Przywrócono status potwierdzonej",
+    "addedBy": "Dodano przez",
     "reject": "Odrzuć",
     "completeVisit": "Zakończ wizytę",
     "statuses": {
@@ -145,10 +148,10 @@
       "cancelled": "Anulowane"
     },
     "sources": {
-      "employee": "Źródło: Pracownik",
-      "system": "Źródło: System rezerwacji",
-      "booksy": "Źródło: Booksy",
-      "generic": "Źródło: {{source}}"
+      "employee": "Pracownik",
+      "system": "System rezerwacji",
+      "booksy": "Booksy",
+      "generic": "{{source}}"
     }
   },
   "booking": {

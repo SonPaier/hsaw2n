@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check, CheckCircle2 } from 'lucide-react';
+import { User, Phone, Car, Clock, Save, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, CalendarIcon, Check, CheckCircle2, ChevronDown, RotateCcw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import ServiceSelector from '@/components/admin/ServiceSelector';
@@ -92,6 +92,7 @@ interface ReservationDetailsProps {
   onStartWork?: (reservationId: string) => void;
   onEndWork?: (reservationId: string) => void;
   onRelease?: (reservationId: string) => void;
+  onRevertToConfirmed?: (reservationId: string) => void;
 }
 
 // CAR_SIZE_LABELS moved inside component for i18n
@@ -100,7 +101,7 @@ interface ReservationDetailsProps {
 
 // getStatusBadge moved inside component for i18n
 
-const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease }: ReservationDetailsProps) => {
+const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onConfirm, onStartWork, onEndWork, onRelease, onRevertToConfirmed }: ReservationDetailsProps) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -108,6 +109,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
   const [startingWork, setStartingWork] = useState(false);
   const [endingWork, setEndingWork] = useState(false);
   const [releasing, setReleasing] = useState(false);
+  const [reverting, setReverting] = useState(false);
+  const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -121,15 +124,15 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
 
   const getSourceLabel = (source?: string | null) => {
     if (!source || source === 'admin') {
-      return <Badge variant="outline" className="text-xs font-normal">{t('reservations.sources.employee')}</Badge>;
+      return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {t('reservations.sources.employee')}</Badge>;
     }
     if (source === 'customer' || source === 'calendar' || source === 'online') {
-      return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">{t('reservations.sources.system')}</Badge>;
+      return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
     }
     if (source === 'booksy') {
-      return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">{t('reservations.sources.booksy')}</Badge>;
+      return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">{t('reservations.addedBy')}: {t('reservations.sources.booksy')}</Badge>;
     }
-    return <Badge variant="outline" className="text-xs font-normal">{t('reservations.sources.generic', { source })}</Badge>;
+    return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {source}</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
@@ -561,15 +564,15 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                     <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm mt-1">U</div>
                     <div>
                       <div className="text-xs text-muted-foreground">{t('reservations.services')}</div>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {reservation.services_data && reservation.services_data.length > 0 ? (
                           reservation.services_data.map((svc, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
+                            <span key={idx} className="px-2 py-0.5 bg-slate-700/90 text-white rounded text-xs font-medium">
                               {svc.name}
                             </span>
                           ))
                         ) : reservation.service ? (
-                          <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
+                          <span className="px-2 py-0.5 bg-slate-700/90 text-white rounded text-xs font-medium">
                             {reservation.service.name}
                           </span>
                         ) : null}
@@ -600,8 +603,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                {/* Row 1: Edit and Delete for pending/confirmed */}
-                {(reservation.status === 'pending' || reservation.status === 'confirmed') && (
+                {/* Row 1: Edit and Delete for confirmed only (pending uses reject) */}
+                {reservation.status === 'confirmed' && (
                   <div className="flex gap-2">
                     {onSave && (
                       <Button 
@@ -645,6 +648,22 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                    )}
+                  </div>
+                )}
+
+                {/* Pending: Edit and Reject/Confirm actions */}
+                {reservation.status === 'pending' && (
+                  <div className="flex gap-2">
+                    {onSave && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 gap-2"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                        {t('common.edit')}
+                      </Button>
                     )}
                   </div>
                 )}
@@ -737,27 +756,65 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                   </Button>
                 )}
 
-                {/* In Progress: End Work */}
+                {/* In Progress: End Work with dropdown for revert */}
                 {reservation.status === 'in_progress' && onEndWork && (
-                  <Button 
-                    className="w-full gap-2 bg-sky-500 hover:bg-sky-600 text-white"
-                    onClick={async () => {
-                      setEndingWork(true);
-                      try {
-                        await onEndWork(reservation.id);
-                      } finally {
-                        setEndingWork(false);
-                      }
-                    }}
-                    disabled={endingWork}
-                  >
-                    {endingWork ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4" />
+                  <div className="flex gap-0">
+                    <Button 
+                      className="flex-1 gap-2 bg-sky-500 hover:bg-sky-600 text-white rounded-r-none"
+                      onClick={async () => {
+                        setEndingWork(true);
+                        try {
+                          await onEndWork(reservation.id);
+                        } finally {
+                          setEndingWork(false);
+                        }
+                      }}
+                      disabled={endingWork || reverting}
+                    >
+                      {endingWork ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      {t('reservations.endWork')}
+                    </Button>
+                    
+                    {onRevertToConfirmed && (
+                      <Popover open={inProgressDropdownOpen} onOpenChange={setInProgressDropdownOpen}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            className="px-2 bg-sky-500 hover:bg-sky-600 text-white rounded-l-none border-l border-sky-400"
+                            disabled={endingWork || reverting}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-1" align="end">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start gap-2 text-sm"
+                            onClick={async () => {
+                              setInProgressDropdownOpen(false);
+                              setReverting(true);
+                              try {
+                                await onRevertToConfirmed(reservation.id);
+                              } finally {
+                                setReverting(false);
+                              }
+                            }}
+                            disabled={reverting}
+                          >
+                            {reverting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4" />
+                            )}
+                            {t('reservations.revertToConfirmed')}
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
                     )}
-                    {t('reservations.endWork')}
-                  </Button>
+                  </div>
                 )}
 
                 {/* Completed: Release Vehicle */}
