@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import PriceListSettings from './PriceListSettings';
 import StationsSettings from './StationsSettings';
 import WorkingHoursSettings from './WorkingHoursSettings';
-import { SmsUsageCard } from './SmsUsageCard';
+import SmsMessageSettings from './SmsMessageSettings';
 import { ReservationConfirmSettings } from './ReservationConfirmSettings';
 import InstanceUsersTab from './InstanceUsersTab';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -361,7 +361,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
         return <ReservationConfirmSettings instanceId={instanceId} />;
 
       case 'sms':
-        return instanceId ? <SmsUsageCard instanceId={instanceId} /> : null;
+        return <SmsMessageSettings instanceId={instanceId} />;
 
       case 'users':
         return instanceId ? <InstanceUsersTab instanceId={instanceId} /> : null;
