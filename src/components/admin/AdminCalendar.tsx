@@ -1185,19 +1185,10 @@ const AdminCalendar = ({
                 const isPastDay = currentDateObj < new Date(format(now, 'yyyy-MM-dd'));
                 
                 // For past days, hatch the entire column
-                // For today, hatch everything before current time
+                // For today, do NOT hatch elapsed time - only hatch previous days
                 let pastHatchHeight = 0;
                 if (isPastDay) {
                   pastHatchHeight = totalVisibleHeight;
-                } else if (isToday) {
-                  const currentHour = now.getHours();
-                  const currentMinute = now.getMinutes();
-                  const currentTimeDecimal = currentHour + currentMinute / 60;
-                  // Calculate how much of the calendar is in the past (from displayStartTime)
-                  if (currentTimeDecimal >= DISPLAY_START_TIME) {
-                    const timeFromDisplayStart = currentTimeDecimal - DISPLAY_START_TIME;
-                    pastHatchHeight = timeFromDisplayStart * HOUR_HEIGHT;
-                  }
                 }
                 
                 return (
@@ -1645,18 +1636,10 @@ const AdminCalendar = ({
                       const totalVisibleHeight = (dayHours.displayEndTime - dayHours.displayStartTime) * HOUR_HEIGHT;
                       
                       // Calculate past hatch height for this day (relative to displayStartTime)
-                      const nowDate = new Date();
+                      // Only hatch past days, NOT elapsed time in today
                       let pastHatchHeight = 0;
                       if (isPastDay) {
                         pastHatchHeight = totalVisibleHeight;
-                      } else if (isDayToday) {
-                        const currentHour = nowDate.getHours();
-                        const currentMinute = nowDate.getMinutes();
-                        const currentTimeDecimal = currentHour + currentMinute / 60;
-                        if (currentTimeDecimal >= dayHours.displayStartTime) {
-                          const timeFromStart = currentTimeDecimal - dayHours.displayStartTime;
-                          pastHatchHeight = Math.min(timeFromStart * HOUR_HEIGHT, totalVisibleHeight);
-                        }
                       }
                       
                       return (
@@ -1735,7 +1718,8 @@ const AdminCalendar = ({
                               
                               // Check if this slot is in the past
                               const slotTime = hour * 60 + slotMinutes;
-                              const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
+                              const nowDateCalc = new Date();
+                              const nowTime = nowDateCalc.getHours() * 60 + nowDateCalc.getMinutes();
                               const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
                               
                               // Check if this slot is outside working hours (in hatched area)

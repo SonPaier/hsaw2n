@@ -127,7 +127,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
       return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {t('reservations.sources.employee')}</Badge>;
     }
     if (source === 'customer' || source === 'calendar' || source === 'online') {
-      return <Badge variant="outline" className="text-xs font-normal border-secondary/30 text-secondary-foreground">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
+      return <Badge variant="outline" className="text-xs font-normal border-muted-foreground/30 text-muted-foreground">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
     }
     if (source === 'booksy') {
       return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">{t('reservations.addedBy')}: {t('reservations.sources.booksy')}</Badge>;
