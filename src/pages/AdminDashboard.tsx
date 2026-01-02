@@ -989,6 +989,34 @@ const AdminDashboard = () => {
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     });
   };
+
+  const handleRevertToConfirmed = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+    
+    const {
+      error: updateError
+    } = await supabase.from('reservations').update({
+      status: 'confirmed',
+      started_at: null
+    }).eq('id', reservationId);
+    
+    if (updateError) {
+      toast.error(t('errors.generic'));
+      console.error('Update error:', updateError);
+      return;
+    }
+
+    // Update local state
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      status: 'confirmed'
+    } : r));
+
+    toast.success(t('reservations.revertedToConfirmed'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
+  };
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -1434,6 +1462,10 @@ const AdminDashboard = () => {
         }}
         onRelease={async id => {
           await handleReleaseVehicle(id);
+          setSelectedReservation(null);
+        }}
+        onRevertToConfirmed={async id => {
+          await handleRevertToConfirmed(id);
           setSelectedReservation(null);
         }}
       />
