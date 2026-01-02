@@ -127,7 +127,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
       return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {t('reservations.sources.employee')}</Badge>;
     }
     if (source === 'customer' || source === 'calendar' || source === 'online') {
-      return <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
+      return <Badge variant="outline" className="text-xs font-normal border-secondary/30 text-secondary-foreground">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
     }
     if (source === 'booksy') {
       return <Badge variant="outline" className="text-xs font-normal border-purple-500/30 text-purple-600">{t('reservations.addedBy')}: {t('reservations.sources.booksy')}</Badge>;
@@ -145,6 +145,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
         return <Badge className="bg-primary/20 text-primary border-primary/30">{t('reservations.statuses.inProgress')}</Badge>;
       case 'completed':
         return <Badge className="bg-muted text-muted-foreground">{t('reservations.statuses.completed')}</Badge>;
+      case 'released':
+        return <Badge className="bg-muted text-muted-foreground">{t('reservations.statuses.released')}</Badge>;
       case 'cancelled':
         return <Badge className="bg-destructive/20 text-destructive border-destructive/30">{t('reservations.statuses.cancelled')}</Badge>;
       default:
