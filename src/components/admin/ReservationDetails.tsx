@@ -789,7 +789,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onSave, onCo
                             <ChevronDown className="w-4 h-4" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-48 p-1" align="end">
+                        <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
                           <Button
                             variant="ghost"
                             className="w-full justify-start gap-2 text-sm"
