@@ -63,6 +63,7 @@ interface CustomerVehicle {
   model: string;
   plate: string | null;
   customer_id: string | null;
+  customer_name?: string;
 }
 
 interface Customer {
@@ -550,8 +551,31 @@ const AddReservationDialog = ({
         .limit(5);
       
       if (!error && data) {
-        setFoundVehicles(data);
-        setShowPhoneDropdown(data.length > 0);
+        // Fetch customer names for vehicles with customer_id
+        const customerIds = data.filter(v => v.customer_id).map(v => v.customer_id!);
+        let customerNames: Record<string, string> = {};
+        
+        if (customerIds.length > 0) {
+          const { data: customersData } = await supabase
+            .from('customers')
+            .select('id, name')
+            .in('id', customerIds);
+          
+          if (customersData) {
+            customersData.forEach(c => {
+              customerNames[c.id] = c.name;
+            });
+          }
+        }
+        
+        // Merge customer names into vehicles
+        const vehiclesWithNames: CustomerVehicle[] = data.map(v => ({
+          ...v,
+          customer_name: v.customer_id ? customerNames[v.customer_id] : undefined
+        }));
+        
+        setFoundVehicles(vehiclesWithNames);
+        setShowPhoneDropdown(vehiclesWithNames.length > 0);
       }
     } finally {
       setSearchingCustomer(false);
@@ -1235,14 +1259,14 @@ const AddReservationDialog = ({
                     onClick={() => selectVehicle(vehicle)}
                   >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Car className="w-4 h-4 text-primary" />
+                      <User className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <div className="font-medium text-sm">
-                        {vehicle.phone}
+                        {vehicle.customer_name || vehicle.phone}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {vehicle.model}{vehicle.plate && ` • ${vehicle.plate}`}
+                        {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}{vehicle.plate && ` • ${vehicle.plate}`}
                       </div>
                     </div>
                   </button>

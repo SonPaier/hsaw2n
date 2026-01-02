@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -24,17 +24,13 @@ import ReservationsView from '@/components/admin/ReservationsView';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
-import PriceListSettings from '@/components/admin/PriceListSettings';
-import StationsSettings from '@/components/admin/StationsSettings';
-import WorkingHoursSettings from '@/components/admin/WorkingHoursSettings';
 import CustomersView from '@/components/admin/CustomersView';
-import { SmsUsageCard } from '@/components/admin/SmsUsageCard';
-import { ReservationConfirmSettings } from '@/components/admin/ReservationConfirmSettings';
 import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 import OffersView from '@/components/admin/OffersView';
 import ProductsView from '@/components/admin/ProductsView';
 import FollowUpView from '@/components/admin/FollowUpView';
 import NotificationsView from '@/components/admin/NotificationsView';
+import SettingsView from '@/components/admin/SettingsView';
 import { toast } from 'sonner';
 interface Station {
   id: string;
@@ -1430,45 +1426,13 @@ const AdminDashboard = () => {
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
-            {currentView === 'settings' && <div className="space-y-6">
-
-                {/* Company Settings Button */}
-                {instanceData && <div className="glass-card p-6 bg-secondary-foreground">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Building2 className="w-5 h-5" />
-                          Dane firmy i branding
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Logo, kolory, dane kontaktowe
-                        </p>
-                      </div>
-                      <Button onClick={() => setInstanceSettingsOpen(true)}>
-                        Edytuj
-                      </Button>
-                    </div>
-                  </div>}
-
-                {instanceId && <SmsUsageCard instanceId={instanceId} />}
-
-                {/* Reservation Confirm Settings */}
-                <div className="glass-card p-6 bg-secondary-foreground">
-                  <ReservationConfirmSettings instanceId={instanceId} />
-                </div>
-                
-                <div className="glass-card p-6 bg-secondary-foreground">
-                  <WorkingHoursSettings instanceId={instanceId} />
-                </div>
-                
-                <div className="glass-card p-6 bg-secondary-foreground">
-                  <StationsSettings instanceId={instanceId} />
-                </div>
-                
-                <div className="glass-card p-6 bg-secondary-foreground">
-                  <PriceListSettings instanceId={instanceId} />
-                </div>
-              </div>}
+            {currentView === 'settings' && (
+              <SettingsView 
+                instanceId={instanceId} 
+                instanceData={instanceData}
+                onInstanceUpdate={(data) => setInstanceData(data)}
+              />
+            )}
 
             {currentView === 'offers' && <OffersView instanceId={instanceId} onNavigateToProducts={() => setCurrentView('products')} />}
 
