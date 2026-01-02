@@ -1066,8 +1066,8 @@ const AdminCalendar = ({
       {/* DAY VIEW */}
       {viewMode === 'day' && (
         <>
-          {/* Station Headers - sticky */}
-          <div className="flex border-b border-border/50 bg-card sticky top-12 z-40">
+          {/* Station Headers - fixed position */}
+          <div className="flex border-b border-border/50 bg-card sticky top-0 z-40">
             {/* Time column header */}
             <div className="w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50">
               <Clock className="w-5 h-5" />
@@ -2005,22 +2005,15 @@ const AdminCalendar = ({
                 const totalVisibleHeight = (dayHours.displayEndTime - dayHours.displayStartTime) * HOUR_HEIGHT;
                 
                 // Calculate past hatch height (relative to displayStartTime)
+                // Only hatch past days - today should NOT be hatched at all
                 const today = startOfDay(new Date());
                 const dayDate = startOfDay(day);
                 const isPastDay = isBefore(dayDate, today);
-                const nowDate = new Date();
                 let pastHatchHeight = 0;
                 if (isPastDay) {
                   pastHatchHeight = totalVisibleHeight;
-                } else if (isDayToday) {
-                  const currentHour = nowDate.getHours();
-                  const currentMinute = nowDate.getMinutes();
-                  const currentTimeDecimal = currentHour + currentMinute / 60;
-                  if (currentTimeDecimal >= dayHours.displayStartTime) {
-                    const timeFromStart = currentTimeDecimal - dayHours.displayStartTime;
-                    pastHatchHeight = Math.min(timeFromStart * HOUR_HEIGHT, totalVisibleHeight);
-                  }
                 }
+                // Today is NOT hatched - we want to allow adding reservations to any time slot
                 
                 return (
                   <div 
@@ -2101,16 +2094,12 @@ const AdminCalendar = ({
                             dragOverSlot?.hour === hour && 
                             dragOverSlot?.slotIndex === slotIndex;
                           
-                          // Check if this slot is in the past
-                          const slotTime = hour * 60 + slotMinutes;
-                          const nowTime = nowDate.getHours() * 60 + nowDate.getMinutes();
-                          const isSlotInPast = isPastDay || (isDayToday && slotTime < nowTime);
-                          
                           // Check if this slot is outside working hours (in hatched area)
                           const isOutsideWorkingHours = slotTimeDecimal < dayHours.workingStartTime || slotTimeDecimal >= dayHours.workingEndTime;
                           
-                          // Disable if past OR outside working hours OR day is closed
-                          const isDisabled = isSlotInPast || isOutsideWorkingHours || isDayClosed;
+                          // Disable only for past days (not today) OR outside working hours OR day is closed
+                          // Today's earlier hours should remain clickable!
+                          const isDisabled = isPastDay || isOutsideWorkingHours || isDayClosed;
                           
                           return (
                             <div
