@@ -5,11 +5,12 @@ import { pl } from 'date-fns/locale';
 import { Search, Phone, MessageSquare, Check, Pencil, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import ServiceTag from './ServiceTag';
 interface Service {
   id: string;
   name: string;
@@ -183,9 +184,9 @@ const ReservationsView = ({
     const services = reservation.services_data || (reservation.service ? [reservation.service] : []);
     if (services.length === 0) return null;
     return <div className="flex flex-wrap gap-1 mt-1">
-        {services.map((service, idx) => <Badge key={idx} variant="secondary" className="text-xs font-normal px-2 py-0.5">
-            {service.shortcut || service.name}
-          </Badge>)}
+        {services.map((service, idx) => (
+          <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />
+        ))}
       </div>;
   };
   const renderReservationCard = (reservation: Reservation) => {
