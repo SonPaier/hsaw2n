@@ -122,6 +122,7 @@
     "reservationRejected": "Rezerwacja odrzucona",
     "reservationUpdated": "Rezerwacja zaktualizowana",
     "reservationCreated": "Rezerwacja utworzona",
+    "reservationMoved": "Rezerwacja została przeniesiona",
     "confirmRejectTitle": "Czy na pewno chcesz odrzucić rezerwację?",
     "confirmRejectDescription": "Rezerwacja zostanie usunięta z systemu. Dane klienta ({{name}}, {{phone}}) zostaną zachowane w bazie klientów.",
     "yesReject": "Tak, odrzuć rezerwację",

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
+import { Car, Calendar, LogOut, Menu, Clock, CheckCircle2, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, AlertCircle, Check, Filter, FileText, Building2, CalendarClock, Phone, MessageSquare, ChevronUp, Package, Bell } from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -971,12 +971,18 @@ const AdminDashboard = () => {
       ...r,
       ...updates
     } : r));
-    const station = stations.find(s => s.id === newStationId);
-    const dateChanged = reservation.reservation_date !== newDate;
-    const message = dateChanged ? `Rezerwacja przeniesiona na ${station?.name || 'stanowisko'} (${newDate})` : `Rezerwacja przeniesiona na ${station?.name || 'nowe stanowisko'}`;
+    // Get vehicle model from reservation
+    const vehicleModel = reservation.vehicle_plate || t('addReservation.defaultVehicle');
 
-    // Show toast with undo action
-    toast.success(message, {
+    // Show toast with reservation details
+    toast.success(t('reservations.reservationMoved'), {
+      description: (
+        <div className="flex flex-col">
+          <span>{updates.start_time} - {updates.end_time}</span>
+          <span>{vehicleModel}</span>
+        </div>
+      ),
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       duration: 5000,
       action: {
         label: t('common.undo'),
