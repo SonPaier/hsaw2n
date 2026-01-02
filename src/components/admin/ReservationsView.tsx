@@ -184,7 +184,9 @@ const ReservationsView = ({
     const services = reservation.services_data || (reservation.service ? [reservation.service] : []);
     if (services.length === 0) return null;
     return <div className="flex flex-wrap gap-1 mt-1">
-        {services.map((service, idx) => <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />)}
+        {services.map((service, idx) => (
+          <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />
+        ))}
       </div>;
   };
   const renderReservationCard = (reservation: Reservation) => {
@@ -324,19 +326,19 @@ const ReservationsView = ({
               <p className="text-muted-foreground max-w-sm">
                 {debouncedQuery ? t('reservations.noSearchResults') : activeTab === 'pending' ? t('reservations.noPending') : activeTab === 'confirmed' ? t('reservations.noConfirmed') : t('reservations.noUpcoming')}
               </p>
-            </div> : <div className="space-y-6">
+            </div> : <div>
               {groupDates.map(date => <div key={date}>
-                  {/* Date header */}
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="px-4 py-1.5 rounded-full bg-transparent">
-                      <span className="font-medium capitalize text-inherit text-lg">
+                  {/* Sticky date header */}
+                  <div className="sticky top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
+                    <div className="px-4 py-1 rounded-full bg-muted/50">
+                      <span className="font-medium capitalize text-foreground text-sm">
                         {formatDateHeader(date)}
                       </span>
                     </div>
                   </div>
 
                   {/* Reservations for this date */}
-                  <div className="glass-card overflow-hidden divide-y divide-border/50">
+                  <div className="glass-card overflow-hidden divide-y divide-border/50 mb-4">
                     {groupedReservations[date].map(reservation => renderReservationCard(reservation))}
                   </div>
                 </div>)}
