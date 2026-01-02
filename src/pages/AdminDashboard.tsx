@@ -529,10 +529,13 @@ const AdminDashboard = () => {
               } : undefined
             };
             setReservations(prev => [...prev, newReservation as Reservation]);
+            // Only show toast for customer-created reservations (admin-created reservations show toast in dialog)
             const isCustomerReservation = (data as any).source === 'customer';
-            toast.success(isCustomerReservation ? '🔔 Nowa rezerwacja od klienta!' : 'Nowa rezerwacja!', {
-              description: `${data.customer_name} - ${data.start_time}`
-            });
+            if (isCustomerReservation) {
+              toast.success('🔔 Nowa rezerwacja od klienta!', {
+                description: `${data.customer_name} - ${data.start_time}`
+              });
+            }
           }
         });
       } else if (payload.eventType === 'UPDATE') {
@@ -764,9 +767,8 @@ const AdminDashboard = () => {
     setAddReservationOpen(true);
   };
   const handleReservationAdded = () => {
-    // Refresh reservations from database
+    // Refresh reservations from database - toast is shown in AddReservationDialog
     fetchReservations();
-    toast.success(t('reservations.reservationCreated'));
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
     setNewBreakData({
