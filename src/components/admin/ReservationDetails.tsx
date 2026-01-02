@@ -276,10 +276,8 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onEdit, onCo
         </DialogHeader>
 
         <div className="space-y-4">
-            {/* Read-only view - simplified layout */}
-            <div className="space-y-4">
-                {/* Customer info row */}
-                <div className="flex items-center justify-between">
+          {/* Customer info row */}
+          <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
@@ -378,10 +376,9 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onEdit, onCo
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
                 {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
                 {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
                   <div className="flex gap-2">
@@ -659,8 +656,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onEdit, onCo
                     )}
                   </div>
                 )}
-              </div>
-            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -672,7 +668,7 @@ const ReservationDetails = ({ reservation, open, onClose, onDelete, onEdit, onCo
       open={smsDialogOpen}
       onClose={() => setSmsDialogOpen(false)}
     />
-  </>
+    </>
   );
 };
 
