@@ -137,6 +137,8 @@
     "vehicleReleased": "Pojazd wydany",
     "revertToConfirmed": "Cofnij do potwierdzonej",
     "revertedToConfirmed": "Przywrócono status potwierdzonej",
+    "revertToInProgress": "Cofnij do w trakcie",
+    "revertedToInProgress": "Przywrócono status w trakcie",
     "addedBy": "Dodano przez",
     "reject": "Odrzuć",
     "completeVisit": "Zakończ wizytę",
