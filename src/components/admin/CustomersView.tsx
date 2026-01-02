@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus } from 'lucide-react';
+import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import SendSmsDialog from './SendSmsDialog';
+import { toast } from 'sonner';
 
 interface Customer {
   id: string;
@@ -54,6 +57,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const [smsCustomer, setSmsCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'myjnia' | 'oferty'>('myjnia');
   const [isAddMode, setIsAddMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   const hasOffers = hasFeature('offers');
 
@@ -175,6 +180,34 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     setIsAddMode(false);
   };
 
+  const handleDeleteClick = (customer: Customer, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!customerToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerToDelete.id);
+      
+      if (error) throw error;
+      
+      toast.success(t('customers.deleted'));
+      fetchCustomers();
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast.error(t('errors.generic'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
+    }
+  };
+
   const myjniaCount = customers.filter(c => c.source === 'myjnia').length;
   const ofertyCount = customers.filter(c => c.source === 'oferty').length;
 
@@ -251,6 +284,14 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                       onClick={e => handleCall(customer.phone, e)}
                     >
                       <Phone className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+                      onClick={e => handleDeleteClick(customer, e)}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -363,8 +404,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'myjnia' | 'oferty')}>
-        <TabsList variant="light" className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="myjnia" className="gap-2">
+        <AdminTabsList className="max-w-md">
+          <AdminTabsTrigger value="myjnia">
             <User className="w-4 h-4" />
             {t('customers.tabs.carWash')}
             {myjniaCount > 0 && (
@@ -372,8 +413,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                 {myjniaCount}
               </span>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="oferty" className="gap-2">
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="oferty">
             <Building2 className="w-4 h-4" />
             {t('customers.tabs.offers')}
             {ofertyCount > 0 && (
@@ -381,8 +422,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                 {ofertyCount}
               </span>
             )}
-          </TabsTrigger>
-        </TabsList>
+          </AdminTabsTrigger>
+        </AdminTabsList>
 
         <TabsContent value="myjnia" className="space-y-4 mt-4">
           {renderCustomerList()}
@@ -411,6 +452,28 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         open={!!smsCustomer}
         onClose={() => setSmsCustomer(null)}
       />
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('customers.confirmDeleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('customers.confirmDeleteDescription', { name: customerToDelete?.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCustomerToDelete(null)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

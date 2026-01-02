@@ -5,7 +5,8 @@ import { pl } from 'date-fns/locale';
 import { Search, Phone, MessageSquare, Check, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
@@ -455,32 +456,32 @@ const ReservationsView = ({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <TabsList className="grid w-full grid-cols-3 bg-muted">
-          <TabsTrigger value="all" className="gap-1.5 data-[state=active]:bg-background">
+        <AdminTabsList columns={3}>
+          <AdminTabsTrigger value="all">
             {t('common.all')}
             {counts.all > 0 && (
               <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.all}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="confirmed" className="gap-1.5 data-[state=active]:bg-background">
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="confirmed">
             {t('reservations.confirmed')}
             {counts.confirmed > 0 && (
               <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                 {counts.confirmed}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-1.5 data-[state=active]:bg-background">
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="pending">
             {t('reservations.pending')}
             {counts.pending > 0 && (
               <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
                 {counts.pending}
               </Badge>
             )}
-          </TabsTrigger>
-        </TabsList>
+          </AdminTabsTrigger>
+        </AdminTabsList>
 
         <TabsContent value={activeTab} className="mt-4">
           {groupDates.length === 0 ? (
