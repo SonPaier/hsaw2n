@@ -184,9 +184,7 @@ const ReservationsView = ({
     const services = reservation.services_data || (reservation.service ? [reservation.service] : []);
     if (services.length === 0) return null;
     return <div className="flex flex-wrap gap-1 mt-1">
-        {services.map((service, idx) => (
-          <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />
-        ))}
+        {services.map((service, idx) => <ServiceTag key={idx} name={service.name} shortcut={service.shortcut} />)}
       </div>;
   };
   const renderReservationCard = (reservation: Reservation) => {
@@ -330,8 +328,8 @@ const ReservationsView = ({
               {groupDates.map(date => <div key={date}>
                   {/* Sticky date header */}
                   <div className="sticky top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
-                    <div className="px-4 py-1 rounded-full bg-muted/50">
-                      <span className="font-medium capitalize text-foreground text-sm">
+                    <div className="px-4 py-1 rounded-full bg-transparent">
+                      <span className="font-medium capitalize text-foreground text-lg">
                         {formatDateHeader(date)}
                       </span>
                     </div>
