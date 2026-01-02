@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Phone, Car, Loader2, Sparkles, Check, ChevronDown, CalendarIcon } from 'lucide-react';
+import { User, Phone, Car, Loader2, Sparkles, Check, ChevronDown, CalendarIcon, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
@@ -584,9 +584,8 @@ const AddReservationDialog = ({
               .select('id')
               .single();
             
-            if (customerError) throw customerError;
+          if (customerError) throw customerError;
             customerId = newCustomer.id;
-            toast.success(t('addReservation.customerAdded'));
           }
         } else {
           // Create customer without phone
@@ -602,7 +601,6 @@ const AddReservationDialog = ({
           
           if (customerError) throw customerError;
           customerId = newCustomer.id;
-          toast.success(t('addReservation.customerAdded'));
         }
       }
 
@@ -670,7 +668,16 @@ const AddReservationDialog = ({
 
       if (reservationError) throw reservationError;
 
-      toast.success(t('addReservation.reservationAdded'));
+      // Show single toast with reservation details
+      toast.success(t('addReservation.reservationCreated'), {
+        description: (
+          <div className="flex flex-col">
+            <span>{startTime} - {finalEndTime}</span>
+            <span>{carModel || t('addReservation.defaultVehicle')}</span>
+          </div>
+        ),
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      });
       onSuccess();
       onClose();
     } catch (error) {
