@@ -208,6 +208,8 @@ const AddReservationDialog = ({
   // Yard mode fields
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
   const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
+  const [pickupDate, setPickupDate] = useState<Date | undefined>(undefined);
+  const [pickupDateOpen, setPickupDateOpen] = useState(false);
   const [deadlineTime, setDeadlineTime] = useState('');
   
   const isPPFStation = stationType === 'ppf';
@@ -1019,41 +1021,76 @@ const AddReservationDialog = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
-          {/* Yard mode: Arrival Date and Deadline */}
+          {/* Yard mode: Arrival Date, Pickup Date and Deadline */}
           {isYardMode ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4" />
-                  {t('addReservation.arrivalDate')}
-                </Label>
-                <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !arrivalDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {arrivalDate ? format(arrivalDate, 'PPP', { locale: pl }) : t('addReservation.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={arrivalDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setArrivalDate(date);
-                          setArrivalDateOpen(false);
-                        }
-                      }}
-                      locale={pl}
-                    />
-                  </PopoverContent>
-                </Popover>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    {t('addReservation.arrivalDate')}
+                  </Label>
+                  <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !arrivalDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {arrivalDate ? format(arrivalDate, 'PPP', { locale: pl }) : t('addReservation.selectDate')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={arrivalDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setArrivalDate(date);
+                            setArrivalDateOpen(false);
+                          }
+                        }}
+                        locale={pl}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    {t('addReservation.pickupDate')}
+                  </Label>
+                  <Popover open={pickupDateOpen} onOpenChange={setPickupDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !pickupDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {pickupDate ? format(pickupDate, 'PPP', { locale: pl }) : t('addReservation.selectDate')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={pickupDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setPickupDate(date);
+                            setPickupDateOpen(false);
+                          }
+                        }}
+                        locale={pl}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">

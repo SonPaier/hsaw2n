@@ -186,6 +186,9 @@ export default function CustomerBookingWizard({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
+  const [smsSentTimestamp, setSmsSentTimestamp] = useState<number | null>(null);
+  const [smsError, setSmsError] = useState(false);
+  const [showResendButton, setShowResendButton] = useState(false);
 
   // Success
   const [confirmationData, setConfirmationData] = useState<{
@@ -728,6 +731,8 @@ export default function CustomerBookingWizard({
       return;
     }
     setIsSendingSms(true);
+    setSmsError(false);
+    setShowResendButton(false);
     try {
       const response = await supabase.functions.invoke('send-sms-code', {
         body: {
@@ -755,8 +760,15 @@ export default function CustomerBookingWizard({
         description: t('booking.enterCode')
       });
       setSmsSent(true);
+      setSmsSentTimestamp(Date.now());
+      // Show resend button after 10 seconds
+      setTimeout(() => {
+        setShowResendButton(true);
+      }, 10000);
     } catch (error) {
       console.error('Error sending SMS:', error);
+      setSmsError(true);
+      setShowResendButton(true);
       toast({
         title: t('common.error'),
         description: t('booking.smsSendError'),
@@ -1167,6 +1179,8 @@ export default function CustomerBookingWizard({
           goToStep('datetime', 'back');
           setSmsSent(false);
           setVerificationCode('');
+          setSmsError(false);
+          setShowResendButton(false);
         }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-3 text-base">
             <ArrowLeft className="w-4 h-4" />
             {t('common.back')}
@@ -1266,6 +1280,23 @@ export default function CustomerBookingWizard({
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {t('booking.verifying')}
                 </div>}
+              {showResendButton && !isVerifying && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setSmsSent(false);
+                    setVerificationCode('');
+                    setShowResendButton(false);
+                    handleSendSms();
+                  }}
+                  disabled={isSendingSms}
+                  className="mt-3"
+                >
+                  {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {t('booking.resendCode')}
+                </Button>
+              )}
             </div>}
         </div>
       </div>;

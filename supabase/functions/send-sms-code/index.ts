@@ -115,7 +115,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Use dynamic instance name in SMS
-    const smsMessage = `${instanceName} kod: ${code}`;
+    const smsMessage = `Kod potwierdzajacy ${instanceName}: ${code}`;
     
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
