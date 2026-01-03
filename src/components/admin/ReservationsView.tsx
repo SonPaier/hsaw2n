@@ -443,47 +443,53 @@ const ReservationsView = ({
 
   return (
     <div className="space-y-4">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder={t('reservations.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Sticky header on mobile */}
+      <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={t('reservations.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+          <AdminTabsList columns={3}>
+            <AdminTabsTrigger value="all">
+              {t('common.all')}
+              {counts.all > 0 && (
+                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                  {counts.all}
+                </Badge>
+              )}
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="confirmed">
+              {t('reservations.confirmed')}
+              {counts.confirmed > 0 && (
+                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                  {counts.confirmed}
+                </Badge>
+              )}
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="pending">
+              {t('reservations.pending')}
+              {counts.pending > 0 && (
+                <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
+                  {counts.pending}
+                </Badge>
+              )}
+            </AdminTabsTrigger>
+          </AdminTabsList>
+        </Tabs>
       </div>
 
-      {/* Tabs */}
+      {/* Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <AdminTabsList columns={3}>
-          <AdminTabsTrigger value="all">
-            {t('common.all')}
-            {counts.all > 0 && (
-              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                {counts.all}
-              </Badge>
-            )}
-          </AdminTabsTrigger>
-          <AdminTabsTrigger value="confirmed">
-            {t('reservations.confirmed')}
-            {counts.confirmed > 0 && (
-              <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                {counts.confirmed}
-              </Badge>
-            )}
-          </AdminTabsTrigger>
-          <AdminTabsTrigger value="pending">
-            {t('reservations.pending')}
-            {counts.pending > 0 && (
-              <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
-                {counts.pending}
-              </Badge>
-            )}
-          </AdminTabsTrigger>
-        </AdminTabsList>
-
-        <TabsContent value={activeTab} className="mt-4">
+        <TabsContent value={activeTab} className="mt-0">
           {groupDates.length === 0 ? (
             <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center mb-6">
