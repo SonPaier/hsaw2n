@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Sparkles, ChevronLeft, ChevronRight, Plus, X, Check, ChevronDown } from 'lucide-react';
-import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
+import { format, addDays, subDays, isSameDay, isBefore, startOfDay, isAfter } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { pl } from 'date-fns/locale';
 import {
@@ -210,6 +210,40 @@ const AddReservationDialogV2 = ({
     fetchAvailability();
   }, [instanceId, selectedDate]);
 
+  // Calculate the next working day based on working hours
+  const getNextWorkingDay = useCallback((): Date => {
+    if (!workingHours) return new Date();
+    
+    const now = new Date();
+    let checkDate = startOfDay(now);
+    
+    // Check if today is still a valid working day
+    const todayName = format(now, 'EEEE').toLowerCase();
+    const todayHours = workingHours[todayName];
+    
+    if (todayHours) {
+      const [closeH, closeM] = todayHours.close.split(':').map(Number);
+      const closeTime = new Date(now);
+      closeTime.setHours(closeH, closeM, 0, 0);
+      
+      // If current time is before closing, today is valid
+      if (isBefore(now, closeTime)) {
+        return checkDate;
+      }
+    }
+    
+    // Find next working day
+    for (let i = 1; i <= 7; i++) {
+      checkDate = addDays(startOfDay(now), i);
+      const dayName = format(checkDate, 'EEEE').toLowerCase();
+      if (workingHours[dayName]) {
+        return checkDate;
+      }
+    }
+    
+    return addDays(startOfDay(now), 1);
+  }, [workingHours]);
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
@@ -218,7 +252,7 @@ const AddReservationDialogV2 = ({
       setCarModel('');
       setCarSize('medium');
       setSelectedServices([]);
-      setSelectedDate(new Date());
+      setSelectedDate(getNextWorkingDay());
       setSelectedTime(null);
       setSelectedStationId(null);
       setNotes('');
@@ -228,7 +262,7 @@ const AddReservationDialogV2 = ({
       setShowPhoneDropdown(false);
       setShowCustomerDropdown(false);
     }
-  }, [open]);
+  }, [open, getNextWorkingDay]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
