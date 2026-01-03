@@ -466,6 +466,7 @@ export type Database = {
           phone: string | null
           primary_color: string | null
           secondary_color: string | null
+          show_unit_prices_in_offer: boolean
           slug: string
           sms_limit: number
           sms_used: number
@@ -494,6 +495,7 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          show_unit_prices_in_offer?: boolean
           slug: string
           sms_limit?: number
           sms_used?: number
@@ -522,6 +524,7 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          show_unit_prices_in_offer?: boolean
           slug?: string
           sms_limit?: number
           sms_used?: number

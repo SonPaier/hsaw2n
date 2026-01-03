@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -31,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SummaryStepProps {
   instanceId: string;
   offer: OfferState;
+  showUnitPrices: boolean;
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
   calculateOptionTotal: (option: OfferOption) => number;
@@ -48,12 +48,14 @@ interface OfferTemplate {
 export const SummaryStep = ({
   instanceId,
   offer,
+  showUnitPrices,
   onUpdateOffer,
   onUpdateOption,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
 }: SummaryStepProps) => {
+  const { t } = useTranslation();
   const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
   const [tempDiscount, setTempDiscount] = useState('');
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
@@ -155,50 +157,54 @@ export const SummaryStep = ({
 
   return (
     <div className="space-y-6">
-      {/* Customer & Vehicle Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+      {/* Customer & Vehicle Summary - single Card */}
+      <Card>
+        <CardContent className="pt-6 space-y-6">
+          {/* Customer Section */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
               <User className="w-4 h-4 text-primary" />
               Klient
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-1">
-            <p className="font-medium">{offer.customerData.name || '—'}</p>
-            <p className="text-muted-foreground">{offer.customerData.email || '—'}</p>
-            {offer.customerData.phone && (
-              <p className="text-muted-foreground">{offer.customerData.phone}</p>
-            )}
-            {offer.customerData.company && (
-              <div className="pt-2 flex items-center gap-2">
-                <Building2 className="w-3 h-3" />
-                <span>{offer.customerData.company}</span>
+            </div>
+            <div className="text-sm space-y-1 pl-6">
+              <p className="font-medium">{offer.customerData.name || '—'}</p>
+              <p className="text-muted-foreground">{offer.customerData.email || '—'}</p>
+              {offer.customerData.phone && (
+                <p className="text-muted-foreground">{offer.customerData.phone}</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Company Section */}
+          {offer.customerData.company && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-semibold">
+                <Building2 className="w-4 h-4 text-primary" />
+                Firma
+              </div>
+              <div className="text-sm space-y-1 pl-6">
+                <p className="font-medium">{offer.customerData.company}</p>
                 {offer.customerData.nip && (
-                  <span className="text-muted-foreground">NIP: {offer.customerData.nip}</span>
+                  <p className="text-muted-foreground">NIP: {offer.customerData.nip}</p>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
 
-        {offer.vehicleData.brandModel && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
+          {/* Vehicle Section */}
+          {offer.vehicleData.brandModel && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-semibold">
                 <Car className="w-4 h-4 text-primary" />
                 Pojazd
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-1">
-              <p className="font-medium">{offer.vehicleData.brandModel}</p>
-              {offer.vehicleData.plate && (
-                <p className="text-muted-foreground">{offer.vehicleData.plate}</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              </div>
+              <div className="text-sm space-y-1 pl-6">
+                <p className="font-medium">{offer.vehicleData.brandModel}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Options Summary - grouped by scope */}
       <Card>
@@ -212,16 +218,16 @@ export const SummaryStep = ({
           {groupedOptions.map((group) => (
             <div key={group.scopeId || 'other'} className="space-y-3">
               {/* Scope header */}
-              <h3 className="font-semibold text-lg border-b pb-2">{group.scopeName}</h3>
+              <h3 className="font-bold text-xl border-b pb-2">{group.scopeName}</h3>
               
               {group.options.map((option) => (
                 <div
                   key={option.id}
-                  className="border rounded-lg p-4 space-y-3 ml-2"
+                  className="space-y-3 py-3 border-b last:border-0"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">{option.name}</h4>
+                      <h4 className="font-semibold text-lg">{option.name}</h4>
                       {option.description && (
                         <p className="text-sm text-muted-foreground">{option.description}</p>
                       )}
@@ -232,43 +238,56 @@ export const SummaryStep = ({
                     </div>
                   </div>
 
-                  {/* Items table */}
-                  <div className="text-sm">
-                    <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
-                      <div className="col-span-5">Pozycja</div>
-                      <div className="col-span-2 text-right">Ilość</div>
-                      <div className="col-span-2 text-right">Cena</div>
-                      <div className="col-span-1 text-right">Rabat</div>
-                      <div className="col-span-2 text-right">Wartość</div>
+                  {/* Items - conditional based on showUnitPrices */}
+                  {showUnitPrices ? (
+                    <div className="text-sm">
+                      <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
+                        <div className="col-span-5">Pozycja</div>
+                        <div className="col-span-2 text-right">Ilość</div>
+                        <div className="col-span-2 text-right">Cena</div>
+                        <div className="col-span-1 text-right">Rabat</div>
+                        <div className="col-span-2 text-right">Wartość</div>
+                      </div>
+                      {option.items.map((item) => {
+                        const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                        return (
+                          <div
+                            key={item.id}
+                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0"
+                          >
+                            <div className="col-span-5">
+                              {item.customName}
+                            </div>
+                            <div className="col-span-2 text-right">
+                              {item.quantity} {item.unit}
+                            </div>
+                            <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
+                            <div className="col-span-1 text-right">
+                              {item.discountPercent > 0 && `-${item.discountPercent}%`}
+                            </div>
+                            <div className="col-span-2 text-right font-medium">
+                              {formatPrice(itemValue)}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {option.items.map((item) => {
-                      const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-                      return (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            "grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0",
-                            item.isOptional && "text-muted-foreground italic"
-                          )}
-                        >
-                          <div className="col-span-5 flex items-center gap-1">
-                            {item.isOptional && <Badge variant="outline" className="text-xs px-1">OPC</Badge>}
-                            {item.customName}
+                  ) : (
+                    <div className="text-sm space-y-1">
+                      {option.items.map((item) => {
+                        const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex justify-between py-1"
+                          >
+                            <span>{item.customName}</span>
+                            <span className="font-medium">{formatPrice(itemValue)}</span>
                           </div>
-                          <div className="col-span-2 text-right">
-                            {item.quantity} {item.unit}
-                          </div>
-                          <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
-                          <div className="col-span-1 text-right">
-                            {item.discountPercent > 0 && `-${item.discountPercent}%`}
-                          </div>
-                          <div className="col-span-2 text-right font-medium">
-                            {item.isOptional ? '—' : formatPrice(itemValue)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Global discount edit */}
                   <div className="flex items-center gap-2 pt-2">
@@ -386,20 +405,6 @@ export const SummaryStep = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="hideUnitPrices">Ukryj ceny jednostkowe</Label>
-              <p className="text-sm text-muted-foreground">
-                Klient zobaczy tylko cenę końcową opcji, bez rozbicia na pozycje
-              </p>
-            </div>
-            <Switch
-              id="hideUnitPrices"
-              checked={offer.hideUnitPrices}
-              onCheckedChange={(checked) => onUpdateOffer({ hideUnitPrices: checked })}
-            />
-          </div>
-          <Separator />
           <div className="space-y-2">
             <Label htmlFor="validUntil">Oferta ważna do</Label>
             <Input
