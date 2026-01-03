@@ -444,7 +444,7 @@ const ReservationsView = ({
   return (
     <div className="space-y-4">
       {/* Sticky header on mobile */}
-      <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -512,8 +512,8 @@ const ReservationsView = ({
             <div>
               {groupDates.map((date) => (
                 <div key={date}>
-                  {/* Sticky date header */}
-                  <div className="sticky top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
+                  {/* Sticky date header - sticks below the header on mobile */}
+                  <div className="sticky top-[120px] sm:top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
                     <div className="px-4 py-1 rounded-full bg-transparent">
                       <span className="font-medium capitalize text-foreground text-lg">
                         {formatDateHeader(date)}
