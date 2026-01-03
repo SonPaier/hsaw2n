@@ -1374,9 +1374,6 @@ export default function CustomerBookingWizard({
                 </div>
               </a>}
 
-            <Button variant="ghost" onClick={() => window.location.reload()} className="w-full text-muted-foreground" size="sm">
-              {t('booking.bookAnother')}
-            </Button>
           </div>
         </div>
 
