@@ -1198,6 +1198,10 @@ export default function CustomerBookingWizard({
               <span className="text-muted-foreground text-base">{t('common.time')}</span>
               <span className="font-medium text-base">{selectedTime}</span>
             </div>
+            {carModel && <div className="flex justify-between">
+              <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
+              <span className="font-medium text-base">{carModel}</span>
+            </div>}
             <div className="flex justify-between items-start">
               <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
               <div className="text-right">
@@ -1208,10 +1212,6 @@ export default function CustomerBookingWizard({
               })}
               </div>
             </div>
-            {carModel && <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
-              <span className="font-medium text-base">{carModel}</span>
-            </div>}
             <div className="flex justify-between pt-1.5 border-t border-border">
               <span className="text-muted-foreground text-base font-semibold">{t('common.price')}</span>
               <span className="font-bold text-primary text-base">{getTotalPrice()} {t('common.currency')}</span>
@@ -1248,7 +1248,7 @@ export default function CustomerBookingWizard({
               <span className="text-base">{t('booking.additionalNotes')} ({t('common.optional')})</span>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2">
-              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder={t('booking.notesPlaceholder')} className="text-sm resize-none" rows={2} disabled={smsSent} />
+              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder={t('booking.notesPlaceholder')} className="text-base resize-none" rows={2} disabled={smsSent} />
             </CollapsibleContent>
           </Collapsible>
 
@@ -1258,7 +1258,7 @@ export default function CustomerBookingWizard({
                   <Bug className="w-3 h-3 inline-block mr-1" />
                   {t('booking.devModeForced')}
                 </div>}
-              <Button onClick={handleReservationClick} className="w-full" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
+              <Button onClick={handleReservationClick} className="w-full text-base" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {t('booking.confirmBooking')}
               </Button>
