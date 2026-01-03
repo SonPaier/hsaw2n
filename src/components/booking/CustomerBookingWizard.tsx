@@ -121,7 +121,9 @@ export default function CustomerBookingWizard({
   onLayoutChange,
   instanceSubdomain
 }: CustomerBookingWizardProps) {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [step, setStep] = useState<Step>('phone');
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
   const [instance, setInstance] = useState<Instance | null>(null);
@@ -441,35 +443,29 @@ export default function CustomerBookingWizard({
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      
       let instanceData;
-      
+
       // If subdomain is provided, fetch instance by subdomain
       if (instanceSubdomain) {
-        const { data } = await supabase
-          .from('instances')
-          .select('*')
-          .eq('subdomain', instanceSubdomain)
-          .eq('active', true)
-          .maybeSingle();
+        const {
+          data
+        } = await supabase.from('instances').select('*').eq('subdomain', instanceSubdomain).eq('active', true).maybeSingle();
         instanceData = data;
-        
+
         // Fallback: try by slug if subdomain not found
         if (!instanceData) {
-          const { data: slugData } = await supabase
-            .from('instances')
-            .select('*')
-            .eq('slug', instanceSubdomain)
-            .eq('active', true)
-            .maybeSingle();
+          const {
+            data: slugData
+          } = await supabase.from('instances').select('*').eq('slug', instanceSubdomain).eq('active', true).maybeSingle();
           instanceData = slugData;
         }
       } else {
         // Default: get first active instance (for dev/local)
-        const { data } = await supabase.from('instances').select('*').eq('active', true).limit(1).maybeSingle();
+        const {
+          data
+        } = await supabase.from('instances').select('*').eq('active', true).limit(1).maybeSingle();
         instanceData = data;
       }
-      
       if (instanceData) {
         const parsedInstance: Instance = {
           id: instanceData.id,
@@ -985,14 +981,14 @@ export default function CustomerBookingWizard({
               <h3 className="font-medium text-foreground truncate">
                 {service.name}
               </h3>
-              {service.description && (
-                <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>
-              )}
+              {service.description && <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>}
               <p className="text-muted-foreground text-sm">{duration} min</p>
             </div>
             
             <span className="font-semibold text-primary whitespace-nowrap">
-              {t('booking.priceFrom', { price })}
+              {t('booking.priceFrom', {
+              price
+            })}
             </span>
           </div>
         </button>;
@@ -1178,7 +1174,7 @@ export default function CustomerBookingWizard({
           </button>
 
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold">{t('booking.summary')}</h2>
+            <h2 className="font-semibold text-lg">{t('booking.summary')}</h2>
             
             {/* Dev Mode Checkbox */}
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
@@ -1207,11 +1203,9 @@ export default function CustomerBookingWizard({
               <div className="text-right">
                 <span className="font-medium text-base block">{selectedService?.name}</span>
                 {selectedAddons.map(addonId => {
-                  const addon = services.find(s => s.id === addonId);
-                  return addon ? (
-                    <span key={addonId} className="font-medium text-base block">{addon.name}</span>
-                  ) : null;
-                })}
+                const addon = services.find(s => s.id === addonId);
+                return addon ? <span key={addonId} className="font-medium text-base block">{addon.name}</span> : null;
+              })}
               </div>
             </div>
             {carModel && <div className="flex justify-between">
@@ -1219,7 +1213,7 @@ export default function CustomerBookingWizard({
               <span className="font-medium text-base">{carModel}</span>
             </div>}
             <div className="flex justify-between pt-1.5 border-t border-border">
-              <span className="text-muted-foreground text-base">{t('common.price')}</span>
+              <span className="text-muted-foreground text-base font-semibold">{t('common.price')}</span>
               <span className="font-bold text-primary text-base">{getTotalPrice()} {t('common.currency')}</span>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -1249,7 +1243,7 @@ export default function CustomerBookingWizard({
 
           {/* Collapsible notes - outside the card */}
           <Collapsible open={showNotes} onOpenChange={setShowNotes} className="mb-3">
-            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-0 py-[8px]">
               {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               <span className="text-base">{t('booking.additionalNotes')} ({t('common.optional')})</span>
             </CollapsibleTrigger>
