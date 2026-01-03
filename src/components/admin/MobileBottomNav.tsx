@@ -231,67 +231,59 @@ const MobileBottomNav = ({
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 lg:hidden">
         <div className="flex items-center justify-around py-2 px-2 safe-area-pb">
           {/* Kalendarz */}
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             className={cn(
-              "h-10 w-10",
-              currentView === 'calendar' && "text-primary"
+              "h-12 w-12 flex items-center justify-center",
+              currentView === 'calendar' ? "text-primary" : "text-muted-foreground"
             )}
             onClick={() => onViewChange('calendar')}
           >
-            <Calendar className="w-5 h-5" />
-          </Button>
+            <Calendar className="w-7 h-7" />
+          </button>
 
           {/* Wolne terminy */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10"
+          <button
+            className="h-12 w-12 flex items-center justify-center text-muted-foreground"
             onClick={() => setFreeSlotsOpen(true)}
           >
-            <Clock className="w-5 h-5" />
-          </Button>
+            <Clock className="w-7 h-7" />
+          </button>
 
           {/* Dodaj rezerwację - Central FAB */}
           <Button
             size="sm"
-            className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg"
+            className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg"
             onClick={onAddReservation}
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-8 h-8" />
           </Button>
 
           {/* Rezerwacje */}
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             className={cn(
-              "h-10 w-10",
-              currentView === 'reservations' && "text-primary"
+              "h-12 w-12 flex items-center justify-center",
+              currentView === 'reservations' ? "text-primary" : "text-muted-foreground"
             )}
             onClick={() => onViewChange('reservations')}
           >
-            <List className="w-5 h-5" />
-          </Button>
+            <List className="w-7 h-7" />
+          </button>
 
           {/* Więcej */}
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             className={cn(
-              "h-10 w-10 relative",
-              ['customers', 'settings', 'offers', 'products', 'followup', 'notifications'].includes(currentView) && "text-primary"
+              "h-12 w-12 flex items-center justify-center relative",
+              ['customers', 'settings', 'offers', 'products', 'followup', 'notifications'].includes(currentView) ? "text-primary" : "text-muted-foreground"
             )}
             onClick={() => setMoreMenuOpen(true)}
           >
             <div className="relative">
-              <MoreHorizontal className="w-5 h-5" />
+              <MoreHorizontal className="w-7 h-7" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full" />
               )}
             </div>
-          </Button>
+          </button>
         </div>
       </nav>
 
