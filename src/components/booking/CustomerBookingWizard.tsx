@@ -198,6 +198,7 @@ export default function CustomerBookingWizard({
     serviceName: string;
     status: 'confirmed' | 'pending';
     carModel?: string;
+    price?: string;
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{
     facebook: string | null;
@@ -692,7 +693,8 @@ export default function CustomerBookingWizard({
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
         status: data.reservation.status || 'confirmed',
-        carModel: carModel || undefined
+        carModel: carModel || undefined,
+        price: `${getTotalPrice()} ${t('common.currency')}`
       });
       setSocialLinks({
         facebook: data.instance?.social_facebook || null,
@@ -808,7 +810,8 @@ export default function CustomerBookingWizard({
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
         status: data.reservation.status || 'confirmed',
-        carModel: carModel || undefined
+        carModel: carModel || undefined,
+        price: `${getTotalPrice()} ${t('common.currency')}`
       });
       setSocialLinks({
         facebook: data.instance?.social_facebook || null,
@@ -1322,7 +1325,14 @@ export default function CustomerBookingWizard({
                 <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
                 <span className="font-medium text-base">{confirmationData.serviceName}</span>
               </div>
-              <div className="flex justify-between items-center pt-1.5 border-t border-border">
+              <div className="flex justify-between pt-1.5 border-t border-border">
+                <span className="text-muted-foreground text-base font-semibold">{t('common.price')}</span>
+                <span className="font-bold text-primary text-base">{confirmationData.price}</span>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                * {t('booking.priceDisclaimer')}
+              </p>
+              <div className="flex justify-between items-center pt-1.5">
                 <span className="text-muted-foreground text-base">{t('common.status')}</span>
                 <span className={cn("font-medium px-2 py-0.5 rounded text-xs", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
                   {isPending ? t('reservations.pending') : t('reservations.confirmed')}
