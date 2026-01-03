@@ -845,30 +845,33 @@ const AdminCalendar = ({
           <Button variant="outline" size="sm" onClick={handleToday} className={cn("ml-2", hallMode && "hidden sm:flex")}>
             Dziś
           </Button>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-1 gap-1">
-                <CalendarIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Data</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={currentDate}
-                onSelect={(date) => {
-                  if (date) {
-                    setCurrentDate(date);
-                    setViewMode('day');
-                    setDatePickerOpen(false);
-                  }
-                }}
-                initialFocus
-                className="pointer-events-auto"
-                locale={pl}
-              />
-            </PopoverContent>
-          </Popover>
+          {/* Date picker button - hidden on mobile, shown on desktop */}
+          {!isMobile && (
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-1 gap-1">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Data</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={currentDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setCurrentDate(date);
+                      setViewMode('day');
+                      setDatePickerOpen(false);
+                    }
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
+                  locale={pl}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
           
           {/* Close/Open day button - only in day view and not read-only */}
           {viewMode === 'day' && !readOnly && onToggleClosedDay && (
@@ -913,19 +916,56 @@ const AdminCalendar = ({
           )}
         </div>
         
-        <h2 className={cn(
-          "text-lg font-semibold",
-          isToday && "text-primary",
-          currentDateClosed && viewMode === 'day' && "text-red-500",
-          hallMode && "flex-1 text-center"
-        )}>
-          {viewMode === 'week' 
-            ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
-            : viewMode === 'two-days'
-            ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
-            : format(currentDate, 'EEEE, d MMMM', { locale: pl })
-          }
-        </h2>
+        {/* Day name - clickable on mobile to open date picker */}
+        {isMobile ? (
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <button className={cn(
+                "text-lg font-semibold cursor-pointer hover:opacity-80 transition-opacity",
+                isToday && "text-primary",
+                currentDateClosed && viewMode === 'day' && "text-red-500",
+                hallMode && "flex-1 text-center"
+              )}>
+                {viewMode === 'week' 
+                  ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
+                  : viewMode === 'two-days'
+                  ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+                  : format(currentDate, 'EEEE, d MMMM', { locale: pl })
+                }
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setCurrentDate(date);
+                    setViewMode('day');
+                    setDatePickerOpen(false);
+                  }
+                }}
+                initialFocus
+                className="pointer-events-auto"
+                locale={pl}
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <h2 className={cn(
+            "text-lg font-semibold",
+            isToday && "text-primary",
+            currentDateClosed && viewMode === 'day' && "text-red-500",
+            hallMode && "flex-1 text-center"
+          )}>
+            {viewMode === 'week' 
+              ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
+              : viewMode === 'two-days'
+              ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+              : format(currentDate, 'EEEE, d MMMM', { locale: pl })
+            }
+          </h2>
+        )}
         
         <div className="flex items-center gap-2">
           {/* Station selector for week view */}

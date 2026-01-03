@@ -233,26 +233,24 @@ const MobileBottomNav = ({
           {/* Kalendarz */}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-2 min-w-0",
+              "h-10 w-10",
               currentView === 'calendar' && "text-primary"
             )}
             onClick={() => onViewChange('calendar')}
           >
             <Calendar className="w-5 h-5" />
-            <span className="text-[10px]">{t('navigation.calendar')}</span>
           </Button>
 
           {/* Wolne terminy */}
           <Button
             variant="ghost"
-            size="sm"
-            className="flex-col gap-1 h-auto py-2 px-2 min-w-0"
+            size="icon"
+            className="h-10 w-10"
             onClick={() => setFreeSlotsOpen(true)}
           >
             <Clock className="w-5 h-5" />
-            <span className="text-[10px]">{t('navigation.freeSlots')}</span>
           </Button>
 
           {/* Dodaj rezerwację - Central FAB */}
@@ -267,23 +265,22 @@ const MobileBottomNav = ({
           {/* Rezerwacje */}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-2 min-w-0",
+              "h-10 w-10",
               currentView === 'reservations' && "text-primary"
             )}
             onClick={() => onViewChange('reservations')}
           >
             <List className="w-5 h-5" />
-            <span className="text-[10px]">{t('navigation.reservations')}</span>
           </Button>
 
           {/* Więcej */}
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-2 min-w-0 relative",
+              "h-10 w-10 relative",
               ['customers', 'settings', 'offers', 'products', 'followup', 'notifications'].includes(currentView) && "text-primary"
             )}
             onClick={() => setMoreMenuOpen(true)}
@@ -294,7 +291,6 @@ const MobileBottomNav = ({
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full" />
               )}
             </div>
-            <span className="text-[10px]">{t('navigation.more')}</span>
           </Button>
         </div>
       </nav>
