@@ -904,8 +904,8 @@ export default function CustomerBookingWizard({
                     <Input id="carModel" value={carModel} onChange={e => setCarModel(e.target.value)} placeholder="np. Volkswagen Golf" className="h-12 text-base" />
                     {isInferringCarSize && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />}
                   </div>
-                  {/* Historical car models from previous reservations */}
-                  {historicalCarModels.length > 0 && <div className="flex flex-wrap gap-2 mt-2 py-[8px]">
+                  {/* Historical car models from previous reservations - show bubbles only for 2+ vehicles */}
+                  {historicalCarModels.length > 1 && <div className="flex flex-wrap gap-2 mt-2 py-[8px]">
                       {historicalCarModels.map(({
                   model,
                   count
