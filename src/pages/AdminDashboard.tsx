@@ -1398,10 +1398,10 @@ const AdminDashboard = () => {
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} />
                 
-                {/* Floating + button for quick add reservation V2 */}
+                {/* Floating + button for quick add reservation V2 - hidden on mobile */}
                 <button
                   onClick={() => setAddReservationV2Open(true)}
-                  className="fixed bottom-24 lg:bottom-8 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                  className="hidden lg:flex fixed bottom-8 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 items-center justify-center"
                   title={t('addReservation.quickAdd')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
