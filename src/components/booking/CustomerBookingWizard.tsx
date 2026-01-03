@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, parseISO, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isBefore, startOfDay, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Check, ArrowLeft, Instagram, Loader2, Bug, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Check, ArrowLeft, Instagram, Loader2, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
@@ -186,10 +186,6 @@ export default function CustomerBookingWizard({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
-
-  // Dev mode
-  const [devMode, setDevMode] = useState(false);
-  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Success
   const [confirmationData, setConfirmationData] = useState<{
@@ -754,9 +750,6 @@ export default function CustomerBookingWizard({
       if (response.error) {
         throw new Error(response.error.message);
       }
-      if (devMode && response.data?.devCode) {
-        setDevCode(response.data.devCode);
-      }
       toast({
         title: t('booking.codeSent'),
         description: t('booking.enterCode')
@@ -832,10 +825,6 @@ export default function CustomerBookingWizard({
     }
   }, [verificationCode, instance, customerPhone, saveCustomerToLocalStorage]);
   const handleReservationClick = () => {
-    if (devMode) {
-      handleSendSms();
-      return;
-    }
     if (isVerifiedCustomer) {
       handleDirectReservation();
     } else {
@@ -878,7 +867,7 @@ export default function CustomerBookingWizard({
 
   // STEP 1: PHONE NUMBER & CAR MODEL INPUT
   if (step === 'phone') {
-    return <div className={slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right"}>
+    return <div className={cn("pb-16", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
         <section className="py-4 md:py-6 text-center">
           <div className="container">
             <h1 className="text-lg md:text-xl font-bold text-foreground">
@@ -1001,7 +990,7 @@ export default function CustomerBookingWizard({
           </div>
         </button>;
     };
-    return <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background pb-16">
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => goToStep('phone', 'back')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
             <ArrowLeft className="w-4 h-4" />
@@ -1067,7 +1056,7 @@ export default function CustomerBookingWizard({
     const goToNextMonth = () => {
       setCurrentMonth(addMonths(currentMonth, 1));
     };
-    return <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background pb-16">
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-4">
@@ -1170,7 +1159,7 @@ export default function CustomerBookingWizard({
 
   // STEP 3: SUMMARY WITH DATA & VERIFICATION
   if (step === 'summary') {
-    return <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background pb-16">
         <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => {
           goToStep('datetime', 'back');
@@ -1181,16 +1170,7 @@ export default function CustomerBookingWizard({
             {t('common.back')}
           </button>
 
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-xl">{t('booking.summary')}</h2>
-            
-            {/* Dev Mode Checkbox */}
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-              <Checkbox checked={devMode} onCheckedChange={checked => setDevMode(checked === true)} className="h-3.5 w-3.5" />
-              <Bug className="w-3 h-3" />
-              <span>Dev</span>
-            </label>
-          </div>
+          <h2 className="font-semibold text-xl mb-4">{t('booking.summary')}</h2>
 
           {/* Booking summary - order: Date, Time, Service(s), Vehicle */}
           <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
@@ -1204,7 +1184,15 @@ export default function CustomerBookingWizard({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground text-base">{t('common.time')}</span>
-              <span className="font-medium text-base">{selectedTime}</span>
+              <span className="font-medium text-base">
+                {selectedTime} - {(() => {
+                  const [h, m] = (selectedTime || '00:00').split(':').map(Number);
+                  const totalMinutes = h * 60 + m + getTotalDuration();
+                  const endH = Math.floor(totalMinutes / 60);
+                  const endM = totalMinutes % 60;
+                  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                })()}
+              </span>
             </div>
             {carModel && <div className="flex justify-between">
               <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
@@ -1262,10 +1250,6 @@ export default function CustomerBookingWizard({
 
           {/* SMS verification or direct booking */}
           {!smsSent ? <>
-              {devMode && <div className="mb-3 p-2 rounded-md bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-600 dark:text-yellow-400">
-                  <Bug className="w-3 h-3 inline-block mr-1" />
-                  {t('booking.devModeForced')}
-                </div>}
               <Button onClick={handleReservationClick} className="w-full text-base" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
                 {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {t('booking.confirmBooking')}
@@ -1274,11 +1258,6 @@ export default function CustomerBookingWizard({
               <p className="text-xs text-muted-foreground mb-3">
                 {t('booking.enterSmsCode')}
               </p>
-              
-              {devMode && devCode && <div className="mb-3 p-2 rounded-md bg-green-500/10 border border-green-500/30 text-sm font-mono text-green-600 dark:text-green-400">
-                  <Bug className="w-3 h-3 inline-block mr-1" />
-                  {t('booking.devCode')}: <strong>{devCode}</strong>
-                </div>}
               
               <OTPInputWithAutoFocus value={verificationCode} onChange={setVerificationCode} onComplete={handleVerifyCode} smsSent={smsSent} isVerifying={isVerifying} />
               {isVerifying && <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -1293,7 +1272,7 @@ export default function CustomerBookingWizard({
   // STEP: SUCCESS
   if (step === 'success' && confirmationData) {
     const isPending = confirmationData.status === 'pending';
-    return <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background pb-16">
         <div className={cn("container py-6 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <div className="max-w-sm mx-auto text-center">
             <div className={cn("w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3", isPending ? "bg-amber-500/20" : "bg-green-500/20")}>
@@ -1323,7 +1302,15 @@ export default function CustomerBookingWizard({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-base">{t('common.time')}</span>
-                <span className="font-medium text-base">{confirmationData.time}</span>
+                <span className="font-medium text-base">
+                  {confirmationData.time} - {(() => {
+                    const [h, m] = (confirmationData.time || '00:00').split(':').map(Number);
+                    const totalMinutes = h * 60 + m + getTotalDuration();
+                    const endH = Math.floor(totalMinutes / 60);
+                    const endM = totalMinutes % 60;
+                    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                  })()}
+                </span>
               </div>
               {confirmationData.carModel && <div className="flex justify-between">
                 <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
@@ -1342,20 +1329,6 @@ export default function CustomerBookingWizard({
               </p>
             </div>
 
-            {/* SMS Contact Button - only on mobile */}
-            {isPending && instance?.phone && isMobile && <Button variant="outline" className="w-full mb-4 gap-2" onClick={() => {
-            if (instance.phone) {
-              // Create SMS template: "Rezerwacja DZIEN GODZINA:MINUTY SAMOCHOD USLUGA"
-              const dateFormatted = format(parseISO(confirmationData.date), 'd.MM', {
-                locale: pl
-              });
-              const smsBody = encodeURIComponent(`Rezerwacja ${dateFormatted} ${confirmationData.time} ${carModel || ''} ${confirmationData.serviceName}`);
-              window.location.href = `sms:${instance.phone}?body=${smsBody}`;
-            }
-          }}>
-                <MessageSquare className="w-4 h-4" />
-                {t('booking.contactUs')}
-              </Button>}
 
             {instance?.auto_confirm_reservations && (
               <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
