@@ -1001,7 +1001,7 @@ const AdminCalendar = ({
             {/* Column visibility settings - only show if not read only */}
             {showStationFilter && <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" className={cn("h-9 w-9", hasHiddenStations && "border-primary text-primary")} title="Kolumny">
+                  <Button variant="outline" size="icon" className="h-9 w-9" title="Kolumny">
                     <Settings2 className="w-4 h-4" />
                   </Button>
                 </PopoverTrigger>
@@ -1114,8 +1114,8 @@ const AdminCalendar = ({
                     <span className="font-semibold">Dzień zamknięty</span>
                   </div>
                 </div>}
-              {/* Time column with quarter-hour marks - sticky left on mobile */}
-              <div className={cn("w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10", isMobile && "sticky left-0 z-30 bg-background")}>
+              {/* Time column with quarter-hour marks - fixed left on mobile to prevent horizontal scroll */}
+              <div className={cn("w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10", isMobile ? "fixed left-0 z-30 bg-background" : "sticky left-0 z-30 bg-background")}>
                 {HOURS.map((hour, hourIndex) => {
               // Calculate which slots to show for this hour
               const isFirstHour = hourIndex === 0;

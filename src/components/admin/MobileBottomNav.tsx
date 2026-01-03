@@ -238,7 +238,7 @@ const MobileBottomNav = ({
             )}
             onClick={() => onViewChange('calendar')}
           >
-            <Calendar className="w-7 h-7" />
+            <Calendar className="w-6 h-6" />
           </button>
 
           {/* Wolne terminy */}
@@ -246,7 +246,7 @@ const MobileBottomNav = ({
             className="h-12 w-12 flex items-center justify-center text-muted-foreground"
             onClick={() => setFreeSlotsOpen(true)}
           >
-            <Clock className="w-7 h-7" />
+            <Clock className="w-6 h-6" />
           </button>
 
           {/* Dodaj rezerwację - Central FAB */}
@@ -266,7 +266,7 @@ const MobileBottomNav = ({
             )}
             onClick={() => onViewChange('reservations')}
           >
-            <List className="w-7 h-7" />
+            <List className="w-6 h-6" />
           </button>
 
           {/* Więcej */}
@@ -278,7 +278,7 @@ const MobileBottomNav = ({
             onClick={() => setMoreMenuOpen(true)}
           >
             <div className="relative">
-              <MoreHorizontal className="w-7 h-7" />
+              <MoreHorizontal className="w-6 h-6" />
               {unreadNotificationsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full" />
               )}
