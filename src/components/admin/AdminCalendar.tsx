@@ -1084,10 +1084,10 @@ const AdminCalendar = ({
             </div>
             
             {/* Station headers container */}
-            <div className="flex" style={getMobileStationsContainerStyle(visibleStations.length)}>
+            <div className={cn("flex", !isMobile && "flex-1")} style={getMobileStationsContainerStyle(visibleStations.length)}>
               {visibleStations.map((station, idx) => {
             const freeTimeText = formatFreeTime(station.id, currentDateStr);
-            return <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border/50")} style={getMobileColumnStyle(visibleStations.length)}>
+            return <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border/50")} style={isMobile ? getMobileColumnStyle(visibleStations.length) : undefined}>
                     <div className="text-foreground truncate">{station.name}</div>
                     {/* Always reserve height for free time text */}
                     <div className="text-xs text-primary hidden md:block h-4">
