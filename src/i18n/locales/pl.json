@@ -590,6 +590,8 @@
     "messageSettings": "Typy wiadomości SMS",
     "messageSettingsDescription": "Włącz lub wyłącz poszczególne typy wiadomości SMS wysyłanych do klientów.",
     "exampleMessage": "Przykładowa wiadomość:",
+    "sendAtTime": "Godzina wysyłki",
+    "sendAtTimeDescription": "O tej godzinie wysyłane są przypomnienia dzień wcześniej",
     "messageTypes": {
       "verification_code": {
         "label": "Kod weryfikacyjny",
