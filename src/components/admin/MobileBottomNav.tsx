@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, List, Clock, ChevronLeft, ChevronRight, UserCircle, Plus } from 'lucide-react';
+import { Calendar, List, Clock, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format, addDays, subDays, isToday } from 'date-fns';
@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
 
 interface Station {
   id: string;
@@ -42,6 +43,10 @@ interface MobileBottomNavProps {
   workingHours?: WorkingHoursMap;
   onAddReservation?: () => void;
   onAddReservationWithSlot?: (stationId: string, date: string, time: string) => void;
+  onLogout?: () => void;
+  unreadNotificationsCount?: number;
+  offersEnabled?: boolean;
+  followupEnabled?: boolean;
 }
 
 // Default working hours fallback
@@ -72,9 +77,14 @@ const MobileBottomNav = ({
   workingHours,
   onAddReservation,
   onAddReservationWithSlot,
+  onLogout,
+  unreadNotificationsCount = 0,
+  offersEnabled = true,
+  followupEnabled = true,
 }: MobileBottomNavProps) => {
   const { t } = useTranslation();
   const [freeSlotsOpen, setFreeSlotsOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -196,16 +206,36 @@ const MobileBottomNav = ({
     }
   };
 
+  const handleMoreMenuItemClick = (view: ViewType) => {
+    onViewChange(view);
+    setMoreMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    setMoreMenuOpen(false);
+    onLogout?.();
+  };
+
+  const moreMenuItems = [
+    { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
+    { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
+    ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
+    { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
+    ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
+    { id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') },
+  ];
+
   return (
     <>
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-4 safe-area-pb">
+        <div className="flex items-center justify-around py-2 px-2 safe-area-pb">
+          {/* Kalendarz */}
           <Button
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-3",
+              "flex-col gap-1 h-auto py-2 px-2 min-w-0",
               currentView === 'calendar' && "text-primary"
             )}
             onClick={() => onViewChange('calendar')}
@@ -214,17 +244,18 @@ const MobileBottomNav = ({
             <span className="text-[10px]">{t('navigation.calendar')}</span>
           </Button>
 
+          {/* Wolne terminy */}
           <Button
             variant="ghost"
             size="sm"
-            className="flex-col gap-1 h-auto py-2 px-3"
+            className="flex-col gap-1 h-auto py-2 px-2 min-w-0"
             onClick={() => setFreeSlotsOpen(true)}
           >
             <Clock className="w-5 h-5" />
             <span className="text-[10px]">{t('navigation.freeSlots')}</span>
           </Button>
 
-          {/* Add Reservation Button */}
+          {/* Dodaj rezerwację - Central FAB */}
           <Button
             size="sm"
             className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg"
@@ -233,24 +264,12 @@ const MobileBottomNav = ({
             <Plus className="w-6 h-6" />
           </Button>
 
+          {/* Rezerwacje */}
           <Button
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-col gap-1 h-auto py-2 px-3",
-              currentView === 'customers' && "text-primary"
-            )}
-            onClick={() => onViewChange('customers')}
-          >
-            <UserCircle className="w-5 h-5" />
-            <span className="text-[10px]">{t('navigation.customers')}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "flex-col gap-1 h-auto py-2 px-3",
+              "flex-col gap-1 h-auto py-2 px-2 min-w-0",
               currentView === 'reservations' && "text-primary"
             )}
             onClick={() => onViewChange('reservations')}
@@ -258,8 +277,73 @@ const MobileBottomNav = ({
             <List className="w-5 h-5" />
             <span className="text-[10px]">{t('navigation.reservations')}</span>
           </Button>
+
+          {/* Więcej */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "flex-col gap-1 h-auto py-2 px-2 min-w-0 relative",
+              ['customers', 'settings', 'offers', 'products', 'followup', 'notifications'].includes(currentView) && "text-primary"
+            )}
+            onClick={() => setMoreMenuOpen(true)}
+          >
+            <div className="relative">
+              <MoreHorizontal className="w-5 h-5" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full" />
+              )}
+            </div>
+            <span className="text-[10px]">{t('navigation.more')}</span>
+          </Button>
         </div>
       </nav>
+
+      {/* More Menu Sheet - Full screen from right */}
+      <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-full p-0">
+          <div className="flex flex-col h-full">
+            <SheetHeader className="p-6 pb-4 border-b border-border">
+              <SheetTitle>{t('navigation.more')}</SheetTitle>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-auto">
+              <div className="py-2">
+                {moreMenuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMoreMenuItemClick(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-muted transition-colors",
+                      currentView === item.id && "bg-muted text-primary"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="flex-1 text-base">{item.label}</span>
+                    {item.badge && item.badge > 0 && (
+                      <span className="bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <Separator className="my-2" />
+
+              <div className="py-2">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-muted transition-colors text-destructive"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="text-base">{t('auth.logout')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Free Slots Sheet */}
       <Sheet open={freeSlotsOpen} onOpenChange={setFreeSlotsOpen}>

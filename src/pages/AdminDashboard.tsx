@@ -1537,6 +1537,10 @@ const AdminDashboard = () => {
         workingHours={workingHours}
         onAddReservation={handleQuickAddReservation} 
         onAddReservationWithSlot={handleAddReservation}
+        onLogout={handleLogout}
+        unreadNotificationsCount={unreadNotificationsCount}
+        offersEnabled={hasFeature('offers')}
+        followupEnabled={hasFeature('followup')}
       />
     </>;
 };

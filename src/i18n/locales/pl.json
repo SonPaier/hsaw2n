@@ -72,7 +72,8 @@
     "notifications": "Powiadomienia",
     "settings": "Ustawienia",
     "hall": "Widok hali",
-    "freeSlots": "Wolne terminy"
+    "freeSlots": "Wolne terminy",
+    "more": "Więcej"
   },
   "reservations": {
     "title": "Rezerwacje",
