@@ -1376,27 +1376,7 @@ const AdminDashboard = () => {
 
         {/* Main Content - scrollable */}
         <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-          {/* Mobile Header */}
-          <header className="lg:hidden sticky top-0 z-30 glass-card border-b border-border/50 p-4">
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                <Menu className="w-5 h-5" />
-              </Button>
-              <div className="flex items-center gap-2">
-                {instanceData?.logo_url ? (
-                  <img src={instanceData.logo_url} alt={instanceData.name} className="w-5 h-5 object-contain" />
-                ) : (
-                  <Car className="w-5 h-5 text-primary" />
-                )}
-                <span className="font-bold">{instanceData?.name || 'Panel'}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={handleLogout}>
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          </header>
+          {/* Mobile Header - removed for cleaner mobile experience */}
 
           {/* Desktop Notification Bell - now in fixed position via AdminLayout */}
 
