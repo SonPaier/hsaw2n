@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Phone, Loader2, Sparkles, ChevronLeft, ChevronRight, Plus, X, Check } from 'lucide-react';
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, Plus, X, Check, ChevronDown } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { pl } from 'date-fns/locale';
@@ -25,12 +25,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import CustomerSearchInput from './CustomerSearchInput';
 import {
   Command,
   CommandEmpty,
@@ -542,9 +547,15 @@ const AddReservationDialogV2 = ({
 
   const canGoPrev = !isBefore(subDays(selectedDate, 1), startOfDay(new Date()));
 
+  const [notesOpen, setNotesOpen] = useState(false);
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent 
+        className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0 [&_input]:focus:ring-ring [&_input]:focus:ring-offset-0 [&_textarea]:focus:ring-ring [&_textarea]:focus:ring-offset-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         {/* Fixed Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle>{t('addReservation.title')}</DialogTitle>
@@ -555,27 +566,28 @@ const AddReservationDialogV2 = ({
           <div className="space-y-4">
             {/* Customer Name */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
+              <Label htmlFor="name">
                 {t('addReservation.customerNameAlias')}
               </Label>
-              <div className="relative">
-                <Input
-                  id="name"
-                  value={customerName}
-                  onChange={(e) => {
-                    setCustomerName(e.target.value);
-                    setSelectedCustomerId(null);
-                  }}
-                  autoComplete="off"
-                />
-              </div>
+              <CustomerSearchInput
+                instanceId={instanceId}
+                value={customerName}
+                onChange={(val) => {
+                  setCustomerName(val);
+                  setSelectedCustomerId(null);
+                }}
+                onSelectCustomer={(customer) => {
+                  setCustomerName(customer.name);
+                  setPhone(customer.phone);
+                  setSelectedCustomerId(customer.id);
+                }}
+                placeholder={t('addReservation.customerNameAlias')}
+              />
             </div>
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
+              <Label htmlFor="phone">
                 {t('common.phone')}
               </Label>
               <div className="relative">
@@ -594,24 +606,19 @@ const AddReservationDialogV2 = ({
               </div>
               
               {showPhoneDropdown && foundVehicles.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-50">
+                <div className="border border-border rounded-lg overflow-hidden bg-popover shadow-lg z-[9999]">
                   {foundVehicles.map((vehicle) => (
                     <button
                       key={vehicle.id}
                       type="button"
-                      className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex items-center gap-3 border-b border-border last:border-0"
+                      className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex flex-col border-b border-border last:border-0"
                       onClick={() => selectVehicle(vehicle)}
                     >
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+                      <div className="font-medium text-sm">
+                        {vehicle.customer_name || vehicle.phone}
                       </div>
-                      <div>
-                        <div className="font-medium text-sm">
-                          {vehicle.customer_name || vehicle.phone}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}
-                        </div>
+                      <div className="text-xs text-muted-foreground">
+                        {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}
                       </div>
                     </button>
                   ))}
@@ -781,9 +788,8 @@ const AddReservationDialogV2 = ({
               )}
             </div>
 
-            {/* Date navigation */}
+            {/* Date navigation - no label, obvious */}
             <div className="space-y-2">
-              <Label>{t('common.date')}</Label>
               <div className="flex items-center justify-between">
                 <button
                   type="button"
@@ -875,17 +881,28 @@ const AddReservationDialogV2 = ({
               )}
             </div>
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">{t('addReservation.notes')}</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                placeholder={t('addReservation.notesPlaceholder')}
-              />
-            </div>
+            {/* Notes - collapsed by default */}
+            <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", notesOpen && "rotate-180")} />
+                  {t('addReservation.notes')}
+                  {notes && !notesOpen && <span className="text-xs">({t('common.filled')})</span>}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder={t('addReservation.notesPlaceholder')}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </div>
 
