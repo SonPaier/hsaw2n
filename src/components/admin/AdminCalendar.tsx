@@ -232,8 +232,10 @@ const AdminCalendar = ({
     };
   };
   const getMobileStationsContainerStyle = (stationCount: number): React.CSSProperties => {
-    if (!isMobile || stationCount <= 2) return {};
-    // For 3+ columns, set total width to allow horizontal scroll
+    // Only apply fixed widths on mobile for horizontal scrolling
+    if (!isMobile) return {};
+    if (stationCount <= 2) return {};
+    // For 3+ columns on mobile, set total width to allow horizontal scroll
     return {
       width: `calc((100vw - 48px) * 0.4 * ${stationCount})`
     };
@@ -1177,7 +1179,7 @@ const AdminCalendar = ({
               if (isPastDay) {
                 pastHatchHeight = totalVisibleHeight;
               }
-              return <div key={station.id} className={cn("relative transition-colors duration-150 shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border", dragOverStation === station.id && !dragOverSlot && "bg-primary/10")} style={getMobileColumnStyle(visibleStations.length)} onDragOver={e => handleDragOver(e, station.id, currentDateStr)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, station.id, currentDateStr)}>
+              return <div key={station.id} className={cn("relative transition-colors duration-150 shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border", dragOverStation === station.id && !dragOverSlot && "bg-primary/10")} style={isMobile ? getMobileColumnStyle(visibleStations.length) : undefined} onDragOver={e => handleDragOver(e, station.id, currentDateStr)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, station.id, currentDateStr)}>
                     {/* Hatched area for PAST time slots */}
                     {pastHatchHeight > 0 && <div className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10" style={{
                   height: pastHatchHeight
