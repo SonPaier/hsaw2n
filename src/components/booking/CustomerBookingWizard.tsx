@@ -1174,7 +1174,7 @@ export default function CustomerBookingWizard({
           </button>
 
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">{t('booking.summary')}</h2>
+            <h2 className="font-semibold text-xl">{t('booking.summary')}</h2>
             
             {/* Dev Mode Checkbox */}
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
