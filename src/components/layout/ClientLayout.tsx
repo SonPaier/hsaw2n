@@ -36,26 +36,26 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
     };
     fetchInstance();
   }, []);
-  return <div ref={ref} className="min-h-screen flex flex-col bg-background">
+  return <div ref={ref} className="min-h-screen flex flex-col bg-background overflow-x-hidden">
       {/* Header */}
-      {!hideHeader && <header className="sticky top-0 z-50 bg-background">
+      {!hideHeader && <header className="bg-background">
           <div className="container py-4">
             <div className="flex items-center justify-center">
-              {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="w-12 h-12 rounded-xl object-contain" /> : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
-                  <Car className="w-6 h-6 text-primary-foreground" />
+              {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="w-24 h-24 rounded-xl object-contain" /> : <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
+                  <Car className="w-12 h-12 text-primary-foreground" />
                 </div>}
             </div>
           </div>
         </header>}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col overflow-x-hidden">
         {children}
       </main>
 
-      {/* Minimalist Footer - always at bottom */}
-      {!hideFooter && <footer className="border-t border-border/50 shrink-0">
-          <div className="container py-4">
+      {/* Fixed Footer - always at bottom of viewport */}
+      {!hideFooter && <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/50 bg-background shrink-0">
+          <div className="container py-3">
             <p className="text-sm text-muted-foreground text-center">
               <a href="https://n2wash.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">N2Wash.com</a> - System rezerwacji online
             </p>
