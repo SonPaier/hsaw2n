@@ -158,7 +158,7 @@
     }
   },
   "booking": {
-    "title": "Rezerwacja online",
+    "title": "Umów się na wizytę",
     "metaDescription": "Zarezerwuj wizytę w {{instanceName}}. Mycie samochodowe, detailing, PPF - wybierz usługę i termin online.",
     "stepPhone": "Telefon",
     "stepService": "Usługa",
