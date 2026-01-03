@@ -344,7 +344,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     return (
       <div className="space-y-4">
         {/* Sticky header on mobile */}
-        <div className="sm:static sticky top-0 z-20 bg-background pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
           {/* Header with search and add button */}
           <div className="flex gap-4 items-center">
             <div className="relative flex-1">
@@ -390,7 +390,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   return (
     <div className="space-y-4">
       {/* Sticky header on mobile */}
-      <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
         {/* Header with search and add button */}
         <div className="flex gap-4 items-center">
           <div className="relative flex-1">
