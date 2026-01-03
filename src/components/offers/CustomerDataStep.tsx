@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { User, Building2, Car, Search, Loader2 } from 'lucide-react';
 import { CustomerData, VehicleData } from '@/hooks/useOffer';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ export const CustomerDataStep = ({
   onCustomerChange,
   onVehicleChange,
 }: CustomerDataStepProps) => {
+  const { t } = useTranslation();
   const [nipLoading, setNipLoading] = useState(false);
   const [showManualCompany, setShowManualCompany] = useState(
     !!customerData.company || !!customerData.nip || !!customerData.companyAddress
@@ -89,16 +91,14 @@ export const CustomerDataStep = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Customer Info */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
+    <Card>
+      <CardContent className="pt-6 space-y-8">
+        {/* Customer Info Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-lg font-semibold">
             <User className="w-5 h-5 text-primary" />
             Dane klienta
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="customerName">Imię i nazwisko *</Label>
@@ -126,18 +126,14 @@ export const CustomerDataStep = ({
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Company Info */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
+        {/* Company Info Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-lg font-semibold">
             <Building2 className="w-5 h-5 text-primary" />
             Dane firmy (opcjonalne)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </div>
           {!showManualCompany ? (
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 flex gap-2">
@@ -237,38 +233,24 @@ export const CustomerDataStep = ({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Vehicle Info */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
+        {/* Vehicle Info Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-lg font-semibold">
             <Car className="w-5 h-5 text-primary" />
             Dane pojazdu
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="vehicleBrandModel">Marka i model *</Label>
-              <Input
-                id="vehicleBrandModel"
-                value={vehicleData.brandModel || ''}
-                onChange={(e) => onVehicleChange({ brandModel: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="vehiclePlate">Nr rejestracyjny</Label>
-              <Input
-                id="vehiclePlate"
-                value={vehicleData.plate}
-                onChange={(e) => onVehicleChange({ plate: e.target.value })}
-              />
-            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="space-y-2">
+            <Label htmlFor="vehicleBrandModel">Marka i model *</Label>
+            <Input
+              id="vehicleBrandModel"
+              value={vehicleData.brandModel || ''}
+              onChange={(e) => onVehicleChange({ brandModel: e.target.value })}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

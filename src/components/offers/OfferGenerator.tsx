@@ -42,6 +42,7 @@ export const OfferGenerator = ({
 }: OfferGeneratorProps) => {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
+  const [instanceShowUnitPrices, setInstanceShowUnitPrices] = useState(false);
 
   const steps = [
     { id: 1, label: t('offers.steps.customerData'), icon: User },
@@ -75,6 +76,22 @@ export const OfferGenerator = ({
     saveOffer,
     loadOffer,
   } = useOffer(instanceId);
+
+  // Fetch instance settings for unit prices visibility
+  useEffect(() => {
+    const fetchInstanceSettings = async () => {
+      const { data } = await supabase
+        .from('instances')
+        .select('show_unit_prices_in_offer')
+        .eq('id', instanceId)
+        .single();
+      
+      if (data) {
+        setInstanceShowUnitPrices(data.show_unit_prices_in_offer === true);
+      }
+    };
+    fetchInstanceSettings();
+  }, [instanceId]);
 
   // Load existing offer if editing or duplicating
   useEffect(() => {
@@ -243,6 +260,7 @@ export const OfferGenerator = ({
             instanceId={instanceId}
             options={offer.options}
             selectedScopeIds={offer.selectedScopeIds}
+            showUnitPrices={instanceShowUnitPrices}
             onAddOption={addOption}
             onUpdateOption={updateOption}
             onRemoveOption={removeOption}
@@ -258,6 +276,7 @@ export const OfferGenerator = ({
           <SummaryStep
             instanceId={instanceId}
             offer={offer}
+            showUnitPrices={instanceShowUnitPrices}
             onUpdateOffer={updateOffer}
             onUpdateOption={updateOption}
             calculateOptionTotal={calculateOptionTotal}
