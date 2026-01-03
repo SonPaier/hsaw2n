@@ -205,7 +205,7 @@
     "totalPrice": "Razem",
     "priceFrom": "od {{price}} zł",
     "priceNote": "Czas trwania usług i ich cenę dopasowaliśmy do wielkości Twojego pojazdu. Finalny koszt może się nieznacznie różnić.",
-    "priceDisclaimer": "Cena może ulec zmianie w zależności od stanu samochodu",
+    "priceDisclaimer": "Cena może ulec nieznacznej zmianie",
     "selectCarSize": "Wybierz rozmiar auta",
     "closedDay": "Zamknięte",
     "verifiedCustomer": "Witaj ponownie!",
