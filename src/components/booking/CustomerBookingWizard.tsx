@@ -941,10 +941,6 @@ export default function CustomerBookingWizard({
 
   // STEP 2: SERVICE SELECTION (unified multi-select list)
   if (step === 'service') {
-    // All services in one list, first 5 visible, rest collapsed
-    const visibleServices = services.slice(0, 5);
-    const hiddenServices = services.slice(5);
-
     // Get all selected service IDs (main + addons combined)
     const allSelectedIds = selectedService ? [selectedService.id, ...selectedAddons] : [...selectedAddons];
     const toggleService = (service: Service) => {
@@ -1013,24 +1009,10 @@ export default function CustomerBookingWizard({
             {t('booking.priceNote') || 'Ostateczny koszt usługi może się nieznacznie różnić.'}
           </p>
 
-          {/* First 5 services always visible */}
+          {/* All services visible */}
           <div className="grid gap-2 mb-3">
-            {visibleServices.map(renderServiceItem)}
+            {services.map(renderServiceItem)}
           </div>
-
-          {/* Collapsible section for remaining services */}
-          {hiddenServices.length > 0 && <>
-              <div className="my-4">
-                <Button variant="outline" onClick={() => setShowAllServices(!showAllServices)} className="gap-2 w-full sm:w-auto">
-                  {showAllServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {showAllServices ? t('booking.lessServices') : t('booking.moreServices', { count: hiddenServices.length })}
-                </Button>
-              </div>
-
-              {showAllServices && <div className="grid gap-2 animate-fade-in mb-4">
-                  {hiddenServices.map(renderServiceItem)}
-                </div>}
-            </>}
 
           {/* CTA Button */}
           <div className="mt-6">
@@ -1206,20 +1188,8 @@ export default function CustomerBookingWizard({
             </label>
           </div>
 
-          {/* Booking summary */}
+          {/* Booking summary - order: Date, Time, Service(s), Vehicle */}
           <div className="glass-card p-3 mb-3 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
-              <span className="font-medium text-base">{selectedService?.name}</span>
-            </div>
-            {selectedAddons.length > 0 && <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('booking.addons')}</span>
-                <span className="font-medium">{selectedAddons.length}</span>
-              </div>}
-            {carModel && <div className="flex justify-between">
-              <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
-              <span className="font-medium text-base">{carModel}</span>
-            </div>}
             <div className="flex justify-between">
               <span className="text-muted-foreground text-base">{t('common.date')}</span>
               <span className="font-medium text-base">
@@ -1232,6 +1202,22 @@ export default function CustomerBookingWizard({
               <span className="text-muted-foreground text-base">{t('common.time')}</span>
               <span className="font-medium text-base">{selectedTime}</span>
             </div>
+            <div className="flex justify-between items-start">
+              <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
+              <div className="text-right">
+                <span className="font-medium text-base block">{selectedService?.name}</span>
+                {selectedAddons.map(addonId => {
+                  const addon = services.find(s => s.id === addonId);
+                  return addon ? (
+                    <span key={addonId} className="font-medium text-base block">{addon.name}</span>
+                  ) : null;
+                })}
+              </div>
+            </div>
+            {carModel && <div className="flex justify-between">
+              <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
+              <span className="font-medium text-base">{carModel}</span>
+            </div>}
             <div className="flex justify-between pt-1.5 border-t border-border">
               <span className="text-muted-foreground text-base">{t('common.price')}</span>
               <span className="font-bold text-primary text-base">{getTotalPrice()} {t('common.currency')}</span>
