@@ -8,7 +8,13 @@ interface RezerwacjeProps {
 }
 
 const Rezerwacje = ({ instanceSubdomain }: RezerwacjeProps) => {
-  const [hideLayout, setHideLayout] = useState(false);
+  const [hideHeader, setHideHeader] = useState(false);
+  const [hideFooter, setHideFooter] = useState(false);
+
+  const handleLayoutChange = (header: boolean, footer: boolean) => {
+    setHideHeader(header);
+    setHideFooter(footer);
+  };
 
   return (
     <>
@@ -17,8 +23,8 @@ const Rezerwacje = ({ instanceSubdomain }: RezerwacjeProps) => {
         <meta name="description" content="Zarezerwuj wizytę w ARM CAR AUTO SPA Gdańsk. Mycie samochodowe, detailing, PPF - wybierz usługę i termin online." />
       </Helmet>
 
-      <ClientLayout hideHeader={hideLayout} hideFooter={hideLayout}>
-        <CustomerBookingWizard onLayoutChange={setHideLayout} instanceSubdomain={instanceSubdomain} />
+      <ClientLayout hideHeader={hideHeader} hideFooter={hideFooter}>
+        <CustomerBookingWizard onLayoutChange={handleLayoutChange} instanceSubdomain={instanceSubdomain} />
       </ClientLayout>
     </>
   );

@@ -67,7 +67,7 @@ interface AvailabilityBlock {
   station_id: string;
 }
 export interface CustomerBookingWizardProps {
-  onLayoutChange?: (hidden: boolean) => void;
+  onLayoutChange?: (hideHeader: boolean, hideFooter: boolean) => void;
   instanceSubdomain?: string;
 }
 const POPULAR_KEYWORDS = ['mycie', 'pranie', 'detailing'];
@@ -221,10 +221,10 @@ export default function CustomerBookingWizard({
     timeoutMs: 60000
   });
 
-  // Notify parent about layout changes - hide layout for all steps except phone
+  // Notify parent about layout changes - hide header for all steps except phone, footer always visible
   useEffect(() => {
     if (onLayoutChange) {
-      onLayoutChange(step !== 'phone');
+      onLayoutChange(step !== 'phone', false);
     }
   }, [step, onLayoutChange]);
 
