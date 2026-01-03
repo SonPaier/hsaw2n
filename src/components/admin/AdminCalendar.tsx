@@ -1160,7 +1160,7 @@ const AdminCalendar = ({
               </div>
 
               {/* Station columns container */}
-              <div className="flex" style={getMobileStationsContainerStyle(visibleStations.length)}>
+              <div className={cn("flex", !isMobile && "flex-1")} style={getMobileStationsContainerStyle(visibleStations.length)}>
                 {visibleStations.map((station, idx) => {
               // Calculate total visible height based on display time range
               const totalVisibleHeight = (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT;
