@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -534,8 +533,8 @@ const AddReservationDialogV2 = ({
     }
   };
 
-  // Get popular/first 5-6 services for shortcuts
-  const shortcutServices = services.slice(0, 6);
+  // Get popular services with shortcuts for quick selection
+  const shortcutServices = services.filter(s => s.shortcut && s.is_popular).slice(0, 6);
   const filteredServices = services.filter(s => 
     s.name.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
     (s.shortcut && s.shortcut.toLowerCase().includes(serviceSearchValue.toLowerCase()))
@@ -545,353 +544,357 @@ const AddReservationDialogV2 = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle>{t('addReservation.title')}</DialogTitle>
-          <DialogDescription>
-            {t('addReservation.quickAddDescription')}
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Services shortcuts row */}
-          <div className="space-y-2">
-            <Label>{t('addReservation.services')}</Label>
-            <div className="flex flex-wrap gap-2 items-center">
-              {shortcutServices.map((service) => {
-                const isSelected = selectedServices.includes(service.id);
-                return (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => toggleService(service.id)}
-                    className={cn(
-                      "px-3 py-1.5 text-sm rounded-full border transition-all",
-                      isSelected 
-                        ? "bg-primary text-primary-foreground border-primary" 
-                        : "bg-card border-border hover:border-primary/50"
-                    )}
-                  >
-                    {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                    {service.shortcut || service.name}
-                  </button>
-                );
-              })}
-              
-              {/* More services button */}
-              <Popover open={servicesDropdownOpen} onOpenChange={setServicesDropdownOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="w-8 h-8 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-0" align="start">
-                  <Command>
-                    <CommandInput 
-                      placeholder={t('addReservation.searchServices')} 
-                      value={serviceSearchValue}
-                      onValueChange={setServiceSearchValue}
-                    />
-                    <CommandList>
-                      <CommandEmpty>{t('common.noResults')}</CommandEmpty>
-                      <CommandGroup>
-                        {filteredServices.map((service) => {
-                          const isSelected = selectedServices.includes(service.id);
-                          return (
-                            <CommandItem
-                              key={service.id}
-                              onSelect={() => {
-                                toggleService(service.id);
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center",
-                                isSelected ? "bg-primary border-primary" : "border-muted-foreground"
-                              )}>
-                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                              </div>
-                              <span>{service.name}</span>
-                              {service.shortcut && (
-                                <span className="text-xs text-muted-foreground">({service.shortcut})</span>
-                              )}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            {/* Selected services (if any not in shortcuts) */}
-            {selectedServices.filter(id => !shortcutServices.find(s => s.id === id)).length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {selectedServices
-                  .filter(id => !shortcutServices.find(s => s.id === id))
-                  .map(id => {
-                    const service = services.find(s => s.id === id);
-                    if (!service) return null;
-                    return (
-                      <span 
-                        key={id} 
-                        className="px-2 py-1 text-xs rounded-full bg-primary text-primary-foreground flex items-center gap-1"
-                      >
-                        {service.shortcut || service.name}
-                        <button 
-                          type="button"
-                          onClick={() => toggleService(id)}
-                          className="hover:bg-primary-foreground/20 rounded-full"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    );
-                  })}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
+            {/* Customer Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                {t('addReservation.customerNameAlias')}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="name"
+                  value={customerName}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    setSelectedCustomerId(null);
+                  }}
+                  autoComplete="off"
+                />
               </div>
-            )}
-            
-            {totalDurationMinutes > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {t('addReservation.totalDuration')}: {totalDurationMinutes} min
-              </p>
-            )}
-          </div>
+            </div>
 
-          {/* Date navigation */}
-          <div className="space-y-2">
-            <Label>{t('common.date')}</Label>
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handlePrevDay}
-                disabled={!canGoPrev}
-                className={cn(
-                  "p-2 rounded-full transition-colors",
-                  canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
+            {/* Phone */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                {t('common.phone')}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    setSelectedCustomerId(null);
+                  }}
+                  autoComplete="off"
+                />
+                {searchingCustomer && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
                 )}
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+              </div>
               
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-base font-medium hover:text-primary transition-colors"
-                  >
-                    {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setSelectedDate(date);
-                        setSelectedTime(null);
-                        setDatePickerOpen(false);
+              {showPhoneDropdown && foundVehicles.length > 0 && (
+                <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-50">
+                  {foundVehicles.map((vehicle) => (
+                    <button
+                      key={vehicle.id}
+                      type="button"
+                      className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex items-center gap-3 border-b border-border last:border-0"
+                      onClick={() => selectVehicle(vehicle)}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">
+                          {vehicle.customer_name || vehicle.phone}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Car Model + Size */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                {t('reservations.carModel')}
+              </Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <CarSearchAutocomplete
+                    value={carModel}
+                    onChange={(val: CarSearchValue) => {
+                      if (val === null) {
+                        setCarModel('');
+                      } else if ('type' in val && val.type === 'custom') {
+                        setCarModel(val.label);
+                      } else {
+                        setCarModel(val.label);
+                        if ('size' in val) {
+                          if (val.size === 'S') setCarSize('small');
+                          else if (val.size === 'M') setCarSize('medium');
+                          else if (val.size === 'L') setCarSize('large');
+                        }
                       }
                     }}
-                    disabled={(date) => isBefore(date, startOfDay(new Date()))}
-                    locale={pl}
-                    className="pointer-events-auto"
                   />
-                </PopoverContent>
-              </Popover>
-              
-              <button
-                type="button"
-                onClick={handleNextDay}
-                className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                  {suggestingSize && (
+                    <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
+                  )}
+                </div>
+                
+                <TooltipProvider>
+                  <div className="flex gap-1 shrink-0">
+                    {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
+                      <Tooltip key={size}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={carSize === size ? 'default' : 'outline'}
+                            className="w-9 h-9 font-bold p-0"
+                            onClick={() => setCarSize(size)}
+                          >
+                            {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>{t(`reservations.carSizes.${size}`)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </TooltipProvider>
+              </div>
             </div>
-          </div>
 
-          {/* Time slots */}
-          <div className="space-y-2">
-            <Label>{t('addReservation.availableSlots')}</Label>
-            {selectedServices.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                {t('addReservation.selectServiceFirst')}
-              </p>
-            ) : availableSlots.length > 0 ? (
-              <div 
-                ref={slotsScrollRef}
-                className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {availableSlots.map((slot) => {
-                  const isSelected = selectedTime === slot.time;
+            {/* Services shortcuts row */}
+            <div className="space-y-2">
+              <Label>{t('addReservation.services')}</Label>
+              <div className="flex flex-wrap gap-2 items-center">
+                {shortcutServices.map((service) => {
+                  const isSelected = selectedServices.includes(service.id);
                   return (
                     <button
-                      key={slot.time}
+                      key={service.id}
                       type="button"
-                      onClick={() => handleSelectSlot(slot)}
+                      onClick={() => toggleService(service.id)}
                       className={cn(
-                        "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                        "px-3 py-1.5 text-sm rounded-full border transition-all",
                         isSelected 
-                          ? "bg-primary text-primary-foreground shadow-lg" 
-                          : "bg-card border-2 border-border hover:border-primary/50"
+                          ? "bg-primary text-primary-foreground border-primary" 
+                          : "bg-card border-border hover:border-primary/50"
                       )}
                     >
-                      {slot.time}
+                      {isSelected && <Check className="w-3 h-3 inline mr-1" />}
+                      {service.shortcut || service.name}
                     </button>
                   );
                 })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                {t('booking.noSlotsForDay')}
-              </p>
-            )}
-          </div>
-
-          {/* Customer Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              {t('addReservation.customerNameAlias')}
-            </Label>
-            <div className="relative">
-              <Input
-                id="name"
-                value={customerName}
-                onChange={(e) => {
-                  setCustomerName(e.target.value);
-                  setSelectedCustomerId(null);
-                }}
-                autoComplete="off"
-              />
-            </div>
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              {t('common.phone')}
-            </Label>
-            <div className="relative">
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  setSelectedCustomerId(null);
-                }}
-                autoComplete="off"
-              />
-              {searchingCustomer && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
-              )}
-            </div>
-            
-            {showPhoneDropdown && foundVehicles.length > 0 && (
-              <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-50">
-                {foundVehicles.map((vehicle) => (
-                  <button
-                    key={vehicle.id}
-                    type="button"
-                    className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex items-center gap-3 border-b border-border last:border-0"
-                    onClick={() => selectVehicle(vehicle)}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">
-                        {vehicle.customer_name || vehicle.phone}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Car Model + Size */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              {t('reservations.carModel')}
-            </Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <CarSearchAutocomplete
-                  value={carModel}
-                  onChange={(val: CarSearchValue) => {
-                    if (val === null) {
-                      setCarModel('');
-                    } else if ('type' in val && val.type === 'custom') {
-                      setCarModel(val.label);
-                    } else {
-                      setCarModel(val.label);
-                      if ('size' in val) {
-                        if (val.size === 'S') setCarSize('small');
-                        else if (val.size === 'M') setCarSize('medium');
-                        else if (val.size === 'L') setCarSize('large');
-                      }
-                    }
-                  }}
-                />
-                {suggestingSize && (
-                  <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
-                )}
+                
+                {/* More services button */}
+                <Popover open={servicesDropdownOpen} onOpenChange={setServicesDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-8 h-8 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder={t('addReservation.searchServices')} 
+                        value={serviceSearchValue}
+                        onValueChange={setServiceSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty>{t('common.noResults')}</CommandEmpty>
+                        <CommandGroup>
+                          {filteredServices.map((service) => {
+                            const isSelected = selectedServices.includes(service.id);
+                            return (
+                              <CommandItem
+                                key={service.id}
+                                onSelect={() => {
+                                  toggleService(service.id);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <div className={cn(
+                                  "w-4 h-4 rounded border flex items-center justify-center",
+                                  isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+                                )}>
+                                  {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                                </div>
+                                <span>{service.name}</span>
+                                {service.shortcut && (
+                                  <span className="text-xs text-muted-foreground">({service.shortcut})</span>
+                                )}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               
-              <TooltipProvider>
-                <div className="flex gap-1 shrink-0">
-                  {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
-                    <Tooltip key={size}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={carSize === size ? 'default' : 'outline'}
-                          className="w-9 h-9 font-bold p-0"
-                          onClick={() => setCarSize(size)}
+              {/* Selected services (if any not in shortcuts) */}
+              {selectedServices.filter(id => !shortcutServices.find(s => s.id === id)).length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {selectedServices
+                    .filter(id => !shortcutServices.find(s => s.id === id))
+                    .map(id => {
+                      const service = services.find(s => s.id === id);
+                      if (!service) return null;
+                      return (
+                        <span 
+                          key={id} 
+                          className="px-2 py-1 text-xs rounded-full bg-primary text-primary-foreground flex items-center gap-1"
                         >
-                          {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>{t(`reservations.carSizes.${size}`)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
+                          {service.shortcut || service.name}
+                          <button 
+                            type="button"
+                            onClick={() => toggleService(id)}
+                            className="hover:bg-primary-foreground/20 rounded-full"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
                 </div>
-              </TooltipProvider>
+              )}
+              
+              {totalDurationMinutes > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {t('addReservation.totalDuration')}: {totalDurationMinutes} min
+                </p>
+              )}
             </div>
-          </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t('addReservation.notes')}</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder={t('addReservation.notesPlaceholder')}
-            />
+            {/* Date navigation */}
+            <div className="space-y-2">
+              <Label>{t('common.date')}</Label>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  disabled={!canGoPrev}
+                  className={cn(
+                    "p-2 rounded-full transition-colors",
+                    canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
+                  )}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-base font-medium hover:text-primary transition-colors"
+                    >
+                      {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDate(date);
+                          setSelectedTime(null);
+                          setDatePickerOpen(false);
+                        }
+                      }}
+                      disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                      locale={pl}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Time slots */}
+            <div className="space-y-2">
+              <Label>{t('addReservation.availableSlots')}</Label>
+              {selectedServices.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  {t('addReservation.selectServiceFirst')}
+                </p>
+              ) : availableSlots.length > 0 ? (
+                <div className="w-full overflow-hidden">
+                  <div 
+                    ref={slotsScrollRef}
+                    className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                  >
+                    {availableSlots.map((slot) => {
+                      const isSelected = selectedTime === slot.time;
+                      return (
+                        <button
+                          key={slot.time}
+                          type="button"
+                          onClick={() => handleSelectSlot(slot)}
+                          className={cn(
+                            "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                            isSelected 
+                              ? "bg-primary text-primary-foreground shadow-lg" 
+                              : "bg-card border-2 border-border hover:border-primary/50"
+                          )}
+                        >
+                          {slot.time}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  {t('booking.noSlotsForDay')}
+                </p>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">{t('addReservation.notes')}</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder={t('addReservation.notesPlaceholder')}
+              />
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+        {/* Fixed Footer */}
+        <DialogFooter className="px-6 py-4 border-t shrink-0 flex-row gap-2">
+          <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1">
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || selectedServices.length === 0 || !selectedTime}>
+          <Button onClick={handleSubmit} disabled={loading || selectedServices.length === 0 || !selectedTime} className="flex-1">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('addReservation.addReservation')}
           </Button>
