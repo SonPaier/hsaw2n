@@ -1381,7 +1381,10 @@ const AdminDashboard = () => {
           {/* Desktop Notification Bell - now in fixed position via AdminLayout */}
 
           {/* Content */}
-          <div className="flex-1 p-4 pt-0 space-y-6 overflow-auto pb-20 lg:pb-8">
+          <div className={cn(
+            "flex-1 space-y-6 overflow-auto pb-20 lg:pb-8",
+            currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4 pt-0"
+          )}>
             {/* Header - only shown for non-calendar views that need it */}
             {['reservations', 'customers', 'settings'].includes(currentView) && <h1 className="text-2xl font-bold text-foreground">
                 {currentView === 'reservations' ? t('reservations.title') : currentView === 'customers' ? t('customers.title') : t('settings.title')}
@@ -1390,7 +1393,7 @@ const AdminDashboard = () => {
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
             {/* View Content */}
-            {currentView === 'calendar' && <div className="flex-1 min-h-[600px]">
+            {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full">
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} />
               </div>}
 
