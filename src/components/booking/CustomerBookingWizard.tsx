@@ -927,7 +927,7 @@ export default function CustomerBookingWizard({
 
               {/* Name input - optional */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
-                  <Label htmlFor="customerName" className="text-base font-medium">{t('booking.yourName')} ({t('common.optional')})</Label>
+                  <Label htmlFor="customerName" className="text-base font-medium">{t('booking.yourName')}</Label>
                   <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={t('booking.namePlaceholder')} className="h-12 text-base mt-1" />
                 </div>}
 
