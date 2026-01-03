@@ -220,6 +220,23 @@ const AdminCalendar = ({
   const [smsDialogData, setSmsDialogData] = useState<{ phone: string; customerName: string } | null>(null);
   const isMobile = useIsMobile();
 
+  // Mobile column width calculation helpers
+  // Column widths are calculated as percentage of available space (screen width minus time column)
+  // 1 column: 100%, 2 columns: 50% each, 3+ columns: 40% each (showing 40+40+20% of third)
+  const getMobileColumnStyle = (stationCount: number): React.CSSProperties => {
+    if (!isMobile) return {};
+    if (stationCount === 1) return { width: 'calc(100vw - 48px)', minWidth: 'calc(100vw - 48px)' };
+    if (stationCount === 2) return { width: 'calc((100vw - 48px) / 2)', minWidth: 'calc((100vw - 48px) / 2)' };
+    // 3+ columns: 40% of available width each
+    return { width: 'calc((100vw - 48px) * 0.4)', minWidth: 'calc((100vw - 48px) * 0.4)' };
+  };
+
+  const getMobileStationsContainerStyle = (stationCount: number): React.CSSProperties => {
+    if (!isMobile || stationCount <= 2) return {};
+    // For 3+ columns, set total width to allow horizontal scroll
+    return { width: `calc((100vw - 48px) * 0.4 * ${stationCount})` };
+  };
+
   // Save hidden stations to localStorage
   useEffect(() => {
     localStorage.setItem('calendar-hidden-stations', JSON.stringify([...hiddenStationIds]));
@@ -1106,67 +1123,53 @@ const AdminCalendar = ({
       {/* DAY VIEW */}
       {viewMode === 'day' && (
         <>
-          {/* Station Headers - fixed position */}
-          <div className={cn(
-            "flex border-b border-border/50 bg-card sticky top-0 z-40",
-            // Enable horizontal scroll on mobile when 3+ columns
-            isMobile && visibleStations.length >= 3 && "overflow-x-auto"
-          )}>
-            {/* Time column header */}
-            <div className="w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50">
-              <Clock className="w-5 h-5" />
+          {/* Main scrollable container - handles both horizontal and vertical scroll */}
+          <div className="flex-1 overflow-auto">
+            {/* Station Headers - sticky at top */}
+            <div className="flex border-b border-border/50 bg-card sticky top-0 z-40">
+              {/* Time column header - sticky left on mobile */}
+              <div className={cn(
+                "w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50 bg-card",
+                isMobile && "sticky left-0 z-50"
+              )}>
+                <Clock className="w-5 h-5" />
+              </div>
+              
+              {/* Station headers container */}
+              <div 
+                className="flex"
+                style={getMobileStationsContainerStyle(visibleStations.length)}
+              >
+                {visibleStations.map((station, idx) => {
+                  const freeTimeText = formatFreeTime(station.id, currentDateStr);
+                  
+                  return (
+                    <div 
+                      key={station.id}
+                      className={cn(
+                        "p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0",
+                        !isMobile && "flex-1 min-w-[80px]",
+                        idx < visibleStations.length - 1 && "border-r border-border/50"
+                      )}
+                      style={getMobileColumnStyle(visibleStations.length)}
+                    >
+                      <div className="text-foreground truncate">{station.name}</div>
+                      {/* Always reserve height for free time text */}
+                      <div className="text-xs text-primary hidden md:block h-4">
+                        {freeTimeText || '\u00A0'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            
-            {/* Station headers */}
-            {visibleStations.map((station, idx) => {
-              const freeTimeText = formatFreeTime(station.id, currentDateStr);
-              
-              // Mobile column width logic:
-              // 1 column: 100%, 2 columns: 50% each, 3+ columns: 40% each (so 40+40+20% visible)
-              const getMobileColumnStyle = () => {
-                if (!isMobile) return {};
-                const count = visibleStations.length;
-                if (count === 1) return { flex: '1 0 100%', minWidth: 0 };
-                if (count === 2) return { flex: '1 0 50%', minWidth: 0 };
-                // 3+ columns: 40% width each
-                return { flex: '0 0 40%', minWidth: 0 };
-              };
-              
-              return (
-                <div 
-                  key={station.id}
-                  className={cn(
-                    "p-1 md:p-2 text-center font-semibold text-sm md:text-base",
-                    !isMobile && "flex-1 min-w-[80px]",
-                    idx < visibleStations.length - 1 && "border-r border-border/50"
-                  )}
-                  style={getMobileColumnStyle()}
-                >
-                  <div className="text-foreground truncate">{station.name}</div>
-                  {/* Always reserve height for free time text */}
-                  <div className="text-xs text-primary hidden md:block h-4">
-                    {freeTimeText || '\u00A0'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
 
-          {/* Calendar Grid - Day View */}
-          <div className={cn(
-            "flex-1",
-            // Enable horizontal scroll on mobile when 3+ columns
-            isMobile && visibleStations.length >= 3 ? "overflow-x-auto overflow-y-auto" : "overflow-auto"
-          )}>
+            {/* Calendar Grid - Day View */}
             <div className={cn(
               "flex relative",
               currentDateClosed && "opacity-50"
             )} style={{ 
-              minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT,
-              // Set minimum width for horizontal scroll on mobile with 3+ columns
-              ...(isMobile && visibleStations.length >= 3 ? { 
-                minWidth: `calc(48px + ${visibleStations.length * 40}%)` 
-              } : {})
+              minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT
             }}>
               {/* Closed day overlay */}
               {currentDateClosed && (
@@ -1178,8 +1181,11 @@ const AdminCalendar = ({
                   </div>
                 </div>
               )}
-              {/* Time column with quarter-hour marks */}
-              <div className="w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10">
+              {/* Time column with quarter-hour marks - sticky left on mobile */}
+              <div className={cn(
+                "w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10",
+                isMobile && "sticky left-0 z-30 bg-background"
+              )}>
                 {HOURS.map((hour, hourIndex) => {
                   // Calculate which slots to show for this hour
                   const isFirstHour = hourIndex === 0;
@@ -1241,56 +1247,49 @@ const AdminCalendar = ({
                 })}
               </div>
 
-              {/* Station columns */}
-              {visibleStations.map((station, idx) => {
-                // Calculate total visible height based on display time range
-                const totalVisibleHeight = (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT;
-                
-                // Calculate past time overlay - everything before current time should be hatched
-                const now = new Date();
-                const currentDateObj = new Date(currentDateStr);
-                const isToday = format(now, 'yyyy-MM-dd') === currentDateStr;
-                const isPastDay = currentDateObj < new Date(format(now, 'yyyy-MM-dd'));
-                
-                // For past days, hatch the entire column
-                // For today, do NOT hatch elapsed time - only hatch previous days
-                let pastHatchHeight = 0;
-                if (isPastDay) {
-                  pastHatchHeight = totalVisibleHeight;
-                }
-                
-                // Mobile column width logic:
-                // 1 column: 100%, 2 columns: 50% each, 3+ columns: 40% each (so 40+40+20% visible)
-                const getMobileColumnStyle = (): React.CSSProperties => {
-                  if (!isMobile) return {};
-                  const count = visibleStations.length;
-                  if (count === 1) return { flex: '1 0 100%', minWidth: 0 };
-                  if (count === 2) return { flex: '1 0 50%', minWidth: 0 };
-                  // 3+ columns: 40% width each
-                  return { flex: '0 0 40%', minWidth: 0 };
-                };
-                
-                return (
-                <div 
-                  key={station.id}
-                  className={cn(
-                    "relative transition-colors duration-150",
-                    !isMobile && "flex-1 min-w-[80px]",
-                    idx < visibleStations.length - 1 && "border-r border-border",
-                    dragOverStation === station.id && !dragOverSlot && "bg-primary/10"
-                  )}
-                  style={getMobileColumnStyle()}
-                  onDragOver={(e) => handleDragOver(e, station.id, currentDateStr)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
-                >
-                  {/* Hatched area for PAST time slots */}
-                  {pastHatchHeight > 0 && (
-                    <div 
-                      className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
-                      style={{ height: pastHatchHeight }}
-                    />
-                  )}
+              {/* Station columns container */}
+              <div 
+                className="flex"
+                style={getMobileStationsContainerStyle(visibleStations.length)}
+              >
+                {visibleStations.map((station, idx) => {
+                  // Calculate total visible height based on display time range
+                  const totalVisibleHeight = (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT;
+                  
+                  // Calculate past time overlay - everything before current time should be hatched
+                  const now = new Date();
+                  const currentDateObj = new Date(currentDateStr);
+                  const isToday = format(now, 'yyyy-MM-dd') === currentDateStr;
+                  const isPastDay = currentDateObj < new Date(format(now, 'yyyy-MM-dd'));
+                  
+                  // For past days, hatch the entire column
+                  // For today, do NOT hatch elapsed time - only hatch previous days
+                  let pastHatchHeight = 0;
+                  if (isPastDay) {
+                    pastHatchHeight = totalVisibleHeight;
+                  }
+                  
+                  return (
+                  <div 
+                    key={station.id}
+                    className={cn(
+                      "relative transition-colors duration-150 shrink-0",
+                      !isMobile && "flex-1 min-w-[80px]",
+                      idx < visibleStations.length - 1 && "border-r border-border",
+                      dragOverStation === station.id && !dragOverSlot && "bg-primary/10"
+                    )}
+                    style={getMobileColumnStyle(visibleStations.length)}
+                    onDragOver={(e) => handleDragOver(e, station.id, currentDateStr)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
+                  >
+                    {/* Hatched area for PAST time slots */}
+                    {pastHatchHeight > 0 && (
+                      <div 
+                        className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10"
+                        style={{ height: pastHatchHeight }}
+                      />
+                    )}
                   
                   {/* Hatched area BEFORE working hours (exactly 30 min margin) - now at top since we start from displayStartTime */}
                   {DISPLAY_START_TIME < WORKING_START_TIME && (
@@ -1576,6 +1575,7 @@ const AdminCalendar = ({
                 </div>
                 );
               })}
+              </div>
 
               {/* Current time indicator with time label */}
               {showCurrentTime && (
