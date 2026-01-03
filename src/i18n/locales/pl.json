@@ -792,7 +792,19 @@
     "timeAndDuration": "Godzina i czas trwania",
     "selectTime": "Wybierz godzinę",
     "from": "Od",
-    "to": "Do"
+    "to": "Do",
+    "quickAdd": "Szybkie dodawanie rezerwacji",
+    "quickAddDescription": "Szybko dodaj nową rezerwację wybierając usługi i termin",
+    "availableSlots": "Dostępne godziny",
+    "selectServiceFirst": "Najpierw wybierz usługę",
+    "selectTimeSlot": "Wybierz wolny termin",
+    "searchServices": "Szukaj usług...",
+    "totalDuration": "Łączny czas",
+    "notes": "Uwagi",
+    "notesPlaceholder": "Dodatkowe informacje...",
+    "customerNameRequired": "Podaj imię klienta",
+    "phoneRequired": "Podaj numer telefonu",
+    "carModelRequired": "Podaj markę i model auta"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",

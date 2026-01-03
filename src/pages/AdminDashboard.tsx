@@ -22,6 +22,7 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
 import ReservationsView from '@/components/admin/ReservationsView';
 import AddReservationDialog from '@/components/admin/AddReservationDialog';
+import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
 import CustomersView from '@/components/admin/CustomersView';
@@ -124,6 +125,7 @@ const AdminDashboard = () => {
 
   // Add/Edit reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
+  const [addReservationV2Open, setAddReservationV2Open] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [newReservationData, setNewReservationData] = useState({
     stationId: '',
@@ -1393,8 +1395,19 @@ const AdminDashboard = () => {
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
             {/* View Content */}
-            {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full">
+            {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} />
+                
+                {/* Floating + button for quick add reservation V2 */}
+                <button
+                  onClick={() => setAddReservationV2Open(true)}
+                  className="fixed bottom-24 lg:bottom-8 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                  title={t('addReservation.quickAdd')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </button>
               </div>}
 
             {currentView === 'reservations' && (
@@ -1504,6 +1517,17 @@ const AdminDashboard = () => {
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
+
+      {/* Add Reservation Dialog V2 (Quick Add) */}
+      {instanceId && (
+        <AddReservationDialogV2
+          open={addReservationV2Open}
+          onClose={() => setAddReservationV2Open(false)}
+          instanceId={instanceId}
+          onSuccess={handleReservationAdded}
+          workingHours={workingHours}
+        />
+      )}
 
       {/* Instance Settings Dialog */}
       <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={updated => {
