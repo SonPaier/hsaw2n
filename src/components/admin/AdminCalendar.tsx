@@ -1107,7 +1107,11 @@ const AdminCalendar = ({
       {viewMode === 'day' && (
         <>
           {/* Station Headers - fixed position */}
-          <div className="flex border-b border-border/50 bg-card sticky top-0 z-40">
+          <div className={cn(
+            "flex border-b border-border/50 bg-card sticky top-0 z-40",
+            // Enable horizontal scroll on mobile when 3+ columns
+            isMobile && visibleStations.length >= 3 && "overflow-x-auto"
+          )}>
             {/* Time column header */}
             <div className="w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50">
               <Clock className="w-5 h-5" />
@@ -1116,13 +1120,27 @@ const AdminCalendar = ({
             {/* Station headers */}
             {visibleStations.map((station, idx) => {
               const freeTimeText = formatFreeTime(station.id, currentDateStr);
+              
+              // Mobile column width logic:
+              // 1 column: 100%, 2 columns: 50% each, 3+ columns: 40% each (so 40+40+20% visible)
+              const getMobileColumnStyle = () => {
+                if (!isMobile) return {};
+                const count = visibleStations.length;
+                if (count === 1) return { flex: '1 0 100%', minWidth: 0 };
+                if (count === 2) return { flex: '1 0 50%', minWidth: 0 };
+                // 3+ columns: 40% width each
+                return { flex: '0 0 40%', minWidth: 0 };
+              };
+              
               return (
                 <div 
                   key={station.id}
                   className={cn(
-                    "flex-1 p-1 md:p-2 text-center font-semibold text-sm md:text-base min-w-[80px]",
+                    "p-1 md:p-2 text-center font-semibold text-sm md:text-base",
+                    !isMobile && "flex-1 min-w-[80px]",
                     idx < visibleStations.length - 1 && "border-r border-border/50"
                   )}
+                  style={getMobileColumnStyle()}
                 >
                   <div className="text-foreground truncate">{station.name}</div>
                   {/* Always reserve height for free time text */}
@@ -1135,11 +1153,21 @@ const AdminCalendar = ({
           </div>
 
           {/* Calendar Grid - Day View */}
-          <div className="flex-1 overflow-auto">
+          <div className={cn(
+            "flex-1",
+            // Enable horizontal scroll on mobile when 3+ columns
+            isMobile && visibleStations.length >= 3 ? "overflow-x-auto overflow-y-auto" : "overflow-auto"
+          )}>
             <div className={cn(
               "flex relative",
               currentDateClosed && "opacity-50"
-            )} style={{ minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT }}>
+            )} style={{ 
+              minHeight: (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT,
+              // Set minimum width for horizontal scroll on mobile with 3+ columns
+              ...(isMobile && visibleStations.length >= 3 ? { 
+                minWidth: `calc(48px + ${visibleStations.length * 40}%)` 
+              } : {})
+            }}>
               {/* Closed day overlay */}
               {currentDateClosed && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
@@ -1231,14 +1259,27 @@ const AdminCalendar = ({
                   pastHatchHeight = totalVisibleHeight;
                 }
                 
+                // Mobile column width logic:
+                // 1 column: 100%, 2 columns: 50% each, 3+ columns: 40% each (so 40+40+20% visible)
+                const getMobileColumnStyle = (): React.CSSProperties => {
+                  if (!isMobile) return {};
+                  const count = visibleStations.length;
+                  if (count === 1) return { flex: '1 0 100%', minWidth: 0 };
+                  if (count === 2) return { flex: '1 0 50%', minWidth: 0 };
+                  // 3+ columns: 40% width each
+                  return { flex: '0 0 40%', minWidth: 0 };
+                };
+                
                 return (
                 <div 
                   key={station.id}
                   className={cn(
-                    "flex-1 relative min-w-[80px] transition-colors duration-150",
+                    "relative transition-colors duration-150",
+                    !isMobile && "flex-1 min-w-[80px]",
                     idx < visibleStations.length - 1 && "border-r border-border",
                     dragOverStation === station.id && !dragOverSlot && "bg-primary/10"
                   )}
+                  style={getMobileColumnStyle()}
                   onDragOver={(e) => handleDragOver(e, station.id, currentDateStr)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, station.id, currentDateStr)}
