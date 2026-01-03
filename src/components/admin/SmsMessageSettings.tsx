@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Save, MessageSquare } from 'lucide-react';
+import { Loader2, Save, MessageSquare, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SmsUsageCard } from './SmsUsageCard';
@@ -19,6 +20,7 @@ type SmsMessageType = 'verification_code' | 'reservation_confirmed' | 'reminder_
 interface MessageSetting {
   type: SmsMessageType;
   enabled: boolean;
+  sendAtTime?: string | null; // For reminder_1day - time like "19:00"
 }
 
 const SMS_MESSAGE_TYPES: SmsMessageType[] = [
@@ -66,24 +68,31 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
     try {
       const { data, error } = await supabase
         .from('sms_message_settings')
-        .select('message_type, enabled')
+        .select('message_type, enabled, send_at_time')
         .eq('instance_id', instanceId);
 
       if (error) throw error;
 
       // Create settings with defaults for missing types
-      const existingSettings = new Map(data?.map(s => [s.message_type, s.enabled]) || []);
+      const existingSettings = new Map(
+        data?.map(s => [s.message_type, { enabled: s.enabled, sendAtTime: s.send_at_time }]) || []
+      );
       
       const allSettings: MessageSetting[] = SMS_MESSAGE_TYPES.map(type => ({
         type,
-        enabled: existingSettings.has(type) ? existingSettings.get(type)! : true
+        enabled: existingSettings.has(type) ? existingSettings.get(type)!.enabled : true,
+        sendAtTime: existingSettings.has(type) ? existingSettings.get(type)!.sendAtTime : (type === 'reminder_1day' ? '19:00' : null)
       }));
 
       setSettings(allSettings);
     } catch (error) {
       console.error('Error fetching SMS settings:', error);
       // Set defaults
-      setSettings(SMS_MESSAGE_TYPES.map(type => ({ type, enabled: true })));
+      setSettings(SMS_MESSAGE_TYPES.map(type => ({ 
+        type, 
+        enabled: true,
+        sendAtTime: type === 'reminder_1day' ? '19:00' : null
+      })));
     } finally {
       setLoading(false);
     }
@@ -92,6 +101,12 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
   const handleToggle = (type: SmsMessageType, enabled: boolean) => {
     setSettings(prev => 
       prev.map(s => s.type === type ? { ...s, enabled } : s)
+    );
+  };
+
+  const handleTimeChange = (type: SmsMessageType, time: string) => {
+    setSettings(prev => 
+      prev.map(s => s.type === type ? { ...s, sendAtTime: time } : s)
     );
   };
 
@@ -107,7 +122,8 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
           .upsert({
             instance_id: instanceId,
             message_type: setting.type,
-            enabled: setting.enabled
+            enabled: setting.enabled,
+            send_at_time: setting.sendAtTime || null
           }, {
             onConflict: 'instance_id,message_type'
           });
@@ -175,7 +191,28 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
                 />
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 space-y-3">
+              {/* Time picker for 1-day reminder */}
+              {setting.type === 'reminder_1day' && setting.enabled && (
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium text-blue-900">
+                      {t('sms.sendAtTime')}
+                    </Label>
+                    <p className="text-xs text-blue-700 mt-0.5">
+                      {t('sms.sendAtTimeDescription')}
+                    </p>
+                  </div>
+                  <Input
+                    type="time"
+                    value={setting.sendAtTime || '19:00'}
+                    onChange={(e) => handleTimeChange(setting.type, e.target.value)}
+                    className="w-24 bg-white"
+                  />
+                </div>
+              )}
+              
               <div className="bg-slate-100 rounded-lg p-3 border border-slate-200">
                 <div className="flex items-start gap-2">
                   <MessageSquare className="w-4 h-4 mt-0.5 text-slate-500 shrink-0" />

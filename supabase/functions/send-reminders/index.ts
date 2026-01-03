@@ -26,6 +26,12 @@ interface Instance {
   name: string;
 }
 
+interface SmsMessageSetting {
+  message_type: string;
+  enabled: boolean;
+  send_at_time: string | null;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -47,20 +53,41 @@ serve(async (req: Request): Promise<Response> => {
 
     const now = new Date();
     const nowPlus1Hour = new Date(now.getTime() + 60 * 60 * 1000);
-    const nowPlus24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     console.log("Checking for reminders at:", now.toISOString());
     console.log("1 hour window:", nowPlus1Hour.toISOString());
-    console.log("24 hour window:", nowPlus24Hours.toISOString());
+    console.log("Tomorrow date:", tomorrow.toISOString().split("T")[0]);
 
-    // Get reservations that need 1-day reminder (24 hours before)
+    // Get all SMS settings for instances
+    const { data: smsSettings } = await supabase
+      .from("sms_message_settings")
+      .select("instance_id, message_type, enabled, send_at_time")
+      .in("message_type", ["reminder_1day", "reminder_1hour"]);
+
+    // Create a map of instance settings
+    const instanceSettings = new Map<string, { reminder1day: SmsMessageSetting | null; reminder1hour: SmsMessageSetting | null }>();
+    for (const setting of (smsSettings || [])) {
+      const instanceId = setting.instance_id as string;
+      if (!instanceSettings.has(instanceId)) {
+        instanceSettings.set(instanceId, { reminder1day: null, reminder1hour: null });
+      }
+      const instanceSetting = instanceSettings.get(instanceId)!;
+      if (setting.message_type === "reminder_1day") {
+        instanceSetting.reminder1day = setting as SmsMessageSetting;
+      } else if (setting.message_type === "reminder_1hour") {
+        instanceSetting.reminder1hour = setting as SmsMessageSetting;
+      }
+    }
+
+    // Get reservations that need 1-day reminder (for tomorrow)
+    const tomorrowDate = tomorrow.toISOString().split("T")[0];
     const { data: dayReminders, error: dayError } = await supabase
       .from("reservations")
       .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, reminder_1day_sent")
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
-      .gte("reservation_date", now.toISOString().split("T")[0])
-      .lte("reservation_date", nowPlus24Hours.toISOString().split("T")[0]);
+      .eq("reservation_date", tomorrowDate);
 
     if (dayError) {
       console.error("Error fetching day reminders:", dayError);
@@ -102,44 +129,71 @@ serve(async (req: Request): Promise<Response> => {
 
     // Process 1-day reminders
     for (const reservation of (dayReminders || []) as Reservation[]) {
-      const reservationDateTime = new Date(`${reservation.reservation_date}T${reservation.start_time}`);
-      const timeDiff = reservationDateTime.getTime() - now.getTime();
-      const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-      // Send if between 23 and 25 hours before
-      if (hoursDiff >= 23 && hoursDiff <= 25) {
-        // Get service name
-        const { data: service } = await supabase
-          .from("services")
-          .select("name")
-          .eq("id", reservation.service_id)
-          .single() as { data: Service | null };
-
-        // Get instance name dynamically
-        const instanceName = await getInstanceName(reservation.instance_id);
-
-        const serviceName = service?.name || "wizyta";
-        const formattedTime = reservation.start_time.slice(0, 5);
-
-        const message = `Przypomnienie: jutro o ${formattedTime} masz wizyte - ${serviceName}. ${instanceName}`;
-
-        const success = await sendSms(reservation.customer_phone, message, smsapiToken);
-        
-        if (success) {
-          await supabase
-            .from("reservations")
-            .update({ reminder_1day_sent: true })
-            .eq("id", reservation.id);
-          sentCount++;
-        }
-
-        results.push({ type: "1day", reservationId: reservation.id, success });
-        console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed"}`);
+      const instanceSetting = instanceSettings.get(reservation.instance_id);
+      const reminder1daySetting = instanceSetting?.reminder1day;
+      
+      // Check if 1-day reminder is enabled for this instance
+      if (reminder1daySetting && reminder1daySetting.enabled === false) {
+        console.log(`1-day reminder disabled for instance ${reservation.instance_id}`);
+        continue;
       }
+
+      // Get the configured send time (default to 19:00 if not set)
+      const sendAtTime = reminder1daySetting?.send_at_time || "19:00:00";
+      const sendAtHour = parseInt(sendAtTime.split(":")[0], 10);
+      const sendAtMinute = parseInt(sendAtTime.split(":")[1], 10);
+
+      // Check if current time matches the configured send time (within 5-minute window)
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTotalMinutes = currentHour * 60 + currentMinute;
+      const sendTotalMinutes = sendAtHour * 60 + sendAtMinute;
+      
+      // Only send if we're within a 5-minute window of the configured time
+      if (Math.abs(currentTotalMinutes - sendTotalMinutes) > 5) {
+        continue;
+      }
+
+      // Get service name
+      const { data: service } = await supabase
+        .from("services")
+        .select("name")
+        .eq("id", reservation.service_id)
+        .single() as { data: Service | null };
+
+      // Get instance name dynamically
+      const instanceName = await getInstanceName(reservation.instance_id);
+
+      const serviceName = service?.name || "wizyta";
+      const formattedTime = reservation.start_time.slice(0, 5);
+
+      const message = `Przypomnienie: jutro o ${formattedTime} masz wizyte - ${serviceName}. ${instanceName}`;
+
+      const success = await sendSms(reservation.customer_phone, message, smsapiToken);
+      
+      if (success) {
+        await supabase
+          .from("reservations")
+          .update({ reminder_1day_sent: true })
+          .eq("id", reservation.id);
+        sentCount++;
+      }
+
+      results.push({ type: "1day", reservationId: reservation.id, success });
+      console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed"}`);
     }
 
     // Process 1-hour reminders
     for (const reservation of (hourReminders || []) as Reservation[]) {
+      const instanceSetting = instanceSettings.get(reservation.instance_id);
+      const reminder1hourSetting = instanceSetting?.reminder1hour;
+      
+      // Check if 1-hour reminder is enabled for this instance
+      if (reminder1hourSetting && reminder1hourSetting.enabled === false) {
+        console.log(`1-hour reminder disabled for instance ${reservation.instance_id}`);
+        continue;
+      }
+
       const reservationDateTime = new Date(`${reservation.reservation_date}T${reservation.start_time}`);
       const timeDiff = reservationDateTime.getTime() - now.getTime();
       const minutesDiff = timeDiff / (1000 * 60);
