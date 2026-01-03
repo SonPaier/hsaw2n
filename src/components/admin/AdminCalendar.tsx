@@ -850,98 +850,246 @@ const AdminCalendar = ({
   return (
     <div className="flex flex-col h-full bg-card rounded-xl relative">
       {/* Calendar Header - sticky */}
-      <div className="flex items-center justify-between py-2 lg:py-3 px-0 bg-background sticky top-0 z-50 flex-wrap gap-2">
-        {/* Navigation */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleToday} className={cn("ml-2", hallMode && "hidden sm:flex")}>
-            Dziś
-          </Button>
-          {/* Date picker button - hidden on mobile, shown on desktop */}
+      <div className="flex flex-col py-2 lg:py-3 px-0 bg-background sticky top-0 z-50 gap-2">
+        {/* First line on mobile: navigation + actions, on desktop: full layout */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Navigation */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handlePrev} className="h-9 w-9">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleNext} className="h-9 w-9">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleToday} className={cn("ml-2", hallMode && "hidden sm:flex")}>
+              Dziś
+            </Button>
+            {/* Date picker button - hidden on mobile, shown on desktop */}
+            {!isMobile && (
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-1 gap-1">
+                    <CalendarIcon className="w-4 h-4" />
+                    <span className="hidden sm:inline">Data</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={currentDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setCurrentDate(date);
+                        setViewMode('day');
+                        setDatePickerOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    className="pointer-events-auto"
+                    locale={pl}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+            
+            {/* Close/Open day button - only in day view and not read-only */}
+            {viewMode === 'day' && !readOnly && onToggleClosedDay && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant={currentDateClosed ? "destructive" : "ghost"}
+                    size="icon"
+                    className="h-9 w-9"
+                    title={currentDateClosed ? t('calendar.openDay') : t('calendar.closeDay')}
+                  >
+                    {currentDateClosed ? (
+                      <CalendarOff className="w-4 h-4" />
+                    ) : (
+                      <Ban className="w-4 h-4" />
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {currentDateClosed ? t('calendar.openDayTitle') : t('calendar.closeDayTitle')}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {currentDateClosed 
+                        ? t('calendar.openDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
+                        : t('calendar.closeDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
+                      }
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => onToggleClosedDay(currentDateStr)}
+                      className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+                    >
+                      {currentDateClosed ? t('calendar.open') : t('calendar.close')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+          
+          {/* Day name - only visible on desktop in header row */}
           {!isMobile && (
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="ml-1 gap-1">
-                  <CalendarIcon className="w-4 h-4" />
-                  <span className="hidden sm:inline">Data</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setCurrentDate(date);
-                      setViewMode('day');
-                      setDatePickerOpen(false);
-                    }
-                  }}
-                  initialFocus
-                  className="pointer-events-auto"
-                  locale={pl}
-                />
-              </PopoverContent>
-            </Popover>
+            <h2 className={cn(
+              "text-lg font-semibold",
+              isToday && "text-primary",
+              currentDateClosed && viewMode === 'day' && "text-red-500",
+              hallMode && "flex-1 text-center"
+            )}>
+              {viewMode === 'week' 
+                ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
+                : viewMode === 'two-days'
+                ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
+                : format(currentDate, 'EEEE, d MMMM', { locale: pl })
+              }
+            </h2>
           )}
           
-          {/* Close/Open day button - only in day view and not read-only */}
-          {viewMode === 'day' && !readOnly && onToggleClosedDay && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant={currentDateClosed ? "destructive" : "ghost"}
-                  size="icon"
-                  className="h-9 w-9"
-                  title={currentDateClosed ? t('calendar.openDay') : t('calendar.closeDay')}
-                >
-                  {currentDateClosed ? (
-                    <CalendarOff className="w-4 h-4" />
-                  ) : (
-                    <Ban className="w-4 h-4" />
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {currentDateClosed ? t('calendar.openDayTitle') : t('calendar.closeDayTitle')}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {currentDateClosed 
-                      ? t('calendar.openDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
-                      : t('calendar.closeDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })
-                    }
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => onToggleClosedDay(currentDateStr)}
-                    className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+          <div className="flex items-center gap-2">
+            {/* Station selector for week view */}
+            {!isMobile && viewMode === 'week' && stations.length > 0 && (
+              <Select
+                value={weekViewStationId || stations[0]?.id || ''}
+                onValueChange={(value) => setWeekViewStationId(value)}
+              >
+                <SelectTrigger className="h-9 w-[140px] text-sm">
+                  <SelectValue placeholder={t('stations.title')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {stations.map((station) => (
+                    <SelectItem key={station.id} value={station.id}>
+                      {station.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* View mode toggle - icons only */}
+            {!isMobile && (
+              <div className="flex border border-border rounded-lg overflow-hidden">
+                {allowedViews.includes('day') && (
+                  <Button
+                    variant={viewMode === 'day' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('day')}
+                    className="rounded-none border-0 px-2.5"
+                    title="Dzień"
                   >
-                    {currentDateClosed ? t('calendar.open') : t('calendar.close')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                    <CalendarIcon className="w-4 h-4" />
+                  </Button>
+                )}
+                {allowedViews.includes('two-days') && (
+                  <Button
+                    variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('two-days')}
+                    className="rounded-none border-0 px-2.5"
+                    title="2 dni"
+                  >
+                    <Columns2 className="w-4 h-4" />
+                  </Button>
+                )}
+                {allowedViews.includes('week') && showWeekView && (
+                  <Button
+                    variant={viewMode === 'week' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('week')}
+                    className="rounded-none border-0 px-2.5"
+                    title="Tydzień"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Column visibility settings - only show if not read only */}
+            {showStationFilter && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn("h-9 w-9", hasHiddenStations && "border-primary text-primary")}
+                    title="Kolumny"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">Widoczność kolumn</h4>
+                      {hasHiddenStations && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={showAllStations}
+                          className="h-7 text-xs"
+                        >
+                          Pokaż wszystkie
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {stations.map((station) => (
+                        <div key={station.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`station-${station.id}`}
+                            checked={!hiddenStationIds.has(station.id)}
+                            onCheckedChange={() => toggleStationVisibility(station.id)}
+                          />
+                          <Label
+                            htmlFor={`station-${station.id}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {station.name}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({station.type === 'washing' ? 'mycie' : station.type === 'ppf' ? 'folia' : station.type === 'detailing' ? 'detailing' : 'uniwersalny'})
+                            </span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            
+            {/* Plac button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPlacDrawerOpen(true)}
+              className="gap-1 relative"
+            >
+              <ParkingSquare className="w-4 h-4" />
+              <span className="hidden md:inline">Plac</span>
+              {yardVehicleCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {yardVehicleCount > 99 ? '99+' : yardVehicleCount}
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
         
-        {/* Day name - clickable on mobile to open date picker */}
-        {isMobile ? (
+        {/* Second line on mobile: day name centered */}
+        {isMobile && (
           <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
             <PopoverTrigger asChild>
               <button className={cn(
-                "text-lg font-semibold cursor-pointer hover:opacity-80 transition-opacity",
+                "text-lg font-semibold cursor-pointer hover:opacity-80 transition-opacity text-center w-full",
                 isToday && "text-primary",
-                currentDateClosed && viewMode === 'day' && "text-red-500",
-                hallMode && "flex-1 text-center"
+                currentDateClosed && viewMode === 'day' && "text-red-500"
               )}>
                 {viewMode === 'week' 
                   ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
@@ -968,155 +1116,7 @@ const AdminCalendar = ({
               />
             </PopoverContent>
           </Popover>
-        ) : (
-          <h2 className={cn(
-            "text-lg font-semibold",
-            isToday && "text-primary",
-            currentDateClosed && viewMode === 'day' && "text-red-500",
-            hallMode && "flex-1 text-center"
-          )}>
-            {viewMode === 'week' 
-              ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
-              : viewMode === 'two-days'
-              ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
-              : format(currentDate, 'EEEE, d MMMM', { locale: pl })
-            }
-          </h2>
         )}
-        
-        <div className="flex items-center gap-2">
-          {/* Station selector for week view */}
-          {!isMobile && viewMode === 'week' && stations.length > 0 && (
-            <Select
-              value={weekViewStationId || stations[0]?.id || ''}
-              onValueChange={(value) => setWeekViewStationId(value)}
-            >
-              <SelectTrigger className="h-9 w-[140px] text-sm">
-                <SelectValue placeholder={t('stations.title')} />
-              </SelectTrigger>
-              <SelectContent>
-                {stations.map((station) => (
-                  <SelectItem key={station.id} value={station.id}>
-                    {station.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          {/* View mode toggle - icons only */}
-          {!isMobile && (
-            <div className="flex border border-border rounded-lg overflow-hidden">
-              {allowedViews.includes('day') && (
-                <Button
-                  variant={viewMode === 'day' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('day')}
-                  className="rounded-none border-0 px-2.5"
-                  title="Dzień"
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                </Button>
-              )}
-              {allowedViews.includes('two-days') && (
-                <Button
-                  variant={viewMode === 'two-days' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('two-days')}
-                  className="rounded-none border-0 px-2.5"
-                  title="2 dni"
-                >
-                  <Columns2 className="w-4 h-4" />
-                </Button>
-              )}
-              {allowedViews.includes('week') && showWeekView && (
-                <Button
-                  variant={viewMode === 'week' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('week')}
-                  className="rounded-none border-0 px-2.5"
-                  title="Tydzień"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          )}
-          
-          {/* Column visibility settings - only show if not read only */}
-          {showStationFilter && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={cn("h-9 w-9 relative", hasHiddenStations && "border-primary text-primary")}
-                  title="Kolumny"
-                >
-                  <Settings2 className="w-4 h-4" />
-                  {hasHiddenStations && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {hiddenStationIds.size}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-3">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">Widoczność kolumn</h4>
-                    {hasHiddenStations && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={showAllStations}
-                        className="h-7 text-xs"
-                      >
-                        Pokaż wszystkie
-                      </Button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {stations.map((station) => (
-                      <div key={station.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`station-${station.id}`}
-                          checked={!hiddenStationIds.has(station.id)}
-                          onCheckedChange={() => toggleStationVisibility(station.id)}
-                        />
-                        <Label
-                          htmlFor={`station-${station.id}`}
-                          className="text-sm cursor-pointer flex-1"
-                        >
-                          {station.name}
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({station.type === 'washing' ? 'mycie' : station.type === 'ppf' ? 'folia' : station.type === 'detailing' ? 'detailing' : 'uniwersalny'})
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-          
-          {/* Plac button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPlacDrawerOpen(true)}
-            className="gap-1 relative"
-          >
-            <ParkingSquare className="w-4 h-4" />
-            <span className="hidden md:inline">Plac</span>
-            {yardVehicleCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {yardVehicleCount > 99 ? '99+' : yardVehicleCount}
-              </span>
-            )}
-          </Button>
-        </div>
       </div>
       
 
