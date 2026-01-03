@@ -1,0 +1,721 @@
+[
+  {
+    "brand": "Alfa Romeo",
+    "models": [
+      { "name": "Alfa Romeo MiTo", "size": "S" },
+      { "name": "Alfa Romeo Giulietta", "size": "M" },
+      { "name": "Alfa Romeo Giulia", "size": "M" },
+      { "name": "Alfa Romeo Giulia Quadrifoglio", "size": "M" },
+      { "name": "Alfa Romeo Stelvio", "size": "L" },
+      { "name": "Alfa Romeo Stelvio Quadrifoglio", "size": "L" },
+      { "name": "Alfa Romeo 4C", "size": "S" },
+      { "name": "Alfa Romeo Tonale", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Aston Martin",
+    "models": [
+      { "name": "Aston Martin V8 Vantage", "size": "M" },
+      { "name": "Aston Martin V12 Vantage", "size": "M" },
+      { "name": "Aston Martin DB9", "size": "L" },
+      { "name": "Aston Martin DBS", "size": "L" },
+      { "name": "Aston Martin DB11", "size": "L" },
+      { "name": "Aston Martin DB12", "size": "L" },
+      { "name": "Aston Martin DBX", "size": "L" },
+      { "name": "Aston Martin Rapide", "size": "L" },
+      { "name": "Aston Martin Vanquish", "size": "L" },
+      { "name": "Aston Martin Valkyrie", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Audi",
+    "models": [
+      { "name": "Audi A1", "size": "S" },
+      { "name": "Audi A3", "size": "M" },
+      { "name": "Audi A4", "size": "M" },
+      { "name": "Audi A5", "size": "M" },
+      { "name": "Audi A6", "size": "L" },
+      { "name": "Audi A7", "size": "L" },
+      { "name": "Audi A8", "size": "L" },
+
+      { "name": "Audi Q2", "size": "S" },
+      { "name": "Audi Q3", "size": "M" },
+      { "name": "Audi Q4 e-tron", "size": "M" },
+      { "name": "Audi Q5", "size": "M" },
+      { "name": "Audi Q7", "size": "L" },
+      { "name": "Audi Q8", "size": "L" },
+
+      { "name": "Audi SQ2", "size": "S" },
+      { "name": "Audi SQ5", "size": "M" },
+      { "name": "Audi SQ7", "size": "L" },
+      { "name": "Audi SQ8", "size": "L" },
+
+      { "name": "Audi RS3", "size": "M" },
+      { "name": "Audi RS4", "size": "M" },
+      { "name": "Audi RS5", "size": "M" },
+      { "name": "Audi RS6", "size": "L" },
+      { "name": "Audi RS7", "size": "L" },
+      { "name": "Audi RS Q3", "size": "M" },
+      { "name": "Audi RS Q8", "size": "L" },
+
+      { "name": "Audi TT", "size": "S" },
+      { "name": "Audi TTS", "size": "S" },
+      { "name": "Audi TT RS", "size": "S" },
+
+      { "name": "Audi R8", "size": "M" },
+
+      { "name": "Audi e-tron", "size": "L" },
+      { "name": "Audi e-tron GT", "size": "L" },
+      { "name": "Audi RS e-tron GT", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Bentley",
+    "models": [
+      { "name": "Bentley Continental GT", "size": "L" },
+      { "name": "Bentley Continental GTC", "size": "L" },
+      { "name": "Bentley Flying Spur", "size": "L" },
+      { "name": "Bentley Mulsanne", "size": "L" },
+      { "name": "Bentley Bentayga", "size": "L" },
+      { "name": "Bentley Bentayga EWB", "size": "L" }
+    ]
+  },
+  {
+    "brand": "BMW",
+    "models": [
+      { "name": "BMW 1 Series", "size": "S" },
+      { "name": "BMW 2 Series", "size": "S" },
+      { "name": "BMW 3 Series", "size": "M" },
+      { "name": "BMW 4 Series", "size": "M" },
+      { "name": "BMW 5 Series", "size": "L" },
+      { "name": "BMW 6 Series", "size": "L" },
+      { "name": "BMW 7 Series", "size": "L" },
+      { "name": "BMW 8 Series", "size": "L" },
+
+      { "name": "BMW X1", "size": "S" },
+      { "name": "BMW X2", "size": "S" },
+      { "name": "BMW X3", "size": "M" },
+      { "name": "BMW X4", "size": "M" },
+      { "name": "BMW X5", "size": "L" },
+      { "name": "BMW X6", "size": "L" },
+      { "name": "BMW X7", "size": "L" },
+
+      { "name": "BMW Z4", "size": "M" },
+
+      { "name": "BMW i3", "size": "S" },
+      { "name": "BMW i4", "size": "M" },
+      { "name": "BMW i5", "size": "L" },
+      { "name": "BMW i7", "size": "L" },
+      { "name": "BMW i8", "size": "M" },
+      { "name": "BMW iX", "size": "L" },
+      { "name": "BMW iX1", "size": "S" },
+      { "name": "BMW iX3", "size": "M" },
+
+      { "name": "BMW M2", "size": "S" },
+      { "name": "BMW M3", "size": "M" },
+      { "name": "BMW M4", "size": "M" },
+      { "name": "BMW M5", "size": "L" },
+      { "name": "BMW M8", "size": "L" },
+      { "name": "BMW X3 M", "size": "M" },
+      { "name": "BMW X4 M", "size": "M" },
+      { "name": "BMW X5 M", "size": "L" },
+      { "name": "BMW X6 M", "size": "L" }
+    ]
+  },
+   {
+    "brand": "Buick",
+    "models": [
+      { "name": "Buick Verano", "size": "M" },
+      { "name": "Buick Regal", "size": "M" },
+      { "name": "Buick LaCrosse", "size": "L" },
+      { "name": "Buick Encore", "size": "S" },
+      { "name": "Buick Encore GX", "size": "S" },
+      { "name": "Buick Envision", "size": "M" },
+      { "name": "Buick Enclave", "size": "L" }
+    ]
+  },
+  {
+    "brand": "BYD",
+    "models": [
+      { "name": "BYD Dolphin", "size": "S" },
+      { "name": "BYD Atto 3", "size": "M" },
+      { "name": "BYD Seal", "size": "M" },
+      { "name": "BYD Han", "size": "L" },
+      { "name": "BYD Tang", "size": "L" },
+      { "name": "BYD Song Plus", "size": "M" },
+      { "name": "BYD Yuan Plus", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Cadillac",
+    "models": [
+      { "name": "Cadillac ATS", "size": "M" },
+      { "name": "Cadillac CTS", "size": "M" },
+      { "name": "Cadillac CT4", "size": "M" },
+      { "name": "Cadillac CT5", "size": "L" },
+      { "name": "Cadillac XTS", "size": "L" },
+      { "name": "Cadillac XT4", "size": "M" },
+      { "name": "Cadillac XT5", "size": "L" },
+      { "name": "Cadillac XT6", "size": "L" },
+      { "name": "Cadillac Escalade", "size": "L" },
+      { "name": "Cadillac Lyriq", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Changan",
+    "models": [
+      { "name": "Changan Alsvin", "size": "S" },
+      { "name": "Changan Eado", "size": "M" },
+      { "name": "Changan Raeton", "size": "L" },
+      { "name": "Changan CS35", "size": "S" },
+      { "name": "Changan CS55", "size": "M" },
+      { "name": "Changan CS75", "size": "L" },
+      { "name": "Changan CS95", "size": "L" },
+      { "name": "Changan UNI-T", "size": "M" },
+      { "name": "Changan UNI-K", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Chery",
+    "models": [
+      { "name": "Chery Arrizo 5", "size": "M" },
+      { "name": "Chery Arrizo 8", "size": "L" },
+      { "name": "Chery Tiggo 2", "size": "S" },
+      { "name": "Chery Tiggo 3", "size": "S" },
+      { "name": "Chery Tiggo 4", "size": "M" },
+      { "name": "Chery Tiggo 7", "size": "M" },
+      { "name": "Chery Tiggo 8", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Chevrolet",
+    "models": [
+      { "name": "Chevrolet Spark", "size": "S" },
+      { "name": "Chevrolet Aveo", "size": "S" },
+      { "name": "Chevrolet Cruze", "size": "M" },
+      { "name": "Chevrolet Malibu", "size": "L" },
+      { "name": "Chevrolet Impala", "size": "L" },
+
+      { "name": "Chevrolet Trax", "size": "S" },
+      { "name": "Chevrolet Trailblazer", "size": "M" },
+      { "name": "Chevrolet Equinox", "size": "M" },
+      { "name": "Chevrolet Blazer", "size": "L" },
+      { "name": "Chevrolet Traverse", "size": "L" },
+      { "name": "Chevrolet Tahoe", "size": "L" },
+      { "name": "Chevrolet Suburban", "size": "L" },
+
+      { "name": "Chevrolet Camaro", "size": "M" },
+      { "name": "Chevrolet Corvette", "size": "M" },
+      { "name": "Chevrolet Bolt EV", "size": "S" },
+      { "name": "Chevrolet Bolt EUV", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Citroën",
+    "models": [
+      { "name": "Citroën C1", "size": "S" },
+      { "name": "Citroën C3", "size": "S" },
+      { "name": "Citroën C3 Aircross", "size": "M" },
+      { "name": "Citroën C4", "size": "M" },
+      { "name": "Citroën C4 X", "size": "M" },
+      { "name": "Citroën C5", "size": "L" },
+      { "name": "Citroën C5 X", "size": "L" },
+
+      { "name": "Citroën C4 Picasso", "size": "M" },
+      { "name": "Citroën Grand C4 Picasso", "size": "L" },
+
+      { "name": "Citroën DS3", "size": "S" },
+      { "name": "Citroën DS4", "size": "M" },
+      { "name": "Citroën DS5", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Cupra",
+    "models": [
+      { "name": "Cupra Ateca", "size": "M" },
+      { "name": "Cupra Formentor", "size": "M" },
+      { "name": "Cupra Leon", "size": "M" },
+      { "name": "Cupra Born", "size": "M" },
+      { "name": "Cupra Tavascan", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Dacia",
+    "models": [
+      { "name": "Dacia Sandero", "size": "S" },
+      { "name": "Dacia Sandero Stepway", "size": "S" },
+      { "name": "Dacia Logan", "size": "M" },
+      { "name": "Dacia Duster", "size": "M" },
+      { "name": "Dacia Jogger", "size": "M" },
+      { "name": "Dacia Lodgy", "size": "M" },
+      { "name": "Dacia Spring", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Ferrari",
+    "models": [
+      { "name": "Ferrari 458 Italia", "size": "M" },
+      { "name": "Ferrari 488 GTB", "size": "M" },
+      { "name": "Ferrari F8 Tributo", "size": "M" },
+      { "name": "Ferrari Roma", "size": "M" },
+      { "name": "Ferrari California", "size": "M" },
+      { "name": "Ferrari Portofino", "size": "M" },
+      { "name": "Ferrari FF", "size": "L" },
+      { "name": "Ferrari GTC4Lusso", "size": "L" },
+      { "name": "Ferrari SF90 Stradale", "size": "M" },
+      { "name": "Ferrari Purosangue", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Fiat",
+    "models": [
+      { "name": "Fiat 500", "size": "S" },
+      { "name": "Fiat 500C", "size": "S" },
+      { "name": "Fiat 500X", "size": "M" },
+      { "name": "Fiat Panda", "size": "S" },
+      { "name": "Fiat Tipo", "size": "M" },
+      { "name": "Fiat Punto", "size": "S" },
+      { "name": "Fiat Bravo", "size": "M" },
+      { "name": "Fiat Doblo", "size": "M" },
+      { "name": "Fiat Freemont", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Ford",
+    "models": [
+      { "name": "Ford Ka", "size": "S" },
+      { "name": "Ford Fiesta", "size": "S" },
+      { "name": "Ford Focus", "size": "M" },
+      { "name": "Ford Mondeo", "size": "L" },
+      { "name": "Ford Mustang", "size": "M" },
+
+      { "name": "Ford EcoSport", "size": "S" },
+      { "name": "Ford Puma", "size": "S" },
+      { "name": "Ford Kuga", "size": "M" },
+      { "name": "Ford Edge", "size": "L" },
+      { "name": "Ford Explorer", "size": "L" },
+
+      { "name": "Ford Ranger", "size": "L" },
+      { "name": "Ford Mustang Mach-E", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Geely",
+    "models": [
+      { "name": "Geely Emgrand", "size": "M" },
+      { "name": "Geely Preface", "size": "M" },
+      { "name": "Geely Coolray", "size": "S" },
+      { "name": "Geely Atlas", "size": "M" },
+      { "name": "Geely Tugella", "size": "M" },
+      { "name": "Geely Okavango", "size": "L" }
+    ]
+  },
+  {
+    "brand": "GMC",
+    "models": [
+      { "name": "GMC Terrain", "size": "M" },
+      { "name": "GMC Acadia", "size": "L" },
+      { "name": "GMC Yukon", "size": "L" },
+      { "name": "GMC Yukon XL", "size": "L" },
+      { "name": "GMC Sierra 1500", "size": "L" },
+      { "name": "GMC Sierra HD", "size": "L" },
+      { "name": "GMC Hummer EV", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Great Wall Motors",
+    "models": [
+      { "name": "Great Wall Hover H3", "size": "M" },
+      { "name": "Great Wall Hover H5", "size": "M" },
+      { "name": "Great Wall Wingle 5", "size": "L" },
+      { "name": "Great Wall Poer", "size": "L" },
+      { "name": "Great Wall Tank 300", "size": "M" },
+      { "name": "Great Wall Tank 500", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Honda",
+    "models": [
+      { "name": "Honda Jazz", "size": "S" },
+      { "name": "Honda Civic", "size": "M" },
+      { "name": "Honda Accord", "size": "L" },
+
+      { "name": "Honda HR-V", "size": "S" },
+      { "name": "Honda CR-V", "size": "M" },
+      { "name": "Honda Pilot", "size": "L" },
+
+      { "name": "Honda Insight", "size": "M" },
+      { "name": "Honda e", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Hyundai",
+    "models": [
+      { "name": "Hyundai i10", "size": "S" },
+      { "name": "Hyundai i20", "size": "S" },
+      { "name": "Hyundai i30", "size": "M" },
+      { "name": "Hyundai Elantra", "size": "M" },
+      { "name": "Hyundai Sonata", "size": "L" },
+
+      { "name": "Hyundai Bayon", "size": "S" },
+      { "name": "Hyundai Kona", "size": "S" },
+      { "name": "Hyundai Tucson", "size": "M" },
+      { "name": "Hyundai Santa Fe", "size": "L" },
+      { "name": "Hyundai Palisade", "size": "L" },
+
+      { "name": "Hyundai Ioniq", "size": "M" },
+      { "name": "Hyundai Ioniq 5", "size": "M" },
+      { "name": "Hyundai Ioniq 6", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Jaguar",
+    "models": [
+      { "name": "Jaguar XE", "size": "M" },
+      { "name": "Jaguar XF", "size": "L" },
+      { "name": "Jaguar XJ", "size": "L" },
+
+      { "name": "Jaguar E-Pace", "size": "M" },
+      { "name": "Jaguar F-Pace", "size": "L" },
+      { "name": "Jaguar I-Pace", "size": "M" },
+
+      { "name": "Jaguar F-Type", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Jeep",
+    "models": [
+      { "name": "Jeep Renegade", "size": "S" },
+      { "name": "Jeep Compass", "size": "M" },
+      { "name": "Jeep Cherokee", "size": "M" },
+      { "name": "Jeep Grand Cherokee", "size": "L" },
+      { "name": "Jeep Wrangler", "size": "M" },
+      { "name": "Jeep Gladiator", "size": "L" },
+      { "name": "Jeep Avenger", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Kia",
+    "models": [
+      { "name": "Kia Picanto", "size": "S" },
+      { "name": "Kia Rio", "size": "S" },
+      { "name": "Kia Ceed", "size": "M" },
+      { "name": "Kia Optima", "size": "L" },
+      { "name": "Kia Stinger", "size": "L" },
+
+      { "name": "Kia Stonic", "size": "S" },
+      { "name": "Kia XCeed", "size": "M" },
+      { "name": "Kia Sportage", "size": "M" },
+      { "name": "Kia Sorento", "size": "L" },
+      { "name": "Kia Telluride", "size": "L" },
+
+      { "name": "Kia EV6", "size": "M" },
+      { "name": "Kia EV9", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Lamborghini",
+    "models": [
+      { "name": "Lamborghini Gallardo", "size": "M" },
+      { "name": "Lamborghini Huracan", "size": "M" },
+      { "name": "Lamborghini Aventador", "size": "M" },
+      { "name": "Lamborghini Revuelto", "size": "M" },
+      { "name": "Lamborghini Urus", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Land Rover",
+    "models": [
+      { "name": "Land Rover Defender", "size": "L" },
+      { "name": "Land Rover Discovery", "size": "L" },
+      { "name": "Land Rover Discovery Sport", "size": "M" },
+      { "name": "Range Rover Evoque", "size": "M" },
+      { "name": "Range Rover Velar", "size": "M" },
+      { "name": "Range Rover Sport", "size": "L" },
+      { "name": "Range Rover", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Lexus",
+    "models": [
+      { "name": "Lexus IS", "size": "M" },
+      { "name": "Lexus ES", "size": "L" },
+      { "name": "Lexus GS", "size": "L" },
+      { "name": "Lexus LS", "size": "L" },
+
+      { "name": "Lexus UX", "size": "S" },
+      { "name": "Lexus NX", "size": "M" },
+      { "name": "Lexus RX", "size": "L" },
+      { "name": "Lexus GX", "size": "L" },
+      { "name": "Lexus LX", "size": "L" },
+
+      { "name": "Lexus LC", "size": "M" },
+      { "name": "Lexus RC", "size": "M" },
+      { "name": "Lexus RZ", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Maserati",
+    "models": [
+      { "name": "Maserati Ghibli", "size": "L" },
+      { "name": "Maserati Quattroporte", "size": "L" },
+      { "name": "Maserati Levante", "size": "L" },
+      { "name": "Maserati Grecale", "size": "M" },
+      { "name": "Maserati GranTurismo", "size": "M" },
+      { "name": "Maserati MC20", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Mazda",
+    "models": [
+      { "name": "Mazda 2", "size": "S" },
+      { "name": "Mazda 3", "size": "M" },
+      { "name": "Mazda 6", "size": "L" },
+
+      { "name": "Mazda CX-3", "size": "S" },
+      { "name": "Mazda CX-30", "size": "M" },
+      { "name": "Mazda CX-5", "size": "M" },
+      { "name": "Mazda CX-60", "size": "L" },
+      { "name": "Mazda CX-80", "size": "L" },
+      { "name": "Mazda CX-9", "size": "L" },
+
+      { "name": "Mazda MX-5", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Mercedes-Benz",
+    "models": [
+      { "name": "Mercedes-Benz A-Class", "size": "S" },
+      { "name": "Mercedes-Benz B-Class", "size": "S" },
+      { "name": "Mercedes-Benz C-Class", "size": "M" },
+      { "name": "Mercedes-Benz E-Class", "size": "L" },
+      { "name": "Mercedes-Benz S-Class", "size": "L" },
+
+      { "name": "Mercedes-Benz CLA", "size": "M" },
+      { "name": "Mercedes-Benz CLS", "size": "L" },
+
+      { "name": "Mercedes-Benz GLA", "size": "S" },
+      { "name": "Mercedes-Benz GLB", "size": "M" },
+      { "name": "Mercedes-Benz GLC", "size": "M" },
+      { "name": "Mercedes-Benz GLE", "size": "L" },
+      { "name": "Mercedes-Benz GLS", "size": "L" },
+      { "name": "Mercedes-Benz G-Class", "size": "L" },
+
+      { "name": "Mercedes-Benz EQB", "size": "M" },
+      { "name": "Mercedes-Benz EQC", "size": "M" },
+      { "name": "Mercedes-Benz EQE", "size": "L" },
+      { "name": "Mercedes-Benz EQS", "size": "L" },
+
+      { "name": "Mercedes-Benz SL", "size": "M" },
+      { "name": "Mercedes-Benz AMG GT", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Mini",
+    "models": [
+      { "name": "Mini 3-Door", "size": "S" },
+      { "name": "Mini 5-Door", "size": "S" },
+      { "name": "Mini Convertible", "size": "S" },
+      { "name": "Mini Clubman", "size": "M" },
+      { "name": "Mini Countryman", "size": "M" },
+      { "name": "Mini Electric", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Mitsubishi",
+    "models": [
+      { "name": "Mitsubishi Mirage", "size": "S" },
+      { "name": "Mitsubishi Lancer", "size": "M" },
+      { "name": "Mitsubishi Galant", "size": "L" },
+
+      { "name": "Mitsubishi ASX", "size": "M" },
+      { "name": "Mitsubishi Eclipse Cross", "size": "M" },
+      { "name": "Mitsubishi Outlander", "size": "L" },
+      { "name": "Mitsubishi Pajero", "size": "L" },
+
+      { "name": "Mitsubishi i-MiEV", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Nissan",
+    "models": [
+      { "name": "Nissan Micra", "size": "S" },
+      { "name": "Nissan Note", "size": "S" },
+      { "name": "Nissan Leaf", "size": "S" },
+      { "name": "Nissan Juke", "size": "S" },
+      { "name": "Nissan Qashqai", "size": "M" },
+      { "name": "Nissan X-Trail", "size": "L" },
+
+      { "name": "Nissan Sentra", "size": "M" },
+      { "name": "Nissan Altima", "size": "L" },
+      { "name": "Nissan Maxima", "size": "L" },
+
+      { "name": "Nissan GT-R", "size": "M" },
+      { "name": "Nissan Z", "size": "M" },
+      { "name": "Nissan Ariya", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Opel",
+    "models": [
+      { "name": "Opel Adam", "size": "S" },
+      { "name": "Opel Corsa", "size": "S" },
+      { "name": "Opel Astra", "size": "M" },
+      { "name": "Opel Insignia", "size": "L" },
+
+      { "name": "Opel Crossland", "size": "M" },
+      { "name": "Opel Mokka", "size": "S" },
+      { "name": "Opel Grandland", "size": "M" },
+
+      { "name": "Opel Zafira", "size": "M" }
+    ]
+  },
+{
+    "brand": "Peugeot",
+    "models": [
+      { "name": "Peugeot 108", "size": "S" },
+      { "name": "Peugeot 208", "size": "S" },
+      { "name": "Peugeot 308", "size": "M" },
+      { "name": "Peugeot 508", "size": "L" },
+
+      { "name": "Peugeot 2008", "size": "S" },
+      { "name": "Peugeot 3008", "size": "M" },
+      { "name": "Peugeot 5008", "size": "L" },
+
+      { "name": "Peugeot Rifter", "size": "M" },
+      { "name": "Peugeot Traveller", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Porsche",
+    "models": [
+      { "name": "Porsche 911", "size": "M" },
+      { "name": "Porsche 718 Cayman", "size": "M" },
+      { "name": "Porsche 718 Boxster", "size": "M" },
+      { "name": "Porsche Panamera", "size": "L" },
+
+      { "name": "Porsche Macan", "size": "M" },
+      { "name": "Porsche Cayenne", "size": "L" },
+
+      { "name": "Porsche Taycan", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Renault",
+    "models": [
+      { "name": "Renault Twingo", "size": "S" },
+      { "name": "Renault Clio", "size": "S" },
+      { "name": "Renault Megane", "size": "M" },
+      { "name": "Renault Talisman", "size": "L" },
+
+      { "name": "Renault Captur", "size": "S" },
+      { "name": "Renault Kadjar", "size": "M" },
+      { "name": "Renault Koleos", "size": "L" },
+
+      { "name": "Renault Scenic", "size": "M" },
+      { "name": "Renault Espace", "size": "L" },
+
+      { "name": "Renault Zoe", "size": "S" },
+      { "name": "Renault Megane E-Tech", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Rolls-Royce",
+    "models": [
+      { "name": "Rolls-Royce Ghost", "size": "L" },
+      { "name": "Rolls-Royce Phantom", "size": "L" },
+      { "name": "Rolls-Royce Wraith", "size": "L" },
+      { "name": "Rolls-Royce Dawn", "size": "L" },
+      { "name": "Rolls-Royce Cullinan", "size": "L" },
+      { "name": "Rolls-Royce Spectre", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Seat",
+    "models": [
+      { "name": "Seat Mii", "size": "S" },
+      { "name": "Seat Ibiza", "size": "S" },
+      { "name": "Seat Leon", "size": "M" },
+      { "name": "Seat Toledo", "size": "M" },
+
+      { "name": "Seat Arona", "size": "S" },
+      { "name": "Seat Ateca", "size": "M" },
+      { "name": "Seat Tarraco", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Skoda",
+    "models": [
+      { "name": "Skoda Citigo", "size": "S" },
+      { "name": "Skoda Fabia", "size": "S" },
+      { "name": "Skoda Scala", "size": "M" },
+      { "name": "Skoda Octavia", "size": "M" },
+      { "name": "Skoda Superb", "size": "L" },
+
+      { "name": "Skoda Kamiq", "size": "S" },
+      { "name": "Skoda Karoq", "size": "M" },
+      { "name": "Skoda Kodiaq", "size": "L" },
+
+      { "name": "Skoda Enyaq", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Subaru",
+    "models": [
+      { "name": "Subaru Impreza", "size": "M" },
+      { "name": "Subaru Legacy", "size": "L" },
+      { "name": "Subaru WRX", "size": "M" },
+
+      { "name": "Subaru XV", "size": "M" },
+      { "name": "Subaru Forester", "size": "M" },
+      { "name": "Subaru Outback", "size": "L" },
+
+      { "name": "Subaru BRZ", "size": "S" },
+      { "name": "Subaru Solterra", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Suzuki",
+    "models": [
+      { "name": "Suzuki Alto", "size": "S" },
+      { "name": "Suzuki Celerio", "size": "S" },
+      { "name": "Suzuki Swift", "size": "S" },
+      { "name": "Suzuki Baleno", "size": "M" },
+
+      { "name": "Suzuki Ignis", "size": "S" },
+      { "name": "Suzuki Vitara", "size": "M" },
+      { "name": "Suzuki S-Cross", "size": "M" },
+      { "name": "Suzuki Jimny", "size": "S" },
+
+      { "name": "Suzuki Across", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Tesla",
+    "models": [
+      { "name": "Tesla Model S", "size": "L" },
+      { "name": "Tesla Model 3", "size": "M" },
+      { "name": "Tesla Model X", "size": "L" },
+      { "name": "Tesla Model Y", "size": "M" },
+      { "name": "Tesla Cybertruck", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Toyota",
+    "models": [
+      { "name": "Toyota Aygo", "size": "S" },
+      { "name": "Toyota Yaris", "size": "S" },
+      { "name": "Toyota Corolla", "size": "M" },
+      { "name": "Toyota Camry", "size": "L" },
+      { "name": "Toyota Avalon", "size": "L" },
+
+      { "name": "Toyota C-HR", "size": "M" },
+      { "name": "Toyota RAV4", "size": "M" },
+      { "name": "Toyota Highlander", "size": "L" },
+      { "name": "Toyota Land Cruiser", "size": "L" },
+
+      { "name": "Toyota Prius", "size": "M" },
+      { "name": "Toyota bZ4X", "size": "M" }
+    ]
+  }
+]

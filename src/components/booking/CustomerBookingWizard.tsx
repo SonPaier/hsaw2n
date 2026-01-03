@@ -15,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useWebOTP } from '@/hooks/useWebOTP';
-import { searchCarModels } from '@/data/carModels';
+import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import UpsellSuggestion from './UpsellSuggestion';
@@ -893,8 +893,21 @@ export default function CustomerBookingWizard({
               {/* Car model input */}
               {customerPhone.length >= 9 && <div className="animate-fade-in">
                   <Label htmlFor="carModel" className="text-base font-medium">{t('reservations.carModel')}</Label>
-                  <div className="relative mt-1">
-                    <Input id="carModel" value={carModel} onChange={e => setCarModel(e.target.value)} placeholder="np. Volkswagen Golf" className="h-12 text-base" />
+                  <div className="mt-1">
+                    <CarSearchAutocomplete
+                      value={carModel}
+                      onChange={(val: CarSearchValue) => {
+                        if (val === null) {
+                          setCarModel('');
+                        } else if ('type' in val && val.type === 'custom') {
+                          setCarModel(val.label);
+                        } else {
+                          setCarModel(val.label);
+                        }
+                      }}
+                      placeholder="np. Volkswagen Golf"
+                      className="[&_input]:h-12 [&_input]:text-base"
+                    />
                   </div>
                   {/* Historical car models from previous reservations - show bubbles only for 2+ vehicles */}
                   {historicalCarModels.length > 1 && <div className="flex flex-wrap gap-2 mt-2 py-[8px]">
@@ -905,16 +918,6 @@ export default function CustomerBookingWizard({
                           {model}
                         </button>)}
                     </div>}
-                  {/* Car model suggestions from database */}
-                  {historicalCarModels.length === 0 && carModel.length >= 2 && (() => {
-                const suggestions = searchCarModels(carModel, 3);
-                if (suggestions.length === 0 || suggestions.some(s => s.toLowerCase() === carModel.toLowerCase())) return null;
-                return <div className="flex flex-wrap gap-2 mt-2">
-                        {suggestions.map(model => <button key={model} type="button" onClick={() => setCarModel(model)} className="inline-flex items-center px-4 py-2.5 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors min-h-[44px]">
-                            {model}
-                          </button>)}
-                      </div>;
-              })()}
                 </div>}
 
               {/* Name input - optional */}

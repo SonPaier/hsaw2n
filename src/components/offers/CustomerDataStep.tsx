@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { User, Building2, Car, Search, Loader2 } from 'lucide-react';
 import { CustomerData, VehicleData } from '@/hooks/useOffer';
 import { toast } from 'sonner';
+import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 
 interface CustomerDataStepProps {
   customerData: CustomerData;
@@ -243,10 +244,18 @@ export const CustomerDataStep = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="vehicleBrandModel">Marka i model *</Label>
-            <Input
-              id="vehicleBrandModel"
+            <CarSearchAutocomplete
               value={vehicleData.brandModel || ''}
-              onChange={(e) => onVehicleChange({ brandModel: e.target.value })}
+              onChange={(val: CarSearchValue) => {
+                if (val === null) {
+                  onVehicleChange({ brandModel: '' });
+                } else if ('type' in val && val.type === 'custom') {
+                  onVehicleChange({ brandModel: val.label });
+                } else {
+                  onVehicleChange({ brandModel: val.label });
+                }
+              }}
+              placeholder="np. BMW X5"
             />
           </div>
         </div>
