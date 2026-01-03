@@ -222,7 +222,7 @@
     "enterSmsCode": "Wpisz 4-cyfrowy kod z SMS",
     "devCode": "Kod",
     "verifying": "Weryfikacja...",
-    "reminderInfo": "Wyślemy Ci przypomnienie SMS dzień przed oraz godzinę przed wizytą",
+    "reminderInfo": "Wyślemy Ci przypomnienie SMS na dzień przed wizytą oraz na godzinę przed wizytą",
     "bookAnother": "Zarezerwuj kolejną wizytę"
   },
   "calendar": {
