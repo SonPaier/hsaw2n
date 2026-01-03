@@ -49,12 +49,12 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
         </header>}
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col">
         {children}
       </main>
 
-      {/* Minimalist Footer */}
-      {!hideFooter && <footer className="border-t border-border/50 mt-auto">
+      {/* Minimalist Footer - always at bottom */}
+      {!hideFooter && <footer className="border-t border-border/50 shrink-0">
           <div className="container py-4">
             <p className="text-sm text-muted-foreground text-center">
               <a href="https://n2wash.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">N2Wash.com</a> - System rezerwacji online
