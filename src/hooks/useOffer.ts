@@ -161,6 +161,21 @@ export const useOffer = (instanceId: string) => {
 
       if (extrasError) throw extrasError;
 
+      // Fetch extra products from the new linking table
+      const extraIds = (scopeExtras || []).map(e => e.id);
+      let extraProducts: any[] = [];
+      if (extraIds.length > 0) {
+        const { data: extraProds, error: extraProdsError } = await supabase
+          .from('offer_scope_extra_products')
+          .select('*, products_library(*)')
+          .eq('instance_id', instanceId)
+          .in('extra_id', extraIds)
+          .order('sort_order');
+        
+        if (extraProdsError) throw extraProdsError;
+        extraProducts = extraProds || [];
+      }
+
       // Generate options: for each scope × assigned variant combination
       const newOptions: OfferOption[] = [];
       let sortOrder = 0;
@@ -212,11 +227,26 @@ export const useOffer = (instanceId: string) => {
         // Add scope extras (custom additional options like coating)
         const extras = (scopeExtras || []).filter(e => e.scope_id === scope.id);
         for (const extra of extras) {
+          // Get products for this extra from the linking table
+          const products = extraProducts.filter(p => p.extra_id === extra.id);
+          const items: OfferItem[] = products.map(p => ({
+            id: crypto.randomUUID(),
+            productId: p.product_id || undefined,
+            customName: p.custom_name || p.products_library?.name || '',
+            customDescription: p.custom_description || p.products_library?.description || '',
+            quantity: Number(p.quantity) || 1,
+            unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
+            unit: p.unit || p.products_library?.unit || 'szt',
+            discountPercent: 0,
+            isOptional: true, // Extra items are optional by default
+            isCustom: !p.product_id,
+          }));
+
           newOptions.push({
             id: crypto.randomUUID(),
             name: `${scope.name} - ${extra.name}`,
             description: extra.description || '',
-            items: [],
+            items,
             isSelected: true,
             sortOrder,
             scopeId: scope.id,

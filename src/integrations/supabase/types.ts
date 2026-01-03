@@ -763,6 +763,73 @@ export type Database = {
           },
         ]
       }
+      offer_scope_extra_products: {
+        Row: {
+          created_at: string
+          custom_description: string | null
+          custom_name: string | null
+          extra_id: string
+          id: string
+          instance_id: string
+          product_id: string | null
+          quantity: number
+          sort_order: number | null
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          extra_id: string
+          id?: string
+          instance_id: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_description?: string | null
+          custom_name?: string | null
+          extra_id?: string
+          id?: string
+          instance_id?: string
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_scope_extra_products_extra_id_fkey"
+            columns: ["extra_id"]
+            isOneToOne: false
+            referencedRelation: "offer_scope_extras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_extra_products_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_extra_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_library"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_scope_extras: {
         Row: {
           active: boolean
