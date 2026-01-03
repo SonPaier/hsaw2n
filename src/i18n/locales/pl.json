@@ -596,7 +596,7 @@
       "verification_code": {
         "label": "Kod weryfikacyjny",
         "description": "SMS z 4-cyfrowym kodem wysyłany podczas rezerwacji online.",
-        "exampleTemplate": "{{instanceName}} kod: 1234"
+        "exampleTemplate": "Kod potwierdzajacy {{instanceName}}: 1234"
       },
       "reservation_confirmed": {
         "label": "Potwierdzenie rezerwacji",
@@ -745,8 +745,9 @@
     "yardTitle": "Dodaj pojazd na plac",
     "yardEditTitle": "Edytuj pojazd na placu",
     "yardDescription": "Wprowadź dane pojazdu oczekującego na usługę",
-    "arrivalDate": "Data przyjazdu",
-    "deadline": "Do kiedy skończyć",
+    "arrivalDate": "Data podstawienia",
+    "deadline": "Do której skończyć",
+    "pickupDate": "Data odbioru",
     "yardVehicleAdded": "Pojazd dodany na plac",
     "yardVehicleUpdated": "Pojazd zaktualizowany",
     "yardVehicleError": "Błąd podczas zapisywania pojazdu",
@@ -1384,9 +1385,13 @@
   },
   "offerSettings": {
     "title": "Ustawienia ofert",
+    "general": "Ogólne",
     "services": "Usługi",
     "variants": "Warianty",
     "products": "Produkty",
+    "showUnitPrices": "Widoczne ceny jednostkowe",
+    "showUnitPricesEnabled": "Ceny jednostkowe są widoczne w edytorze ofert",
+    "showUnitPricesDisabled": "Tylko cena za pozycję, bez ilości i ceny jednostkowej",
     "saveSuccess": "Zapisano wszystkie zmiany",
     "saveError": "Błąd podczas zapisywania",
     "unsavedChanges": "Masz niezapisane zmiany. Czy na pewno chcesz zamknąć?",
