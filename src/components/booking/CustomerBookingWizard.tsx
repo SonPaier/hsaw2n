@@ -1292,11 +1292,11 @@ export default function CustomerBookingWizard({
               {isPending ? <Clock className="w-7 h-7 text-amber-500" /> : <Check className="w-7 h-7 text-green-500" />}
             </div>
 
-            <h2 className="text-lg font-semibold mb-2">
+            <h2 className="font-semibold mb-2 text-xl">
               {isPending ? t('booking.bookingPending') : t('booking.bookingSuccess')}
             </h2>
             
-            {isPending && <p className="text-sm text-muted-foreground mb-4">{t('booking.bookingPendingMessage') || 'Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.'}</p>}
+            {isPending && <p className="text-muted-foreground mb-4 text-base">{t('booking.bookingPendingMessage') || 'Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.'}</p>}
 
             <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
               <div className="flex justify-between">
