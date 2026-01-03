@@ -343,21 +343,24 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   if (!hasOffers) {
     return (
       <div className="space-y-4">
-        {/* Header with search and add button */}
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t('customers.searchPlaceholder')}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        {/* Sticky header on mobile */}
+        <div className="sm:static sticky top-0 z-20 bg-background pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Header with search and add button */}
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder={t('customers.searchPlaceholder')}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('common.add')}</span>
+            </Button>
           </div>
-          <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('common.add')}</span>
-          </Button>
         </div>
 
         {renderCustomerList()}
@@ -386,50 +389,57 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Header with search and add button */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={t('customers.searchPlaceholder')}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      {/* Sticky header on mobile */}
+      <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* Header with search and add button */}
+        <div className="flex gap-4 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={t('customers.searchPlaceholder')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('common.add')}</span>
+          </Button>
         </div>
-        <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('common.add')}</span>
-        </Button>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'myjnia' | 'oferty')}>
+          <AdminTabsList className="max-w-md">
+            <AdminTabsTrigger value="myjnia">
+              <User className="w-4 h-4" />
+              {t('customers.tabs.carWash')}
+              {myjniaCount > 0 && (
+                <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
+                  {myjniaCount}
+                </span>
+              )}
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="oferty">
+              <Building2 className="w-4 h-4" />
+              {t('customers.tabs.offers')}
+              {ofertyCount > 0 && (
+                <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
+                  {ofertyCount}
+                </span>
+              )}
+            </AdminTabsTrigger>
+          </AdminTabsList>
+        </Tabs>
       </div>
 
+      {/* Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'myjnia' | 'oferty')}>
-        <AdminTabsList className="max-w-md">
-          <AdminTabsTrigger value="myjnia">
-            <User className="w-4 h-4" />
-            {t('customers.tabs.carWash')}
-            {myjniaCount > 0 && (
-              <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
-                {myjniaCount}
-              </span>
-            )}
-          </AdminTabsTrigger>
-          <AdminTabsTrigger value="oferty">
-            <Building2 className="w-4 h-4" />
-            {t('customers.tabs.offers')}
-            {ofertyCount > 0 && (
-              <span className="ml-1 text-xs bg-primary/10 px-2 py-0.5 rounded-full">
-                {ofertyCount}
-              </span>
-            )}
-          </AdminTabsTrigger>
-        </AdminTabsList>
-
-        <TabsContent value="myjnia" className="space-y-4 mt-4">
+        <TabsContent value="myjnia" className="space-y-4 mt-0">
           {renderCustomerList()}
         </TabsContent>
 
-        <TabsContent value="oferty" className="space-y-4 mt-4">
+        <TabsContent value="oferty" className="space-y-4 mt-0">
           {renderCustomerList()}
         </TabsContent>
       </Tabs>
