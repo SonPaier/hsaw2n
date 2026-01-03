@@ -197,6 +197,7 @@ export default function CustomerBookingWizard({
     time: string;
     serviceName: string;
     status: 'confirmed' | 'pending';
+    carModel?: string;
   } | null>(null);
   const [socialLinks, setSocialLinks] = useState<{
     facebook: string | null;
@@ -690,7 +691,8 @@ export default function CustomerBookingWizard({
         date: data.reservation.date,
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
-        status: data.reservation.status || 'confirmed'
+        status: data.reservation.status || 'confirmed',
+        carModel: carModel || undefined
       });
       setSocialLinks({
         facebook: data.instance?.social_facebook || null,
@@ -805,7 +807,8 @@ export default function CustomerBookingWizard({
         date: data.reservation.date,
         time: data.reservation.time,
         serviceName: data.reservation.serviceName,
-        status: data.reservation.status || 'confirmed'
+        status: data.reservation.status || 'confirmed',
+        carModel: carModel || undefined
       });
       setSocialLinks({
         facebook: data.instance?.social_facebook || null,
@@ -1298,25 +1301,29 @@ export default function CustomerBookingWizard({
             
             {isPending && <p className="text-muted-foreground mb-4 text-base">{t('booking.bookingPendingMessage') || 'Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.'}</p>}
 
-            <div className="glass-card p-3 mb-4 text-left space-y-1.5 text-sm">
+            <div className="glass-card p-3 mb-4 text-left space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('reservations.service')}</span>
-                <span className="font-medium">{confirmationData.serviceName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('common.date')}</span>
-                <span className="font-medium">
+                <span className="text-muted-foreground text-base">{t('common.date')}</span>
+                <span className="font-medium text-base">
                   {format(parseISO(confirmationData.date), 'd MMM yyyy', {
                   locale: pl
                 })}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('common.time')}</span>
-                <span className="font-medium">{confirmationData.time}</span>
+                <span className="text-muted-foreground text-base">{t('common.time')}</span>
+                <span className="font-medium text-base">{confirmationData.time}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('common.status')}</span>
+              {confirmationData.carModel && <div className="flex justify-between">
+                <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
+                <span className="font-medium text-base">{confirmationData.carModel}</span>
+              </div>}
+              <div className="flex justify-between items-start">
+                <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
+                <span className="font-medium text-base">{confirmationData.serviceName}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1.5 border-t border-border">
+                <span className="text-muted-foreground text-base">{t('common.status')}</span>
                 <span className={cn("font-medium px-2 py-0.5 rounded text-xs", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
                   {isPending ? t('reservations.pending') : t('reservations.confirmed')}
                 </span>
