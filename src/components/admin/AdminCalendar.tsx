@@ -219,6 +219,23 @@ const AdminCalendar = ({
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [smsDialogData, setSmsDialogData] = useState<{ phone: string; customerName: string } | null>(null);
   const isMobile = useIsMobile();
+  
+  // Refs for synchronized horizontal scroll between headers and grid
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Sync horizontal scroll between headers and grid
+  const handleHeaderScroll = useCallback(() => {
+    if (headerScrollRef.current && gridScrollRef.current) {
+      gridScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  }, []);
+  
+  const handleGridScroll = useCallback(() => {
+    if (headerScrollRef.current && gridScrollRef.current) {
+      headerScrollRef.current.scrollLeft = gridScrollRef.current.scrollLeft;
+    }
+  }, []);
 
   // Mobile column width calculation helpers
   // Column widths are calculated as percentage of available space (screen width minus time column)
@@ -1123,46 +1140,57 @@ const AdminCalendar = ({
       {/* DAY VIEW */}
       {viewMode === 'day' && (
         <>
-          {/* Main scrollable container - handles both horizontal and vertical scroll */}
-          <div className="flex-1 overflow-auto">
-            {/* Station Headers - sticky at top */}
-            <div className="flex border-b border-border/50 bg-card sticky top-0 z-40">
-              {/* Time column header - sticky left on mobile */}
-              <div className={cn(
-                "w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50 bg-card",
-                isMobile && "sticky left-0 z-50"
-              )}>
-                <Clock className="w-5 h-5" />
-              </div>
-              
-              {/* Station headers container */}
-              <div 
-                className="flex"
-                style={getMobileStationsContainerStyle(visibleStations.length)}
-              >
-                {visibleStations.map((station, idx) => {
-                  const freeTimeText = formatFreeTime(station.id, currentDateStr);
-                  
-                  return (
-                    <div 
-                      key={station.id}
-                      className={cn(
-                        "p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0",
-                        !isMobile && "flex-1 min-w-[80px]",
-                        idx < visibleStations.length - 1 && "border-r border-border/50"
-                      )}
-                      style={getMobileColumnStyle(visibleStations.length)}
-                    >
-                      <div className="text-foreground truncate">{station.name}</div>
-                      {/* Always reserve height for free time text */}
-                      <div className="text-xs text-primary hidden md:block h-4">
-                        {freeTimeText || '\u00A0'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Station Headers - fixed below toolbar */}
+          <div 
+            ref={headerScrollRef}
+            onScroll={handleHeaderScroll}
+            className="flex border-b border-border/50 bg-card sticky top-0 z-40 overflow-x-auto" 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Time column header - sticky left */}
+            <div className={cn(
+              "w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50 bg-card",
+              "sticky left-0 z-50"
+            )}>
+              <Clock className="w-5 h-5" />
             </div>
+            
+            {/* Station headers container */}
+            <div 
+              className="flex"
+              style={getMobileStationsContainerStyle(visibleStations.length)}
+            >
+              {visibleStations.map((station, idx) => {
+                const freeTimeText = formatFreeTime(station.id, currentDateStr);
+                
+                return (
+                  <div 
+                    key={station.id}
+                    className={cn(
+                      "p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0",
+                      !isMobile && "flex-1 min-w-[80px]",
+                      idx < visibleStations.length - 1 && "border-r border-border/50"
+                    )}
+                    style={getMobileColumnStyle(visibleStations.length)}
+                  >
+                    <div className="text-foreground truncate">{station.name}</div>
+                    {/* Always reserve height for free time text */}
+                    <div className="text-xs text-primary hidden md:block h-4">
+                      {freeTimeText || '\u00A0'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Main scrollable container - synced horizontal scroll with headers */}
+          <div 
+            ref={gridScrollRef}
+            onScroll={handleGridScroll}
+            className="flex-1 overflow-auto" 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
 
             {/* Calendar Grid - Day View */}
             <div className={cn(
