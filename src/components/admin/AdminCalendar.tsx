@@ -1114,8 +1114,8 @@ const AdminCalendar = ({
                     <span className="font-semibold">Dzień zamknięty</span>
                   </div>
                 </div>}
-              {/* Time column with quarter-hour marks - fixed left on mobile to prevent horizontal scroll */}
-              <div className={cn("w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10", isMobile ? "fixed left-0 z-30 bg-background" : "sticky left-0 z-30 bg-background")}>
+              {/* Time column with quarter-hour marks - sticky left on all devices */}
+              <div className="w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10 sticky left-0 z-30 bg-background">
                 {HOURS.map((hour, hourIndex) => {
               // Calculate which slots to show for this hour
               const isFirstHour = hourIndex === 0;
@@ -1159,8 +1159,8 @@ const AdminCalendar = ({
             })}
               </div>
 
-              {/* Station columns container - offset by time column width on mobile */}
-              <div className={cn("flex", isMobile && "ml-12")} style={getMobileStationsContainerStyle(visibleStations.length)}>
+              {/* Station columns container */}
+              <div className="flex" style={getMobileStationsContainerStyle(visibleStations.length)}>
                 {visibleStations.map((station, idx) => {
               // Calculate total visible height based on display time range
               const totalVisibleHeight = (DISPLAY_END_TIME - DISPLAY_START_TIME) * HOUR_HEIGHT;
