@@ -40,21 +40,10 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
       {/* Header */}
       {!hideHeader && <header className="sticky top-0 z-50 bg-background">
           <div className="container py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="w-10 h-10 rounded-xl object-contain" /> : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
-                    <Car className="w-5 h-5 text-primary-foreground" />
-                  </div>}
-                <div>
-                  <h1 className="text-lg font-bold text-foreground leading-tight">
-                    {instance?.name?.split(' ').slice(0, 2).join(' ') || 'ARM CAR'}
-                  </h1>
-                  <p className="text-xs text-muted-foreground">
-                    {instance?.name?.split(' ').slice(2).join(' ') || 'AUTO SPA'}
-                  </p>
-                </div>
-              </div>
-              {instance?.phone}
+            <div className="flex items-center justify-center">
+              {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="w-12 h-12 rounded-xl object-contain" /> : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
+                  <Car className="w-6 h-6 text-primary-foreground" />
+                </div>}
             </div>
           </div>
         </header>}
@@ -68,7 +57,7 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
       {!hideFooter && <footer className="border-t border-border/50 mt-auto">
           <div className="container py-4">
             <p className="text-sm text-muted-foreground text-center">
-              © {new Date().getFullYear()} ARM CAR AUTO SPA
+              <a href="https://n2wash.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">N2Wash.com</a> - System rezerwacji online
             </p>
           </div>
         </footer>}
