@@ -58,6 +58,7 @@ interface Instance {
   social_facebook: string | null;
   social_instagram: string | null;
   booking_days_ahead: number;
+  auto_confirm_reservations: boolean | null;
 }
 interface AvailabilityBlock {
   block_date: string;
@@ -479,7 +480,8 @@ export default function CustomerBookingWizard({
           } | null> | null,
           social_facebook: instanceData.social_facebook,
           social_instagram: instanceData.social_instagram,
-          booking_days_ahead: instanceData.booking_days_ahead ?? 90
+          booking_days_ahead: instanceData.booking_days_ahead ?? 90,
+          auto_confirm_reservations: instanceData.auto_confirm_reservations ?? false
         };
         setInstance(parsedInstance);
         const {
@@ -1305,6 +1307,12 @@ export default function CustomerBookingWizard({
             {isPending && <p className="text-muted-foreground mb-4 text-base">{t('booking.bookingPendingMessage') || 'Dziękujemy za złożenie rezerwacji. Potwierdzimy ją możliwie szybko.'}</p>}
 
             <div className="glass-card p-3 mb-4 text-left space-y-1.5">
+              <div className="flex justify-between items-center pb-1.5 border-b border-border">
+                <span className="text-muted-foreground text-base">{t('common.status')}</span>
+                <span className={cn("font-medium px-2 py-0.5 rounded text-xs", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
+                  {isPending ? t('reservations.pending') : t('reservations.confirmed')}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-base">{t('common.date')}</span>
                 <span className="font-medium text-base">
@@ -1332,12 +1340,6 @@ export default function CustomerBookingWizard({
               <p className="text-muted-foreground text-sm">
                 * {t('booking.priceDisclaimer')}
               </p>
-              <div className="flex justify-between items-center pt-1.5">
-                <span className="text-muted-foreground text-base">{t('common.status')}</span>
-                <span className={cn("font-medium px-2 py-0.5 rounded text-xs", isPending ? "bg-amber-500/20 text-amber-600" : "bg-green-500/20 text-green-600")}>
-                  {isPending ? t('reservations.pending') : t('reservations.confirmed')}
-                </span>
-              </div>
             </div>
 
             {/* SMS Contact Button - only on mobile */}
@@ -1355,10 +1357,12 @@ export default function CustomerBookingWizard({
                 {t('booking.contactUs')}
               </Button>}
 
-            <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
-              <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
-              {t('booking.reminderInfo')}
-            </div>
+            {instance?.auto_confirm_reservations && (
+              <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
+                <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
+                {t('booking.reminderInfo')}
+              </div>
+            )}
 
             {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center flex-shrink-0">
