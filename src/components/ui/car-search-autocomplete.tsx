@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import carsListData from '@/data/carsList.json';
 
 // Types
@@ -30,7 +31,6 @@ export type CarSearchValue = CarModel | { type: 'custom'; label: string } | null
 interface CarSearchAutocompleteProps {
   value?: string;
   onChange: (value: CarSearchValue) => void;
-  placeholder?: string;
   disabled?: boolean;
   error?: boolean;
   helperText?: string;
@@ -65,7 +65,6 @@ const normalizeText = (text: string): string => {
 export const CarSearchAutocomplete = ({
   value = '',
   onChange,
-  placeholder = 'Wybierz samochód',
   disabled = false,
   error = false,
   helperText,
@@ -74,6 +73,7 @@ export const CarSearchAutocomplete = ({
   onSelect,
   onClear,
 }: CarSearchAutocompleteProps) => {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -292,7 +292,6 @@ export const CarSearchAutocomplete = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => inputValue.length >= 1 && setIsOpen(true)}
-          placeholder={placeholder}
           disabled={disabled}
           className={cn(
             'pr-16',
@@ -302,6 +301,7 @@ export const CarSearchAutocomplete = ({
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-autocomplete="list"
+          aria-label={t('reservations.carModel')}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {inputValue && (
@@ -309,7 +309,7 @@ export const CarSearchAutocomplete = ({
               type="button"
               onClick={handleClear}
               className="p-1 hover:bg-muted rounded-sm transition-colors"
-              aria-label="Wyczyść"
+              aria-label={t('common.clear', 'Wyczyść')}
             >
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -327,7 +327,7 @@ export const CarSearchAutocomplete = ({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
+          className="absolute z-[9999] mt-1 w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
           style={{ maxHeight: '250px' }}
           role="listbox"
         >
@@ -335,13 +335,6 @@ export const CarSearchAutocomplete = ({
             {groupedResults.size > 0 ? (
               Array.from(groupedResults.entries()).map(([brand, models]) => (
                 <div key={brand} role="group" aria-label={brand}>
-                  {/* Brand header - sticky */}
-                  <div className="sticky top-0 z-10 px-3 py-1.5 bg-muted/80 backdrop-blur-sm border-b border-border">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {brand}
-                    </span>
-                  </div>
-                  
                   {/* Models */}
                   {models.map((model) => {
                     const itemIndex = currentFlatIndex++;
@@ -383,7 +376,7 @@ export const CarSearchAutocomplete = ({
                 onClick={selectCustom}
                 onMouseEnter={() => setActiveIndex(0)}
               >
-                <span className="text-muted-foreground">Użyj: </span>
+                <span className="text-muted-foreground">{t('carSearch.useCustom', 'Użyj')}: </span>
                 <span className="font-medium">"{inputValue.trim()}"</span>
               </button>
             ) : null}

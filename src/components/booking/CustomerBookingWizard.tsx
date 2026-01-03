@@ -905,7 +905,6 @@ export default function CustomerBookingWizard({
                           setCarModel(val.label);
                         }
                       }}
-                      placeholder="np. Volkswagen Golf"
                       className="[&_input]:h-12 [&_input]:text-base"
                     />
                   </div>

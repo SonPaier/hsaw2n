@@ -47,7 +47,11 @@
     "perPage": "na stronie",
     "saving": "Zapisywanie...",
     "active": "Aktywny",
-    "adminPanel": "Panel Admina"
+    "adminPanel": "Panel Admina",
+    "clear": "Wyczyść"
+  },
+  "carSearch": {
+    "useCustom": "Użyj"
   },
   "auth": {
     "login": "Zaloguj się",

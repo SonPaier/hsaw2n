@@ -255,7 +255,6 @@ export const CustomerDataStep = ({
                   onVehicleChange({ brandModel: val.label });
                 }
               }}
-              placeholder="np. BMW X5"
             />
           </div>
         </div>
