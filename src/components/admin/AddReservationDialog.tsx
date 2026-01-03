@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Phone, Car, Loader2, Sparkles, Check, ChevronDown, CalendarIcon, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import {
@@ -1283,12 +1284,28 @@ const AddReservationDialog = ({
             </Label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Input
-                  id="carModel"
+                <CarSearchAutocomplete
                   value={carModel}
-                  onChange={(e) => setCarModel(e.target.value)}
-                  className="pr-10"
+                  onChange={(val: CarSearchValue) => {
+                    if (val === null) {
+                      setCarModel('');
+                    } else if ('type' in val && val.type === 'custom') {
+                      setCarModel(val.label);
+                    } else {
+                      setCarModel(val.label);
+                      // Auto-set car size based on selected model
+                      if ('size' in val) {
+                        if (val.size === 'S') setCarSize('small');
+                        else if (val.size === 'M') setCarSize('medium');
+                        else if (val.size === 'L') setCarSize('large');
+                      }
+                    }
+                  }}
+                  placeholder="np. BMW X5"
                 />
+                {suggestingSize && (
+                  <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
+                )}
                 {suggestingSize && (
                   <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
                 )}
