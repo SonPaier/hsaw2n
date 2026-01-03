@@ -167,10 +167,8 @@ const PublicOfferView = () => {
   
   // Track selected variant per scope (key: scope_id, value: option_id)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
-  // Track selected optional items (key: item_id, value: boolean)
+  // Track selected optional items (key: item_id, value: boolean) - includes extras + opcje dodatkowe
   const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
-  // Track selected upsell options (key: option_id, value: boolean)
-  const [selectedUpsells, setSelectedUpsells] = useState<Record<string, boolean>>({});
   // Track which non-extras scope is selected (only one allowed)
   const [selectedScopeId, setSelectedScopeId] = useState<string | null>(null);
 
@@ -228,10 +226,23 @@ const PublicOfferView = () => {
         const savedState = fetchedOffer.selected_state;
         
         if (savedState) {
-          // Restore saved state
-          setSelectedVariants(savedState.selectedVariants || {});
-          setSelectedUpsells(savedState.selectedUpsells || {});
-          setSelectedOptionalItems(savedState.selectedOptionalItems || {});
+          const restoredVariants = savedState.selectedVariants || {};
+          const restoredUpsells = savedState.selectedUpsells || {};
+          const restoredOptionalItems = savedState.selectedOptionalItems || {};
+
+          // Backward compatibility: old offers stored upsells as whole-option selection.
+          // Now each upsell item is independent, so mark all items of selected upsells as selected.
+          const mergedOptionalItems: Record<string, boolean> = { ...restoredOptionalItems };
+          fetchedOffer.offer_options.forEach((opt) => {
+            if (opt.is_upsell && restoredUpsells[opt.id]) {
+              opt.offer_option_items?.forEach((item) => {
+                mergedOptionalItems[item.id] = true;
+              });
+            }
+          });
+
+          setSelectedVariants(restoredVariants);
+          setSelectedOptionalItems(mergedOptionalItems);
           setSelectedScopeId(savedState.selectedScopeId ?? null);
         } else {
           // Initialize selected variants - first non-upsell variant per scope
@@ -290,9 +301,17 @@ const PublicOfferView = () => {
     if (!offer) return;
     setResponding(true);
     try {
+      const derivedUpsells: Record<string, boolean> = {};
+      offer.offer_options.forEach((opt) => {
+        if (opt.is_upsell) {
+          const anySelected = opt.offer_option_items?.some((i) => !!selectedOptionalItems[i.id]);
+          if (anySelected) derivedUpsells[opt.id] = true;
+        }
+      });
+
       const stateToSave: SelectedState = {
         selectedVariants,
-        selectedUpsells,
+        selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
       };
@@ -413,24 +432,15 @@ const PublicOfferView = () => {
       }
     }
     
-    // Add selected upsell options (only from the selected scope, non-extras-scope)
-    Object.entries(selectedUpsells).forEach(([optionId, isSelected]) => {
-      if (isSelected) {
-        const option = offer.offer_options.find(o => o.id === optionId);
-        // Only include upsells from selected scope
-        if (option && !extrasScopeOptionIds.has(option.id) && option.scope_id === selectedScopeId) {
-          option.offer_option_items.forEach(item => {
-            if (item.is_optional) {
-              if (selectedOptionalItems[item.id]) {
-                const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                totalNet += itemTotal;
-              }
-            } else {
-              const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-              totalNet += itemTotal;
-            }
-          });
-        }
+    // Add selected upsell items (Opcje dodatkowe) - każda pozycja jest niezależna
+    offer.offer_options.forEach((option) => {
+      if (option.is_upsell && option.scope_id === selectedScopeId && !extrasScopeOptionIds.has(option.id)) {
+        option.offer_option_items.forEach((item) => {
+          if (selectedOptionalItems[item.id]) {
+            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+            totalNet += itemTotal;
+          }
+        });
       }
     });
     
@@ -455,18 +465,25 @@ const PublicOfferView = () => {
   // Handle selecting a scope (and its variant) - only one non-extras scope can be selected
   const handleSelectScope = (scopeId: string, optionId: string) => {
     setSelectedScopeId(scopeId);
-    setSelectedVariants(prev => ({ ...prev, [scopeId]: optionId }));
-    // Clear upsells from other scopes when switching
-    setSelectedUpsells(prev => {
-      const newUpsells: Record<string, boolean> = {};
-      // Keep only upsells that belong to this scope or extras scopes
-      Object.entries(prev).forEach(([upId, selected]) => {
-        const upOption = offer?.offer_options.find(o => o.id === upId);
-        if (upOption && (upOption.scope_id === scopeId || upOption.scope?.is_extras_scope)) {
-          newUpsells[upId] = selected;
+    setSelectedVariants((prev) => ({ ...prev, [scopeId]: optionId }));
+
+    // Keep only optional-item selections that belong to this scope or extras scopes
+    setSelectedOptionalItems((prev) => {
+      if (!offer) return prev;
+
+      const allowed = new Set<string>();
+      offer.offer_options.forEach((opt) => {
+        if (opt.scope?.is_extras_scope || opt.scope_id === scopeId) {
+          opt.offer_option_items.forEach((item) => allowed.add(item.id));
         }
       });
-      return newUpsells;
+
+      const next: Record<string, boolean> = {};
+      Object.entries(prev).forEach(([itemId, selected]) => {
+        if (selected && allowed.has(itemId)) next[itemId] = true;
+      });
+
+      return next;
     });
   };
 
@@ -479,9 +496,6 @@ const PublicOfferView = () => {
     setSelectedOptionalItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
-  const handleToggleUpsell = (optionId: string) => {
-    setSelectedUpsells(prev => ({ ...prev, [optionId]: !prev[optionId] }));
-  };
 
   // Check if user is admin for this offer's instance
   const isAdmin = user && offer && (
@@ -492,9 +506,17 @@ const PublicOfferView = () => {
     if (!offer || !isAdmin) return;
     setSavingState(true);
     try {
+      const derivedUpsells: Record<string, boolean> = {};
+      offer.offer_options.forEach((opt) => {
+        if (opt.is_upsell) {
+          const anySelected = opt.offer_option_items?.some((i) => !!selectedOptionalItems[i.id]);
+          if (anySelected) derivedUpsells[opt.id] = true;
+        }
+      });
+
       const stateToSave: SelectedState = {
         selectedVariants,
-        selectedUpsells,
+        selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
       };
@@ -524,9 +546,17 @@ const PublicOfferView = () => {
     if (!offer || isAdmin) return;
     setSavingState(true);
     try {
+      const derivedUpsells: Record<string, boolean> = {};
+      offer.offer_options.forEach((opt) => {
+        if (opt.is_upsell) {
+          const anySelected = opt.offer_option_items?.some((i) => !!selectedOptionalItems[i.id]);
+          if (anySelected) derivedUpsells[opt.id] = true;
+        }
+      });
+
       const stateToSave: SelectedState = {
         selectedVariants,
-        selectedUpsells,
+        selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
       };
@@ -1155,93 +1185,80 @@ const PublicOfferView = () => {
                       );
                     })}
 
-                    {/* Render upsells - with "Dodaj" button */}
-                    {upsells.map((option) => {
-                      const isUpsellSelected = selectedUpsells[option.id];
-                      const variantName = option.name.includes(' - ') 
-                        ? option.name.split(' - ').slice(1).join(' - ')
-                        : option.name;
-                      
-                      return (
-                        <article key={option.id}>
-                          <Card className={cn(
-                            "transition-all",
-                            isUpsellSelected && "ring-2 ring-primary border-primary",
-                            !isUpsellSelected && "opacity-70"
-                          )}>
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
-                                    <Badge variant="secondary" className="text-xs">Opcja</Badge>
-                                  </div>
-                                  {option.description && (
-                                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                    {/* Opcje dodatkowe - pozycje niezależne (multi-select) */}
+                    {upsells.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 pt-2">
+                          <h3 className="text-sm font-semibold text-foreground">Opcje dodatkowe</h3>
+                        </div>
+
+                        {upsells.flatMap((option) => {
+                          const groupName = option.name.includes(' - ')
+                            ? option.name.split(' - ').slice(1).join(' - ')
+                            : option.name;
+
+                          return option.offer_option_items.map((item) => {
+                            const isItemSelected = selectedOptionalItems[item.id];
+                            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+
+                            return (
+                              <article key={item.id}>
+                                <Card
+                                  className={cn(
+                                    "transition-all",
+                                    isItemSelected && "ring-2 ring-primary border-primary",
+                                    !isItemSelected && "opacity-70"
                                   )}
-                                </div>
-                                <Button
-                                  variant={isUpsellSelected ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleToggleUpsell(option.id)}
-                                  disabled={interactionsDisabled}
-                                  className="shrink-0"
                                 >
-                                  {isUpsellSelected ? (
-                                    <>
-                                      <Check className="w-4 h-4 mr-1" />
-                                      Dodane
-                                    </>
-                                  ) : (
-                                    'Dodaj'
-                                  )}
-                                </Button>
-                              </div>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                {option.offer_option_items.map((item) => (
-                                  <div key={item.id} className="py-1">
-                                    <span>{item.custom_name}</span>
-                                    {(item.custom_description || item.products_library?.description) && 
-                                      renderDescription(item.custom_description || item.products_library?.description || '')
-                                    }
-                                  </div>
-                                ))}
-                              </div>
-                              {(() => {
-                                // Calculate original price (before discounts) for this upsell option
-                                const originalTotal = option.offer_option_items.reduce((sum, item) => {
-                                  return sum + (item.quantity * item.unit_price);
-                                }, 0);
-                                const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
-                                const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
-                                
-                                return (
-                                  <div className="flex justify-end pt-4 font-medium items-center">
-                                    <div className="flex items-center gap-2">
-                                      {hasDiscount && originalTotal > option.subtotal_net && (
-                                        <>
-                                          <span className="text-muted-foreground line-through text-sm">
-                                            {formatPrice(originalTotal)}
-                                          </span>
-                                          <Badge variant="secondary" className="text-xs">
-                                            -{discountPercent}%
-                                          </Badge>
-                                        </>
-                                      )}
-                                      <span className={hasDiscount ? "text-primary" : ""}>
-                                        {formatPrice(option.subtotal_net)}
-                                      </span>
+                                  <CardContent className="py-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium">{item.custom_name}</p>
+                                          <Badge variant="secondary" className="text-xs">{groupName}</Badge>
+                                        </div>
+
+                                        {(item.custom_description || item.products_library?.description) &&
+                                          renderDescription(item.custom_description || item.products_library?.description || '')}
+
+                                        {!offer.hide_unit_prices && (
+                                          <p className="text-sm text-muted-foreground mt-1">
+                                            {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                                            {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                        {!offer.hide_unit_prices && (
+                                          <span className="font-medium">{formatPrice(itemTotal)}</span>
+                                        )}
+                                        <Button
+                                          variant={isItemSelected ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => handleToggleOptionalItem(item.id)}
+                                          disabled={interactionsDisabled}
+                                          className="shrink-0"
+                                        >
+                                          {isItemSelected ? (
+                                            <>
+                                              <Check className="w-4 h-4 mr-1" />
+                                              Dodane
+                                            </>
+                                          ) : (
+                                            'Dodaj'
+                                          )}
+                                        </Button>
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })()}
-                            </CardContent>
-                          </Card>
-                        </article>
-                      );
-                    })}
+                                  </CardContent>
+                                </Card>
+                              </article>
+                            );
+                          });
+                        })}
+                      </div>
+                    )}
                   </section>
                 );
               })}
