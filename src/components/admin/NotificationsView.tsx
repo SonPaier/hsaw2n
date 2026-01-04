@@ -103,8 +103,12 @@ export default function NotificationsView({
         return '📅';
       case 'reservation_cancelled':
         return '❌';
+      case 'reservation_cancelled_by_customer':
+        return '🚫';
       case 'reservation_edited':
         return '✏️';
+      case 'reservation_edited_by_customer':
+        return '📝';
       case 'offer_approved':
         return '✅';
       case 'offer_modified':
@@ -120,8 +124,12 @@ export default function NotificationsView({
         return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-500 border-green-500/30">Nowa rezerwacja</Badge>;
       case 'reservation_cancelled':
         return <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 border-red-500/30">Anulowana</Badge>;
+      case 'reservation_cancelled_by_customer':
+        return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-500 border-orange-500/30">Anulowana przez klienta</Badge>;
       case 'reservation_edited':
         return <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">Edytowana</Badge>;
+      case 'reservation_edited_by_customer':
+        return <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-500 border-purple-500/30">Zmieniona przez klienta</Badge>;
       case 'offer_approved':
         return <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Oferta zaakceptowana</Badge>;
       case 'offer_modified':
