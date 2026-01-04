@@ -824,6 +824,20 @@ export default function CustomerBookingWizard({
         entity_id: existingReservation.id
       });
 
+      // Send push notification to admin
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            instanceId: existingReservation.instance_id,
+            title: `📝 Zmiana terminu: ${existingReservation.customer_name}`,
+            body: `${existingReservation.reservation_date} → ${newReservationDate} o ${selectedTime}`,
+            url: `/admin?reservationCode=${existingReservation.confirmation_code}`
+          }
+        });
+      } catch (pushError) {
+        console.error('Push notification error:', pushError);
+      }
+
       toast({ title: t('myReservation.reservationUpdated') });
       
       // Redirect back to reservation page
