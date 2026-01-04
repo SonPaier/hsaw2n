@@ -102,6 +102,7 @@ export type Database = {
       }
       customer_vehicles: {
         Row: {
+          car_size: string | null
           created_at: string
           customer_id: string | null
           id: string
@@ -114,6 +115,7 @@ export type Database = {
           usage_count: number
         }
         Insert: {
+          car_size?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
@@ -126,6 +128,7 @@ export type Database = {
           usage_count?: number
         }
         Update: {
+          car_size?: string | null
           created_at?: string
           customer_id?: string | null
           id?: string
@@ -1980,16 +1983,28 @@ export type Database = {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
       }
-      upsert_customer_vehicle: {
-        Args: {
-          _customer_id?: string
-          _instance_id: string
-          _model: string
-          _phone: string
-          _plate?: string
-        }
-        Returns: string
-      }
+      upsert_customer_vehicle:
+        | {
+            Args: {
+              _customer_id?: string
+              _instance_id: string
+              _model: string
+              _phone: string
+              _plate?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _car_size?: string
+              _customer_id?: string
+              _instance_id: string
+              _model: string
+              _phone: string
+              _plate?: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user" | "employee"
