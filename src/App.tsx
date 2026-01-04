@@ -19,10 +19,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 // Helper function to detect subdomain from hostname
+// New structure:
+// - armcar.n2wash.com → public calendar
+// - armcar.admin.n2wash.com → admin panel
+// - super.admin.n2wash.com → super admin panel
 const getSubdomainInfo = () => {
   const hostname = window.location.hostname;
   
-  // Debug logging
   console.log('[Subdomain Detection] hostname:', hostname);
   
   // Local development - no subdomain detection
@@ -36,15 +39,22 @@ const getSubdomainInfo = () => {
     const subdomain = hostname.replace('.n2wash.com', '');
     console.log('[Subdomain Detection] subdomain extracted:', subdomain);
     
-    // Super admin subdomain
+    // Super admin subdomain: super.admin.n2wash.com
     if (subdomain === 'super.admin') {
       console.log('[Subdomain Detection] → super_admin mode');
       return { type: 'super_admin', subdomain: 'super.admin' };
     }
     
-    // Instance subdomain (e.g., armcar, demo)
-    console.log('[Subdomain Detection] → instance mode:', subdomain);
-    return { type: 'instance', subdomain };
+    // Instance admin subdomain: armcar.admin.n2wash.com
+    if (subdomain.endsWith('.admin')) {
+      const instanceSlug = subdomain.replace('.admin', '');
+      console.log('[Subdomain Detection] → instance_admin mode:', instanceSlug);
+      return { type: 'instance_admin', subdomain: instanceSlug };
+    }
+    
+    // Instance public subdomain: armcar.n2wash.com
+    console.log('[Subdomain Detection] → instance_public mode:', subdomain);
+    return { type: 'instance_public', subdomain };
   }
   
   // Lovable staging domain - treat as dev
@@ -74,21 +84,26 @@ const SuperAdminRoutes = () => (
   </Routes>
 );
 
-// Instance Routes Component - for xyz.n2wash.com subdomains
-const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
+// Instance Public Routes - for armcar.n2wash.com (public calendar only)
+const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
   <Routes>
-    {/* Public booking view at root */}
     <Route path="/" element={<Rezerwacje instanceSubdomain={subdomain} />} />
     <Route path="/res" element={<MojaRezerwacja />} />
     <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/oferta/:token" element={<PublicOfferView />} />
-    
-    {/* Admin login - redirects to instance-specific auth */}
-    <Route path="/admin/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
+// Instance Admin Routes - for armcar.admin.n2wash.com (admin panel)
+const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
+  <Routes>
+    {/* Login at root of admin subdomain */}
+    <Route path="/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
     
     {/* Protected admin routes */}
     <Route 
-      path="/admin" 
+      path="/" 
       element={
         <ProtectedRoute requiredRole="admin">
           <AdminDashboard />
@@ -96,7 +111,7 @@ const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     <Route 
-      path="/admin/hall" 
+      path="/hall" 
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
@@ -104,7 +119,7 @@ const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     <Route
-      path="/admin/:view" 
+      path="/:view" 
       element={
         <ProtectedRoute requiredRole="admin">
           <AdminDashboard />
@@ -112,7 +127,7 @@ const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     
-    <Route path="*" element={<NotFound />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
 
@@ -173,8 +188,10 @@ const App = () => {
     switch (subdomainInfo.type) {
       case 'super_admin':
         return <SuperAdminRoutes />;
-      case 'instance':
-        return <InstanceRoutes subdomain={subdomainInfo.subdomain!} />;
+      case 'instance_admin':
+        return <InstanceAdminRoutes subdomain={subdomainInfo.subdomain!} />;
+      case 'instance_public':
+        return <InstancePublicRoutes subdomain={subdomainInfo.subdomain!} />;
       case 'dev':
       default:
         return <DevRoutes />;

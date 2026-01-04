@@ -11,7 +11,11 @@ interface ProtectedRouteProps {
   requiredInstanceId?: string;
 }
 
-// Helper to detect if we're on a subdomain
+// Helper to detect login path based on subdomain
+// New structure:
+// - armcar.admin.n2wash.com → /login
+// - super.admin.n2wash.com → /login  
+// - localhost/lovable.app → /auth
 const getSubdomainLoginPath = (): string => {
   const hostname = window.location.hostname;
   
@@ -20,14 +24,9 @@ const getSubdomainLoginPath = (): string => {
     return '/auth';
   }
   
-  // Super admin subdomain
-  if (hostname === 'super.admin.n2wash.com') {
+  // Super admin subdomain or instance admin subdomain
+  if (hostname === 'super.admin.n2wash.com' || hostname.endsWith('.admin.n2wash.com')) {
     return '/login';
-  }
-  
-  // Instance subdomain (xyz.n2wash.com)
-  if (hostname.endsWith('.n2wash.com')) {
-    return '/admin/login';
   }
   
   return '/auth';
