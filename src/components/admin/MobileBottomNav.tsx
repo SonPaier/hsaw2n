@@ -207,8 +207,11 @@ const MobileBottomNav = ({
   };
 
   const handleMoreMenuItemClick = (view: ViewType) => {
-    onViewChange(view);
     setMoreMenuOpen(false);
+    // Delay view change to allow sheet to close first
+    setTimeout(() => {
+      onViewChange(view);
+    }, 100);
   };
 
   const handleLogout = () => {
