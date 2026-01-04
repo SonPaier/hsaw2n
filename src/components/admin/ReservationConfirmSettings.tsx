@@ -120,14 +120,16 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
         </div>
         
         {!isPushSupported ? (
-          <div className="p-4 rounded-lg border border-border bg-muted/30">
-            <p className="text-sm text-muted-foreground">
-              Powiadomienia push nie są wspierane w tej przeglądarce. 
-              Otwórz aplikację bezpośrednio (nie przez iframe/preview).
+          <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-2">
+            <p className="text-sm text-muted-foreground font-medium">
+              Powiadomienia push nie są wspierane
             </p>
-            <p className="text-xs text-muted-foreground/70 mt-2">
-              SW: {'serviceWorker' in navigator ? '✓' : '✗'} | 
-              Push: {'PushManager' in window ? '✓' : '✗'}
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p><strong>iPhone:</strong> Otwórz w Safari → Dodaj do ekranu głównego → Otwórz zainstalowaną aplikację</p>
+              <p><strong>Android:</strong> Chrome/Edge → Zainstaluj aplikację</p>
+            </div>
+            <p className="text-xs text-muted-foreground/60 mt-2">
+              Chrome na iOS nie wspiera push (ograniczenie Apple)
             </p>
           </div>
         ) : (
