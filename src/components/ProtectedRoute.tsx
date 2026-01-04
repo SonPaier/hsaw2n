@@ -19,16 +19,20 @@ interface ProtectedRouteProps {
 const getSubdomainLoginPath = (): string => {
   const hostname = window.location.hostname;
   
+  console.log('[ProtectedRoute] getSubdomainLoginPath hostname:', hostname);
+  
   // Local development or lovable staging
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.lovable.app')) {
     return '/auth';
   }
   
-  // Super admin subdomain or instance admin subdomain
+  // Super admin subdomain or instance admin subdomain (*.admin.n2wash.com)
   if (hostname === 'super.admin.n2wash.com' || hostname.endsWith('.admin.n2wash.com')) {
+    console.log('[ProtectedRoute] → admin subdomain, login path: /login');
     return '/login';
   }
   
+  // For public instance subdomains (armcar.n2wash.com) - no login needed
   return '/auth';
 };
 

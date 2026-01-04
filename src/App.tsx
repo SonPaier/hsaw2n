@@ -98,7 +98,7 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
 // Instance Admin Routes - for armcar.admin.n2wash.com (admin panel)
 const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
   <Routes>
-    {/* Login at root of admin subdomain */}
+    {/* Login page */}
     <Route path="/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
     
     {/* Protected admin routes */}
