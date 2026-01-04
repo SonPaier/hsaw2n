@@ -1464,7 +1464,7 @@ export type Database = {
           price: number | null
           released_at: string | null
           reservation_date: string
-          service_id: string
+          service_id: string | null
           service_ids: Json | null
           source: string | null
           start_time: string
@@ -1496,7 +1496,7 @@ export type Database = {
           price?: number | null
           released_at?: string | null
           reservation_date: string
-          service_id: string
+          service_id?: string | null
           service_ids?: Json | null
           source?: string | null
           start_time: string
@@ -1528,7 +1528,7 @@ export type Database = {
           price?: number | null
           released_at?: string | null
           reservation_date?: string
-          service_id?: string
+          service_id?: string | null
           service_ids?: Json | null
           source?: string | null
           start_time?: string
