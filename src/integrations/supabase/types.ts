@@ -1400,6 +1400,7 @@ export type Database = {
       reservations: {
         Row: {
           cancelled_at: string | null
+          cancelled_by: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
           completed_at: string | null
           confirmation_code: string
@@ -1430,6 +1431,7 @@ export type Database = {
         }
         Insert: {
           cancelled_at?: string | null
+          cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
           completed_at?: string | null
           confirmation_code: string
@@ -1460,6 +1462,7 @@ export type Database = {
         }
         Update: {
           cancelled_at?: string | null
+          cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
           completed_at?: string | null
           confirmation_code?: string
