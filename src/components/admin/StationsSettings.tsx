@@ -338,6 +338,15 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                       </span>
                     </div>
                   </SelectItem>
+                  <SelectItem value="detailing">
+                    <div className="flex items-center gap-2">
+                      <Droplets className="w-4 h-4 text-purple-500" />
+                      <span>{t('stationsSettings.typeDetailing')}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({t('stationsSettings.typeDetailingDesc')})
+                      </span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
