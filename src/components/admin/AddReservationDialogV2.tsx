@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Plus, X } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
@@ -700,39 +700,102 @@ const AddReservationDialogV2 = ({
               </div>
             </div>
 
-            {/* Services selection - opens drawer */}
+            {/* Services selection - shortcuts + drawer */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
-              <button
-                type="button"
-                onClick={() => setServiceDrawerOpen(true)}
+              
+              {/* Popular service shortcuts */}
+              {services.filter(s => s.is_popular).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {services
+                    .filter(s => s.is_popular)
+                    .map(service => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedServices(prev => prev.filter(id => id !== service.id));
+                            } else {
+                              setSelectedServices(prev => [...prev, service.id]);
+                            }
+                            setSelectedTime(null);
+                            setSelectedStationId(null);
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 text-sm rounded-full transition-colors font-medium",
+                            isSelected 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-muted hover:bg-muted/80 text-foreground"
+                          )}
+                        >
+                          {service.shortcut || service.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+              
+              {/* Selected services with X to remove */}
+              <div 
                 className={cn(
-                  "w-full p-3 rounded-lg border-2 border-dashed text-left transition-colors",
+                  "rounded-lg border-2 border-dashed p-3 transition-colors",
                   selectedServices.length > 0
                     ? "border-primary/50 bg-primary/5"
-                    : "border-muted-foreground/30 hover:border-primary/50"
+                    : "border-muted-foreground/30"
                 )}
               >
                 {selectedServices.length > 0 ? (
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap gap-1">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
                       {selectedServiceNames.map((name, i) => (
                         <span 
                           key={i}
-                          className="px-2 py-0.5 text-sm rounded bg-primary/10 text-primary"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
                         >
                           {name}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
+                              if (serviceToRemove) {
+                                setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
+                                setSelectedTime(null);
+                                setSelectedStationId(null);
+                              }
+                            }}
+                            className="hover:bg-primary/20 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </span>
                       ))}
+                      {/* Plus button to open drawer */}
+                      <button
+                        type="button"
+                        onClick={() => setServiceDrawerOpen(true)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {t('addReservation.totalDuration')}: {totalDurationMinutes} min
                     </p>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">{t('addReservation.selectServices')}</span>
+                  <button
+                    type="button"
+                    onClick={() => setServiceDrawerOpen(true)}
+                    className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t('addReservation.selectServices')}
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
 
             {/* Service Selection Drawer */}
