@@ -15,7 +15,7 @@ import HallView from "./pages/HallView";
 import PublicOfferView from "./pages/PublicOfferView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
-// IOSInstallPrompt removed from global - now controlled in CustomerBookingWizard
+import DynamicManifest from "./components/pwa/DynamicManifest";
 
 const queryClient = new QueryClient();
 
@@ -189,8 +189,8 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            {/* IOSInstallPrompt removed - now shown in booking confirmation */}
             <BrowserRouter>
+              <DynamicManifest />
               {renderRoutes()}
             </BrowserRouter>
           </TooltipProvider>

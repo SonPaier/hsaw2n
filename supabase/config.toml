@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.get-manifest]
+verify_jwt = false
