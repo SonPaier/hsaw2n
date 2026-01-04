@@ -135,6 +135,20 @@ const MojaRezerwacja = () => {
         entity_id: reservation.id
       });
 
+      // Send push notification to admin
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            instance_id: reservation.instance_id,
+            title: `❌ Anulowana: ${reservation.customer_name}`,
+            body: `${reservation.service.name} - ${format(parseISO(reservation.reservation_date), 'd MMM', { locale: pl })} ${reservation.start_time.slice(0, 5)}`,
+            url: `/admin?reservationCode=${reservation.confirmation_code}`
+          }
+        });
+      } catch (pushError) {
+        console.error('Push notification error:', pushError);
+      }
+
       setReservation({ ...reservation, status: 'cancelled' });
       setCancelDialogOpen(false);
       toast({ title: t('myReservation.reservationCancelled') });
