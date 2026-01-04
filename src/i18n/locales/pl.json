@@ -49,7 +49,9 @@
     "filled": "wypełnione",
     "active": "Aktywny",
     "adminPanel": "Panel Admina",
-    "clear": "Wyczyść"
+    "clear": "Wyczyść",
+    "hide": "Ukryj",
+    "total": "Razem"
   },
   "carSearch": {
     "useCustom": "Użyj"
@@ -824,6 +826,8 @@
     "carSize": "Wielkość samochodu",
     "services": "Usługi",
     "total": "Razem",
+    "amount": "Kwota",
+    "seeDetails": "Zobacz szczegóły",
     "selectServices": "Wybierz usługi...",
     "servicesSelected": "Wybrano: {{count}}",
     "searchServicePlaceholder": "Wpisz skrót lub nazwę usługi...",
