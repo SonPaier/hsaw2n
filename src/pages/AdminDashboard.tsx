@@ -65,6 +65,12 @@ interface Reservation {
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
   price: number | null;
+  original_reservation_id?: string | null;
+  original_reservation?: {
+    reservation_date: string;
+    start_time: string;
+    confirmation_code: string;
+  } | null;
 }
 interface Break {
   id: string;
@@ -399,10 +405,28 @@ const AdminDashboard = () => {
         source,
         car_size,
         service_ids,
+        original_reservation_id,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId);
     if (!error && data) {
+      // Fetch original reservation data for change requests
+      const changeRequestIds = data
+        .filter(r => r.original_reservation_id)
+        .map(r => r.original_reservation_id);
+      
+      const originalReservationsMap = new Map<string, any>();
+      if (changeRequestIds.length > 0) {
+        const { data: originals } = await supabase
+          .from('reservations')
+          .select('id, reservation_date, start_time, confirmation_code')
+          .in('id', changeRequestIds);
+        
+        if (originals) {
+          originals.forEach(o => originalReservationsMap.set(o.id, o));
+        }
+      }
+
       setReservations(data.map(r => {
         // Map service_ids to services_data if available
         const serviceIds = (r as any).service_ids as string[] | null;
@@ -416,6 +440,12 @@ const AdminDashboard = () => {
             if (svc) servicesData.push(svc);
           });
         }
+        
+        // Get original reservation data if this is a change request
+        const originalReservation = r.original_reservation_id 
+          ? originalReservationsMap.get(r.original_reservation_id) 
+          : null;
+
         return {
           ...r,
           status: r.status || 'pending',
@@ -427,7 +457,8 @@ const AdminDashboard = () => {
           station: r.stations ? {
             name: (r.stations as any).name,
             type: (r.stations as any).type
-          } : undefined
+          } : undefined,
+          original_reservation: originalReservation || null
         };
       }));
     }
@@ -1111,6 +1142,160 @@ const AdminDashboard = () => {
     });
   };
 
+  // Approve change request - replace original with new reservation
+  const handleApproveChangeRequest = async (changeRequestId: string) => {
+    const changeRequest = reservations.find(r => r.id === changeRequestId);
+    if (!changeRequest || !instanceId) return;
+    
+    const originalId = (changeRequest as any).original_reservation_id;
+    if (!originalId) {
+      toast.error(t('errors.generic'));
+      return;
+    }
+
+    // Get original reservation
+    const { data: originalReservation, error: fetchError } = await supabase
+      .from('reservations')
+      .select('confirmation_code, reservation_date, start_time')
+      .eq('id', originalId)
+      .single();
+
+    if (fetchError || !originalReservation) {
+      toast.error(t('errors.generic'));
+      return;
+    }
+
+    // Swap confirmation codes - new takes original's code
+    const originalCode = originalReservation.confirmation_code;
+    const newCode = changeRequest.confirmation_code;
+
+    // Update change request: set original's code, clear link, set to confirmed
+    const { error: updateNewError } = await supabase
+      .from('reservations')
+      .update({
+        confirmation_code: originalCode,
+        original_reservation_id: null,
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      })
+      .eq('id', changeRequestId);
+
+    if (updateNewError) {
+      toast.error(t('errors.generic'));
+      return;
+    }
+
+    // Cancel original reservation
+    const { error: cancelError } = await supabase
+      .from('reservations')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        confirmation_code: newCode // Give it the new code to avoid conflict
+      })
+      .eq('id', originalId);
+
+    if (cancelError) {
+      console.error('Error cancelling original:', cancelError);
+    }
+
+    // Send SMS to customer
+    try {
+      const dateFormatted = format(new Date(changeRequest.reservation_date), 'd MMMM', { locale: pl });
+      const timeFormatted = changeRequest.start_time.slice(0, 5);
+      const manageUrl = `${window.location.origin}/res?code=${originalCode}`;
+      
+      await supabase.functions.invoke('send-sms-message', {
+        body: {
+          phone: changeRequest.customer_phone,
+          message: `${instanceData?.name || 'N2Wash'}: ${t('myReservation.notifications.changeApprovedSms', { 
+            date: dateFormatted, 
+            time: timeFormatted,
+            url: manageUrl,
+            instanceName: instanceData?.name || 'N2Wash'
+          }).replace('{{instanceName}}: ', '')}`,
+          instanceId
+        }
+      });
+    } catch (smsError) {
+      console.error('SMS error:', smsError);
+    }
+
+    // Update local state
+    setReservations(prev => prev
+      .filter(r => r.id !== originalId)
+      .map(r => r.id === changeRequestId ? {
+        ...r,
+        confirmation_code: originalCode,
+        status: 'confirmed',
+        original_reservation_id: null
+      } as any : r)
+    );
+
+    toast.success(t('myReservation.changeApproved'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
+  };
+
+  // Reject change request - delete request, keep original
+  const handleRejectChangeRequest = async (changeRequestId: string) => {
+    const changeRequest = reservations.find(r => r.id === changeRequestId);
+    if (!changeRequest || !instanceId) return;
+    
+    const originalId = (changeRequest as any).original_reservation_id;
+
+    // Get original reservation for SMS
+    let originalReservation: any = null;
+    if (originalId) {
+      const { data } = await supabase
+        .from('reservations')
+        .select('reservation_date, start_time, confirmation_code')
+        .eq('id', originalId)
+        .single();
+      originalReservation = data;
+    }
+
+    // Delete the change request
+    const { error: deleteError } = await supabase
+      .from('reservations')
+      .delete()
+      .eq('id', changeRequestId);
+
+    if (deleteError) {
+      toast.error(t('errors.generic'));
+      return;
+    }
+
+    // Send SMS to customer
+    if (originalReservation) {
+      try {
+        const dateFormatted = format(new Date(originalReservation.reservation_date), 'd MMMM', { locale: pl });
+        const timeFormatted = originalReservation.start_time.slice(0, 5);
+        const manageUrl = `${window.location.origin}/res?code=${originalReservation.confirmation_code}`;
+        
+        await supabase.functions.invoke('send-sms-message', {
+          body: {
+            phone: changeRequest.customer_phone,
+            message: `${instanceData?.name || 'N2Wash'}: ${t('myReservation.notifications.changeRejectedSms', { 
+              date: dateFormatted, 
+              time: timeFormatted,
+              url: manageUrl,
+              instanceName: instanceData?.name || 'N2Wash'
+            }).replace('{{instanceName}}: ', '')}`,
+            instanceId
+          }
+        });
+      } catch (smsError) {
+        console.error('SMS error:', smsError);
+      }
+    }
+
+    // Update local state
+    setReservations(prev => prev.filter(r => r.id !== changeRequestId));
+
+    toast.success(t('myReservation.changeRejected'));
+  };
+
   const handleNoShow = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation || !instanceId) return;
@@ -1559,6 +1744,14 @@ const AdminDashboard = () => {
         }}
         onRevertToInProgress={async id => {
           await handleRevertToInProgress(id);
+          setSelectedReservation(null);
+        }}
+        onApproveChangeRequest={async id => {
+          await handleApproveChangeRequest(id);
+          setSelectedReservation(null);
+        }}
+        onRejectChangeRequest={async id => {
+          await handleRejectChangeRequest(id);
           setSelectedReservation(null);
         }}
       />

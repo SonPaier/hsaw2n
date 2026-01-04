@@ -1446,6 +1446,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
+          change_request_note: string | null
           completed_at: string | null
           confirmation_code: string
           confirmed_at: string | null
@@ -1461,6 +1462,7 @@ export type Database = {
           instance_id: string
           no_show_at: string | null
           notes: string | null
+          original_reservation_id: string | null
           price: number | null
           released_at: string | null
           reservation_date: string
@@ -1478,6 +1480,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
+          change_request_note?: string | null
           completed_at?: string | null
           confirmation_code: string
           confirmed_at?: string | null
@@ -1493,6 +1496,7 @@ export type Database = {
           instance_id: string
           no_show_at?: string | null
           notes?: string | null
+          original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
           reservation_date: string
@@ -1510,6 +1514,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
+          change_request_note?: string | null
           completed_at?: string | null
           confirmation_code?: string
           confirmed_at?: string | null
@@ -1525,6 +1530,7 @@ export type Database = {
           instance_id?: string
           no_show_at?: string | null
           notes?: string | null
+          original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
           reservation_date?: string
@@ -1544,6 +1550,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_original_reservation_id_fkey"
+            columns: ["original_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
             referencedColumns: ["id"]
           },
           {
@@ -2017,6 +2030,7 @@ export type Database = {
         | "cancelled"
         | "released"
         | "no_show"
+        | "change_requested"
       service_category:
         | "car_wash"
         | "ppf"
@@ -2161,6 +2175,7 @@ export const Constants = {
         "cancelled",
         "released",
         "no_show",
+        "change_requested",
       ],
       service_category: ["car_wash", "ppf", "detailing", "upholstery", "other"],
       station_type: ["washing", "ppf", "detailing", "universal"],

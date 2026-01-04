@@ -65,6 +65,12 @@ interface Reservation {
     name: string;
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
+  original_reservation_id?: string | null;
+  original_reservation?: {
+    reservation_date: string;
+    start_time: string;
+    confirmation_code: string;
+  } | null;
 }
 
 interface ReservationDetailsDrawerProps {
@@ -80,6 +86,8 @@ interface ReservationDetailsDrawerProps {
   onRelease?: (reservationId: string) => void;
   onRevertToConfirmed?: (reservationId: string) => void;
   onRevertToInProgress?: (reservationId: string) => void;
+  onApproveChangeRequest?: (reservationId: string) => void;
+  onRejectChangeRequest?: (reservationId: string) => void;
 }
 
 const ReservationDetailsDrawer = ({ 
@@ -94,7 +102,9 @@ const ReservationDetailsDrawer = ({
   onEndWork, 
   onRelease, 
   onRevertToConfirmed, 
-  onRevertToInProgress 
+  onRevertToInProgress,
+  onApproveChangeRequest,
+  onRejectChangeRequest
 }: ReservationDetailsDrawerProps) => {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
@@ -105,6 +115,8 @@ const ReservationDetailsDrawer = ({
   const [releasing, setReleasing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reverting, setReverting] = useState(false);
+  const [approvingChange, setApprovingChange] = useState(false);
+  const [rejectingChange, setRejectingChange] = useState(false);
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
@@ -161,6 +173,8 @@ const ReservationDetailsDrawer = ({
         return <Badge className="bg-destructive/20 text-destructive border-destructive/30">{t('reservations.statuses.cancelled')}</Badge>;
       case 'no_show':
         return <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">{t('reservations.statuses.noShow')}</Badge>;
+      case 'change_requested':
+        return <Badge className="bg-orange-200 text-orange-800 border-orange-400">{t('reservations.statuses.changeRequested')}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -372,10 +386,93 @@ const ReservationDetailsDrawer = ({
                 </div>
               </div>
             )}
+
+            {/* Change request info - show original reservation reference */}
+            {reservation.status === 'change_requested' && reservation.original_reservation && (
+              <div className="border-t border-border/30 pt-3 mt-3">
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-orange-700 font-medium mb-2">
+                    <RotateCcw className="w-4 h-4" />
+                    {t('myReservation.changeRequestFrom')}
+                  </div>
+                  <div className="text-sm text-orange-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>{t('common.date')}</span>
+                      <span className="font-medium">
+                        {format(new Date(reservation.original_reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{t('common.time')}</span>
+                      <span className="font-medium">
+                        {reservation.original_reservation.start_time?.substring(0, 5)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{t('reservations.reservationCode')}</span>
+                      <span className="font-mono font-bold text-orange-700">
+                        {reservation.original_reservation.confirmation_code}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer with actions - pinned at bottom */}
           <div className="flex-shrink-0 border-t pt-4 space-y-2">
+            {/* Change requested: Approve and Reject actions */}
+            {reservation.status === 'change_requested' && (
+              <div className="flex gap-2">
+                {onRejectChangeRequest && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={async () => {
+                      setRejectingChange(true);
+                      try {
+                        await onRejectChangeRequest(reservation.id);
+                        onClose();
+                      } finally {
+                        setRejectingChange(false);
+                      }
+                    }}
+                    disabled={rejectingChange || approvingChange}
+                  >
+                    {rejectingChange ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                    {t('myReservation.rejectChange')}
+                  </Button>
+                )}
+                
+                {onApproveChangeRequest && (
+                  <Button 
+                    className="flex-1 gap-2 bg-success hover:bg-success/90 text-success-foreground"
+                    onClick={async () => {
+                      setApprovingChange(true);
+                      try {
+                        await onApproveChangeRequest(reservation.id);
+                        onClose();
+                      } finally {
+                        setApprovingChange(false);
+                      }
+                    }}
+                    disabled={approvingChange || rejectingChange}
+                  >
+                    {approvingChange ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    {t('myReservation.approveChange')}
+                  </Button>
+                )}
+              </div>
+            )}
             {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
             {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
               <div className="flex gap-2">
