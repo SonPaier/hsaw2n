@@ -23,13 +23,26 @@ interface DirectReservationRequest {
   };
 }
 
-const generateConfirmationCode = (): string => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+// Generate unique 7-digit confirmation code
+const generateUniqueConfirmationCode = async (supabase: any): Promise<string> => {
+  const digits = '0123456789';
+  
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = '';
+    for (let i = 0; i < 7; i++) {
+      code += digits[Math.floor(Math.random() * digits.length)];
+    }
+    
+    // Check uniqueness among ALL reservations
+    const { data } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('confirmation_code', code)
+      .maybeSingle();
+    
+    if (!data) return code;
   }
-  return result;
+  throw new Error('Failed to generate unique confirmation code');
 };
 
 serve(async (req: Request): Promise<Response> => {
@@ -94,7 +107,7 @@ serve(async (req: Request): Promise<Response> => {
     const endMinutes = startMinutes + durationMinutes;
     const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, "0")}:${(endMinutes % 60).toString().padStart(2, "0")}`;
 
-    const confirmationCode = generateConfirmationCode();
+    const confirmationCode = await generateUniqueConfirmationCode(supabase);
 
     // Check instance auto_confirm setting
     const { data: instanceSettings } = await supabase
@@ -184,17 +197,19 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", customer.id);
     }
 
-    // Fetch instance info
+    // Fetch instance info including slug
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("social_facebook, social_instagram, name")
+      .select("social_facebook, social_instagram, name, slug, google_maps_url")
       .eq("id", instanceId)
       .single();
 
+    const instanceName = instanceData?.name || "Myjnia";
+    const googleMapsUrl = instanceData?.google_maps_url || null;
+
     // Send SMS based on confirmation status
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
-    const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://armcar.pl";
-    const reservationUrl = `${FRONTEND_URL}/moja-rezerwacja?code=${confirmationCode}`;
+    const reservationUrl = `https://${instanceData?.slug}.n2wash.com/res?code=${confirmationCode}`;
     
     // Format date for SMS
     const dateObj = new Date(reservationData.date);
@@ -204,9 +219,10 @@ serve(async (req: Request): Promise<Response> => {
     const dayNum = dateObj.getDate();
     const monthName = monthNames[dateObj.getMonth()];
     
+    const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
     const smsMessage = autoConfirm 
-      ? `Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}. Szczegóły: ${reservationUrl}`
-      : `Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce. Szczegóły: ${reservationUrl}`;
+      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart} Zmień lub anuluj: ${reservationUrl}`
+      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart} Zmień lub anuluj: ${reservationUrl}`;
     
     if (SMSAPI_TOKEN) {
       try {

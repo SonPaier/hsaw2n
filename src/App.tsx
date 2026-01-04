@@ -80,7 +80,8 @@ const InstanceRoutes = ({ subdomain }: { subdomain: string }) => (
   <Routes>
     {/* Public booking view at root */}
     <Route path="/" element={<Rezerwacje instanceSubdomain={subdomain} />} />
-    <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
+    <Route path="/res" element={<MojaRezerwacja />} />
+    <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/oferta/:token" element={<PublicOfferView />} />
     
     {/* Admin login - redirects to instance-specific auth */}
@@ -121,7 +122,8 @@ const DevRoutes = () => (
   <Routes>
     <Route path="/" element={<Navigate to="/rezerwacje" replace />} />
     <Route path="/rezerwacje" element={<Rezerwacje />} />
-    <Route path="/moja-rezerwacja" element={<MojaRezerwacja />} />
+    <Route path="/res" element={<MojaRezerwacja />} />
+    <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/oferta/:token" element={<PublicOfferView />} />
     {/* Instance-specific login route */}
     <Route path="/:slug/login" element={<InstanceAuth />} />
