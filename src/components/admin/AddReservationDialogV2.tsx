@@ -170,7 +170,9 @@ const AddReservationDialogV2 = ({
   editingYardVehicle = null,
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
-  const isPPFMode = mode === 'ppf' || mode === 'detailing';
+  const isPPFMode = mode === 'ppf';
+  const isDetailingMode = mode === 'detailing';
+  const isPPFOrDetailingMode = isPPFMode || isDetailingMode;
   const isReservationMode = mode === 'reservation';
   const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
   
@@ -360,7 +362,7 @@ const AddReservationDialogV2 = ({
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
-      } else if (isPPFMode && editingReservation) {
+      } else if (isPPFOrDetailingMode && editingReservation) {
         // PPF/Detailing edit mode
         setCustomerName(editingReservation.customer_name || '');
         setPhone(editingReservation.customer_phone || '');
@@ -397,7 +399,7 @@ const AddReservationDialogV2 = ({
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
-      } else if (isPPFMode) {
+      } else if (isPPFOrDetailingMode) {
         // PPF/Detailing create mode
         setCustomerName('');
         setPhone('');
@@ -449,7 +451,7 @@ const AddReservationDialogV2 = ({
         setShowCustomerDropdown(false);
       }
     }
-  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFMode, editingYardVehicle]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
@@ -714,12 +716,13 @@ const AddReservationDialogV2 = ({
     }
     
     // PPF/Detailing mode validation and submit
-    if (isPPFMode) {
+    if (isPPFOrDetailingMode) {
       if (!carModel.trim()) {
         toast.error(t('addReservation.carModelRequired'));
         return;
       }
-      if (selectedServices.length === 0) {
+      // Services required only for Detailing mode, optional for PPF
+      if (isDetailingMode && selectedServices.length === 0) {
         toast.error(t('addReservation.selectAtLeastOneService'));
         return;
       }
@@ -784,8 +787,8 @@ const AddReservationDialogV2 = ({
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           notes: reservationNotes || null,
-          service_id: selectedServices[0],
-          service_ids: selectedServices,
+          service_id: selectedServices[0] || null,
+          service_ids: selectedServices.length > 0 ? selectedServices : null,
         };
 
         if (isEditMode && editingReservation) {
@@ -1037,7 +1040,7 @@ const AddReservationDialogV2 = ({
     if (isYardMode) {
       return isEditMode ? t('addReservation.yardEditTitle') : t('addReservation.yardTitle');
     }
-    if (isPPFMode) {
+    if (isPPFOrDetailingMode) {
       return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
     }
     return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
@@ -1065,7 +1068,7 @@ const AddReservationDialogV2 = ({
           <div className="flex items-center justify-between">
             <SheetTitle>
               {getDialogTitle()}
-              {isPPFMode && (
+              {isPPFOrDetailingMode && (
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
                   ({getStationTypeLabel()})
                 </span>
@@ -1205,114 +1208,119 @@ const AddReservationDialogV2 = ({
               </div>
             </div>
 
-            {/* Services selection - shortcuts + drawer */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
-              
-              {/* Popular service shortcuts - only show unselected ones */}
-              {services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {services
-                    .filter(s => s.is_popular && !selectedServices.includes(s.id))
-                    .map(service => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedServices(prev => [...prev, service.id]);
-                          if (isReservationMode) {
-                            setSelectedTime(null);
-                            setSelectedStationId(null);
-                          }
-                        }}
-                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-50 hover:bg-slate-100 text-foreground border border-slate-200"
-                      >
-                        {service.shortcut || service.name}
-                      </button>
-                    ))}
-                </div>
-              )}
-              
-              {/* Selected services with X to remove */}
-              <div 
-                className={cn(
-                  "rounded-lg border-2 border-dashed p-3 transition-colors",
-                  selectedServices.length > 0
-                    ? "border-primary/50 bg-primary/5"
-                    : "border-muted-foreground/30"
-                )}
-              >
-                {selectedServices.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {selectedServiceNames.map((name, i) => (
-                        <span 
-                          key={i}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
+            {/* Services selection - shortcuts + drawer (NOT for PPF mode, only for Detailing/Reservation/Yard) */}
+            {!isPPFMode && (
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
+                
+                {/* Popular service shortcuts - only show unselected ones */}
+                {services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {services
+                      .filter(s => s.is_popular && !selectedServices.includes(s.id))
+                      .map(service => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedServices(prev => [...prev, service.id]);
+                            if (isReservationMode) {
+                              setSelectedTime(null);
+                              setSelectedStationId(null);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-50 hover:bg-slate-100 text-foreground border border-slate-200"
                         >
-                          {name}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
-                              if (serviceToRemove) {
-                                setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
-                                if (isReservationMode) {
-                                  setSelectedTime(null);
-                                  setSelectedStationId(null);
-                                }
-                              }
-                            }}
-                            className="hover:bg-primary/20 rounded-full p-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
+                          {service.shortcut || service.name}
+                        </button>
                       ))}
-                      {/* Add button to open drawer */}
-                      <button
-                        type="button"
-                        onClick={() => setServiceDrawerOpen(true)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
-                      >
-                        {t('common.add')}
-                      </button>
-                    </div>
-                    {isReservationMode && (
-                      <p className="text-sm text-muted-foreground">
-                        {t('addReservation.totalDuration')}: {totalDurationMinutes} min
-                      </p>
-                    )}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setServiceDrawerOpen(true)}
-                    className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {t('addReservation.selectServices')}
-                  </button>
                 )}
+                
+                {/* Selected services with X to remove */}
+                <div 
+                  className={cn(
+                    "rounded-lg border-2 border-dashed p-3 transition-colors",
+                    selectedServices.length > 0
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-muted-foreground/30"
+                  )}
+                >
+                  {selectedServices.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {selectedServiceNames.map((name, i) => (
+                          <span 
+                            key={i}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
+                                if (serviceToRemove) {
+                                  setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
+                                  if (isReservationMode) {
+                                    setSelectedTime(null);
+                                    setSelectedStationId(null);
+                                  }
+                                }
+                              }}
+                              className="hover:bg-primary/20 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                        {/* Add button to open drawer */}
+                        <button
+                          type="button"
+                          onClick={() => setServiceDrawerOpen(true)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                        >
+                          {t('common.add')}
+                        </button>
+                      </div>
+                      {isReservationMode && (
+                        <p className="text-sm text-muted-foreground">
+                          {t('addReservation.totalDuration')}: {totalDurationMinutes} min
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setServiceDrawerOpen(true)}
+                      className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {t('addReservation.selectServices')}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Service Selection Drawer */}
-            <ServiceSelectionDrawer
-              open={serviceDrawerOpen}
-              onClose={() => setServiceDrawerOpen(false)}
-              instanceId={instanceId}
-              carSize={carSize}
-              selectedServiceIds={selectedServices}
-              onConfirm={(serviceIds, duration) => {
-                setSelectedServices(serviceIds);
-                // Reset time selection when services change (reservation mode only)
-                if (isReservationMode) {
-                  setSelectedTime(null);
-                  setSelectedStationId(null);
-                }
-              }}
-            />
+            {!isPPFMode && (
+              <ServiceSelectionDrawer
+                open={serviceDrawerOpen}
+                onClose={() => setServiceDrawerOpen(false)}
+                instanceId={instanceId}
+                carSize={carSize}
+                selectedServiceIds={selectedServices}
+                stationType={getStationType()}
+                onConfirm={(serviceIds, duration) => {
+                  setSelectedServices(serviceIds);
+                  // Reset time selection when services change (reservation mode only)
+                  if (isReservationMode) {
+                    setSelectedTime(null);
+                    setSelectedStationId(null);
+                  }
+                }}
+              />
+            )}
 
             {/* Divider between services and time/date selection */}
             <Separator className="my-2" />
@@ -1411,7 +1419,7 @@ const AddReservationDialogV2 = ({
             )}
 
             {/* PPF/DETAILING MODE - Date Range, Start/End Time, Offer Number */}
-            {isPPFMode && (
+            {isPPFOrDetailingMode && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
@@ -1634,10 +1642,11 @@ const AddReservationDialogV2 = ({
             onClick={handleSubmit} 
             disabled={
               loading || 
-              selectedServices.length === 0 || 
               !carModel.trim() ||
-              (isReservationMode && !selectedTime) ||
-              (isPPFMode && !dateRange?.from)
+              (isReservationMode && (selectedServices.length === 0 || !selectedTime)) ||
+              (isYardMode && selectedServices.length === 0) ||
+              (isDetailingMode && selectedServices.length === 0) ||
+              (isPPFOrDetailingMode && !dateRange?.from)
             } 
             className="w-full"
             size="lg"
