@@ -75,6 +75,8 @@ interface SelectedState {
   selectedOptionalItems: Record<string, boolean>;
   // Track which scope (non-extras) is selected - only one allowed
   selectedScopeId?: string | null;
+  // Track which item is selected within multi-item options (key: option_id, value: item_id)
+  selectedItemInOption?: Record<string, string>;
 }
 
 interface Offer {
@@ -171,6 +173,8 @@ const PublicOfferView = () => {
   const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
   // Track which non-extras scope is selected (only one allowed)
   const [selectedScopeId, setSelectedScopeId] = useState<string | null>(null);
+  // Track which item is selected within multi-item options (key: option_id, value: item_id)
+  const [selectedItemInOption, setSelectedItemInOption] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchOffer = async () => {
@@ -229,6 +233,7 @@ const PublicOfferView = () => {
           const restoredVariants = savedState.selectedVariants || {};
           const restoredUpsells = savedState.selectedUpsells || {};
           const restoredOptionalItems = savedState.selectedOptionalItems || {};
+          const restoredItemInOption = savedState.selectedItemInOption || {};
 
           // Backward compatibility: old offers stored upsells as whole-option selection.
           // Now each upsell item is independent, so mark all items of selected upsells as selected.
@@ -241,12 +246,26 @@ const PublicOfferView = () => {
             }
           });
 
+          // Backward compatibility: initialize selectedItemInOption for multi-item options if not saved
+          const mergedItemInOption: Record<string, string> = { ...restoredItemInOption };
+          fetchedOffer.offer_options.forEach((opt) => {
+            if (!opt.is_upsell && !opt.scope?.is_extras_scope) {
+              const nonOptionalItems = opt.offer_option_items?.filter(i => !i.is_optional) || [];
+              if (nonOptionalItems.length > 1 && !mergedItemInOption[opt.id]) {
+                // Default to first item
+                mergedItemInOption[opt.id] = nonOptionalItems[0].id;
+              }
+            }
+          });
+
           setSelectedVariants(restoredVariants);
           setSelectedOptionalItems(mergedOptionalItems);
           setSelectedScopeId(savedState.selectedScopeId ?? null);
+          setSelectedItemInOption(mergedItemInOption);
         } else {
           // Initialize selected variants - first non-upsell variant per scope
           const initialVariants: Record<string, string> = {};
+          const initialItemInOption: Record<string, string> = {};
           const selectedOptions = fetchedOffer.offer_options.filter(opt => opt.is_selected);
           
           // Group by scope and select first non-upsell variant for each scope
@@ -272,10 +291,18 @@ const PublicOfferView = () => {
               if (!isExtrasScope && !firstNonExtrasScope) {
                 firstNonExtrasScope = scopeId;
               }
+              // For each variant, if it has multiple non-optional items, select the first one
+              variants.forEach(variant => {
+                const nonOptionalItems = variant.offer_option_items.filter(item => !item.is_optional);
+                if (nonOptionalItems.length > 1) {
+                  initialItemInOption[variant.id] = nonOptionalItems[0].id;
+                }
+              });
             }
           });
           setSelectedVariants(initialVariants);
           setSelectedScopeId(firstNonExtrasScope);
+          setSelectedItemInOption(initialItemInOption);
         }
 
         // Mark as viewed if not already
@@ -314,6 +341,7 @@ const PublicOfferView = () => {
         selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
+        selectedItemInOption,
       };
       
       const { error } = await supabase
@@ -417,16 +445,31 @@ const PublicOfferView = () => {
       const optionId = selectedVariants[selectedScopeId];
       const option = offer.offer_options.find(o => o.id === optionId);
       if (option && !extrasScopeOptionIds.has(option.id)) {
-        // Calculate option total from items (excluding optionals not selected)
+        // Check if this option has multiple non-optional items (single-select mode)
+        const nonOptionalItems = option.offer_option_items.filter(i => !i.is_optional);
+        const hasMultipleNonOptional = nonOptionalItems.length > 1;
+        const selectedItemId = selectedItemInOption[option.id];
+        
+        // Calculate option total from items
         option.offer_option_items.forEach(item => {
           if (item.is_optional) {
+            // Optional items use toggle selection
             if (selectedOptionalItems[item.id]) {
               const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
               totalNet += itemTotal;
             }
           } else {
-            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-            totalNet += itemTotal;
+            // Non-optional items: if multiple, only count selected one
+            if (hasMultipleNonOptional) {
+              if (item.id === selectedItemId) {
+                const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                totalNet += itemTotal;
+              }
+            } else {
+              // Single non-optional item - always count
+              const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+              totalNet += itemTotal;
+            }
           }
         });
       }
@@ -496,6 +539,11 @@ const PublicOfferView = () => {
     setSelectedOptionalItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
+  // Handle selecting a specific item within an option (for multi-item options with single-select)
+  const handleSelectItemInOption = (optionId: string, itemId: string) => {
+    setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
+  };
+
 
   // Check if user is admin for this offer's instance
   const isAdmin = user && offer && (
@@ -519,6 +567,7 @@ const PublicOfferView = () => {
         selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
+        selectedItemInOption,
       };
       
       const { error } = await supabase
@@ -559,6 +608,7 @@ const PublicOfferView = () => {
         selectedUpsells: derivedUpsells,
         selectedOptionalItems,
         selectedScopeId,
+        selectedItemInOption,
       };
       
       const { error } = await supabase
@@ -1057,126 +1107,131 @@ const PublicOfferView = () => {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              {/* Show items only if unit prices are not hidden, or show just names */}
-                              {offer.hide_unit_prices ? (
-                                <div className="space-y-2">
-                                  {option.offer_option_items.map((item) => {
-                                    const isOptionalSelected = selectedOptionalItems[item.id];
-                                    return (
-                                      <div
-                                        key={item.id}
-                                        className={cn(
-                                          "flex items-center justify-between py-1",
-                                          item.is_optional && !isOptionalSelected && "text-muted-foreground"
-                                        )}
-                                      >
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2">
-                                            <span>{item.custom_name}</span>
-                                            {item.is_optional && !isOptionalSelected && (
-                                              <Badge variant="outline" className="text-xs">
-                                                opcjonalne
-                                              </Badge>
-                                            )}
-                                          </div>
-                                          {(item.custom_description || item.products_library?.description) && 
-                                            renderDescription(item.custom_description || item.products_library?.description || '')
-                                          }
-                                        </div>
-                                        {item.is_optional && (
-                                          <Button
-                                            variant={isOptionalSelected ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => handleToggleOptionalItem(item.id)}
-                                            disabled={interactionsDisabled}
-                                          >
-                                            {isOptionalSelected ? (
-                                              <>
-                                                <Check className="w-4 h-4 mr-1" />
-                                                Dodane
-                                              </>
-                                            ) : (
-                                              'Dodaj'
-                                            )}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {option.offer_option_items.map((item) => {
-                                    const isOptionalSelected = selectedOptionalItems[item.id];
-                                    return (
-                                      <div
-                                        key={item.id}
-                                        className={cn(
-                                          "flex items-center justify-between py-1",
-                                          item.is_optional && !isOptionalSelected && "text-muted-foreground"
-                                        )}
-                                      >
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2">
-                                            <span>{item.custom_name}</span>
-                                            {item.is_optional && !isOptionalSelected && (
-                                              <Badge variant="outline" className="text-xs">
-                                                opcjonalne
-                                              </Badge>
-                                            )}
-                                          </div>
-                                          {(item.custom_description || item.products_library?.description) && 
-                                            renderDescription(item.custom_description || item.products_library?.description || '')
-                                          }
-                                        </div>
-                                        {item.is_optional && (
-                                          <Button
-                                            variant={isOptionalSelected ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => handleToggleOptionalItem(item.id)}
-                                            disabled={interactionsDisabled}
-                                          >
-                                            {isOptionalSelected ? (
-                                              <>
-                                                <Check className="w-4 h-4 mr-1" />
-                                                Dodane
-                                              </>
-                                            ) : (
-                                              'Dodaj'
-                                            )}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
                               {(() => {
-                                // Calculate original price (before discounts) for this option
-                                const originalTotal = option.offer_option_items.reduce((sum, item) => {
-                                  return sum + (item.quantity * item.unit_price);
-                                }, 0);
-                                const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
-                                const discountPercent = originalTotal > 0 ? Math.round((1 - option.subtotal_net / originalTotal) * 100) : 0;
+                                // Check if option has multiple non-optional items (single-select mode)
+                                const nonOptionalItems = option.offer_option_items.filter(i => !i.is_optional);
+                                const hasMultipleNonOptional = nonOptionalItems.length > 1;
+                                const selectedItemId = selectedItemInOption[option.id];
                                 
                                 return (
-                                  <div className="flex justify-end pt-4 font-medium items-center">
-                                    <div className="flex items-center gap-2">
-                                      {hasDiscount && originalTotal > option.subtotal_net && (
-                                        <>
-                                          <span className="text-muted-foreground line-through text-sm">
-                                            {formatPrice(originalTotal)}
-                                          </span>
-                                          <Badge variant="secondary" className="text-xs">
-                                            -{discountPercent}%
-                                          </Badge>
-                                        </>
-                                      )}
-                                      <span className={hasDiscount ? "text-primary" : ""}>
-                                        {formatPrice(option.subtotal_net)}
-                                      </span>
+                                  <>
+                                    {/* Show items - with single-select for multiple non-optional items */}
+                                    <div className="space-y-2">
+                                      {option.offer_option_items.map((item) => {
+                                        const isOptionalSelected = selectedOptionalItems[item.id];
+                                        const isItemSelected = item.id === selectedItemId;
+                                        const isNonOptionalInMulti = !item.is_optional && hasMultipleNonOptional;
+                                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                                        
+                                        return (
+                                          <div
+                                            key={item.id}
+                                            className={cn(
+                                              "flex items-center justify-between py-2 px-3 rounded-md transition-all",
+                                              item.is_optional && !isOptionalSelected && "text-muted-foreground",
+                                              isNonOptionalInMulti && isItemSelected && "bg-primary/5 ring-1 ring-primary/20",
+                                              isNonOptionalInMulti && !isItemSelected && "opacity-60"
+                                            )}
+                                          >
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium">{item.custom_name}</span>
+                                                {item.is_optional && !isOptionalSelected && (
+                                                  <Badge variant="outline" className="text-xs">
+                                                    opcjonalne
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                              {(item.custom_description || item.products_library?.description) && 
+                                                renderDescription(item.custom_description || item.products_library?.description || '')
+                                              }
+                                              {/* Show price for each item when there are multiple non-optional */}
+                                              {!offer.hide_unit_prices && isNonOptionalInMulti && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                  {formatPrice(itemTotal)}
+                                                </p>
+                                              )}
+                                            </div>
+                                            {/* Single-select button for non-optional items when >1 */}
+                                            {isNonOptionalInMulti && (
+                                              <Button
+                                                variant={isItemSelected ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => handleSelectItemInOption(option.id, item.id)}
+                                                disabled={interactionsDisabled}
+                                                className="shrink-0"
+                                              >
+                                                {isItemSelected ? (
+                                                  <>
+                                                    <Check className="w-4 h-4 mr-1" />
+                                                    Wybrany
+                                                  </>
+                                                ) : (
+                                                  'Wybierz'
+                                                )}
+                                              </Button>
+                                            )}
+                                            {/* Toggle button for optional items */}
+                                            {item.is_optional && (
+                                              <Button
+                                                variant={isOptionalSelected ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => handleToggleOptionalItem(item.id)}
+                                                disabled={interactionsDisabled}
+                                              >
+                                                {isOptionalSelected ? (
+                                                  <>
+                                                    <Check className="w-4 h-4 mr-1" />
+                                                    Dodane
+                                                  </>
+                                                ) : (
+                                                  'Dodaj'
+                                                )}
+                                              </Button>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
-                                  </div>
+                                    {(() => {
+                                      // Calculate price based on selection for multi-item options
+                                      let displayTotal = option.subtotal_net;
+                                      let originalTotal = option.offer_option_items.reduce((sum, item) => {
+                                        return sum + (item.quantity * item.unit_price);
+                                      }, 0);
+                                      
+                                      if (hasMultipleNonOptional && selectedItemId) {
+                                        const selectedItem = option.offer_option_items.find(i => i.id === selectedItemId);
+                                        if (selectedItem) {
+                                          displayTotal = selectedItem.quantity * selectedItem.unit_price * (1 - selectedItem.discount_percent / 100);
+                                          originalTotal = selectedItem.quantity * selectedItem.unit_price;
+                                        }
+                                      }
+                                      
+                                      const hasDiscount = option.offer_option_items.some(item => item.discount_percent > 0);
+                                      const discountPercent = originalTotal > 0 ? Math.round((1 - displayTotal / originalTotal) * 100) : 0;
+                                      
+                                      return (
+                                        <div className="flex justify-end pt-4 font-medium items-center">
+                                          <div className="flex items-center gap-2">
+                                            {hasDiscount && originalTotal > displayTotal && discountPercent > 0 && (
+                                              <>
+                                                <span className="text-muted-foreground line-through text-sm">
+                                                  {formatPrice(originalTotal)}
+                                                </span>
+                                                <Badge variant="secondary" className="text-xs">
+                                                  -{discountPercent}%
+                                                </Badge>
+                                              </>
+                                            )}
+                                            <span className={hasDiscount && discountPercent > 0 ? "text-primary" : ""}>
+                                              {formatPrice(displayTotal)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </>
                                 );
                               })()}
                             </CardContent>
