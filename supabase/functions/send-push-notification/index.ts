@@ -45,12 +45,18 @@ async function generateVapidJwt(
   const now = Math.floor(Date.now() / 1000);
   const expiry = now + 12 * 60 * 60; // 12 hours
 
+  // Ensure subject has mailto: prefix
+  const formattedSubject = subject.startsWith('mailto:') ? subject : `mailto:${subject}`;
+
   const header = { alg: 'ES256', typ: 'JWT' };
   const payload = {
     aud: audience,
     exp: expiry,
-    sub: subject,
+    iat: now, // Added iat claim
+    sub: formattedSubject,
   };
+
+  console.log('[send-push] JWT payload:', JSON.stringify(payload));
 
   const headerB64 = uint8ArrayToBase64Url(new TextEncoder().encode(JSON.stringify(header)));
   const payloadB64 = uint8ArrayToBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
@@ -113,8 +119,10 @@ async function generateVapidJwt(
 
   console.log('[send-push] JWT generated, length:', jwt.length);
   console.log('[send-push] Audience:', audience);
+  console.log('[send-push] Subject:', formattedSubject);
 
-  return `vapid t=${jwt}, k=${publicKeyBase64}`;
+  // Fixed: no space after comma in Authorization header
+  return `vapid t=${jwt},k=${publicKeyBase64}`;
 }
 
 // Encrypt payload for Web Push (aes128gcm)
