@@ -21,7 +21,6 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetails from '@/components/admin/ReservationDetails';
 import ReservationsView from '@/components/admin/ReservationsView';
-import AddReservationDialog from '@/components/admin/AddReservationDialog';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import MobileBottomNav from '@/components/admin/MobileBottomNav';
@@ -1479,22 +1478,17 @@ const AdminDashboard = () => {
         }}
       />
 
-      {/* Add/Edit Reservation Dialog */}
+      {/* Add/Edit Reservation Dialog V2 */}
       {instanceId && (
-        <AddReservationDialog 
-          open={addReservationOpen} 
+        <AddReservationDialogV2
+          open={addReservationOpen || addReservationV2Open}
           onClose={() => {
             setAddReservationOpen(false);
+            setAddReservationV2Open(false);
             setEditingReservation(null);
-          }} 
-          stationId={newReservationData.stationId} 
-          stationType={newReservationData.stationType} 
-          date={newReservationData.date} 
-          time={newReservationData.time} 
-          instanceId={instanceId} 
-          onSuccess={handleReservationAdded} 
-          existingReservations={reservations.filter(r => editingReservation ? r.id !== editingReservation.id : true)} 
-          existingBreaks={breaks} 
+          }}
+          instanceId={instanceId}
+          onSuccess={handleReservationAdded}
           workingHours={workingHours}
           editingReservation={editingReservation ? {
             id: editingReservation.id,
@@ -1518,18 +1512,6 @@ const AdminDashboard = () => {
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
-      {/* Add Reservation Dialog V2 (Quick Add) */}
-      {instanceId && (
-        <AddReservationDialogV2
-          open={addReservationV2Open}
-          onClose={() => setAddReservationV2Open(false)}
-          instanceId={instanceId}
-          onSuccess={handleReservationAdded}
-          workingHours={workingHours}
-        />
-      )}
-
-      {/* Instance Settings Dialog */}
       <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={updated => {
       setInstanceData(updated);
     }} />

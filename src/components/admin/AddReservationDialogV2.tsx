@@ -96,12 +96,31 @@ interface TimeSlot {
   availableStationIds: string[];
 }
 
+interface EditingReservation {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  car_size?: CarSize | null;
+  reservation_date: string;
+  end_date?: string | null;
+  start_time: string;
+  end_time: string;
+  station_id: string | null;
+  service_ids?: string[];
+  service_id?: string;
+  notes?: string;
+  price?: number | null;
+}
+
 interface AddReservationDialogV2Props {
   open: boolean;
   onClose: () => void;
   instanceId: string;
   onSuccess: () => void;
   workingHours?: Record<string, WorkingHours | null> | null;
+  /** Optional reservation to edit - when provided, dialog works in edit mode */
+  editingReservation?: EditingReservation | null;
 }
 
 const SLOT_INTERVAL = 15;
@@ -113,7 +132,9 @@ const AddReservationDialogV2 = ({
   instanceId,
   onSuccess,
   workingHours = null,
+  editingReservation = null,
 }: AddReservationDialogV2Props) => {
+  const isEditMode = !!editingReservation;
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
@@ -237,25 +258,45 @@ const AddReservationDialogV2 = ({
     return addDays(startOfDay(now), 1);
   }, [workingHours]);
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or populate from editing reservation
   useEffect(() => {
     if (open) {
-      setCustomerName('');
-      setPhone('');
-      setCarModel('');
-      setCarSize('medium');
-      setSelectedServices([]);
-      setSelectedDate(getNextWorkingDay());
-      setSelectedTime(null);
-      setSelectedStationId(null);
-      setNotes('');
-      setFoundVehicles([]);
-      setFoundCustomers([]);
-      setSelectedCustomerId(null);
-      setShowPhoneDropdown(false);
-      setShowCustomerDropdown(false);
+      if (editingReservation) {
+        // Edit mode - populate from existing reservation
+        setCustomerName(editingReservation.customer_name || '');
+        setPhone(editingReservation.customer_phone || '');
+        setCarModel(editingReservation.vehicle_plate || '');
+        setCarSize(editingReservation.car_size || 'medium');
+        const serviceIds = editingReservation.service_ids || (editingReservation.service_id ? [editingReservation.service_id] : []);
+        setSelectedServices(serviceIds);
+        setSelectedDate(new Date(editingReservation.reservation_date));
+        setSelectedTime(editingReservation.start_time?.substring(0, 5) || null);
+        setSelectedStationId(editingReservation.station_id);
+        setNotes(editingReservation.notes || '');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      } else {
+        // Add mode - reset form
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setSelectedDate(getNextWorkingDay());
+        setSelectedTime(null);
+        setSelectedStationId(null);
+        setNotes('');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      }
     }
-  }, [open, getNextWorkingDay]);
+  }, [open, getNextWorkingDay, editingReservation]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
@@ -508,45 +549,58 @@ const AddReservationDialogV2 = ({
       const endMins = totalMinutes % 60;
       const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
-      const reservationData: {
-        instance_id: string;
-        station_id: string;
-        reservation_date: string;
-        start_time: string;
-        end_time: string;
-        customer_name: string;
-        customer_phone: string;
-        vehicle_plate: string;
-        car_size: CarSize | null;
-        notes: string | null;
-        service_id: string;
-        service_ids: string[];
-        confirmation_code: string;
-        status: 'confirmed' | 'pending';
-      } = {
-        instance_id: instanceId,
-        station_id: selectedStationId,
-        reservation_date: format(selectedDate, 'yyyy-MM-dd'),
-        start_time: selectedTime,
-        end_time: endTime,
-        customer_name: customerName.trim() || 'Klient',
-        customer_phone: phone || '',
-        vehicle_plate: carModel || '',
-        car_size: carSize || null,
-        notes: notes.trim() || null,
-        service_id: selectedServices[0],
-        service_ids: selectedServices,
-        confirmation_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        status: 'confirmed',
-      };
+      if (isEditMode && editingReservation) {
+        // Update existing reservation
+        const updateData = {
+          station_id: selectedStationId,
+          reservation_date: format(selectedDate, 'yyyy-MM-dd'),
+          start_time: selectedTime,
+          end_time: endTime,
+          customer_name: customerName.trim() || 'Klient',
+          customer_phone: phone || '',
+          vehicle_plate: carModel || '',
+          car_size: carSize || null,
+          notes: notes.trim() || null,
+          service_id: selectedServices[0],
+          service_ids: selectedServices,
+        };
 
-      const { error: reservationError } = await supabase
-        .from('reservations')
-        .insert([reservationData]);
+        const { error: updateError } = await supabase
+          .from('reservations')
+          .update(updateData)
+          .eq('id', editingReservation.id);
 
-      if (reservationError) throw reservationError;
+        if (updateError) throw updateError;
 
-      toast.success(t('addReservation.reservationCreated'));
+        toast.success(t('addReservation.reservationUpdated'));
+      } else {
+        // Create new reservation
+        const reservationData = {
+          instance_id: instanceId,
+          station_id: selectedStationId,
+          reservation_date: format(selectedDate, 'yyyy-MM-dd'),
+          start_time: selectedTime,
+          end_time: endTime,
+          customer_name: customerName.trim() || 'Klient',
+          customer_phone: phone || '',
+          vehicle_plate: carModel || '',
+          car_size: carSize || null,
+          notes: notes.trim() || null,
+          service_id: selectedServices[0],
+          service_ids: selectedServices,
+          confirmation_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+          status: 'confirmed' as const,
+        };
+
+        const { error: reservationError } = await supabase
+          .from('reservations')
+          .insert([reservationData]);
+
+        if (reservationError) throw reservationError;
+
+        toast.success(t('addReservation.reservationCreated'));
+      }
+      
       onSuccess();
       onClose();
     } catch (error) {
@@ -577,7 +631,7 @@ const AddReservationDialogV2 = ({
         {/* Fixed Header with Close button */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <SheetTitle>{t('addReservation.title')}</SheetTitle>
+            <SheetTitle>{isEditMode ? t('reservations.editReservation') : t('addReservation.title')}</SheetTitle>
             <button 
               type="button"
               onClick={onClose}
@@ -942,7 +996,7 @@ const AddReservationDialogV2 = ({
             size="lg"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('addReservation.addReservation')}
+            {isEditMode ? t('common.save') : t('addReservation.addReservation')}
           </Button>
         </SheetFooter>
       </SheetContent>

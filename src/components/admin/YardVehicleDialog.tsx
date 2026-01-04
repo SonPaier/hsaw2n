@@ -146,7 +146,7 @@ interface AddReservationDialogProps {
 
 // CAR_SIZE_LABELS moved inside component for i18n
 
-const AddReservationDialog = ({
+const YardVehicleDialog = ({
   open,
   onClose,
   stationId,
@@ -1684,4 +1684,4 @@ const AddReservationDialog = ({
   );
 };
 
-export default AddReservationDialog;
+export default YardVehicleDialog;
