@@ -27,6 +27,8 @@ interface ClientSearchAutocompleteProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  /** When true, disables auto-search on mount/value change (used in edit mode) */
+  suppressAutoSearch?: boolean;
 }
 
 const ClientSearchAutocomplete = ({
@@ -38,6 +40,7 @@ const ClientSearchAutocomplete = ({
   placeholder,
   className,
   disabled = false,
+  suppressAutoSearch = false,
 }: ClientSearchAutocompleteProps) => {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState(value || '');
@@ -45,6 +48,7 @@ const ClientSearchAutocomplete = ({
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -81,13 +85,16 @@ const ClientSearchAutocomplete = ({
     }
   }, [instanceId]);
 
-  // Debounced search
+  // Debounced search - only if user has interacted or not suppressed
   useEffect(() => {
+    // Skip auto-search in edit mode until user interacts
+    if (suppressAutoSearch && !hasUserInteracted) return;
+    
     const timer = setTimeout(() => {
       searchCustomers(inputValue);
     }, 300);
     return () => clearTimeout(timer);
-  }, [inputValue, searchCustomers]);
+  }, [inputValue, searchCustomers, suppressAutoSearch, hasUserInteracted]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -103,6 +110,7 @@ const ClientSearchAutocomplete = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
+    setHasUserInteracted(true);
     onChange(newValue);
   };
 
@@ -179,7 +187,12 @@ const ClientSearchAutocomplete = ({
           ref={inputRef}
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => foundCustomers.length > 0 && setDropdownOpen(true)}
+          onFocus={() => {
+            // Only auto-open if user has interacted or not suppressed
+            if (!suppressAutoSearch || hasUserInteracted) {
+              foundCustomers.length > 0 && setDropdownOpen(true);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || t('common.search')}
           className={cn("pr-10", className)}
