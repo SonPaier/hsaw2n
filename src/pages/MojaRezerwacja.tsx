@@ -163,8 +163,12 @@ const MojaRezerwacja = () => {
   const navigateToEdit = () => {
     if (!reservation) return;
     
-    const instanceSlug = reservation.instance.slug;
-    const basePath = instanceSlug ? `/${instanceSlug}` : '/';
+    const hostname = window.location.hostname;
+    const isDevOrStaging = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.lovable.app');
+    
+    // In dev/staging mode, navigate to /rezerwacje
+    // In production with subdomains, the slug is already in the subdomain
+    const basePath = isDevOrStaging ? '/rezerwacje' : '/';
     
     navigate(basePath, { 
       state: { 
