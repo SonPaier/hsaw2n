@@ -140,23 +140,6 @@ const SortableProductRow = ({
         </Select>
       </div>
       <Input
-        value={sp.custom_name || ''}
-        onChange={(e) => onUpdate(sp.id, { custom_name: e.target.value })}
-        placeholder={t('offerSettings.products.name')}
-        className="w-48"
-      />
-      <Input
-        type="number"
-        value={sp.quantity}
-        onChange={(e) => onUpdate(sp.id, { quantity: parseFloat(e.target.value) || 1 })}
-        className="w-20"
-      />
-      <Input
-        value={sp.unit}
-        onChange={(e) => onUpdate(sp.id, { unit: e.target.value })}
-        className="w-16"
-      />
-      <Input
         type="number"
         value={sp.unit_price}
         onChange={(e) => onUpdate(sp.id, { unit_price: parseFloat(e.target.value) || 0 })}
