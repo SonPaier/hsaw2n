@@ -44,15 +44,20 @@ export const usePushSubscription = (instanceId: string | null) => {
   }, []);
 
   const subscribe = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    console.log('[Push] Starting subscription...', { user: !!user, instanceId });
+    
     if (!user || !instanceId) {
+      console.log('[Push] Missing user or instanceId');
       return { success: false, error: 'Not authenticated' };
     }
 
     if (!('serviceWorker' in navigator)) {
+      console.log('[Push] Service Worker not supported');
       return { success: false, error: t('pushNotifications.notSupported') };
     }
 
     if (!('PushManager' in window)) {
+      console.log('[Push] PushManager not supported');
       return { success: false, error: t('pushNotifications.notSupported') };
     }
 
@@ -60,25 +65,33 @@ export const usePushSubscription = (instanceId: string | null) => {
 
     try {
       // Request notification permission
+      console.log('[Push] Requesting permission...');
       const permission = await Notification.requestPermission();
+      console.log('[Push] Permission result:', permission);
+      
       if (permission !== 'granted') {
         setIsLoading(false);
         return { success: false, error: t('pushNotifications.permissionDenied') };
       }
 
       // Get service worker registration
+      console.log('[Push] Getting SW registration...');
       const registration = await navigator.serviceWorker.ready;
+      console.log('[Push] SW ready:', registration.scope);
 
       // Subscribe to push
+      console.log('[Push] Subscribing with VAPID key...');
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
 
+      console.log('[Push] Subscription created:', subscription.endpoint.substring(0, 50));
       const subscriptionJson = subscription.toJSON();
 
       // Save to database
+      console.log('[Push] Saving to database...');
       const { error: dbError } = await supabase
         .from('push_subscriptions')
         .upsert({
@@ -92,16 +105,17 @@ export const usePushSubscription = (instanceId: string | null) => {
         });
 
       if (dbError) {
-        console.error('Error saving push subscription:', dbError);
+        console.error('[Push] Error saving subscription:', dbError);
         setIsLoading(false);
         return { success: false, error: t('pushNotifications.enableError') };
       }
 
+      console.log('[Push] Subscription saved successfully!');
       setIsSubscribed(true);
       setIsLoading(false);
       return { success: true };
     } catch (error) {
-      console.error('Error subscribing to push:', error);
+      console.error('[Push] Error subscribing:', error);
       setIsLoading(false);
       return { success: false, error: t('pushNotifications.enableError') };
     }

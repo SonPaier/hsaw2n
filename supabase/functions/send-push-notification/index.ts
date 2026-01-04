@@ -15,15 +15,23 @@ serve(async (req) => {
   try {
     const { instanceId, title, body, url, tag, icon } = await req.json();
 
-    console.log(`Sending push notification for instance: ${instanceId}`);
-    console.log(`Title: ${title}, Body: ${body}`);
+    console.log(`[send-push] Received request for instanceId: ${instanceId}`);
+    console.log(`[send-push] Title: ${title}, Body: ${body}`);
+
+    if (!instanceId) {
+      console.error('[send-push] Missing instanceId');
+      return new Response(
+        JSON.stringify({ error: 'Missing instanceId', sent: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     const vapidEmail = Deno.env.get('VAPID_EMAIL');
 
     if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
-      console.error('VAPID keys not configured');
+      console.error('[send-push] VAPID keys not configured');
       return new Response(
         JSON.stringify({ error: 'VAPID keys not configured', sent: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -42,14 +50,14 @@ serve(async (req) => {
       .eq('instance_id', instanceId);
 
     if (subError) {
-      console.error('Error fetching subscriptions:', subError);
+      console.error('[send-push] Error fetching subscriptions:', subError);
       return new Response(
         JSON.stringify({ error: 'Error fetching subscriptions', sent: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log(`Found ${subscriptions?.length || 0} subscriptions`);
+    console.log(`[send-push] Found ${subscriptions?.length || 0} subscriptions`);
 
     if (!subscriptions || subscriptions.length === 0) {
       return new Response(
@@ -58,67 +66,69 @@ serve(async (req) => {
       );
     }
 
-    // Prepare payload - simple JSON for now
-    // Note: For production, you'd want to use web-push encryption
-    // But many browsers accept unencrypted payloads for testing
-    const payload = JSON.stringify({
-      title,
-      body,
-      url: url || '/admin',
-      tag: tag || 'notification',
-      icon: icon || '/pwa-192x192.png',
-    });
-
     let sent = 0;
     const staleSubscriptionIds: string[] = [];
+    const errors: string[] = [];
 
-    // Send to each subscription using simple fetch
-    // This is a simplified implementation - full web-push requires encryption
+    // Send to each subscription using simple push (triggers fetch in SW)
     for (const sub of subscriptions) {
       try {
-        // For now, just log - actual push requires web-push library or encryption
-        console.log(`Would send to: ${sub.endpoint}`);
+        console.log(`[send-push] Sending to endpoint: ${sub.endpoint.substring(0, 80)}...`);
         
-        // Try sending without encryption (some endpoints accept this)
+        // For Web Push without encryption, we send an empty body
+        // This triggers the push event in the service worker
+        // The SW will show a default notification
         const response = await fetch(sub.endpoint, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'TTL': '86400',
+            'Urgency': 'high',
+            'Content-Length': '0',
           },
-          body: payload,
         });
 
-        console.log(`Push response: ${response.status}`);
+        console.log(`[send-push] Response status: ${response.status}`);
 
         if (response.ok || response.status === 201) {
           sent++;
+          console.log(`[send-push] Successfully sent to subscription ${sub.id}`);
         } else if (response.status === 410 || response.status === 404) {
           // Subscription is stale
+          console.log(`[send-push] Stale subscription: ${sub.id}`);
           staleSubscriptionIds.push(sub.id);
+        } else {
+          const errorText = await response.text();
+          console.error(`[send-push] Failed with status ${response.status}: ${errorText}`);
+          errors.push(`${response.status}: ${errorText.substring(0, 100)}`);
         }
       } catch (error) {
-        console.error(`Error sending to ${sub.endpoint}:`, error);
+        console.error(`[send-push] Error sending to ${sub.endpoint}:`, error);
+        errors.push(error instanceof Error ? error.message : 'Unknown error');
       }
     }
 
     // Remove stale subscriptions
     if (staleSubscriptionIds.length > 0) {
-      console.log(`Removing ${staleSubscriptionIds.length} stale subscriptions`);
+      console.log(`[send-push] Removing ${staleSubscriptionIds.length} stale subscriptions`);
       await supabase
         .from('push_subscriptions')
         .delete()
         .in('id', staleSubscriptionIds);
     }
 
-    console.log(`Processed ${subscriptions.length} subscriptions, sent indicator: ${sent}`);
+    console.log(`[send-push] Processed ${subscriptions.length} subscriptions, sent: ${sent}`);
 
     return new Response(
-      JSON.stringify({ sent, total: subscriptions.length }),
+      JSON.stringify({ 
+        sent, 
+        total: subscriptions.length,
+        staleRemoved: staleSubscriptionIds.length,
+        errors: errors.length > 0 ? errors : undefined 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in send-push-notification:', error);
+    console.error('[send-push] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage, sent: 0 }),
