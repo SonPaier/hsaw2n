@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { format, addDays, parseISO, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth, isBefore, startOfDay, isToday } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Check, ArrowLeft, Instagram, Loader2, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -19,6 +20,7 @@ import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-searc
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import UpsellSuggestion from './UpsellSuggestion';
+
 interface Service {
   id: string;
   name: string;
@@ -66,6 +68,22 @@ interface AvailabilityBlock {
   end_time: string;
   station_id: string;
 }
+
+interface ExistingReservation {
+  id: string;
+  confirmation_code: string;
+  service_id: string;
+  reservation_date: string;
+  start_time: string;
+  station_id: string | null;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  car_size: string | null;
+  notes: string | null;
+  instance_id: string;
+}
+
 export interface CustomerBookingWizardProps {
   onLayoutChange?: (hideHeader: boolean, hideFooter: boolean) => void;
   instanceSubdomain?: string;
@@ -125,7 +143,15 @@ export default function CustomerBookingWizard({
   const {
     t
   } = useTranslation();
-  const [step, setStep] = useState<Step>('phone');
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Edit mode from navigation state
+  const editMode = location.state?.editMode === true;
+  const existingReservation = location.state?.existingReservation as ExistingReservation | undefined;
+  
+  // Start from datetime step if in edit mode, otherwise from phone
+  const [step, setStep] = useState<Step>(editMode ? 'datetime' : 'phone');
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -134,6 +160,7 @@ export default function CustomerBookingWizard({
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAddons, setShowAddons] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Navigation helpers with animation direction
   const goToStep = (newStep: Step, direction: 'forward' | 'back' = 'forward') => {
@@ -507,6 +534,43 @@ export default function CustomerBookingWizard({
     };
     fetchData();
   }, [instanceSubdomain]);
+
+  // Initialize from existingReservation when in edit mode
+  useEffect(() => {
+    if (editMode && existingReservation && services.length > 0 && !loading) {
+      // Set customer data
+      setCustomerName(existingReservation.customer_name || '');
+      setCustomerPhone(existingReservation.customer_phone || '');
+      setCarModel(existingReservation.vehicle_plate || '');
+      setCustomerNotes(existingReservation.notes || '');
+      if (existingReservation.car_size) {
+        setCarSize(existingReservation.car_size as 'small' | 'medium' | 'large');
+      }
+      
+      // Set service
+      const service = services.find(s => s.id === existingReservation.service_id);
+      if (service) {
+        setSelectedService(service);
+      }
+      
+      // Set date and time
+      if (existingReservation.reservation_date) {
+        const date = parseISO(existingReservation.reservation_date);
+        setSelectedDate(date);
+        setCurrentMonth(startOfMonth(date));
+      }
+      if (existingReservation.start_time) {
+        setSelectedTime(existingReservation.start_time.slice(0, 5));
+      }
+      if (existingReservation.station_id) {
+        setSelectedStationId(existingReservation.station_id);
+      }
+      
+      // Customer is already verified in edit mode (they have the link)
+      setIsVerifiedCustomer(true);
+    }
+  }, [editMode, existingReservation, services, loading]);
+
   const popularServices = services.filter(s => POPULAR_KEYWORDS.some(k => s.name.toLowerCase().includes(k))).slice(0, 3);
   const otherServices = services.filter(s => !popularServices.includes(s));
   const getServicePrice = (service: Service): number => {
@@ -713,6 +777,67 @@ export default function CustomerBookingWizard({
       setIsSendingSms(false);
     }
   };
+
+  // Handle update reservation in edit mode
+  const handleUpdateReservation = async () => {
+    if (!existingReservation || !selectedService || !selectedDate || !selectedTime || !instance) {
+      toast({
+        title: t('common.error'),
+        description: t('errors.requiredField'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const newReservationDate = format(selectedDate, 'yyyy-MM-dd');
+      const serviceDuration = getServiceDuration(selectedService);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const endMinutes = hours * 60 + minutes + serviceDuration;
+      const endHours = Math.floor(endMinutes / 60);
+      const endMins = endMinutes % 60;
+      const newEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      
+      const { error: updateError } = await supabase
+        .from('reservations')
+        .update({
+          reservation_date: newReservationDate,
+          start_time: selectedTime,
+          end_time: newEndTime,
+          station_id: selectedStationId,
+          edited_by_customer_at: new Date().toISOString()
+        })
+        .eq('id', existingReservation.id);
+
+      if (updateError) throw updateError;
+
+      // Create notification for admin
+      await supabase.from('notifications').insert({
+        instance_id: existingReservation.instance_id,
+        type: 'reservation_edited_by_customer',
+        title: `Klient zmienił termin: ${existingReservation.customer_name}`,
+        description: `${existingReservation.reservation_date} → ${newReservationDate} o ${selectedTime}`,
+        entity_type: 'reservation',
+        entity_id: existingReservation.id
+      });
+
+      toast({ title: t('myReservation.reservationUpdated') });
+      
+      // Redirect back to reservation page
+      navigate(`/res?code=${existingReservation.confirmation_code}`);
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      toast({
+        title: t('common.error'),
+        description: t('errors.generic'),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSendSms = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({
@@ -1075,9 +1200,14 @@ export default function CustomerBookingWizard({
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => {
-            goToStep('service', 'back');
-            setSelectedDate(null);
-            setSelectedTime(null);
+              if (editMode && existingReservation) {
+                // In edit mode, go back to reservation page
+                navigate(`/res?code=${existingReservation.confirmation_code}`);
+              } else {
+                goToStep('service', 'back');
+                setSelectedDate(null);
+                setSelectedTime(null);
+              }
           }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-base">
               <ArrowLeft className="w-4 h-4" />
               {t('common.back')}
@@ -1233,71 +1363,85 @@ export default function CustomerBookingWizard({
             </p>
           </div>
 
-          {/* Upsell suggestion - only show if feature is enabled and conditions are met */}
-          {hasFeature('upsell') && selectedService && selectedDate && selectedTime && selectedStationId && <UpsellSuggestion selectedService={selectedService} selectedTime={selectedTime} selectedDate={selectedDate} selectedStationId={selectedStationId} services={services} stations={stations} availabilityBlocks={availabilityBlocks} carSize={carSize} onAddService={serviceId => {
+          {/* Upsell suggestion - only show if feature is enabled, conditions are met, and NOT in edit mode */}
+          {!editMode && hasFeature('upsell') && selectedService && selectedDate && selectedTime && selectedStationId && <UpsellSuggestion selectedService={selectedService} selectedTime={selectedTime} selectedDate={selectedDate} selectedStationId={selectedStationId} services={services} stations={stations} availabilityBlocks={availabilityBlocks} carSize={carSize} onAddService={serviceId => {
           setSelectedAddons(prev => [...prev, serviceId]);
         }} selectedAddons={selectedAddons} />}
 
-          {/* Customer data - VAT invoice option */}
-          <div className="glass-card p-3 mb-3 space-y-3">
-            {/* VAT Invoice checkbox */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <Checkbox checked={wantsInvoice} onCheckedChange={checked => setWantsInvoice(checked === true)} className="h-5 w-5" disabled={smsSent} />
-              <span className="text-sm font-medium">{t('booking.needInvoice')}</span>
-            </label>
+          {/* In edit mode - just show save button without verification */}
+          {editMode ? (
+            <Button 
+              onClick={handleUpdateReservation} 
+              className="w-full text-base" 
+              disabled={isSaving || !selectedDate || !selectedTime}
+            >
+              {isSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {t('myReservation.saveChanges')}
+            </Button>
+          ) : (
+            <>
+              {/* Customer data - VAT invoice option */}
+              <div className="glass-card p-3 mb-3 space-y-3">
+                {/* VAT Invoice checkbox */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox checked={wantsInvoice} onCheckedChange={checked => setWantsInvoice(checked === true)} className="h-5 w-5" disabled={smsSent} />
+                  <span className="text-sm font-medium">{t('booking.needInvoice')}</span>
+                </label>
 
-            {/* NIP input - shown when invoice is requested */}
-            {wantsInvoice && <div className="animate-fade-in">
-                <Label htmlFor="nip" className="text-xs">{t('booking.nipNumber')}</Label>
-                <Input id="nip" value={nipNumber} onChange={e => setNipNumber(e.target.value)} placeholder="np. 1234567890" className="mt-1 h-9 text-sm" disabled={smsSent} maxLength={13} />
-              </div>}
-          </div>
+                {/* NIP input - shown when invoice is requested */}
+                {wantsInvoice && <div className="animate-fade-in">
+                    <Label htmlFor="nip" className="text-xs">{t('booking.nipNumber')}</Label>
+                    <Input id="nip" value={nipNumber} onChange={e => setNipNumber(e.target.value)} placeholder="np. 1234567890" className="mt-1 h-9 text-sm" disabled={smsSent} maxLength={13} />
+                  </div>}
+              </div>
 
-          {/* Collapsible notes - outside the card */}
-          <Collapsible open={showNotes} onOpenChange={setShowNotes} className="mb-3">
-            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-0 py-[8px]">
-              {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              <span className="text-base">{t('booking.additionalNotes')} ({t('common.optional')})</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder={t('booking.notesPlaceholder')} className="text-base resize-none" rows={2} disabled={smsSent} />
-            </CollapsibleContent>
-          </Collapsible>
+              {/* Collapsible notes - outside the card */}
+              <Collapsible open={showNotes} onOpenChange={setShowNotes} className="mb-3">
+                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-0 py-[8px]">
+                  {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span className="text-base">{t('booking.additionalNotes')} ({t('common.optional')})</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <Textarea id="notes" value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} placeholder={t('booking.notesPlaceholder')} className="text-base resize-none" rows={2} disabled={smsSent} />
+                </CollapsibleContent>
+              </Collapsible>
 
-          {/* SMS verification or direct booking */}
-          {!smsSent ? <>
-              <Button onClick={handleReservationClick} className="w-full text-base" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
-                {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {t('booking.confirmBooking')}
-              </Button>
-            </> : <div className="glass-card p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-3">
-                {t('booking.enterSmsCode')}
-              </p>
-              
-              <OTPInputWithAutoFocus value={verificationCode} onChange={setVerificationCode} onComplete={handleVerifyCode} smsSent={smsSent} isVerifying={isVerifying} />
-              {isVerifying && <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t('booking.verifying')}
+              {/* SMS verification or direct booking */}
+              {!smsSent ? <>
+                  <Button onClick={handleReservationClick} className="w-full text-base" disabled={isSendingSms || isCheckingCustomer || !customerName.trim() || !customerPhone.trim() || wantsInvoice && !nipNumber.trim()}>
+                    {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {t('booking.confirmBooking')}
+                  </Button>
+                </> : <div className="glass-card p-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {t('booking.enterSmsCode')}
+                  </p>
+                  
+                  <OTPInputWithAutoFocus value={verificationCode} onChange={setVerificationCode} onComplete={handleVerifyCode} smsSent={smsSent} isVerifying={isVerifying} />
+                  {isVerifying && <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('booking.verifying')}
+                    </div>}
+                  {showResendButton && !isVerifying && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setSmsSent(false);
+                        setVerificationCode('');
+                        setShowResendButton(false);
+                        handleSendSms();
+                      }}
+                      disabled={isSendingSms}
+                      className="mt-3"
+                    >
+                      {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {t('booking.resendCode')}
+                    </Button>
+                  )}
                 </div>}
-              {showResendButton && !isVerifying && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    setSmsSent(false);
-                    setVerificationCode('');
-                    setShowResendButton(false);
-                    handleSendSms();
-                  }}
-                  disabled={isSendingSms}
-                  className="mt-3"
-                >
-                  {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  {t('booking.resendCode')}
-                </Button>
-              )}
-            </div>}
+            </>
+          )}
         </div>
       </div>;
   }
