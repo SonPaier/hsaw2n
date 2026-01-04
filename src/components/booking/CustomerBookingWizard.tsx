@@ -1195,21 +1195,21 @@ export default function CustomerBookingWizard({
       const duration = getServiceDuration(service);
       const isSelected = allSelectedIds.includes(service.id);
       return <button key={service.id} onClick={() => toggleService(service)} className={cn('glass-card p-3 text-left transition-all w-full', isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50')}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             {/* Large checkbox */}
-            <div className={cn('w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', isSelected ? 'border-primary bg-primary' : 'border-muted-foreground')}>
+            <div className={cn('w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors mt-0.5', isSelected ? 'border-primary bg-primary' : 'border-muted-foreground')}>
               {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
             </div>
             
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <h3 className="font-medium text-foreground truncate block max-w-full">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                 {service.name}
               </h3>
               {service.description && <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>}
               <p className="text-muted-foreground text-sm">{duration} min</p>
             </div>
             
-            <span className="font-semibold text-primary whitespace-nowrap">
+            <span className="font-semibold text-primary whitespace-nowrap flex-shrink-0">
               {t('booking.priceFrom', {
               price
             })}
