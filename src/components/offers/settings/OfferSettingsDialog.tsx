@@ -126,11 +126,11 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
             </TabsTrigger>
             <TabsTrigger value="variants" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              {t('offerSettings.variants')}
+              {t('offerSettings.variantsTab')}
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              {t('offerSettings.products')}
+              {t('offerSettings.productsTab')}
             </TabsTrigger>
           </TabsList>
 
