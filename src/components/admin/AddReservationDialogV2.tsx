@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
@@ -177,16 +177,15 @@ const AddReservationDialogV2 = ({
   const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
   
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
-  const [suggestingSize, setSuggestingSize] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [foundVehicles, setFoundVehicles] = useState<CustomerVehicle[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -544,36 +543,6 @@ const AddReservationDialogV2 = ({
     setSelectedTime(null);
   };
 
-  // AI suggestion for car size
-  const suggestCarSize = useCallback(async (model: string) => {
-    if (model.trim().length < 3) return;
-    
-    setSuggestingSize(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('suggest-car-size', {
-        body: { carModel: model }
-      });
-      
-      if (!error && data?.size) {
-        setCarSize(data.size);
-      }
-    } catch (err) {
-      console.error('Error suggesting car size:', err);
-    } finally {
-      setSuggestingSize(false);
-    }
-  }, []);
-
-  // Debounced car model change for AI suggestion
-  useEffect(() => {
-    if (!carModel || carModel.length < 3) return;
-    
-    const timer = setTimeout(() => {
-      suggestCarSize(carModel);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [carModel, suggestCarSize]);
-
   // Search customer by phone
   const searchByPhone = useCallback(async (searchPhone: string) => {
     if (searchPhone.length < 3) {
@@ -648,10 +617,6 @@ const AddReservationDialogV2 = ({
         setCustomerName(data.name);
         setSelectedCustomerId(vehicle.customer_id);
       }
-    }
-    
-    if (vehicle.model && vehicle.model.length >= 3) {
-      suggestCarSize(vehicle.model);
     }
   };
 
@@ -1184,9 +1149,6 @@ const AddReservationDialogV2 = ({
                     }}
                     suppressAutoOpen={isEditMode}
                   />
-                  {suggestingSize && (
-                    <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-pulse text-primary" />
-                  )}
                 </div>
                 
                 <TooltipProvider>

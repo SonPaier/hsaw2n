@@ -717,5 +717,248 @@
       { "name": "Toyota Prius", "size": "M" },
       { "name": "Toyota bZ4X", "size": "M" }
     ]
+  },
+  {
+    "brand": "Volkswagen",
+    "models": [
+      { "name": "Volkswagen Up!", "size": "S" },
+      { "name": "Volkswagen Polo", "size": "S" },
+      { "name": "Volkswagen Golf", "size": "M" },
+      { "name": "Volkswagen Passat", "size": "L" },
+      { "name": "Volkswagen Arteon", "size": "L" },
+      { "name": "Volkswagen T-Cross", "size": "S" },
+      { "name": "Volkswagen T-Roc", "size": "M" },
+      { "name": "Volkswagen Tiguan", "size": "M" },
+      { "name": "Volkswagen Touareg", "size": "L" },
+      { "name": "Volkswagen ID.3", "size": "M" },
+      { "name": "Volkswagen ID.4", "size": "M" },
+      { "name": "Volkswagen ID.5", "size": "M" },
+      { "name": "Volkswagen ID.7", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Volvo",
+    "models": [
+      { "name": "Volvo S60", "size": "M" },
+      { "name": "Volvo S90", "size": "L" },
+      { "name": "Volvo V60", "size": "M" },
+      { "name": "Volvo V90", "size": "L" },
+      { "name": "Volvo XC40", "size": "M" },
+      { "name": "Volvo XC60", "size": "M" },
+      { "name": "Volvo XC90", "size": "L" },
+      { "name": "Volvo EX30", "size": "S" },
+      { "name": "Volvo EX40", "size": "M" },
+      { "name": "Volvo EX90", "size": "L" }
+    ]
+  },
+  {
+    "brand": "DS Automobiles",
+    "models": [
+      { "name": "DS 3", "size": "S" },
+      { "name": "DS 4", "size": "M" },
+      { "name": "DS 7", "size": "M" },
+      { "name": "DS 9", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Lancia",
+    "models": [
+      { "name": "Lancia Ypsilon", "size": "S" },
+      { "name": "Lancia Delta", "size": "M" },
+      { "name": "Lancia Thema", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Abarth",
+    "models": [
+      { "name": "Abarth 595", "size": "S" },
+      { "name": "Abarth 695", "size": "S" },
+      { "name": "Abarth 500e", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Alpine",
+    "models": [
+      { "name": "Alpine A110", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Saab",
+    "models": [
+      { "name": "Saab 9-3", "size": "M" },
+      { "name": "Saab 9-5", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Daihatsu",
+    "models": [
+      { "name": "Daihatsu Ayla", "size": "S" },
+      { "name": "Daihatsu Sirion", "size": "S" },
+      { "name": "Daihatsu Terios", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Isuzu",
+    "models": [
+      { "name": "Isuzu D-Max", "size": "L" },
+      { "name": "Isuzu MU-X", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Acura",
+    "models": [
+      { "name": "Acura ILX", "size": "M" },
+      { "name": "Acura TLX", "size": "M" },
+      { "name": "Acura RDX", "size": "M" },
+      { "name": "Acura MDX", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Infiniti",
+    "models": [
+      { "name": "Infiniti Q30", "size": "M" },
+      { "name": "Infiniti Q50", "size": "M" },
+      { "name": "Infiniti Q60", "size": "M" },
+      { "name": "Infiniti QX30", "size": "M" },
+      { "name": "Infiniti QX50", "size": "M" },
+      { "name": "Infiniti QX60", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Genesis",
+    "models": [
+      { "name": "Genesis G70", "size": "M" },
+      { "name": "Genesis G80", "size": "L" },
+      { "name": "Genesis G90", "size": "L" },
+      { "name": "Genesis GV60", "size": "M" },
+      { "name": "Genesis GV70", "size": "M" },
+      { "name": "Genesis GV80", "size": "L" }
+    ]
+  },
+  {
+    "brand": "SsangYong",
+    "models": [
+      { "name": "SsangYong Tivoli", "size": "S" },
+      { "name": "SsangYong Korando", "size": "M" },
+      { "name": "SsangYong Torres", "size": "M" },
+      { "name": "SsangYong Rexton", "size": "L" }
+    ]
+  },
+  {
+    "brand": "MG",
+    "models": [
+      { "name": "MG 3", "size": "S" },
+      { "name": "MG 4", "size": "M" },
+      { "name": "MG 5", "size": "M" },
+      { "name": "MG ZS", "size": "S" },
+      { "name": "MG HS", "size": "M" },
+      { "name": "MG Marvel R", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Polestar",
+    "models": [
+      { "name": "Polestar 2", "size": "M" },
+      { "name": "Polestar 3", "size": "L" },
+      { "name": "Polestar 4", "size": "L" }
+    ]
+  },
+  {
+    "brand": "NIO",
+    "models": [
+      { "name": "NIO ET5", "size": "M" },
+      { "name": "NIO ET7", "size": "L" },
+      { "name": "NIO EL6", "size": "M" },
+      { "name": "NIO EL7", "size": "L" }
+    ]
+  },
+  {
+    "brand": "XPeng",
+    "models": [
+      { "name": "XPeng P5", "size": "M" },
+      { "name": "XPeng P7", "size": "L" },
+      { "name": "XPeng G6", "size": "M" },
+      { "name": "XPeng G9", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Li Auto",
+    "models": [
+      { "name": "Li Auto L7", "size": "L" },
+      { "name": "Li Auto L8", "size": "L" },
+      { "name": "Li Auto L9", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Chrysler",
+    "models": [
+      { "name": "Chrysler 200", "size": "M" },
+      { "name": "Chrysler 300", "size": "L" },
+      { "name": "Chrysler Sebring", "size": "M" },
+      { "name": "Chrysler PT Cruiser", "size": "M" },
+      { "name": "Chrysler Voyager", "size": "L" },
+      { "name": "Chrysler Grand Voyager", "size": "L" },
+      { "name": "Chrysler Pacifica", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Dodge",
+    "models": [
+      { "name": "Dodge Charger", "size": "L" },
+      { "name": "Dodge Challenger", "size": "L" },
+      { "name": "Dodge Durango", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Ram",
+    "models": [
+      { "name": "Ram 1500", "size": "L" },
+      { "name": "Ram 2500", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Lincoln",
+    "models": [
+      { "name": "Lincoln Corsair", "size": "M" },
+      { "name": "Lincoln Nautilus", "size": "L" },
+      { "name": "Lincoln Aviator", "size": "L" },
+      { "name": "Lincoln Navigator", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Bugatti",
+    "models": [
+      { "name": "Bugatti Chiron", "size": "M" },
+      { "name": "Bugatti Mistral", "size": "M" }
+    ]
+  },
+  {
+    "brand": "McLaren",
+    "models": [
+      { "name": "McLaren 570S", "size": "M" },
+      { "name": "McLaren 720S", "size": "M" },
+      { "name": "McLaren Artura", "size": "M" }
+    ]
+  },
+  {
+    "brand": "Lotus",
+    "models": [
+      { "name": "Lotus Elise", "size": "S" },
+      { "name": "Lotus Emira", "size": "M" },
+      { "name": "Lotus Eletre", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Rivian",
+    "models": [
+      { "name": "Rivian R1T", "size": "L" },
+      { "name": "Rivian R1S", "size": "L" }
+    ]
+  },
+  {
+    "brand": "Lucid",
+    "models": [
+      { "name": "Lucid Air", "size": "L" }
+    ]
   }
 ]
