@@ -155,28 +155,55 @@ serve(async (req: Request): Promise<Response> => {
       .select()
       .single();
 
+    // Format date for notifications
+    const notifDateObj = new Date(reservationData.date);
+    const notifDayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+    const notifMonthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+    const notifDayName = notifDayNames[notifDateObj.getDay()];
+    const notifDayNum = notifDateObj.getDate();
+    const notifMonthName = notifMonthNames[notifDateObj.getMonth()];
+
     // Create notification for new reservation
     try {
-      const dateObj = new Date(reservationData.date);
-      const dayNames = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
-      const monthNames = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
-      const dayName = dayNames[dateObj.getDay()];
-      const dayNum = dateObj.getDate();
-      const monthName = monthNames[dateObj.getMonth()];
-      
       await supabase
         .from("notifications")
         .insert({
           instance_id: instanceId,
           type: "reservation_new",
           title: `Nowa rezerwacja: ${reservationData.customerName}`,
-          description: `${serviceData?.name || 'Usługa'} - ${dayName} ${dayNum} ${monthName} o ${reservationData.time}`,
+          description: `${serviceData?.name || 'Usługa'} - ${notifDayName} ${notifDayNum} ${notifMonthName} o ${reservationData.time}`,
           entity_type: "reservation",
           entity_id: reservation?.id,
         });
       console.log("Notification created for new reservation");
     } catch (notifError) {
       console.error("Failed to create notification:", notifError);
+    }
+
+    // Send push notification to admin
+    try {
+      const pushUrl = Deno.env.get("SUPABASE_URL");
+      const pushKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      
+      if (pushUrl && pushKey) {
+        const pushResponse = await fetch(`${pushUrl}/functions/v1/send-push-notification`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${pushKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            instanceId: instanceId,
+            title: `📅 Nowa rezerwacja: ${reservationData.customerName}`,
+            body: `${serviceData?.name || 'Usługa'} - ${notifDayName} ${notifDayNum} ${notifMonthName} o ${reservationData.time}`,
+            url: `/admin?reservationCode=${confirmationCode}`,
+            tag: `new-reservation-${reservation?.id}`,
+          }),
+        });
+        console.log("Push notification sent:", pushResponse.status);
+      }
+    } catch (pushError) {
+      console.error("Failed to send push notification:", pushError);
     }
 
     if (reservationError) {

@@ -32,6 +32,7 @@ import FollowUpView from '@/components/admin/FollowUpView';
 import NotificationsView from '@/components/admin/NotificationsView';
 import SettingsView from '@/components/admin/SettingsView';
 import { toast } from 'sonner';
+import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 interface Station {
   id: string;
   name: string;
@@ -682,6 +683,17 @@ const AdminDashboard = () => {
         toast.error(t('errors.generic'));
         console.error('Error cancelling reservation:', updateError);
         return;
+      }
+
+      // Send push notification for deletion
+      if (instanceId) {
+        sendPushNotification({
+          instanceId,
+          title: `🚫 Rezerwacja anulowana`,
+          body: `${customerData.name} - anulowana przez admina`,
+          url: '/admin',
+          tag: `deleted-reservation-${reservationId}`,
+        });
       }
 
       // Remove from local state (cancelled reservations hidden from calendar)

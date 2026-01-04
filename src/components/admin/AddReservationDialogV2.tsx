@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import ServiceSelectionDrawer from './ServiceSelectionDrawer';
 
 type CarSize = 'small' | 'medium' | 'large';
@@ -112,6 +113,7 @@ interface EditingReservation {
   service_id?: string;
   notes?: string;
   price?: number | null;
+  confirmation_code?: string;
 }
 
 interface AddReservationDialogV2Props {
@@ -573,6 +575,15 @@ const AddReservationDialogV2 = ({
 
         if (updateError) throw updateError;
 
+        // Send push notification for edit
+        sendPushNotification({
+          instanceId,
+          title: `✏️ Rezerwacja zmieniona`,
+          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${selectedTime}`,
+          url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
+          tag: `edited-reservation-${editingReservation.id}`,
+        });
+
         toast.success(t('addReservation.reservationUpdated'));
       } else {
         // Create new reservation
@@ -641,6 +652,15 @@ const AddReservationDialogV2 = ({
             // Don't block reservation creation if SMS fails
           }
         }
+
+        // Send push notification for new reservation by admin
+        sendPushNotification({
+          instanceId,
+          title: `📅 Nowa rezerwacja (admin)`,
+          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${selectedTime}`,
+          url: `/admin?reservationCode=${reservationData.confirmation_code}`,
+          tag: `new-reservation-admin-${Date.now()}`,
+        });
 
         toast.success(t('addReservation.reservationCreated'));
       }
