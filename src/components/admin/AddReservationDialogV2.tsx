@@ -591,7 +591,7 @@ const AddReservationDialogV2 = ({
           notes: notes.trim() || null,
           service_id: selectedServices[0],
           service_ids: selectedServices,
-          confirmation_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+          confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
           status: 'confirmed' as const,
           confirmed_at: new Date().toISOString(),
           created_by: user?.id || null,

@@ -14,6 +14,7 @@ interface Reservation {
   start_time: string;
   instance_id: string;
   service_id: string;
+  confirmation_code: string;
   reminder_1day_sent: boolean | null;
   reminder_1hour_sent: boolean | null;
 }
@@ -24,6 +25,7 @@ interface Service {
 
 interface Instance {
   name: string;
+  slug: string;
 }
 
 interface SmsMessageSetting {
@@ -84,7 +86,7 @@ serve(async (req: Request): Promise<Response> => {
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
     const { data: dayReminders, error: dayError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, reminder_1day_sent")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_sent")
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
       .eq("reservation_date", tomorrowDate);
@@ -96,7 +98,7 @@ serve(async (req: Request): Promise<Response> => {
     // Get reservations that need 1-hour reminder
     const { data: hourReminders, error: hourError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, reminder_1hour_sent")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_sent")
       .eq("status", "confirmed")
       .is("reminder_1hour_sent", null)
       .eq("reservation_date", now.toISOString().split("T")[0]);
@@ -105,23 +107,23 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error fetching hour reminders:", hourError);
     }
 
-    // Cache instance names to avoid multiple queries
-    const instanceCache: Record<string, string> = {};
+    // Cache instance info to avoid multiple queries
+    const instanceCache: Record<string, { name: string; slug: string }> = {};
     
-    const getInstanceName = async (instanceId: string): Promise<string> => {
+    const getInstanceInfo = async (instanceId: string): Promise<{ name: string; slug: string }> => {
       if (instanceCache[instanceId]) {
         return instanceCache[instanceId];
       }
       
       const { data: instanceData } = await supabase
         .from("instances")
-        .select("name")
+        .select("name, slug")
         .eq("id", instanceId)
         .single() as { data: Instance | null };
       
-      const name = instanceData?.name || "Myjnia";
-      instanceCache[instanceId] = name;
-      return name;
+      const info = { name: instanceData?.name || "Myjnia", slug: instanceData?.slug || "" };
+      instanceCache[instanceId] = info;
+      return info;
     };
 
     let sentCount = 0;
@@ -161,13 +163,14 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", reservation.service_id)
         .single() as { data: Service | null };
 
-      // Get instance name dynamically
-      const instanceName = await getInstanceName(reservation.instance_id);
+      // Get instance info dynamically
+      const instanceInfo = await getInstanceInfo(reservation.instance_id);
+      const reservationUrl = `https://${instanceInfo.slug}.n2wash.com/res?code=${reservation.confirmation_code}`;
 
       const serviceName = service?.name || "wizyta";
       const formattedTime = reservation.start_time.slice(0, 5);
 
-      const message = `Przypomnienie: jutro o ${formattedTime} masz wizyte - ${serviceName}. ${instanceName}`;
+      const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizytę. Zmień lub anuluj: ${reservationUrl}`;
 
       const success = await sendSms(reservation.customer_phone, message, smsapiToken);
       
@@ -200,12 +203,12 @@ serve(async (req: Request): Promise<Response> => {
 
       // Send if between 55 and 65 minutes before
       if (minutesDiff >= 55 && minutesDiff <= 65) {
-        // Get instance name dynamically
-        const instanceName = await getInstanceName(reservation.instance_id);
+        // Get instance info dynamically
+        const instanceInfo = await getInstanceInfo(reservation.instance_id);
         
         const formattedTime = reservation.start_time.slice(0, 5);
 
-        const message = `Przypomnienie: za godzine o ${formattedTime} masz wizyte. Do zobaczenia! ${instanceName}`;
+        const message = `${instanceInfo.name}: Za godzinę o ${formattedTime} masz wizytę. Do zobaczenia!`;
 
         const success = await sendSms(reservation.customer_phone, message, smsapiToken);
         

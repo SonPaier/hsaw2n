@@ -456,6 +456,7 @@ export type Database = {
           background_color: string | null
           booking_days_ahead: number
           created_at: string | null
+          customer_edit_cutoff_hours: number | null
           email: string | null
           google_maps_url: string | null
           id: string
@@ -485,6 +486,7 @@ export type Database = {
           background_color?: string | null
           booking_days_ahead?: number
           created_at?: string | null
+          customer_edit_cutoff_hours?: number | null
           email?: string | null
           google_maps_url?: string | null
           id?: string
@@ -514,6 +516,7 @@ export type Database = {
           background_color?: string | null
           booking_days_ahead?: number
           created_at?: string | null
+          customer_edit_cutoff_hours?: number | null
           email?: string | null
           google_maps_url?: string | null
           id?: string
@@ -1410,6 +1413,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string
+          edited_by_customer_at: string | null
           end_date: string | null
           end_time: string
           id: string
@@ -1441,6 +1445,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone: string
+          edited_by_customer_at?: string | null
           end_date?: string | null
           end_time: string
           id?: string
@@ -1472,6 +1477,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
+          edited_by_customer_at?: string | null
           end_date?: string | null
           end_time?: string
           id?: string

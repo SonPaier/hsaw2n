@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInHours } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Check, Loader2, Calendar, Clock, Car, AlertCircle, X, Phone, MapPin } from 'lucide-react';
+import { Check, Loader2, Calendar, Clock, Car, AlertCircle, X, Phone, MapPin, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -40,6 +40,8 @@ interface Reservation {
     phone: string | null;
     address: string | null;
     logo_url: string | null;
+    customer_edit_cutoff_hours: number | null;
+    slug: string | null;
   };
 }
 
@@ -75,9 +77,9 @@ const MojaRezerwacja = () => {
             notes,
             car_size,
             service:services(name, duration_minutes),
-            instance:instances(name, phone, address, logo_url)
+            instance:instances(name, phone, address, logo_url, customer_edit_cutoff_hours, slug)
           `)
-          .eq('confirmation_code', code.toUpperCase())
+          .eq('confirmation_code', code)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -163,7 +165,7 @@ const MojaRezerwacja = () => {
           <p className="text-sm text-muted-foreground mb-6 text-center">
             Sprawdź kod w SMS-ie i spróbuj ponownie
           </p>
-          <Button onClick={() => window.location.href = '/rezerwacje'}>
+          <Button onClick={() => window.location.href = '/'}>
             Zarezerwuj wizytę
           </Button>
         </div>
@@ -173,8 +175,12 @@ const MojaRezerwacja = () => {
 
   const statusInfo = getStatusInfo(reservation.status);
   const StatusIcon = statusInfo.icon;
-  const isPast = new Date(`${reservation.reservation_date}T${reservation.start_time}`) < new Date();
-  const canCancel = reservation.status === 'confirmed' && !isPast;
+  const visitDateTime = new Date(`${reservation.reservation_date}T${reservation.start_time}`);
+  const hoursBeforeVisit = differenceInHours(visitDateTime, new Date());
+  const cutoffHours = reservation.instance.customer_edit_cutoff_hours ?? 1;
+  const isPast = visitDateTime < new Date();
+  const canEdit = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours;
+  const canCancel = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours;
 
   return (
     <>
@@ -332,7 +338,7 @@ const MojaRezerwacja = () => {
             <Button 
               variant="ghost" 
               className="w-full text-muted-foreground" 
-              onClick={() => window.location.href = '/rezerwacje'}
+              onClick={() => window.location.href = '/'}
             >
               Zarezerwuj kolejną wizytę
             </Button>
