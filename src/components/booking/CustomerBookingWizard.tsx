@@ -617,13 +617,25 @@ export default function CustomerBookingWizard({
       return s.type === selectedService.station_type || s.type === 'universal';
     });
     const daysAhead = instance.booking_days_ahead ?? 90;
+    
+    // In edit mode, filter out blocks that belong to the currently edited reservation
+    const filteredBlocks = editMode && existingReservation
+      ? availabilityBlocks.filter(block => {
+          const isOwnBlock = 
+            block.block_date === existingReservation.reservation_date &&
+            block.start_time === existingReservation.start_time &&
+            block.station_id === existingReservation.station_id;
+          return !isOwnBlock;
+        })
+      : availabilityBlocks;
+    
     for (let i = 0; i < daysAhead; i++) {
       const date = addDays(today, i);
       const dayName = format(date, 'EEEE').toLowerCase();
       const workingHours = instance.working_hours[dayName];
       if (!workingHours) continue;
       const dateStr = format(date, 'yyyy-MM-dd');
-      const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
+      const dayBlocks = filteredBlocks.filter(b => b.block_date === dateStr);
       const [openH, openM] = workingHours.open.split(':').map(Number);
       const [closeH, closeM] = workingHours.close.split(':').map(Number);
       const openMinutes = openH * 60 + openM;
@@ -1057,8 +1069,13 @@ export default function CustomerBookingWizard({
                           setCarModel('');
                         } else if ('type' in val && val.type === 'custom') {
                           setCarModel(val.label);
-                        } else {
+                          // Custom input - keep current carSize (will be inferred by AI)
+                        } else if ('size' in val) {
+                          // It's a CarModel with size
                           setCarModel(val.label);
+                          // Use size from carsList.json directly
+                          const sizeMap: Record<string, 'small' | 'medium' | 'large'> = { 'S': 'small', 'M': 'medium', 'L': 'large' };
+                          setCarSize(sizeMap[val.size] || 'medium');
                         }
                       }}
                       className="[&_input]:h-12 [&_input]:text-base"
@@ -1148,8 +1165,8 @@ export default function CustomerBookingWizard({
           </div>
         </button>;
     };
-    return <div className="min-h-screen bg-background pb-16">
-        <div className={cn("container py-4 max-w-[550px] mx-auto", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
+    return <div className="min-h-screen bg-background pb-16 overflow-x-hidden">
+        <div className={cn("px-4 py-4 max-w-[550px] mx-auto w-full", slideDirection === 'forward' ? "animate-slide-in-left" : "animate-slide-in-right")}>
           <button onClick={() => goToStep('phone', 'back')} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-base">
             <ArrowLeft className="w-4 h-4" />
             {t('common.back')}
