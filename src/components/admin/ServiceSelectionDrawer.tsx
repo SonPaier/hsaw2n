@@ -215,7 +215,8 @@ const ServiceSelectionDrawer = ({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent 
         side="right" 
-        hideOverlay 
+        hideOverlay
+        hideCloseButton
         className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
       >
         {/* Header - clicking closes drawer */}

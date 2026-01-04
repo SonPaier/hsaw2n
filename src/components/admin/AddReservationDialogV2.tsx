@@ -568,11 +568,12 @@ const AddReservationDialogV2 = ({
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent 
-        side="right"
-        className="w-full sm:max-w-lg flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
-        hideOverlay
-      >
+        <SheetContent 
+          side="right"
+          className="w-full sm:max-w-lg flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+          hideOverlay
+          hideCloseButton
+        >
         {/* Fixed Header with Close button */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
@@ -727,7 +728,7 @@ const AddReservationDialogV2 = ({
                           setSelectedTime(null);
                           setSelectedStationId(null);
                         }}
-                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-100 hover:bg-slate-200 text-foreground"
+                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-50 hover:bg-slate-100 text-foreground border border-slate-200"
                       >
                         {service.shortcut || service.name}
                       </button>
