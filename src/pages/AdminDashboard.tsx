@@ -59,6 +59,10 @@ interface Reservation {
   services_data?: Array<{
     name: string;
     shortcut?: string | null;
+    price_small?: number | null;
+    price_medium?: number | null;
+    price_large?: number | null;
+    price_from?: number | null;
   }>;
   station?: {
     name: string;
@@ -370,18 +374,26 @@ const AdminDashboard = () => {
   const fetchReservations = async () => {
     if (!instanceId) return;
 
-    // First fetch services to map service_ids
+    // First fetch services to map service_ids (include pricing)
     const {
       data: servicesData
-    } = await supabase.from('services').select('id, name, shortcut').eq('instance_id', instanceId).eq('active', true);
+    } = await supabase.from('services').select('id, name, shortcut, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).eq('active', true);
     const servicesMap = new Map<string, {
       name: string;
       shortcut?: string | null;
+      price_small?: number | null;
+      price_medium?: number | null;
+      price_large?: number | null;
+      price_from?: number | null;
     }>();
     if (servicesData) {
       servicesData.forEach(s => servicesMap.set(s.id, {
         name: s.name,
-        shortcut: s.shortcut
+        shortcut: s.shortcut,
+        price_small: s.price_small,
+        price_medium: s.price_medium,
+        price_large: s.price_large,
+        price_from: s.price_from
       }));
     }
     const {
@@ -428,16 +440,20 @@ const AdminDashboard = () => {
       }
 
       setReservations(data.map(r => {
-        // Map service_ids to services_data if available
+        // Map service_ids to services_data if available (include pricing)
         const serviceIds = (r as any).service_ids as string[] | null;
-        const servicesData: Array<{
+        const servicesDataMapped: Array<{
           name: string;
           shortcut?: string | null;
+          price_small?: number | null;
+          price_medium?: number | null;
+          price_large?: number | null;
+          price_from?: number | null;
         }> = [];
         if (serviceIds && serviceIds.length > 0) {
           serviceIds.forEach(id => {
             const svc = servicesMap.get(id);
-            if (svc) servicesData.push(svc);
+            if (svc) servicesDataMapped.push(svc);
           });
         }
         
@@ -453,7 +469,7 @@ const AdminDashboard = () => {
             name: (r.services as any).name,
             shortcut: (r.services as any).shortcut
           } : undefined,
-          services_data: servicesData.length > 0 ? servicesData : undefined,
+          services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
           station: r.stations ? {
             name: (r.stations as any).name,
             type: (r.stations as any).type

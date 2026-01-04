@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, RotateCcw, X } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,10 @@ interface Reservation {
   services_data?: Array<{
     name: string;
     shortcut?: string | null;
+    price_small?: number | null;
+    price_medium?: number | null;
+    price_large?: number | null;
+    price_from?: number | null;
   }>;
   station?: {
     name: string;
@@ -120,6 +124,7 @@ const ReservationDetailsDrawer = ({
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const [customerName, setCustomerName] = useState('');
@@ -376,16 +381,61 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Price */}
-            {price && (
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <div className="w-5 h-5 flex items-center justify-center font-bold text-sm">zł</div>
-                <div>
-                  <div className="text-xs">{t('reservations.suggestedPrice')}</div>
-                  <div className="font-medium">{price} PLN</div>
+            {/* Kwota (Price) section with expandable receipt */}
+            {(() => {
+              // Calculate total from services based on car size
+              const getServicePrice = (svc: { price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }) => {
+                if (carSize === 'small' && svc.price_small) return svc.price_small;
+                if (carSize === 'medium' && svc.price_medium) return svc.price_medium;
+                if (carSize === 'large' && svc.price_large) return svc.price_large;
+                return svc.price_from || 0;
+              };
+
+              const servicesWithPrices = reservation.services_data?.map(svc => ({
+                name: svc.name,
+                price: getServicePrice(svc)
+              })) || [];
+
+              const calculatedTotal = servicesWithPrices.reduce((sum, svc) => sum + svc.price, 0);
+              const displayTotal = price ? parseFloat(price) : calculatedTotal;
+
+              if (displayTotal <= 0 && servicesWithPrices.length === 0) return null;
+
+              return (
+                <div className="flex items-start gap-3">
+                  <Receipt className="w-5 h-5 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <div className="text-xs text-muted-foreground">{t('reservations.amount')}</div>
+                    <div className="font-semibold text-lg">{displayTotal} zł</div>
+                    
+                    {servicesWithPrices.length > 0 && (
+                      <button 
+                        onClick={() => setPriceDetailsOpen(!priceDetailsOpen)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                      >
+                        {priceDetailsOpen ? t('common.hide') : t('reservations.seeDetails')}
+                        {priceDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </button>
+                    )}
+                    
+                    {priceDetailsOpen && servicesWithPrices.length > 0 && (
+                      <div className="mt-3 bg-muted/30 rounded-lg p-3 space-y-2">
+                        {servicesWithPrices.map((svc, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{svc.name}</span>
+                            <span className="font-medium">{svc.price} zł</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-border/50 pt-2 mt-2 flex justify-between text-sm font-semibold">
+                          <span>{t('common.total')}</span>
+                          <span>{calculatedTotal} zł</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Change request info - show original reservation reference */}
             {reservation.status === 'change_requested' && reservation.original_reservation && (
