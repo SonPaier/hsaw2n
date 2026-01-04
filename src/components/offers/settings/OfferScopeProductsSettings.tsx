@@ -5,8 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface OfferScope {
   id: string;
@@ -50,6 +67,113 @@ export interface OfferScopeProductsSettingsRef {
   saveAll: () => Promise<boolean>;
 }
 
+interface SortableProductRowProps {
+  sp: ScopeVariantProduct;
+  products: Product[];
+  formatPrice: (price: number) => string;
+  onProductSelect: (productId: string, scopeProduct: ScopeVariantProduct) => void;
+  onUpdate: (id: string, updates: Partial<ScopeVariantProduct>) => void;
+  onDelete: (id: string) => void;
+  t: (key: string) => string;
+}
+
+const SortableProductRow = ({ 
+  sp, 
+  products, 
+  formatPrice, 
+  onProductSelect, 
+  onUpdate, 
+  onDelete,
+  t 
+}: SortableProductRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sp.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-3 border rounded-lg bg-background ${sp.isDirty ? 'ring-2 ring-primary/20' : ''}`}
+    >
+      <button
+        type="button"
+        className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
+      <div className="flex-1">
+        <Select
+          value={sp.product_id || 'custom'}
+          onValueChange={(value) => {
+            if (value === 'custom') {
+              onUpdate(sp.id, { product_id: null });
+            } else {
+              onProductSelect(value, sp);
+            }
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t('offerSettings.products.selectOrCustom')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custom">{t('offerSettings.products.customItem')}</SelectItem>
+            {products.map((product) => (
+              <SelectItem key={product.id} value={product.id}>
+                {product.name} - {formatPrice(product.default_price)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Input
+        value={sp.custom_name || ''}
+        onChange={(e) => onUpdate(sp.id, { custom_name: e.target.value })}
+        placeholder={t('offerSettings.products.name')}
+        className="w-48"
+      />
+      <Input
+        type="number"
+        value={sp.quantity}
+        onChange={(e) => onUpdate(sp.id, { quantity: parseFloat(e.target.value) || 1 })}
+        className="w-20"
+      />
+      <Input
+        value={sp.unit}
+        onChange={(e) => onUpdate(sp.id, { unit: e.target.value })}
+        className="w-16"
+      />
+      <Input
+        type="number"
+        value={sp.unit_price}
+        onChange={(e) => onUpdate(sp.id, { unit_price: parseFloat(e.target.value) || 0 })}
+        className="w-28"
+      />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onDelete(sp.id)}
+        className="text-destructive hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsRef, OfferScopeProductsSettingsProps>(
   ({ instanceId, onChange }, ref) => {
     const { t } = useTranslation();
@@ -62,12 +186,23 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const sensors = useSensors(
+      useSensor(PointerSensor),
+      useSensor(KeyboardSensor, {
+        coordinateGetter: sortableKeyboardCoordinates,
+      })
+    );
+
     // Get variants available for the selected scope
     const availableVariants = selectedScope
       ? allVariants.filter(v => 
           scopeVariantLinks.some(link => link.scope_id === selectedScope && link.variant_id === v.id)
         )
       : [];
+
+    const visibleProducts = scopeProducts
+      .filter(p => !p.isDeleted)
+      .sort((a, b) => a.sort_order - b.sort_order);
 
     useEffect(() => {
       fetchData();
@@ -232,7 +367,7 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         quantity: 1,
         unit: t('offerSettings.products.defaultUnit'),
         unit_price: 0,
-        sort_order: scopeProducts.filter(p => !p.isDeleted).length,
+        sort_order: visibleProducts.length,
         isNew: true,
         isDirty: true,
       };
@@ -255,6 +390,29 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         setScopeProducts(scopeProducts.map(p => p.id === id ? { ...p, isDeleted: true } : p));
       }
       onChange?.();
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+      
+      if (over && active.id !== over.id) {
+        const oldIndex = visibleProducts.findIndex(p => p.id === active.id);
+        const newIndex = visibleProducts.findIndex(p => p.id === over.id);
+        
+        const newOrder = arrayMove(visibleProducts, oldIndex, newIndex);
+        
+        // Update sort_order for all items and mark as dirty
+        const updatedProducts = scopeProducts.map(p => {
+          const newIdx = newOrder.findIndex(np => np.id === p.id);
+          if (newIdx !== -1) {
+            return { ...p, sort_order: newIdx, isDirty: true };
+          }
+          return p;
+        });
+        
+        setScopeProducts(updatedProducts);
+        onChange?.();
+      }
     };
 
     const handleProductSelect = (productId: string, scopeProduct: ScopeVariantProduct) => {
@@ -290,8 +448,6 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
         </Card>
       );
     }
-
-    const visibleProducts = scopeProducts.filter(p => !p.isDeleted);
 
     return (
       <div className="space-y-4">
@@ -360,70 +516,31 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
                   {t('offerSettings.products.noProducts')}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {visibleProducts.map((sp) => (
-                    <div 
-                      key={sp.id} 
-                      className={`flex items-center gap-3 p-3 border rounded-lg ${sp.isDirty ? 'ring-2 ring-primary/20' : ''}`}
-                    >
-                      <div className="flex-1">
-                        <Select
-                          value={sp.product_id || 'custom'}
-                          onValueChange={(value) => {
-                            if (value === 'custom') {
-                              handleUpdateProduct(sp.id, { product_id: null });
-                            } else {
-                              handleProductSelect(value, sp);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={t('offerSettings.products.selectOrCustom')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="custom">{t('offerSettings.products.customItem')}</SelectItem>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - {formatPrice(product.default_price)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Input
-                        value={sp.custom_name || ''}
-                        onChange={(e) => handleUpdateProduct(sp.id, { custom_name: e.target.value })}
-                        placeholder={t('offerSettings.products.name')}
-                        className="w-48"
-                      />
-                      <Input
-                        type="number"
-                        value={sp.quantity}
-                        onChange={(e) => handleUpdateProduct(sp.id, { quantity: parseFloat(e.target.value) || 1 })}
-                        className="w-20"
-                      />
-                      <Input
-                        value={sp.unit}
-                        onChange={(e) => handleUpdateProduct(sp.id, { unit: e.target.value })}
-                        className="w-16"
-                      />
-                      <Input
-                        type="number"
-                        value={sp.unit_price}
-                        onChange={(e) => handleUpdateProduct(sp.id, { unit_price: parseFloat(e.target.value) || 0 })}
-                        className="w-28"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteProduct(sp.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={visibleProducts.map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {visibleProducts.map((sp) => (
+                        <SortableProductRow
+                          key={sp.id}
+                          sp={sp}
+                          products={products}
+                          formatPrice={formatPrice}
+                          onProductSelect={handleProductSelect}
+                          onUpdate={handleUpdateProduct}
+                          onDelete={handleDeleteProduct}
+                          t={t}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </CardContent>
           </Card>
