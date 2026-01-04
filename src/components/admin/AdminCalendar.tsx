@@ -1336,6 +1336,16 @@ const AdminCalendar = ({
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
                             </div>}
+                          {/* Line 4: Notes (only if duration > 30 minutes) */}
+                          {(() => {
+                            const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
+                            if (durationMinutes > 30 && reservation.notes) {
+                              return <div className="text-[9px] md:text-[10px] truncate opacity-70 mt-0.5">
+                                {reservation.notes}
+                              </div>;
+                            }
+                            return null;
+                          })()}
                         </div>
                       </div>;
                   });
