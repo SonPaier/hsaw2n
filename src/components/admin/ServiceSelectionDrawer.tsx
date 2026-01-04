@@ -86,9 +86,9 @@ const ServiceSelectionDrawer = ({
         .eq('instance_id', instanceId)
         .eq('active', true);
       
-      // Filter by station type if provided
-      if (stationType) {
-        servicesQuery = servicesQuery.eq('station_type', stationType);
+      // Filter by station type if provided - only for PPF, others show all services
+      if (stationType === 'ppf') {
+        servicesQuery = servicesQuery.eq('station_type', 'ppf');
       }
       
       const [servicesRes, categoriesRes] = await Promise.all([
