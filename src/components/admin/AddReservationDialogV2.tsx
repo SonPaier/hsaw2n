@@ -603,6 +603,45 @@ const AddReservationDialogV2 = ({
 
         if (reservationError) throw reservationError;
 
+        // Send SMS confirmation if phone is provided
+        if (phone) {
+          try {
+            // Fetch instance data for SMS
+            const { data: instanceData } = await supabase
+              .from('instances')
+              .select('name, google_maps_url, slug')
+              .eq('id', instanceId)
+              .single();
+
+            if (instanceData) {
+              // Format date and time for SMS
+              const dayNames = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+              const monthNames = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+              const dateObj = selectedDate;
+              const dayName = dayNames[dateObj.getDay()];
+              const dayNum = dateObj.getDate();
+              const monthName = monthNames[dateObj.getMonth()];
+
+              const instanceName = instanceData.name || 'Myjnia';
+              const mapsLink = instanceData.google_maps_url ? ` Dojazd: ${instanceData.google_maps_url}` : '';
+              const reservationUrl = `https://${instanceData.slug}.n2wash.com/res?code=${reservationData.confirmation_code}`;
+              
+              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${selectedTime}-${endTime}.${mapsLink} Zmień lub anuluj: ${reservationUrl}`;
+
+              await supabase.functions.invoke('send-sms-message', {
+                body: {
+                  phone: phone,
+                  message: smsMessage,
+                  instanceId: instanceId
+                }
+              });
+            }
+          } catch (smsError) {
+            console.error('Error sending SMS confirmation:', smsError);
+            // Don't block reservation creation if SMS fails
+          }
+        }
+
         toast.success(t('addReservation.reservationCreated'));
       }
       
