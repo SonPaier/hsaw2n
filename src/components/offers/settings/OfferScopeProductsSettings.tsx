@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Package, GripVertical } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Trash2, Package, GripVertical, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -86,6 +88,7 @@ const SortableProductRow = ({
   onDelete,
   t 
 }: SortableProductRowProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -101,59 +104,81 @@ const SortableProductRow = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const currentDescription = sp.custom_description || '';
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-3 p-3 border rounded-lg bg-background ${sp.isDirty ? 'ring-2 ring-primary/20' : ''}`}
-    >
-      <button
-        type="button"
-        className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
-        {...attributes}
-        {...listeners}
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`border rounded-lg bg-background ${sp.isDirty ? 'ring-2 ring-primary/20' : ''}`}
       >
-        <GripVertical className="h-5 w-5" />
-      </button>
-      <div className="flex-1">
-        <Select
-          value={sp.product_id || 'custom'}
-          onValueChange={(value) => {
-            if (value === 'custom') {
-              onUpdate(sp.id, { product_id: null });
-            } else {
-              onProductSelect(value, sp);
-            }
-          }}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={t('offerSettings.products.selectOrCustom')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="custom">{t('offerSettings.products.customItem')}</SelectItem>
-            {products.map((product) => (
-              <SelectItem key={product.id} value={product.id}>
-                {product.name} - {formatPrice(product.default_price)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3 p-3">
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5" />
+          </button>
+          <div className="flex-1">
+            <Select
+              value={sp.product_id || 'custom'}
+              onValueChange={(value) => {
+                if (value === 'custom') {
+                  onUpdate(sp.id, { product_id: null });
+                } else {
+                  onProductSelect(value, sp);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('offerSettings.products.selectOrCustom')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">{t('offerSettings.products.customItem')}</SelectItem>
+                {products.map((product) => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {product.name} - {formatPrice(product.default_price)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Input
+            type="number"
+            value={sp.unit_price}
+            onChange={(e) => onUpdate(sp.id, { unit_price: parseFloat(e.target.value) || 0 })}
+            className="w-28"
+          />
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(sp.id)}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <CollapsibleContent>
+          <div className="px-3 pb-3 pt-0 ml-8">
+            <label className="text-sm text-muted-foreground mb-1 block">Opis produktu</label>
+            <Textarea
+              value={currentDescription}
+              onChange={(e) => onUpdate(sp.id, { custom_description: e.target.value })}
+              placeholder="Opis wyświetlany w ofercie..."
+              className="min-h-[80px]"
+            />
+          </div>
+        </CollapsibleContent>
       </div>
-      <Input
-        type="number"
-        value={sp.unit_price}
-        onChange={(e) => onUpdate(sp.id, { unit_price: parseFloat(e.target.value) || 0 })}
-        className="w-28"
-      />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onDelete(sp.id)}
-        className="text-destructive hover:text-destructive"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
+    </Collapsible>
   );
 };
 
