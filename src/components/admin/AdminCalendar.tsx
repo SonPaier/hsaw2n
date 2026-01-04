@@ -1340,7 +1340,7 @@ const AdminCalendar = ({
                           {(() => {
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
                             if (durationMinutes > 30 && reservation.notes) {
-                              return <div className="text-[9px] md:text-[10px] truncate opacity-70 mt-0.5">
+                              return <div className="text-[11px] md:text-[12px] truncate opacity-70 mt-0.5">
                                 {reservation.notes}
                               </div>;
                             }

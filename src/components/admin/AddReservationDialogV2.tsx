@@ -236,16 +236,22 @@ const AddReservationDialogV2 = ({
       
       const stationType = getStationType();
       
-      // For yard mode, fetch ALL services (no filter)
+      // For yard/detailing mode, fetch ALL services (no filter)
+      // For PPF mode, filter by station_type='ppf'
+      // For reservation mode, filter by station_type='washing'
       let servicesQuery = supabase
         .from('services')
         .select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
         .eq('active', true);
       
-      if (!isYardMode) {
-        servicesQuery = servicesQuery.eq('station_type', stationType);
+      // Only filter station_type for washing reservations and PPF
+      if (isReservationMode) {
+        servicesQuery = servicesQuery.eq('station_type', 'washing');
+      } else if (isPPFMode) {
+        servicesQuery = servicesQuery.eq('station_type', 'ppf');
       }
+      // Yard and Detailing modes show ALL services
       
       const { data: servicesData } = await servicesQuery.order('sort_order');
       
