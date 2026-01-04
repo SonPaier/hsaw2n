@@ -6,12 +6,12 @@ import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-searc
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -567,16 +567,21 @@ const AddReservationDialogV2 = ({
   const [notesOpen, setNotesOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent 
-        className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent 
+        side="right"
+        className="w-full sm:max-w-lg flex flex-col h-full p-0 gap-0"
+        hideOverlay
       >
-        {/* Fixed Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <DialogTitle>{t('addReservation.title')}</DialogTitle>
-        </DialogHeader>
+        {/* Fixed Header with Close button */}
+        <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle>{t('addReservation.title')}</SheetTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              {t('common.close')}
+            </Button>
+          </div>
+        </SheetHeader>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -936,17 +941,19 @@ const AddReservationDialogV2 = ({
         </div>
 
         {/* Fixed Footer */}
-        <DialogFooter className="px-6 py-4 border-t shrink-0 flex-row gap-2">
-          <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1">
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading || selectedServices.length === 0 || !selectedTime || !carModel.trim()} className="flex-1">
+        <SheetFooter className="px-6 py-4 border-t shrink-0">
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading || selectedServices.length === 0 || !selectedTime || !carModel.trim()} 
+            className="w-full"
+            size="lg"
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('addReservation.addReservation')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };
 
