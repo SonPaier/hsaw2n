@@ -60,6 +60,9 @@ async function generateVapidJwt(
   const privateKeyBytes = base64UrlToUint8Array(privateKeyBase64);
   const publicKeyBytes = base64UrlToUint8Array(publicKeyBase64);
   
+  console.log('[send-push] Private key length:', privateKeyBytes.length);
+  console.log('[send-push] Public key length:', publicKeyBytes.length);
+  
   let cryptoKey: CryptoKey;
   
   // Private key should be 32 bytes (raw scalar), public key 65 bytes (uncompressed)
@@ -75,6 +78,8 @@ async function generateVapidJwt(
       d: uint8ArrayToBase64Url(privateKeyBytes),
     };
     
+    console.log('[send-push] JWK x length:', x.length, 'y length:', y.length);
+    
     cryptoKey = await crypto.subtle.importKey(
       'jwk',
       jwk,
@@ -83,7 +88,7 @@ async function generateVapidJwt(
       ['sign']
     );
   } else {
-    throw new Error(`Unexpected key format: private=${privateKeyBytes.length}, public=${publicKeyBytes.length}`);
+    throw new Error(`Unexpected key format: private=${privateKeyBytes.length}, public=${publicKeyBytes.length}, first byte=${publicKeyBytes[0]}`);
   }
 
   // Sign the token
@@ -93,8 +98,21 @@ async function generateVapidJwt(
     new TextEncoder().encode(unsignedToken)
   );
   
-  const signatureB64 = arrayBufferToBase64Url(signatureBuffer);
+  // Web Crypto returns signature in IEEE P1363 format (r || s, 64 bytes total)
+  // JWT ES256 expects the same format, so this should work directly
+  const signatureBytes = new Uint8Array(signatureBuffer);
+  console.log('[send-push] Signature length:', signatureBytes.length);
+  
+  // Ensure signature is exactly 64 bytes (32 bytes r + 32 bytes s)
+  if (signatureBytes.length !== 64) {
+    console.error('[send-push] Unexpected signature length:', signatureBytes.length);
+  }
+  
+  const signatureB64 = uint8ArrayToBase64Url(signatureBytes);
   const jwt = `${unsignedToken}.${signatureB64}`;
+
+  console.log('[send-push] JWT generated, length:', jwt.length);
+  console.log('[send-push] Audience:', audience);
 
   return `vapid t=${jwt}, k=${publicKeyBase64}`;
 }
