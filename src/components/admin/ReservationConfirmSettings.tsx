@@ -112,14 +112,25 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
 
   return (
     <div className="space-y-6">
-      {/* Push Notifications Section */}
-      {isPushSupported && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold">Powiadomienia push</h3>
+      {/* Push Notifications Section - always show, with info if not supported */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Smartphone className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold">Powiadomienia push</h3>
+        </div>
+        
+        {!isPushSupported ? (
+          <div className="p-4 rounded-lg border border-border bg-muted/30">
+            <p className="text-sm text-muted-foreground">
+              Powiadomienia push nie są wspierane w tej przeglądarce. 
+              Otwórz aplikację bezpośrednio (nie przez iframe/preview).
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-2">
+              SW: {'serviceWorker' in navigator ? '✓' : '✗'} | 
+              Push: {'PushManager' in window ? '✓' : '✗'}
+            </p>
           </div>
-          
+        ) : (
           <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
             <div className="space-y-1">
               <Label className="font-medium">
@@ -147,8 +158,8 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
               </Button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Reservation Confirmation Settings */}
       <div className="space-y-4">
