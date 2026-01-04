@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { format, parseISO, differenceInHours } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Check, Loader2, Calendar, Clock, Car, AlertCircle, X, Phone, MapPin, Pencil } from 'lucide-react';
+import { Check, Loader2, Calendar, Clock, Car, AlertCircle, X, Phone, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -236,30 +236,22 @@ const MojaRezerwacja = () => {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        {/* Header */}
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Header - only logo and name */}
         <header className="border-b border-border bg-card">
-          <div className="container py-4 flex items-center gap-3">
+          <div className="container py-4 flex items-center justify-center gap-3">
             {reservation.instance.logo_url ? (
-              <img src={reservation.instance.logo_url} alt={reservation.instance.name} className="h-10 w-auto" />
+              <img src={reservation.instance.logo_url} alt={reservation.instance.name} className="h-12 w-auto" />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Car className="w-5 h-5 text-primary" />
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Car className="w-6 h-6 text-primary" />
               </div>
             )}
-            <div>
-              <h1 className="font-semibold text-foreground">{reservation.instance.name}</h1>
-              {reservation.instance.address && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {reservation.instance.address}
-                </p>
-              )}
-            </div>
+            <h1 className="font-semibold text-foreground text-lg">{reservation.instance.name}</h1>
           </div>
         </header>
 
-        <main className="container py-6 max-w-md mx-auto">
+        <main className="container py-6 max-w-md mx-auto flex-1 pb-40">
           {/* Status badge */}
           <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium mb-4 ${statusInfo.color}`}>
             <StatusIcon className="w-4 h-4" />
@@ -297,7 +289,7 @@ const MojaRezerwacja = () => {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Kod potwierdzenia</span>
+                  <span className="text-muted-foreground">Kod rezerwacji</span>
                   <span className="font-mono font-bold text-primary">{reservation.confirmation_code}</span>
                 </div>
               </div>
@@ -351,73 +343,78 @@ const MojaRezerwacja = () => {
                 </div>
               </a>
             )}
-
-            {/* Actions */}
-            {canEdit && (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={navigateToEdit}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                {t('myReservation.changeDate')}
-              </Button>
-            )}
-
-            {canCancel && (
-              <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300">
-                    {t('common.cancel')}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('myReservation.cancelDialog.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('myReservation.cancelDialog.description', {
-                        date: format(parseISO(reservation.reservation_date), 'd MMMM', { locale: pl }),
-                        time: reservation.start_time.slice(0, 5)
-                      })}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="flex flex-col gap-3 mt-4">
-                    <Button 
-                      variant="default"
-                      onClick={() => {
-                        setCancelDialogOpen(false);
-                        navigateToEdit();
-                      }}
-                      className="w-full"
-                    >
-                      {t('myReservation.cancelDialog.findAnotherTime')}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleCancel}
-                      disabled={cancelling}
-                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      {cancelling && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      {t('myReservation.cancelDialog.confirmCancel')}
-                    </Button>
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('myReservation.cancelDialog.back')}</AlertDialogCancel>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-
-            <Button 
-              variant="ghost" 
-              className="w-full text-muted-foreground" 
-              onClick={() => window.location.href = '/'}
-            >
-              {t('booking.bookAnother')}
-            </Button>
           </div>
         </main>
+
+        {/* Fixed bottom actions */}
+        {(canEdit || canCancel) && (
+          <div className="fixed bottom-14 left-0 right-0 z-40 bg-background border-t border-border p-4">
+            <div className="container max-w-md mx-auto flex gap-3">
+              {canCancel && (
+                <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="flex-1 h-12 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300">
+                      Anuluj
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('myReservation.cancelDialog.title')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('myReservation.cancelDialog.description', {
+                          date: format(parseISO(reservation.reservation_date), 'd MMMM', { locale: pl }),
+                          time: reservation.start_time.slice(0, 5)
+                        })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex flex-col gap-3 mt-4">
+                      <Button 
+                        variant="default"
+                        onClick={() => {
+                          setCancelDialogOpen(false);
+                          navigateToEdit();
+                        }}
+                        className="w-full"
+                      >
+                        {t('myReservation.cancelDialog.findAnotherTime')}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        {cancelling && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        {t('myReservation.cancelDialog.confirmCancel')}
+                      </Button>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('myReservation.cancelDialog.back')}</AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              
+              {canEdit && (
+                <Button 
+                  className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={navigateToEdit}
+                >
+                  Zmień
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer - always visible */}
+        <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/50 bg-background">
+          <div className="container py-3">
+            <p className="text-sm text-muted-foreground text-center">
+              <a href="https://n2wash.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">N2Wash.com</a> - System rezerwacji online
+            </p>
+          </div>
+        </footer>
       </div>
     </>
   );
