@@ -7,7 +7,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import Rezerwacje from "./pages/Rezerwacje";
 import MojaRezerwacja from "./pages/MojaRezerwacja";
-import Auth from "./pages/Auth";
 import InstanceAuth from "./pages/InstanceAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -71,6 +70,7 @@ const getSubdomainInfo = () => {
 // Super Admin Routes Component
 const SuperAdminRoutes = () => (
   <Routes>
+    <Route path="/login" element={<InstanceAuth subdomainSlug="super" />} />
     <Route 
       path="/" 
       element={
@@ -79,7 +79,6 @@ const SuperAdminRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    <Route path="/login" element={<Auth />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
@@ -141,7 +140,7 @@ const DevRoutes = () => (
     <Route path="/oferta/:token" element={<PublicOfferView />} />
     {/* Instance-specific login route */}
     <Route path="/:slug/login" element={<InstanceAuth />} />
-    <Route path="/auth" element={<Auth />} />
+    <Route path="/login" element={<InstanceAuth />} />
     <Route 
       path="/admin" 
       element={
@@ -174,9 +173,9 @@ const DevRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    {/* Legacy routes - redirect to new auth */}
-    <Route path="/admin/login" element={<Auth />} />
-    <Route path="/super-admin/login" element={<Auth />} />
+    {/* Legacy routes - redirect to login */}
+    <Route path="/admin/login" element={<InstanceAuth />} />
+    <Route path="/super-admin/login" element={<InstanceAuth />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

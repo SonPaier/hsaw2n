@@ -12,28 +12,9 @@ interface ProtectedRouteProps {
 }
 
 // Helper to detect login path based on subdomain
-// New structure:
-// - armcar.admin.n2wash.com → /login
-// - super.admin.n2wash.com → /login  
-// - localhost/lovable.app → /auth
-const getSubdomainLoginPath = (): string => {
-  const hostname = window.location.hostname;
-  
-  console.log('[ProtectedRoute] getSubdomainLoginPath hostname:', hostname);
-  
-  // Local development or lovable staging
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.lovable.app')) {
-    return '/auth';
-  }
-  
-  // Super admin subdomain or instance admin subdomain (*.admin.n2wash.com)
-  if (hostname === 'super.admin.n2wash.com' || hostname.endsWith('.admin.n2wash.com')) {
-    console.log('[ProtectedRoute] → admin subdomain, login path: /login');
-    return '/login';
-  }
-  
-  // For public instance subdomains (armcar.n2wash.com) - no login needed
-  return '/auth';
+// All environments now use /login
+const getLoginPath = (): string => {
+  return '/login';
 };
 
 const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: ProtectedRouteProps) => {
@@ -49,7 +30,7 @@ const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: Protecte
   }
 
   if (!user) {
-    const loginPath = getSubdomainLoginPath();
+    const loginPath = getLoginPath();
     return <Navigate to={`${loginPath}?returnTo=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
