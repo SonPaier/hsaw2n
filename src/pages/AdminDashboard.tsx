@@ -1168,8 +1168,21 @@ const AdminDashboard = () => {
     // Swap confirmation codes - new takes original's code
     const originalCode = originalReservation.confirmation_code;
     const newCode = changeRequest.confirmation_code;
+    const tempCode = `TEMP_${Date.now()}`;
 
-    // Update change request: set original's code, clear link, set to confirmed
+    // Step 1: Change original's code to temp (to avoid unique constraint conflict)
+    const { error: tempError } = await supabase
+      .from('reservations')
+      .update({ confirmation_code: tempCode })
+      .eq('id', originalId);
+
+    if (tempError) {
+      console.error('Error setting temp code:', tempError);
+      toast.error(t('errors.generic'));
+      return;
+    }
+
+    // Step 2: Update change request: set original's code, clear link, set to confirmed
     const { error: updateNewError } = await supabase
       .from('reservations')
       .update({
@@ -1181,17 +1194,18 @@ const AdminDashboard = () => {
       .eq('id', changeRequestId);
 
     if (updateNewError) {
+      console.error('Error updating change request:', updateNewError);
       toast.error(t('errors.generic'));
       return;
     }
 
-    // Cancel original reservation
+    // Step 3: Cancel original reservation with the new code
     const { error: cancelError } = await supabase
       .from('reservations')
       .update({
         status: 'cancelled',
         cancelled_at: new Date().toISOString(),
-        confirmation_code: newCode // Give it the new code to avoid conflict
+        confirmation_code: newCode
       })
       .eq('id', originalId);
 
