@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Sparkles, ChevronLeft, ChevronRight, Plus, X, Check, ChevronDown } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay, isAfter } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
+import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
 import {
   Dialog,
@@ -35,7 +36,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import CustomerSearchInput from './CustomerSearchInput';
 import {
   Command,
   CommandEmpty,
@@ -44,6 +44,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { Separator } from '@/components/ui/separator';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -474,6 +475,11 @@ const AddReservationDialogV2 = ({
   };
 
   const handleSubmit = async () => {
+    if (!carModel.trim()) {
+      toast.error(t('addReservation.carModelRequired'));
+      return;
+    }
+    
     if (selectedServices.length === 0) {
       toast.error(t('addReservation.selectAtLeastOneService'));
       return;
@@ -544,7 +550,7 @@ const AddReservationDialogV2 = ({
         reservation_date: format(selectedDate, 'yyyy-MM-dd'),
         start_time: selectedTime,
         end_time: endTime,
-        customer_name: customerName || t('addReservation.defaultCustomer'),
+        customer_name: customerName.trim() || 'Klient',
         customer_phone: phone || '',
         vehicle_plate: carModel || '',
         car_size: carSize || null,
@@ -584,9 +590,9 @@ const AddReservationDialogV2 = ({
   const [notesOpen, setNotesOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent 
-        className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0 [&_input]:focus:ring-ring [&_input]:focus:ring-offset-0 [&_textarea]:focus:ring-ring [&_textarea]:focus:ring-offset-0"
+        className="max-w-lg flex flex-col max-h-[90vh] p-0 gap-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
@@ -598,22 +604,25 @@ const AddReservationDialogV2 = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
-            {/* Customer Name */}
+            {/* Customer Name - using new ClientSearchAutocomplete */}
             <div className="space-y-2">
               <Label htmlFor="name">
-                {t('addReservation.customerNameAlias')}
+                {t('addReservation.customerNameAlias')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
               </Label>
-              <CustomerSearchInput
+              <ClientSearchAutocomplete
                 instanceId={instanceId}
                 value={customerName}
                 onChange={(val) => {
                   setCustomerName(val);
                   setSelectedCustomerId(null);
                 }}
-                onSelectCustomer={(customer) => {
+                onSelect={(customer) => {
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
+                }}
+                onClear={() => {
+                  setSelectedCustomerId(null);
                 }}
                 placeholder={t('addReservation.customerNameAlias')}
               />
@@ -660,10 +669,10 @@ const AddReservationDialogV2 = ({
               )}
             </div>
 
-            {/* Car Model + Size */}
+            {/* Car Model + Size - REQUIRED */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                {t('reservations.carModel')}
+                {t('reservations.carModel')} <span className="text-destructive">*</span>
               </Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -716,7 +725,7 @@ const AddReservationDialogV2 = ({
 
             {/* Services shortcuts row */}
             <div className="space-y-2">
-              <Label>{t('addReservation.services')}</Label>
+              <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
               <div className="flex flex-wrap gap-2 items-center">
                 {shortcutServices.map((service) => {
                   const isSelected = selectedServices.includes(service.id);
@@ -822,7 +831,10 @@ const AddReservationDialogV2 = ({
               )}
             </div>
 
-            {/* Date navigation - no label, obvious */}
+            {/* Divider between services and time selection */}
+            <Separator className="my-2" />
+
+            {/* Date navigation with chevron */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <button
@@ -841,9 +853,10 @@ const AddReservationDialogV2 = ({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="text-base font-medium hover:text-primary transition-colors"
+                      className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
                     >
                       {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
+                      <ChevronDown className="w-4 h-4" />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="center">
@@ -945,7 +958,7 @@ const AddReservationDialogV2 = ({
           <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1">
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || selectedServices.length === 0 || !selectedTime} className="flex-1">
+          <Button onClick={handleSubmit} disabled={loading || selectedServices.length === 0 || !selectedTime || !carModel.trim()} className="flex-1">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('addReservation.addReservation')}
           </Button>
