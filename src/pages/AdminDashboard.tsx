@@ -1575,6 +1575,12 @@ const AdminDashboard = () => {
           instanceId={instanceId}
           onSuccess={handleReservationAdded}
           workingHours={workingHours}
+          mode={
+            newReservationData.stationType === 'ppf' ? 'ppf' 
+            : newReservationData.stationType === 'detailing' ? 'detailing' 
+            : 'reservation'
+          }
+          stationId={newReservationData.stationId}
           editingReservation={editingReservation ? {
             id: editingReservation.id,
             customer_name: editingReservation.customer_name,
