@@ -151,8 +151,8 @@ export default function CustomerBookingWizard({
   const editMode = location.state?.editMode === true;
   const existingReservation = location.state?.existingReservation as ExistingReservation | undefined;
   
-  // Start from datetime step if in edit mode, otherwise from phone
-  const [step, setStep] = useState<Step>(editMode ? 'datetime' : 'phone');
+  // Start from service step if in edit mode (allow editing service), otherwise from phone
+  const [step, setStep] = useState<Step>(editMode ? 'service' : 'phone');
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
   const [instance, setInstance] = useState<Instance | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -808,7 +808,10 @@ export default function CustomerBookingWizard({
           start_time: selectedTime,
           end_time: newEndTime,
           station_id: selectedStationId,
-          edited_by_customer_at: new Date().toISOString()
+          service_id: selectedService.id,
+          service_ids: [selectedService.id],
+          edited_by_customer_at: new Date().toISOString(),
+          status: 'pending' // Return to pending after customer edit
         })
         .eq('id', existingReservation.id);
 
@@ -818,8 +821,8 @@ export default function CustomerBookingWizard({
       await supabase.from('notifications').insert({
         instance_id: existingReservation.instance_id,
         type: 'reservation_edited_by_customer',
-        title: `Klient zmienił termin: ${existingReservation.customer_name}`,
-        description: `${existingReservation.reservation_date} → ${newReservationDate} o ${selectedTime}`,
+        title: `Klient zmienił rezerwację: ${existingReservation.customer_name}`,
+        description: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
         entity_type: 'reservation',
         entity_id: existingReservation.id
       });
@@ -829,8 +832,8 @@ export default function CustomerBookingWizard({
         await supabase.functions.invoke('send-push-notification', {
           body: {
             instanceId: existingReservation.instance_id,
-            title: `📝 Zmiana terminu: ${existingReservation.customer_name}`,
-            body: `${existingReservation.reservation_date} → ${newReservationDate} o ${selectedTime}`,
+            title: `📝 Zmiana rezerwacji: ${existingReservation.customer_name}`,
+            body: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
             url: `/admin?reservationCode=${existingReservation.confirmation_code}`
           }
         });
