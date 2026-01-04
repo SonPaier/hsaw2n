@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 import {
   Sheet,
   SheetContent,
@@ -32,6 +33,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +50,7 @@ import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications
 import ServiceSelectionDrawer from './ServiceSelectionDrawer';
 
 type CarSize = 'small' | 'medium' | 'large';
+type DialogMode = 'reservation' | 'yard' | 'ppf' | 'detailing';
 
 interface Service {
   id: string;
@@ -116,6 +125,20 @@ interface EditingReservation {
   confirmation_code?: string;
 }
 
+export interface YardVehicle {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  vehicle_plate: string;
+  car_size: CarSize | null;
+  service_ids: string[];
+  arrival_date: string;
+  deadline_time: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+}
+
 interface AddReservationDialogV2Props {
   open: boolean;
   onClose: () => void;
@@ -124,6 +147,12 @@ interface AddReservationDialogV2Props {
   workingHours?: Record<string, WorkingHours | null> | null;
   /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
+  /** Mode: reservation (washing), yard, ppf, detailing */
+  mode?: DialogMode;
+  /** Station ID for ppf/detailing modes */
+  stationId?: string;
+  /** Yard vehicle to edit when mode='yard' */
+  editingYardVehicle?: YardVehicle | null;
 }
 
 const SLOT_INTERVAL = 15;
@@ -136,8 +165,15 @@ const AddReservationDialogV2 = ({
   onSuccess,
   workingHours = null,
   editingReservation = null,
+  mode = 'reservation',
+  stationId: propStationId,
+  editingYardVehicle = null,
 }: AddReservationDialogV2Props) => {
-  const isEditMode = !!editingReservation;
+  const isYardMode = mode === 'yard';
+  const isPPFMode = mode === 'ppf' || mode === 'detailing';
+  const isReservationMode = mode === 'reservation';
+  const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
+  
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
@@ -170,45 +206,74 @@ const AddReservationDialogV2 = ({
   
   const slotsScrollRef = useRef<HTMLDivElement>(null);
 
+  // Yard mode state
+  const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
+  const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
+  const [pickupDate, setPickupDate] = useState<Date | undefined>(undefined);
+  const [pickupDateOpen, setPickupDateOpen] = useState(false);
+  const [deadlineTime, setDeadlineTime] = useState('');
+
+  // PPF/Detailing mode state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
+  const [ppfStartTime, setPpfStartTime] = useState('09:00');
+  const [ppfEndTime, setPpfEndTime] = useState('17:00');
+  const [offerNumber, setOfferNumber] = useState('');
+
+  // Get station type for service filtering
+  const getStationType = (): 'washing' | 'ppf' | 'detailing' | 'universal' => {
+    if (mode === 'ppf') return 'ppf';
+    if (mode === 'detailing') return 'detailing';
+    return 'washing';
+  };
+
   // Fetch services and stations on mount
   useEffect(() => {
     const fetchData = async () => {
       if (!open || !instanceId) return;
       
-      // Fetch services (washing type only for V2)
-      const { data: servicesData } = await supabase
+      const stationType = getStationType();
+      
+      // For yard mode, fetch ALL services (no filter)
+      let servicesQuery = supabase
         .from('services')
         .select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
-        .eq('active', true)
-        .eq('station_type', 'washing')
-        .order('sort_order');
+        .eq('active', true);
+      
+      if (!isYardMode) {
+        servicesQuery = servicesQuery.eq('station_type', stationType);
+      }
+      
+      const { data: servicesData } = await servicesQuery.order('sort_order');
       
       if (servicesData) {
         setServices(servicesData);
       }
       
-      // Fetch washing stations
-      const { data: stationsData } = await supabase
-        .from('stations')
-        .select('id, name, type')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .eq('type', 'washing')
-        .order('sort_order');
-      
-      if (stationsData) {
-        setStations(stationsData);
+      // Fetch stations (only for reservation mode)
+      if (isReservationMode) {
+        const { data: stationsData } = await supabase
+          .from('stations')
+          .select('id, name, type')
+          .eq('instance_id', instanceId)
+          .eq('active', true)
+          .eq('type', 'washing')
+          .order('sort_order');
+        
+        if (stationsData) {
+          setStations(stationsData);
+        }
       }
     };
     
     fetchData();
-  }, [open, instanceId]);
+  }, [open, instanceId, mode]);
 
-  // Fetch availability blocks when date changes
+  // Fetch availability blocks when date changes (only for reservation mode)
   useEffect(() => {
     const fetchAvailability = async () => {
-      if (!instanceId || !selectedDate) return;
+      if (!instanceId || !selectedDate || !isReservationMode) return;
       
       const fromDate = format(selectedDate, 'yyyy-MM-dd');
       const toDate = format(addDays(selectedDate, 7), 'yyyy-MM-dd');
@@ -225,7 +290,7 @@ const AddReservationDialogV2 = ({
     };
     
     fetchAvailability();
-  }, [instanceId, selectedDate]);
+  }, [instanceId, selectedDate, isReservationMode]);
 
   // Calculate the next working day based on working hours
   const getNextWorkingDay = useCallback((): Date => {
@@ -261,11 +326,96 @@ const AddReservationDialogV2 = ({
     return addDays(startOfDay(now), 1);
   }, [workingHours]);
 
-  // Reset form when dialog opens or populate from editing reservation
+  // Reset form when dialog opens or populate from editing data
   useEffect(() => {
     if (open) {
-      if (editingReservation) {
-        // Edit mode - populate from existing reservation
+      if (isYardMode && editingYardVehicle) {
+        // Yard edit mode
+        setCustomerName(editingYardVehicle.customer_name || '');
+        setPhone(editingYardVehicle.customer_phone || '');
+        setCarModel(editingYardVehicle.vehicle_plate || '');
+        setCarSize(editingYardVehicle.car_size || 'medium');
+        setSelectedServices(editingYardVehicle.service_ids || []);
+        setArrivalDate(new Date(editingYardVehicle.arrival_date));
+        setDeadlineTime(editingYardVehicle.deadline_time || '');
+        setNotes(editingYardVehicle.notes || '');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      } else if (isYardMode) {
+        // Yard create mode
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setArrivalDate(new Date());
+        setPickupDate(undefined);
+        setDeadlineTime('');
+        setNotes('');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      } else if (isPPFMode && editingReservation) {
+        // PPF/Detailing edit mode
+        setCustomerName(editingReservation.customer_name || '');
+        setPhone(editingReservation.customer_phone || '');
+        setCarModel(editingReservation.vehicle_plate || '');
+        setCarSize(editingReservation.car_size || 'medium');
+        const serviceIds = editingReservation.service_ids || (editingReservation.service_id ? [editingReservation.service_id] : []);
+        setSelectedServices(serviceIds);
+        
+        // Date range
+        const fromDate = new Date(editingReservation.reservation_date);
+        const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
+        setDateRange({ from: fromDate, to: toDate });
+        
+        setPpfStartTime(editingReservation.start_time?.substring(0, 5) || '09:00');
+        setPpfEndTime(editingReservation.end_time?.substring(0, 5) || '17:00');
+        
+        // Extract offer number from notes
+        if (editingReservation.notes) {
+          const offerMatch = editingReservation.notes.match(/Oferta:\s*([^\n]+)/);
+          if (offerMatch) {
+            setOfferNumber(offerMatch[1].trim());
+            setNotes(editingReservation.notes.replace(/Oferta:\s*[^\n]+\n?/, '').trim());
+          } else {
+            setOfferNumber('');
+            setNotes(editingReservation.notes);
+          }
+        } else {
+          setOfferNumber('');
+          setNotes('');
+        }
+        
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      } else if (isPPFMode) {
+        // PPF/Detailing create mode
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setDateRange(undefined);
+        setPpfStartTime('09:00');
+        setPpfEndTime('17:00');
+        setOfferNumber('');
+        setNotes('');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+      } else if (editingReservation) {
+        // Reservation edit mode
         setCustomerName(editingReservation.customer_name || '');
         setPhone(editingReservation.customer_phone || '');
         setCarModel(editingReservation.vehicle_plate || '');
@@ -282,7 +432,7 @@ const AddReservationDialogV2 = ({
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
       } else {
-        // Add mode - reset form
+        // Reservation create mode
         setCustomerName('');
         setPhone('');
         setCarModel('');
@@ -299,7 +449,7 @@ const AddReservationDialogV2 = ({
         setShowCustomerDropdown(false);
       }
     }
-  }, [open, getNextWorkingDay, editingReservation]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFMode, editingYardVehicle]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
@@ -315,9 +465,9 @@ const AddReservationDialogV2 = ({
     return total + (service ? getServiceDuration(service) : 0);
   }, 0);
 
-  // Get available time slots for the selected date
+  // Get available time slots for the selected date (reservation mode only)
   const getAvailableSlots = (): TimeSlot[] => {
-    if (!workingHours || selectedServices.length === 0 || stations.length === 0) {
+    if (!workingHours || selectedServices.length === 0 || stations.length === 0 || !isReservationMode) {
       return [];
     }
     
@@ -497,7 +647,205 @@ const AddReservationDialogV2 = ({
     }
   };
 
+  // Generate time options for yard deadline (every 15 min from 6:00 to 22:00)
+  const yardTimeOptions = [];
+  for (let h = 6; h <= 22; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      yardTimeOptions.push(timeStr);
+    }
+  }
+
   const handleSubmit = async () => {
+    // Yard mode validation and submit
+    if (isYardMode) {
+      if (!carModel.trim()) {
+        toast.error(t('addReservation.carModelRequired'));
+        return;
+      }
+      if (selectedServices.length === 0) {
+        toast.error(t('addReservation.selectAtLeastOneService'));
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const vehicleData = {
+          instance_id: instanceId,
+          customer_name: customerName.trim() || 'Klient',
+          customer_phone: phone.trim() || '',
+          vehicle_plate: carModel.trim(),
+          car_size: carSize || null,
+          service_ids: selectedServices,
+          arrival_date: format(arrivalDate, 'yyyy-MM-dd'),
+          deadline_time: deadlineTime || null,
+          notes: notes.trim() || null,
+        };
+
+        if (editingYardVehicle) {
+          const { error } = await supabase
+            .from('yard_vehicles')
+            .update(vehicleData)
+            .eq('id', editingYardVehicle.id);
+
+          if (error) throw error;
+          toast.success(t('addReservation.yardVehicleUpdated'));
+        } else {
+          const { error } = await supabase
+            .from('yard_vehicles')
+            .insert({
+              ...vehicleData,
+              status: 'waiting'
+            });
+
+          if (error) throw error;
+          toast.success(t('addReservation.yardVehicleAdded'));
+        }
+
+        onSuccess();
+        onClose();
+      } catch (error) {
+        console.error('Error saving yard vehicle:', error);
+        toast.error(t('addReservation.yardVehicleError'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // PPF/Detailing mode validation and submit
+    if (isPPFMode) {
+      if (!carModel.trim()) {
+        toast.error(t('addReservation.carModelRequired'));
+        return;
+      }
+      if (selectedServices.length === 0) {
+        toast.error(t('addReservation.selectAtLeastOneService'));
+        return;
+      }
+      if (!dateRange?.from) {
+        toast.error(t('addReservation.selectDateRange'));
+        return;
+      }
+      if (!propStationId) {
+        toast.error(t('addReservation.noStation'));
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        // Create customer if needed
+        let customerId = selectedCustomerId;
+        
+        if (customerName && !customerId && phone) {
+          const { data: existingCustomer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('instance_id', instanceId)
+            .eq('phone', phone)
+            .maybeSingle();
+          
+          if (existingCustomer) {
+            customerId = existingCustomer.id;
+          } else {
+            const { data: newCustomer, error: customerError } = await supabase
+              .from('customers')
+              .insert({
+                instance_id: instanceId,
+                phone,
+                name: customerName,
+              })
+              .select('id')
+              .single();
+            
+            if (!customerError && newCustomer) {
+              customerId = newCustomer.id;
+            }
+          }
+        }
+
+        // Build notes with offer number
+        let reservationNotes = '';
+        if (offerNumber) {
+          reservationNotes = `Oferta: ${offerNumber}`;
+        }
+        if (notes) {
+          reservationNotes = reservationNotes ? `${reservationNotes}\n${notes}` : notes;
+        }
+
+        const reservationData = {
+          station_id: propStationId,
+          reservation_date: format(dateRange.from, 'yyyy-MM-dd'),
+          end_date: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+          start_time: ppfStartTime,
+          end_time: ppfEndTime,
+          customer_name: customerName.trim() || 'Klient',
+          customer_phone: phone || '',
+          vehicle_plate: carModel || '',
+          car_size: carSize || null,
+          notes: reservationNotes || null,
+          service_id: selectedServices[0],
+          service_ids: selectedServices,
+        };
+
+        if (isEditMode && editingReservation) {
+          const { error: updateError } = await supabase
+            .from('reservations')
+            .update(reservationData)
+            .eq('id', editingReservation.id);
+
+          if (updateError) throw updateError;
+
+          sendPushNotification({
+            instanceId,
+            title: `✏️ Rezerwacja zmieniona`,
+            body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
+            url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
+            tag: `edited-reservation-${editingReservation.id}`,
+          });
+
+          toast.success(t('addReservation.reservationUpdated'));
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const newReservationData = {
+            ...reservationData,
+            instance_id: instanceId,
+            confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
+            status: 'confirmed' as const,
+            confirmed_at: new Date().toISOString(),
+            created_by: user?.id || null,
+          };
+
+          const { error: insertError } = await supabase
+            .from('reservations')
+            .insert([newReservationData]);
+
+          if (insertError) throw insertError;
+
+          sendPushNotification({
+            instanceId,
+            title: `📅 Nowa rezerwacja (admin)`,
+            body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
+            url: `/admin?reservationCode=${newReservationData.confirmation_code}`,
+            tag: `new-reservation-admin-${Date.now()}`,
+          });
+
+          toast.success(t('addReservation.reservationCreated'));
+        }
+        
+        onSuccess();
+        onClose();
+      } catch (error) {
+        console.error('Error saving reservation:', error);
+        toast.error(t('addReservation.reservationError'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Reservation mode validation and submit
     if (!carModel.trim()) {
       toast.error(t('addReservation.carModelRequired'));
       return;
@@ -684,6 +1032,24 @@ const AddReservationDialogV2 = ({
 
   const [notesOpen, setNotesOpen] = useState(false);
 
+  // Get dialog title based on mode
+  const getDialogTitle = () => {
+    if (isYardMode) {
+      return isEditMode ? t('addReservation.yardEditTitle') : t('addReservation.yardTitle');
+    }
+    if (isPPFMode) {
+      return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
+    }
+    return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
+  };
+
+  // Get station type label for service filtering
+  const getStationTypeLabel = () => {
+    if (mode === 'ppf') return 'PPF';
+    if (mode === 'detailing') return 'Detailing';
+    return '';
+  };
+
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <SheetContent 
@@ -697,7 +1063,14 @@ const AddReservationDialogV2 = ({
         {/* Fixed Header with Close button */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <SheetTitle>{isEditMode ? t('reservations.editReservation') : t('addReservation.title')}</SheetTitle>
+            <SheetTitle>
+              {getDialogTitle()}
+              {isPPFMode && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  ({getStationTypeLabel()})
+                </span>
+              )}
+            </SheetTitle>
             <button 
               type="button"
               onClick={onClose}
@@ -847,8 +1220,10 @@ const AddReservationDialogV2 = ({
                         type="button"
                         onClick={() => {
                           setSelectedServices(prev => [...prev, service.id]);
-                          setSelectedTime(null);
-                          setSelectedStationId(null);
+                          if (isReservationMode) {
+                            setSelectedTime(null);
+                            setSelectedStationId(null);
+                          }
                         }}
                         className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-50 hover:bg-slate-100 text-foreground border border-slate-200"
                       >
@@ -883,8 +1258,10 @@ const AddReservationDialogV2 = ({
                               const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
                               if (serviceToRemove) {
                                 setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
-                                setSelectedTime(null);
-                                setSelectedStationId(null);
+                                if (isReservationMode) {
+                                  setSelectedTime(null);
+                                  setSelectedStationId(null);
+                                }
                               }
                             }}
                             className="hover:bg-primary/20 rounded-full p-0.5"
@@ -902,9 +1279,11 @@ const AddReservationDialogV2 = ({
                         {t('common.add')}
                       </button>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {t('addReservation.totalDuration')}: {totalDurationMinutes} min
-                    </p>
+                    {isReservationMode && (
+                      <p className="text-sm text-muted-foreground">
+                        {t('addReservation.totalDuration')}: {totalDurationMinutes} min
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -927,108 +1306,302 @@ const AddReservationDialogV2 = ({
               selectedServiceIds={selectedServices}
               onConfirm={(serviceIds, duration) => {
                 setSelectedServices(serviceIds);
-                // Reset time selection when services change
-                setSelectedTime(null);
-                setSelectedStationId(null);
+                // Reset time selection when services change (reservation mode only)
+                if (isReservationMode) {
+                  setSelectedTime(null);
+                  setSelectedStationId(null);
+                }
               }}
             />
 
-            {/* Divider between services and time selection */}
+            {/* Divider between services and time/date selection */}
             <Separator className="my-2" />
 
-            {/* Date navigation with chevron */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={handlePrevDay}
-                  disabled={!canGoPrev}
-                  className={cn(
-                    "p-2 rounded-full transition-colors",
-                    canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
-                  )}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
-                    >
-                      {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="center">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => {
-                        if (date) {
-                          setSelectedDate(date);
-                          setSelectedTime(null);
-                          setDatePickerOpen(false);
-                        }
-                      }}
-                      disabled={(date) => isBefore(date, startOfDay(new Date()))}
-                      locale={pl}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-                
-                <button
-                  type="button"
-                  onClick={handleNextDay}
-                  className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Time slots */}
-            <div className="space-y-2">
-              <Label>{t('addReservation.availableSlots')}</Label>
-              {selectedServices.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  {t('addReservation.selectServiceFirst')}
-                </p>
-              ) : availableSlots.length > 0 ? (
-                <div className="w-full overflow-hidden">
-                  <div 
-                    ref={slotsScrollRef}
-                    className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-                  >
-                    {availableSlots.map((slot) => {
-                      const isSelected = selectedTime === slot.time;
-                      return (
-                        <button
-                          key={slot.time}
-                          type="button"
-                          onClick={() => handleSelectSlot(slot)}
+            {/* YARD MODE - Arrival Date, Pickup Date, Deadline */}
+            {isYardMode && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4" />
+                      {t('addReservation.arrivalDate')}
+                    </Label>
+                    <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
                           className={cn(
-                            "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
-                            isSelected 
-                              ? "bg-primary text-primary-foreground shadow-lg" 
-                              : "bg-card border-2 border-border hover:border-primary/50"
+                            "w-full justify-start text-left font-normal",
+                            !arrivalDate && "text-muted-foreground"
                           )}
                         >
-                          {slot.time}
-                        </button>
-                      );
-                    })}
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {arrivalDate ? format(arrivalDate, 'd MMM', { locale: pl }) : t('addReservation.selectDate')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={arrivalDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              setArrivalDate(date);
+                              setArrivalDateOpen(false);
+                            }
+                          }}
+                          locale={pl}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4" />
+                      {t('addReservation.pickupDate')}
+                    </Label>
+                    <Popover open={pickupDateOpen} onOpenChange={setPickupDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !pickupDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {pickupDate ? format(pickupDate, 'd MMM', { locale: pl }) : t('addReservation.selectDate')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={pickupDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              setPickupDate(date);
+                              setPickupDateOpen(false);
+                            }
+                          }}
+                          locale={pl}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  {t('booking.noSlotsForDay')}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {t('addReservation.deadline')}
+                  </Label>
+                  <Select value={deadlineTime} onValueChange={setDeadlineTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="--:--" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover max-h-60">
+                      <SelectItem value="none">{t('common.noResults')}</SelectItem>
+                      {yardTimeOptions.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* PPF/DETAILING MODE - Date Range, Start/End Time, Offer Number */}
+            {isPPFMode && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    {t('addReservation.dateRangePpf')}
+                  </Label>
+                  <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dateRange?.from && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "d MMM", { locale: pl })} -{" "}
+                              {format(dateRange.to, "d MMM yyyy", { locale: pl })}
+                            </>
+                          ) : (
+                            format(dateRange.from, "d MMM yyyy", { locale: pl })
+                          )
+                        ) : (
+                          <span>{t('addReservation.selectDateRange')}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from || new Date()}
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          setDateRange(range);
+                          if (range?.from && range?.to) {
+                            setDateRangeOpen(false);
+                          }
+                        }}
+                        numberOfMonths={2}
+                        locale={pl}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ppfStartTime">
+                      {t('addReservation.startTime')}
+                    </Label>
+                    <Input
+                      id="ppfStartTime"
+                      type="time"
+                      value={ppfStartTime}
+                      onChange={(e) => setPpfStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ppfEndTime">
+                      {t('addReservation.endTime')}
+                    </Label>
+                    <Input
+                      id="ppfEndTime"
+                      type="time"
+                      value={ppfEndTime}
+                      onChange={(e) => setPpfEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="offerNumber">
+                    {t('addReservation.offerNumber')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
+                  </Label>
+                  <Input
+                    id="offerNumber"
+                    value={offerNumber}
+                    onChange={(e) => setOfferNumber(e.target.value)}
+                    placeholder={t('addReservation.offerNumberPlaceholder')}
+                  />
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  {t('addReservation.multiDayHint')}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* RESERVATION MODE - Date navigation + Time slots */}
+            {isReservationMode && (
+              <>
+                {/* Date navigation with chevron */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={handlePrevDay}
+                      disabled={!canGoPrev}
+                      className={cn(
+                        "p-2 rounded-full transition-colors",
+                        canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
+                      )}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
+                        >
+                          {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="center">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              setSelectedDate(date);
+                              setSelectedTime(null);
+                              setDatePickerOpen(false);
+                            }
+                          }}
+                          disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                          locale={pl}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <button
+                      type="button"
+                      onClick={handleNextDay}
+                      className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Time slots */}
+                <div className="space-y-2">
+                  <Label>{t('addReservation.availableSlots')}</Label>
+                  {selectedServices.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      {t('addReservation.selectServiceFirst')}
+                    </p>
+                  ) : availableSlots.length > 0 ? (
+                    <div className="w-full overflow-hidden">
+                      <div 
+                        ref={slotsScrollRef}
+                        className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                      >
+                        {availableSlots.map((slot) => {
+                          const isSelected = selectedTime === slot.time;
+                          return (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              onClick={() => handleSelectSlot(slot)}
+                              className={cn(
+                                "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                                isSelected 
+                                  ? "bg-primary text-primary-foreground shadow-lg" 
+                                  : "bg-card border-2 border-border hover:border-primary/50"
+                              )}
+                            >
+                              {slot.time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      {t('booking.noSlotsForDay')}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Notes - collapsed by default */}
             <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
@@ -1059,12 +1632,21 @@ const AddReservationDialogV2 = ({
         <SheetFooter className="px-6 py-4 border-t shrink-0">
           <Button 
             onClick={handleSubmit} 
-            disabled={loading || selectedServices.length === 0 || !selectedTime || !carModel.trim()} 
+            disabled={
+              loading || 
+              selectedServices.length === 0 || 
+              !carModel.trim() ||
+              (isReservationMode && !selectedTime) ||
+              (isPPFMode && !dateRange?.from)
+            } 
             className="w-full"
             size="lg"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditMode ? t('common.save') : t('addReservation.addReservation')}
+            {isYardMode 
+              ? (isEditMode ? t('common.save') : t('addReservation.addVehicle'))
+              : (isEditMode ? t('common.save') : t('addReservation.addReservation'))
+            }
           </Button>
         </SheetFooter>
       </SheetContent>

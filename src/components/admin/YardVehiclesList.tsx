@@ -4,7 +4,7 @@ import { pl } from 'date-fns/locale';
 import { Phone, Clock, Trash2, Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import YardVehicleDialog from './YardVehicleDialog';
+import AddReservationDialogV2, { YardVehicle } from './AddReservationDialogV2';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,20 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-interface YardVehicle {
-  id: string;
-  customer_name: string;
-  customer_phone: string;
-  vehicle_plate: string;
-  car_size: 'small' | 'medium' | 'large' | null;
-  service_ids: string[];
-  arrival_date: string;
-  deadline_time: string | null;
-  notes: string | null;
-  status: string;
-  created_at: string;
-}
 
 // Helper to safely convert JSON array to string array
 const toStringArray = (arr: unknown): string[] => {
@@ -317,8 +303,8 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
         )}
       </div>
 
-      {/* Dialog for add/edit - now using YardVehicleDialog */}
-      <YardVehicleDialog
+      {/* Dialog for add/edit - using AddReservationDialogV2 with mode="yard" */}
+      <AddReservationDialogV2
         open={dialogOpen}
         onClose={() => {
           setDialogOpen(false);
@@ -351,5 +337,5 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
   );
 }
 
-// Export the YardVehicle type for use in other components
-export type { YardVehicle };
+// Re-export the YardVehicle type from AddReservationDialogV2 for backward compatibility
+export type { YardVehicle } from './AddReservationDialogV2';
