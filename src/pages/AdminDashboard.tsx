@@ -12,7 +12,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
@@ -105,13 +105,19 @@ const AdminDashboard = () => {
   const reservationCodeFromUrl = searchParams.get('reservationCode');
 
   // Derive currentView from URL param
-  const currentView: ViewType = view && validViews.includes(view as ViewType) ? view as ViewType : 'calendar';
+  const currentView: ViewType =
+    view && validViews.includes(view as ViewType) ? (view as ViewType) : 'calendar';
+
+  // Support both route bases:
+  // - dev/staging: /admin/:view
+  // - instance admin subdomain: /:view
+  const location = useLocation();
+  const adminBasePath = location.pathname.startsWith('/admin') ? '/admin' : '';
+
   const setCurrentView = (newView: ViewType) => {
-    if (newView === 'calendar') {
-      navigate('/admin');
-    } else {
-      navigate(`/admin/${newView}`);
-    }
+    const target =
+      newView === 'calendar' ? adminBasePath || '/' : `${adminBasePath}/${newView}`;
+    navigate(target);
   };
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
