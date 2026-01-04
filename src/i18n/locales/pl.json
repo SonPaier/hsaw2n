@@ -156,7 +156,8 @@
       "completed": "Zakończone",
       "cancelled": "Anulowane",
       "released": "Pojazd wydany",
-      "noShow": "Nieobecność"
+      "noShow": "Nieobecność",
+      "changeRequested": "Prośba o zmianę"
     },
     "markAsNoShow": "Oznacz jako nieobecność",
     "noShowMarked": "Rezerwacja oznaczona jako nieobecność",
@@ -178,7 +179,23 @@
     "changeDate": "Zmień termin",
     "saveChanges": "Zapisz zmiany",
     "reservationUpdated": "Termin rezerwacji został zmieniony",
-    "reservationCancelled": "Rezerwacja została anulowana"
+    "reservationCancelled": "Rezerwacja została anulowana",
+    "changeRequestSent": "Prośba o zmianę terminu została wysłana",
+    "pendingChangeRequest": "Oczekujesz na potwierdzenie zmiany terminu",
+    "changeRequestFrom": "Przeniesiona z",
+    "approveChange": "Zatwierdź zmianę",
+    "rejectChange": "Odrzuć zmianę",
+    "changeApproved": "Zmiana terminu zatwierdzona",
+    "changeRejected": "Prośba o zmianę odrzucona",
+    "alreadyHasPendingChange": "Masz już aktywną prośbę o zmianę terminu",
+    "proposedNewDate": "Proponowany nowy termin",
+    "originalReservation": "Oryginalna rezerwacja",
+    "notifications": {
+      "changeRequestTitle": "Klient prosi o zmianę: {{name}}",
+      "changeRequestPush": "Prośba o zmianę: {{name}}",
+      "changeApprovedSms": "{{instanceName}}: Twoja prośba o zmianę terminu została zatwierdzona. Nowy termin: {{date}} o {{time}}. Zarządzaj: {{url}}",
+      "changeRejectedSms": "{{instanceName}}: Niestety nie możemy zmienić terminu. Twoja rezerwacja pozostaje: {{date}} o {{time}}. Zarządzaj: {{url}}"
+    }
   },
   "booking": {
     "title": "Umów się na wizytę",

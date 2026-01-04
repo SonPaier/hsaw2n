@@ -55,6 +55,13 @@ const MojaRezerwacja = () => {
   const code = searchParams.get('code');
   const [loading, setLoading] = useState(true);
   const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [pendingChangeRequest, setPendingChangeRequest] = useState<{
+    id: string;
+    reservation_date: string;
+    start_time: string;
+    confirmation_code: string;
+    service?: { name: string };
+  } | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +108,27 @@ const MojaRezerwacja = () => {
             service: data.service as unknown as Reservation['service'],
             instance: data.instance as unknown as Reservation['instance'],
           });
+          
+          // Check for pending change request linked to this reservation
+          const { data: changeRequest } = await supabase
+            .from('reservations')
+            .select(`
+              id,
+              reservation_date,
+              start_time,
+              confirmation_code,
+              service:services(name)
+            `)
+            .eq('original_reservation_id', data.id)
+            .eq('status', 'change_requested')
+            .maybeSingle();
+          
+          if (changeRequest) {
+            setPendingChangeRequest({
+              ...changeRequest,
+              service: changeRequest.service as unknown as { name: string }
+            });
+          }
         }
       } catch (err) {
         console.error('Error fetching reservation:', err);
@@ -244,8 +272,8 @@ const MojaRezerwacja = () => {
   const hoursBeforeVisit = differenceInHours(visitDateTime, new Date());
   const cutoffHours = reservation.instance.customer_edit_cutoff_hours ?? 1;
   const isPast = visitDateTime < new Date();
-  const canEdit = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours;
-  const canCancel = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours;
+  const canEdit = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours && !pendingChangeRequest;
+  const canCancel = ['confirmed', 'pending'].includes(reservation.status) && hoursBeforeVisit >= cutoffHours && !pendingChangeRequest;
 
   return (
     <>
@@ -275,6 +303,30 @@ const MojaRezerwacja = () => {
             <StatusIcon className="w-4 h-4" />
             {statusInfo.label}
           </div>
+
+          {/* Pending change request info */}
+          {pendingChangeRequest && (
+            <div className="glass-card p-4 mb-4 bg-orange-50 border-orange-200">
+              <div className="flex items-center gap-2 text-orange-700 font-medium mb-2">
+                <Clock className="w-4 h-4" />
+                {t('myReservation.pendingChangeRequest')}
+              </div>
+              <div className="text-sm text-orange-600 space-y-1">
+                <div className="flex justify-between">
+                  <span>{t('myReservation.proposedNewDate')}</span>
+                  <span className="font-medium">
+                    {format(parseISO(pendingChangeRequest.reservation_date), 'd MMMM', { locale: pl })} o {pendingChangeRequest.start_time.slice(0, 5)}
+                  </span>
+                </div>
+                {pendingChangeRequest.service?.name && (
+                  <div className="flex justify-between">
+                    <span>{t('reservations.service')}</span>
+                    <span className="font-medium">{pendingChangeRequest.service.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Reservation details */}
           <div className="space-y-4">

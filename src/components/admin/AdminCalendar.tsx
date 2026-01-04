@@ -2,7 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
 import SendSmsDialog from './SendSmsDialog';
@@ -135,6 +135,9 @@ const getStatusColor = (status: string, stationType?: string) => {
     case 'cancelled':
       // Czerwony - anulowana
       return 'bg-red-100/60 border-red-300 text-red-700 line-through opacity-60';
+    case 'change_requested':
+      // Pomarańczowy - prośba o zmianę terminu
+      return 'bg-orange-200 border-orange-400 text-orange-900';
     default:
       return 'bg-amber-100 border-amber-300 text-amber-900';
   }
@@ -1294,6 +1297,7 @@ const AdminCalendar = ({
                               </div> : <span className="text-xs md:text-sm font-bold tabular-nums shrink-0 flex items-center gap-1">
                                 {isMultiDay ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
                                 {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
+                                {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-orange-600" />}
                               </span>}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
                             {!hallMode && <div className="flex items-center gap-0.5 shrink-0">
@@ -1609,6 +1613,7 @@ const AdminCalendar = ({
                                 {!hallMode && <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block flex items-center gap-1">
                                     {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                     {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot shrink-0" />}
+                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600 shrink-0" />}
                                   </div>}
                               </div>
                             </div>;
@@ -1843,6 +1848,7 @@ const AdminCalendar = ({
                                 {!hallMode && <span className="opacity-80 shrink-0 ml-0.5 flex items-center gap-0.5">
                                     {isMultiDay ? `${displayStart.slice(0, 5)}` : reservation.start_time.slice(0, 5)}
                                     {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot" />}
+                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600" />}
                                   </span>}
                               </div>}
                             {reservation.service && <div className="text-[8px] md:text-[9px] opacity-70 truncate">
