@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, Plus, X, Check, ChevronDown } from 'lucide-react';
-import { format, addDays, subDays, isSameDay, isBefore, startOfDay, isAfter } from 'date-fns';
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
@@ -36,15 +36,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
+import ServiceSelectionDrawer from './ServiceSelectionDrawer';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -149,8 +142,7 @@ const AddReservationDialogV2 = ({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Services dropdown
-  const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
-  const [serviceSearchValue, setServiceSearchValue] = useState('');
+  const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
   
   const slotsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -329,19 +321,6 @@ const AddReservationDialogV2 = ({
   };
 
   const availableSlots = getAvailableSlots();
-
-  // Toggle service selection
-  const toggleService = (serviceId: string) => {
-    setSelectedServices(prev => {
-      if (prev.includes(serviceId)) {
-        return prev.filter(id => id !== serviceId);
-      }
-      return [...prev, serviceId];
-    });
-    // Reset time selection when services change
-    setSelectedTime(null);
-    setSelectedStationId(null);
-  };
 
   // Handle slot selection
   const handleSelectSlot = (slot: TimeSlot) => {
@@ -578,12 +557,10 @@ const AddReservationDialogV2 = ({
     }
   };
 
-  // Get popular services with shortcuts for quick selection
-  const shortcutServices = services.filter(s => s.shortcut && s.is_popular).slice(0, 6);
-  const filteredServices = services.filter(s => 
-    s.name.toLowerCase().includes(serviceSearchValue.toLowerCase()) ||
-    (s.shortcut && s.shortcut.toLowerCase().includes(serviceSearchValue.toLowerCase()))
-  );
+  // Get selected service names for display
+  const selectedServiceNames = services
+    .filter(s => selectedServices.includes(s.id))
+    .map(s => s.shortcut || s.name);
 
   const canGoPrev = !isBefore(subDays(selectedDate, 1), startOfDay(new Date()));
 
@@ -723,113 +700,55 @@ const AddReservationDialogV2 = ({
               </div>
             </div>
 
-            {/* Services shortcuts row */}
+            {/* Services selection - opens drawer */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
-              <div className="flex flex-wrap gap-2 items-center">
-                {shortcutServices.map((service) => {
-                  const isSelected = selectedServices.includes(service.id);
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => toggleService(service.id)}
-                      className={cn(
-                        "px-3 py-1.5 text-sm rounded-full border transition-all",
-                        isSelected 
-                          ? "bg-primary text-primary-foreground border-primary" 
-                          : "bg-card border-border hover:border-primary/50"
-                      )}
-                    >
-                      {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                      {service.shortcut || service.name}
-                    </button>
-                  );
-                })}
-                
-                {/* More services button */}
-                <Popover open={servicesDropdownOpen} onOpenChange={setServicesDropdownOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-8 h-8 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-0" align="start">
-                    <Command>
-                      <CommandInput 
-                        placeholder={t('addReservation.searchServices')} 
-                        value={serviceSearchValue}
-                        onValueChange={setServiceSearchValue}
-                      />
-                      <CommandList>
-                        <CommandEmpty>{t('common.noResults')}</CommandEmpty>
-                        <CommandGroup>
-                          {filteredServices.map((service) => {
-                            const isSelected = selectedServices.includes(service.id);
-                            return (
-                              <CommandItem
-                                key={service.id}
-                                onSelect={() => {
-                                  toggleService(service.id);
-                                }}
-                                className="flex items-center gap-2"
-                              >
-                                <div className={cn(
-                                  "w-4 h-4 rounded border flex items-center justify-center",
-                                  isSelected ? "bg-primary border-primary" : "border-muted-foreground"
-                                )}>
-                                  {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                                </div>
-                                <span>{service.name}</span>
-                                {service.shortcut && (
-                                  <span className="text-xs text-muted-foreground">({service.shortcut})</span>
-                                )}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {/* Selected services (if any not in shortcuts) */}
-              {selectedServices.filter(id => !shortcutServices.find(s => s.id === id)).length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedServices
-                    .filter(id => !shortcutServices.find(s => s.id === id))
-                    .map(id => {
-                      const service = services.find(s => s.id === id);
-                      if (!service) return null;
-                      return (
+              <button
+                type="button"
+                onClick={() => setServiceDrawerOpen(true)}
+                className={cn(
+                  "w-full p-3 rounded-lg border-2 border-dashed text-left transition-colors",
+                  selectedServices.length > 0
+                    ? "border-primary/50 bg-primary/5"
+                    : "border-muted-foreground/30 hover:border-primary/50"
+                )}
+              >
+                {selectedServices.length > 0 ? (
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap gap-1">
+                      {selectedServiceNames.map((name, i) => (
                         <span 
-                          key={id} 
-                          className="px-2 py-1 text-xs rounded-full bg-primary text-primary-foreground flex items-center gap-1"
+                          key={i}
+                          className="px-2 py-0.5 text-sm rounded bg-primary/10 text-primary"
                         >
-                          {service.shortcut || service.name}
-                          <button 
-                            type="button"
-                            onClick={() => toggleService(id)}
-                            className="hover:bg-primary-foreground/20 rounded-full"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          {name}
                         </span>
-                      );
-                    })}
-                </div>
-              )}
-              
-              {totalDurationMinutes > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {t('addReservation.totalDuration')}: {totalDurationMinutes} min
-                </p>
-              )}
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t('addReservation.totalDuration')}: {totalDurationMinutes} min
+                    </p>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">{t('addReservation.selectServices')}</span>
+                )}
+              </button>
             </div>
+
+            {/* Service Selection Drawer */}
+            <ServiceSelectionDrawer
+              open={serviceDrawerOpen}
+              onClose={() => setServiceDrawerOpen(false)}
+              instanceId={instanceId}
+              carSize={carSize}
+              selectedServiceIds={selectedServices}
+              onConfirm={(serviceIds, duration) => {
+                setSelectedServices(serviceIds);
+                // Reset time selection when services change
+                setSelectedTime(null);
+                setSelectedStationId(null);
+              }}
+            />
 
             {/* Divider between services and time selection */}
             <Separator className="my-2" />
