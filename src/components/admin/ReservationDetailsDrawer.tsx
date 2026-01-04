@@ -373,14 +373,6 @@ const ReservationDetailsDrawer = ({
               </div>
             ) : null}
 
-            {/* Notes */}
-            {notes && (
-              <div className="border-t border-border/30 pt-3">
-                <div className="text-xs text-muted-foreground mb-1">{t('common.notes')}</div>
-                <div className="text-sm whitespace-pre-wrap">{notes}</div>
-              </div>
-            )}
-
             {/* Kwota (Price) section with expandable receipt */}
             {(() => {
               // Calculate total from services based on car size
@@ -407,7 +399,7 @@ const ReservationDetailsDrawer = ({
                 <div className="flex items-start gap-3">
                   <Receipt className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">{t('reservations.amount')}</div>
+                    <div className="text-xs text-muted-foreground">{t('addReservation.amount')}</div>
                     <div className="font-semibold text-lg">{displayTotal} zł</div>
                     
                     {hasMultipleServices && (
@@ -415,7 +407,7 @@ const ReservationDetailsDrawer = ({
                         onClick={() => setPriceDetailsOpen(!priceDetailsOpen)}
                         className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                       >
-                        {priceDetailsOpen ? t('common.hide') : t('reservations.seeDetails')}
+                        {priceDetailsOpen ? t('common.hide') : t('addReservation.seeDetails')}
                         {priceDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </button>
                     )}
@@ -429,7 +421,7 @@ const ReservationDetailsDrawer = ({
                           </li>
                         ))}
                         <li className="border-t border-border pt-2 mt-2 flex justify-between text-sm font-semibold">
-                          <span>{t('reservations.total')}</span>
+                          <span>{t('common.total')}</span>
                           <span>{calculatedTotal} zł</span>
                         </li>
                       </ul>
@@ -438,6 +430,14 @@ const ReservationDetailsDrawer = ({
                 </div>
               );
             })()}
+
+            {/* Notes - last section */}
+            {notes && (
+              <div className="border-t border-border/30 pt-3">
+                <div className="text-xs text-muted-foreground mb-1">{t('common.notes')}</div>
+                <div className="text-sm whitespace-pre-wrap">{notes}</div>
+              </div>
+            )}
 
             {/* Change request info - show original reservation reference */}
             {reservation.status === 'change_requested' && reservation.original_reservation && (
