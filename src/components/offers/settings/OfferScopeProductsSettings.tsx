@@ -73,17 +73,21 @@ export const OfferScopeProductsSettings = forwardRef<OfferScopeProductsSettingsR
       fetchData();
     }, [instanceId]);
 
+    // When scope changes, auto-select first available variant for that scope
     useEffect(() => {
-      if (selectedScope && selectedVariant) {
-        // Check if selected variant is still valid for this scope
-        const isValidVariant = availableVariants.some(v => v.id === selectedVariant);
-        if (!isValidVariant && availableVariants.length > 0) {
-          setSelectedVariant(availableVariants[0].id);
-        } else if (!isValidVariant && availableVariants.length === 0) {
+      if (selectedScope && scopeVariantLinks.length > 0) {
+        const linksForScope = scopeVariantLinks.filter(l => l.scope_id === selectedScope);
+        if (linksForScope.length > 0) {
+          const firstVariantForScope = linksForScope[0].variant_id;
+          // Only update if current variant is not valid for this scope
+          if (!linksForScope.some(l => l.variant_id === selectedVariant)) {
+            setSelectedVariant(firstVariantForScope);
+          }
+        } else {
           setSelectedVariant(null);
         }
       }
-    }, [selectedScope, availableVariants]);
+    }, [selectedScope, scopeVariantLinks]);
 
     useEffect(() => {
       if (selectedScope && selectedVariant) {
