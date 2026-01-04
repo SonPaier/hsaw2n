@@ -401,6 +401,8 @@ const ReservationDetailsDrawer = ({
 
               if (displayTotal <= 0 && servicesWithPrices.length === 0) return null;
 
+              const hasMultipleServices = servicesWithPrices.length > 1;
+
               return (
                 <div className="flex items-start gap-3">
                   <Receipt className="w-5 h-5 text-muted-foreground mt-0.5" />
@@ -408,7 +410,7 @@ const ReservationDetailsDrawer = ({
                     <div className="text-xs text-muted-foreground">{t('reservations.amount')}</div>
                     <div className="font-semibold text-lg">{displayTotal} zł</div>
                     
-                    {servicesWithPrices.length > 0 && (
+                    {hasMultipleServices && (
                       <button 
                         onClick={() => setPriceDetailsOpen(!priceDetailsOpen)}
                         className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
@@ -418,19 +420,19 @@ const ReservationDetailsDrawer = ({
                       </button>
                     )}
                     
-                    {priceDetailsOpen && servicesWithPrices.length > 0 && (
-                      <div className="mt-3 bg-muted/30 rounded-lg p-3 space-y-2">
+                    {priceDetailsOpen && hasMultipleServices && (
+                      <ul className="mt-3 space-y-1">
                         {servicesWithPrices.map((svc, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
+                          <li key={idx} className="flex justify-between text-sm">
                             <span className="text-muted-foreground">{svc.name}</span>
                             <span className="font-medium">{svc.price} zł</span>
-                          </div>
+                          </li>
                         ))}
-                        <div className="border-t border-border/50 pt-2 mt-2 flex justify-between text-sm font-semibold">
-                          <span>{t('common.total')}</span>
+                        <li className="border-t border-border pt-2 mt-2 flex justify-between text-sm font-semibold">
+                          <span>{t('reservations.total')}</span>
                           <span>{calculatedTotal} zł</span>
-                        </div>
-                      </div>
+                        </li>
+                      </ul>
                     )}
                   </div>
                 </div>
