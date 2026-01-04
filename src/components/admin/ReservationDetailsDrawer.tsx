@@ -72,6 +72,7 @@ interface ReservationDetailsDrawerProps {
   onClose: () => void;
   onDelete?: (reservationId: string, customerData: { name: string; phone: string; email?: string; instance_id: string }) => void;
   onEdit?: (reservation: Reservation) => void;
+  onNoShow?: (reservationId: string) => void;
   onConfirm?: (reservationId: string) => void;
   onStartWork?: (reservationId: string) => void;
   onEndWork?: (reservationId: string) => void;
@@ -86,6 +87,7 @@ const ReservationDetailsDrawer = ({
   onClose, 
   onDelete, 
   onEdit, 
+  onNoShow,
   onConfirm, 
   onStartWork, 
   onEndWork, 
@@ -95,10 +97,12 @@ const ReservationDetailsDrawer = ({
 }: ReservationDetailsDrawerProps) => {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
+  const [markingNoShow, setMarkingNoShow] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [startingWork, setStartingWork] = useState(false);
   const [endingWork, setEndingWork] = useState(false);
   const [releasing, setReleasing] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
@@ -154,6 +158,8 @@ const ReservationDetailsDrawer = ({
         return <Badge className="bg-muted text-muted-foreground">{t('reservations.statuses.released')}</Badge>;
       case 'cancelled':
         return <Badge className="bg-destructive/20 text-destructive border-destructive/30">{t('reservations.statuses.cancelled')}</Badge>;
+      case 'no_show':
+        return <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">{t('reservations.statuses.noShow')}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -176,9 +182,23 @@ const ReservationDetailsDrawer = ({
         email: reservation.customer_email,
         instance_id: reservation.instance_id,
       });
+      setDeleteDialogOpen(false);
       onClose();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleNoShow = async () => {
+    if (!reservation || !onNoShow) return;
+    
+    setMarkingNoShow(true);
+    try {
+      await onNoShow(reservation.id);
+      setDeleteDialogOpen(false);
+      onClose();
+    } finally {
+      setMarkingNoShow(false);
     }
   };
 
@@ -360,36 +380,57 @@ const ReservationDetailsDrawer = ({
                 
                 {/* Delete only for confirmed */}
                 {reservation.status === 'confirmed' && onDelete && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
-                        disabled={deleting}
-                      >
-                        {deleting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                        {t('common.delete')}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('reservations.confirmDeleteTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.no')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          {t('reservations.yesDelete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      disabled={deleting || markingNoShow}
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      {deleting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      {t('common.delete')}
+                    </Button>
+                    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t('reservations.confirmDeleteTitle')}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="sm:order-1">{t('common.cancel')}</AlertDialogCancel>
+                          {onNoShow && (
+                            <Button
+                              variant="outline"
+                              className="sm:order-2 border-orange-500/30 text-orange-600 hover:bg-orange-500/10"
+                              onClick={handleNoShow}
+                              disabled={markingNoShow || deleting}
+                            >
+                              {markingNoShow ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              ) : null}
+                              {t('reservations.markAsNoShow')}
+                            </Button>
+                          )}
+                          <AlertDialogAction 
+                            onClick={handleDelete} 
+                            className="sm:order-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deleting || markingNoShow}
+                          >
+                            {deleting ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            {t('reservations.yesDelete')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
               </div>
             )}

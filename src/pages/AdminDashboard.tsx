@@ -867,7 +867,7 @@ const AdminDashboard = () => {
 
     const { error } = await supabase
       .from('reservations')
-      .update({ status: 'confirmed' })
+      .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
       .eq('id', reservationId);
 
     if (error) {
@@ -943,7 +943,8 @@ const AdminDashboard = () => {
     const {
       error: updateError
     } = await supabase.from('reservations').update({
-      status: 'completed'
+      status: 'completed',
+      completed_at: new Date().toISOString()
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -985,7 +986,8 @@ const AdminDashboard = () => {
     const {
       error: updateError
     } = await supabase.from('reservations').update({
-      status: 'released'
+      status: 'released',
+      released_at: new Date().toISOString()
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -1013,7 +1015,8 @@ const AdminDashboard = () => {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'confirmed',
-      started_at: null
+      started_at: null,
+      completed_at: null
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -1040,7 +1043,9 @@ const AdminDashboard = () => {
     const {
       error: updateError
     } = await supabase.from('reservations').update({
-      status: 'in_progress'
+      status: 'in_progress',
+      completed_at: null,
+      released_at: null
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -1059,6 +1064,39 @@ const AdminDashboard = () => {
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     });
   };
+
+  const handleNoShow = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation || !instanceId) return;
+
+    // Save customer data before updating
+    await supabase.from('customers').upsert({
+      instance_id: instanceId,
+      name: reservation.customer_name,
+      phone: reservation.customer_phone,
+      source: 'myjnia',
+    }, {
+      onConflict: 'instance_id,source,phone',
+      ignoreDuplicates: false
+    });
+
+    const { error } = await supabase.from('reservations').update({
+      status: 'no_show',
+      no_show_at: new Date().toISOString()
+    }).eq('id', reservationId);
+
+    if (error) {
+      toast.error(t('errors.generic'));
+      console.error('Error marking no-show:', error);
+      return;
+    }
+
+    // Update local state - remove from visible list (no_show hides from calendar)
+    setReservations(prev => prev.filter(r => r.id !== reservationId));
+    setSelectedReservation(null);
+    toast.success(t('reservations.noShowMarked'));
+  };
+
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
@@ -1452,6 +1490,7 @@ const AdminDashboard = () => {
         onClose={() => setSelectedReservation(null)} 
         onDelete={handleDeleteReservation} 
         onEdit={handleEditReservation}
+        onNoShow={handleNoShow}
         onConfirm={async id => {
           await handleConfirmReservation(id);
           setSelectedReservation(null);
