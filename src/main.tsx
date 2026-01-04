@@ -4,16 +4,14 @@ import App from "./App.tsx";
 import "./index.css";
 import "./i18n/config";
 
-// Register service worker with update prompt
-const updateSW = registerSW({
+// Register service worker - auto-update silently on next page load
+registerSW({
   onNeedRefresh() {
-    // Show update notification to user
-    if (confirm('Dostępna nowa wersja aplikacji. Odświeżyć teraz?')) {
-      updateSW(true);
-    }
+    // New version available - will apply on next refresh/reload
+    console.log('[PWA] New version available, will update on next reload');
   },
   onOfflineReady() {
-    console.log('App ready for offline use');
+    console.log('[PWA] App ready for offline use');
   },
   onRegisteredSW(swUrl, registration) {
     console.log('[PWA] SW registered:', swUrl);
