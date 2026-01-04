@@ -14,7 +14,23 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ArmCar" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
-    <!-- Manifest is dynamically set by DynamicManifest.tsx based on context -->
+    <link rel="manifest" id="dynamic-manifest" href="/manifest.webmanifest" />
+    <script>
+      (function() {
+        var isAdmin = window.location.pathname.startsWith('/admin');
+        var context = isAdmin ? 'admin' : 'public';
+        var hostname = window.location.hostname;
+        var slug = null;
+        var parts = hostname.split('.');
+        if (parts.length >= 2 && ['armcar', 'demo'].indexOf(parts[0]) !== -1) {
+          slug = parts[0];
+        }
+        var manifestUrl = 'https://vklavozvzfqhxzoczqnp.supabase.co/functions/v1/get-manifest?context=' + context;
+        if (slug) manifestUrl += '&slug=' + slug;
+        var link = document.getElementById('dynamic-manifest');
+        if (link) link.href = manifestUrl;
+      })();
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:title" content="ArmCar - System Rezerwacji" />

@@ -15,7 +15,6 @@ import HallView from "./pages/HallView";
 import PublicOfferView from "./pages/PublicOfferView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DynamicManifest from "./components/pwa/DynamicManifest";
 
 const queryClient = new QueryClient();
 
@@ -190,7 +189,6 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <DynamicManifest />
               {renderRoutes()}
             </BrowserRouter>
           </TooltipProvider>
