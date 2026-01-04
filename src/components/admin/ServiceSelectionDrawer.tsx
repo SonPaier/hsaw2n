@@ -46,6 +46,8 @@ interface ServiceSelectionDrawerProps {
   carSize: CarSize;
   selectedServiceIds: string[];
   onConfirm: (serviceIds: string[], totalDuration: number) => void;
+  /** Optional station type to filter services */
+  stationType?: 'washing' | 'ppf' | 'detailing' | 'universal';
 }
 
 const ServiceSelectionDrawer = ({
@@ -55,6 +57,7 @@ const ServiceSelectionDrawer = ({
   carSize,
   selectedServiceIds: initialSelectedIds,
   onConfirm,
+  stationType,
 }: ServiceSelectionDrawerProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -77,13 +80,19 @@ const ServiceSelectionDrawer = ({
       
       setLoading(true);
       
+      let servicesQuery = supabase
+        .from('services')
+        .select('id, name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+      
+      // Filter by station type if provided
+      if (stationType) {
+        servicesQuery = servicesQuery.eq('station_type', stationType);
+      }
+      
       const [servicesRes, categoriesRes] = await Promise.all([
-        supabase
-          .from('services')
-          .select('id, name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order')
-          .eq('instance_id', instanceId)
-          .eq('active', true)
-          .order('sort_order'),
+        servicesQuery.order('sort_order'),
         supabase
           .from('service_categories')
           .select('id, name, sort_order')
@@ -108,7 +117,7 @@ const ServiceSelectionDrawer = ({
     };
     
     fetchData();
-  }, [open, instanceId]);
+  }, [open, instanceId, stationType]);
 
   // Group services by category - show all categories even with 0 services
   const groupedServices = useMemo(() => {
