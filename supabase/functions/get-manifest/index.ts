@@ -48,11 +48,12 @@ serve(async (req) => {
 
     const isAdmin = context === "admin";
     const appName = isAdmin ? `Admin ${instanceName}` : instanceName;
-    const startUrl = isAdmin ? "/admin" : "/";
+    // With separate subdomains, start_url is always "/" since each subdomain is its own app
+    const startUrl = "/";
     const shortName = isAdmin ? `Admin` : instanceName.substring(0, 12);
 
-    // For admin, we'll add a visual distinction by using a different background
-    const adminBadgeColor = "#ef4444"; // red accent for admin
+    // For admin, we'll add a visual distinction by using a different theme
+    const adminThemeColor = "#ef4444"; // red accent for admin
 
     const manifest = {
       name: appName,
@@ -60,13 +61,12 @@ serve(async (req) => {
       description: isAdmin 
         ? `Panel administracyjny ${instanceName}` 
         : `System rezerwacji ${instanceName}`,
-      theme_color: isAdmin ? adminBadgeColor : themeColor,
+      theme_color: isAdmin ? adminThemeColor : themeColor,
       background_color: backgroundColor,
       display: "standalone",
       orientation: "portrait",
       start_url: startUrl,
       scope: "/",
-      id: isAdmin ? "/admin" : "/",
       icons: [
         {
           src: instanceLogo,

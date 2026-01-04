@@ -17,18 +17,31 @@
     <link rel="manifest" id="dynamic-manifest" href="/manifest.webmanifest" />
     <script>
       (function() {
-        var isAdmin = window.location.pathname.startsWith('/admin');
-        var context = isAdmin ? 'admin' : 'public';
         var hostname = window.location.hostname;
+        var context = 'public';
         var slug = null;
-        var parts = hostname.split('.');
-        if (parts.length >= 2 && ['armcar', 'demo'].indexOf(parts[0]) !== -1) {
-          slug = parts[0];
+        
+        // New subdomain structure:
+        // armcar.admin.n2wash.com → admin context, slug = armcar
+        // armcar.n2wash.com → public context, slug = armcar
+        // super.admin.n2wash.com → super admin (no manifest needed)
+        
+        if (hostname.endsWith('.admin.n2wash.com')) {
+          // Instance admin: armcar.admin.n2wash.com
+          context = 'admin';
+          slug = hostname.replace('.admin.n2wash.com', '');
+          if (slug === 'super') slug = null; // super.admin.n2wash.com has no instance
+        } else if (hostname.endsWith('.n2wash.com')) {
+          // Instance public: armcar.n2wash.com
+          context = 'public';
+          slug = hostname.replace('.n2wash.com', '');
         }
-        var manifestUrl = 'https://vklavozvzfqhxzoczqnp.supabase.co/functions/v1/get-manifest?context=' + context;
-        if (slug) manifestUrl += '&slug=' + slug;
-        var link = document.getElementById('dynamic-manifest');
-        if (link) link.href = manifestUrl;
+        
+        if (slug) {
+          var manifestUrl = 'https://vklavozvzfqhxzoczqnp.supabase.co/functions/v1/get-manifest?context=' + context + '&slug=' + slug;
+          var link = document.getElementById('dynamic-manifest');
+          if (link) link.href = manifestUrl;
+        }
       })();
     </script>
 
