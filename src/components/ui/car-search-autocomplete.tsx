@@ -38,6 +38,8 @@ interface CarSearchAutocompleteProps {
   className?: string;
   onSelect?: (model: CarModel) => void;
   onClear?: () => void;
+  /** When true, prevents dropdown from opening automatically on focus (used in edit mode) */
+  suppressAutoOpen?: boolean;
 }
 
 // Parse and flatten car data
@@ -72,11 +74,13 @@ export const CarSearchAutocomplete = ({
   className,
   onSelect,
   onClear,
+  suppressAutoOpen = false,
 }: CarSearchAutocompleteProps) => {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -142,6 +146,7 @@ export const CarSearchAutocomplete = ({
     const newValue = e.target.value;
     setInputValue(newValue);
     setActiveIndex(-1);
+    setHasUserInteracted(true);
     
     if (newValue.length >= 1) {
       setIsOpen(true);
@@ -291,7 +296,12 @@ export const CarSearchAutocomplete = ({
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => inputValue.length >= 1 && setIsOpen(true)}
+          onFocus={() => {
+            // Only auto-open if user has interacted or not suppressed
+            if (!suppressAutoOpen || hasUserInteracted) {
+              inputValue.length >= 1 && setIsOpen(true);
+            }
+          }}
           disabled={disabled}
           className={cn(
             'pr-16',
