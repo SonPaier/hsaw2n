@@ -154,8 +154,11 @@
       "inProgress": "W trakcie",
       "completed": "Zakończone",
       "cancelled": "Anulowane",
-      "released": "Pojazd wydany"
+      "released": "Pojazd wydany",
+      "noShow": "Nieobecność"
     },
+    "markAsNoShow": "Oznacz jako nieobecność",
+    "noShowMarked": "Rezerwacja oznaczona jako nieobecność",
     "sources": {
       "employee": "Pracownik",
       "system": "System rezerwacji",

@@ -435,6 +435,8 @@ const AdminCalendar = ({
   const getReservationsForStationAndDate = (stationId: string, dateStr: string) => {
     return reservations.filter(r => {
       if (r.station_id !== stationId) return false;
+      // Exclude cancelled and no_show from calendar view
+      if (r.status === 'cancelled' || r.status === 'no_show') return false;
 
       // Check if date falls within reservation range
       const startDate = r.reservation_date;
@@ -469,9 +471,9 @@ const AdminCalendar = ({
     const resStartNum = parseTime(resStart);
     const resEndNum = parseTime(resEnd);
 
-    // Find all overlapping reservations (excluding cancelled)
+    // Find all overlapping reservations (excluding cancelled and no_show)
     const overlapping = allReservations.filter(r => {
-      if (r.id === reservation.id || r.status === 'cancelled') return false;
+      if (r.id === reservation.id || r.status === 'cancelled' || r.status === 'no_show') return false;
       const {
         displayStart: rStart,
         displayEnd: rEnd
@@ -534,9 +536,9 @@ const AdminCalendar = ({
     }
     const totalWorkingMinutes = (closeHour - openHour) * 60;
 
-    // Get all reservations for this station on this date (excluding cancelled)
+    // Get all reservations for this station on this date (excluding cancelled and no_show)
     const stationReservations = reservations.filter(r => {
-      if (r.station_id !== stationId || r.status === 'cancelled') return false;
+      if (r.station_id !== stationId || r.status === 'cancelled' || r.status === 'no_show') return false;
       const startDate = r.reservation_date;
       const endDate = r.end_date || r.reservation_date;
       return dateStr >= startDate && dateStr <= endDate;
@@ -743,7 +745,7 @@ const AdminCalendar = ({
   // Check if a time slot overlaps with existing reservations (including multi-day)
   const checkOverlap = (stationId: string, dateStr: string, startTime: string, endTime: string, excludeReservationId?: string): boolean => {
     const stationReservations = reservations.filter(r => {
-      if (r.station_id !== stationId || r.id === excludeReservationId || r.status === 'cancelled') return false;
+      if (r.station_id !== stationId || r.id === excludeReservationId || r.status === 'cancelled' || r.status === 'no_show') return false;
 
       // Check if date falls within reservation range
       const startDate = r.reservation_date;

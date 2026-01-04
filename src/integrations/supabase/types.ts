@@ -1157,6 +1157,7 @@ export type Database = {
           offer_number: string
           payment_terms: string | null
           public_token: string
+          rejected_at: string | null
           responded_at: string | null
           selected_state: Json | null
           sent_at: string | null
@@ -1182,6 +1183,7 @@ export type Database = {
           offer_number: string
           payment_terms?: string | null
           public_token?: string
+          rejected_at?: string | null
           responded_at?: string | null
           selected_state?: Json | null
           sent_at?: string | null
@@ -1207,6 +1209,7 @@ export type Database = {
           offer_number?: string
           payment_terms?: string | null
           public_token?: string
+          rejected_at?: string | null
           responded_at?: string | null
           selected_state?: Json | null
           sent_at?: string | null
@@ -1396,9 +1399,13 @@ export type Database = {
       }
       reservations: {
         Row: {
+          cancelled_at: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
+          completed_at: string | null
           confirmation_code: string
+          confirmed_at: string | null
           created_at: string | null
+          created_by: string | null
           customer_email: string | null
           customer_name: string
           customer_phone: string
@@ -1406,8 +1413,10 @@ export type Database = {
           end_time: string
           id: string
           instance_id: string
+          no_show_at: string | null
           notes: string | null
           price: number | null
+          released_at: string | null
           reservation_date: string
           service_id: string
           service_ids: Json | null
@@ -1420,9 +1429,13 @@ export type Database = {
           vehicle_plate: string
         }
         Insert: {
+          cancelled_at?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
+          completed_at?: string | null
           confirmation_code: string
+          confirmed_at?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_email?: string | null
           customer_name: string
           customer_phone: string
@@ -1430,8 +1443,10 @@ export type Database = {
           end_time: string
           id?: string
           instance_id: string
+          no_show_at?: string | null
           notes?: string | null
           price?: number | null
+          released_at?: string | null
           reservation_date: string
           service_id: string
           service_ids?: Json | null
@@ -1444,9 +1459,13 @@ export type Database = {
           vehicle_plate: string
         }
         Update: {
+          cancelled_at?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
+          completed_at?: string | null
           confirmation_code?: string
+          confirmed_at?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
@@ -1454,8 +1473,10 @@ export type Database = {
           end_time?: string
           id?: string
           instance_id?: string
+          no_show_at?: string | null
           notes?: string | null
           price?: number | null
+          released_at?: string | null
           reservation_date?: string
           service_id?: string
           service_ids?: Json | null
@@ -1933,6 +1954,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "released"
+        | "no_show"
       service_category:
         | "car_wash"
         | "ppf"
@@ -2076,6 +2098,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "released",
+        "no_show",
       ],
       service_category: ["car_wash", "ppf", "detailing", "upholstery", "other"],
       station_type: ["washing", "ppf", "detailing", "universal"],

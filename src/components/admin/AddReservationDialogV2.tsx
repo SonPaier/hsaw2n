@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
@@ -575,6 +576,8 @@ const AddReservationDialogV2 = ({
         toast.success(t('addReservation.reservationUpdated'));
       } else {
         // Create new reservation
+        const { data: { user } } = await supabase.auth.getUser();
+        
         const reservationData = {
           instance_id: instanceId,
           station_id: selectedStationId,
@@ -590,6 +593,8 @@ const AddReservationDialogV2 = ({
           service_ids: selectedServices,
           confirmation_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
           status: 'confirmed' as const,
+          confirmed_at: new Date().toISOString(),
+          created_by: user?.id || null,
         };
 
         const { error: reservationError } = await supabase
