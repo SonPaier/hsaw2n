@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { OfferOption, OfferItem } from '@/hooks/useOffer';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
 import {
   Collapsible,
   CollapsibleContent,
@@ -173,7 +172,6 @@ export const OptionsStep = ({
     setJustSelected(prev => ({ ...prev, [itemId]: true }));
     setAutocompleteOpen(prev => ({ ...prev, [itemId]: false }));
     setSearchTerms(prev => ({ ...prev, [itemId]: '' }));
-    // Prevent reopening on focus after selection - use longer timeout
     setTimeout(() => {
       setJustSelected(prev => ({ ...prev, [itemId]: false }));
     }, 300);
@@ -198,99 +196,86 @@ export const OptionsStep = ({
     }).format(value);
   };
 
-  // Render single option section (without Card wrapper)
+  // Render single option section - flat design
   const renderOptionSection = (option: OfferOption) => (
-    <div key={option.id} className="border rounded-lg overflow-hidden bg-background">
+    <div key={option.id} className="border-b last:border-b-0 pb-6 last:pb-0">
       <Collapsible
         open={expandedOptions.has(option.id)}
         onOpenChange={() => toggleOption(option.id)}
       >
-        <div className="px-4 py-3 border-b bg-muted/30">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <Input
-                  value={option.name.replace(/^.*? - /, '')} // Show only variant name
-                  onChange={(e) => {
-                    const scopeName = option.name.includes(' - ') 
-                      ? option.name.split(' - ')[0] + ' - ' 
-                      : '';
-                    onUpdateOption(option.id, { name: scopeName + e.target.value });
-                  }}
-                  className="font-semibold text-lg border-none p-0 h-auto focus-visible:ring-0 bg-transparent"
-                />
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {option.items.length} pozycji • {formatPrice(calculateOptionTotal(option))} netto
-              </div>
+        {/* Option Header */}
+        <div className="flex items-center justify-between py-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-base">
+                {option.name.replace(/^.*? - /, '')}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {option.items.length} poz. • {formatPrice(calculateOptionTotal(option))} netto
+              </span>
             </div>
+          </div>
 
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoveOption(option.id)}
-                className="text-destructive hover:text-destructive"
-                title="Usuń opcję"
-              >
-                <Trash2 className="w-4 h-4" />
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemoveOption(option.id)}
+              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {expandedOptions.has(option.id) ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
               </Button>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  {expandedOptions.has(option.id) ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-            </div>
+            </CollapsibleTrigger>
           </div>
         </div>
 
         <CollapsibleContent>
-          <div className="p-4 space-y-4">
+          <div className="space-y-4 pt-2">
             {/* Option Description */}
-            <div className="space-y-2">
-              <Label>Opis opcji</Label>
+            <div className="space-y-1">
+              <Label className="text-sm text-muted-foreground">Opis opcji</Label>
               <Input
                 value={option.description || ''}
                 onChange={(e) => onUpdateOption(option.id, { description: e.target.value })}
+                className="bg-white"
               />
             </div>
 
-            {/* Items Table */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Pozycje</Label>
+            {/* Items List - flat design */}
+            <div className="space-y-3">
+              <Label className="text-sm text-muted-foreground">Pozycje</Label>
               
-              {/* Table Header - varies based on showUnitPrices */}
+              {/* Table Header */}
               {showUnitPrices ? (
-                <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-primary/10 border border-border rounded-t-lg text-xs font-medium text-foreground">
-                  <div className="col-span-4">Nazwa</div>
-                  <div className="col-span-2 text-center">Ilość</div>
-                  <div className="col-span-1 text-center">J.m.</div>
-                  <div className="col-span-2 text-center">Cena netto</div>
-                  <div className="col-span-2 text-center">Rabat %</div>
-                  <div className="col-span-1"></div>
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
+                  <div className="col-span-5">Nazwa</div>
+                  <div className="col-span-2 text-left">Cena netto</div>
+                  <div className="col-span-2 text-left">Rabat %</div>
+                  <div className="col-span-3"></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-primary/10 border border-border rounded-t-lg text-xs font-medium text-foreground">
+                <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
                   <div className="col-span-6">Nazwa</div>
-                  <div className="col-span-3 text-center">Cena netto</div>
-                  <div className="col-span-2 text-center">Rabat %</div>
+                  <div className="col-span-3 text-left">Cena netto</div>
+                  <div className="col-span-2 text-left">Rabat %</div>
                   <div className="col-span-1"></div>
                 </div>
               )}
               
-              {option.items.map((item, itemIndex) => (
-                <div
-                  key={item.id}
-                  className="border-x border-b first:border-t rounded-none last:rounded-b-lg"
-                >
+              {option.items.map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-3 items-center">
                   {showUnitPrices ? (
-                    <div className="grid grid-cols-12 gap-2 p-3">
+                    <>
                       {/* Name with Autocomplete */}
-                      <div className="col-span-4">
+                      <div className="col-span-5">
                         <Popover 
                           open={autocompleteOpen[item.id]} 
                           onOpenChange={(open) => {
@@ -313,6 +298,7 @@ export const OptionsStep = ({
                                   setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
                                 }
                               }}
+                              className="bg-white"
                             />
                           </PopoverTrigger>
                           <PopoverContent
@@ -357,27 +343,6 @@ export const OptionsStep = ({
                         </Popover>
                       </div>
                       
-                      {/* Quantity */}
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                          min={0}
-                          step={0.01}
-                          className="text-center"
-                        />
-                      </div>
-                      
-                      {/* Unit */}
-                      <div className="col-span-1">
-                        <Input
-                          value={item.unit}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { unit: e.target.value })}
-                          className="text-center"
-                        />
-                      </div>
-                      
                       {/* Price */}
                       <div className="col-span-2">
                         <Input
@@ -386,7 +351,7 @@ export const OptionsStep = ({
                           onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
                           min={0}
                           step={0.01}
-                          className="text-center"
+                          className="bg-white text-left"
                         />
                       </div>
                       
@@ -398,24 +363,43 @@ export const OptionsStep = ({
                           onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: parseFloat(e.target.value) || 0 })}
                           min={0}
                           max={100}
-                          className="text-center"
+                          className="bg-white text-left"
+                        />
+                      </div>
+                      
+                      {/* Hidden fields for unit prices mode */}
+                      <div className="col-span-2 flex gap-2">
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                          min={0}
+                          step={0.01}
+                          className="bg-white text-left"
+                          placeholder="Ilość"
+                        />
+                        <Input
+                          value={item.unit}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { unit: e.target.value })}
+                          className="bg-white text-left w-16"
+                          placeholder="J.m."
                         />
                       </div>
                       
                       {/* Delete */}
-                      <div className="col-span-1 flex items-center justify-end">
+                      <div className="col-span-1 flex justify-end">
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => onRemoveItem(option.id, item.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="grid grid-cols-12 gap-2 p-3">
+                    <>
                       {/* Name with Autocomplete */}
                       <div className="col-span-6">
                         <Popover 
@@ -440,6 +424,7 @@ export const OptionsStep = ({
                                   setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
                                 }
                               }}
+                              className="bg-white"
                             />
                           </PopoverTrigger>
                           <PopoverContent
@@ -492,7 +477,7 @@ export const OptionsStep = ({
                           onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: (parseFloat(e.target.value) || 0) / (item.quantity || 1), quantity: 1 })}
                           min={0}
                           step={0.01}
-                          className="text-center"
+                          className="bg-white text-left"
                         />
                       </div>
                       
@@ -504,44 +489,42 @@ export const OptionsStep = ({
                           onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: parseFloat(e.target.value) || 0 })}
                           min={0}
                           max={100}
-                          className="text-center"
+                          className="bg-white text-left"
                         />
                       </div>
                       
                       {/* Delete */}
-                      <div className="col-span-1 flex items-center justify-end">
+                      <div className="col-span-1 flex justify-end">
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => onRemoveItem(option.id, item.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               ))}
 
               {option.items.length === 0 && (
-                <div className="border rounded-b-lg p-4 text-center text-muted-foreground text-sm">
+                <div className="text-center py-4 text-muted-foreground text-sm">
                   Brak pozycji. Dodaj pierwszą pozycję poniżej.
                 </div>
               )}
 
               {/* Add Item Button */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAddItem(option.id)}
-                  className="gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Dodaj pozycję
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddItem(option.id)}
+                className="gap-1 mt-2"
+              >
+                <Plus className="w-3 h-3" />
+                Dodaj pozycję
+              </Button>
             </div>
           </div>
         </CollapsibleContent>
@@ -552,7 +535,7 @@ export const OptionsStep = ({
   return (
     <div className="space-y-8">
       {/* Grouped Options by Scope */}
-      {groupedOptions.map((group, groupIndex) => (
+      {groupedOptions.map((group) => (
         <div key={group.scope?.id || 'ungrouped'} className="space-y-4">
           {/* Scope Header */}
           {group.scope && (
@@ -574,8 +557,8 @@ export const OptionsStep = ({
             </div>
           )}
 
-          {/* Options in this group */}
-          <div className="space-y-4 pl-0 md:pl-4">
+          {/* Options in this group - flat list */}
+          <div className="space-y-0 pl-0 md:pl-4">
             {group.options.map(option => renderOptionSection(option))}
           </div>
         </div>
