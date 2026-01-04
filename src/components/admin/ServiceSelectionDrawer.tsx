@@ -1,16 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-} from '@/components/ui/drawer';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -106,23 +110,15 @@ const ServiceSelectionDrawer = ({
     fetchData();
   }, [open, instanceId]);
 
-  // Group services by category
+  // Group services by category - show all categories even with 0 services
   const groupedServices = useMemo(() => {
-    const groups: { category: ServiceCategory | null; services: Service[] }[] = [];
+    const groups: { category: ServiceCategory; services: Service[] }[] = [];
     
-    // Services with categories
+    // All categories with their services
     categories.forEach(category => {
       const categoryServices = services.filter(s => s.category_id === category.id);
-      if (categoryServices.length > 0) {
-        groups.push({ category, services: categoryServices });
-      }
+      groups.push({ category, services: categoryServices });
     });
-    
-    // Services without category (at the end)
-    const uncategorized = services.filter(s => !s.category_id);
-    if (uncategorized.length > 0) {
-      groups.push({ category: null, services: uncategorized });
-    }
     
     return groups;
   }, [services, categories]);
@@ -189,6 +185,26 @@ const ServiceSelectionDrawer = ({
     }, 0);
   }, [selectedIds, services, carSize]);
 
+  // Calculate total price
+  const totalPrice = useMemo(() => {
+    let total = 0;
+    let hasVariablePrice = false;
+    
+    selectedIds.forEach(id => {
+      const service = services.find(s => s.id === id);
+      if (service) {
+        const price = getPrice(service);
+        if (price !== null) {
+          total += price;
+        } else {
+          hasVariablePrice = true;
+        }
+      }
+    });
+    
+    return { total, hasVariablePrice };
+  }, [selectedIds, services, carSize]);
+
   // Handle confirm
   const handleConfirm = () => {
     onConfirm(selectedIds, totalDuration);
@@ -196,18 +212,22 @@ const ServiceSelectionDrawer = ({
   };
 
   return (
-    <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DrawerContent className="max-h-[90vh] flex flex-col" hideOverlay>
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent 
+        side="right" 
+        hideOverlay 
+        className="w-full sm:max-w-md p-0 flex flex-col"
+      >
         {/* Header - clicking closes drawer */}
-        <DrawerHeader 
+        <SheetHeader 
           className="border-b px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors shrink-0"
           onClick={onClose}
         >
-          <DrawerTitle className="flex items-center gap-3 text-lg font-semibold">
+          <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
             <ArrowLeft className="w-5 h-5" />
             {t('serviceDrawer.selectService')}
-          </DrawerTitle>
-        </DrawerHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
@@ -218,31 +238,41 @@ const ServiceSelectionDrawer = ({
           ) : (
             <div className="pb-4">
               {groupedServices.map(({ category, services: categoryServices }) => {
-                const categoryId = category?.id || 'uncategorized';
-                const isExpanded = expandedCategories.has(categoryId);
+                const isExpanded = expandedCategories.has(category.id);
+                const serviceCount = categoryServices.length;
                 
                 return (
-                  <div key={categoryId}>
+                  <Collapsible
+                    key={category.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleCategory(category.id)}
+                  >
                     {/* Category header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(categoryId)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        {category?.name || t('serviceDrawer.otherServices')}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </button>
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-slate-200/70 hover:bg-slate-200 transition-colors">
+                        <ChevronRight 
+                          className={cn(
+                            "w-5 h-5 text-slate-600 transition-transform duration-200",
+                            isExpanded && "rotate-90"
+                          )} 
+                        />
+                        <span className="text-base font-semibold text-slate-800">
+                          {category.name}
+                        </span>
+                        <span className="text-sm text-slate-500">
+                          ({serviceCount} usług)
+                        </span>
+                      </div>
+                    </CollapsibleTrigger>
                     
                     {/* Services list */}
-                    {isExpanded && (
-                      <div>
-                        {categoryServices.map((service) => {
+                    <CollapsibleContent>
+                      {categoryServices.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-muted-foreground italic">
+                          Brak usług w tej kategorii
+                        </div>
+                      ) : (
+                        categoryServices.map((service) => {
                           const isSelected = selectedIds.includes(service.id);
                           const price = getPrice(service);
                           const duration = getDuration(service);
@@ -279,10 +309,10 @@ const ServiceSelectionDrawer = ({
                               </div>
                             </button>
                           );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                        })
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
                 );
               })}
             </div>
@@ -290,15 +320,25 @@ const ServiceSelectionDrawer = ({
         </div>
 
         {/* Fixed Footer */}
-        <DrawerFooter className="border-t px-4 py-3 shrink-0 bg-background">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">
-              {t('serviceDrawer.selectedCount', { count: selectedIds.length })}
-            </span>
-            {totalDuration > 0 && (
-              <span className="text-sm font-medium">
-                {t('serviceDrawer.totalTime')}: {formatDuration(totalDuration)}
+        <div className="border-t px-4 py-4 shrink-0 bg-background">
+          <div className="mb-3 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold text-foreground">
+                {t('serviceDrawer.selectedCount', { count: selectedIds.length })}
               </span>
+              {totalDuration > 0 && (
+                <span className="text-lg font-bold text-foreground">
+                  {formatDuration(totalDuration)}
+                </span>
+              )}
+            </div>
+            {selectedIds.length > 0 && (
+              <div className="text-right">
+                <span className="text-base text-muted-foreground">
+                  {totalPrice.hasVariablePrice ? 'od ' : ''}
+                  {totalPrice.total.toFixed(0)} zł
+                </span>
+              </div>
             )}
           </div>
           <Button 
@@ -308,9 +348,9 @@ const ServiceSelectionDrawer = ({
           >
             {t('serviceDrawer.addButton')}
           </Button>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 
