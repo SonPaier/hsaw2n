@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
-import ReservationDetails from '@/components/admin/ReservationDetails';
+import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
 import ReservationsView from '@/components/admin/ReservationsView';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
@@ -1445,8 +1445,8 @@ const AdminDashboard = () => {
         </main>
       </div>
 
-      {/* Reservation Details Modal */}
-      <ReservationDetails 
+      {/* Reservation Details Drawer */}
+      <ReservationDetailsDrawer 
         reservation={selectedReservation} 
         open={!!selectedReservation} 
         onClose={() => setSelectedReservation(null)} 
