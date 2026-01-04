@@ -740,6 +740,14 @@
     "description": "Przepraszamy, nie możemy znaleźć tej strony.",
     "backToHome": "Wróć do strony głównej"
   },
+  "serviceDrawer": {
+    "selectService": "Wybierz usługę",
+    "otherServices": "Pozostałe usługi",
+    "variablePrice": "Zmienna",
+    "selectedCount": "Wybrano: {{count}}",
+    "totalTime": "Łączny czas",
+    "addButton": "Dodaj"
+  },
   "addReservation": {
     "title": "Nowa rezerwacja",
     "formDescription": "Formularz dodawania nowej rezerwacji",
