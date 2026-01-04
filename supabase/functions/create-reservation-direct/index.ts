@@ -160,6 +160,28 @@ serve(async (req: Request): Promise<Response> => {
           entity_id: reservation?.id,
         });
       console.log("Notification created for new reservation");
+
+      // Send push notification to admins
+      try {
+        const pushResponse = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            instanceId,
+            title: `Nowa rezerwacja`,
+            body: `${reservationData.customerName} - ${dayName} ${dayNum} ${monthName} o ${reservationData.time}`,
+            url: `/admin?reservationCode=${confirmationCode}`,
+            tag: `reservation-${confirmationCode}`,
+          }),
+        });
+        const pushResult = await pushResponse.json();
+        console.log("Push notification sent:", pushResult);
+      } catch (pushError) {
+        console.error("Failed to send push notification:", pushError);
+      }
     } catch (notifError) {
       console.error("Failed to create notification:", notifError);
     }

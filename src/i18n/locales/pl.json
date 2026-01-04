@@ -1566,5 +1566,28 @@
   "serviceSelector": {
     "loadingServices": "Ładowanie usług...",
     "searchPlaceholder": "Szukaj usługi lub wpisz skrót (np. KPL, MZ)..."
+  },
+  "pwa": {
+    "installTitle": "Zainstaluj {{name}}",
+    "installSubtitle": "Dodaj do ekranu głównego",
+    "installDescription": "Zainstaluj aplikację dla szybszego dostępu do rezerwacji",
+    "step1Click": "Kliknij",
+    "step1Share": "Udostępnij",
+    "step2Select": "Wybierz",
+    "step2AddHome": "Dodaj do ekranu początkowego",
+    "later": "Później",
+    "understand": "Rozumiem",
+    "fasterBooking": "Chcesz kolejnym razem szybciej dokonać rezerwacji?",
+    "addShortcut": "Sprawdź, jak dodać skrót do telefonu"
+  },
+  "pushNotifications": {
+    "enable": "Włącz powiadomienia push",
+    "enabled": "Powiadomienia włączone",
+    "permissionDenied": "Brak zgody na powiadomienia",
+    "notSupported": "Powiadomienia push nie są obsługiwane",
+    "newReservation": "Nowa rezerwacja",
+    "reservationCancelled": "Rezerwacja anulowana",
+    "reservationModified": "Rezerwacja zmieniona",
+    "enableError": "Błąd włączania powiadomień"
   }
 }

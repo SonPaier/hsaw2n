@@ -1,68 +1,86 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Share, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-const IOSInstallPrompt = () => {
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+interface IOSInstallPromptProps {
+  open?: boolean;
+  onClose?: () => void;
+  instanceName?: string;
+  instanceLogo?: string | null;
+}
 
-  useEffect(() => {
-    // Check if it's iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    // Check if already installed (standalone mode)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         (window.navigator as any).standalone === true;
-    
-    // Check if user has dismissed the prompt before
-    const hasBeenDismissed = localStorage.getItem('ios-install-prompt-dismissed');
-    
-    if (isIOS && !isStandalone && !hasBeenDismissed) {
-      // Show prompt after a short delay
-      const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+const IOSInstallPrompt = ({ 
+  open: controlledOpen, 
+  onClose, 
+  instanceName,
+  instanceLogo 
+}: IOSInstallPromptProps) => {
+  const { t } = useTranslation();
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise internal state
+  const isControlled = controlledOpen !== undefined;
+  const showPrompt = isControlled ? controlledOpen : internalOpen;
+
+  // Only auto-show for uncontrolled mode (legacy behavior removed - no auto-show anymore)
+  // This component is now only shown when explicitly opened via props
+
+  const handleClose = () => {
+    if (isControlled && onClose) {
+      onClose();
+    } else {
+      setInternalOpen(false);
+      localStorage.setItem('ios-install-prompt-dismissed', 'true');
     }
-  }, []);
-
-  const handleDismiss = () => {
-    setDismissed(true);
-    setShowPrompt(false);
-    localStorage.setItem('ios-install-prompt-dismissed', 'true');
   };
 
-  const handleRemindLater = () => {
-    setShowPrompt(false);
-    // Will show again on next visit
+  const handleLater = () => {
+    if (isControlled && onClose) {
+      onClose();
+    } else {
+      setInternalOpen(false);
+    }
   };
 
-  if (!showPrompt || dismissed) return null;
+  const displayName = instanceName || 'aplikację';
+  const logoUrl = instanceLogo || '/pwa-192x192.png';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="w-full max-w-md mx-4 mb-4 bg-card border border-border rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+    <Dialog open={showPrompt} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-md mx-4 p-0 gap-0 rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <DialogHeader className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <img src="/pwa-192x192.png" alt="ArmCar" className="w-10 h-10 rounded-lg" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+              <img 
+                src={logoUrl} 
+                alt={displayName} 
+                className="w-10 h-10 rounded-lg object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/pwa-192x192.png';
+                }}
+              />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">Zainstaluj ArmCar</h3>
-              <p className="text-sm text-muted-foreground">Dodaj do ekranu głównego</p>
+              <DialogTitle className="font-semibold text-foreground">
+                {t('pwa.installTitle', { name: displayName })}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">{t('pwa.installSubtitle')}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleDismiss} className="rounded-full">
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+        </DialogHeader>
         
         {/* Instructions */}
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground text-center">
-            Zainstaluj aplikację dla szybszego dostępu do rezerwacji
+            {t('pwa.installDescription')}
           </p>
           
           <div className="space-y-3">
@@ -71,9 +89,9 @@ const IOSInstallPrompt = () => {
                 1
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span>Kliknij</span>
+                <span>{t('pwa.step1Click')}</span>
                 <Share className="h-5 w-5 text-primary" />
-                <span className="font-medium">Udostępnij</span>
+                <span className="font-medium">{t('pwa.step1Share')}</span>
               </div>
             </div>
             
@@ -82,9 +100,9 @@ const IOSInstallPrompt = () => {
                 2
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span>Wybierz</span>
+                <span>{t('pwa.step2Select')}</span>
                 <Plus className="h-5 w-5 text-primary" />
-                <span className="font-medium">Dodaj do ekranu początkowego</span>
+                <span className="font-medium">{t('pwa.step2AddHome')}</span>
               </div>
             </div>
           </div>
@@ -92,15 +110,15 @@ const IOSInstallPrompt = () => {
         
         {/* Actions */}
         <div className="flex gap-2 p-4 border-t border-border">
-          <Button variant="outline" className="flex-1" onClick={handleRemindLater}>
-            Później
+          <Button variant="outline" className="flex-1" onClick={handleLater}>
+            {t('pwa.later')}
           </Button>
-          <Button variant="default" className="flex-1" onClick={handleDismiss}>
-            Rozumiem
+          <Button variant="default" className="flex-1" onClick={handleClose}>
+            {t('pwa.understand')}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
