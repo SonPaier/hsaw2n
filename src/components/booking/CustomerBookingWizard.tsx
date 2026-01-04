@@ -1201,8 +1201,8 @@ export default function CustomerBookingWizard({
               {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
             </div>
             
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-foreground truncate">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h3 className="font-medium text-foreground truncate block max-w-full">
                 {service.name}
               </h3>
               {service.description && <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>}
