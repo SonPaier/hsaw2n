@@ -100,7 +100,7 @@ const SuperAdminDashboard = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/login');
   };
 
   const handleSeeAsClient = (instanceId: string, instanceSlug: string) => {

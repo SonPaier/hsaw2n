@@ -634,7 +634,7 @@ const AdminDashboard = () => {
   const stationsWithRanges = getFreeRangesPerStation();
   const handleLogout = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/login');
   };
   const handleReservationClick = (reservation: Reservation) => {
     setSelectedReservation(reservation);
