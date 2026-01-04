@@ -12,7 +12,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
@@ -85,6 +85,7 @@ const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settin
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     view
   } = useParams<{
@@ -99,6 +100,9 @@ const AdminDashboard = () => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
     return saved === 'true';
   });
+
+  // Deep linking: check for reservationCode in URL
+  const reservationCodeFromUrl = searchParams.get('reservationCode');
 
   // Derive currentView from URL param
   const currentView: ViewType = view && validViews.includes(view as ViewType) ? view as ViewType : 'calendar';
@@ -450,6 +454,19 @@ const AdminDashboard = () => {
     fetchBreaks();
     fetchClosedDays();
   }, [instanceId]);
+
+  // Deep linking: auto-open reservation from URL param
+  useEffect(() => {
+    if (reservationCodeFromUrl && reservations.length > 0) {
+      const reservation = reservations.find(r => r.confirmation_code === reservationCodeFromUrl);
+      if (reservation) {
+        setSelectedReservation(reservation);
+        // Clear the param after opening
+        searchParams.delete('reservationCode');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [reservationCodeFromUrl, reservations, searchParams, setSearchParams]);
 
   // Play notification sound for new customer reservations
   const playNotificationSound = () => {

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell, Loader2, Clock } from 'lucide-react';
+import { Bell, Loader2, Clock, Smartphone, Check } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePushSubscription } from '@/hooks/usePushSubscription';
 
 interface ReservationConfirmSettingsProps {
   instanceId: string | null;
@@ -17,6 +19,15 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [customerEditCutoffHours, setCustomerEditCutoffHours] = useState(1);
   const [saving, setSaving] = useState(false);
+
+  // Push notification subscription
+  const { 
+    isSubscribed, 
+    isLoading: isPushLoading, 
+    subscribe, 
+    checkSubscription,
+    isSupported: isPushSupported 
+  } = usePushSubscription(instanceId);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -37,7 +48,8 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
     };
 
     fetchSettings();
-  }, [instanceId]);
+    checkSubscription();
+  }, [instanceId, checkSubscription]);
 
   const handleToggleAutoConfirm = async (checked: boolean) => {
     if (!instanceId) return;
@@ -80,6 +92,15 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
     setSaving(false);
   };
 
+  const handleEnablePush = async () => {
+    const result = await subscribe();
+    if (result.success) {
+      toast.success(t('pushNotifications.enabled'));
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -91,6 +112,44 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
 
   return (
     <div className="space-y-6">
+      {/* Push Notifications Section */}
+      {isPushSupported && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Powiadomienia push</h3>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
+            <div className="space-y-1">
+              <Label className="font-medium">
+                Powiadomienia na tym urządzeniu
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {isSubscribed 
+                  ? 'Otrzymasz powiadomienia o nowych rezerwacjach'
+                  : 'Włącz, aby otrzymywać powiadomienia o nowych rezerwacjach'}
+              </p>
+            </div>
+            {isSubscribed ? (
+              <div className="flex items-center gap-2 text-green-600">
+                <Check className="w-5 h-5" />
+                <span className="text-sm font-medium">{t('pushNotifications.enabled')}</span>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleEnablePush} 
+                disabled={isPushLoading}
+                size="sm"
+              >
+                {isPushLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {t('pushNotifications.enable')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Reservation Confirmation Settings */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">

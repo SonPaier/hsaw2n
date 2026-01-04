@@ -20,6 +20,7 @@ import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-searc
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import UpsellSuggestion from './UpsellSuggestion';
+import IOSInstallPrompt from '@/components/pwa/IOSInstallPrompt';
 
 interface Service {
   id: string;
@@ -235,6 +236,7 @@ export default function CustomerBookingWizard({
     instagram: null
   });
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const isMobile = useIsMobile();
 
   // WebOTP hook for automatic SMS code reading on Android/Chrome
@@ -1514,6 +1516,19 @@ export default function CustomerBookingWizard({
               </div>
             )}
 
+            {/* PWA Install Suggestion */}
+            <div className="text-center text-sm text-muted-foreground mb-4">
+              <p>
+                {t('pwa.fasterBooking')}{' '}
+                <button 
+                  onClick={() => setShowInstallPrompt(true)}
+                  className="text-primary underline hover:no-underline"
+                >
+                  {t('pwa.addShortcut')}
+                </button>
+              </p>
+            </div>
+
             {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="glass-card p-4 flex items-center gap-3 hover:border-pink-500/50 transition-all group">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center flex-shrink-0">
                   <Instagram className="w-5 h-5 text-white" />
@@ -1529,6 +1544,14 @@ export default function CustomerBookingWizard({
 
         {/* SMS Dialog for web */}
         {instance && <SendSmsDialog phone={instance.phone || ''} customerName={instance.name} instanceId={instance.id} open={smsDialogOpen} onClose={() => setSmsDialogOpen(false)} />}
+        
+        {/* PWA Install Prompt */}
+        <IOSInstallPrompt 
+          open={showInstallPrompt} 
+          onClose={() => setShowInstallPrompt(false)}
+          instanceName={instance?.name}
+          instanceLogo={null}
+        />
       </div>;
   }
   return null;
