@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Plus, X } from 'lucide-react';
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
@@ -577,9 +577,13 @@ const AddReservationDialogV2 = ({
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle>{t('addReservation.title')}</SheetTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              {t('common.close')}
-            </Button>
+            <button 
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </SheetHeader>
 
@@ -709,37 +713,25 @@ const AddReservationDialogV2 = ({
             <div className="space-y-2">
               <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
               
-              {/* Popular service shortcuts */}
-              {services.filter(s => s.is_popular).length > 0 && (
+              {/* Popular service shortcuts - only show unselected ones */}
+              {services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {services
-                    .filter(s => s.is_popular)
-                    .map(service => {
-                      const isSelected = selectedServices.includes(service.id);
-                      return (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedServices(prev => prev.filter(id => id !== service.id));
-                            } else {
-                              setSelectedServices(prev => [...prev, service.id]);
-                            }
-                            setSelectedTime(null);
-                            setSelectedStationId(null);
-                          }}
-                          className={cn(
-                            "px-3 py-1.5 text-sm rounded-full transition-colors font-medium",
-                            isSelected 
-                              ? "bg-primary text-primary-foreground" 
-                              : "bg-muted hover:bg-muted/80 text-foreground"
-                          )}
-                        >
-                          {service.shortcut || service.name}
-                        </button>
-                      );
-                    })}
+                    .filter(s => s.is_popular && !selectedServices.includes(s.id))
+                    .map(service => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedServices(prev => [...prev, service.id]);
+                          setSelectedTime(null);
+                          setSelectedStationId(null);
+                        }}
+                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-100 hover:bg-slate-200 text-foreground"
+                      >
+                        {service.shortcut || service.name}
+                      </button>
+                    ))}
                 </div>
               )}
               
@@ -778,16 +770,16 @@ const AddReservationDialogV2 = ({
                           </button>
                         </span>
                       ))}
-                      {/* Plus button to open drawer */}
+                      {/* Add button to open drawer */}
                       <button
                         type="button"
                         onClick={() => setServiceDrawerOpen(true)}
                         className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
                       >
-                        <Plus className="w-3 h-3" />
+                        {t('common.add')}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {t('addReservation.totalDuration')}: {totalDurationMinutes} min
                     </p>
                   </div>
