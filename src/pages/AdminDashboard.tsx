@@ -643,25 +643,30 @@ const AdminDashboard = () => {
       });
       if (customerError) {
         console.error('Error saving customer:', customerError);
-        // Continue with deletion even if customer save fails
+        // Continue with cancellation even if customer save fails
       }
 
-      // Delete the reservation from database
+      // Soft delete - update status to cancelled with timestamp and user
       const {
-        error: deleteError
-      } = await supabase.from('reservations').delete().eq('id', reservationId);
-      if (deleteError) {
+        error: updateError
+      } = await supabase.from('reservations').update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: user?.id || null
+      }).eq('id', reservationId);
+      
+      if (updateError) {
         toast.error(t('errors.generic'));
-        console.error('Error deleting reservation:', deleteError);
+        console.error('Error cancelling reservation:', updateError);
         return;
       }
 
-      // Remove from local state
+      // Remove from local state (cancelled reservations hidden from calendar)
       setReservations(prev => prev.filter(r => r.id !== reservationId));
       setSelectedReservation(null);
       toast.success(t('reservations.reservationRejected'));
     } catch (error) {
-      console.error('Error in delete operation:', error);
+      console.error('Error in cancel operation:', error);
       toast.error(t('errors.generic'));
     }
   };
@@ -693,10 +698,16 @@ const AdminDashboard = () => {
           ignoreDuplicates: false
         });
 
-        const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
+        // Soft delete - update status to cancelled with timestamp and user
+        const { error } = await supabase.from('reservations').update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user?.id || null
+        }).eq('id', reservationId);
+        
         if (error) {
           console.error('Error rejecting reservation:', error);
-          // Restore if delete failed
+          // Restore if update failed
           setReservations(prev => [...prev, reservation]);
           toast.error(t('errors.generic'));
         }
