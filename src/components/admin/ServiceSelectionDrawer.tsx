@@ -216,7 +216,7 @@ const ServiceSelectionDrawer = ({
       <SheetContent 
         side="right" 
         hideOverlay 
-        className="w-full sm:max-w-md p-0 flex flex-col"
+        className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
       >
         {/* Header - clicking closes drawer */}
         <SheetHeader 
@@ -334,7 +334,7 @@ const ServiceSelectionDrawer = ({
             </div>
             {selectedIds.length > 0 && (
               <div className="text-right">
-                <span className="text-base text-muted-foreground">
+                <span className="text-xl font-bold text-foreground">
                   {totalPrice.hasVariablePrice ? 'od ' : ''}
                   {totalPrice.total.toFixed(0)} zł
                 </span>
@@ -345,6 +345,7 @@ const ServiceSelectionDrawer = ({
             onClick={handleConfirm}
             disabled={selectedIds.length === 0}
             className="w-full"
+            size="lg"
           >
             {t('serviceDrawer.addButton')}
           </Button>
