@@ -166,6 +166,19 @@
       "generic": "{{source}}"
     }
   },
+  "myReservation": {
+    "cancelDialog": {
+      "title": "Co chcesz zrobić?",
+      "description": "Rezerwacja na {{date}} o {{time}}",
+      "findAnotherTime": "Znajdź inny termin",
+      "confirmCancel": "Tak, anuluj wizytę",
+      "back": "Wróć"
+    },
+    "changeDate": "Zmień termin",
+    "saveChanges": "Zapisz zmiany",
+    "reservationUpdated": "Termin rezerwacji został zmieniony",
+    "reservationCancelled": "Rezerwacja została anulowana"
+  },
   "booking": {
     "title": "Umów się na wizytę",
     "metaDescription": "Zarezerwuj wizytę w {{instanceName}}. Mycie samochodowe, detailing, PPF - wybierz usługę i termin online.",

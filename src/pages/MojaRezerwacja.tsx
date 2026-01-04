@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { format, parseISO, differenceInHours } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -9,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -31,6 +31,9 @@ interface Reservation {
   status: string;
   notes: string | null;
   car_size: string | null;
+  service_id: string;
+  station_id: string | null;
+  instance_id: string;
   service: {
     name: string;
     duration_minutes: number | null;
@@ -46,11 +49,14 @@ interface Reservation {
 }
 
 const MojaRezerwacja = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const code = searchParams.get('code');
   const [loading, setLoading] = useState(true);
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,6 +82,9 @@ const MojaRezerwacja = () => {
             status,
             notes,
             car_size,
+            service_id,
+            station_id,
+            instance_id,
             service:services(name, duration_minutes),
             instance:instances(name, phone, address, logo_url, customer_edit_cutoff_hours, slug)
           `)
@@ -85,7 +94,7 @@ const MojaRezerwacja = () => {
         if (fetchError) throw fetchError;
 
         if (!data) {
-          setError('Nie znaleziono rezerwacji o podanym kodzie');
+          setError(t('errors.notFound'));
         } else {
           setReservation({
             ...data,
@@ -95,7 +104,7 @@ const MojaRezerwacja = () => {
         }
       } catch (err) {
         console.error('Error fetching reservation:', err);
-        setError('Wystąpił błąd podczas pobierania rezerwacji');
+        setError(t('errors.generic'));
       } finally {
         setLoading(false);
       }
@@ -116,14 +125,52 @@ const MojaRezerwacja = () => {
 
       if (updateError) throw updateError;
 
+      // Create notification for admin
+      await supabase.from('notifications').insert({
+        instance_id: reservation.instance_id,
+        type: 'reservation_cancelled_by_customer',
+        title: `Klient anulował rezerwację: ${reservation.customer_name}`,
+        description: `${reservation.service.name} - ${format(parseISO(reservation.reservation_date), 'd MMM', { locale: pl })} o ${reservation.start_time.slice(0, 5)}`,
+        entity_type: 'reservation',
+        entity_id: reservation.id
+      });
+
       setReservation({ ...reservation, status: 'cancelled' });
-      toast({ title: 'Rezerwacja anulowana', description: 'Twoja rezerwacja została anulowana' });
+      setCancelDialogOpen(false);
+      toast({ title: t('myReservation.reservationCancelled') });
     } catch (err) {
       console.error('Error cancelling reservation:', err);
-      toast({ title: 'Błąd', description: 'Nie udało się anulować rezerwacji', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('errors.generic'), variant: 'destructive' });
     } finally {
       setCancelling(false);
     }
+  };
+
+  const navigateToEdit = () => {
+    if (!reservation) return;
+    
+    const instanceSlug = reservation.instance.slug;
+    const basePath = instanceSlug ? `/${instanceSlug}` : '/';
+    
+    navigate(basePath, { 
+      state: { 
+        editMode: true,
+        existingReservation: {
+          id: reservation.id,
+          confirmation_code: reservation.confirmation_code,
+          service_id: reservation.service_id,
+          reservation_date: reservation.reservation_date,
+          start_time: reservation.start_time,
+          station_id: reservation.station_id,
+          customer_name: reservation.customer_name,
+          customer_phone: reservation.customer_phone,
+          vehicle_plate: reservation.vehicle_plate,
+          car_size: reservation.car_size,
+          notes: reservation.notes,
+          instance_id: reservation.instance_id
+        }
+      }
+    });
   };
 
   const getStatusInfo = (status: string) => {
@@ -306,30 +353,57 @@ const MojaRezerwacja = () => {
             )}
 
             {/* Actions */}
+            {canEdit && (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={navigateToEdit}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                {t('myReservation.changeDate')}
+              </Button>
+            )}
+
             {canCancel && (
-              <AlertDialog>
+              <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300">
-                    Anuluj rezerwację
+                    {t('common.cancel')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Anulować rezerwację?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('myReservation.cancelDialog.title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Czy na pewno chcesz anulować rezerwację na {format(parseISO(reservation.reservation_date), 'd MMMM', { locale: pl })} o godzinie {reservation.start_time.slice(0, 5)}?
+                      {t('myReservation.cancelDialog.description', {
+                        date: format(parseISO(reservation.reservation_date), 'd MMMM', { locale: pl }),
+                        time: reservation.start_time.slice(0, 5)
+                      })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Nie</AlertDialogCancel>
-                    <AlertDialogAction
+                  <div className="flex flex-col gap-3 mt-4">
+                    <Button 
+                      variant="default"
+                      onClick={() => {
+                        setCancelDialogOpen(false);
+                        navigateToEdit();
+                      }}
+                      className="w-full"
+                    >
+                      {t('myReservation.cancelDialog.findAnotherTime')}
+                    </Button>
+                    <Button 
+                      variant="outline" 
                       onClick={handleCancel}
                       disabled={cancelling}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
                     >
-                      {cancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Tak, anuluj
-                    </AlertDialogAction>
+                      {cancelling && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                      {t('myReservation.cancelDialog.confirmCancel')}
+                    </Button>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('myReservation.cancelDialog.back')}</AlertDialogCancel>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -340,7 +414,7 @@ const MojaRezerwacja = () => {
               className="w-full text-muted-foreground" 
               onClick={() => window.location.href = '/'}
             >
-              Zarezerwuj kolejną wizytę
+              {t('booking.bookAnother')}
             </Button>
           </div>
         </main>
