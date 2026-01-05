@@ -207,8 +207,11 @@ const [loading, setLoading] = useState(false);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [foundVehicles, setFoundVehicles] = useState<CustomerVehicle[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
-  const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
+const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
 const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  
+  // Ref to suppress phone search after programmatic phone value set (edit mode)
+  const suppressPhoneSearchRef = useRef(false);
   
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -367,6 +370,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     if (open) {
       if (isYardMode && editingYardVehicle) {
         // Yard edit mode
+        suppressPhoneSearchRef.current = true;
         setCustomerName(editingYardVehicle.customer_name || '');
         setPhone(editingYardVehicle.customer_phone || '');
         setCarModel(editingYardVehicle.vehicle_plate || '');
@@ -398,6 +402,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
       } else if (isPPFOrDetailingMode && editingReservation) {
         // PPF/Detailing edit mode
+        suppressPhoneSearchRef.current = true;
         setCustomerName(editingReservation.customer_name || '');
         setPhone(editingReservation.customer_phone || '');
         setCarModel(editingReservation.vehicle_plate || '');
@@ -452,6 +457,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
       } else if (editingReservation) {
         // Reservation edit mode
+        suppressPhoneSearchRef.current = true;
         setCustomerName(editingReservation.customer_name || '');
         setPhone(editingReservation.customer_phone || '');
         setCarModel(editingReservation.vehicle_plate || '');
@@ -786,6 +792,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Debounced phone search
   useEffect(() => {
     if (selectedCustomerId) return;
+    
+    // Skip search if suppressed (e.g. after programmatic value set in edit mode)
+    if (suppressPhoneSearchRef.current) {
+      suppressPhoneSearchRef.current = false;
+      return;
+    }
     
     const timer = setTimeout(() => {
       searchByPhone(phone);
