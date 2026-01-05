@@ -22,7 +22,6 @@ import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import UpsellSuggestion from './UpsellSuggestion';
 import IOSInstallPrompt from '@/components/pwa/IOSInstallPrompt';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
 interface Service {
   id: string;
   name: string;
@@ -71,7 +70,6 @@ interface AvailabilityBlock {
   end_time: string;
   station_id: string;
 }
-
 interface ExistingReservation {
   id: string;
   confirmation_code: string;
@@ -86,7 +84,6 @@ interface ExistingReservation {
   notes: string | null;
   instance_id: string;
 }
-
 export interface CustomerBookingWizardProps {
   onLayoutChange?: (hideHeader: boolean, hideFooter: boolean) => void;
   instanceSubdomain?: string;
@@ -148,11 +145,11 @@ export default function CustomerBookingWizard({
   } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Edit mode from navigation state
   const editMode = location.state?.editMode === true;
   const existingReservation = location.state?.existingReservation as ExistingReservation | undefined;
-  
+
   // Start from service step if in edit mode (allow editing service), otherwise from phone
   const [step, setStep] = useState<Step>(editMode ? 'service' : 'phone');
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
@@ -558,13 +555,13 @@ export default function CustomerBookingWizard({
       if (existingReservation.car_size) {
         setCarSize(existingReservation.car_size as 'small' | 'medium' | 'large');
       }
-      
+
       // Set service
       const service = services.find(s => s.id === existingReservation.service_id);
       if (service) {
         setSelectedService(service);
       }
-      
+
       // Set date and time
       if (existingReservation.reservation_date) {
         const date = parseISO(existingReservation.reservation_date);
@@ -577,12 +574,11 @@ export default function CustomerBookingWizard({
       if (existingReservation.station_id) {
         setSelectedStationId(existingReservation.station_id);
       }
-      
+
       // Customer is already verified in edit mode (they have the link)
       setIsVerifiedCustomer(true);
     }
   }, [editMode, existingReservation, services, loading]);
-
   const popularServices = services.filter(s => POPULAR_KEYWORDS.some(k => s.name.toLowerCase().includes(k))).slice(0, 3);
   const otherServices = services.filter(s => !popularServices.includes(s));
   const getServicePrice = (service: Service): number => {
@@ -627,18 +623,12 @@ export default function CustomerBookingWizard({
       return s.type === selectedService.station_type || s.type === 'universal';
     });
     const daysAhead = instance.booking_days_ahead ?? 90;
-    
+
     // In edit mode, filter out blocks that belong to the currently edited reservation
-    const filteredBlocks = editMode && existingReservation
-      ? availabilityBlocks.filter(block => {
-          const isOwnBlock = 
-            block.block_date === existingReservation.reservation_date &&
-            block.start_time === existingReservation.start_time &&
-            block.station_id === existingReservation.station_id;
-          return !isOwnBlock;
-        })
-      : availabilityBlocks;
-    
+    const filteredBlocks = editMode && existingReservation ? availabilityBlocks.filter(block => {
+      const isOwnBlock = block.block_date === existingReservation.reservation_date && block.start_time === existingReservation.start_time && block.station_id === existingReservation.station_id;
+      return !isOwnBlock;
+    }) : availabilityBlocks;
     for (let i = 0; i < daysAhead; i++) {
       const date = addDays(today, i);
       const dayName = format(date, 'EEEE').toLowerCase();
@@ -812,17 +802,12 @@ export default function CustomerBookingWizard({
       });
       return;
     }
-    
     setIsSaving(true);
     try {
       // Check if there's already an active change request for this reservation
-      const { data: existingChangeRequest } = await supabase
-        .from('reservations')
-        .select('id')
-        .eq('original_reservation_id', existingReservation.id)
-        .eq('status', 'change_requested')
-        .maybeSingle();
-      
+      const {
+        data: existingChangeRequest
+      } = await supabase.from('reservations').select('id').eq('original_reservation_id', existingReservation.id).eq('status', 'change_requested').maybeSingle();
       if (existingChangeRequest) {
         toast({
           title: t('common.error'),
@@ -832,7 +817,6 @@ export default function CustomerBookingWizard({
         setIsSaving(false);
         return;
       }
-      
       const newReservationDate = format(selectedDate, 'yyyy-MM-dd');
       const serviceDuration = getServiceDuration(selectedService);
       const [hours, minutes] = selectedTime.split(':').map(Number);
@@ -840,56 +824,53 @@ export default function CustomerBookingWizard({
       const endHours = Math.floor(endMinutes / 60);
       const endMins = endMinutes % 60;
       const newEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-      
+
       // Generate new confirmation code for change request
       const generateCode = () => Math.floor(1000000 + Math.random() * 9000000).toString();
       let newConfirmationCode = generateCode();
-      
+
       // Ensure code is unique
       let attempts = 0;
       while (attempts < 10) {
-        const { data: existingCode } = await supabase
-          .from('reservations')
-          .select('id')
-          .eq('confirmation_code', newConfirmationCode)
-          .maybeSingle();
-        
+        const {
+          data: existingCode
+        } = await supabase.from('reservations').select('id').eq('confirmation_code', newConfirmationCode).maybeSingle();
         if (!existingCode) break;
         newConfirmationCode = generateCode();
         attempts++;
       }
-      
-      // Create a NEW reservation as change request (original stays untouched)
-      const { data: changeRequest, error: insertError } = await supabase
-        .from('reservations')
-        .insert({
-          instance_id: existingReservation.instance_id,
-          reservation_date: newReservationDate,
-          start_time: selectedTime,
-          end_time: newEndTime,
-          station_id: selectedStationId,
-          service_id: selectedService.id,
-          service_ids: [selectedService.id],
-          customer_name: existingReservation.customer_name,
-          customer_phone: existingReservation.customer_phone,
-          vehicle_plate: existingReservation.vehicle_plate,
-          car_size: existingReservation.car_size as 'small' | 'medium' | 'large' | null,
-          notes: existingReservation.notes,
-          confirmation_code: newConfirmationCode,
-          status: 'change_requested',
-          original_reservation_id: existingReservation.id,
-          source: 'customer'
-        })
-        .select()
-        .single();
 
+      // Create a NEW reservation as change request (original stays untouched)
+      const {
+        data: changeRequest,
+        error: insertError
+      } = await supabase.from('reservations').insert({
+        instance_id: existingReservation.instance_id,
+        reservation_date: newReservationDate,
+        start_time: selectedTime,
+        end_time: newEndTime,
+        station_id: selectedStationId,
+        service_id: selectedService.id,
+        service_ids: [selectedService.id],
+        customer_name: existingReservation.customer_name,
+        customer_phone: existingReservation.customer_phone,
+        vehicle_plate: existingReservation.vehicle_plate,
+        car_size: existingReservation.car_size as 'small' | 'medium' | 'large' | null,
+        notes: existingReservation.notes,
+        confirmation_code: newConfirmationCode,
+        status: 'change_requested',
+        original_reservation_id: existingReservation.id,
+        source: 'customer'
+      }).select().single();
       if (insertError) throw insertError;
 
       // Create notification for admin
       await supabase.from('notifications').insert({
         instance_id: existingReservation.instance_id,
         type: 'change_request',
-        title: t('myReservation.notifications.changeRequestTitle', { name: existingReservation.customer_name }),
+        title: t('myReservation.notifications.changeRequestTitle', {
+          name: existingReservation.customer_name
+        }),
         description: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
         entity_type: 'reservation',
         entity_id: changeRequest.id
@@ -900,7 +881,9 @@ export default function CustomerBookingWizard({
         await supabase.functions.invoke('send-push-notification', {
           body: {
             instanceId: existingReservation.instance_id,
-            title: `🔄 ${t('myReservation.notifications.changeRequestPush', { name: existingReservation.customer_name })}`,
+            title: `🔄 ${t('myReservation.notifications.changeRequestPush', {
+              name: existingReservation.customer_name
+            })}`,
             body: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
             url: `/admin?reservationCode=${newConfirmationCode}`
           }
@@ -908,9 +891,10 @@ export default function CustomerBookingWizard({
       } catch (pushError) {
         console.error('Push notification error:', pushError);
       }
+      toast({
+        title: t('myReservation.changeRequestSent')
+      });
 
-      toast({ title: t('myReservation.changeRequestSent') });
-      
       // Redirect back to original reservation page (it still shows the original)
       navigate(`/res?code=${existingReservation.confirmation_code}`);
     } catch (error) {
@@ -924,7 +908,6 @@ export default function CustomerBookingWizard({
       setIsSaving(false);
     }
   };
-
   const handleSendSms = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       toast({
@@ -1118,24 +1101,24 @@ export default function CustomerBookingWizard({
               {customerPhone.length >= 9 && <div className="animate-fade-in">
                   <Label htmlFor="carModel" className="text-base font-medium">{t('reservations.carModel')}</Label>
                   <div className="mt-1">
-                    <CarSearchAutocomplete
-                      value={carModel}
-                      onChange={(val: CarSearchValue) => {
-                        if (val === null) {
-                          setCarModel('');
-                        } else if ('type' in val && val.type === 'custom') {
-                          setCarModel(val.label);
-                          // Custom input - keep current carSize (will be inferred by AI)
-                        } else if ('size' in val) {
-                          // It's a CarModel with size
-                          setCarModel(val.label);
-                          // Use size from carsList.json directly
-                          const sizeMap: Record<string, 'small' | 'medium' | 'large'> = { 'S': 'small', 'M': 'medium', 'L': 'large' };
-                          setCarSize(sizeMap[val.size] || 'medium');
-                        }
-                      }}
-                      className="[&_input]:h-12 [&_input]:text-base"
-                    />
+                    <CarSearchAutocomplete value={carModel} onChange={(val: CarSearchValue) => {
+                  if (val === null) {
+                    setCarModel('');
+                  } else if ('type' in val && val.type === 'custom') {
+                    setCarModel(val.label);
+                    // Custom input - keep current carSize (will be inferred by AI)
+                  } else if ('size' in val) {
+                    // It's a CarModel with size
+                    setCarModel(val.label);
+                    // Use size from carsList.json directly
+                    const sizeMap: Record<string, 'small' | 'medium' | 'large'> = {
+                      'S': 'small',
+                      'M': 'medium',
+                      'L': 'large'
+                    };
+                    setCarSize(sizeMap[val.size] || 'medium');
+                  }
+                }} className="[&_input]:h-12 [&_input]:text-base" />
                   </div>
                   {/* Historical car models from previous reservations - show bubbles only for 2+ vehicles */}
                   {historicalCarModels.length > 1 && <div className="flex flex-wrap gap-2 mt-2 py-[8px]">
@@ -1292,14 +1275,14 @@ export default function CustomerBookingWizard({
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => {
-              if (editMode && existingReservation) {
-                // In edit mode, go back to reservation page
-                navigate(`/res?code=${existingReservation.confirmation_code}`);
-              } else {
-                goToStep('service', 'back');
-                setSelectedDate(null);
-                setSelectedTime(null);
-              }
+            if (editMode && existingReservation) {
+              // In edit mode, go back to reservation page
+              navigate(`/res?code=${existingReservation.confirmation_code}`);
+            } else {
+              goToStep('service', 'back');
+              setSelectedDate(null);
+              setSelectedTime(null);
+            }
           }} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-base">
               <ArrowLeft className="w-4 h-4" />
               {t('common.back')}
@@ -1424,12 +1407,12 @@ export default function CustomerBookingWizard({
               <span className="text-muted-foreground text-base">{t('common.time')}</span>
               <span className="font-medium text-base">
                 {selectedTime} - {(() => {
-                  const [h, m] = (selectedTime || '00:00').split(':').map(Number);
-                  const totalMinutes = h * 60 + m + getTotalDuration();
-                  const endH = Math.floor(totalMinutes / 60);
-                  const endM = totalMinutes % 60;
-                  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                })()}
+                const [h, m] = (selectedTime || '00:00').split(':').map(Number);
+                const totalMinutes = h * 60 + m + getTotalDuration();
+                const endH = Math.floor(totalMinutes / 60);
+                const endM = totalMinutes % 60;
+                return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+              })()}
               </span>
             </div>
             {carModel && <div className="flex justify-between">
@@ -1461,17 +1444,10 @@ export default function CustomerBookingWizard({
         }} selectedAddons={selectedAddons} />}
 
           {/* In edit mode - just show save button without verification */}
-          {editMode ? (
-            <Button 
-              onClick={handleUpdateReservation} 
-              className="w-full text-base" 
-              disabled={isSaving || !selectedDate || !selectedTime}
-            >
+          {editMode ? <Button onClick={handleUpdateReservation} className="w-full text-base" disabled={isSaving || !selectedDate || !selectedTime}>
               {isSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {t('myReservation.saveChanges')}
-            </Button>
-          ) : (
-            <>
+            </Button> : <>
               {/* Customer data - VAT invoice option */}
               <div className="glass-card p-3 mb-3 space-y-3">
                 {/* VAT Invoice checkbox */}
@@ -1504,13 +1480,9 @@ export default function CustomerBookingWizard({
                     {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     {t('booking.confirmBooking')}
                   </Button>
-                  <p className="text-sm text-muted-foreground mt-3 text-center">
+                  <p className="text-sm text-muted-foreground mt-3 text-center pt-[8px]">
                     {t('booking.rodoConsent')}{' '}
-                    <button 
-                      type="button"
-                      onClick={() => setShowRodoDialog(true)} 
-                      className="underline hover:text-foreground transition-colors"
-                    >
+                    <button type="button" onClick={() => setShowRodoDialog(true)} className="underline hover:text-foreground transition-colors">
                       {t('booking.rodoLink')}
                     </button>
                     .
@@ -1559,26 +1531,17 @@ export default function CustomerBookingWizard({
                       <Loader2 className="w-4 h-4 animate-spin" />
                       {t('booking.verifying')}
                     </div>}
-                  {showResendButton && !isVerifying && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setSmsSent(false);
-                        setVerificationCode('');
-                        setShowResendButton(false);
-                        handleSendSms();
-                      }}
-                      disabled={isSendingSms}
-                      className="mt-3"
-                    >
+                  {showResendButton && !isVerifying && <Button variant="outline" size="sm" onClick={() => {
+              setSmsSent(false);
+              setVerificationCode('');
+              setShowResendButton(false);
+              handleSendSms();
+            }} disabled={isSendingSms} className="mt-3">
                       {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       {t('booking.resendCode')}
-                    </Button>
-                  )}
+                    </Button>}
                 </div>}
-            </>
-          )}
+            </>}
         </div>
       </div>;
   }
@@ -1618,12 +1581,12 @@ export default function CustomerBookingWizard({
                 <span className="text-muted-foreground text-base">{t('common.time')}</span>
                 <span className="font-medium text-base">
                   {confirmationData.time} - {(() => {
-                    const [h, m] = (confirmationData.time || '00:00').split(':').map(Number);
-                    const totalMinutes = h * 60 + m + getTotalDuration();
-                    const endH = Math.floor(totalMinutes / 60);
-                    const endM = totalMinutes % 60;
-                    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                  })()}
+                  const [h, m] = (confirmationData.time || '00:00').split(':').map(Number);
+                  const totalMinutes = h * 60 + m + getTotalDuration();
+                  const endH = Math.floor(totalMinutes / 60);
+                  const endM = totalMinutes % 60;
+                  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                })()}
                 </span>
               </div>
               {confirmationData.carModel && <div className="flex justify-between">
@@ -1644,21 +1607,16 @@ export default function CustomerBookingWizard({
             </div>
 
 
-            {instance?.auto_confirm_reservations && (
-              <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
+            {instance?.auto_confirm_reservations && <div className="glass-card p-3 mb-4 text-xs text-muted-foreground">
                 <Clock className="w-4 h-4 inline-block mr-1.5 text-primary" />
                 {t('booking.reminderInfo')}
-              </div>
-            )}
+              </div>}
 
             {/* PWA Install Suggestion */}
             <div className="text-center text-sm text-muted-foreground mb-4">
               <p>
                 {t('pwa.fasterBooking')}{' '}
-                <button 
-                  onClick={() => setShowInstallPrompt(true)}
-                  className="text-primary underline hover:no-underline"
-                >
+                <button onClick={() => setShowInstallPrompt(true)} className="text-primary underline hover:no-underline">
                   {t('pwa.addShortcut')}
                 </button>
               </p>
@@ -1681,12 +1639,7 @@ export default function CustomerBookingWizard({
         {instance && <SendSmsDialog phone={instance.phone || ''} customerName={instance.name} instanceId={instance.id} open={smsDialogOpen} onClose={() => setSmsDialogOpen(false)} />}
         
         {/* PWA Install Prompt */}
-        <IOSInstallPrompt 
-          open={showInstallPrompt} 
-          onClose={() => setShowInstallPrompt(false)}
-          instanceName={instance?.name}
-          instanceLogo={null}
-        />
+        <IOSInstallPrompt open={showInstallPrompt} onClose={() => setShowInstallPrompt(false)} instanceName={instance?.name} instanceLogo={null} />
       </div>;
   }
   return null;
