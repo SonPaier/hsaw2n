@@ -154,6 +154,14 @@ const AdminDashboard = () => {
     stationType: '' as string
   });
 
+  // Slot preview for live calendar highlight
+  const [slotPreview, setSlotPreview] = useState<{
+    date: string;
+    startTime: string;
+    endTime: string;
+    stationId: string;
+  } | null>(null);
+
   // Breaks state
   const [breaks, setBreaks] = useState<Break[]>([]);
   const [addBreakOpen, setAddBreakOpen] = useState(false);
@@ -1725,7 +1733,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={setCalendarDate} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={setCalendarDate} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} />
                 
                 {/* Floating + button for quick add reservation V2 - hidden on mobile */}
                 <button
@@ -1846,7 +1854,9 @@ const AdminDashboard = () => {
             setAddReservationOpen(false);
             setAddReservationV2Open(false);
             setEditingReservation(null);
+            setSlotPreview(null);
           }}
+          onSlotPreviewChange={setSlotPreview}
           instanceId={instanceId}
           onSuccess={handleReservationAdded}
           workingHours={workingHours}
