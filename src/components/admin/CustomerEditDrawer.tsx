@@ -257,7 +257,10 @@ const CustomerEditDrawer = ({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
+        <SheetContent 
+          className="w-full sm:max-w-md overflow-y-auto p-6"
+          onFocusOutside={(e) => e.preventDefault()}
+        >
           <SheetHeader className="pr-8">
             <SheetTitle className="flex items-center gap-2">
               <div className="flex-1 min-w-0">
