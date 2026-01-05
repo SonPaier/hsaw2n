@@ -32,7 +32,8 @@ interface Reservation {
   end_time: string;
   station_id: string | null;
   status: string;
-  notes?: string | null;
+  customer_notes?: string | null;
+  admin_notes?: string | null;
   service?: {
     name: string;
     shortcut?: string | null;
@@ -1301,7 +1302,7 @@ const AdminCalendar = ({
                               </span>}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
                             {!hallMode && <div className="flex items-center gap-0.5 shrink-0">
-                                {reservation.notes && <div className="p-0.5 rounded" title={reservation.notes}>
+                                {(reservation.admin_notes || reservation.customer_notes) && <div className="p-0.5 rounded" title={reservation.admin_notes || reservation.customer_notes || ''}>
                                     <FileText className="w-3 h-3 opacity-70" />
                                   </div>}
                                 {reservation.customer_phone && <>
@@ -1343,9 +1344,10 @@ const AdminCalendar = ({
                           {/* Line 4: Notes (only if duration > 30 minutes) */}
                           {(() => {
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
-                            if (durationMinutes > 30 && reservation.notes) {
+                            const notesToShow = reservation.admin_notes || reservation.customer_notes;
+                            if (durationMinutes > 30 && notesToShow) {
                               return <div className="text-[11px] md:text-[12px] truncate opacity-70 mt-0.5">
-                                {reservation.notes}
+                                {notesToShow}
                               </div>;
                             }
                             return null;

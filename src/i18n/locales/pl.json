@@ -161,6 +161,8 @@
       "noShow": "Nieobecność",
       "changeRequested": "Prośba o zmianę"
     },
+    "customerNotes": "Notatki klienta",
+    "adminNotes": "Notatki wewnętrzne",
     "markAsNoShow": "Oznacz jako nieobecność",
     "noShowMarked": "Rezerwacja oznaczona jako nieobecność",
     "sources": {

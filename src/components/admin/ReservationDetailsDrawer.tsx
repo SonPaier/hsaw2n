@@ -50,7 +50,8 @@ interface Reservation {
   status: string;
   confirmation_code: string;
   price?: number;
-  notes?: string;
+  customer_notes?: string | null;
+  admin_notes?: string | null;
   source?: string | null;
   service_id?: string;
   service_ids?: string[];
@@ -131,7 +132,8 @@ const ReservationDetailsDrawer = ({
   const [customerPhone, setCustomerPhone] = useState('');
   const [carModel, setCarModel] = useState('');
   const [carSize, setCarSize] = useState<CarSize | ''>('');
-  const [notes, setNotes] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -142,7 +144,8 @@ const ReservationDetailsDrawer = ({
       setCustomerPhone(reservation.customer_phone || '');
       setCarModel(reservation.vehicle_plate || '');
       setCarSize(reservation.car_size || '');
-      setNotes(reservation.notes || '');
+      setCustomerNotes(reservation.customer_notes || '');
+      setAdminNotes(reservation.admin_notes || '');
       setPrice(reservation.price?.toString() || '');
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
@@ -431,13 +434,21 @@ const ReservationDetailsDrawer = ({
               );
             })()}
 
-            {/* Notes - last section */}
-            {notes && (
+            {/* Customer Notes */}
+            {customerNotes && (
               <div className="border-t border-border/30 pt-3">
-                <div className="text-xs text-muted-foreground mb-1">{t('common.notes')}</div>
-                <div className="text-sm whitespace-pre-wrap">{notes}</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('reservations.customerNotes')}</div>
+                <div className="text-sm whitespace-pre-wrap bg-blue-50 dark:bg-blue-950/30 p-2 rounded">{customerNotes}</div>
               </div>
             )}
+
+            {/* Admin Notes */}
+            <div className="border-t border-border/30 pt-3">
+              <div className="text-xs text-muted-foreground mb-1">{t('reservations.adminNotes')}</div>
+              <div className="text-sm whitespace-pre-wrap">
+                {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
+              </div>
+            </div>
 
             {/* Change request info - show original reservation reference */}
             {reservation.status === 'change_requested' && reservation.original_reservation && (
