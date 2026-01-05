@@ -77,7 +77,7 @@ interface OfferSettings {
 }
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-muted text-muted-foreground',
+  draft: 'bg-slate-200 text-slate-600',
   sent: 'bg-blue-500/20 text-blue-600',
   viewed: 'bg-amber-500/20 text-amber-600',
   accepted: 'bg-green-500/20 text-green-600',

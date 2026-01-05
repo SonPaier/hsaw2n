@@ -458,6 +458,10 @@
     "duplicate": "Duplikuj",
     "send": "Wyślij",
     "numberingSettings": "Ustawienia numeracji",
+    "settingsTitle": "Ustawienia numeracji ofert",
+    "settingsDescription": "Skonfiguruj format i prefiks numeracji ofert.",
+    "numberPrefix": "Prefiks numeru",
+    "numberFormat": "Format numeru",
     "settingsSaved": "Ustawienia zapisane",
     "errors": {
       "fetchError": "Błąd pobierania ofert",
