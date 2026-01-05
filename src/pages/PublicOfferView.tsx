@@ -869,131 +869,141 @@ const PublicOfferView = () => {
           )}
 
           {/* About Us Section */}
-          <Card className="bg-card border-primary/20">
+          <Card 
+            className="border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
             <CardContent className="pt-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold mb-2">{t('publicOffer.whyTrustUs')}</h2>
-                <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
+                <h2 
+                  className="text-xl font-bold mb-2"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  {t('publicOffer.whyTrustUs')}
+                </h2>
+                <p 
+                  className="text-sm max-w-2xl mx-auto opacity-70"
+                  style={{ color: branding.offer_section_text_color }}
+                >
                   {t('publicOffer.trustDescription')}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-primary" />
+                {[
+                  { icon: Sparkles, title: t('publicOffer.methodBryt'), desc: t('publicOffer.methodBrytDesc') },
+                  { icon: Award, title: t('publicOffer.premiumProducts'), desc: t('publicOffer.premiumProductsDesc') },
+                  { icon: Shield, title: t('publicOffer.oemPrecision'), desc: t('publicOffer.oemPrecisionDesc') },
+                  { icon: Car, title: t('publicOffer.fullProtection'), desc: t('publicOffer.fullProtectionDesc') },
+                  { icon: Star, title: t('publicOffer.reviews'), desc: t('publicOffer.reviewsDesc') },
+                  { icon: Heart, title: t('publicOffer.individualApproach'), desc: t('publicOffer.individualApproachDesc') },
+                ].map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="rounded-lg p-4 border shadow-sm"
+                    style={{ 
+                      backgroundColor: branding.offer_section_bg_color,
+                      borderColor: `${branding.offer_primary_color}1a`,
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${branding.offer_primary_color}1a` }}
+                      >
+                        <item.icon className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
+                      </div>
+                      <h3 
+                        className="font-semibold text-sm"
+                        style={{ color: branding.offer_section_text_color }}
+                      >
+                        {item.title}
+                      </h3>
                     </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.methodBryt')}</h3>
+                    <p 
+                      className="text-xs opacity-70"
+                      style={{ color: branding.offer_section_text_color }}
+                    >
+                      {item.desc}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.methodBrytDesc')}
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Award className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.premiumProducts')}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.premiumProductsDesc')}
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.oemPrecision')}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.oemPrecisionDesc')}
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Car className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.fullProtection')}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.fullProtectionDesc')}
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Star className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.reviews')}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.reviewsDesc')}
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-lg p-4 border border-primary/10 shadow-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Heart className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm">{t('publicOffer.individualApproach')}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('publicOffer.individualApproachDesc')}
-                  </p>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
           {/* Customer & Vehicle Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            <Card 
+              className="border"
+              style={{ 
+                backgroundColor: branding.offer_section_bg_color,
+                borderColor: `${branding.offer_primary_color}33`,
+              }}
+            >
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
+                <CardTitle 
+                  className="flex items-center gap-2 text-base"
+                  style={{ color: branding.offer_section_text_color }}
+                >
                   <User className="w-4 h-4" />
                   {t('publicOffer.forClient')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-1">
-                <p className="font-medium">{offer.customer_data?.name}</p>
+                <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
+                  {offer.customer_data?.name}
+                </p>
                 {offer.customer_data?.company && (
-                  <p className="flex items-center gap-1 text-muted-foreground">
+                  <p 
+                    className="flex items-center gap-1 opacity-70"
+                    style={{ color: branding.offer_section_text_color }}
+                  >
                     <Building2 className="w-3 h-3" />
                     {offer.customer_data.company}
                   </p>
                 )}
                 {offer.customer_data?.nip && (
-                  <p className="text-muted-foreground">NIP: {offer.customer_data.nip}</p>
+                  <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                    NIP: {offer.customer_data.nip}
+                  </p>
                 )}
                 {offer.customer_data?.email && (
-                  <p className="text-muted-foreground">{offer.customer_data.email}</p>
+                  <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                    {offer.customer_data.email}
+                  </p>
                 )}
               </CardContent>
             </Card>
 
             {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
-              <Card>
+              <Card 
+                className="border"
+                style={{ 
+                  backgroundColor: branding.offer_section_bg_color,
+                  borderColor: `${branding.offer_primary_color}33`,
+                }}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
+                  <CardTitle 
+                    className="flex items-center gap-2 text-base"
+                    style={{ color: branding.offer_section_text_color }}
+                  >
                     <Car className="w-4 h-4" />
                     {t('publicOffer.vehicle')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
-                  <p className="font-medium">
+                  <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
                     {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
                   </p>
                   {offer.vehicle_data.plate && (
-                    <p className="text-muted-foreground">{offer.vehicle_data.plate}</p>
+                    <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                      {offer.vehicle_data.plate}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -1024,7 +1034,12 @@ const PublicOfferView = () => {
                   return (
                     <section key={section.key} className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-semibold">{section.scopeName}</h2>
+                        <h2 
+                          className="text-base font-semibold"
+                          style={{ color: branding.offer_section_text_color }}
+                        >
+                          {section.scopeName}
+                        </h2>
                         <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
                       </div>
 
@@ -1036,18 +1051,31 @@ const PublicOfferView = () => {
                           <Card 
                             key={item.id}
                             className={cn(
-                              "transition-all",
-                              isItemSelected && "ring-2 ring-primary border-primary",
+                              "transition-all border",
+                              isItemSelected && "ring-2",
                               !isItemSelected && "opacity-70"
                             )}
+                            style={{
+                              backgroundColor: branding.offer_section_bg_color,
+                              borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                              ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
+                            }}
                           >
                             <CardContent className="py-4">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                  <p className="font-medium">{item.custom_name}</p>
+                                  <p 
+                                    className="font-medium"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {item.custom_name}
+                                  </p>
                                   {item.custom_description && renderDescription(item.custom_description)}
                                   {!offer.hide_unit_prices && (
-                                    <p className="text-sm text-muted-foreground mt-1">
+                                    <p 
+                                      className="text-sm mt-1 opacity-70"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
                                       {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
                                       {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
                                     </p>
@@ -1055,7 +1083,12 @@ const PublicOfferView = () => {
                                 </div>
                                 <div className="flex items-center gap-3">
                                   {!offer.hide_unit_prices && (
-                                    <span className="font-medium">{formatPrice(itemTotal)}</span>
+                                    <span 
+                                      className="font-medium"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
+                                      {formatPrice(itemTotal)}
+                                    </span>
                                   )}
                                   <Button
                                     variant={isItemSelected ? "default" : "outline"}
@@ -1063,6 +1096,10 @@ const PublicOfferView = () => {
                                     onClick={() => handleToggleOptionalItem(item.id)}
                                     disabled={interactionsDisabled}
                                     className="shrink-0"
+                                    style={isItemSelected ? { 
+                                      backgroundColor: branding.offer_primary_color, 
+                                      color: primaryButtonTextColor 
+                                    } : {}}
                                   >
                                     {isItemSelected ? (
                                       <>
@@ -1093,10 +1130,19 @@ const PublicOfferView = () => {
                 
                 return (
                   <section key={section.key} className="space-y-3">
-                    <h2 className="text-base font-semibold flex items-center gap-2">
+                    <h2 
+                      className="text-base font-semibold flex items-center gap-2"
+                      style={{ color: branding.offer_section_text_color }}
+                    >
                       {section.scopeName}
                       {isScopeSelected && (
-                        <Badge variant="default" className="text-xs">Wybrana</Badge>
+                        <Badge 
+                          variant="default" 
+                          className="text-xs"
+                          style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
+                        >
+                          Wybrana
+                        </Badge>
                       )}
                     </h2>
 
@@ -1109,17 +1155,37 @@ const PublicOfferView = () => {
                       
                       return (
                         <article key={option.id}>
-                          <Card className={cn(
-                            "transition-all",
-                            hasMultipleVariants && isSelected && isScopeSelected && "ring-2 ring-primary border-primary bg-card",
-                            hasMultipleVariants && !(isSelected && isScopeSelected) && "bg-white border-border"
-                          )}>
+                          <Card 
+                            className={cn(
+                              "transition-all border",
+                              hasMultipleVariants && isSelected && isScopeSelected && "ring-2",
+                            )}
+                            style={{
+                              backgroundColor: branding.offer_section_bg_color,
+                              borderColor: hasMultipleVariants && isSelected && isScopeSelected 
+                                ? branding.offer_primary_color 
+                                : `${branding.offer_primary_color}33`,
+                              ...(hasMultipleVariants && isSelected && isScopeSelected 
+                                ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties 
+                                : {}),
+                            }}
+                          >
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <CardTitle className="text-lg font-semibold">{variantName}</CardTitle>
+                                  <CardTitle 
+                                    className="text-lg font-semibold"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {variantName}
+                                  </CardTitle>
                                   {option.description && (
-                                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    <p 
+                                      className="text-sm opacity-70"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
+                                      {option.description}
+                                    </p>
                                   )}
                                 </div>
                                 {hasMultipleVariants && (
@@ -1129,6 +1195,10 @@ const PublicOfferView = () => {
                                     onClick={() => handleSelectVariant(section.key, option.id)}
                                     disabled={interactionsDisabled}
                                     className="shrink-0"
+                                    style={isSelected && isScopeSelected ? { 
+                                      backgroundColor: branding.offer_primary_color, 
+                                      color: primaryButtonTextColor 
+                                    } : {}}
                                   >
                                     {isSelected && isScopeSelected ? (
                                       <>
@@ -1153,7 +1223,13 @@ const PublicOfferView = () => {
                                   </Button>
                                 )}
                                 {!hasMultipleVariants && isScopeSelected && (
-                                  <Badge variant="default" className="text-xs">Wybrana</Badge>
+                                  <Badge 
+                                    variant="default" 
+                                    className="text-xs"
+                                    style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
+                                  >
+                                    Wybrana
+                                  </Badge>
                                 )}
                               </div>
                             </CardHeader>
@@ -1311,16 +1387,26 @@ const PublicOfferView = () => {
                               <article key={item.id}>
                                 <Card
                                   className={cn(
-                                    "transition-all",
-                                    isItemSelected && "ring-2 ring-primary border-primary",
+                                    "transition-all border",
+                                    isItemSelected && "ring-2",
                                     !isItemSelected && "opacity-70"
                                   )}
+                                  style={{
+                                    backgroundColor: branding.offer_section_bg_color,
+                                    borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                                    ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
+                                  }}
                                 >
                                   <CardContent className="py-4">
                                     <div className="flex items-center justify-between gap-4">
                                       <div className="flex-1">
                                         <div className="flex items-center gap-2">
-                                          <p className="font-medium">{item.custom_name}</p>
+                                          <p 
+                                            className="font-medium"
+                                            style={{ color: branding.offer_section_text_color }}
+                                          >
+                                            {item.custom_name}
+                                          </p>
                                           <Badge variant="secondary" className="text-xs">{groupName}</Badge>
                                         </div>
 
@@ -1328,7 +1414,10 @@ const PublicOfferView = () => {
                                           renderDescription(item.custom_description || item.products_library?.description || '')}
 
                                         {!offer.hide_unit_prices && (
-                                          <p className="text-sm text-muted-foreground mt-1">
+                                          <p 
+                                            className="text-sm mt-1 opacity-70"
+                                            style={{ color: branding.offer_section_text_color }}
+                                          >
                                             {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
                                             {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
                                           </p>
@@ -1337,7 +1426,12 @@ const PublicOfferView = () => {
 
                                       <div className="flex items-center gap-3">
                                         {!offer.hide_unit_prices && (
-                                          <span className="font-medium">{formatPrice(itemTotal)}</span>
+                                          <span 
+                                            className="font-medium"
+                                            style={{ color: branding.offer_section_text_color }}
+                                          >
+                                            {formatPrice(itemTotal)}
+                                          </span>
                                         )}
                                         <Button
                                           variant={isItemSelected ? "default" : "outline"}
@@ -1345,6 +1439,10 @@ const PublicOfferView = () => {
                                           onClick={() => handleToggleOptionalItem(item.id)}
                                           disabled={interactionsDisabled}
                                           className="shrink-0"
+                                          style={isItemSelected ? { 
+                                            backgroundColor: branding.offer_primary_color, 
+                                            color: primaryButtonTextColor 
+                                          } : {}}
                                         >
                                           {isItemSelected ? (
                                             <>
@@ -1372,19 +1470,35 @@ const PublicOfferView = () => {
           )}
 
           {/* Totals - Dynamic */}
-          <Card className="sticky bottom-4 shadow-lg border-primary/20">
+          <Card 
+            className="sticky bottom-4 shadow-lg border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
             <CardContent className="pt-6 space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('publicOffer.netSum')}</span>
-                <span>{formatPrice(dynamicTotals.net)}</span>
+                <span className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                  {t('publicOffer.netSum')}
+                </span>
+                <span style={{ color: branding.offer_section_text_color }}>
+                  {formatPrice(dynamicTotals.net)}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">VAT ({offer.vat_rate}%)</span>
-                <span>{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span>
+                <span className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                  VAT ({offer.vat_rate}%)
+                </span>
+                <span style={{ color: branding.offer_section_text_color }}>
+                  {formatPrice(dynamicTotals.gross - dynamicTotals.net)}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>{t('publicOffer.grossTotal')}</span>
+                <span style={{ color: branding.offer_section_text_color }}>
+                  {t('publicOffer.grossTotal')}
+                </span>
                 <span style={{ color: branding.offer_primary_color }}>{formatPrice(dynamicTotals.gross)}</span>
               </div>
             </CardContent>
@@ -1392,24 +1506,33 @@ const PublicOfferView = () => {
 
           {/* Notes & Terms */}
           {(offer.notes || offer.payment_terms || offer.valid_until) && (
-            <Card>
+            <Card 
+              className="border"
+              style={{ 
+                backgroundColor: branding.offer_section_bg_color,
+                borderColor: `${branding.offer_primary_color}33`,
+              }}
+            >
               <CardContent className="pt-6 space-y-3 text-sm">
                 {offer.valid_until && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2" style={{ color: branding.offer_section_text_color }}>
+                    <Calendar className="w-4 h-4 opacity-70" />
                     <span>
                       {t('publicOffer.offerValidUntil')}: <strong>{format(new Date(offer.valid_until), 'd MMMM yyyy', { locale: pl })}</strong>
                     </span>
                   </div>
                 )}
                 {offer.payment_terms && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2" style={{ color: branding.offer_section_text_color }}>
+                    <Clock className="w-4 h-4 opacity-70" />
                     <span>{t('publicOffer.paymentTerms')}: {offer.payment_terms}</span>
                   </div>
                 )}
                 {offer.notes && (
-                  <div className="pt-2 text-muted-foreground whitespace-pre-wrap">
+                  <div 
+                    className="pt-2 whitespace-pre-wrap opacity-70"
+                    style={{ color: branding.offer_section_text_color }}
+                  >
                     {offer.notes}
                   </div>
                 )}
@@ -1419,7 +1542,13 @@ const PublicOfferView = () => {
 
           {/* Actions - for non-accepted offers */}
           {canRespond && (
-            <Card>
+            <Card 
+              className="border"
+              style={{ 
+                backgroundColor: branding.offer_section_bg_color,
+                borderColor: `${branding.offer_primary_color}33`,
+              }}
+            >
               <CardContent className="pt-6">
                 <div className="flex justify-center">
                   <Button 
