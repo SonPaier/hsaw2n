@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleCheck, FileText, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleCheck, FileText, Bell, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -144,7 +144,7 @@ export default function NotificationsView({
       case 'reservation_edited_by_customer':
         return { icon: <FileEdit className={cn(iconClass, "text-purple-600")} />, bg: "bg-purple-50" };
       case 'change_requested':
-        return { icon: <FileEdit className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
+        return { icon: <RefreshCw className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
       case 'offer_approved':
         return { icon: <CircleCheck className={cn(iconClass, "text-emerald-600")} />, bg: "bg-emerald-50" };
       case 'offer_modified':
