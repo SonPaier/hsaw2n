@@ -425,6 +425,7 @@ export type Database = {
           enabled: boolean
           feature_key: string
           instance_id: string
+          parameters: Json | null
           updated_at: string
         }
         Insert: {
@@ -432,6 +433,7 @@ export type Database = {
           enabled?: boolean
           feature_key: string
           instance_id: string
+          parameters?: Json | null
           updated_at?: string
         }
         Update: {
@@ -439,6 +441,7 @@ export type Database = {
           enabled?: boolean
           feature_key?: string
           instance_id?: string
+          parameters?: Json | null
           updated_at?: string
         }
         Relationships: [
