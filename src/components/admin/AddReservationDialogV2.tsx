@@ -242,8 +242,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Yard mode state
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
   const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
-  const [pickupDate, setPickupDate] = useState<Date | undefined>(undefined);
-  const [pickupDateOpen, setPickupDateOpen] = useState(false);
   const [deadlineTime, setDeadlineTime] = useState('');
 
   // PPF/Detailing mode state
@@ -392,7 +390,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setCarSize('medium');
         setSelectedServices([]);
         setArrivalDate(new Date());
-        setPickupDate(undefined);
         setDeadlineTime('');
         setAdminNotes('');
         setFoundVehicles([]);
@@ -1517,7 +1514,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             {/* Divider between services and time/date selection */}
             <Separator className="my-2" />
 
-            {/* YARD MODE - Arrival Date, Pickup Date, Deadline */}
+            {/* YARD MODE - Arrival Date, Deadline */}
             {isYardMode && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1556,56 +1553,23 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      {t('addReservation.pickupDate')}
+                      <Clock className="w-4 h-4" />
+                      {t('addReservation.deadline')}
                     </Label>
-                    <Popover open={pickupDateOpen} onOpenChange={setPickupDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !pickupDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {pickupDate ? format(pickupDate, 'd MMM', { locale: pl }) : t('addReservation.selectDate')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={pickupDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              setPickupDate(date);
-                              setPickupDateOpen(false);
-                            }
-                          }}
-                          locale={pl}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Select value={deadlineTime} onValueChange={setDeadlineTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="--:--" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover max-h-60">
+                        <SelectItem value="none">{t('common.noResults')}</SelectItem>
+                        {yardTimeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {t('addReservation.deadline')}
-                  </Label>
-                  <Select value={deadlineTime} onValueChange={setDeadlineTime}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="--:--" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover max-h-60">
-                      <SelectItem value="none">{t('common.noResults')}</SelectItem>
-                      {yardTimeOptions.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             )}
@@ -1841,23 +1805,33 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
-                          <Input
-                            id="manualStartTime"
-                            type="time"
-                            value={manualStartTime}
-                            onChange={(e) => setManualStartTime(e.target.value)}
-                            className="w-full"
-                          />
+                          <Select value={manualStartTime} onValueChange={setManualStartTime}>
+                            <SelectTrigger id="manualStartTime">
+                              <SelectValue placeholder="--:--" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover max-h-60">
+                              {yardTimeOptions.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
-                          <Input
-                            id="manualEndTime"
-                            type="time"
-                            value={manualEndTime}
-                            onChange={(e) => setManualEndTime(e.target.value)}
-                            className="w-full"
-                          />
+                          <Select value={manualEndTime} onValueChange={setManualEndTime}>
+                            <SelectTrigger id="manualEndTime">
+                              <SelectValue placeholder="--:--" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover max-h-60">
+                              {yardTimeOptions.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div className="space-y-2">
