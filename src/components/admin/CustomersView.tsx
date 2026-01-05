@@ -342,7 +342,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   // If offers feature is not enabled, don't show tabs
   if (!hasOffers) {
     return (
-      <div className="space-y-4">
+      <div className="pt-4 space-y-4">
         {/* Sticky header on mobile */}
         <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
           {/* Header with search and add button */}
@@ -388,7 +388,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="pt-4 space-y-4">
       {/* Sticky header on mobile */}
       <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
         {/* Header with search and add button */}

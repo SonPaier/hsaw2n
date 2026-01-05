@@ -310,7 +310,7 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
       <Helmet>
         <title>{t('offers.title')} - {t('common.adminPanel')}</title>
       </Helmet>
-      <div className="max-w-6xl mx-auto">
+      <div className="pt-4 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
           <div className="flex items-center gap-2">

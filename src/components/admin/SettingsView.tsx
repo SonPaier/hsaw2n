@@ -386,7 +386,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="pt-4 flex flex-col lg:flex-row gap-6">
       {/* Sidebar / Mobile Dropdown */}
       {isMobile ? (
         <Collapsible open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} className="w-full">
