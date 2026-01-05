@@ -5,14 +5,12 @@ interface InstanceFeatures {
   offers: boolean;
   upsell: boolean;
   followup: boolean;
-  calendar_upsell: boolean;
 }
 
 const defaultFeatures: InstanceFeatures = {
   offers: false,
   upsell: false,
   followup: false,
-  calendar_upsell: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
