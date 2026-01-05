@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from '@/components/admin/AdminTabsList';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -136,28 +137,28 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general" className="flex items-center gap-2">
+          <AdminTabsList columns={5}>
+            <AdminTabsTrigger value="general">
               <FileText className="h-4 w-4" />
               {t('offerSettings.general')}
-            </TabsTrigger>
-            <TabsTrigger value="scopes" className="flex items-center gap-2">
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="scopes">
               <Layers className="h-4 w-4" />
               {t('offerSettings.services')}
-            </TabsTrigger>
-            <TabsTrigger value="variants" className="flex items-center gap-2">
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="variants">
               <Tag className="h-4 w-4" />
               {t('offerSettings.variantsTab')}
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="products">
               <Package className="h-4 w-4" />
               {t('offerSettings.productsTab')}
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="flex items-center gap-2">
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="branding">
               <Palette className="h-4 w-4" />
               {t('offerSettings.brandingTab')}
-            </TabsTrigger>
-          </TabsList>
+            </AdminTabsTrigger>
+          </AdminTabsList>
 
           <TabsContent value="general" className="mt-6">
             {loadingSettings ? (
