@@ -1238,12 +1238,12 @@ export const PublicOfferCustomerView = ({
             )}
 
             {isAccepted && (
-              <Card className="border-green-500/50 bg-green-500/10">
+              <Card className="border-green-300 bg-white">
                 <CardContent className="py-6">
                   <div className="text-center mb-4">
                     <Check className="w-12 h-12 mx-auto text-green-600 mb-3" />
-                    <h3 className="text-lg font-semibold text-green-700">{t('publicOffer.offerAccepted')}</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-lg font-semibold text-black">{t('publicOffer.offerAccepted')}</h3>
+                    <p className="text-black/70">
                       {isEditMode 
                         ? 'Możesz teraz zmienić swoje wybory i zatwierdzić ponownie.' 
                         : (
