@@ -185,7 +185,7 @@ export default function NotificationsView({
   const paginatedNotifications = notifications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
-    <>
+    <div className="pt-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Powiadomienia</h1>
         <div className="flex gap-2">
@@ -297,6 +297,6 @@ export default function NotificationsView({
           )}
         </>
       )}
-    </>
+    </div>
   );
 }
