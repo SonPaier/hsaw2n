@@ -13,7 +13,7 @@ import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettin
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
-import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail } from 'lucide-react';
+import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail, Link } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,6 +41,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [defaultWarranty, setDefaultWarranty] = useState('');
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [emailTemplate, setEmailTemplate] = useState('');
+  const [portfolioUrl, setPortfolioUrl] = useState('');
 
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
   const variantsRef = useRef<OfferVariantsSettingsRef>(null);
@@ -55,7 +56,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template')
+        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template, offer_portfolio_url')
         .eq('id', instanceId)
         .single();
       
@@ -70,6 +71,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         setDefaultWarranty(data.offer_default_warranty || '');
         setDefaultServiceInfo(data.offer_default_service_info || '');
         setEmailTemplate(data.offer_email_template || '');
+        setPortfolioUrl(data.offer_portfolio_url || '');
       }
       setLoadingSettings(false);
     };
@@ -105,6 +107,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
           offer_default_warranty: defaultWarranty || null,
           offer_default_service_info: defaultServiceInfo || null,
           offer_email_template: emailTemplate || null,
+          offer_portfolio_url: portfolioUrl || null,
         })
         .eq('id', instanceId);
 
@@ -308,6 +311,24 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                       placeholder={t('offerSettings.emailTemplatePlaceholder')}
                     />
                     <p className="text-xs text-muted-foreground">{t('offerSettings.emailTemplateHint')}</p>
+                  </div>
+                </div>
+
+                {/* Portfolio link section */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Link className="h-4 w-4" />
+                    <h4 className="font-medium">{t('offerSettings.portfolioLink')}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t('offerSettings.portfolioLinkDescription')}</p>
+                  
+                  <div className="space-y-2">
+                    <Input
+                      value={portfolioUrl}
+                      onChange={(e) => { setPortfolioUrl(e.target.value); handleChange(); }}
+                      disabled={saving}
+                      placeholder="https://example.com/portfolio"
+                    />
                   </div>
                 </div>
               </div>

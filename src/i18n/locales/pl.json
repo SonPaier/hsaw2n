@@ -1523,6 +1523,8 @@
     "emailTemplateDescription": "Treść wiadomości e-mail wysyłanej z linkiem do oferty.",
     "emailTemplatePlaceholder": "Szanowni Państwo,\n\nPrzesyłamy ofertę zgodnie z zapytaniem.\n\nLink do oferty: {{offer_link}}\n\n--\nZ poważaniem,\n{{company_name}}\n{{company_phone}}\n{{company_email}}",
     "emailTemplateHint": "Dostępne zmienne: {{offer_link}}, {{company_name}}, {{company_phone}}, {{company_email}}, {{customer_name}}, {{vehicle_model}}",
+    "portfolioLink": "Link do portfolio",
+    "portfolioLinkDescription": "Link do galerii realizacji wyświetlany na stronie oferty.",
     "enableBranding": "Własny branding oferty",
     "brandingEnabled": "Oferty używają własnych kolorów",
     "brandingDisabled": "Oferty używają kolorów domyślnych",
