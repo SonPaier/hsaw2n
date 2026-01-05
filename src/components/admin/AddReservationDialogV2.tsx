@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
@@ -106,7 +106,11 @@ interface WorkingHours {
 interface TimeSlot {
   time: string;
   availableStationIds: string[];
+  overlapType: 'none' | 'single' | 'double';
+  overlapMinutes: number;
 }
+
+const OVERLAP_TOLERANCE = 15; // maksymalny akceptowalny overlap w minutach na jeden kierunek
 
 interface EditingReservation {
   id: string;
@@ -485,6 +489,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   }, 0);
 
   // Get available time slots for the selected date (reservation mode only)
+  // Now includes overlap slots for admin with ±15 min tolerance
   const getAvailableSlots = (): TimeSlot[] => {
     if (!workingHours || selectedServices.length === 0 || stations.length === 0 || !isReservationMode) {
       return [];
@@ -495,6 +500,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const dayHours = workingHours[dayName];
     
     if (!dayHours) return [];
+    
+    const parseTimeToMinutes = (timeStr: string): number => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
     
     const [openH, openM] = dayHours.open.split(':').map(Number);
     const [closeH, closeM] = dayHours.close.split(':').map(Number);
@@ -511,26 +521,87 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     }
     
     const slots: TimeSlot[] = [];
+    const slotMap = new Map<string, TimeSlot>();
     
     for (let time = minStartTime; time + totalDurationMinutes <= closeMinutes; time += SLOT_INTERVAL) {
       const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
-      const endTime = time + totalDurationMinutes;
+      const slotStart = time;
+      const slotEnd = time + totalDurationMinutes;
       
-      const availableStationIds = stations.filter(station => {
+      for (const station of stations) {
         const stationBlocks = dayBlocks.filter(b => b.station_id === station.id);
-        return !stationBlocks.some(block => {
-          const blockStart = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1]);
-          const blockEnd = parseInt(block.end_time.split(':')[0]) * 60 + parseInt(block.end_time.split(':')[1]);
-          return time < blockEnd && endTime > blockStart;
-        });
-      }).map(s => s.id);
-      
-      if (availableStationIds.length > 0) {
-        slots.push({ time: timeStr, availableStationIds });
+        
+        let totalOverlap = 0;
+        let overlapDirections = 0;
+        let hasExcessiveOverlap = false;
+        
+        for (const block of stationBlocks) {
+          const blockStart = parseTimeToMinutes(block.start_time);
+          const blockEnd = parseTimeToMinutes(block.end_time);
+          
+          // Sprawdź czy slot i blok się nakładają
+          if (slotStart < blockEnd && slotEnd > blockStart) {
+            const overlapStart = Math.max(slotStart, blockStart);
+            const overlapEnd = Math.min(slotEnd, blockEnd);
+            const overlap = overlapEnd - overlapStart;
+            
+            if (overlap > OVERLAP_TOLERANCE) {
+              hasExcessiveOverlap = true;
+              break;
+            }
+            
+            if (overlap > 0) {
+              totalOverlap += overlap;
+              overlapDirections++;
+            }
+          }
+        }
+        
+        // Akceptuj slot jeśli: brak overlap LUB overlap w tolerancji
+        if (!hasExcessiveOverlap && totalOverlap <= OVERLAP_TOLERANCE * 2) {
+          let overlapType: 'none' | 'single' | 'double' = 'none';
+          if (totalOverlap > 0 && overlapDirections === 1) {
+            overlapType = 'single'; // pomarańczowy
+          } else if (totalOverlap > 0 && overlapDirections >= 2) {
+            overlapType = 'double'; // czerwony
+          }
+          
+          const existingSlot = slotMap.get(timeStr);
+          if (existingSlot) {
+            // Preferuj stanowisko z mniejszym overlapem
+            if (totalOverlap < existingSlot.overlapMinutes) {
+              slotMap.set(timeStr, {
+                time: timeStr,
+                availableStationIds: [station.id],
+                overlapType,
+                overlapMinutes: totalOverlap
+              });
+            } else if (totalOverlap === existingSlot.overlapMinutes) {
+              existingSlot.availableStationIds.push(station.id);
+            }
+          } else {
+            slotMap.set(timeStr, {
+              time: timeStr,
+              availableStationIds: [station.id],
+              overlapType,
+              overlapMinutes: totalOverlap
+            });
+          }
+        }
       }
     }
     
-    return slots;
+    // Konwertuj mapę na tablicę i sortuj: najpierw zielone, potem pomarańczowe, na końcu czerwone
+    const result = Array.from(slotMap.values());
+    result.sort((a, b) => {
+      const orderMap = { none: 0, single: 1, double: 2 };
+      if (orderMap[a.overlapType] !== orderMap[b.overlapType]) {
+        return orderMap[a.overlapType] - orderMap[b.overlapType];
+      }
+      return a.time.localeCompare(b.time);
+    });
+    
+    return result;
   };
 
   const availableSlots = getAvailableSlots();
@@ -1608,18 +1679,28 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           >
                             {availableSlots.map((slot) => {
                               const isSelected = selectedTime === slot.time;
+                              const isOverlapSingle = slot.overlapType === 'single';
+                              const isOverlapDouble = slot.overlapType === 'double';
+                              
                               return (
                                 <button
                                   key={slot.time}
                                   type="button"
                                   onClick={() => handleSelectSlot(slot)}
                                   className={cn(
-                                    "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                                    "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px] flex items-center justify-center gap-1.5",
                                     isSelected 
                                       ? "bg-primary text-primary-foreground shadow-lg" 
-                                      : "bg-card border-2 border-border hover:border-primary/50"
+                                      : isOverlapDouble
+                                        ? "bg-red-50 border-2 border-red-300 text-red-700 hover:border-red-400"
+                                        : isOverlapSingle
+                                          ? "bg-orange-50 border-2 border-orange-300 text-orange-700 hover:border-orange-400"
+                                          : "bg-card border-2 border-border hover:border-primary/50"
                                   )}
                                 >
+                                  {(isOverlapSingle || isOverlapDouble) && !isSelected && (
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                  )}
                                   {slot.time}
                                 </button>
                               );
