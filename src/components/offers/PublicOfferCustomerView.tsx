@@ -1345,6 +1345,20 @@ export const PublicOfferCustomerView = ({
                     </a>
                   )}
                 </div>
+                <div className="mt-4">
+                  <Button
+                    asChild
+                    className="gap-2"
+                  >
+                    <a 
+                      href="https://armcarautospa.pl/realizacje-portfolio" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      Zobacz nasze realizacje
+                    </a>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
