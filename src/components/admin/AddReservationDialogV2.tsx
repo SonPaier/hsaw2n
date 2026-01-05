@@ -159,6 +159,12 @@ interface AddReservationDialogV2Props {
   stationId?: string;
   /** Yard vehicle to edit when mode='yard' */
   editingYardVehicle?: YardVehicle | null;
+  /** Initial date from slot click - sets manual mode */
+  initialDate?: string;
+  /** Initial time from slot click - sets manual mode */
+  initialTime?: string;
+  /** Initial station from slot click - sets manual mode */
+  initialStationId?: string;
 }
 
 const SLOT_INTERVAL = 15;
@@ -174,6 +180,9 @@ const AddReservationDialogV2 = ({
   mode = 'reservation',
   stationId: propStationId,
   editingYardVehicle = null,
+  initialDate,
+  initialTime,
+  initialStationId,
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isPPFMode = mode === 'ppf';
@@ -450,8 +459,29 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+      } else if (initialDate && initialTime && initialStationId && !editingReservation) {
+        // Slot click - use manual mode with provided values
+        setCustomerName('');
+        setPhone('');
+        setCarModel('');
+        setCarSize('medium');
+        setSelectedServices([]);
+        setSelectedDate(new Date(initialDate));
+        setSelectedTime(null);
+        setSelectedStationId(null);
+        setAdminNotes('');
+        setFoundVehicles([]);
+        setFoundCustomers([]);
+        setSelectedCustomerId(null);
+        setShowPhoneDropdown(false);
+        setShowCustomerDropdown(false);
+        // Set manual mode with slot values
+        setTimeSelectionMode('manual');
+        setManualStartTime(initialTime);
+        setManualEndTime('');
+        setManualStationId(initialStationId);
       } else {
-        // Reservation create mode
+        // Reservation create mode (FAB click)
         setCustomerName('');
         setPhone('');
         setCarModel('');
@@ -473,7 +503,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setManualStationId(null);
       }
     }
-  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
