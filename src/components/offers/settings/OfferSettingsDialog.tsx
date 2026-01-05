@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettings';
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
@@ -27,6 +29,8 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   
   // General settings state
   const [showUnitPrices, setShowUnitPrices] = useState(false);
+  const [numberPrefix, setNumberPrefix] = useState('');
+  const [numberFormat, setNumberFormat] = useState('PREFIX/YYYY/MMDD/NNN');
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
@@ -42,12 +46,16 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer')
+        .select('show_unit_prices_in_offer, slug')
         .eq('id', instanceId)
         .single();
       
       if (data) {
         setShowUnitPrices(data.show_unit_prices_in_offer === true);
+        // Set default prefix from slug if not set
+        if (data.slug) {
+          setNumberPrefix(data.slug.toUpperCase().slice(0, 3));
+        }
       }
       setLoadingSettings(false);
     };
@@ -55,8 +63,18 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
     fetchSettings();
   }, [open, instanceId]);
 
-  const handleToggleUnitPrices = async (checked: boolean) => {
+  const handleToggleUnitPrices = (checked: boolean) => {
     setShowUnitPrices(checked);
+    setHasChanges(true);
+  };
+
+  const handlePrefixChange = (value: string) => {
+    setNumberPrefix(value.toUpperCase());
+    setHasChanges(true);
+  };
+
+  const handleFormatChange = (value: string) => {
+    setNumberFormat(value);
     setHasChanges(true);
   };
 
@@ -148,7 +166,39 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                 {t('common.loading')}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Numbering settings */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <h4 className="font-medium">{t('offers.numberingSettings')}</h4>
+                  <p className="text-sm text-muted-foreground">{t('offers.settingsDescription')}</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{t('offers.numberPrefix')}</Label>
+                      <Input
+                        value={numberPrefix}
+                        onChange={e => handlePrefixChange(e.target.value)}
+                        placeholder="ABC"
+                        maxLength={5}
+                        disabled={saving}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('offers.numberFormat')}</Label>
+                      <Select value={numberFormat} onValueChange={handleFormatChange} disabled={saving}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PREFIX/YYYY/MMDD/NNN">PREFIX/YYYY/MMDD/NNN</SelectItem>
+                          <SelectItem value="PREFIX/YYYY/NNN">PREFIX/YYYY/NNN</SelectItem>
+                          <SelectItem value="PREFIX/NNN">PREFIX/NNN</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unit prices toggle */}
                 <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
                   <div className="space-y-1">
                     <Label htmlFor="show-unit-prices" className="font-medium">
