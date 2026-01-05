@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, Layers, ClipboardCopy } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,14 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
 import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsDialog';
@@ -71,11 +62,6 @@ interface OfferWithOptions extends Offer {
   }[];
 }
 
-interface OfferSettings {
-  number_prefix: string;
-  number_format: string;
-}
-
 const statusColors: Record<string, string> = {
   draft: 'bg-slate-200 text-slate-600',
   sent: 'bg-blue-500/20 text-blue-600',
@@ -107,13 +93,7 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
   const [currentPage, setCurrentPage] = useState(isNaN(initialPage) || initialPage < 1 ? 1 : initialPage);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
   
-  const [showSettings, setShowSettings] = useState(false);
   const [showScopesSettings, setShowScopesSettings] = useState(false);
-  const [settings, setSettings] = useState<OfferSettings>({
-    number_prefix: '',
-    number_format: 'PREFIX/YYYY/MMDD/NNN',
-  });
-  const [savingSettings, setSavingSettings] = useState(false);
 
   const fetchOffers = async () => {
     if (!instanceId) return;
@@ -143,39 +123,8 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
     }
   };
 
-  const fetchSettings = async () => {
-    if (!instanceId) return;
-    const { data } = await supabase
-      .from('instance_features')
-      .select('*')
-      .eq('instance_id', instanceId)
-      .eq('feature_key', 'offer_settings')
-      .maybeSingle();
-    
-    if (data) {
-      try {
-        const parsed = JSON.parse(data.enabled ? 'true' : 'false');
-      } catch {}
-    }
-    
-    // Get instance slug for default prefix
-    const { data: instance } = await supabase
-      .from('instances')
-      .select('slug')
-      .eq('id', instanceId)
-      .single();
-    
-    if (instance?.slug) {
-      setSettings(prev => ({
-        ...prev,
-        number_prefix: prev.number_prefix || instance.slug.toUpperCase().slice(0, 3),
-      }));
-    }
-  };
-
   useEffect(() => {
     fetchOffers();
-    fetchSettings();
   }, [instanceId]);
 
   const handleDeleteOffer = async (offerId: string) => {
@@ -210,14 +159,6 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
     toast.success(t('offers.offerNumberCopied'));
   };
 
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
-    setTimeout(() => {
-      setSavingSettings(false);
-      setShowSettings(false);
-      toast.success(t('offers.settingsSaved'));
-    }, 500);
-  };
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
@@ -319,11 +260,8 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
               {t('offers.products')}
             </Button>
             <Button variant="outline" onClick={() => setShowScopesSettings(true)} className="gap-2">
-              <Layers className="w-4 h-4" />
-              {t('offers.services')}
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setShowSettings(true)} title={t('offers.numberingSettings')}>
               <Settings className="w-4 h-4" />
+              {t('offers.settings')}
             </Button>
             <Button onClick={() => setShowGenerator(true)} className="gap-2">
               <Plus className="w-4 h-4" />
@@ -508,47 +446,6 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
           </>
         )}
       </div>
-
-      {/* Offer Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('offers.settingsTitle')}</DialogTitle>
-            <DialogDescription>{t('offers.settingsDescription')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{t('offers.numberPrefix')}</Label>
-              <Input
-                value={settings.number_prefix}
-                onChange={e => setSettings(prev => ({ ...prev, number_prefix: e.target.value.toUpperCase() }))}
-                placeholder="ABC"
-                maxLength={5}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('offers.numberFormat')}</Label>
-              <Select value={settings.number_format} onValueChange={v => setSettings(prev => ({ ...prev, number_format: v }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PREFIX/YYYY/MMDD/NNN">PREFIX/YYYY/MMDD/NNN</SelectItem>
-                  <SelectItem value="PREFIX/YYYY/NNN">PREFIX/YYYY/NNN</SelectItem>
-                  <SelectItem value="PREFIX/NNN">PREFIX/NNN</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSettings(false)}>{t('common.cancel')}</Button>
-            <Button onClick={handleSaveSettings} disabled={savingSettings}>
-              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Scopes Settings Dialog */}
       {instanceId && (

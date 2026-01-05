@@ -4,8 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, RotateCcw, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -46,7 +45,6 @@ function ColorField({
   showAutoContrast 
 }: ColorFieldProps) {
   const { t } = useTranslation();
-  const contrastRatio = contrastWith ? getContrastRatio(value, contrastWith) : null;
   const isGoodContrast = contrastWith ? hasGoodContrast(value, contrastWith) : true;
   
   const handleAutoContrast = () => {
@@ -57,22 +55,7 @@ function ColorField({
   
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="font-medium">{label}</Label>
-        {contrastRatio !== null && (
-          <Badge 
-            variant={isGoodContrast ? 'secondary' : 'destructive'}
-            className="text-xs"
-          >
-            {isGoodContrast ? (
-              <Check className="w-3 h-3 mr-1" />
-            ) : (
-              <AlertTriangle className="w-3 h-3 mr-1" />
-            )}
-            {contrastRatio.toFixed(1)}:1
-          </Badge>
-        )}
-      </div>
+      <Label className="font-medium">{label}</Label>
       {description && (
         <p className="text-xs text-muted-foreground">{description}</p>
       )}
