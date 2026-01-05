@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, subMonths, addDays, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
@@ -132,6 +132,14 @@ const AdminDashboard = () => {
   };
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  
+  // Loaded date range for reservations - 2 months back initially, null = all future
+  const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>({
+    from: subMonths(new Date(), 2),
+    to: null
+  });
+  const [isLoadingMoreReservations, setIsLoadingMoreReservations] = useState(false);
+  
   const [allServices, setAllServices] = useState<Array<{
     id: string;
     name: string;
@@ -408,9 +416,60 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch reservations from database
-  const fetchReservations = async () => {
+  // Map raw reservation data to Reservation type
+  const mapReservationData = useCallback((
+    data: any[],
+    servicesMap: Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
+    originalReservationsMap: Map<string, any>
+  ): Reservation[] => {
+    return data.map(r => {
+      const serviceIds = (r as any).service_ids as string[] | null;
+      const servicesDataMapped: Array<{
+        name: string;
+        shortcut?: string | null;
+        price_small?: number | null;
+        price_medium?: number | null;
+        price_large?: number | null;
+        price_from?: number | null;
+      }> = [];
+      if (serviceIds && serviceIds.length > 0) {
+        serviceIds.forEach(id => {
+          const svc = servicesMap.get(id);
+          if (svc) servicesDataMapped.push(svc);
+        });
+      }
+      
+      const originalReservation = r.original_reservation_id 
+        ? originalReservationsMap.get(r.original_reservation_id) 
+        : null;
+
+      return {
+        ...r,
+        status: r.status || 'pending',
+        service: r.services ? {
+          name: (r.services as any).name,
+          shortcut: (r.services as any).shortcut
+        } : undefined,
+        services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+        station: r.stations ? {
+          name: (r.stations as any).name,
+          type: (r.stations as any).type
+        } : undefined,
+        original_reservation: originalReservation || null
+      };
+    });
+  }, []);
+
+  // Reference to services map for realtime updates
+  const servicesMapRef = useRef<Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>>(new Map());
+
+  // Fetch reservations from database with date range filter
+  // Initial load: 2 months back + all future reservations
+  const fetchReservations = async (fromDate?: Date, toDate?: Date | null) => {
     if (!instanceId) return;
+
+    const from = fromDate || loadedDateRange.from;
+    const to = toDate === undefined ? loadedDateRange.to : toDate;
 
     // First fetch services to map service_ids (include pricing)
     const {
@@ -434,10 +493,11 @@ const AdminDashboard = () => {
         price_from: s.price_from
       }));
     }
-    const {
-      data,
-      error
-    } = await supabase.from('reservations').select(`
+    // Save for realtime updates
+    servicesMapRef.current = servicesMap;
+
+    // Build query with date filter
+    let query = supabase.from('reservations').select(`
         id,
         instance_id,
         customer_name,
@@ -459,7 +519,16 @@ const AdminDashboard = () => {
         original_reservation_id,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
-      `).eq('instance_id', instanceId);
+      `).eq('instance_id', instanceId)
+      .gte('reservation_date', format(from, 'yyyy-MM-dd'));
+    
+    // If to is not null, add upper bound filter
+    if (to !== null) {
+      query = query.lte('reservation_date', format(to, 'yyyy-MM-dd'));
+    }
+
+    const { data, error } = await query;
+    
     if (!error && data) {
       // Fetch original reservation data for change requests
       const changeRequestIds = data
@@ -478,46 +547,87 @@ const AdminDashboard = () => {
         }
       }
 
-      setReservations(data.map(r => {
-        // Map service_ids to services_data if available (include pricing)
-        const serviceIds = (r as any).service_ids as string[] | null;
-        const servicesDataMapped: Array<{
-          name: string;
-          shortcut?: string | null;
-          price_small?: number | null;
-          price_medium?: number | null;
-          price_large?: number | null;
-          price_from?: number | null;
-        }> = [];
-        if (serviceIds && serviceIds.length > 0) {
-          serviceIds.forEach(id => {
-            const svc = servicesMap.get(id);
-            if (svc) servicesDataMapped.push(svc);
-          });
-        }
-        
-        // Get original reservation data if this is a change request
-        const originalReservation = r.original_reservation_id 
-          ? originalReservationsMap.get(r.original_reservation_id) 
-          : null;
-
-        return {
-          ...r,
-          status: r.status || 'pending',
-          service: r.services ? {
-            name: (r.services as any).name,
-            shortcut: (r.services as any).shortcut
-          } : undefined,
-          services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-          station: r.stations ? {
-            name: (r.stations as any).name,
-            type: (r.stations as any).type
-          } : undefined,
-          original_reservation: originalReservation || null
-        };
-      }));
+      setReservations(mapReservationData(data, servicesMap, originalReservationsMap));
     }
   };
+
+  // Load more reservations when user navigates to dates near the edge of loaded data
+  const loadMoreReservations = useCallback(async (direction: 'past') => {
+    if (!instanceId || isLoadingMoreReservations) return;
+
+    if (direction === 'past') {
+      setIsLoadingMoreReservations(true);
+      
+      const newFrom = subMonths(loadedDateRange.from, 1);
+      const oldFrom = loadedDateRange.from;
+      
+      // First fetch services to map service_ids
+      const servicesMap = servicesMapRef.current;
+      
+      // Fetch additional reservations
+      const { data, error } = await supabase.from('reservations').select(`
+          id,
+          instance_id,
+          customer_name,
+          customer_phone,
+          vehicle_plate,
+          reservation_date,
+          end_date,
+          start_time,
+          end_time,
+          station_id,
+          status,
+          confirmation_code,
+          price,
+          customer_notes,
+          admin_notes,
+          source,
+          car_size,
+          service_ids,
+          original_reservation_id,
+          services:service_id (name, shortcut),
+          stations:station_id (name, type)
+        `).eq('instance_id', instanceId)
+        .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
+        .lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
+      
+      if (!error && data && data.length > 0) {
+        // Fetch original reservation data for change requests
+        const changeRequestIds = data
+          .filter(r => r.original_reservation_id)
+          .map(r => r.original_reservation_id);
+        
+        const originalReservationsMap = new Map<string, any>();
+        if (changeRequestIds.length > 0) {
+          const { data: originals } = await supabase
+            .from('reservations')
+            .select('id, reservation_date, start_time, confirmation_code')
+            .in('id', changeRequestIds);
+          
+          if (originals) {
+            originals.forEach(o => originalReservationsMap.set(o.id, o));
+          }
+        }
+
+        const mappedData = mapReservationData(data, servicesMap, originalReservationsMap);
+        setReservations(prev => [...mappedData, ...prev]);
+      }
+      
+      setLoadedDateRange(prev => ({ ...prev, from: newFrom }));
+      setIsLoadingMoreReservations(false);
+    }
+  }, [instanceId, isLoadingMoreReservations, loadedDateRange.from, mapReservationData]);
+
+  // Handle calendar date change - load more data if approaching edge
+  const handleCalendarDateChange = useCallback((date: Date) => {
+    setCalendarDate(date);
+    
+    // Check if we're approaching the edge of loaded data (within 7 days buffer)
+    const bufferDays = 7;
+    if (date < addDays(loadedDateRange.from, bufferDays)) {
+      loadMoreReservations('past');
+    }
+  }, [loadedDateRange.from, loadMoreReservations]);
 
   // Fetch breaks from database
   const fetchBreaks = async () => {
@@ -549,17 +659,75 @@ const AdminDashboard = () => {
   }, [instanceId]);
 
   // Deep linking: auto-open reservation from URL param
+  // If reservation is not in loaded range, fetch it directly
   useEffect(() => {
-    if (reservationCodeFromUrl && reservations.length > 0) {
-      const reservation = reservations.find(r => r.confirmation_code === reservationCodeFromUrl);
-      if (reservation) {
-        setSelectedReservation(reservation);
-        // Clear the param after opening
+    const handleDeepLink = async () => {
+      if (!reservationCodeFromUrl || !instanceId) return;
+      
+      // First check if reservation is already in state
+      const existingReservation = reservations.find(r => r.confirmation_code === reservationCodeFromUrl);
+      if (existingReservation) {
+        setSelectedReservation(existingReservation);
         searchParams.delete('reservationCode');
         setSearchParams(searchParams, { replace: true });
+        return;
       }
-    }
-  }, [reservationCodeFromUrl, reservations, searchParams, setSearchParams]);
+      
+      // If not found in state (might be outside loaded date range), fetch directly
+      if (reservations.length > 0) {
+        const { data } = await supabase
+          .from('reservations')
+          .select(`
+            id,
+            instance_id,
+            customer_name,
+            customer_phone,
+            vehicle_plate,
+            reservation_date,
+            end_date,
+            start_time,
+            end_time,
+            station_id,
+            status,
+            confirmation_code,
+            price,
+            customer_notes,
+            admin_notes,
+            source,
+            car_size,
+            service_ids,
+            original_reservation_id,
+            services:service_id (name, shortcut),
+            stations:station_id (name, type)
+          `)
+          .eq('instance_id', instanceId)
+          .eq('confirmation_code', reservationCodeFromUrl)
+          .maybeSingle();
+        
+        if (data) {
+          const mappedReservation: Reservation = {
+            ...data,
+            status: data.status || 'pending',
+            service: data.services ? {
+              name: (data.services as any).name,
+              shortcut: (data.services as any).shortcut
+            } : undefined,
+            station: data.stations ? {
+              name: (data.stations as any).name,
+              type: (data.stations as any).type
+            } : undefined
+          };
+          // Add to state temporarily so drawer can open
+          setReservations(prev => [...prev, mappedReservation]);
+          setSelectedReservation(mappedReservation);
+          searchParams.delete('reservationCode');
+          setSearchParams(searchParams, { replace: true });
+        }
+      }
+    };
+    
+    handleDeepLink();
+  }, [reservationCodeFromUrl, reservations, instanceId, searchParams, setSearchParams]);
 
   // Play notification sound for new customer reservations
   const playNotificationSound = () => {
@@ -596,6 +764,16 @@ const AdminDashboard = () => {
       console.log('Realtime reservation update:', payload);
       if (payload.eventType === 'INSERT') {
         const newRecord = payload.new as any;
+        const reservationDate = parseISO(newRecord.reservation_date);
+        
+        // Check if the new reservation is within loaded date range
+        // Since loadedDateRange.to is null (all future), we only check from
+        const isWithinRange = reservationDate >= loadedDateRange.from;
+        
+        if (!isWithinRange) {
+          // Reservation is before our loaded range, skip adding to state
+          return;
+        }
 
         // Play sound only for customer reservations
         if (newRecord.source === 'customer') {
@@ -618,12 +796,23 @@ const AdminDashboard = () => {
                 confirmation_code,
                 price,
                 source,
+                service_ids,
                 services:service_id (name, shortcut),
                 stations:station_id (name, type)
               `).eq('id', payload.new.id).single().then(({
           data
         }) => {
           if (data) {
+            // Map service_ids if present
+            const serviceIds = (data as any).service_ids as string[] | null;
+            const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+            if (serviceIds && serviceIds.length > 0) {
+              serviceIds.forEach(id => {
+                const svc = servicesMapRef.current.get(id);
+                if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+              });
+            }
+
             const newReservation = {
               ...data,
               status: data.status || 'pending',
@@ -631,6 +820,7 @@ const AdminDashboard = () => {
                 name: (data.services as any).name,
                 shortcut: (data.services as any).shortcut
               } : undefined,
+              services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
               station: data.stations ? {
                 name: (data.stations as any).name,
                 type: (data.stations as any).type
@@ -647,6 +837,7 @@ const AdminDashboard = () => {
           }
         });
       } else if (payload.eventType === 'UPDATE') {
+        // Only update if the reservation is already in our state
         setReservations(prev => prev.map(r => r.id === payload.new.id ? {
           ...r,
           ...payload.new
@@ -658,7 +849,7 @@ const AdminDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [instanceId]);
+  }, [instanceId, loadedDateRange.from]);
 
   // Calculate free time ranges (gaps) per station
   const getFreeRangesPerStation = () => {
@@ -1731,7 +1922,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={setCalendarDate} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} />
                 
                 {/* Floating + button for quick add reservation V2 - hidden on mobile */}
                 <button
