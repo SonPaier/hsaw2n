@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
 import UpsellSuggestion from './UpsellSuggestion';
 import IOSInstallPrompt from '@/components/pwa/IOSInstallPrompt';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Service {
   id: string;
@@ -54,6 +55,7 @@ interface Instance {
   id: string;
   name: string;
   phone: string | null;
+  address: string | null;
   working_hours: Record<string, {
     open: string;
     close: string;
@@ -237,6 +239,7 @@ export default function CustomerBookingWizard({
   });
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showRodoDialog, setShowRodoDialog] = useState(false);
   const isMobile = useIsMobile();
 
   // WebOTP hook for automatic SMS code reading on Android/Chrome
@@ -508,6 +511,7 @@ export default function CustomerBookingWizard({
           id: instanceData.id,
           name: instanceData.name,
           phone: instanceData.phone,
+          address: instanceData.address,
           working_hours: instanceData.working_hours as Record<string, {
             open: string;
             close: string;
@@ -1500,6 +1504,51 @@ export default function CustomerBookingWizard({
                     {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     {t('booking.confirmBooking')}
                   </Button>
+                  <p className="text-sm text-secondary-foreground mt-3 text-center">
+                    {t('booking.rodoConsent')}{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setShowRodoDialog(true)} 
+                      className="underline hover:text-foreground transition-colors"
+                    >
+                      {t('booking.rodoLink')}
+                    </button>
+                    .
+                  </p>
+
+                  {/* RODO Dialog */}
+                  <Dialog open={showRodoDialog} onOpenChange={setShowRodoDialog}>
+                    <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>{t('booking.rodoTitle')}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 text-sm">
+                        <p className="font-semibold">{t('booking.rodoWhoManagesTitle')}</p>
+                        <p>{t('booking.rodoWhoManagesIntro')}</p>
+                        <ul className="list-disc pl-5 space-y-2">
+                          <li>
+                            <strong>{t('booking.rodoPartner')}</strong> {instance?.name}{instance?.address ? `, ${instance.address}` : ''} – {t('booking.rodoPartnerPurpose')}
+                          </li>
+                          <li>
+                            <strong>{t('booking.rodoOperator')}</strong> Tomasz Nastały Sinpai, ul. Prezydenta Lecha Kaczyńskiego 31 lok. 19, 81-810 Gdańsk, NIP 5851474597 – {t('booking.rodoOperatorPurpose')}
+                          </li>
+                        </ul>
+
+                        <p className="font-semibold">{t('booking.rodoPurposeTitle')}</p>
+                        <ul className="list-disc pl-5 space-y-2">
+                          <li>
+                            <strong>{t('booking.rodoPurposeReservation')}</strong> {t('booking.rodoPurposeReservationDesc')}
+                          </li>
+                          <li>
+                            <strong>{t('booking.rodoPurposeContact')}</strong> {t('booking.rodoPurposeContactDesc')}
+                          </li>
+                          <li>
+                            <strong>{t('booking.rodoPurposeMarketing')}</strong> {t('booking.rodoPurposeMarketingDesc')}
+                          </li>
+                        </ul>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </> : <div className="glass-card p-4 text-center">
                   <p className="text-xs text-muted-foreground mb-3">
                     {t('booking.enterSmsCode')}
