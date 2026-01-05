@@ -7,6 +7,7 @@ import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleChec
 import { formatDistanceToNow, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import ReservationDetailsDrawer from './ReservationDetailsDrawer';
 
 interface Notification {
   id: string;
@@ -37,6 +38,8 @@ export default function NotificationsView({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedReservation, setSelectedReservation] = useState<any>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!instanceId) return;
@@ -71,11 +74,42 @@ export default function NotificationsView({
       );
     }
 
-    // Navigate based on entity type
+    // Open drawer for reservation notifications
+    if (notification.entity_type === 'reservation' && notification.entity_id) {
+      const { data: reservationData } = await supabase
+        .from('reservations')
+        .select(`
+          *,
+          station:stations(name, type),
+          service:services(name)
+        `)
+        .eq('id', notification.entity_id)
+        .single();
+
+      if (reservationData) {
+        // Fetch services data if service_ids exist
+        let servicesData = null;
+        const serviceIds = reservationData.service_ids as string[] | null;
+        if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
+          const { data: services } = await supabase
+            .from('services')
+            .select('name, shortcut, price_small, price_medium, price_large, price_from')
+            .in('id', serviceIds);
+          servicesData = services;
+        }
+
+        setSelectedReservation({
+          ...reservationData,
+          services_data: servicesData
+        });
+        setDrawerOpen(true);
+      }
+      return;
+    }
+
+    // Navigate based on entity type for non-reservation
     if (notification.entity_type === 'offer') {
       onNavigateToOffers();
-    } else if (notification.entity_type === 'reservation') {
-      onNavigateToReservations();
     }
   };
 
@@ -259,6 +293,15 @@ export default function NotificationsView({
           )}
         </>
       )}
+
+      <ReservationDetailsDrawer
+        reservation={selectedReservation}
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedReservation(null);
+        }}
+      />
     </>
   );
 }
