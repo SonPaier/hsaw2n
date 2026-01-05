@@ -1856,6 +1856,9 @@ const AdminDashboard = () => {
             : 'reservation'
           }
           stationId={newReservationData.stationId}
+          initialDate={newReservationData.date}
+          initialTime={newReservationData.time}
+          initialStationId={newReservationData.stationId}
           editingReservation={editingReservation ? {
             id: editingReservation.id,
             customer_name: editingReservation.customer_name,
