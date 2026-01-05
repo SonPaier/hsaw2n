@@ -34,6 +34,41 @@ const generateUniqueConfirmationCode = async (supabase: any): Promise<string> =>
   throw new Error('Failed to generate unique confirmation code');
 };
 
+// Check if SMS edit link should be included for this phone
+const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: string): Promise<boolean> => {
+  const { data: feature } = await supabase
+    .from('instance_features')
+    .select('enabled, parameters')
+    .eq('instance_id', instanceId)
+    .eq('feature_key', 'sms_edit_link')
+    .maybeSingle();
+  
+  if (!feature || !feature.enabled) {
+    return false;
+  }
+  
+  // If no phones specified, send to everyone
+  const params = feature.parameters as { phones?: string[] } | null;
+  if (!params || !params.phones || params.phones.length === 0) {
+    return true;
+  }
+  
+  // Normalize phone for comparison
+  let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+  if (!normalizedPhone.startsWith("+")) {
+    normalizedPhone = "+48" + normalizedPhone;
+  }
+  
+  // Check if phone is in allowed list
+  return params.phones.some(p => {
+    let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+    if (!normalizedAllowed.startsWith("+")) {
+      normalizedAllowed = "+48" + normalizedAllowed;
+    }
+    return normalizedPhone === normalizedAllowed;
+  });
+};
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -266,6 +301,9 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    // Check if edit link should be included
+    const includeEditLink = await shouldIncludeEditLink(supabase, instanceId, normalizedPhone);
+    
     // Send SMS based on confirmation status with dynamic instance name
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
     const reservationUrl = `https://${instanceSettings?.slug}.n2wash.com/res?code=${confirmationCode}`;
@@ -280,9 +318,11 @@ serve(async (req: Request): Promise<Response> => {
     
     // Different message based on auto-confirm setting, include maps link if available, use dynamic instance name
     const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
+    const editLinkPart = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : "";
+    
     const smsMessage = autoConfirm 
-      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart} Zmień lub anuluj: ${reservationUrl}`
-      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart} Zmień lub anuluj: ${reservationUrl}`;
+      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart}${editLinkPart}`
+      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart}${editLinkPart}`;
     
     if (SMSAPI_TOKEN) {
       try {

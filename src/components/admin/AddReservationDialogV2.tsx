@@ -1173,6 +1173,36 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               .single();
 
             if (instanceData) {
+              // Check if SMS edit link feature is enabled
+              const { data: smsEditLinkFeature } = await supabase
+                .from('instance_features')
+                .select('enabled, parameters')
+                .eq('instance_id', instanceId)
+                .eq('feature_key', 'sms_edit_link')
+                .maybeSingle();
+              
+              // Determine if edit link should be included
+              let includeEditLink = false;
+              if (smsEditLinkFeature?.enabled) {
+                const params = smsEditLinkFeature.parameters as { phones?: string[] } | null;
+                if (!params || !params.phones || params.phones.length === 0) {
+                  includeEditLink = true;
+                } else {
+                  // Check if phone is in allowed list
+                  let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+                  if (!normalizedPhone.startsWith("+")) {
+                    normalizedPhone = "+48" + normalizedPhone;
+                  }
+                  includeEditLink = params.phones.some(p => {
+                    let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+                    if (!normalizedAllowed.startsWith("+")) {
+                      normalizedAllowed = "+48" + normalizedAllowed;
+                    }
+                    return normalizedPhone === normalizedAllowed;
+                  });
+                }
+              }
+
               // Format date and time for SMS
               const dayNames = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
               const monthNames = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -1184,8 +1214,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               const instanceName = instanceData.name || 'Myjnia';
               const mapsLink = instanceData.google_maps_url ? ` Dojazd: ${instanceData.google_maps_url}` : '';
               const reservationUrl = `https://${instanceData.slug}.n2wash.com/res?code=${reservationData.confirmation_code}`;
+              const editLink = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : '';
               
-              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${finalStartTime}-${finalEndTime}.${mapsLink} Zmień lub anuluj: ${reservationUrl}`;
+              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${finalStartTime}-${finalEndTime}.${mapsLink}${editLink}`;
 
               await supabase.functions.invoke('send-sms-message', {
                 body: {
