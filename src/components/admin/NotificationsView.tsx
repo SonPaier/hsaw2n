@@ -102,21 +102,23 @@ export default function NotificationsView({
     const iconClass = "w-5 h-5";
     switch (type) {
       case 'reservation_new':
-        return <CalendarPlus className={cn(iconClass, "text-green-500")} />;
+        return { icon: <CalendarPlus className={cn(iconClass, "text-green-600")} />, bg: "bg-green-100" };
       case 'reservation_cancelled':
-        return <XCircle className={cn(iconClass, "text-red-500")} />;
+        return { icon: <XCircle className={cn(iconClass, "text-red-600")} />, bg: "bg-red-100" };
       case 'reservation_cancelled_by_customer':
-        return <Ban className={cn(iconClass, "text-orange-500")} />;
+        return { icon: <Ban className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-100" };
       case 'reservation_edited':
-        return <Pencil className={cn(iconClass, "text-amber-500")} />;
+        return { icon: <Pencil className={cn(iconClass, "text-amber-600")} />, bg: "bg-amber-100" };
       case 'reservation_edited_by_customer':
-        return <FileEdit className={cn(iconClass, "text-purple-500")} />;
+        return { icon: <FileEdit className={cn(iconClass, "text-purple-600")} />, bg: "bg-purple-100" };
+      case 'change_requested':
+        return { icon: <FileEdit className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-100" };
       case 'offer_approved':
-        return <CircleCheck className={cn(iconClass, "text-emerald-500")} />;
+        return { icon: <CircleCheck className={cn(iconClass, "text-emerald-600")} />, bg: "bg-emerald-100" };
       case 'offer_modified':
-        return <FileText className={cn(iconClass, "text-blue-500")} />;
+        return { icon: <FileText className={cn(iconClass, "text-blue-600")} />, bg: "bg-blue-100" };
       default:
-        return <Bell className={cn(iconClass, "text-muted-foreground")} />;
+        return { icon: <Bell className={cn(iconClass, "text-muted-foreground")} />, bg: "bg-muted" };
     }
   };
 
@@ -189,9 +191,14 @@ export default function NotificationsView({
                 onClick={() => handleNotificationClick(notification)}
               >
                 <CardContent className="p-4 flex gap-4 items-start">
-                  <div className="shrink-0 w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-                    {getNotificationIcon(notification.type)}
-                  </div>
+                  {(() => {
+                    const { icon, bg } = getNotificationIcon(notification.type);
+                    return (
+                      <div className={cn("shrink-0 w-10 h-10 rounded-lg flex items-center justify-center", bg)}>
+                        {icon}
+                      </div>
+                    );
+                  })()}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className={cn(
@@ -217,7 +224,7 @@ export default function NotificationsView({
                           locale: pl 
                         })}
                         {' · '}
-                        {format(new Date(notification.created_at), 'dd.MM.yyyy HH:mm')}
+                        {format(new Date(notification.created_at), 'd MMM yyyy HH:mm', { locale: pl })}
                       </span>
                     </div>
                   </div>
