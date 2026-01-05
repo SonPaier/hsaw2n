@@ -489,6 +489,20 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     return total + (service ? getServiceDuration(service) : 0);
   }, 0);
 
+  // Get price for a service based on car size
+  const getServicePrice = (service: Service): number => {
+    if (carSize === 'small' && service.price_small) return service.price_small;
+    if (carSize === 'large' && service.price_large) return service.price_large;
+    if (carSize === 'medium' && service.price_medium) return service.price_medium;
+    return service.price_from || 0;
+  };
+
+  // Calculate total price from selected services
+  const totalPrice = selectedServices.reduce((total, serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    return total + (service ? getServicePrice(service) : 0);
+  }, 0);
+
   // Get available time slots for the selected date (reservation mode only)
   // Now includes overlap slots for admin with ±15 min tolerance
   const getAvailableSlots = (): TimeSlot[] => {
@@ -1354,9 +1368,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           {t('common.add')}
                         </button>
                       </div>
-                      {isReservationMode && (
-                        <p className="text-sm text-muted-foreground">
-                          {t('addReservation.totalDuration')}: {totalDurationMinutes} min
+                      {isReservationMode && selectedServices.length > 0 && (
+                        <p className="text-base font-bold mt-1">
+                          {t('addReservation.totalDuration')}: {totalDurationMinutes} min, {t('common.price')}: {totalPrice} zł
                         </p>
                       )}
                     </div>

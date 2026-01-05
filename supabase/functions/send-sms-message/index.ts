@@ -39,18 +39,12 @@ serve(async (req) => {
 
       if (limitCheckError) {
         console.error("SMS limit check error:", limitCheckError);
-        return new Response(
-          JSON.stringify({ error: "Failed to check SMS limit" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // Don't block sending, just log the error
       }
 
-      if (!canSend) {
-        console.log(`SMS limit exceeded for instance ${instanceId}`);
-        return new Response(
-          JSON.stringify({ error: "SMS limit exceeded", code: "SMS_LIMIT_EXCEEDED" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // Log warning if limit exceeded, but don't block
+      if (canSend === false) {
+        console.warn(`SMS limit exceeded for instance ${instanceId} - sending anyway`);
       }
     }
 

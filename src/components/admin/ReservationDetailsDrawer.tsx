@@ -294,9 +294,9 @@ const ReservationDetailsDrawer = ({
               </div>
               <div className="flex gap-1">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-accent"
                   onClick={handleCall}
                   title={t('common.call')}
                 >

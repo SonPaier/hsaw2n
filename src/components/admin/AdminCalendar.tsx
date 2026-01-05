@@ -178,7 +178,16 @@ const AdminCalendar = ({
   const {
     t
   } = useTranslation();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    const saved = localStorage.getItem('admin-calendar-date');
+    if (saved) {
+      try {
+        const parsed = new Date(saved);
+        if (!isNaN(parsed.getTime())) return parsed;
+      } catch {}
+    }
+    return new Date();
+  });
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [hiddenStationIds, setHiddenStationIds] = useState<Set<string>>(() => {
     // Load from localStorage
@@ -251,6 +260,11 @@ const AdminCalendar = ({
   useEffect(() => {
     localStorage.setItem('calendar-hidden-stations', JSON.stringify([...hiddenStationIds]));
   }, [hiddenStationIds]);
+
+  // Save current date to localStorage
+  useEffect(() => {
+    localStorage.setItem('admin-calendar-date', format(currentDate, 'yyyy-MM-dd'));
+  }, [currentDate]);
   const toggleStationVisibility = (stationId: string) => {
     setHiddenStationIds(prev => {
       const newSet = new Set(prev);
@@ -856,13 +870,13 @@ const AdminCalendar = ({
           return;
         }
 
-        // Check for overlap with existing reservations
-        const newEndTime = `${Math.floor(newEndNum).toString().padStart(2, '0')}:${Math.round(newEndNum % 1 * 60).toString().padStart(2, '0')}`;
-        if (checkOverlap(stationId, dateStr, newTime, newEndTime, draggedReservation.id)) {
-          console.warn('Cannot drop reservation - overlaps with existing reservation');
-          setDraggedReservation(null);
-          return;
-        }
+        // Overlap check disabled - admin has full control over calendar
+        // const newEndTime = `${Math.floor(newEndNum).toString().padStart(2, '0')}:${Math.round(newEndNum % 1 * 60).toString().padStart(2, '0')}`;
+        // if (checkOverlap(stationId, dateStr, newTime, newEndTime, draggedReservation.id)) {
+        //   console.warn('Cannot drop reservation - overlaps with existing reservation');
+        //   setDraggedReservation(null);
+        //   return;
+        // }
       }
 
       // Allow drop if station changed OR date changed OR time changed
@@ -1319,9 +1333,11 @@ const AdminCalendar = ({
                               }} className="p-0.5 rounded hover:bg-white/20 transition-colors" title="Wyślij SMS">
                                       <MessageSquare className="w-3.5 h-3.5" />
                                     </button>
-                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} className="p-0.5 rounded hover:bg-white/20 transition-colors" title={reservation.customer_phone}>
-                                      <Phone className="w-3.5 h-3.5" />
-                                    </a>
+                                    {isMobile && (
+                                      <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} className="p-0.5 rounded hover:bg-white/20 transition-colors" title={reservation.customer_phone}>
+                                        <Phone className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
                                   </>}
                               </div>}
                           </div>
@@ -1349,7 +1365,14 @@ const AdminCalendar = ({
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
                             const notesToShow = reservation.admin_notes || reservation.customer_notes;
                             if (durationMinutes > 30 && notesToShow) {
-                              return <div className="text-[11px] md:text-[12px] truncate opacity-70 mt-0.5">
+                              // Calculate max lines based on card height (2 lines for 45min, 3 for 60min+)
+                              const maxLines = durationMinutes >= 60 ? 3 : 2;
+                              return <div 
+                                className={cn(
+                                  "text-[11px] md:text-[12px] opacity-70 mt-0.5 break-words",
+                                  maxLines === 2 ? "line-clamp-2" : "line-clamp-3"
+                                )}
+                              >
                                 {notesToShow}
                               </div>;
                             }
@@ -1907,6 +1930,10 @@ const AdminCalendar = ({
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-amber-400/80 border border-amber-500/70" />
           <span className="text-xs text-muted-foreground">Do potwierdzenia</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-orange-400/80 border border-orange-500/70" />
+          <span className="text-xs text-muted-foreground">Prośba o zmianę</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-green-400/80 border border-green-500/70" />

@@ -136,6 +136,35 @@ function OTPInputWithAutoFocus({
       </InputOTP>
     </div>;
 }
+
+// Service description component with "see more" functionality
+function ServiceDescription({ description, serviceId }: { description: string; serviceId: string }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  
+  // Check if description is long (roughly more than 3 lines = ~150 chars)
+  const isLong = description.length > 120;
+  
+  if (!isLong || expanded) {
+    return <p className="text-muted-foreground text-xs mt-0.5">{description}</p>;
+  }
+  
+  return (
+    <div className="mt-0.5">
+      <p className="text-muted-foreground text-xs line-clamp-3">{description}</p>
+      <button 
+        type="button"
+        onClick={(e) => { 
+          e.stopPropagation(); 
+          setExpanded(true); 
+        }}
+        className="text-primary text-xs underline hover:no-underline mt-0.5"
+      >
+        {t('common.show')} więcej
+      </button>
+    </div>
+  );
+}
 export default function CustomerBookingWizard({
   onLayoutChange,
   instanceSubdomain
@@ -1067,9 +1096,14 @@ export default function CustomerBookingWizard({
     };
   };
   if (loading) {
-    return <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-16 h-16 animate-spin text-primary" />
+        <p className="text-[22px] mt-4 text-muted-foreground font-medium">
+          System rezerwacji n2wash.com
+        </p>
+      </div>
+    );
   }
 
   // STEP 1: PHONE NUMBER & CAR MODEL INPUT
@@ -1192,7 +1226,7 @@ export default function CustomerBookingWizard({
               <h3 className="font-medium text-foreground truncate">
                 {service.name}
               </h3>
-              {service.description && <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{service.description}</p>}
+              {service.description && <ServiceDescription description={service.description} serviceId={service.id} />}
               <p className="text-muted-foreground text-sm">{duration} min</p>
             </div>
 
@@ -1589,10 +1623,6 @@ export default function CustomerBookingWizard({
                 })()}
                 </span>
               </div>
-              {confirmationData.carModel && <div className="flex justify-between">
-                <span className="text-muted-foreground text-base">{t('reservations.carModel')}</span>
-                <span className="font-medium text-base">{confirmationData.carModel}</span>
-              </div>}
               <div className="flex justify-between items-start">
                 <span className="text-muted-foreground text-base">{t('reservations.service')}</span>
                 <span className="font-medium text-base">{confirmationData.serviceName}</span>

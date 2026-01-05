@@ -63,24 +63,18 @@ serve(async (req: Request): Promise<Response> => {
 
     const instanceName = instanceData?.name || "Myjnia";
 
-    // Check SMS limit before proceeding
+    // Check SMS limit - but don't block, just log warning
     const { data: canSend, error: limitCheckError } = await supabase
       .rpc('check_sms_available', { _instance_id: instanceId });
 
     if (limitCheckError) {
       console.error("SMS limit check error:", limitCheckError);
-      return new Response(
-        JSON.stringify({ error: "Failed to check SMS limit" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      // Don't block sending, just log the error
     }
 
-    if (!canSend) {
-      console.log(`SMS limit exceeded for instance ${instanceId}`);
-      return new Response(
-        JSON.stringify({ error: "SMS limit exceeded", code: "SMS_LIMIT_EXCEEDED" }),
-        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    // Log warning if limit exceeded, but don't block sending
+    if (canSend === false) {
+      console.warn(`SMS limit exceeded for instance ${instanceId} - sending anyway`);
     }
 
     const { error: dbError } = await supabase
