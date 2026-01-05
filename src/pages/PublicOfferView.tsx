@@ -815,6 +815,8 @@ const PublicOfferView = () => {
                     {t('publicOffer.save')}
                   </Button>
                 )}
+                {/* TODO: Przywrócić przycisk PDF gdy będzie gotowy */}
+                {false && (
                 <Button
                   variant="default"
                   size="sm"
@@ -848,6 +850,7 @@ const PublicOfferView = () => {
                   <Download className="w-4 h-4" />
                   {t('publicOffer.downloadPdf')}
                 </Button>
+                )}
               </div>
             </div>
           </div>
