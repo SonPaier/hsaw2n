@@ -7,7 +7,7 @@ const buttonVariants = cva("inline-flex items-center justify-center gap-2 whites
     variant: {
       default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",
       destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
+      outline: "border border-border bg-transparent hover:bg-muted/30 hover:text-foreground active:bg-muted/30",
       secondary: "bg-muted/30 text-foreground hover:bg-muted/50",
       ghost: "hover:bg-muted/30 hover:text-foreground",
       link: "text-primary underline-offset-4 hover:underline",
