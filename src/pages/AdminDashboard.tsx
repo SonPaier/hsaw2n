@@ -1472,22 +1472,29 @@ const AdminDashboard = () => {
   const handleYardVehicleDrop = async (vehicle: { id: string; customer_name: string; customer_phone: string; vehicle_plate: string; car_size: 'small' | 'medium' | 'large' | null; service_ids: string[]; notes: string | null }, stationId: string, date: string, time: string) => {
     if (!instanceId) return;
     
+    // Default car size to 'medium' if not set
+    const effectiveCarSize = vehicle.car_size || 'medium';
+    
     // Calculate total duration based on services
     let totalDuration = 60; // Default 1 hour if no services
     
     if (vehicle.service_ids && vehicle.service_ids.length > 0) {
       totalDuration = vehicle.service_ids.reduce((total, serviceId) => {
         const service = allServices.find(s => s.id === serviceId);
-        if (!service) return total;
+        if (!service) {
+          console.warn(`Service ${serviceId} not found in allServices`);
+          return total;
+        }
         
-        // Get duration based on car size
-        let duration = service.duration_minutes || 60;
-        if (vehicle.car_size === 'small' && service.duration_small) {
-          duration = service.duration_small;
-        } else if (vehicle.car_size === 'medium' && service.duration_medium) {
-          duration = service.duration_medium;
-        } else if (vehicle.car_size === 'large' && service.duration_large) {
-          duration = service.duration_large;
+        // Get duration based on car size (with fallback chain)
+        let duration = 0;
+        if (effectiveCarSize === 'small') {
+          duration = service.duration_small || service.duration_medium || service.duration_minutes || 60;
+        } else if (effectiveCarSize === 'large') {
+          duration = service.duration_large || service.duration_medium || service.duration_minutes || 60;
+        } else {
+          // medium or fallback
+          duration = service.duration_medium || service.duration_minutes || 60;
         }
         
         return total + duration;
