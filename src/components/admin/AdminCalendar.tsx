@@ -85,6 +85,7 @@ interface AdminCalendarProps {
   hallMode?: boolean; // Simplified view for hall workers
   instanceId?: string; // Instance ID for yard vehicles
   yardVehicleCount?: number; // Count of vehicles on yard for badge
+  selectedReservationId?: string | null; // ID of currently selected reservation (for drawer highlight)
 }
 
 // Default hours from 9:00 to 19:00
@@ -171,7 +172,8 @@ const AdminCalendar = ({
   showWeekView = true,
   hallMode = false,
   instanceId,
-  yardVehicleCount = 0
+  yardVehicleCount = 0,
+  selectedReservationId
 }: AdminCalendarProps) => {
   const {
     t
@@ -1275,17 +1277,18 @@ const AdminCalendar = ({
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                     const isPending = reservation.status === 'pending';
+                    const isSelected = selectedReservationId === reservation.id;
 
                     // Calculate overlap positioning
                     const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
                     const widthPercent = overlapInfo.hasOverlap ? 100 / overlapInfo.total : 100;
                     const leftPercent = overlapInfo.hasOverlap ? overlapInfo.index * widthPercent : 0;
-                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", overlapInfo.hasOverlap && "border-2 border-dashed")} style={{
+                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", overlapInfo.hasOverlap && "border-2 border-dashed", isSelected && "ring-4 ring-primary shadow-lg z-30")} style={{
                       ...style,
                       left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
                       right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
                       width: overlapInfo.hasOverlap ? `calc(${widthPercent}% - 4px)` : undefined,
-                      zIndex: overlapInfo.hasOverlap ? 10 + overlapInfo.index : undefined
+                      zIndex: isSelected ? 30 : (overlapInfo.hasOverlap ? 10 + overlapInfo.index : undefined)
                     }} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
