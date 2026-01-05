@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
@@ -206,6 +207,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
   
   const slotsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Manual time selection mode (for reservation mode only)
+  const [timeSelectionMode, setTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
+  const [manualStartTime, setManualStartTime] = useState('');
+  const [manualEndTime, setManualEndTime] = useState('');
+  const [manualStationId, setManualStationId] = useState<string | null>(null);
 
   // Yard mode state
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
@@ -454,6 +461,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        // Reset manual time mode
+        setTimeSelectionMode('slots');
+        setManualStartTime('');
+        setManualEndTime('');
+        setManualStationId(null);
       }
     }
   }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle]);
@@ -830,9 +842,18 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       return;
     }
     
-    if (!selectedTime || !selectedStationId) {
-      toast.error(t('addReservation.selectTimeSlot'));
-      return;
+    // Validate time selection based on mode
+    if (timeSelectionMode === 'slots') {
+      if (!selectedTime || !selectedStationId) {
+        toast.error(t('addReservation.selectTimeSlot'));
+        return;
+      }
+    } else {
+      // Manual mode
+      if (!manualStartTime || !manualEndTime || !manualStationId) {
+        toast.error(t('addReservation.selectManualTime'));
+        return;
+      }
     }
 
     setLoading(true);
@@ -867,20 +888,30 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         }
       }
 
-      // Calculate end time
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
-      const endHours = Math.floor(totalMinutes / 60);
-      const endMins = totalMinutes % 60;
-      const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      // Determine start time, end time, and station based on mode
+      const isManualMode = timeSelectionMode === 'manual';
+      const finalStartTime = isManualMode ? manualStartTime : selectedTime;
+      const finalStationId = isManualMode ? manualStationId : selectedStationId;
+      
+      // Calculate end time (for slots mode, calculate from duration; for manual mode, use provided end time)
+      let finalEndTime: string;
+      if (isManualMode) {
+        finalEndTime = manualEndTime;
+      } else {
+        const [hours, minutes] = finalStartTime!.split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
+        const endHours = Math.floor(totalMinutes / 60);
+        const endMins = totalMinutes % 60;
+        finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      }
 
       if (isEditMode && editingReservation) {
         // Update existing reservation
         const updateData = {
-          station_id: selectedStationId,
+          station_id: finalStationId,
           reservation_date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: selectedTime,
-          end_time: endTime,
+          start_time: finalStartTime,
+          end_time: finalEndTime,
           customer_name: customerName.trim() || 'Klient',
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
@@ -901,7 +932,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         sendPushNotification({
           instanceId,
           title: `✏️ Rezerwacja zmieniona`,
-          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${selectedTime}`,
+          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
           url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
           tag: `edited-reservation-${editingReservation.id}`,
         });
@@ -913,10 +944,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         
         const reservationData = {
           instance_id: instanceId,
-          station_id: selectedStationId,
+          station_id: finalStationId,
           reservation_date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: selectedTime,
-          end_time: endTime,
+          start_time: finalStartTime,
+          end_time: finalEndTime,
           customer_name: customerName.trim() || 'Klient',
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
@@ -959,7 +990,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               const mapsLink = instanceData.google_maps_url ? ` Dojazd: ${instanceData.google_maps_url}` : '';
               const reservationUrl = `https://${instanceData.slug}.n2wash.com/res?code=${reservationData.confirmation_code}`;
               
-              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${selectedTime}-${endTime}.${mapsLink} Zmień lub anuluj: ${reservationUrl}`;
+              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${finalStartTime}-${finalEndTime}.${mapsLink} Zmień lub anuluj: ${reservationUrl}`;
 
               await supabase.functions.invoke('send-sms-message', {
                 body: {
@@ -979,7 +1010,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         sendPushNotification({
           instanceId,
           title: `📅 Nowa rezerwacja (admin)`,
-          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${selectedTime}`,
+          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
           url: `/admin?reservationCode=${reservationData.confirmation_code}`,
           tag: `new-reservation-admin-${Date.now()}`,
         });
@@ -1536,45 +1567,113 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   </div>
                 </div>
 
-                {/* Time slots */}
+                {/* Time selection with tabs */}
                 <div className="space-y-2">
-                  <Label>{t('addReservation.availableSlots')}</Label>
-                  {selectedServices.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">
-                      {t('addReservation.selectServiceFirst')}
-                    </p>
-                  ) : availableSlots.length > 0 ? (
-                    <div className="w-full overflow-hidden">
-                      <div 
-                        ref={slotsScrollRef}
-                        className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
-                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-                      >
-                        {availableSlots.map((slot) => {
-                          const isSelected = selectedTime === slot.time;
-                          return (
-                            <button
-                              key={slot.time}
-                              type="button"
-                              onClick={() => handleSelectSlot(slot)}
-                              className={cn(
-                                "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
-                                isSelected 
-                                  ? "bg-primary text-primary-foreground shadow-lg" 
-                                  : "bg-card border-2 border-border hover:border-primary/50"
-                              )}
-                            >
-                              {slot.time}
-                            </button>
-                          );
-                        })}
+                  <Tabs 
+                    value={timeSelectionMode} 
+                    onValueChange={(v) => {
+                      setTimeSelectionMode(v as 'slots' | 'manual');
+                      // Reset values when switching tabs
+                      if (v === 'slots') {
+                        setManualStartTime('');
+                        setManualEndTime('');
+                        setManualStationId(null);
+                      } else {
+                        setSelectedTime(null);
+                        setSelectedStationId(null);
+                      }
+                    }}
+                  >
+                    <TabsList variant="light" className="w-full">
+                      <TabsTrigger value="slots" className="flex-1">
+                        {t('addReservation.availableSlotsTab')}
+                      </TabsTrigger>
+                      <TabsTrigger value="manual" className="flex-1">
+                        {t('addReservation.manualTimeTab')}
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Available slots tab */}
+                    <TabsContent value="slots" className="mt-3">
+                      {selectedServices.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          {t('addReservation.selectServiceFirst')}
+                        </p>
+                      ) : availableSlots.length > 0 ? (
+                        <div className="w-full overflow-hidden">
+                          <div 
+                            ref={slotsScrollRef}
+                            className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                          >
+                            {availableSlots.map((slot) => {
+                              const isSelected = selectedTime === slot.time;
+                              return (
+                                <button
+                                  key={slot.time}
+                                  type="button"
+                                  onClick={() => handleSelectSlot(slot)}
+                                  className={cn(
+                                    "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px]",
+                                    isSelected 
+                                      ? "bg-primary text-primary-foreground shadow-lg" 
+                                      : "bg-card border-2 border-border hover:border-primary/50"
+                                  )}
+                                >
+                                  {slot.time}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          {t('booking.noSlotsForDay')}
+                        </p>
+                      )}
+                    </TabsContent>
+                    
+                    {/* Manual time tab */}
+                    <TabsContent value="manual" className="mt-3 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
+                          <Input
+                            id="manualStartTime"
+                            type="time"
+                            value={manualStartTime}
+                            onChange={(e) => setManualStartTime(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
+                          <Input
+                            id="manualEndTime"
+                            type="time"
+                            value={manualEndTime}
+                            onChange={(e) => setManualEndTime(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground py-4 text-center">
-                      {t('booking.noSlotsForDay')}
-                    </p>
-                  )}
+                      <div className="space-y-2">
+                        <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
+                        <Select value={manualStationId || ''} onValueChange={setManualStationId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('addReservation.selectStation')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stations.map((station) => (
+                              <SelectItem key={station.id} value={station.id}>
+                                {station.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </>
             )}
@@ -1611,7 +1710,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             disabled={
               loading || 
               !carModel.trim() ||
-              (isReservationMode && (selectedServices.length === 0 || !selectedTime)) ||
+              (isReservationMode && (
+                selectedServices.length === 0 || 
+                (timeSelectionMode === 'slots' && !selectedTime) ||
+                (timeSelectionMode === 'manual' && (!manualStartTime || !manualEndTime || !manualStationId))
+              )) ||
               (isYardMode && selectedServices.length === 0) ||
               (isDetailingMode && selectedServices.length === 0) ||
               (isPPFOrDetailingMode && !dateRange?.from)
