@@ -186,17 +186,34 @@ export default function NotificationsView({
 
   return (
     <div className="pt-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Powiadomienia</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Powiadomienia</h1>
+          <div className="hidden sm:flex gap-2">
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+                <Check className="w-4 h-4 mr-1" />
+                Oznacz wszystkie
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleDeleteAll}>
+                <Trash2 className="w-4 h-4 mr-1" />
+                Usuń wszystkie
+              </Button>
+            )}
+          </div>
+        </div>
+        {/* Mobile buttons */}
+        <div className="flex gap-2 sm:hidden">
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={handleMarkAllRead}>
               <Check className="w-4 h-4 mr-1" />
               Oznacz wszystkie
             </Button>
           )}
           {notifications.length > 0 && (
-            <Button variant="outline" size="sm" onClick={handleDeleteAll}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={handleDeleteAll}>
               <Trash2 className="w-4 h-4 mr-1" />
               Usuń wszystkie
             </Button>
