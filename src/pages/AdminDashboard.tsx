@@ -1757,6 +1757,7 @@ const AdminDashboard = () => {
               onNavigateBack={() => setCurrentView('calendar')} 
               onNavigateToOffers={() => setCurrentView('offers')}
               onNavigateToReservations={() => setCurrentView('reservations')}
+              onReservationClick={handleReservationClick}
             />}
           </div>
         </main>

@@ -7,7 +7,6 @@ import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleChec
 import { formatDistanceToNow, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import ReservationDetailsDrawer from './ReservationDetailsDrawer';
 
 interface Notification {
   id: string;
@@ -25,6 +24,7 @@ interface NotificationsViewProps {
   onNavigateBack: () => void;
   onNavigateToOffers: () => void;
   onNavigateToReservations: () => void;
+  onReservationClick?: (reservation: any) => void;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -33,13 +33,12 @@ export default function NotificationsView({
   instanceId, 
   onNavigateBack,
   onNavigateToOffers,
-  onNavigateToReservations 
+  onNavigateToReservations,
+  onReservationClick
 }: NotificationsViewProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReservation, setSelectedReservation] = useState<any>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!instanceId) return;
@@ -75,7 +74,7 @@ export default function NotificationsView({
     }
 
     // Open drawer for reservation notifications
-    if (notification.entity_type === 'reservation' && notification.entity_id) {
+    if (notification.entity_type === 'reservation' && notification.entity_id && onReservationClick) {
       const { data: reservationData } = await supabase
         .from('reservations')
         .select(`
@@ -98,11 +97,10 @@ export default function NotificationsView({
           servicesData = services;
         }
 
-        setSelectedReservation({
+        onReservationClick({
           ...reservationData,
           services_data: servicesData
         });
-        setDrawerOpen(true);
       }
       return;
     }
@@ -293,15 +291,6 @@ export default function NotificationsView({
           )}
         </>
       )}
-
-      <ReservationDetailsDrawer
-        reservation={selectedReservation}
-        open={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
-          setSelectedReservation(null);
-        }}
-      />
     </>
   );
 }
