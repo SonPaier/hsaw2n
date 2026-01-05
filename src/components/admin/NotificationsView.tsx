@@ -134,23 +134,23 @@ export default function NotificationsView({
     const iconClass = "w-5 h-5";
     switch (type) {
       case 'reservation_new':
-        return { icon: <CalendarPlus className={cn(iconClass, "text-green-600")} />, bg: "bg-green-100" };
+        return { icon: <CalendarPlus className={cn(iconClass, "text-green-600")} />, bg: "bg-green-50" };
       case 'reservation_cancelled':
-        return { icon: <XCircle className={cn(iconClass, "text-red-600")} />, bg: "bg-red-100" };
+        return { icon: <XCircle className={cn(iconClass, "text-red-600")} />, bg: "bg-red-50" };
       case 'reservation_cancelled_by_customer':
-        return { icon: <Ban className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-100" };
+        return { icon: <Ban className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
       case 'reservation_edited':
-        return { icon: <Pencil className={cn(iconClass, "text-amber-600")} />, bg: "bg-amber-100" };
+        return { icon: <Pencil className={cn(iconClass, "text-amber-600")} />, bg: "bg-amber-50" };
       case 'reservation_edited_by_customer':
-        return { icon: <FileEdit className={cn(iconClass, "text-purple-600")} />, bg: "bg-purple-100" };
+        return { icon: <FileEdit className={cn(iconClass, "text-purple-600")} />, bg: "bg-purple-50" };
       case 'change_requested':
-        return { icon: <FileEdit className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-100" };
+        return { icon: <FileEdit className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
       case 'offer_approved':
-        return { icon: <CircleCheck className={cn(iconClass, "text-emerald-600")} />, bg: "bg-emerald-100" };
+        return { icon: <CircleCheck className={cn(iconClass, "text-emerald-600")} />, bg: "bg-emerald-50" };
       case 'offer_modified':
-        return { icon: <FileText className={cn(iconClass, "text-blue-600")} />, bg: "bg-blue-100" };
+        return { icon: <FileText className={cn(iconClass, "text-blue-600")} />, bg: "bg-blue-50" };
       default:
-        return { icon: <Bell className={cn(iconClass, "text-muted-foreground")} />, bg: "bg-muted" };
+        return { icon: <Bell className={cn(iconClass, "text-muted-foreground")} />, bg: "bg-muted/50" };
     }
   };
 
