@@ -1615,7 +1615,7 @@ const AdminDashboard = () => {
             </nav>
 
             {/* Collapse toggle & User menu */}
-            <div className={cn("border-t border-border/50", sidebarCollapsed ? "p-2" : "p-4")}>
+            <div className={cn(sidebarCollapsed ? "p-2" : "p-4")}>
               {/* Collapse button - desktop only */}
               <Button
                 variant="ghost"
@@ -1635,6 +1635,9 @@ const AdminDashboard = () => {
                   </>
                 )}
               </Button>
+
+              {/* Divider between collapse button and user menu */}
+              {!sidebarCollapsed && <Separator className="my-3" />}
 
               {/* Email -> dropdown (logout) */}
               {sidebarCollapsed ? (
