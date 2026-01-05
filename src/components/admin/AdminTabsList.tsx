@@ -38,7 +38,8 @@ export const AdminTabsTrigger = ({ value, children, className }: AdminTabsTrigge
     <TabsTrigger 
       value={value}
       className={cn(
-        "data-[state=active]:bg-muted data-[state=active]:text-foreground",
+        "data-[state=active]:bg-muted/30 data-[state=active]:text-foreground",
+        "hover:bg-muted/30 hover:text-foreground",
         "gap-1.5",
         className
       )}
