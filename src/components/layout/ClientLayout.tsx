@@ -41,7 +41,7 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
       {!hideHeader && <header className="bg-background">
           <div className="container py-4">
             <div className="flex items-center justify-center">
-              {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="w-24 h-24 rounded-xl object-contain" /> : <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
+              {instance?.logo_url ? <img src={instance.logo_url} alt={instance.name} className="max-h-20 w-auto rounded-xl object-contain" /> : <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center glow-primary">
                   <Car className="w-12 h-12 text-primary-foreground" />
                 </div>}
             </div>
