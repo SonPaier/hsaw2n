@@ -1890,12 +1890,7 @@ const AdminDashboard = () => {
       <MobileBottomNav 
         currentView={currentView} 
         onViewChange={setCurrentView} 
-        stations={stations} 
-        reservations={reservations} 
-        currentDate={format(new Date(), 'yyyy-MM-dd')}
-        workingHours={workingHours}
         onAddReservation={handleQuickAddReservation} 
-        onAddReservationWithSlot={handleAddReservation}
         onLogout={handleLogout}
         unreadNotificationsCount={unreadNotificationsCount}
         offersEnabled={hasFeature('offers')}
