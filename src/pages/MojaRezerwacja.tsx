@@ -29,7 +29,7 @@ interface Reservation {
   customer_phone: string;
   vehicle_plate: string;
   status: string;
-  notes: string | null;
+  customer_notes: string | null;
   car_size: string | null;
   service_id: string;
   station_id: string | null;
@@ -87,7 +87,7 @@ const MojaRezerwacja = () => {
             customer_phone,
             vehicle_plate,
             status,
-            notes,
+            customer_notes,
             car_size,
             service_id,
             station_id,
@@ -212,7 +212,7 @@ const MojaRezerwacja = () => {
           customer_phone: reservation.customer_phone,
           vehicle_plate: reservation.vehicle_plate,
           car_size: reservation.car_size,
-          notes: reservation.notes,
+          customer_notes: reservation.customer_notes,
           instance_id: reservation.instance_id
         }
       }
@@ -389,10 +389,10 @@ const MojaRezerwacja = () => {
                     </span>
                   </div>
                 )}
-                {reservation.notes && (
+                {reservation.customer_notes && (
                   <div className="pt-2 border-t border-border">
                     <span className="text-muted-foreground text-xs">Uwagi:</span>
-                    <p className="text-foreground mt-0.5">{reservation.notes}</p>
+                    <p className="text-foreground mt-0.5">{reservation.customer_notes}</p>
                   </div>
                 )}
               </div>

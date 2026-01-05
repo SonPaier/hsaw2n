@@ -431,7 +431,8 @@ const AdminDashboard = () => {
         status,
         confirmation_code,
         price,
-        notes,
+        customer_notes,
+        admin_notes,
         source,
         car_size,
         service_ids,
@@ -1716,7 +1717,27 @@ const AdminDashboard = () => {
                 
                 {/* Floating + button for quick add reservation V2 - hidden on mobile */}
                 <button
-                  onClick={() => setAddReservationV2Open(true)}
+                  onClick={() => {
+                    // Reset to default washing mode
+                    const washingStation = stations.find(s => s.type === 'washing') || stations[0];
+                    const now = new Date();
+                    const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
+                    if (roundedMinutes === 60) {
+                      now.setHours(now.getHours() + 1);
+                      now.setMinutes(0);
+                    } else {
+                      now.setMinutes(roundedMinutes);
+                    }
+                    
+                    setEditingReservation(null);
+                    setNewReservationData({
+                      stationId: washingStation?.id || '',
+                      date: format(new Date(), 'yyyy-MM-dd'),
+                      time: format(now, 'HH:mm'),
+                      stationType: 'washing'
+                    });
+                    setAddReservationV2Open(true);
+                  }}
                   className="hidden lg:flex fixed bottom-8 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 items-center justify-center"
                   title={t('addReservation.quickAdd')}
                 >
@@ -1836,7 +1857,7 @@ const AdminDashboard = () => {
             station_id: editingReservation.station_id,
             service_ids: (editingReservation as any).service_ids,
             service_id: (editingReservation as any).service_id,
-            notes: (editingReservation as any).notes,
+            admin_notes: (editingReservation as any).admin_notes,
             price: editingReservation.price,
           } : null}
         />

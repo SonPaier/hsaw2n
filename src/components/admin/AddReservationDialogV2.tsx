@@ -125,7 +125,8 @@ interface EditingReservation {
   station_id: string | null;
   service_ids?: string[];
   service_id?: string;
-  notes?: string;
+  customer_notes?: string | null;
+  admin_notes?: string | null;
   price?: number | null;
   confirmation_code?: string;
 }
@@ -201,7 +202,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   
   // Date picker
@@ -356,7 +357,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedServices(editingYardVehicle.service_ids || []);
         setArrivalDate(new Date(editingYardVehicle.arrival_date));
         setDeadlineTime(editingYardVehicle.deadline_time || '');
-        setNotes(editingYardVehicle.notes || '');
+        setAdminNotes(editingYardVehicle.notes || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -372,7 +373,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setArrivalDate(new Date());
         setPickupDate(undefined);
         setDeadlineTime('');
-        setNotes('');
+        setAdminNotes('');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -395,19 +396,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPpfStartTime(editingReservation.start_time?.substring(0, 5) || '09:00');
         setPpfEndTime(editingReservation.end_time?.substring(0, 5) || '17:00');
         
-        // Extract offer number from notes
-        if (editingReservation.notes) {
-          const offerMatch = editingReservation.notes.match(/Oferta:\s*([^\n]+)/);
+        // Extract offer number from admin_notes
+        if (editingReservation.admin_notes) {
+          const offerMatch = editingReservation.admin_notes.match(/Oferta:\s*([^\n]+)/);
           if (offerMatch) {
             setOfferNumber(offerMatch[1].trim());
-            setNotes(editingReservation.notes.replace(/Oferta:\s*[^\n]+\n?/, '').trim());
+            setAdminNotes(editingReservation.admin_notes.replace(/Oferta:\s*[^\n]+\n?/, '').trim());
           } else {
             setOfferNumber('');
-            setNotes(editingReservation.notes);
+            setAdminNotes(editingReservation.admin_notes);
           }
         } else {
           setOfferNumber('');
-          setNotes('');
+          setAdminNotes('');
         }
         
         setFoundVehicles([]);
@@ -426,7 +427,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPpfStartTime('09:00');
         setPpfEndTime('17:00');
         setOfferNumber('');
-        setNotes('');
+        setAdminNotes('');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -443,7 +444,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedDate(new Date(editingReservation.reservation_date));
         setSelectedTime(editingReservation.start_time?.substring(0, 5) || null);
         setSelectedStationId(editingReservation.station_id);
-        setNotes(editingReservation.notes || '');
+        setAdminNotes(editingReservation.admin_notes || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -459,7 +460,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedDate(getNextWorkingDay());
         setSelectedTime(null);
         setSelectedStationId(null);
-        setNotes('');
+        setAdminNotes('');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -735,7 +736,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           service_ids: selectedServices,
           arrival_date: format(arrivalDate, 'yyyy-MM-dd'),
           deadline_time: deadlineTime || null,
-          notes: notes.trim() || null,
+          notes: adminNotes.trim() || null,
         };
 
         if (editingYardVehicle) {
@@ -826,8 +827,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         if (offerNumber) {
           reservationNotes = `Oferta: ${offerNumber}`;
         }
-        if (notes) {
-          reservationNotes = reservationNotes ? `${reservationNotes}\n${notes}` : notes;
+        if (adminNotes) {
+          reservationNotes = reservationNotes ? `${reservationNotes}\n${adminNotes}` : adminNotes;
         }
 
         const reservationData = {
@@ -840,7 +841,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
-          notes: reservationNotes || null,
+          admin_notes: reservationNotes || null,
           service_id: selectedServices[0] || null,
           service_ids: selectedServices.length > 0 ? selectedServices : null,
         };
@@ -987,7 +988,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
-          notes: notes.trim() || null,
+          admin_notes: adminNotes.trim() || null,
           service_id: selectedServices[0],
           service_ids: selectedServices,
         };
@@ -1023,7 +1024,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
-          notes: notes.trim() || null,
+          admin_notes: adminNotes.trim() || null,
           service_id: selectedServices[0],
           service_ids: selectedServices,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
@@ -1768,14 +1769,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 >
                   <ChevronDown className={cn("w-4 h-4 transition-transform", notesOpen && "rotate-180")} />
                   {t('addReservation.notes')}
-                  {notes && !notesOpen && <span className="text-xs">({t('common.filled')})</span>}
+                  {adminNotes && !notesOpen && <span className="text-xs">({t('common.filled')})</span>}
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
                 <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  id="adminNotes"
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
                   rows={2}
                   placeholder={t('addReservation.notesPlaceholder')}
                 />

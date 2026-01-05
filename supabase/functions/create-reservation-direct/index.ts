@@ -131,7 +131,7 @@ serve(async (req: Request): Promise<Response> => {
         customer_name: reservationData.customerName,
         customer_phone: normalizedPhone,
         vehicle_plate: reservationData.vehiclePlate || "BRAK",
-        notes: reservationData.notes || null,
+        customer_notes: reservationData.notes || null,
         confirmation_code: confirmationCode,
         car_size: reservationData.carSize || null,
         status: reservationStatus,

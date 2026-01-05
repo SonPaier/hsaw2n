@@ -1443,6 +1443,7 @@ export type Database = {
       }
       reservations: {
         Row: {
+          admin_notes: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
@@ -1454,6 +1455,7 @@ export type Database = {
           created_by: string | null
           customer_email: string | null
           customer_name: string
+          customer_notes: string | null
           customer_phone: string
           edited_by_customer_at: string | null
           end_date: string | null
@@ -1461,7 +1463,6 @@ export type Database = {
           id: string
           instance_id: string
           no_show_at: string | null
-          notes: string | null
           original_reservation_id: string | null
           price: number | null
           released_at: string | null
@@ -1477,6 +1478,7 @@ export type Database = {
           vehicle_plate: string
         }
         Insert: {
+          admin_notes?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
@@ -1488,6 +1490,7 @@ export type Database = {
           created_by?: string | null
           customer_email?: string | null
           customer_name: string
+          customer_notes?: string | null
           customer_phone: string
           edited_by_customer_at?: string | null
           end_date?: string | null
@@ -1495,7 +1498,6 @@ export type Database = {
           id?: string
           instance_id: string
           no_show_at?: string | null
-          notes?: string | null
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
@@ -1511,6 +1513,7 @@ export type Database = {
           vehicle_plate: string
         }
         Update: {
+          admin_notes?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
@@ -1522,6 +1525,7 @@ export type Database = {
           created_by?: string | null
           customer_email?: string | null
           customer_name?: string
+          customer_notes?: string | null
           customer_phone?: string
           edited_by_customer_at?: string | null
           end_date?: string | null
@@ -1529,7 +1533,6 @@ export type Database = {
           id?: string
           instance_id?: string
           no_show_at?: string | null
-          notes?: string | null
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
