@@ -435,7 +435,19 @@ const AdminDashboard = () => {
       if (serviceIds && serviceIds.length > 0) {
         serviceIds.forEach(id => {
           const svc = servicesMap.get(id);
-          if (svc) servicesDataMapped.push(svc);
+          if (svc) {
+            servicesDataMapped.push(svc);
+          } else {
+            // Graceful fallback for deleted services
+            servicesDataMapped.push({
+              name: '(usługa usunięta)',
+              shortcut: null,
+              price_small: null,
+              price_medium: null,
+              price_large: null,
+              price_from: null
+            });
+          }
         });
       }
       
@@ -472,9 +484,10 @@ const AdminDashboard = () => {
     const to = toDate === undefined ? loadedDateRange.to : toDate;
 
     // First fetch services to map service_ids (include pricing)
+    // Fetch ALL services (including inactive) to properly map historical reservations
     const {
       data: servicesData
-    } = await supabase.from('services').select('id, name, shortcut, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).eq('active', true);
+    } = await supabase.from('services').select('id, name, shortcut, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId);
     const servicesMap = new Map<string, {
       name: string;
       shortcut?: string | null;

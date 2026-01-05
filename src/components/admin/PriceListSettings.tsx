@@ -350,16 +350,39 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   };
 
   const handleDelete = async (serviceId: string) => {
-    if (!confirm(t('priceList.confirmDelete'))) return;
-
     try {
-      const { error } = await supabase
-        .from('services')
-        .delete()
-        .eq('id', serviceId);
+      // Check if service is linked to any reservations
+      const { count } = await supabase
+        .from('reservations')
+        .select('id', { count: 'exact', head: true })
+        .or(`service_id.eq.${serviceId},service_ids.cs.["${serviceId}"]`);
       
-      if (error) throw error;
-      toast.success(t('priceList.serviceDeleted'));
+      const hasReservations = (count || 0) > 0;
+      
+      if (hasReservations) {
+        // Service has reservations - soft delete (deactivate)
+        if (!confirm(t('priceList.confirmDeactivate'))) return;
+        
+        const { error } = await supabase
+          .from('services')
+          .update({ active: false })
+          .eq('id', serviceId);
+        
+        if (error) throw error;
+        toast.success(t('priceList.serviceDeactivated'));
+      } else {
+        // No reservations - can delete physically
+        if (!confirm(t('priceList.confirmDelete'))) return;
+        
+        const { error } = await supabase
+          .from('services')
+          .delete()
+          .eq('id', serviceId);
+        
+        if (error) throw error;
+        toast.success(t('priceList.serviceDeleted'));
+      }
+      
       fetchServices();
     } catch (error) {
       console.error('Error deleting service:', error);
