@@ -1636,9 +1636,6 @@ const AdminDashboard = () => {
                 )}
               </Button>
 
-              {/* Divider - only when not collapsed */}
-              {!sidebarCollapsed && <Separator className="my-3" />}
-
               {/* Email -> dropdown (logout) */}
               {sidebarCollapsed ? (
                 <Button
