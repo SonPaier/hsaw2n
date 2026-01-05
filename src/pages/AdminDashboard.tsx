@@ -892,23 +892,14 @@ const AdminDashboard = () => {
     setAddReservationOpen(true);
   };
 
-  // Quick add reservation (for mobile bottom nav)
+  // Quick add reservation (for mobile bottom nav / FAB) - opens with "Dostępne sloty" tab
   const handleQuickAddReservation = () => {
-    const firstStation = stations[0];
-    const now = new Date();
-    const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
-    now.setMinutes(roundedMinutes, 0, 0);
-    if (roundedMinutes === 60) {
-      now.setHours(now.getHours() + 1);
-      now.setMinutes(0);
-    }
-    const timeStr = format(now, 'HH:mm');
     setEditingReservation(null); // Clear editing mode
     setNewReservationData({
-      stationId: firstStation?.id || '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      time: timeStr,
-      stationType: firstStation?.type || ''
+      stationId: '',
+      date: '',
+      time: '',
+      stationType: ''
     });
     setAddReservationOpen(true);
   };
