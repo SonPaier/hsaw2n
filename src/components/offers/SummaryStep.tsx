@@ -21,7 +21,8 @@ import {
   Calculator,
   Edit,
   Check,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ interface SummaryStepProps {
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
+  onShowPreview?: () => void;
 }
 
 interface OfferTemplate {
@@ -65,6 +67,7 @@ export const SummaryStep = ({
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
+  onShowPreview,
 }: SummaryStepProps) => {
   const { t } = useTranslation();
   const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
@@ -451,6 +454,19 @@ export const SummaryStep = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Preview Button */}
+      {onShowPreview && (
+        <Button
+          variant="outline"
+          onClick={onShowPreview}
+          className="w-full gap-2"
+          size="lg"
+        >
+          <Eye className="w-4 h-4" />
+          {t('offers.showPreview')}
+        </Button>
+      )}
     </div>
   );
 };

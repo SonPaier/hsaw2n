@@ -469,6 +469,9 @@
     "numberPrefix": "Prefiks numeru",
     "numberFormat": "Format numeru",
     "settingsSaved": "Ustawienia zapisane",
+    "showPreview": "Zobacz podgląd",
+    "previewTitle": "Podgląd oferty",
+    "backToEdit": "Wróć do edycji",
     "errors": {
       "fetchError": "Błąd pobierania ofert",
       "deleteError": "Błąd usuwania oferty"
