@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Loader2, ChevronLeft, Send } from 'lucide-react';
+import { ChevronLeft, Send, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferState, OfferOption } from '@/hooks/useOffer';
-import { OfferPreviewContent } from './OfferPreviewContent';
+import { PublicOfferCustomerView, PublicOfferData } from './PublicOfferCustomerView';
 
 interface OfferPreviewDialogProps {
   open: boolean;
@@ -42,6 +42,12 @@ interface Instance {
   offer_scope_header_text_color?: string;
 }
 
+interface ScopeData {
+  id: string;
+  name: string;
+  is_extras_scope: boolean;
+}
+
 export const OfferPreviewDialog = ({
   open,
   onClose,
@@ -53,14 +59,17 @@ export const OfferPreviewDialog = ({
 }: OfferPreviewDialogProps) => {
   const { t } = useTranslation();
   const [instance, setInstance] = useState<Instance | null>(null);
+  const [scopes, setScopes] = useState<Record<string, ScopeData>>({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (open) {
-      const fetchInstance = async () => {
+      const fetchData = async () => {
         setLoading(true);
-        const { data } = await supabase
+        
+        // Fetch instance data
+        const { data: instanceData } = await supabase
           .from('instances')
           .select(`
             name,
@@ -83,14 +92,33 @@ export const OfferPreviewDialog = ({
           .eq('id', instanceId)
           .single();
 
-        if (data) {
-          setInstance(data);
+        if (instanceData) {
+          setInstance(instanceData);
         }
+
+        // Get unique scope IDs from offer options
+        const scopeIds = [...new Set(offer.options.map(opt => opt.scopeId).filter(Boolean))] as string[];
+        
+        if (scopeIds.length > 0) {
+          const { data: scopesData } = await supabase
+            .from('offer_scopes')
+            .select('id, name, is_extras_scope')
+            .in('id', scopeIds);
+          
+          if (scopesData) {
+            const scopeMap: Record<string, ScopeData> = {};
+            scopesData.forEach(s => {
+              scopeMap[s.id] = s;
+            });
+            setScopes(scopeMap);
+          }
+        }
+
         setLoading(false);
       };
-      fetchInstance();
+      fetchData();
     }
-  }, [open, instanceId]);
+  }, [open, instanceId, offer.options]);
 
   const handleSend = async () => {
     setSending(true);
@@ -101,8 +129,8 @@ export const OfferPreviewDialog = ({
     }
   };
 
-  // Map OfferState to preview format
-  const mappedOffer = {
+  // Map OfferState to PublicOfferData format
+  const mappedOffer: PublicOfferData | null = instance ? {
     id: offer.id || '',
     offer_number: 'PODGLĄD',
     instance_id: instanceId,
@@ -127,6 +155,8 @@ export const OfferPreviewDialog = ({
     valid_until: offer.validUntil,
     hide_unit_prices: offer.hideUnitPrices,
     created_at: new Date().toISOString(),
+    approved_at: null,
+    selected_state: null,
     offer_options: offer.options.map((opt: OfferOption) => ({
       id: opt.id,
       name: opt.name,
@@ -139,7 +169,11 @@ export const OfferPreviewDialog = ({
       sort_order: opt.sortOrder,
       scope_id: opt.scopeId,
       is_upsell: opt.isUpsell,
-      scope: null,
+      scope: opt.scopeId && scopes[opt.scopeId] ? {
+        id: scopes[opt.scopeId].id,
+        name: scopes[opt.scopeId].name,
+        is_extras_scope: scopes[opt.scopeId].is_extras_scope,
+      } : null,
       offer_option_items: opt.items.map(item => ({
         id: item.id,
         custom_name: item.customName || '',
@@ -152,7 +186,8 @@ export const OfferPreviewDialog = ({
         products_library: null,
       })),
     })),
-  };
+    instances: instance,
+  } : null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -181,11 +216,11 @@ export const OfferPreviewDialog = ({
             <div className="flex items-center justify-center h-full min-h-[400px]">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : instance ? (
-            <OfferPreviewContent 
-              offer={mappedOffer} 
-              instance={instance} 
-              previewMode={true}
+          ) : mappedOffer ? (
+            <PublicOfferCustomerView
+              offer={mappedOffer}
+              mode="overlayPreview"
+              embedded={true}
             />
           ) : (
             <div className="flex items-center justify-center h-full min-h-[400px]">
