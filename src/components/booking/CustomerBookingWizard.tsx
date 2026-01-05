@@ -1504,7 +1504,7 @@ export default function CustomerBookingWizard({
                     {isSendingSms ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     {t('booking.confirmBooking')}
                   </Button>
-                  <p className="text-sm text-secondary-foreground mt-3 text-center">
+                  <p className="text-sm text-muted-foreground mt-3 text-center">
                     {t('booking.rodoConsent')}{' '}
                     <button 
                       type="button"
