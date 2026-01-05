@@ -1637,7 +1637,7 @@ const AdminDashboard = () => {
               </Button>
 
               {/* Divider between collapse button and user menu */}
-              {!sidebarCollapsed && <Separator className="my-3" />}
+              {!sidebarCollapsed && <Separator className="my-3 -mx-4 w-[calc(100%+2rem)] bg-border/30" />}
 
               {/* Email -> dropdown (logout) */}
               {sidebarCollapsed ? (
