@@ -93,15 +93,18 @@ const MobileBottomNav = ({
             <Plus className="w-8 h-8" />
           </Button>
 
-          {/* Klienci */}
+          {/* Powiadomienia */}
           <button
             className={cn(
-              "h-12 w-12 flex items-center justify-center",
-              currentView === 'customers' ? "text-primary" : "text-muted-foreground"
+              "h-12 w-12 flex items-center justify-center relative",
+              currentView === 'notifications' ? "text-primary" : "text-muted-foreground"
             )}
-            onClick={() => onViewChange('customers')}
+            onClick={() => onViewChange('notifications')}
           >
-            <Users className="w-6 h-6" />
+            <Bell className="w-6 h-6" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-destructive rounded-full" />
+            )}
           </button>
 
           {/* Więcej */}
