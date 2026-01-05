@@ -287,7 +287,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Fetch availability blocks when date changes (only for reservation mode)
   useEffect(() => {
     const fetchAvailability = async () => {
-      if (!instanceId || !selectedDate || !isReservationMode) return;
+      if (!open || !instanceId || !selectedDate || !isReservationMode) return;
       
       const fromDate = format(selectedDate, 'yyyy-MM-dd');
       const toDate = format(addDays(selectedDate, 7), 'yyyy-MM-dd');
@@ -304,7 +304,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     };
     
     fetchAvailability();
-  }, [instanceId, selectedDate, isReservationMode]);
+  }, [open, instanceId, selectedDate, isReservationMode]);
 
   // Calculate the next working day based on working hours
   const getNextWorkingDay = useCallback((): Date => {
