@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleCheck, FileText, Bell, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -253,12 +253,16 @@ export default function NotificationsView({
                     <div className="flex items-center gap-2">
                       {getTypeBadge(notification.type)}
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(notification.created_at), { 
-                          addSuffix: true, 
-                          locale: pl 
-                        })}
-                        {' · '}
-                        {format(new Date(notification.created_at), 'd MMM yyyy HH:mm', { locale: pl })}
+                        {(() => {
+                          const date = new Date(notification.created_at);
+                          if (isToday(date)) {
+                            return formatDistanceToNow(date, { addSuffix: true, locale: pl });
+                          } else if (isYesterday(date)) {
+                            return `Wczoraj, ${format(date, 'HH:mm')}`;
+                          } else {
+                            return format(date, 'd MMMM yyyy HH:mm', { locale: pl });
+                          }
+                        })()}
                       </span>
                     </div>
                   </div>
