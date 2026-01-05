@@ -87,6 +87,25 @@ serve(async (req) => {
 
     if (smsResult.error) {
       console.error("SMSAPI error:", smsResult);
+      
+      // Log failed SMS
+      if (instanceId) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.2");
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        await supabase.from('sms_logs').insert({
+          instance_id: instanceId,
+          phone: normalizedPhone,
+          message: message,
+          message_type: 'manual',
+          status: 'failed',
+          error_message: JSON.stringify(smsResult.error),
+          smsapi_response: smsResult,
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: "Failed to send SMS", details: smsResult }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -95,7 +114,7 @@ serve(async (req) => {
 
     console.log("SMS sent successfully:", smsResult);
 
-    // Increment SMS usage after successful send
+    // Increment SMS usage and log successful send
     if (instanceId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -108,6 +127,16 @@ serve(async (req) => {
       if (incrementError) {
         console.error("Failed to increment SMS usage:", incrementError);
       }
+      
+      // Log successful SMS
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: message,
+        message_type: 'manual',
+        status: 'sent',
+        smsapi_response: smsResult,
+      });
     }
 
     return new Response(

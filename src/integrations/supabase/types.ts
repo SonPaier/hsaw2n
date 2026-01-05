@@ -1760,6 +1760,59 @@ export type Database = {
           },
         ]
       }
+      sms_logs: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          error_message: string | null
+          id: string
+          instance_id: string
+          message: string
+          message_type: string
+          phone: string
+          reservation_id: string | null
+          sent_by: string | null
+          smsapi_response: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          instance_id: string
+          message: string
+          message_type: string
+          phone: string
+          reservation_id?: string | null
+          sent_by?: string | null
+          smsapi_response?: Json | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          instance_id?: string
+          message?: string
+          message_type?: string
+          phone?: string
+          reservation_id?: string | null
+          sent_by?: string | null
+          smsapi_response?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_message_settings: {
         Row: {
           created_at: string

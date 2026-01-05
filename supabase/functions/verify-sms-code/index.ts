@@ -342,11 +342,48 @@ serve(async (req: Request): Promise<Response> => {
         
         const smsResult = await smsResponse.json();
         console.log("Reservation SMS sent:", smsResult);
+        
+        // Log SMS
+        const messageType = autoConfirm ? 'confirmation' : 'pending_confirmation';
+        await supabase.from('sms_logs').insert({
+          instance_id: instanceId,
+          phone: normalizedPhone,
+          message: smsMessage,
+          message_type: messageType,
+          reservation_id: reservation?.id,
+          customer_id: customerId,
+          status: smsResult.error ? 'failed' : 'sent',
+          error_message: smsResult.error ? JSON.stringify(smsResult.error) : null,
+          smsapi_response: smsResult,
+        });
       } catch (smsError) {
         console.error("Failed to send reservation SMS:", smsError);
+        
+        // Log failed SMS
+        await supabase.from('sms_logs').insert({
+          instance_id: instanceId,
+          phone: normalizedPhone,
+          message: smsMessage,
+          message_type: autoConfirm ? 'confirmation' : 'pending_confirmation',
+          reservation_id: reservation?.id,
+          customer_id: customerId,
+          status: 'failed',
+          error_message: smsError instanceof Error ? smsError.message : 'Unknown error',
+        });
       }
     } else {
       console.log(`[DEV MODE] Would send SMS to ${normalizedPhone}: ${smsMessage}`);
+      
+      // Log simulated SMS
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: smsMessage,
+        message_type: autoConfirm ? 'confirmation' : 'pending_confirmation',
+        reservation_id: reservation?.id,
+        customer_id: customerId,
+        status: 'simulated',
+      });
     }
 
     return new Response(
