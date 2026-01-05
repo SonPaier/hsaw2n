@@ -289,11 +289,18 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
                     </div>
                   )}
 
-                  {/* Deadline */}
-                  {vehicle.deadline_time && (
-                    <div className="flex items-center gap-1 text-xs text-orange-600">
-                      <Clock className="w-3 h-3" />
-                      <span>do {vehicle.deadline_time.slice(0, 5)}</span>
+                  {/* Pickup date and Deadline */}
+                  {(vehicle.pickup_date || vehicle.deadline_time) && (
+                    <div className="flex items-center gap-3 text-xs text-slate-600">
+                      {vehicle.pickup_date && (
+                        <span>odbiór: {format(parseISO(vehicle.pickup_date), 'd MMM', { locale: pl })}</span>
+                      )}
+                      {vehicle.deadline_time && (
+                        <span className="text-orange-600 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          do {vehicle.deadline_time.slice(0, 5)}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

@@ -1937,6 +1937,7 @@ export type Database = {
           id: string
           instance_id: string
           notes: string | null
+          pickup_date: string | null
           service_ids: Json | null
           status: string
           updated_at: string
@@ -1952,6 +1953,7 @@ export type Database = {
           id?: string
           instance_id: string
           notes?: string | null
+          pickup_date?: string | null
           service_ids?: Json | null
           status?: string
           updated_at?: string
@@ -1967,6 +1969,7 @@ export type Database = {
           id?: string
           instance_id?: string
           notes?: string | null
+          pickup_date?: string | null
           service_ids?: Json | null
           status?: string
           updated_at?: string
