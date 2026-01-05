@@ -61,7 +61,8 @@ const PublicOfferView = () => {
               offer_section_bg_color,
               offer_section_text_color,
               offer_primary_color,
-              offer_scope_header_text_color
+              offer_scope_header_text_color,
+              offer_portfolio_url
             )
           `)
           .eq('public_token', token)

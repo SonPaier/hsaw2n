@@ -476,6 +476,7 @@ export type Database = {
           offer_email_template: string | null
           offer_header_bg_color: string | null
           offer_header_text_color: string | null
+          offer_portfolio_url: string | null
           offer_primary_color: string | null
           offer_scope_header_text_color: string | null
           offer_section_bg_color: string | null
@@ -519,6 +520,7 @@ export type Database = {
           offer_email_template?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
+          offer_portfolio_url?: string | null
           offer_primary_color?: string | null
           offer_scope_header_text_color?: string | null
           offer_section_bg_color?: string | null
@@ -562,6 +564,7 @@ export type Database = {
           offer_email_template?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
+          offer_portfolio_url?: string | null
           offer_primary_color?: string | null
           offer_scope_header_text_color?: string | null
           offer_section_bg_color?: string | null

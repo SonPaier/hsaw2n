@@ -89,6 +89,7 @@ interface Instance {
   offer_section_text_color?: string;
   offer_primary_color?: string;
   offer_scope_header_text_color?: string;
+  offer_portfolio_url?: string;
 }
 
 export interface PublicOfferData {
@@ -1314,7 +1315,7 @@ export const PublicOfferCustomerView = ({
         )}
 
         {/* Social media links */}
-        {(instance?.social_facebook || instance?.social_instagram) && (
+        {(instance?.social_facebook || instance?.social_instagram || instance?.offer_portfolio_url) && (
           <Card>
             <CardContent className="py-6">
               <div className="text-center">
@@ -1345,20 +1346,22 @@ export const PublicOfferCustomerView = ({
                     </a>
                   )}
                 </div>
-                <div className="mt-4">
-                  <Button
-                    asChild
-                    className="gap-2"
-                  >
-                    <a 
-                      href="https://armcarautospa.pl/realizacje-portfolio" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                {instance?.offer_portfolio_url && (
+                  <div className="mt-4">
+                    <Button
+                      asChild
+                      className="gap-2"
                     >
-                      Zobacz nasze realizacje
-                    </a>
-                  </Button>
-                </div>
+                      <a 
+                        href={instance.offer_portfolio_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        Zobacz nasze realizacje
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
