@@ -138,12 +138,12 @@ export default function NotificationsView({
       case 'reservation_cancelled':
         return { icon: <XCircle className={cn(iconClass, "text-red-600")} />, bg: "bg-red-50" };
       case 'reservation_cancelled_by_customer':
-        return { icon: <Ban className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
+        return { icon: <Ban className={cn(iconClass, "text-red-600")} />, bg: "bg-red-50" };
       case 'reservation_edited':
         return { icon: <Pencil className={cn(iconClass, "text-amber-600")} />, bg: "bg-amber-50" };
       case 'reservation_edited_by_customer':
         return { icon: <FileEdit className={cn(iconClass, "text-purple-600")} />, bg: "bg-purple-50" };
-      case 'change_requested':
+      case 'change_request':
         return { icon: <RefreshCw className={cn(iconClass, "text-orange-600")} />, bg: "bg-orange-50" };
       case 'offer_approved':
         return { icon: <CircleCheck className={cn(iconClass, "text-emerald-600")} />, bg: "bg-emerald-50" };
@@ -161,11 +161,13 @@ export default function NotificationsView({
       case 'reservation_cancelled':
         return <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 border-red-500/30">Anulowana</Badge>;
       case 'reservation_cancelled_by_customer':
-        return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-500 border-orange-500/30">Anulowana przez klienta</Badge>;
+        return <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 border-red-500/30">Anulowana przez klienta</Badge>;
       case 'reservation_edited':
         return <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">Edytowana</Badge>;
       case 'reservation_edited_by_customer':
         return <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-500 border-purple-500/30">Zmieniona przez klienta</Badge>;
+      case 'change_request':
+        return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-500 border-orange-500/30">Prośba o zmianę</Badge>;
       case 'offer_approved':
         return <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Oferta zaakceptowana</Badge>;
       case 'offer_modified':
