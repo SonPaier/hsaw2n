@@ -2,7 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
 import SendSmsDialog from './SendSmsDialog';
@@ -94,6 +94,8 @@ interface AdminCalendarProps {
     endTime: string;
     stationId: string;
   } | null;
+  /** Whether more reservations are being loaded */
+  isLoadingMore?: boolean;
 }
 
 // Default hours from 9:00 to 19:00
@@ -183,7 +185,8 @@ const AdminCalendar = ({
   instanceId,
   yardVehicleCount = 0,
   selectedReservationId,
-  slotPreview
+  slotPreview,
+  isLoadingMore = false
 }: AdminCalendarProps) => {
   const {
     t
@@ -943,6 +946,12 @@ const AdminCalendar = ({
             <Button variant="outline" size="sm" onClick={handleToday} className={cn("ml-2", hallMode && "hidden sm:flex")}>
               Dziś
             </Button>
+            {isLoadingMore && (
+              <div className="ml-2 flex items-center gap-1 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="hidden sm:inline">Ładowanie...</span>
+              </div>
+            )}
             {/* Date picker button - hidden on mobile, shown on desktop */}
             {!isMobile && <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
