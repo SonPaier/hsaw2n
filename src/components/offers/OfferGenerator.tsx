@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,8 @@ import {
   Package, 
   FileCheck,
   Loader2,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
@@ -21,6 +23,7 @@ import { CustomerDataStep } from './CustomerDataStep';
 import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
+import { OfferPreviewDialog } from './OfferPreviewDialog';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -51,11 +54,13 @@ export const OfferGenerator = ({
   onSaved,
 }: OfferGeneratorProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [instanceShowUnitPrices, setInstanceShowUnitPrices] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const steps = [
     { id: 1, label: t('offers.steps.customerData'), icon: User },
@@ -215,6 +220,30 @@ export const OfferGenerator = ({
     }
   };
 
+  const handleSendFromPreview = async () => {
+    try {
+      const savedId = await saveOffer();
+      if (savedId) {
+        // Update status to sent
+        await supabase
+          .from('offers')
+          .update({ status: 'sent', sent_at: new Date().toISOString() })
+          .eq('id', savedId);
+        
+        toast.success(t('offers.savedReadyToSend'));
+        setShowPreview(false);
+        setHasUnsavedChanges(false);
+        onClose?.();
+      }
+    } catch (error) {
+      // Error already handled in hook
+    }
+  };
+
+  const handleShowPreview = () => {
+    setShowPreview(true);
+  };
+
   const handleDownloadPdf = async () => {
     if (!offer.id) {
       toast.error(t('offers.saveFirst'));
@@ -358,6 +387,7 @@ export const OfferGenerator = ({
             calculateOptionTotal={calculateOptionTotal}
             calculateTotalNet={calculateTotalNet}
             calculateTotalGross={calculateTotalGross}
+            onShowPreview={handleShowPreview}
           />
         )}
       </Card>
@@ -459,6 +489,17 @@ export const OfferGenerator = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Preview Dialog */}
+      <OfferPreviewDialog
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        onSendAndClose={handleSendFromPreview}
+        offer={offer}
+        instanceId={instanceId}
+        calculateTotalNet={calculateTotalNet}
+        calculateTotalGross={calculateTotalGross}
+      />
     </div>
   );
 };
