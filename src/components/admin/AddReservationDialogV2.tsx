@@ -165,6 +165,13 @@ interface AddReservationDialogV2Props {
   initialTime?: string;
   /** Initial station from slot click - sets manual mode */
   initialStationId?: string;
+  /** Callback for live slot preview on calendar */
+  onSlotPreviewChange?: (preview: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    stationId: string;
+  } | null) => void;
 }
 
 const SLOT_INTERVAL = 15;
@@ -183,6 +190,7 @@ const AddReservationDialogV2 = ({
   initialDate,
   initialTime,
   initialStationId,
+  onSlotPreviewChange,
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isPPFMode = mode === 'ppf';
@@ -532,6 +540,62 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const service = services.find(s => s.id === serviceId);
     return total + (service ? getServicePrice(service) : 0);
   }, 0);
+
+  // Emit slot preview for live calendar highlight
+  useEffect(() => {
+    if (!isReservationMode || !open || isEditMode) {
+      onSlotPreviewChange?.(null);
+      return;
+    }
+
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+
+    if (timeSelectionMode === 'slots') {
+      // Tab 1: Wybór ze slotów - use selectedTime + totalDurationMinutes
+      if (selectedTime && selectedStationId && totalDurationMinutes > 0) {
+        const [h, m] = selectedTime.split(':').map(Number);
+        const startMinutes = h * 60 + m;
+        const endMinutes = startMinutes + totalDurationMinutes;
+        const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+        
+        onSlotPreviewChange?.({
+          date: dateStr,
+          startTime: selectedTime,
+          endTime,
+          stationId: selectedStationId
+        });
+      } else {
+        onSlotPreviewChange?.(null);
+      }
+    } else if (timeSelectionMode === 'manual') {
+      // Tab 2: Ustaw ręcznie
+      if (manualStartTime && manualEndTime && manualStationId) {
+        onSlotPreviewChange?.({
+          date: dateStr,
+          startTime: manualStartTime,
+          endTime: manualEndTime,
+          stationId: manualStationId
+        });
+      } else {
+        onSlotPreviewChange?.(null);
+      }
+    }
+  }, [
+    open,
+    isReservationMode,
+    isEditMode,
+    selectedDate,
+    timeSelectionMode,
+    // Slots mode
+    selectedTime,
+    selectedStationId,
+    totalDurationMinutes,
+    // Manual mode
+    manualStartTime,
+    manualEndTime,
+    manualStationId,
+    onSlotPreviewChange
+  ]);
 
   // Get available time slots for the selected date (reservation mode only)
   // Now includes overlap slots for admin with ±15 min tolerance

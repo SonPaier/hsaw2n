@@ -87,6 +87,13 @@ interface AdminCalendarProps {
   instanceId?: string; // Instance ID for yard vehicles
   yardVehicleCount?: number; // Count of vehicles on yard for badge
   selectedReservationId?: string | null; // ID of currently selected reservation (for drawer highlight)
+  /** Slot preview for live highlight when creating reservation */
+  slotPreview?: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    stationId: string;
+  } | null;
 }
 
 // Default hours from 9:00 to 19:00
@@ -175,7 +182,8 @@ const AdminCalendar = ({
   hallMode = false,
   instanceId,
   yardVehicleCount = 0,
-  selectedReservationId
+  selectedReservationId,
+  slotPreview
 }: AdminCalendarProps) => {
   const {
     t
@@ -1286,6 +1294,23 @@ const AdminCalendar = ({
                       </span>
                     </div>}
 
+                  {/* Slot Preview Highlight */}
+                  {slotPreview && 
+                   slotPreview.date === currentDateStr && 
+                   slotPreview.stationId === station.id && (
+                    <div 
+                      className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-fuchsia-400 pointer-events-none z-40 animate-pulse"
+                      style={{
+                        ...getReservationStyle(slotPreview.startTime, slotPreview.endTime),
+                        background: 'repeating-linear-gradient(45deg, rgba(236,72,153,0.15), rgba(236,72,153,0.15) 4px, transparent 4px, transparent 8px)'
+                      }}
+                    >
+                      <div className="px-2 py-1 text-xs font-medium text-fuchsia-600">
+                        {slotPreview.startTime.slice(0,5)} - {slotPreview.endTime.slice(0,5)}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Reservations */}
                   {(() => {
                   const stationReservations = getReservationsForStation(station.id);
@@ -1612,6 +1637,23 @@ const AdminCalendar = ({
                             </span>
                           </div>}
 
+                        {/* Slot Preview Highlight */}
+                        {slotPreview && 
+                         slotPreview.date === dayStr && 
+                         slotPreview.stationId === station.id && (
+                          <div 
+                            className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-fuchsia-400 pointer-events-none z-40 animate-pulse"
+                            style={{
+                              ...getReservationStyle(slotPreview.startTime, slotPreview.endTime, dayHours.displayStartTime),
+                              background: 'repeating-linear-gradient(45deg, rgba(236,72,153,0.15), rgba(236,72,153,0.15) 4px, transparent 4px, transparent 8px)'
+                            }}
+                          >
+                            <div className="px-2 py-1 text-xs font-medium text-fuchsia-600">
+                              {slotPreview.startTime.slice(0,5)} - {slotPreview.endTime.slice(0,5)}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Reservations */}
                         {getReservationsForStationAndDate(station.id, dayStr).map(reservation => {
                     const {
@@ -1849,6 +1891,23 @@ const AdminCalendar = ({
                           {dragPreviewStyle.time}
                         </span>
                       </div>}
+
+                    {/* Slot Preview Highlight */}
+                    {slotPreview && 
+                     slotPreview.date === dayStr && 
+                     slotPreview.stationId === selectedStationId && (
+                      <div 
+                        className="absolute left-0.5 right-0.5 rounded-lg border-2 border-dashed border-fuchsia-400 pointer-events-none z-40 animate-pulse"
+                        style={{
+                          ...getReservationStyle(slotPreview.startTime, slotPreview.endTime, dayHours.displayStartTime),
+                          background: 'repeating-linear-gradient(45deg, rgba(236,72,153,0.15), rgba(236,72,153,0.15) 4px, transparent 4px, transparent 8px)'
+                        }}
+                      >
+                        <div className="px-2 py-1 text-xs font-medium text-fuchsia-600">
+                          {slotPreview.startTime.slice(0,5)} - {slotPreview.endTime.slice(0,5)}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Reservations */}
                     {dayReservations.map(reservation => {
