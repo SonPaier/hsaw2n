@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettings';
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
-import { Layers, Tag, Package, Settings, Save, Loader2, FileText } from 'lucide-react';
+import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
+import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,6 +32,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
   const variantsRef = useRef<OfferVariantsSettingsRef>(null);
   const productsRef = useRef<OfferScopeProductsSettingsRef>(null);
+  const brandingRef = useRef<OfferBrandingSettingsRef>(null);
 
   // Fetch settings on open
   useEffect(() => {
@@ -74,6 +76,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         scopesRef.current?.saveAll(),
         variantsRef.current?.saveAll(),
         productsRef.current?.saveAll(),
+        brandingRef.current?.saveAll(),
       ]);
 
       const allSuccessful = results.every(r => r !== false);
@@ -115,7 +118,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               {t('offerSettings.general')}
@@ -131,6 +134,10 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               {t('offerSettings.productsTab')}
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              {t('offerSettings.brandingTab')}
             </TabsTrigger>
           </TabsList>
 
@@ -174,6 +181,10 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
           <TabsContent value="products" className="mt-6">
             <OfferScopeProductsSettings ref={productsRef} instanceId={instanceId} onChange={handleChange} />
+          </TabsContent>
+
+          <TabsContent value="branding" className="mt-6">
+            <OfferBrandingSettings ref={brandingRef} instanceId={instanceId} onChange={handleChange} />
           </TabsContent>
         </Tabs>
 

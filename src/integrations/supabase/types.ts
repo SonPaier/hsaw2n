@@ -467,6 +467,13 @@ export type Database = {
           logo_url: string | null
           name: string
           nip: string | null
+          offer_bg_color: string | null
+          offer_branding_enabled: boolean
+          offer_header_bg_color: string | null
+          offer_header_text_color: string | null
+          offer_primary_color: string | null
+          offer_section_bg_color: string | null
+          offer_section_text_color: string | null
           phone: string | null
           primary_color: string | null
           secondary_color: string | null
@@ -497,6 +504,13 @@ export type Database = {
           logo_url?: string | null
           name: string
           nip?: string | null
+          offer_bg_color?: string | null
+          offer_branding_enabled?: boolean
+          offer_header_bg_color?: string | null
+          offer_header_text_color?: string | null
+          offer_primary_color?: string | null
+          offer_section_bg_color?: string | null
+          offer_section_text_color?: string | null
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
@@ -527,6 +541,13 @@ export type Database = {
           logo_url?: string | null
           name?: string
           nip?: string | null
+          offer_bg_color?: string | null
+          offer_branding_enabled?: boolean
+          offer_header_bg_color?: string | null
+          offer_header_text_color?: string | null
+          offer_primary_color?: string | null
+          offer_section_bg_color?: string | null
+          offer_section_text_color?: string | null
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
