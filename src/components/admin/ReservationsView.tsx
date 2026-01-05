@@ -84,7 +84,7 @@ const ReservationsView = ({
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<TabValue>('all');
+  const [activeTab, setActiveTab] = useState<TabValue>('pending');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<Reservation | null>(null);
   

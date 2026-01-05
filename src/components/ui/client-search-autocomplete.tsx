@@ -49,6 +49,7 @@ const ClientSearchAutocomplete = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [justSelected, setJustSelected] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -115,6 +116,7 @@ const ClientSearchAutocomplete = ({
   };
 
   const handleSelectCustomer = (customer: Customer) => {
+    setJustSelected(true);
     setInputValue(customer.name);
     onChange(customer.name);
     setDropdownOpen(false);
@@ -124,6 +126,8 @@ const ClientSearchAutocomplete = ({
       name: customer.name,
       phone: customer.phone,
     });
+    // Prevent re-opening dropdown for 200ms after selection
+    setTimeout(() => setJustSelected(false), 200);
   };
 
   const handleClear = () => {
@@ -188,7 +192,8 @@ const ClientSearchAutocomplete = ({
           value={inputValue}
           onChange={handleInputChange}
           onFocus={() => {
-            // Only auto-open if user has interacted or not suppressed
+            // Don't open if just selected or if suppressed and no interaction
+            if (justSelected) return;
             if (!suppressAutoSearch || hasUserInteracted) {
               foundCustomers.length > 0 && setDropdownOpen(true);
             }
