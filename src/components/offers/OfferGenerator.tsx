@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,6 +22,16 @@ import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface OfferGeneratorProps {
   instanceId: string;
@@ -43,6 +53,9 @@ export const OfferGenerator = ({
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [instanceShowUnitPrices, setInstanceShowUnitPrices] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
 
   const steps = [
     { id: 1, label: t('offers.steps.customerData'), icon: User },
@@ -105,6 +118,69 @@ export const OfferGenerator = ({
       });
     }
   }, [offerId, duplicateFromId]);
+
+  // Track changes for new offers
+  useEffect(() => {
+    if (!offerId && !duplicateFromId) {
+      // Check if any data has been entered
+      const hasData = Boolean(offer.customerData.name) || 
+        Boolean(offer.customerData.email) || 
+        Boolean(offer.vehicleData.brandModel) ||
+        offer.selectedScopeIds.length > 0 ||
+        offer.options.length > 0;
+      setHasUnsavedChanges(hasData);
+    } else {
+      // For existing offers, always track changes
+      setHasUnsavedChanges(true);
+    }
+  }, [offer, offerId, duplicateFromId]);
+
+  // Handle browser beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowExitDialog(true);
+      setPendingClose(true);
+    } else {
+      onClose?.();
+    }
+  }, [hasUnsavedChanges, onClose]);
+
+  const handleConfirmExit = async (saveBeforeExit: boolean) => {
+    if (saveBeforeExit) {
+      try {
+        const savedId = await saveOffer();
+        if (savedId) {
+          onSaved?.(savedId);
+          toast.success(t('offers.savedAndClosed'));
+        }
+      } catch (error) {
+        // Error already handled in hook
+        return;
+      }
+    }
+    setShowExitDialog(false);
+    setHasUnsavedChanges(false);
+    if (pendingClose) {
+      onClose?.();
+    }
+  };
+
+  const handleCancelExit = () => {
+    setShowExitDialog(false);
+    setPendingClose(false);
+  };
 
   const handleNext = () => {
     if (currentStep < 4) {
@@ -301,7 +377,7 @@ export const OfferGenerator = ({
           ) : onClose ? (
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
             >
               {t('common.cancel')}
             </Button>
@@ -360,6 +436,29 @@ export const OfferGenerator = ({
           )}
         </div>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('offers.unsavedChangesTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('offers.unsavedChangesDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelExit}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirmExit(false)}>
+              {t('offers.exitWithoutSaving')}
+            </AlertDialogAction>
+            <AlertDialogAction onClick={() => handleConfirmExit(true)}>
+              {t('offers.saveAndExit')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

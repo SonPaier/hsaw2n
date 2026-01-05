@@ -13,11 +13,15 @@ export interface CustomerData {
   companyAddress?: string;
   companyPostalCode?: string;
   companyCity?: string;
+  notes?: string;
+  inquiryContent?: string;
 }
 
 export interface VehicleData {
   brandModel?: string;
   plate?: string;
+  paintColor?: string;
+  paintType?: string;
 }
 
 export interface OfferItem {
@@ -70,11 +74,15 @@ const defaultCustomerData: CustomerData = {
   companyAddress: '',
   companyPostalCode: '',
   companyCity: '',
+  notes: '',
+  inquiryContent: '',
 };
 
 const defaultVehicleData: VehicleData = {
   brandModel: '',
   plate: '',
+  paintColor: '',
+  paintType: '',
 };
 
 export const useOffer = (instanceId: string) => {

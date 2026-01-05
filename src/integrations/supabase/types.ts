@@ -469,6 +469,11 @@ export type Database = {
           nip: string | null
           offer_bg_color: string | null
           offer_branding_enabled: boolean
+          offer_default_notes: string | null
+          offer_default_payment_terms: string | null
+          offer_default_service_info: string | null
+          offer_default_warranty: string | null
+          offer_email_template: string | null
           offer_header_bg_color: string | null
           offer_header_text_color: string | null
           offer_primary_color: string | null
@@ -507,6 +512,11 @@ export type Database = {
           nip?: string | null
           offer_bg_color?: string | null
           offer_branding_enabled?: boolean
+          offer_default_notes?: string | null
+          offer_default_payment_terms?: string | null
+          offer_default_service_info?: string | null
+          offer_default_warranty?: string | null
+          offer_email_template?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
           offer_primary_color?: string | null
@@ -545,6 +555,11 @@ export type Database = {
           nip?: string | null
           offer_bg_color?: string | null
           offer_branding_enabled?: boolean
+          offer_default_notes?: string | null
+          offer_default_payment_terms?: string | null
+          offer_default_service_info?: string | null
+          offer_default_warranty?: string | null
+          offer_email_template?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
           offer_primary_color?: string | null

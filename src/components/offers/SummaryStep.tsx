@@ -45,6 +45,17 @@ interface OfferTemplate {
   notes: string | null;
 }
 
+const paintTypeLabels: Record<string, string> = {
+  standard: 'Standardowy',
+  metallic: 'Metalik',
+  pearl: 'Perłowy',
+  matte: 'Mat',
+  dark: 'Ciemny',
+  other: 'Inny',
+};
+
+const getPaintTypeLabel = (type: string) => paintTypeLabels[type] || type;
+
 export const SummaryStep = ({
   instanceId,
   offer,
@@ -200,6 +211,13 @@ export const SummaryStep = ({
               </div>
               <div className="text-sm space-y-1 pl-6">
                 <p className="font-medium">{offer.vehicleData.brandModel}</p>
+                {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
+                  <p className="text-muted-foreground">
+                    {offer.vehicleData.paintColor}
+                    {offer.vehicleData.paintColor && offer.vehicleData.paintType && ' • '}
+                    {offer.vehicleData.paintType && getPaintTypeLabel(offer.vehicleData.paintType)}
+                  </p>
+                )}
               </div>
             </div>
           )}
