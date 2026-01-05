@@ -1530,7 +1530,7 @@ const AdminDashboard = () => {
         car_size: vehicle.car_size,
         service_id: primaryServiceId,
         service_ids: vehicle.service_ids || [],
-        notes: vehicle.notes,
+        admin_notes: vehicle.notes,
         confirmation_code: confirmationCode,
         status: 'confirmed' as const,
         source: 'admin'

@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InstanceFeature {
@@ -25,10 +25,10 @@ const AVAILABLE_FEATURES = [
     isPaid: true,
   },
   {
-    key: 'calendar_upsell',
-    name: 'Sugestie upsell w kalendarzu',
-    description: 'Sugeruje usługi pasujące do wolnych slotów między rezerwacjami',
-    icon: Sparkles,
+    key: 'upsell',
+    name: 'Sugestie upsell',
+    description: 'Sugeruje usługi pasujące do wolnych slotów przy rezerwacji klienta',
+    icon: TrendingUp,
     isPaid: false,
   },
 ];
