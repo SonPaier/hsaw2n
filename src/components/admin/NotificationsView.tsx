@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Check } from 'lucide-react';
+import { Trash2, Check, CalendarPlus, XCircle, Ban, Pencil, FileEdit, CircleCheck, FileText, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -27,6 +26,8 @@ interface NotificationsViewProps {
   onNavigateToReservations: () => void;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function NotificationsView({ 
   instanceId, 
   onNavigateBack,
@@ -35,6 +36,7 @@ export default function NotificationsView({
 }: NotificationsViewProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!instanceId) return;
@@ -45,8 +47,7 @@ export default function NotificationsView({
         .from('notifications')
         .select('*')
         .eq('instance_id', instanceId)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
 
       if (!error && data) {
         setNotifications(data);
@@ -98,23 +99,24 @@ export default function NotificationsView({
   };
 
   const getNotificationIcon = (type: string) => {
+    const iconClass = "w-5 h-5";
     switch (type) {
       case 'reservation_new':
-        return '📅';
+        return <CalendarPlus className={cn(iconClass, "text-green-500")} />;
       case 'reservation_cancelled':
-        return '❌';
+        return <XCircle className={cn(iconClass, "text-red-500")} />;
       case 'reservation_cancelled_by_customer':
-        return '🚫';
+        return <Ban className={cn(iconClass, "text-orange-500")} />;
       case 'reservation_edited':
-        return '✏️';
+        return <Pencil className={cn(iconClass, "text-amber-500")} />;
       case 'reservation_edited_by_customer':
-        return '📝';
+        return <FileEdit className={cn(iconClass, "text-purple-500")} />;
       case 'offer_approved':
-        return '✅';
+        return <CircleCheck className={cn(iconClass, "text-emerald-500")} />;
       case 'offer_modified':
-        return '📝';
+        return <FileText className={cn(iconClass, "text-blue-500")} />;
       default:
-        return '🔔';
+        return <Bell className={cn(iconClass, "text-muted-foreground")} />;
     }
   };
 
@@ -140,6 +142,11 @@ export default function NotificationsView({
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Pagination
+  const totalPages = Math.ceil(notifications.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedNotifications = notifications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <>
@@ -170,53 +177,80 @@ export default function NotificationsView({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {notifications.map(notification => (
-            <Card
-              key={notification.id}
-              className={cn(
-                "cursor-pointer hover:bg-accent/50 transition-colors",
-                !notification.read && "bg-primary/5 border-primary/20"
-              )}
-              onClick={() => handleNotificationClick(notification)}
-            >
-              <CardContent className="p-4 flex gap-4 items-start">
-                <span className="text-2xl shrink-0">
-                  {getNotificationIcon(notification.type)}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className={cn(
-                      "font-medium",
-                      notification.read && "text-muted-foreground"
-                    )}>
-                      {notification.title}
-                    </p>
-                    {!notification.read && (
-                      <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+        <>
+          <div className="space-y-2">
+            {paginatedNotifications.map(notification => (
+              <Card
+                key={notification.id}
+                className={cn(
+                  "cursor-pointer hover:bg-accent/50 transition-colors",
+                  !notification.read && "bg-primary/5 border-primary/20"
+                )}
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <CardContent className="p-4 flex gap-4 items-start">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={cn(
+                        "font-medium",
+                        notification.read && "text-muted-foreground"
+                      )}>
+                        {notification.title}
+                      </p>
+                      {!notification.read && (
+                        <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                      )}
+                    </div>
+                    {notification.description && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {notification.description}
+                      </p>
                     )}
+                    <div className="flex items-center gap-2">
+                      {getTypeBadge(notification.type)}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(notification.created_at), { 
+                          addSuffix: true, 
+                          locale: pl 
+                        })}
+                        {' · '}
+                        {format(new Date(notification.created_at), 'dd.MM.yyyy HH:mm')}
+                      </span>
+                    </div>
                   </div>
-                  {notification.description && (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {notification.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {getTypeBadge(notification.type)}
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notification.created_at), { 
-                        addSuffix: true, 
-                        locale: pl 
-                      })}
-                      {' · '}
-                      {format(new Date(notification.created_at), 'dd.MM.yyyy HH:mm')}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">
+                {currentPage} z {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </>
   );
