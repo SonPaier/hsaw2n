@@ -9,6 +9,7 @@ interface OfferBrandingPreviewProps {
   sectionBgColor: string;
   sectionTextColor: string;
   primaryColor: string;
+  scopeHeaderTextColor: string;
 }
 
 export function OfferBrandingPreview({
@@ -18,6 +19,7 @@ export function OfferBrandingPreview({
   sectionBgColor,
   sectionTextColor,
   primaryColor,
+  scopeHeaderTextColor,
 }: OfferBrandingPreviewProps) {
   const { t } = useTranslation();
   
@@ -31,7 +33,7 @@ export function OfferBrandingPreview({
     >
       {/* Mini header */}
       <div 
-        className="px-4 py-3 border-b flex items-center justify-between"
+        className="px-4 py-3 flex items-center justify-between"
         style={{ backgroundColor: headerBgColor }}
       >
         <div className="flex items-center gap-2">
@@ -60,6 +62,14 @@ export function OfferBrandingPreview({
       
       {/* Mini content */}
       <div className="p-3 space-y-2">
+        {/* Scope header - on page background */}
+        <div 
+          className="font-semibold text-sm"
+          style={{ color: scopeHeaderTextColor }}
+        >
+          {t('offerSettings.previewScopeName')}
+        </div>
+        
         {/* Service card */}
         <div 
           className="rounded-lg p-3 border"
