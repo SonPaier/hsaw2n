@@ -53,10 +53,30 @@ const ClientSearchAutocomplete = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const internalUpdateRef = useRef(false);
+  const suppressNextSearchRef = useRef(false);
+
   // Sync external value changes
   useEffect(() => {
-    setInputValue(value || '');
-  }, [value]);
+    const next = value || '';
+
+    if (next === inputValue) {
+      internalUpdateRef.current = false;
+      return;
+    }
+
+    setInputValue(next);
+
+    // If value was set programmatically (e.g. from phone field), close dropdown and skip one search
+    if (!internalUpdateRef.current) {
+      suppressNextSearchRef.current = true;
+      setFoundCustomers([]);
+      setDropdownOpen(false);
+      setActiveIndex(-1);
+    }
+
+    internalUpdateRef.current = false;
+  }, [value, inputValue]);
 
   // Search customers with debounce
   const searchCustomers = useCallback(async (searchValue: string) => {
@@ -88,14 +108,22 @@ const ClientSearchAutocomplete = ({
 
   // Debounced search - only if user has interacted or not suppressed
   useEffect(() => {
+    if (justSelected) return;
+
+    if (suppressNextSearchRef.current) {
+      suppressNextSearchRef.current = false;
+      return;
+    }
+
     // Skip auto-search in edit mode until user interacts
     if (suppressAutoSearch && !hasUserInteracted) return;
-    
+
+    const query = inputValue.trim();
     const timer = setTimeout(() => {
-      searchCustomers(inputValue);
+      searchCustomers(query);
     }, 300);
     return () => clearTimeout(timer);
-  }, [inputValue, searchCustomers, suppressAutoSearch, hasUserInteracted]);
+  }, [inputValue, searchCustomers, suppressAutoSearch, hasUserInteracted, justSelected]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -110,6 +138,7 @@ const ClientSearchAutocomplete = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    internalUpdateRef.current = true;
     setInputValue(newValue);
     setHasUserInteracted(true);
     onChange(newValue);
@@ -117,16 +146,23 @@ const ClientSearchAutocomplete = ({
 
   const handleSelectCustomer = (customer: Customer) => {
     setJustSelected(true);
+    suppressNextSearchRef.current = true;
+    internalUpdateRef.current = true;
+
     setInputValue(customer.name);
     onChange(customer.name);
+
     setDropdownOpen(false);
     setFoundCustomers([]);
+    setActiveIndex(-1);
+
     onSelect?.({
       id: customer.id,
       name: customer.name,
       phone: customer.phone,
     });
-    // Prevent re-opening dropdown for 200ms after selection
+
+    // Prevent re-opening dropdown/search for a short period after selection
     setTimeout(() => setJustSelected(false), 200);
   };
 
