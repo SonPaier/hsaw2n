@@ -459,11 +459,11 @@ const ReservationsView = ({
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
           <AdminTabsList columns={3}>
-            <AdminTabsTrigger value="all">
-              {t('common.all')}
-              {counts.all > 0 && (
-                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                  {counts.all}
+            <AdminTabsTrigger value="pending">
+              {t('reservations.pending')}
+              {counts.pending > 0 && (
+                <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
+                  {counts.pending}
                 </Badge>
               )}
             </AdminTabsTrigger>
@@ -475,11 +475,11 @@ const ReservationsView = ({
                 </Badge>
               )}
             </AdminTabsTrigger>
-            <AdminTabsTrigger value="pending">
-              {t('reservations.pending')}
-              {counts.pending > 0 && (
-                <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
-                  {counts.pending}
+            <AdminTabsTrigger value="all">
+              {t('common.all')}
+              {counts.all > 0 && (
+                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                  {counts.all}
                 </Badge>
               )}
             </AdminTabsTrigger>

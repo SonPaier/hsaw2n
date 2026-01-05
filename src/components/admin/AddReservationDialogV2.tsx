@@ -1149,6 +1149,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           hideOverlay
           hideCloseButton
           onInteractOutside={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
         {/* Fixed Header with Close button */}
