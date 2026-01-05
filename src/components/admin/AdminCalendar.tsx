@@ -1397,13 +1397,13 @@ const AdminCalendar = ({
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
                             const notesToShow = reservation.admin_notes || reservation.customer_notes;
                             if (durationMinutes > 30 && notesToShow) {
-                              // Calculate max lines based on card height (2 lines for 45min, 3 for 60min+)
-                              const maxLines = durationMinutes >= 60 ? 3 : 2;
                               return <div 
-                                className={cn(
-                                  "text-[11px] md:text-[12px] opacity-70 mt-0.5 break-words",
-                                  maxLines === 2 ? "line-clamp-2" : "line-clamp-3"
-                                )}
+                                className="text-[13px] opacity-70 mt-0.5 break-words overflow-hidden"
+                                style={{ 
+                                  display: '-webkit-box',
+                                  WebkitBoxOrient: 'vertical',
+                                  WebkitLineClamp: 'unset'
+                                }}
                               >
                                 {notesToShow}
                               </div>;
