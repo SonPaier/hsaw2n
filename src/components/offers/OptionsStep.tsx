@@ -256,14 +256,14 @@ export const OptionsStep = ({
               {/* Table Header */}
               {showUnitPrices ? (
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
-                  <div className="col-span-5">Nazwa</div>
+                  <div className="col-span-5 text-left">Nazwa</div>
                   <div className="col-span-2 text-left">Cena netto</div>
-                  <div className="col-span-2 text-left">Rabat %</div>
-                  <div className="col-span-3"></div>
+                  <div className="col-span-1 text-left">Rabat %</div>
+                  <div className="col-span-4"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
-                  <div className="col-span-6">Nazwa</div>
+                  <div className="col-span-6 text-left">Nazwa</div>
                   <div className="col-span-3 text-left">Cena netto</div>
                   <div className="col-span-2 text-left">Rabat %</div>
                   <div className="col-span-1"></div>
@@ -308,10 +308,11 @@ export const OptionsStep = ({
                             onCloseAutoFocus={(e) => e.preventDefault()}
                           >
                             <Command shouldFilter={false}>
-                              <CommandInput
+                            <CommandInput
                                 placeholder="Szukaj w bibliotece..."
                                 value={searchTerms[item.id] || ''}
                                 onValueChange={(value) => setSearchTerms((prev) => ({ ...prev, [item.id]: value }))}
+                                className="text-left"
                               />
                               <CommandList>
                                 <CommandEmpty>Brak produktów</CommandEmpty>
@@ -347,8 +348,8 @@ export const OptionsStep = ({
                       <div className="col-span-2">
                         <Input
                           type="number"
-                          value={item.unitPrice}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                          value={item.unitPrice || ''}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                           min={0}
                           step={0.01}
                           className="bg-white text-left"
@@ -356,23 +357,23 @@ export const OptionsStep = ({
                       </div>
                       
                       {/* Discount */}
-                      <div className="col-span-2">
+                      <div className="col-span-1">
                         <Input
                           type="number"
-                          value={item.discountPercent}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: parseFloat(e.target.value) || 0 })}
+                          value={item.discountPercent || ''}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                           min={0}
                           max={100}
-                          className="bg-white text-left"
+                          className="bg-white text-left w-[60px]"
                         />
                       </div>
                       
                       {/* Hidden fields for unit prices mode */}
-                      <div className="col-span-2 flex gap-2">
+                      <div className="col-span-3 flex gap-2">
                         <Input
                           type="number"
-                          value={item.quantity}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                          value={item.quantity || ''}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { quantity: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                           min={0}
                           step={0.01}
                           className="bg-white text-left"
@@ -473,8 +474,8 @@ export const OptionsStep = ({
                       <div className="col-span-3">
                         <Input
                           type="number"
-                          value={item.quantity * item.unitPrice}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: (parseFloat(e.target.value) || 0) / (item.quantity || 1), quantity: 1 })}
+                          value={item.quantity * item.unitPrice || ''}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: e.target.value === '' ? 0 : (parseFloat(e.target.value)) / (item.quantity || 1), quantity: 1 })}
                           min={0}
                           step={0.01}
                           className="bg-white text-left"
@@ -485,11 +486,11 @@ export const OptionsStep = ({
                       <div className="col-span-2">
                         <Input
                           type="number"
-                          value={item.discountPercent}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: parseFloat(e.target.value) || 0 })}
+                          value={item.discountPercent || ''}
+                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                           min={0}
                           max={100}
-                          className="bg-white text-left"
+                          className="bg-white text-left w-[60px]"
                         />
                       </div>
                       

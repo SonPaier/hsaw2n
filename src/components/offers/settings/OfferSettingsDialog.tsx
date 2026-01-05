@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettings';
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
-import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette } from 'lucide-react';
+import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,6 +34,13 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [numberPrefix, setNumberPrefix] = useState('');
   const [numberFormat, setNumberFormat] = useState('PREFIX/YYYY/MMDD/NNN');
   const [loadingSettings, setLoadingSettings] = useState(true);
+  
+  // New default fields
+  const [defaultPaymentTerms, setDefaultPaymentTerms] = useState('');
+  const [defaultNotes, setDefaultNotes] = useState('');
+  const [defaultWarranty, setDefaultWarranty] = useState('');
+  const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
+  const [emailTemplate, setEmailTemplate] = useState('');
 
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
   const variantsRef = useRef<OfferVariantsSettingsRef>(null);
@@ -47,7 +55,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer, slug')
+        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template')
         .eq('id', instanceId)
         .single();
       
@@ -57,6 +65,11 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         if (data.slug) {
           setNumberPrefix(data.slug.toUpperCase().slice(0, 3));
         }
+        setDefaultPaymentTerms(data.offer_default_payment_terms || '');
+        setDefaultNotes(data.offer_default_notes || '');
+        setDefaultWarranty(data.offer_default_warranty || '');
+        setDefaultServiceInfo(data.offer_default_service_info || '');
+        setEmailTemplate(data.offer_email_template || '');
       }
       setLoadingSettings(false);
     };
@@ -85,7 +98,14 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       // Save general settings
       const { error: settingsError } = await supabase
         .from('instances')
-        .update({ show_unit_prices_in_offer: showUnitPrices })
+        .update({ 
+          show_unit_prices_in_offer: showUnitPrices,
+          offer_default_payment_terms: defaultPaymentTerms || null,
+          offer_default_notes: defaultNotes || null,
+          offer_default_warranty: defaultWarranty || null,
+          offer_default_service_info: defaultServiceInfo || null,
+          offer_email_template: emailTemplate || null,
+        })
         .eq('id', instanceId);
 
       if (settingsError) throw settingsError;
@@ -217,6 +237,78 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                     onCheckedChange={handleToggleUnitPrices}
                     disabled={saving}
                   />
+                </div>
+
+                {/* Default values section */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <h4 className="font-medium">{t('offerSettings.defaultValues')}</h4>
+                  <p className="text-sm text-muted-foreground">{t('offerSettings.defaultValuesDescription')}</p>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.defaultPaymentTerms')}</Label>
+                      <Textarea
+                        value={defaultPaymentTerms}
+                        onChange={(e) => { setDefaultPaymentTerms(e.target.value); handleChange(); }}
+                        rows={5}
+                        disabled={saving}
+                        placeholder={t('offerSettings.defaultPaymentTermsPlaceholder')}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.defaultWarranty')}</Label>
+                      <Textarea
+                        value={defaultWarranty}
+                        onChange={(e) => { setDefaultWarranty(e.target.value); handleChange(); }}
+                        rows={5}
+                        disabled={saving}
+                        placeholder={t('offerSettings.defaultWarrantyPlaceholder')}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.defaultNotes')}</Label>
+                      <Textarea
+                        value={defaultNotes}
+                        onChange={(e) => { setDefaultNotes(e.target.value); handleChange(); }}
+                        rows={5}
+                        disabled={saving}
+                        placeholder={t('offerSettings.defaultNotesPlaceholder')}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.defaultServiceInfo')}</Label>
+                      <Textarea
+                        value={defaultServiceInfo}
+                        onChange={(e) => { setDefaultServiceInfo(e.target.value); handleChange(); }}
+                        rows={5}
+                        disabled={saving}
+                        placeholder={t('offerSettings.defaultServiceInfoPlaceholder')}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email template section */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <h4 className="font-medium">{t('offerSettings.emailTemplate')}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t('offerSettings.emailTemplateDescription')}</p>
+                  
+                  <div className="space-y-2">
+                    <Textarea
+                      value={emailTemplate}
+                      onChange={(e) => { setEmailTemplate(e.target.value); handleChange(); }}
+                      rows={8}
+                      disabled={saving}
+                      placeholder={t('offerSettings.emailTemplatePlaceholder')}
+                    />
+                    <p className="text-xs text-muted-foreground">{t('offerSettings.emailTemplateHint')}</p>
+                  </div>
                 </div>
               </div>
             )}
