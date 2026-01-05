@@ -124,7 +124,8 @@ export const OfferBrandingSettings = forwardRef<OfferBrandingSettingsRef, OfferB
             offer_header_text_color,
             offer_section_bg_color,
             offer_section_text_color,
-            offer_primary_color
+            offer_primary_color,
+            offer_scope_header_text_color
           `)
           .eq('id', instanceId)
           .single();
@@ -138,6 +139,7 @@ export const OfferBrandingSettings = forwardRef<OfferBrandingSettingsRef, OfferB
             offer_section_bg_color: data.offer_section_bg_color ?? DEFAULT_BRANDING.offer_section_bg_color,
             offer_section_text_color: data.offer_section_text_color ?? DEFAULT_BRANDING.offer_section_text_color,
             offer_primary_color: data.offer_primary_color ?? DEFAULT_BRANDING.offer_primary_color,
+            offer_scope_header_text_color: data.offer_scope_header_text_color ?? DEFAULT_BRANDING.offer_scope_header_text_color,
           });
         }
         setLoading(false);
@@ -172,6 +174,7 @@ export const OfferBrandingSettings = forwardRef<OfferBrandingSettingsRef, OfferB
             offer_section_bg_color: branding.offer_section_bg_color,
             offer_section_text_color: branding.offer_section_text_color,
             offer_primary_color: branding.offer_primary_color,
+            offer_scope_header_text_color: branding.offer_scope_header_text_color,
           })
           .eq('id', instanceId);
 
@@ -228,6 +231,16 @@ export const OfferBrandingSettings = forwardRef<OfferBrandingSettingsRef, OfferB
               description={t('offerSettings.backgroundColorDesc')}
               value={branding.offer_bg_color}
               onChange={(v) => updateBranding('offer_bg_color', v)}
+              disabled={colorsDisabled}
+            />
+
+            <ColorField
+              label={t('offerSettings.scopeHeaderTextColor')}
+              description={t('offerSettings.scopeHeaderTextColorDesc')}
+              value={branding.offer_scope_header_text_color}
+              onChange={(v) => updateBranding('offer_scope_header_text_color', v)}
+              contrastWith={branding.offer_bg_color}
+              showAutoContrast
               disabled={colorsDisabled}
             />
 
@@ -297,6 +310,7 @@ export const OfferBrandingSettings = forwardRef<OfferBrandingSettingsRef, OfferB
               sectionBgColor={branding.offer_branding_enabled ? branding.offer_section_bg_color : DEFAULT_BRANDING.offer_section_bg_color}
               sectionTextColor={branding.offer_branding_enabled ? branding.offer_section_text_color : DEFAULT_BRANDING.offer_section_text_color}
               primaryColor={branding.offer_branding_enabled ? branding.offer_primary_color : DEFAULT_BRANDING.offer_primary_color}
+              scopeHeaderTextColor={branding.offer_branding_enabled ? branding.offer_scope_header_text_color : DEFAULT_BRANDING.offer_scope_header_text_color}
             />
             {!branding.offer_branding_enabled && (
               <p className="text-xs text-muted-foreground text-center">

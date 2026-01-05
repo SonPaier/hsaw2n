@@ -128,6 +128,7 @@ interface Offer {
     offer_section_bg_color?: string;
     offer_section_text_color?: string;
     offer_primary_color?: string;
+    offer_scope_header_text_color?: string;
   };
 }
 
@@ -226,7 +227,8 @@ const PublicOfferView = () => {
               offer_header_text_color,
               offer_section_bg_color,
               offer_section_text_color,
-              offer_primary_color
+              offer_primary_color,
+              offer_scope_header_text_color
             )
           `)
           .eq('public_token', token)
@@ -695,6 +697,7 @@ const PublicOfferView = () => {
     offer_section_bg_color: brandingEnabled ? (instance?.offer_section_bg_color ?? DEFAULT_BRANDING.offer_section_bg_color) : DEFAULT_BRANDING.offer_section_bg_color,
     offer_section_text_color: brandingEnabled ? (instance?.offer_section_text_color ?? DEFAULT_BRANDING.offer_section_text_color) : DEFAULT_BRANDING.offer_section_text_color,
     offer_primary_color: brandingEnabled ? (instance?.offer_primary_color ?? DEFAULT_BRANDING.offer_primary_color) : DEFAULT_BRANDING.offer_primary_color,
+    offer_scope_header_text_color: brandingEnabled ? (instance?.offer_scope_header_text_color ?? DEFAULT_BRANDING.offer_scope_header_text_color) : DEFAULT_BRANDING.offer_scope_header_text_color,
   };
   
   // Computed colors for primary buttons
@@ -756,7 +759,6 @@ const PublicOfferView = () => {
       >
         {/* Header */}
         <header 
-          className="border-b"
           style={{ backgroundColor: branding.offer_header_bg_color }}
         >
           <div className="max-w-4xl mx-auto px-4 py-6">
@@ -814,7 +816,7 @@ const PublicOfferView = () => {
                   </Button>
                 )}
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   onClick={async () => {
                     try {
@@ -838,20 +840,14 @@ const PublicOfferView = () => {
                     }
                   }}
                   className="gap-1"
+                  style={{ 
+                    backgroundColor: branding.offer_primary_color,
+                    color: primaryButtonTextColor,
+                  }}
                 >
                   <Download className="w-4 h-4" />
                   {t('publicOffer.downloadPdf')}
                 </Button>
-                <Badge 
-                  className={cn(
-                    offer.status === 'accepted' && 'bg-green-500/20 text-green-600',
-                    offer.status === 'rejected' && 'bg-red-500/20 text-red-600',
-                    offer.status === 'viewed' && 'bg-amber-500/20 text-amber-600',
-                    offer.status === 'sent' && 'bg-blue-500/20 text-blue-600',
-                  )}
-                >
-                  {getStatusLabels(t)[offer.status] || offer.status}
-                </Badge>
               </div>
             </div>
           </div>
@@ -1036,7 +1032,7 @@ const PublicOfferView = () => {
                       <div className="flex items-center gap-2">
                         <h2 
                           className="text-base font-semibold"
-                          style={{ color: branding.offer_section_text_color }}
+                          style={{ color: branding.offer_scope_header_text_color }}
                         >
                           {section.scopeName}
                         </h2>
@@ -1132,7 +1128,7 @@ const PublicOfferView = () => {
                   <section key={section.key} className="space-y-3">
                     <h2 
                       className="text-base font-semibold flex items-center gap-2"
-                      style={{ color: branding.offer_section_text_color }}
+                      style={{ color: branding.offer_scope_header_text_color }}
                     >
                       {section.scopeName}
                       {isScopeSelected && (
@@ -1371,7 +1367,12 @@ const PublicOfferView = () => {
                     {upsells.length > 0 && (
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 pt-2">
-                          <h3 className="text-sm font-semibold text-foreground">Opcje dodatkowe</h3>
+                          <h3 
+                            className="text-sm font-semibold"
+                            style={{ color: branding.offer_scope_header_text_color }}
+                          >
+                            Opcje dodatkowe
+                          </h3>
                         </div>
 
                         {upsells.flatMap((option) => {

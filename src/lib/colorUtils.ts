@@ -83,6 +83,7 @@ export const DEFAULT_BRANDING = {
   offer_section_bg_color: '#ffffff',
   offer_section_text_color: '#1e293b',
   offer_primary_color: '#2563eb',
+  offer_scope_header_text_color: '#1e293b',
 };
 
 export interface OfferBranding {
@@ -93,4 +94,5 @@ export interface OfferBranding {
   offer_section_bg_color: string;
   offer_section_text_color: string;
   offer_primary_color: string;
+  offer_scope_header_text_color: string;
 }
