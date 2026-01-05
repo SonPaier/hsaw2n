@@ -194,6 +194,9 @@ const AdminDashboard = () => {
     open: string;
     close: string;
   } | null> | null>(null);
+
+  // Current calendar date (synced from AdminCalendar)
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   useEffect(() => {
     const fetchUserInstanceId = async () => {
       if (!user) return;
@@ -1713,7 +1716,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={setCalendarDate} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} />
                 
                 {/* Floating + button for quick add reservation V2 - hidden on mobile */}
                 <button
@@ -1732,7 +1735,7 @@ const AdminDashboard = () => {
                     setEditingReservation(null);
                     setNewReservationData({
                       stationId: washingStation?.id || '',
-                      date: format(new Date(), 'yyyy-MM-dd'),
+                      date: format(calendarDate, 'yyyy-MM-dd'),
                       time: format(now, 'HH:mm'),
                       stationType: 'washing'
                     });

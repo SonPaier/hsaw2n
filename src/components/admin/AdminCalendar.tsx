@@ -77,6 +77,7 @@ interface AdminCalendarProps {
   onReservationMove?: (reservationId: string, newStationId: string, newDate: string, newTime?: string) => void;
   onConfirmReservation?: (reservationId: string) => void;
   onYardVehicleDrop?: (vehicle: YardVehicle, stationId: string, date: string, time: string) => void;
+  onDateChange?: (date: Date) => void; // Callback when calendar date changes
   // Hall view props
   allowedViews?: ViewMode[];
   readOnly?: boolean;
@@ -166,6 +167,7 @@ const AdminCalendar = ({
   onReservationMove,
   onConfirmReservation,
   onYardVehicleDrop,
+  onDateChange,
   allowedViews = ['day', 'two-days', 'week'],
   readOnly = false,
   showStationFilter = true,
@@ -210,6 +212,11 @@ const AdminCalendar = ({
     customerName: string;
   } | null>(null);
   const isMobile = useIsMobile();
+
+  // Notify parent when currentDate changes
+  useEffect(() => {
+    onDateChange?.(currentDate);
+  }, [currentDate, onDateChange]);
 
   // Refs for synchronized horizontal scroll between headers and grid
   const headerScrollRef = useRef<HTMLDivElement>(null);
