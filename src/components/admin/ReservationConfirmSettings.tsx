@@ -178,7 +178,7 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
             <p className="text-sm text-muted-foreground">
               {autoConfirm 
                 ? 'Rezerwacje klientów są automatycznie potwierdzane'
-                : 'Każda rezerwacja wymaga ręcznego potwierdzenia'}
+                : 'Przy wyłączonym automatycznym potwierdzaniu, każda rezerwacja wymaga ręcznego potwierdzenia'}
             </p>
           </div>
           <Switch
