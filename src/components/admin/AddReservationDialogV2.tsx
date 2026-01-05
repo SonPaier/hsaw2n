@@ -1478,7 +1478,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           {t('common.add')}
                         </button>
                       </div>
-                      {isReservationMode && selectedServices.length > 0 && (
+                      {(isReservationMode || isYardMode) && selectedServices.length > 0 && (
                         <p className="text-base font-bold mt-1">
                           {t('addReservation.totalDuration')}: {totalDurationMinutes} min, {t('common.price')}: {totalPrice} zł
                         </p>
