@@ -195,8 +195,17 @@ const AdminDashboard = () => {
     close: string;
   } | null> | null>(null);
 
-  // Current calendar date (synced from AdminCalendar)
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
+  // Current calendar date (synced from AdminCalendar) - initialize from same localStorage source
+  const [calendarDate, setCalendarDate] = useState<Date>(() => {
+    const saved = localStorage.getItem('admin-calendar-date');
+    if (saved) {
+      try {
+        const parsed = new Date(saved);
+        if (!isNaN(parsed.getTime())) return parsed;
+      } catch {}
+    }
+    return new Date();
+  });
   useEffect(() => {
     const fetchUserInstanceId = async () => {
       if (!user) return;
