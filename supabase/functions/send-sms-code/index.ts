@@ -129,6 +129,18 @@ serve(async (req: Request): Promise<Response> => {
 
     if (smsResult.error) {
       console.error("SMSAPI error:", smsResult);
+      
+      // Log failed SMS
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: smsMessage,
+        message_type: 'verification_code',
+        status: 'failed',
+        error_message: JSON.stringify(smsResult.error),
+        smsapi_response: smsResult,
+      });
+      
       return new Response(
         JSON.stringify({ error: "Failed to send SMS", details: smsResult.error }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -145,6 +157,16 @@ serve(async (req: Request): Promise<Response> => {
     } else {
       console.log(`SMS usage incremented for instance ${instanceId}: ${incremented}`);
     }
+
+    // Log successful SMS
+    await supabase.from('sms_logs').insert({
+      instance_id: instanceId,
+      phone: normalizedPhone,
+      message: smsMessage,
+      message_type: 'verification_code',
+      status: 'sent',
+      smsapi_response: smsResult,
+    });
 
     return new Response(
       JSON.stringify({ success: true }),

@@ -211,7 +211,7 @@ serve(async (req: Request): Promise<Response> => {
 
       const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizytę.${editLinkPart}`;
 
-      const success = await sendSms(reservation.customer_phone, message, smsapiToken);
+      const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
       
       if (success) {
         await supabase
@@ -249,7 +249,7 @@ serve(async (req: Request): Promise<Response> => {
 
         const message = `${instanceInfo.name}: Za godzinę o ${formattedTime} masz wizytę. Do zobaczenia!`;
 
-        const success = await sendSms(reservation.customer_phone, message, smsapiToken);
+        const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
         
         if (success) {
           await supabase
@@ -279,7 +279,15 @@ serve(async (req: Request): Promise<Response> => {
   }
 });
 
-async function sendSms(phone: string, message: string, token: string): Promise<boolean> {
+async function sendSms(
+  phone: string, 
+  message: string, 
+  token: string,
+  supabase: any,
+  instanceId: string,
+  reservationId: string,
+  messageType: 'reminder_1day' | 'reminder_1hour'
+): Promise<boolean> {
   try {
     let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
     if (!normalizedPhone.startsWith("+")) {
@@ -303,8 +311,32 @@ async function sendSms(phone: string, message: string, token: string): Promise<b
     
     if (result.error) {
       console.error("SMSAPI error:", result);
+      
+      // Log failed SMS
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: message,
+        message_type: messageType,
+        reservation_id: reservationId,
+        status: 'failed',
+        error_message: JSON.stringify(result.error),
+        smsapi_response: result,
+      });
+      
       return false;
     }
+
+    // Log successful SMS
+    await supabase.from('sms_logs').insert({
+      instance_id: instanceId,
+      phone: normalizedPhone,
+      message: message,
+      message_type: messageType,
+      reservation_id: reservationId,
+      status: 'sent',
+      smsapi_response: result,
+    });
 
     return true;
   } catch (error) {
