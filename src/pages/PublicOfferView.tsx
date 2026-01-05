@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DEFAULT_BRANDING, OfferBranding, getContrastTextColor } from '@/lib/colorUtils';
 
 interface OfferScopeRef {
   id: string;
@@ -120,6 +121,13 @@ interface Offer {
     website?: string;
     social_facebook?: string;
     social_instagram?: string;
+    offer_branding_enabled?: boolean;
+    offer_bg_color?: string;
+    offer_header_bg_color?: string;
+    offer_header_text_color?: string;
+    offer_section_bg_color?: string;
+    offer_section_text_color?: string;
+    offer_primary_color?: string;
   };
 }
 
@@ -211,7 +219,14 @@ const PublicOfferView = () => {
               address,
               website,
               social_facebook,
-              social_instagram
+              social_instagram,
+              offer_branding_enabled,
+              offer_bg_color,
+              offer_header_bg_color,
+              offer_header_text_color,
+              offer_section_bg_color,
+              offer_section_text_color,
+              offer_primary_color
             )
           `)
           .eq('public_token', token)
@@ -670,6 +685,21 @@ const PublicOfferView = () => {
   // Interactions disabled when accepted and not in edit mode
   const interactionsDisabled = isAccepted && !isEditMode;
 
+  // Branding colors
+  const brandingEnabled = instance?.offer_branding_enabled ?? false;
+  const branding: OfferBranding = {
+    offer_branding_enabled: brandingEnabled,
+    offer_bg_color: brandingEnabled ? (instance?.offer_bg_color ?? DEFAULT_BRANDING.offer_bg_color) : DEFAULT_BRANDING.offer_bg_color,
+    offer_header_bg_color: brandingEnabled ? (instance?.offer_header_bg_color ?? DEFAULT_BRANDING.offer_header_bg_color) : DEFAULT_BRANDING.offer_header_bg_color,
+    offer_header_text_color: brandingEnabled ? (instance?.offer_header_text_color ?? DEFAULT_BRANDING.offer_header_text_color) : DEFAULT_BRANDING.offer_header_text_color,
+    offer_section_bg_color: brandingEnabled ? (instance?.offer_section_bg_color ?? DEFAULT_BRANDING.offer_section_bg_color) : DEFAULT_BRANDING.offer_section_bg_color,
+    offer_section_text_color: brandingEnabled ? (instance?.offer_section_text_color ?? DEFAULT_BRANDING.offer_section_text_color) : DEFAULT_BRANDING.offer_section_text_color,
+    offer_primary_color: brandingEnabled ? (instance?.offer_primary_color ?? DEFAULT_BRANDING.offer_primary_color) : DEFAULT_BRANDING.offer_primary_color,
+  };
+  
+  // Computed colors for primary buttons
+  const primaryButtonTextColor = getContrastTextColor(branding.offer_primary_color);
+
   const selectedOptions = offer.offer_options
     .filter((opt) => opt.is_selected)
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -720,9 +750,15 @@ const PublicOfferView = () => {
         )}
       </Helmet>
       
-      <div className="min-h-screen bg-muted/30">
+      <div 
+        className="min-h-screen"
+        style={{ backgroundColor: branding.offer_bg_color }}
+      >
         {/* Header */}
-        <header className="bg-background border-b">
+        <header 
+          className="border-b"
+          style={{ backgroundColor: branding.offer_header_bg_color }}
+        >
           <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -733,16 +769,27 @@ const PublicOfferView = () => {
                     className="h-12 object-contain"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
+                  <div 
+                    className="w-12 h-12 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${branding.offer_primary_color}20` }}
+                  >
+                    <FileText className="w-6 h-6" style={{ color: branding.offer_primary_color }} />
                   </div>
                 )}
                 <div>
-                  <h1 className="font-bold text-lg">
+                  <h1 
+                    className="font-bold text-lg"
+                    style={{ color: branding.offer_header_text_color }}
+                  >
                     <span className="sr-only">Oferta </span>
                     {instance?.name}
                   </h1>
-                  <p className="text-sm text-muted-foreground">Oferta nr {offer.offer_number}</p>
+                  <p 
+                    className="text-sm opacity-70"
+                    style={{ color: branding.offer_header_text_color }}
+                  >
+                    Oferta nr {offer.offer_number}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -753,6 +800,10 @@ const PublicOfferView = () => {
                     onClick={handleSaveState}
                     disabled={savingState}
                     className="gap-1"
+                    style={{ 
+                      backgroundColor: branding.offer_primary_color,
+                      color: primaryButtonTextColor,
+                    }}
                   >
                     {savingState ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1334,7 +1385,7 @@ const PublicOfferView = () => {
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>{t('publicOffer.grossTotal')}</span>
-                <span className="text-primary">{formatPrice(dynamicTotals.gross)}</span>
+                <span style={{ color: branding.offer_primary_color }}>{formatPrice(dynamicTotals.gross)}</span>
               </div>
             </CardContent>
           </Card>
@@ -1376,6 +1427,10 @@ const PublicOfferView = () => {
                     size="lg"
                     onClick={handleConfirmSelection}
                     disabled={responding || !selectedScopeId}
+                    style={{ 
+                      backgroundColor: branding.offer_primary_color, 
+                      color: primaryButtonTextColor 
+                    }}
                   >
                     {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
                     {t('publicOffer.confirmSelection')}
@@ -1401,7 +1456,11 @@ const PublicOfferView = () => {
                           {instance?.phone && (
                             <>
                               {' '}lub zadzwoń do nas:{' '}
-                              <a href={`tel:${instance.phone}`} className="text-primary font-medium hover:underline">
+                              <a 
+                                href={`tel:${instance.phone}`} 
+                                className="font-medium hover:underline"
+                                style={{ color: branding.offer_primary_color }}
+                              >
                                 {instance.phone}
                               </a>
                             </>

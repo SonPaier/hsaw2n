@@ -54,6 +54,13 @@ interface Offer {
     email?: string;
     address?: string;
     nip?: string;
+    offer_branding_enabled?: boolean;
+    offer_bg_color?: string;
+    offer_header_bg_color?: string;
+    offer_header_text_color?: string;
+    offer_section_bg_color?: string;
+    offer_section_text_color?: string;
+    offer_primary_color?: string;
   };
 }
 
@@ -77,6 +84,13 @@ const generateHtmlContent = (offer: Offer): string => {
   const instance = offer.instances;
   const vatAmount = offer.total_gross - offer.total_net;
   const hideUnitPrices = offer.hide_unit_prices;
+  
+  // Branding colors with defaults
+  const brandingEnabled = instance?.offer_branding_enabled ?? false;
+  const primaryColor = brandingEnabled && instance?.offer_primary_color ? instance.offer_primary_color : '#2563eb';
+  const bgColor = brandingEnabled && instance?.offer_bg_color ? instance.offer_bg_color : '#ffffff';
+  const headerBgColor = brandingEnabled && instance?.offer_header_bg_color ? instance.offer_header_bg_color : '#f8f9fa';
+  const headerTextColor = brandingEnabled && instance?.offer_header_text_color ? instance.offer_header_text_color : '#333333';
   
   const optionsHtml = offer.offer_options
     .filter((opt: any) => opt.is_selected !== false)
@@ -161,19 +175,19 @@ const generateHtmlContent = (offer: Offer): string => {
   <meta charset="UTF-8">
   <style>
     @page { size: A4; margin: 20mm; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.5; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.5; background: ${bgColor}; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
     .logo { max-height: 60px; }
-    .company-info { text-align: right; font-size: 11px; color: #666; }
-    .offer-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 8px; }
+    .company-info { text-align: right; font-size: 11px; color: ${headerTextColor}; }
+    .offer-title { font-size: 24px; font-weight: bold; color: ${primaryColor}; margin-bottom: 8px; }
     .offer-number { font-size: 14px; color: #666; margin-bottom: 24px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
-    .info-box { background: #f8f9fa; padding: 16px; border-radius: 8px; }
-    .info-box h4 { margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; color: #666; }
-    .info-box p { margin: 4px 0; font-size: 12px; }
-    .totals { margin-top: 32px; background: #f8f9fa; padding: 20px; border-radius: 8px; }
+    .info-box { background: ${headerBgColor}; padding: 16px; border-radius: 8px; }
+    .info-box h4 { margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; color: ${primaryColor}; }
+    .info-box p { margin: 4px 0; font-size: 12px; color: ${headerTextColor}; }
+    .totals { margin-top: 32px; background: ${headerBgColor}; padding: 20px; border-radius: 8px; }
     .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; }
-    .totals-row.total { font-size: 18px; font-weight: bold; color: #333; border-top: 2px solid #ddd; padding-top: 16px; margin-top: 8px; }
+    .totals-row.total { font-size: 18px; font-weight: bold; color: ${primaryColor}; border-top: 2px solid #ddd; padding-top: 16px; margin-top: 8px; }
     .notes { margin-top: 32px; font-size: 11px; color: #666; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 10px; color: #999; text-align: center; }
   </style>
@@ -181,7 +195,7 @@ const generateHtmlContent = (offer: Offer): string => {
 <body>
   <div class="header">
     <div>
-      ${instance?.logo_url ? `<img src="${instance.logo_url}" alt="${instance.name}" class="logo">` : `<h2 style="margin: 0; color: #333;">${instance?.name || 'Oferta'}</h2>`}
+      ${instance?.logo_url ? `<img src="${instance.logo_url}" alt="${instance.name}" class="logo">` : `<h2 style="margin: 0; color: ${primaryColor};">${instance?.name || 'Oferta'}</h2>`}
     </div>
     <div class="company-info">
       <strong>${instance?.name || ''}</strong><br>
@@ -278,7 +292,14 @@ serve(async (req) => {
           phone,
           email,
           address,
-          nip
+          nip,
+          offer_branding_enabled,
+          offer_bg_color,
+          offer_header_bg_color,
+          offer_header_text_color,
+          offer_section_bg_color,
+          offer_section_text_color,
+          offer_primary_color
         )
       `);
 
