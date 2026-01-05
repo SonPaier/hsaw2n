@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface AdminTabsListProps {
   children: React.ReactNode;
   className?: string;
-  columns?: 2 | 3;
+  columns?: 2 | 3 | 4 | 5;
 }
 
 /**
@@ -13,11 +13,18 @@ interface AdminTabsListProps {
  * Uses white background with light gray for active tab.
  */
 export const AdminTabsList = ({ children, className, columns = 2 }: AdminTabsListProps) => {
+  const gridColsClass = {
+    2: "grid-cols-2",
+    3: "grid-cols-3",
+    4: "grid-cols-4",
+    5: "grid-cols-5",
+  }[columns];
+
   return (
     <TabsList 
       className={cn(
         "bg-white border border-border/50",
-        columns === 2 ? "grid grid-cols-2" : "grid grid-cols-3",
+        `grid ${gridColsClass}`,
         "w-full",
         className
       )}
