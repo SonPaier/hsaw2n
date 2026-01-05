@@ -1511,6 +1511,8 @@ export type Database = {
           original_reservation_id: string | null
           price: number | null
           released_at: string | null
+          reminder_1day_sent: boolean | null
+          reminder_1hour_sent: boolean | null
           reservation_date: string
           service_id: string | null
           service_ids: Json | null
@@ -1546,6 +1548,8 @@ export type Database = {
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
+          reminder_1day_sent?: boolean | null
+          reminder_1hour_sent?: boolean | null
           reservation_date: string
           service_id?: string | null
           service_ids?: Json | null
@@ -1581,6 +1585,8 @@ export type Database = {
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
+          reminder_1day_sent?: boolean | null
+          reminder_1hour_sent?: boolean | null
           reservation_date?: string
           service_id?: string | null
           service_ids?: Json | null
