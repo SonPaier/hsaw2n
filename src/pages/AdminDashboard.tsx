@@ -178,6 +178,8 @@ const AdminDashboard = () => {
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
 
+  // Get user's username from profiles
+  const [username, setUsername] = useState<string | null>(null);
   // Instance settings dialog
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
   const [instanceData, setInstanceData] = useState<any>(null);
@@ -221,6 +223,22 @@ const AdminDashboard = () => {
       }
     };
     fetchUserInstanceId();
+  }, [user]);
+
+  // Fetch username from profiles
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data?.username) {
+        setUsername(data.username);
+      }
+    };
+    fetchUsername();
   }, [user]);
 
   // Fetch stations from database
@@ -1657,7 +1675,7 @@ const AdminDashboard = () => {
                         variant="ghost"
                         className="w-full justify-between text-muted-foreground px-3 h-auto py-2"
                       >
-                        <span className="text-sm truncate">{user.email}</span>
+                        <span className="text-sm truncate">{username || user.email}</span>
                         <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
                       </Button>
                     </DropdownMenuTrigger>
