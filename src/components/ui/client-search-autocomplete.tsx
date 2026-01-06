@@ -235,7 +235,7 @@ const ClientSearchAutocomplete = ({
             }
           }}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder || t('common.search')}
+          placeholder={placeholder}
           className={cn("pr-10", className)}
           autoComplete="off"
           disabled={disabled}
