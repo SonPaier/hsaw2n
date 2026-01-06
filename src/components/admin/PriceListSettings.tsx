@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save, GripVertical, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save, GripVertical, Star, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,9 +63,19 @@ interface Service {
   price_large: number | null;
   requires_size: boolean | null;
   station_type: string | null;
+  category_id: string;
   active: boolean | null;
   sort_order: number | null;
   is_popular: boolean | null;
+}
+
+interface ServiceCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sort_order: number;
+  active: boolean;
 }
 
 interface PriceListSettingsProps {
@@ -77,13 +87,6 @@ const STATION_TYPES = [
   { value: 'detailing', labelKey: 'priceList.stationTypes.detailing' },
   { value: 'ppf', labelKey: 'priceList.stationTypes.ppf' },
   { value: 'universal', labelKey: 'priceList.stationTypes.universal' },
-];
-
-const CATEGORY_SECTIONS = [
-  { key: 'washing', labelKey: 'priceList.categories.washing', stationType: 'washing' },
-  { key: 'detailing', labelKey: 'priceList.categories.detailing', stationType: 'detailing' },
-  { key: 'ppf', labelKey: 'priceList.categories.ppf', stationType: 'ppf' },
-  { key: 'universal', labelKey: 'priceList.categories.universal', stationType: 'universal' },
 ];
 
 // Sortable service item component
@@ -181,13 +184,23 @@ const SortableServiceItem = ({
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const { t } = useTranslation();
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>(['washing']);
+  const [openSections, setOpenSections] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   
-  // Form state for editing/adding
+  // Category dialog state
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: '',
+  });
+  const [savingCategory, setSavingCategory] = useState(false);
+  
+  // Form state for editing/adding service
   const [formData, setFormData] = useState({
     name: '',
     shortcut: '',
@@ -202,6 +215,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     price_large: 0,
     requires_size: true,
     station_type: 'washing',
+    category_id: '',
     active: true,
     is_popular: false,
   });
@@ -212,6 +226,29 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const fetchCategories = async () => {
+    if (!instanceId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order');
+      
+      if (error) throw error;
+      setCategories(data || []);
+      
+      // Open first category by default
+      if (data && data.length > 0 && openSections.length === 0) {
+        setOpenSections([data[0].id]);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchServices = async () => {
     if (!instanceId) return;
@@ -235,7 +272,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   };
 
   useEffect(() => {
-    fetchServices();
+    const loadData = async () => {
+      await fetchCategories();
+      await fetchServices();
+    };
+    loadData();
   }, [instanceId]);
 
   const toggleSection = (key: string) => {
@@ -246,11 +287,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     );
   };
 
-  const getServicesByType = (stationType: string) => {
-    return services.filter(s => s.station_type === stationType);
+  const getServicesByCategory = (categoryId: string) => {
+    return services.filter(s => s.category_id === categoryId);
   };
 
-  const openEditDialog = (service?: Service) => {
+  const openEditDialog = (service?: Service, preselectedCategoryId?: string) => {
     if (service) {
       setEditingService(service);
       setFormData({
@@ -267,11 +308,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         price_large: service.price_large || 0,
         requires_size: service.requires_size ?? true,
         station_type: service.station_type || 'washing',
+        category_id: service.category_id,
         active: service.active ?? true,
         is_popular: service.is_popular ?? false,
       });
     } else {
       setEditingService(null);
+      const defaultCategoryId = preselectedCategoryId || (categories.length > 0 ? categories[0].id : '');
       setFormData({
         name: '',
         shortcut: '',
@@ -286,6 +329,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         price_large: 0,
         requires_size: true,
         station_type: 'washing',
+        category_id: defaultCategoryId,
         active: true,
         is_popular: false,
       });
@@ -297,6 +341,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     if (!instanceId) return;
     if (!formData.name.trim()) {
       toast.error(t('priceList.errors.nameRequired'));
+      return;
+    }
+    if (!formData.category_id) {
+      toast.error(t('priceList.errors.categoryRequired'));
       return;
     }
 
@@ -317,6 +365,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         price_large: formData.requires_size ? formData.price_large : null,
         requires_size: formData.requires_size,
         station_type: formData.station_type as any,
+        category_id: formData.category_id,
         active: formData.active,
         is_popular: formData.is_popular,
         sort_order: editingService?.sort_order ?? services.length,
@@ -440,12 +489,12 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent, stationType: string) => {
+  const handleDragEnd = async (event: DragEndEvent, categoryId: string) => {
     const { active, over } = event;
     
     if (!over || active.id === over.id) return;
     
-    const sectionServices = getServicesByType(stationType);
+    const sectionServices = getServicesByCategory(categoryId);
     const oldIndex = sectionServices.findIndex(s => s.id === active.id);
     const newIndex = sectionServices.findIndex(s => s.id === over.id);
     
@@ -455,7 +504,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     
     // Update local state immediately
     setServices(prev => {
-      const otherServices = prev.filter(s => s.station_type !== stationType);
+      const otherServices = prev.filter(s => s.category_id !== categoryId);
       return [...otherServices, ...reorderedServices.map((s, i) => ({ ...s, sort_order: i }))];
     });
     
@@ -475,6 +524,123 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
+  // Category management functions
+  const openCategoryDialog = (category?: ServiceCategory) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryFormData({
+        name: category.name,
+        description: category.description || '',
+      });
+    } else {
+      setEditingCategory(null);
+      setCategoryFormData({
+        name: '',
+        description: '',
+      });
+    }
+    setCategoryDialogOpen(true);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!instanceId) return;
+    if (!categoryFormData.name.trim()) {
+      toast.error(t('priceList.errors.categoryNameRequired'));
+      return;
+    }
+
+    setSavingCategory(true);
+    try {
+      const slug = categoryFormData.name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      if (editingCategory) {
+        const { error } = await supabase
+          .from('service_categories')
+          .update({
+            name: categoryFormData.name.trim(),
+            description: categoryFormData.description.trim() || null,
+            slug,
+          })
+          .eq('id', editingCategory.id);
+        
+        if (error) throw error;
+        toast.success(t('priceList.categoryUpdated'));
+      } else {
+        const maxSortOrder = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order)) + 1 : 0;
+        const { error } = await supabase
+          .from('service_categories')
+          .insert({
+            instance_id: instanceId,
+            name: categoryFormData.name.trim(),
+            description: categoryFormData.description.trim() || null,
+            slug,
+            sort_order: maxSortOrder,
+            active: true,
+          });
+        
+        if (error) throw error;
+        toast.success(t('priceList.categoryAdded'));
+      }
+
+      setCategoryDialogOpen(false);
+      fetchCategories();
+    } catch (error) {
+      console.error('Error saving category:', error);
+      toast.error(t('priceList.errors.categorySaveError'));
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    // Check if there are services in this category
+    const servicesInCategory = services.filter(s => s.category_id === categoryId);
+    
+    if (servicesInCategory.length > 0) {
+      toast.error(t('priceList.categoryHasServices'));
+      return;
+    }
+    
+    try {
+      // Check if any services that WERE in this category are linked to reservations
+      const { count } = await supabase
+        .from('reservations')
+        .select('id', { count: 'exact', head: true })
+        .in('service_id', servicesInCategory.map(s => s.id));
+      
+      const hasReservations = (count || 0) > 0;
+      
+      if (hasReservations) {
+        // Soft delete
+        if (!confirm(t('priceList.confirmDeactivateCategory'))) return;
+        
+        const { error } = await supabase
+          .from('service_categories')
+          .update({ active: false })
+          .eq('id', categoryId);
+        
+        if (error) throw error;
+        toast.success(t('priceList.categoryDeactivated'));
+      } else {
+        // Physical delete
+        if (!confirm(t('priceList.confirmDeleteCategory'))) return;
+        
+        const { error } = await supabase
+          .from('service_categories')
+          .delete()
+          .eq('id', categoryId);
+        
+        if (error) throw error;
+        toast.success(t('priceList.categoryDeleted'));
+      }
+      
+      fetchCategories();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error(t('priceList.errors.categoryDeleteError'));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -487,75 +653,112 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{t('priceList.title')}</h3>
-        <Button onClick={() => openEditDialog()} size="sm" className="gap-2">
-          <Plus className="w-4 h-4" />
-          {t('priceList.addService')}
+        <Button onClick={() => openCategoryDialog()} variant="outline" size="sm" className="gap-2">
+          <FolderPlus className="w-4 h-4" />
+          {t('priceList.addCategory')}
         </Button>
       </div>
 
-      {CATEGORY_SECTIONS.map(section => {
-        const sectionServices = getServicesByType(section.stationType);
-        const isOpen = openSections.includes(section.key);
+      {categories.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>{t('priceList.noCategories')}</p>
+          <Button onClick={() => openCategoryDialog()} variant="outline" className="mt-4 gap-2">
+            <FolderPlus className="w-4 h-4" />
+            {t('priceList.addCategory')}
+          </Button>
+        </div>
+      ) : (
+        categories.map(category => {
+          const categoryServices = getServicesByCategory(category.id);
+          const isOpen = openSections.includes(category.id);
 
-        return (
-          <Collapsible
-            key={section.key}
-            open={isOpen}
-            onOpenChange={() => toggleSection(section.key)}
-          >
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
-                <div className="flex items-center gap-3">
-                  {isOpen ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                  <span className="font-medium">{t(section.labelKey)}</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({sectionServices.length} {t('priceList.servicesCount')})
-                  </span>
-                </div>
-              </div>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(event) => handleDragEnd(event, section.stationType)}
-              >
-                <SortableContext
-                  items={sectionServices.map(s => s.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="mt-2 space-y-2">
-                    {sectionServices.length === 0 ? (
-                      <p className="text-sm text-muted-foreground p-4 text-center">
-                        {t('priceList.noServicesInCategory')}
-                      </p>
+          return (
+            <Collapsible
+              key={category.id}
+              open={isOpen}
+              onOpenChange={() => toggleSection(category.id)}
+            >
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4" />
                     ) : (
-                      sectionServices.map(service => (
-                        <SortableServiceItem
-                          key={service.id}
-                          service={service}
-                          onEdit={() => openEditDialog(service)}
-                          onDelete={() => handleDelete(service.id)}
-                          onToggleActive={() => toggleServiceActive(service)}
-                          onTogglePopular={() => toggleServicePopular(service)}
-                          t={t}
-                        />
-                      ))
+                      <ChevronRight className="w-4 h-4" />
                     )}
+                    <span className="font-medium">{category.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      ({categoryServices.length} {t('priceList.servicesCount')})
+                    </span>
                   </div>
-                </SortableContext>
-              </DndContext>
-            </CollapsibleContent>
-          </Collapsible>
-        );
-      })}
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(undefined, category.id)}
+                      title={t('priceList.addService')}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openCategoryDialog(category)}
+                      title={t('priceList.editCategory')}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleDeleteCategory(category.id)}
+                      title={t('priceList.deleteCategory')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => handleDragEnd(event, category.id)}
+                >
+                  <SortableContext
+                    items={categoryServices.map(s => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="mt-2 space-y-2">
+                      {categoryServices.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-4 text-center">
+                          {t('priceList.noServicesInCategory')}
+                        </p>
+                      ) : (
+                        categoryServices.map(service => (
+                          <SortableServiceItem
+                            key={service.id}
+                            service={service}
+                            onEdit={() => openEditDialog(service)}
+                            onDelete={() => handleDelete(service.id)}
+                            onToggleActive={() => toggleServiceActive(service)}
+                            onTogglePopular={() => toggleServicePopular(service)}
+                            t={t}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })
+      )}
 
-      {/* Edit/Add Dialog */}
+      {/* Edit/Add Service Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -599,7 +802,26 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label>{t('priceList.form.category')}</Label>
+              <Label>{t('priceList.form.category')} *</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('priceList.form.selectCategory')} />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('priceList.form.stationType')}</Label>
               <Select
                 value={formData.station_type}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, station_type: v }))}
@@ -730,6 +952,47 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             <Button onClick={handleSave} disabled={saving} className="gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               <Save className="w-4 h-4" />
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Category Dialog */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? t('priceList.editCategory') : t('priceList.addCategory')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('priceList.categoryName')} *</Label>
+              <Input
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder={t('priceList.categoryNamePlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('priceList.categoryDescription')}</Label>
+              <Textarea
+                value={categoryFormData.description}
+                onChange={(e) => setCategoryFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder={t('priceList.categoryDescriptionPlaceholder')}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleSaveCategory} disabled={savingCategory} className="gap-2">
+              {savingCategory && <Loader2 className="w-4 h-4 animate-spin" />}
               {t('common.save')}
             </Button>
           </DialogFooter>
