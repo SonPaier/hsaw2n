@@ -63,7 +63,8 @@ export async function captureException(
     request?: Request;
   }
 ): Promise<string | null> {
-  const dsn = Deno.env.get('SENTRY_DSN');
+  // Use backend-specific DSN, fallback to shared DSN
+  const dsn = Deno.env.get('SENTRY_BACKEND_DSN') || Deno.env.get('SENTRY_DSN');
   if (!dsn) {
     console.warn('[Sentry] No SENTRY_DSN configured, skipping error capture');
     return null;
@@ -156,7 +157,8 @@ export async function captureMessage(
     extra?: Record<string, unknown>;
   }
 ): Promise<string | null> {
-  const dsn = Deno.env.get('SENTRY_DSN');
+  // Use backend-specific DSN, fallback to shared DSN
+  const dsn = Deno.env.get('SENTRY_BACKEND_DSN') || Deno.env.get('SENTRY_DSN');
   if (!dsn) {
     return null;
   }
