@@ -1336,7 +1336,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 onClear={() => {
                   setSelectedCustomerId(null);
                 }}
-                placeholder={t('addReservation.customerNameAlias')}
                 suppressAutoSearch={isEditMode}
               />
             </div>
