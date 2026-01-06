@@ -182,16 +182,8 @@ const InstanceAuth = ({
   };
 
   const handleTestFrontendError = () => {
-    try {
-      throw new Error('🧪 TEST: Frontend Sentry error from React component');
-    } catch (error) {
-      Sentry.captureException(error, {
-        tags: { test: 'true', source: 'instance-auth-page' },
-        extra: { timestamp: new Date().toISOString(), purpose: 'Sentry frontend integration test' }
-      });
-      toast.success('Frontend error sent to Sentry!');
-      console.log('[Sentry Test] Frontend error captured');
-    }
+    // Throw unhandled error - Sentry ErrorBoundary will catch it
+    throw new Error('🧪 TEST: This is your first Sentry error!');
   };
 
   const handleTestBackendError = async () => {
