@@ -960,5 +960,18 @@
     "models": [
       { "name": "Lucid Air", "size": "L" }
     ]
+  },
+  {
+    "brand": "Smart",
+    "models": [
+      { "name": "Smart Fortwo", "size": "S" },
+      { "name": "Smart Fortwo Cabrio", "size": "S" },
+      { "name": "Smart Forfour", "size": "S" },
+      { "name": "Smart Roadster", "size": "S" },
+      { "name": "Smart Roadster Coupe", "size": "S" },
+      { "name": "Smart Crossblade", "size": "S" },
+      { "name": "Smart #1", "size": "M" },
+      { "name": "Smart #3", "size": "M" }
+    ]
   }
 ]
