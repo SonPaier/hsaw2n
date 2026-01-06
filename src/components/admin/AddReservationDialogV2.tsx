@@ -660,7 +660,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const dayName = format(selectedDate, 'EEEE').toLowerCase();
     const dayHours = workingHours[dayName];
     
-    if (!dayHours) return [];
+    // Validate that day is enabled AND has valid open/close times
+    if (!dayHours || !dayHours.open || !dayHours.close) return [];
+    
+    // Additional validation for proper time format
+    if (!dayHours.open.includes(':') || !dayHours.close.includes(':')) return [];
     
     const parseTimeToMinutes = (timeStr: string): number => {
       const [h, m] = timeStr.split(':').map(Number);
@@ -669,6 +673,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     
     const [openH, openM] = dayHours.open.split(':').map(Number);
     const [closeH, closeM] = dayHours.close.split(':').map(Number);
+    
+    // Validate parsed values are numbers
+    if (isNaN(openH) || isNaN(openM) || isNaN(closeH) || isNaN(closeM)) return [];
+    
     const openMinutes = openH * 60 + openM;
     const closeMinutes = closeH * 60 + closeM;
     
@@ -1082,7 +1090,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     }
     
     // Validate time selection based on mode
-    if (timeSelectionMode === 'slots') {
+    // In edit mode without time change, use original reservation values - skip validation
+    if (isEditMode && !isChangingTime && editingReservation) {
+      // Use original times - validation passes automatically
+    } else if (timeSelectionMode === 'slots') {
       if (!selectedTime || !selectedStationId) {
         toast.error(t('addReservation.selectTimeSlot'));
         return;
@@ -1128,16 +1139,24 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       }
 
       // Determine start time, end time, and station based on mode
-      const isManualMode = timeSelectionMode === 'manual';
-      const finalStartTime = isManualMode ? manualStartTime : selectedTime;
-      const finalStationId = isManualMode ? manualStationId : selectedStationId;
-      
-      // Calculate end time (for slots mode, calculate from duration; for manual mode, use provided end time)
+      let finalStartTime: string;
       let finalEndTime: string;
-      if (isManualMode) {
+      let finalStationId: string | null;
+      
+      if (isEditMode && !isChangingTime && editingReservation) {
+        // Keep original times when not changing time in edit mode
+        finalStartTime = editingReservation.start_time?.substring(0, 5) || '';
+        finalEndTime = editingReservation.end_time?.substring(0, 5) || '';
+        finalStationId = editingReservation.station_id;
+      } else if (timeSelectionMode === 'manual') {
+        finalStartTime = manualStartTime;
         finalEndTime = manualEndTime;
+        finalStationId = manualStationId;
       } else {
-        const [hours, minutes] = finalStartTime!.split(':').map(Number);
+        finalStartTime = selectedTime!;
+        finalStationId = selectedStationId;
+        // Calculate end time from duration
+        const [hours, minutes] = finalStartTime.split(':').map(Number);
         const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
         const endHours = Math.floor(totalMinutes / 60);
         const endMins = totalMinutes % 60;
