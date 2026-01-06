@@ -1643,6 +1643,7 @@ export type Database = {
           id: string
           instance_id: string
           name: string
+          prices_are_net: boolean
           slug: string
           sort_order: number | null
         }
@@ -1653,6 +1654,7 @@ export type Database = {
           id?: string
           instance_id: string
           name: string
+          prices_are_net?: boolean
           slug: string
           sort_order?: number | null
         }
@@ -1663,6 +1665,7 @@ export type Database = {
           id?: string
           instance_id?: string
           name?: string
+          prices_are_net?: boolean
           slug?: string
           sort_order?: number | null
         }

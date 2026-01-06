@@ -1664,6 +1664,9 @@
     "categoryHasServices": "Nie można usunąć kategorii z przypisanymi usługami. Najpierw przenieś usługi do innej kategorii.",
     "confirmDeleteCategory": "Czy na pewno chcesz usunąć tę kategorię?",
     "confirmDeactivateCategory": "Ta kategoria jest powiązana z rezerwacjami. Czy chcesz ją dezaktywować zamiast usuwać?",
+    "pricesAreNet": "Ceny netto",
+    "pricesNetDescription": "Ceny w tej kategorii są podane jako netto (bez VAT 23%)",
+    "pricesGrossDescription": "Ceny w tej kategorii są podane jako brutto (z VAT 23%)",
     "stationTypes": {
       "washing": "Myjnia",
       "detailing": "Detailing",
