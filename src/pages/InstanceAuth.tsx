@@ -182,8 +182,7 @@ const InstanceAuth = ({
   };
 
   const handleTestFrontendError = () => {
-    // Throw unhandled error - Sentry ErrorBoundary will catch it
-    throw new Error('🧪 TEST: This is your first Sentry error!');
+    throw new Error('This is your first error!');
   };
 
   const handleTestBackendError = async () => {
