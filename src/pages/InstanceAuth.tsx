@@ -182,10 +182,7 @@ const InstanceAuth = ({
   };
 
   const handleTestFrontendError = () => {
-    const error = new Error('This is your first error!');
-    Sentry.captureException(error);
-    toast.success('Frontend error sent to Sentry!');
-    console.log('[Sentry Test] Frontend error captured:', error.message);
+    throw new Error('This is your first error!');
   };
 
   const handleTestBackendError = async () => {
@@ -288,8 +285,8 @@ const InstanceAuth = ({
 
           {/* Footer */}
           <div className="p-6 border-t border-slate-100 dark:border-slate-800">
-            {/* Sentry Test Buttons - DEV ONLY */}
-            {import.meta.env.DEV && (
+            {/* Sentry Test Buttons - temporarily enabled for production testing */}
+            {true && (
               <div className="flex gap-2 justify-center mb-4">
                 <Button 
                   variant="outline" 
