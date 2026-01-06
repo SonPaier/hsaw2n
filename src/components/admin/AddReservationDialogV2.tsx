@@ -409,7 +409,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPhone(editingReservation.customer_phone || '');
         setCarModel(editingReservation.vehicle_plate || '');
         setCarSize(editingReservation.car_size || 'medium');
-        const serviceIds = editingReservation.service_ids || (editingReservation.service_id ? [editingReservation.service_id] : []);
+        // Use service_ids if not empty, otherwise fallback to service_id
+        const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
+          ? editingReservation.service_ids 
+          : (editingReservation.service_id ? [editingReservation.service_id] : []);
         setSelectedServices(serviceIds);
         
         // Date range
@@ -464,7 +467,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPhone(editingReservation.customer_phone || '');
         setCarModel(editingReservation.vehicle_plate || '');
         setCarSize(editingReservation.car_size || 'medium');
-        const serviceIds = editingReservation.service_ids || (editingReservation.service_id ? [editingReservation.service_id] : []);
+        // Use service_ids if not empty, otherwise fallback to service_id
+        const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
+          ? editingReservation.service_ids 
+          : (editingReservation.service_id ? [editingReservation.service_id] : []);
         setSelectedServices(serviceIds);
         setSelectedDate(new Date(editingReservation.reservation_date));
         setSelectedTime(editingReservation.start_time?.substring(0, 5) || null);
