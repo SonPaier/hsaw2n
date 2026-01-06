@@ -909,7 +909,8 @@
     "term": "Termin",
     "selectedTerm": "Wybrany termin",
     "changeTerm": "Zmień termin",
-    "moveReservation": "Przenieś"
+    "moveReservation": "Przenieś",
+    "reservationUpdated": "Rezerwacja zaktualizowana"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",
