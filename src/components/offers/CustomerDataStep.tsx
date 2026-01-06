@@ -36,9 +36,6 @@ const parseAddress = (fullAddress: string) => {
 };
 
 const paintTypes = [
-  { value: 'standard', label: 'Standardowy' },
-  { value: 'metallic', label: 'Metalik' },
-  { value: 'pearl', label: 'Perłowy' },
   { value: 'matte', label: 'Mat' },
   { value: 'dark', label: 'Ciemny' },
   { value: 'other', label: 'Inny' },

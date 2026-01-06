@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Select,
@@ -56,9 +60,14 @@ interface Offer {
 interface OfferWithOptions extends Offer {
   offer_options?: {
     id: string;
+    scope_id?: string | null;
     offer_option_items?: {
       custom_name?: string;
     }[];
+  }[];
+  offer_scopes?: {
+    id: string;
+    name: string;
   }[];
 }
 
@@ -70,6 +79,8 @@ const statusColors: Record<string, string> = {
   rejected: 'bg-red-500/20 text-red-600',
   expired: 'bg-gray-500/20 text-gray-500',
 };
+
+const STATUS_OPTIONS = ['draft', 'sent', 'viewed', 'accepted', 'rejected'] as const;
 
 interface OffersViewProps {
   instanceId: string | null;
@@ -105,6 +116,7 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
           *,
           offer_options (
             id,
+            scope_id,
             offer_option_items (
               custom_name
             )
@@ -114,7 +126,30 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setOffers((data || []) as OfferWithOptions[]);
+
+      // Fetch unique scope names for badges
+      const scopeIds = [...new Set((data || []).flatMap(o => 
+        o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || []
+      ))];
+
+      let scopesMap: Record<string, string> = {};
+      if (scopeIds.length > 0) {
+        const { data: scopesData } = await supabase
+          .from('offer_scopes')
+          .select('id, name')
+          .in('id', scopeIds);
+        scopesMap = (scopesData || []).reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {});
+      }
+
+      // Attach scope names to offers
+      const offersWithScopes = (data || []).map(o => ({
+        ...o,
+        offer_scopes: [...new Set(o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || [])]
+          .map(id => ({ id, name: scopesMap[id as string] || '' }))
+          .filter(s => s.name)
+      }));
+
+      setOffers(offersWithScopes as OfferWithOptions[]);
     } catch (error) {
       console.error('Error fetching offers:', error);
       toast.error(t('offers.errors.fetchError'));
@@ -173,6 +208,48 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
     toast.success(t('offers.offerNumberCopied'));
   };
 
+  const handleChangeStatus = async (offerId: string, newStatus: string) => {
+    try {
+      const updateData: Record<string, unknown> = { status: newStatus };
+      if (newStatus === 'sent') updateData.sent_at = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('offers')
+        .update(updateData)
+        .eq('id', offerId);
+      
+      if (error) throw error;
+      
+      setOffers(prev => prev.map(o => 
+        o.id === offerId ? { ...o, status: newStatus } : o
+      ));
+      toast.success(t('offers.statusChanged'));
+    } catch (error) {
+      console.error('Error changing status:', error);
+      toast.error(t('offers.errors.statusChangeError'));
+    }
+  };
+
+  const handleSendOffer = async (offerId: string, customerEmail?: string) => {
+    if (!customerEmail) {
+      toast.error(t('offers.noCustomerEmail'));
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.functions.invoke('send-offer-email', {
+        body: { offerId },
+      });
+      
+      if (error) throw error;
+      
+      toast.success(t('offers.emailSent'));
+      fetchOffers();
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error(t('offers.errors.emailError'));
+    }
+  };
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
@@ -313,13 +390,6 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-muted-foreground">
-            {filteredOffers.length} {t('offers.offersCount', { count: filteredOffers.length })}
-            {searchQuery && ` ${t('offers.forQuery', { query: searchQuery })}`}
-            {totalPages > 1 && ` • ${t('offers.pageOf', { current: currentPage, total: totalPages })}`}
-          </div>
-        </div>
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -368,6 +438,15 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
                           {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
                         </div>
+                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {offer.offer_scopes.map((scope) => (
+                              <Badge key={scope.id} variant="secondary" className="text-xs">
+                                {scope.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -396,10 +475,31 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
                             <CopyPlus className="w-4 h-4 mr-2" />
                             {t('offers.duplicate')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); /* TODO: Send */ }}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendOffer(offer.id, offer.customer_data?.email); }}>
                             <Send className="w-4 h-4 mr-2" />
                             {t('offers.send')}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                              {t('offers.changeStatus')}
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              {STATUS_OPTIONS.map((status) => (
+                                <DropdownMenuItem
+                                  key={status}
+                                  onClick={(e) => { e.stopPropagation(); handleChangeStatus(offer.id, status); }}
+                                  disabled={offer.status === status}
+                                >
+                                  <Badge className={cn('text-xs mr-2', statusColors[status])}>
+                                    {t(`offers.status${status.charAt(0).toUpperCase() + status.slice(1)}`)}
+                                  </Badge>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
                             className="text-destructive focus:text-destructive"

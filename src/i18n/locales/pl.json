@@ -475,8 +475,17 @@
     "backToEdit": "Wróć do edycji",
     "errors": {
       "fetchError": "Błąd pobierania ofert",
-      "deleteError": "Błąd usuwania oferty"
-    }
+      "deleteError": "Błąd usuwania oferty",
+      "statusChangeError": "Błąd zmiany statusu",
+      "emailError": "Błąd wysyłania e-mail"
+    },
+    "delete": "Usuń",
+    "changeStatus": "Zmień status",
+    "statusChanged": "Status oferty zmieniony",
+    "emailSent": "Oferta wysłana na e-mail",
+    "noCustomerEmail": "Brak adresu e-mail klienta",
+    "show": "Pokaż",
+    "perPage": "na stronie"
   },
   "products": {
     "title": "Produkty",

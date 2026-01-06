@@ -48,9 +48,6 @@ interface OfferTemplate {
 }
 
 const paintTypeLabels: Record<string, string> = {
-  standard: 'Standardowy',
-  metallic: 'Metalik',
-  pearl: 'Perłowy',
   matte: 'Mat',
   dark: 'Ciemny',
   other: 'Inny',

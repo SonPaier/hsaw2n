@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.get-public-config]
 verify_jwt = false
+
+[functions.send-offer-email]
+verify_jwt = false
