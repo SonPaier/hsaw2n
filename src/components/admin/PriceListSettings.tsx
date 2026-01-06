@@ -76,6 +76,7 @@ interface ServiceCategory {
   description: string | null;
   sort_order: number;
   active: boolean;
+  prices_are_net: boolean;
 }
 
 interface PriceListSettingsProps {
@@ -197,6 +198,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [categoryFormData, setCategoryFormData] = useState({
     name: '',
     description: '',
+    prices_are_net: false,
   });
   const [savingCategory, setSavingCategory] = useState(false);
   
@@ -531,12 +533,14 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setCategoryFormData({
         name: category.name,
         description: category.description || '',
+        prices_are_net: category.prices_are_net ?? false,
       });
     } else {
       setEditingCategory(null);
       setCategoryFormData({
         name: '',
         description: '',
+        prices_are_net: false,
       });
     }
     setCategoryDialogOpen(true);
@@ -560,6 +564,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             name: categoryFormData.name.trim(),
             description: categoryFormData.description.trim() || null,
             slug,
+            prices_are_net: categoryFormData.prices_are_net,
           })
           .eq('id', editingCategory.id);
         
@@ -576,6 +581,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             slug,
             sort_order: maxSortOrder,
             active: true,
+            prices_are_net: categoryFormData.prices_are_net,
           });
         
         if (error) throw error;
@@ -983,6 +989,22 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 onChange={(e) => setCategoryFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder={t('priceList.categoryDescriptionPlaceholder')}
                 rows={2}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="space-y-0.5">
+                <Label>{t('priceList.pricesAreNet')}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {categoryFormData.prices_are_net 
+                    ? t('priceList.pricesNetDescription')
+                    : t('priceList.pricesGrossDescription')
+                  }
+                </p>
+              </div>
+              <Switch
+                checked={categoryFormData.prices_are_net}
+                onCheckedChange={(v) => setCategoryFormData(prev => ({ ...prev, prices_are_net: v }))}
               />
             </div>
           </div>
