@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "prompt",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "ArmCar - System Rezerwacji",
-        short_name: "ArmCar",
+        name: "N2W - System Rezerwacji",
+        short_name: "N2W",
         description: "System rezerwacji usług myjni samochodowej",
         theme_color: "#1a1a2e",
         background_color: "#1a1a2e",
