@@ -9,7 +9,18 @@
       { "name": "Alfa Romeo Stelvio", "size": "L" },
       { "name": "Alfa Romeo Stelvio Quadrifoglio", "size": "L" },
       { "name": "Alfa Romeo 4C", "size": "S" },
-      { "name": "Alfa Romeo Tonale", "size": "M" }
+      { "name": "Alfa Romeo Tonale", "size": "M" },
+      { "name": "Alfa Romeo 147", "size": "S" }
+    ]
+  },
+  {
+    "brand": "Alpina",
+    "models": [
+      { "name": "Alpina B3", "size": "M" },
+      { "name": "Alpina B4", "size": "M" },
+      { "name": "Alpina B5", "size": "L" },
+      { "name": "Alpina B7", "size": "L" },
+      { "name": "Alpina XB7", "size": "L" }
     ]
   },
   {
@@ -35,6 +46,7 @@
       { "name": "Audi A4", "size": "M" },
       { "name": "Audi A5", "size": "M" },
       { "name": "Audi A6", "size": "L" },
+      { "name": "Audi A6 Allroad", "size": "L" },
       { "name": "Audi A7", "size": "L" },
       { "name": "Audi A8", "size": "L" },
 
@@ -86,8 +98,10 @@
       { "name": "BMW 1 Series", "size": "S" },
       { "name": "BMW 2 Series", "size": "S" },
       { "name": "BMW 3 Series", "size": "M" },
+      { "name": "BMW 3 Series GT", "size": "M" },
       { "name": "BMW 4 Series", "size": "M" },
       { "name": "BMW 5 Series", "size": "L" },
+      { "name": "BMW 5 Series GT", "size": "L" },
       { "name": "BMW 6 Series", "size": "L" },
       { "name": "BMW 7 Series", "size": "L" },
       { "name": "BMW 8 Series", "size": "L" },
@@ -220,9 +234,12 @@
       { "name": "Citroën C4 X", "size": "M" },
       { "name": "Citroën C5", "size": "L" },
       { "name": "Citroën C5 X", "size": "L" },
+      { "name": "Citroën C5 Aircross", "size": "L" },
 
       { "name": "Citroën C4 Picasso", "size": "M" },
       { "name": "Citroën Grand C4 Picasso", "size": "L" },
+
+      { "name": "Citroën Berlingo", "size": "M" },
 
       { "name": "Citroën DS3", "size": "S" },
       { "name": "Citroën DS4", "size": "M" },
@@ -288,12 +305,14 @@
       { "name": "Ford Focus", "size": "M" },
       { "name": "Ford Mondeo", "size": "L" },
       { "name": "Ford Mustang", "size": "M" },
+      { "name": "Ford Cougar", "size": "M" },
 
       { "name": "Ford EcoSport", "size": "S" },
       { "name": "Ford Puma", "size": "S" },
       { "name": "Ford Kuga", "size": "M" },
       { "name": "Ford Edge", "size": "L" },
       { "name": "Ford Explorer", "size": "L" },
+      { "name": "Ford Tourneo", "size": "L" },
 
       { "name": "Ford Ranger", "size": "L" },
       { "name": "Ford Mustang Mach-E", "size": "M" }
@@ -362,6 +381,7 @@
       { "name": "Hyundai Tucson", "size": "M" },
       { "name": "Hyundai Santa Fe", "size": "L" },
       { "name": "Hyundai Palisade", "size": "L" },
+      { "name": "Hyundai ix35", "size": "M" },
 
       { "name": "Hyundai Ioniq", "size": "M" },
       { "name": "Hyundai Ioniq 5", "size": "M" },
@@ -402,6 +422,7 @@
       { "name": "Kia Ceed", "size": "M" },
       { "name": "Kia Optima", "size": "L" },
       { "name": "Kia Stinger", "size": "L" },
+      { "name": "Kia Niro", "size": "M" },
 
       { "name": "Kia Stonic", "size": "S" },
       { "name": "Kia XCeed", "size": "M" },
@@ -438,6 +459,7 @@
   {
     "brand": "Lexus",
     "models": [
+      { "name": "Lexus CT", "size": "S" },
       { "name": "Lexus IS", "size": "M" },
       { "name": "Lexus ES", "size": "L" },
       { "name": "Lexus GS", "size": "L" },
@@ -483,31 +505,33 @@
     ]
   },
   {
-    "brand": "Mercedes-Benz",
+    "brand": "Mercedes",
     "models": [
-      { "name": "Mercedes-Benz A-Class", "size": "S" },
-      { "name": "Mercedes-Benz B-Class", "size": "S" },
-      { "name": "Mercedes-Benz C-Class", "size": "M" },
-      { "name": "Mercedes-Benz E-Class", "size": "L" },
-      { "name": "Mercedes-Benz S-Class", "size": "L" },
+      { "name": "Mercedes A-Class", "size": "S" },
+      { "name": "Mercedes B-Class", "size": "S" },
+      { "name": "Mercedes C-Class", "size": "M" },
+      { "name": "Mercedes E-Class", "size": "L" },
+      { "name": "Mercedes S-Class", "size": "L" },
 
-      { "name": "Mercedes-Benz CLA", "size": "M" },
-      { "name": "Mercedes-Benz CLS", "size": "L" },
+      { "name": "Mercedes CLA", "size": "M" },
+      { "name": "Mercedes CLE", "size": "M" },
+      { "name": "Mercedes CLS", "size": "L" },
 
-      { "name": "Mercedes-Benz GLA", "size": "S" },
-      { "name": "Mercedes-Benz GLB", "size": "M" },
-      { "name": "Mercedes-Benz GLC", "size": "M" },
-      { "name": "Mercedes-Benz GLE", "size": "L" },
-      { "name": "Mercedes-Benz GLS", "size": "L" },
-      { "name": "Mercedes-Benz G-Class", "size": "L" },
+      { "name": "Mercedes GLA", "size": "S" },
+      { "name": "Mercedes GLB", "size": "M" },
+      { "name": "Mercedes GLC", "size": "M" },
+      { "name": "Mercedes GLE", "size": "L" },
+      { "name": "Mercedes GLS", "size": "L" },
+      { "name": "Mercedes G-Class", "size": "L" },
+      { "name": "Mercedes V-Class", "size": "L" },
 
-      { "name": "Mercedes-Benz EQB", "size": "M" },
-      { "name": "Mercedes-Benz EQC", "size": "M" },
-      { "name": "Mercedes-Benz EQE", "size": "L" },
-      { "name": "Mercedes-Benz EQS", "size": "L" },
+      { "name": "Mercedes EQB", "size": "M" },
+      { "name": "Mercedes EQC", "size": "M" },
+      { "name": "Mercedes EQE", "size": "L" },
+      { "name": "Mercedes EQS", "size": "L" },
 
-      { "name": "Mercedes-Benz SL", "size": "M" },
-      { "name": "Mercedes-Benz AMG GT", "size": "M" }
+      { "name": "Mercedes SL", "size": "M" },
+      { "name": "Mercedes AMG GT", "size": "M" }
     ]
   },
   {
@@ -518,7 +542,8 @@
       { "name": "Mini Convertible", "size": "S" },
       { "name": "Mini Clubman", "size": "M" },
       { "name": "Mini Countryman", "size": "M" },
-      { "name": "Mini Electric", "size": "S" }
+      { "name": "Mini Electric", "size": "S" },
+      { "name": "Mini Cooper", "size": "S" }
     ]
   },
   {
@@ -607,6 +632,7 @@
       { "name": "Renault Clio", "size": "S" },
       { "name": "Renault Megane", "size": "M" },
       { "name": "Renault Talisman", "size": "L" },
+      { "name": "Renault Austral", "size": "M" },
 
       { "name": "Renault Captur", "size": "S" },
       { "name": "Renault Kadjar", "size": "M" },
@@ -681,6 +707,8 @@
       { "name": "Suzuki Celerio", "size": "S" },
       { "name": "Suzuki Swift", "size": "S" },
       { "name": "Suzuki Baleno", "size": "M" },
+      { "name": "Suzuki Splash", "size": "S" },
+      { "name": "Suzuki Swace", "size": "M" },
 
       { "name": "Suzuki Ignis", "size": "S" },
       { "name": "Suzuki Vitara", "size": "M" },
@@ -705,14 +733,18 @@
     "models": [
       { "name": "Toyota Aygo", "size": "S" },
       { "name": "Toyota Yaris", "size": "S" },
+      { "name": "Toyota Yaris Cross", "size": "S" },
       { "name": "Toyota Corolla", "size": "M" },
+      { "name": "Toyota Corolla Cross", "size": "M" },
       { "name": "Toyota Camry", "size": "L" },
       { "name": "Toyota Avalon", "size": "L" },
+      { "name": "Toyota Supra", "size": "M" },
 
       { "name": "Toyota C-HR", "size": "M" },
       { "name": "Toyota RAV4", "size": "M" },
       { "name": "Toyota Highlander", "size": "L" },
       { "name": "Toyota Land Cruiser", "size": "L" },
+      { "name": "Toyota ProAce", "size": "L" },
 
       { "name": "Toyota Prius", "size": "M" },
       { "name": "Toyota bZ4X", "size": "M" }
@@ -730,6 +762,8 @@
       { "name": "Volkswagen T-Roc", "size": "M" },
       { "name": "Volkswagen Tiguan", "size": "M" },
       { "name": "Volkswagen Touareg", "size": "L" },
+      { "name": "Volkswagen Touran", "size": "L" },
+      { "name": "Volkswagen Caddy", "size": "M" },
       { "name": "Volkswagen ID.3", "size": "M" },
       { "name": "Volkswagen ID.4", "size": "M" },
       { "name": "Volkswagen ID.5", "size": "M" },
@@ -742,6 +776,7 @@
       { "name": "Volvo S60", "size": "M" },
       { "name": "Volvo S90", "size": "L" },
       { "name": "Volvo V60", "size": "M" },
+      { "name": "Volvo V70", "size": "L" },
       { "name": "Volvo V90", "size": "L" },
       { "name": "Volvo XC40", "size": "M" },
       { "name": "Volvo XC60", "size": "M" },
