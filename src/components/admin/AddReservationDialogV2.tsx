@@ -249,6 +249,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [originalManualStationId, setOriginalManualStationId] = useState<string | null>(null);
   const [originalTimeSelectionMode, setOriginalTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
   const [manualStationId, setManualStationId] = useState<string | null>(null);
+  
+  // Track the last totalDurationMinutes to detect changes
+  const prevTotalDurationRef = useRef<number>(0);
 
   // Yard mode state
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
@@ -570,6 +573,25 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const service = services.find(s => s.id === serviceId);
     return total + (service ? getServicePrice(service) : 0);
   }, 0);
+
+  // Auto-update manualEndTime when totalDurationMinutes increases and in manual mode
+  useEffect(() => {
+    if (!isReservationMode || timeSelectionMode !== 'manual' || !manualStartTime) {
+      prevTotalDurationRef.current = totalDurationMinutes;
+      return;
+    }
+    
+    // Only update if duration increased and we have a start time
+    if (totalDurationMinutes > 0 && manualStartTime) {
+      const [h, m] = manualStartTime.split(':').map(Number);
+      const startMinutes = h * 60 + m;
+      const endMinutes = startMinutes + totalDurationMinutes;
+      const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+      setManualEndTime(newEndTime);
+    }
+    
+    prevTotalDurationRef.current = totalDurationMinutes;
+  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode]);
 
   // Emit slot preview for live calendar highlight
   useEffect(() => {
@@ -2064,11 +2086,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             disabled={
               loading || 
               !carModel.trim() ||
-              (isReservationMode && (
+              // Disable save button when actively changing time in edit mode
+              (isEditMode && isReservationMode && isChangingTime) ||
+              (isReservationMode && !isEditMode && (
                 selectedServices.length === 0 || 
                 (timeSelectionMode === 'slots' && !selectedTime) ||
                 (timeSelectionMode === 'manual' && (!manualStartTime || !manualEndTime || !manualStationId))
               )) ||
+              (isReservationMode && isEditMode && !isChangingTime && selectedServices.length === 0) ||
               (isYardMode && selectedServices.length === 0) ||
               (isDetailingMode && selectedServices.length === 0) ||
               (isPPFOrDetailingMode && !dateRange?.from)
