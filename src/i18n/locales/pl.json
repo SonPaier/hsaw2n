@@ -308,6 +308,7 @@
     "closeDayDescription": "Czy na pewno chcesz zamknąć dzień {{date}}? Klienci nie będą mogli rezerwować wizyt w tym dniu.",
     "open": "Otwórz",
     "close": "Zamknij",
+    "pickDate": "Wybierz datę",
     "deleteBreak": "Usuń przerwę",
     "dayNamesShort": {
       "mon": "PON.",
