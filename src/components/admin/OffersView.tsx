@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
 import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsDialog';
+import { SendOfferEmailDialog } from './SendOfferEmailDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -82,14 +83,26 @@ const statusColors: Record<string, string> = {
 
 const STATUS_OPTIONS = ['draft', 'sent', 'viewed', 'accepted', 'rejected'] as const;
 
+interface InstanceData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  website?: string;
+  contact_person?: string;
+  slug?: string;
+  offer_email_template?: string;
+}
+
 interface OffersViewProps {
   instanceId: string | null;
+  instanceData?: InstanceData | null;
   onNavigateToProducts: () => void;
 }
 
-export default function OffersView({ instanceId, onNavigateToProducts }: OffersViewProps) {
+export default function OffersView({ instanceId, instanceData, onNavigateToProducts }: OffersViewProps) {
   const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [showGenerator, setShowGenerator] = useState(false);
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
   const [duplicatingOfferId, setDuplicatingOfferId] = useState<string | null>(null);
@@ -105,6 +118,10 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
   
   const [showScopesSettings, setShowScopesSettings] = useState(false);
+  
+  // Email dialog state
+  const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
+  const [selectedOfferForEmail, setSelectedOfferForEmail] = useState<OfferWithOptions | null>(null);
 
   const fetchOffers = async () => {
     if (!instanceId) return;
@@ -230,25 +247,13 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
     }
   };
 
-  const handleSendOffer = async (offerId: string, customerEmail?: string) => {
-    if (!customerEmail) {
+  const handleOpenSendEmailDialog = (offer: OfferWithOptions) => {
+    if (!offer.customer_data?.email) {
       toast.error(t('offers.noCustomerEmail'));
       return;
     }
-    
-    try {
-      const { error } = await supabase.functions.invoke('send-offer-email', {
-        body: { offerId },
-      });
-      
-      if (error) throw error;
-      
-      toast.success(t('offers.emailSent'));
-      fetchOffers();
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error(t('offers.errors.emailError'));
-    }
+    setSelectedOfferForEmail(offer);
+    setSendEmailDialogOpen(true);
   };
 
   const formatPrice = (value: number) => {
@@ -475,7 +480,7 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
                             <CopyPlus className="w-4 h-4 mr-2" />
                             {t('offers.duplicate')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendOffer(offer.id, offer.customer_data?.email); }}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenSendEmailDialog(offer); }}>
                             <Send className="w-4 h-4 mr-2" />
                             {t('offers.send')}
                           </DropdownMenuItem>
@@ -567,6 +572,17 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
           open={showScopesSettings}
           onOpenChange={setShowScopesSettings}
           instanceId={instanceId}
+        />
+      )}
+
+      {/* Send Email Dialog */}
+      {selectedOfferForEmail && (
+        <SendOfferEmailDialog
+          open={sendEmailDialogOpen}
+          onOpenChange={setSendEmailDialogOpen}
+          offer={selectedOfferForEmail}
+          instanceData={instanceData || null}
+          onSent={fetchOffers}
         />
       )}
     </>

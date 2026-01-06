@@ -1989,7 +1989,7 @@ const AdminDashboard = () => {
               />
             )}
 
-            {currentView === 'offers' && <OffersView instanceId={instanceId} onNavigateToProducts={() => setCurrentView('products')} />}
+            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} onNavigateToProducts={() => setCurrentView('products')} />}
 
             {currentView === 'products' && <ProductsView instanceId={instanceId} />}
 

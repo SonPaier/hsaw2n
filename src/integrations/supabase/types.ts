@@ -461,6 +461,7 @@ export type Database = {
           auto_confirm_reservations: boolean | null
           background_color: string | null
           booking_days_ahead: number
+          contact_person: string | null
           created_at: string | null
           customer_edit_cutoff_hours: number | null
           email: string | null
@@ -505,6 +506,7 @@ export type Database = {
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
           booking_days_ahead?: number
+          contact_person?: string | null
           created_at?: string | null
           customer_edit_cutoff_hours?: number | null
           email?: string | null
@@ -549,6 +551,7 @@ export type Database = {
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
           booking_days_ahead?: number
+          contact_person?: string | null
           created_at?: string | null
           customer_edit_cutoff_hours?: number | null
           email?: string | null

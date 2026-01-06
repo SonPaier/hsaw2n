@@ -50,6 +50,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
     social_instagram: '',
     google_maps_url: '',
     website: '',
+    contact_person: '',
   });
 
   // Populate form when instanceData changes
@@ -67,6 +68,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
         social_instagram: instanceData.social_instagram || '',
         google_maps_url: instanceData.google_maps_url || '',
         website: instanceData.website || '',
+        contact_person: instanceData.contact_person || '',
       });
     }
   }, [instanceData]);
@@ -166,6 +168,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
           social_instagram: companyForm.social_instagram || null,
           google_maps_url: companyForm.google_maps_url || null,
           website: companyForm.website || null,
+          contact_person: companyForm.contact_person || null,
         })
         .eq('id', instanceId);
 
@@ -308,6 +311,17 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
                 value={companyForm.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="ul. Przykładowa 123, 80-000 Gdańsk"
+              />
+            </div>
+
+            {/* Contact Person */}
+            <div className="space-y-2">
+              <Label htmlFor="contact_person">{t('instanceSettings.contactPerson')}</Label>
+              <Input
+                id="contact_person"
+                value={companyForm.contact_person}
+                onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                placeholder="Jan Kowalski"
               />
             </div>
 
