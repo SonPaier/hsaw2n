@@ -1,8 +1,13 @@
 import { createRoot } from "react-dom/client";
 import { registerSW } from 'virtual:pwa-register';
 import App from "./App.tsx";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { initSentry } from "./lib/sentry";
 import "./index.css";
 import "./i18n/config";
+
+// Initialize Sentry error tracking
+initSentry();
 
 // Register service worker - auto-update silently on next page load
 registerSW({
@@ -18,4 +23,8 @@ registerSW({
   },
 });
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
