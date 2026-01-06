@@ -148,8 +148,22 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
   };
 
   const handleCopyLink = (token: string) => {
-    const url = `${window.location.origin}/oferta/${token}`;
-    navigator.clipboard.writeText(url);
+    const hostname = window.location.hostname;
+    let publicUrl: string;
+    
+    // On admin subdomain (armcar.admin.n2wash.com) → generate link to public (armcar.n2wash.com)
+    if (hostname.endsWith('.admin.n2wash.com')) {
+      const instanceSlug = hostname.replace('.admin.n2wash.com', '');
+      publicUrl = `https://${instanceSlug}.n2wash.com/offers/${token}`;
+    } else if (hostname.endsWith('.n2wash.com')) {
+      // Already on public subdomain
+      publicUrl = `${window.location.origin}/offers/${token}`;
+    } else {
+      // Dev/staging - use origin
+      publicUrl = `${window.location.origin}/offers/${token}`;
+    }
+    
+    navigator.clipboard.writeText(publicUrl);
     toast.success(t('offers.linkCopied'));
   };
 
@@ -370,7 +384,7 @@ export default function OffersView({ instanceId, onNavigateToProducts }: OffersV
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/oferta/${offer.public_token}`, '_blank'); }}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/offers/${offer.public_token}`, '_blank'); }}>
                             <Eye className="w-4 h-4 mr-2" />
                             {t('offers.preview')}
                           </DropdownMenuItem>
