@@ -1673,7 +1673,7 @@ export type Database = {
       services: {
         Row: {
           active: boolean | null
-          category_id: string | null
+          category_id: string
           created_at: string | null
           description: string | null
           duration_large: number | null
@@ -1697,7 +1697,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
-          category_id?: string | null
+          category_id: string
           created_at?: string | null
           description?: string | null
           duration_large?: number | null
@@ -1721,7 +1721,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
-          category_id?: string | null
+          category_id?: string
           created_at?: string | null
           description?: string | null
           duration_large?: number | null
