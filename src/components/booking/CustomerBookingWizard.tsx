@@ -300,69 +300,62 @@ export default function CustomerBookingWizard({
     }
   }, []);
 
-  // Check if customer is verified when phone changes
+  // Check if customer is verified and fetch vehicles when phone changes - using edge function for security
   useEffect(() => {
-    const checkCustomer = async () => {
+    const fetchCustomerInfo = async () => {
       if (!instance || customerPhone.length < 9) {
         setIsVerifiedCustomer(false);
+        setHistoricalCarModels([]);
         return;
       }
-      let normalizedPhone = customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-      if (!normalizedPhone.startsWith('+')) {
-        normalizedPhone = '+48' + normalizedPhone;
-      }
+      
       setIsCheckingCustomer(true);
-      const {
-        data: customer
-      } = await supabase.from('customers').select('id, name, phone_verified').eq('phone', normalizedPhone).eq('instance_id', instance.id).maybeSingle();
-      if (customer) {
-        setIsVerifiedCustomer(customer.phone_verified === true);
-        if (customer.name && !customerName) {
-          setCustomerName(customer.name);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-customer-info', {
+          body: { phone: customerPhone, instanceId: instance.id }
+        });
+        
+        if (error) {
+          console.error('Error fetching customer info:', error);
+          setIsVerifiedCustomer(false);
+          setHistoricalCarModels([]);
+          return;
         }
-      } else {
+        
+        setIsVerifiedCustomer(data.isVerified === true);
+        if (data.name && !customerName) {
+          setCustomerName(data.name);
+        }
+        
+        // Set vehicles from response
+        if (data.vehicles && data.vehicles.length > 0) {
+          const sortedModels = data.vehicles.map((v: { model: string; usage_count: number }) => ({
+            model: v.model,
+            count: v.usage_count
+          }));
+          setHistoricalCarModels(sortedModels);
+          
+          // Auto-fill with most frequent model if carModel is empty
+          if (!carModel && sortedModels.length > 0) {
+            setCarModel(sortedModels[0].model);
+          }
+        } else {
+          setHistoricalCarModels([]);
+        }
+      } catch (e) {
+        console.error('Error in fetchCustomerInfo:', e);
         setIsVerifiedCustomer(false);
+        setHistoricalCarModels([]);
+      } finally {
+        setIsCheckingCustomer(false);
       }
-      setIsCheckingCustomer(false);
     };
-    const timeoutId = setTimeout(checkCustomer, 500);
+    
+    const timeoutId = setTimeout(fetchCustomerInfo, 500);
     return () => clearTimeout(timeoutId);
   }, [customerPhone, instance]);
 
-  // Fetch customer vehicles from dedicated table
-  useEffect(() => {
-    const fetchCustomerVehicles = async () => {
-      if (!instance || customerPhone.length < 9) {
-        setHistoricalCarModels([]);
-        return;
-      }
-      let normalizedPhone = customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-      if (!normalizedPhone.startsWith('+')) {
-        normalizedPhone = '+48' + normalizedPhone;
-      }
-      const {
-        data: vehicles
-      } = await supabase.from('customer_vehicles').select('model, usage_count').eq('instance_id', instance.id).or(`phone.eq.${normalizedPhone},phone.eq.${normalizedPhone.replace('+48', '')}`).order('usage_count', {
-        ascending: false
-      }).limit(5);
-      if (vehicles && vehicles.length > 0) {
-        const sortedModels = vehicles.map(v => ({
-          model: v.model,
-          count: v.usage_count
-        }));
-        setHistoricalCarModels(sortedModels);
-
-        // Auto-fill with most frequent model if carModel is empty
-        if (!carModel && sortedModels.length > 0) {
-          setCarModel(sortedModels[0].model);
-        }
-      } else {
-        setHistoricalCarModels([]);
-      }
-    };
-    const timeoutId = setTimeout(fetchCustomerVehicles, 600);
-    return () => clearTimeout(timeoutId);
-  }, [customerPhone, instance]);
+  // Vehicles are now fetched in the combined fetchCustomerInfo effect above
 
   // Auto-infer car size from car model using AI
   useEffect(() => {
