@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { setSentryUser, clearSentryUser } from '@/lib/sentry';
 
 type AppRole = 'super_admin' | 'admin' | 'user' | 'employee';
 
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         previousUserIdRef.current = null;
         setRoles([]);
         setRolesLoading(false);
+        clearSentryUser();
       }
     });
 
@@ -105,10 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setRoles(data?.map(r => ({
+      const userRoles = data?.map(r => ({
         role: r.role as AppRole,
         instance_id: r.instance_id
-      })) || []);
+      })) || [];
+      
+      setRoles(userRoles);
+      
+      // Update Sentry user context
+      const primaryRole = userRoles.length > 0 ? userRoles[0].role : undefined;
+      setSentryUser({
+        id: userId,
+        role: primaryRole,
+      });
     } catch (err) {
       console.error('Error fetching roles:', err);
     }

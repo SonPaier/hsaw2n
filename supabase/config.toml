@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.get-manifest]
 verify_jwt = false
+
+[functions.get-public-config]
+verify_jwt = false
