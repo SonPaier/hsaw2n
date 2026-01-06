@@ -483,7 +483,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           : (editingReservation.service_id ? [editingReservation.service_id] : []);
         setSelectedServices(serviceIds);
         setSelectedDate(new Date(editingReservation.reservation_date));
-        setSelectedTime(editingReservation.start_time?.substring(0, 5) || null);
+        setSelectedTime(null); // Reset - will use editingReservation values in display
         setSelectedStationId(editingReservation.station_id);
         setAdminNotes(editingReservation.admin_notes || '');
         setFoundVehicles([]);
@@ -491,8 +491,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
-        // Reset time change flow
+        // Reset time change flow and manual time state
         setIsChangingTime(false);
+        setTimeSelectionMode('slots');
+        setManualStartTime('');
+        setManualEndTime('');
+        setManualStationId(null);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click - use manual mode with provided values
         setCustomerName('');
