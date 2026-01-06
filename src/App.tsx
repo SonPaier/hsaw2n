@@ -15,7 +15,15 @@ import PublicOfferView from "./pages/PublicOfferView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minut
+      retry: 1,
+    },
+  },
+});
 
 // Helper function to detect subdomain from hostname
 // New structure:
