@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.get-customer-info]
 verify_jwt = false
+
+[functions.test-sentry-error]
+verify_jwt = false

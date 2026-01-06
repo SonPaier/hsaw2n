@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, User, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Phone, Mail } from 'lucide-react';
+import { Car, User, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Phone, Mail, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import * as Sentry from '@sentry/react';
+import { toast } from 'sonner';
 interface Instance {
   id: string;
   name: string;
@@ -178,6 +180,35 @@ const InstanceAuth = ({
       }));
     }
   };
+
+  const handleTestFrontendError = () => {
+    try {
+      throw new Error('🧪 TEST: Frontend Sentry error from React component');
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { test: 'true', source: 'instance-auth-page' },
+        extra: { timestamp: new Date().toISOString(), purpose: 'Sentry frontend integration test' }
+      });
+      toast.success('Frontend error sent to Sentry!');
+      console.log('[Sentry Test] Frontend error captured');
+    }
+  };
+
+  const handleTestBackendError = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('test-sentry-error');
+      if (error) {
+        toast.error('Backend test failed: ' + error.message);
+        return;
+      }
+      toast.success('Backend error sent to Sentry! Event ID: ' + (data?.eventId || 'unknown'));
+      console.log('[Sentry Test] Backend response:', data);
+    } catch (err) {
+      toast.error('Backend test failed');
+      console.error('[Sentry Test] Backend error:', err);
+    }
+  };
+
   if (instanceLoading || authLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -263,6 +294,29 @@ const InstanceAuth = ({
 
           {/* Footer */}
           <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+            {/* Sentry Test Buttons - DEV ONLY */}
+            {import.meta.env.DEV && (
+              <div className="flex gap-2 justify-center mb-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleTestFrontendError}
+                  className="text-xs gap-1"
+                >
+                  <Bug className="w-3 h-3" />
+                  Test FE Error
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleTestBackendError}
+                  className="text-xs gap-1"
+                >
+                  <Bug className="w-3 h-3" />
+                  Test BE Error
+                </Button>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-xs text-slate-400">
               <span>© {new Date().getFullYear()} N2Works</span>
               <a href="https://n2works.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
