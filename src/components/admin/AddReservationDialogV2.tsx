@@ -1765,7 +1765,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     <div className="p-4 rounded-lg bg-muted/50 border">
                       <p className="text-sm text-muted-foreground">{t('addReservation.selectedTerm')}:</p>
                       <p className="text-lg font-medium mt-1">
-                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' ? `${manualStartTime} - ${manualEndTime}` : selectedTime || '--:--'}
+                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {editingReservation ? `${editingReservation.start_time?.substring(0, 5)} - ${editingReservation.end_time?.substring(0, 5)}` : '--:--'}
                       </p>
                     </div>
                     <Button 
@@ -1848,14 +1848,21 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         value={timeSelectionMode} 
                         onValueChange={(v) => {
                           setTimeSelectionMode(v as 'slots' | 'manual');
-                          // Reset values when switching tabs
+                          // Reset or prefill values when switching tabs
                           if (v === 'slots') {
                             setManualStartTime('');
                             setManualEndTime('');
                             setManualStationId(null);
                           } else {
-                            setSelectedTime(null);
-                            setSelectedStationId(null);
+                            // When switching to manual mode, prefill with current reservation data
+                            if (isEditMode && editingReservation) {
+                              setManualStartTime(editingReservation.start_time?.substring(0, 5) || '');
+                              setManualEndTime(editingReservation.end_time?.substring(0, 5) || '');
+                              setManualStationId(editingReservation.station_id);
+                            } else {
+                              setSelectedTime(null);
+                              setSelectedStationId(null);
+                            }
                           }
                         }}
                       >
