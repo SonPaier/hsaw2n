@@ -130,36 +130,33 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Service worker install event - immediately take over
-self.addEventListener('install', (event) => {
+// Service worker install event - wait for natural activation
+self.addEventListener('install', () => {
   console.log('[SW] Service Worker installing, version:', new Date().toISOString());
-  event.waitUntil(self.skipWaiting());
+  // Don't call skipWaiting() - let new SW wait for natural page reload
 });
 
-// Service worker activate event - claim all clients immediately
+// Service worker activate event - clean old caches but don't claim clients
 self.addEventListener('activate', (event) => {
   console.log('[SW] Service Worker activating');
   event.waitUntil(
-    Promise.all([
-      // Clear old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((cacheName) => {
-              // Keep only our known caches
-              return !['navigation-cache', 'api-cache', 'static-assets', 'workbox-precache-v2'].some(
-                (keep) => cacheName.includes(keep)
-              );
-            })
-            .map((cacheName) => {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            })
-        );
-      }),
-      // Take control of all clients
-      self.clients.claim(),
-    ])
+    // Only clear old caches - don't call clients.claim()
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((cacheName) => {
+            // Keep only our known caches
+            return !['navigation-cache', 'api-cache', 'static-assets', 'workbox-precache-v2'].some(
+              (keep) => cacheName.includes(keep)
+            );
+          })
+          .map((cacheName) => {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+      );
+    })
+    // Don't call clients.claim() - let clients use new SW on next navigation
   );
 });
 

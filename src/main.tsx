@@ -13,14 +13,8 @@ registerSW({
   onOfflineReady() {
     console.log('[PWA] App ready for offline use');
   },
-  onRegisteredSW(swUrl, registration) {
+  onRegisteredSW(swUrl) {
     console.log('[PWA] SW registered:', swUrl);
-    // Check for updates every 5 minutes
-    if (registration) {
-      setInterval(() => {
-        registration.update();
-      }, 5 * 60 * 1000);
-    }
   },
 });
 

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
+import { useSessionStorageState } from '@/hooks/useSessionStorageState';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -84,7 +85,7 @@ const ReservationsView = ({
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<TabValue>('pending');
+  const [activeTab, setActiveTab] = useSessionStorageState<TabValue>('reservations-active-tab', 'pending');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<Reservation | null>(null);
   
