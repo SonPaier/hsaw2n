@@ -182,7 +182,10 @@ const InstanceAuth = ({
   };
 
   const handleTestFrontendError = () => {
-    throw new Error('This is your first error!');
+    const error = new Error('This is your first error!');
+    Sentry.captureException(error);
+    toast.success('Frontend error sent to Sentry!');
+    console.log('[Sentry Test] Frontend error captured:', error.message);
   };
 
   const handleTestBackendError = async () => {
