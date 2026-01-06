@@ -13,26 +13,29 @@ const defaultEmailTemplate = `
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .button { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-    .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+    .content { padding: 20px 0; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #666; }
+    .footer-row { margin-bottom: 8px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Oferta {{offerNumber}}</h1>
+    <div class="content">
+      <p>Dzień dobry,</p>
+      <p>przygotowaliśmy dla Państwa indywidualną ofertę usług Car Detailingu & Wrappingu, dopasowaną do wcześniejszych ustaleń.</p>
+      <p>Aby zapoznać się ze szczegółami, prosimy kliknąć poniższy link z ofertą:<br>
+      <a href="{{offerUrl}}">{{offerUrl}}</a></p>
+      <p>W razie pytań chętnie doradzimy i dopasujemy ofertę do Państwa oczekiwań.</p>
     </div>
-    <p>Dzień dobry {{customerName}},</p>
-    <p>Przygotowaliśmy dla Ciebie indywidualną ofertę. Kliknij poniższy przycisk, aby ją zobaczyć:</p>
-    <p style="text-align: center;">
-      <a href="{{offerUrl}}" class="button">Zobacz ofertę</a>
-    </p>
-    <p>Link do oferty: <a href="{{offerUrl}}">{{offerUrl}}</a></p>
     <div class="footer">
-      <p>Pozdrawiamy,<br>{{instanceName}}</p>
+      <p style="margin-bottom: 15px;">Pozdrawiamy serdecznie,<br><strong>{{instanceName}}</strong><br>{{contactPerson}}</p>
+      <div class="footer-row">📞 {{phone}}</div>
+      <div class="footer-row">📍 {{address}}</div>
+      <div class="footer-row">🌐 <a href="{{website}}">{{website}}</a></div>
     </div>
   </div>
 </body>
@@ -50,7 +53,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { offerId } = await req.json();
+    const { offerId, customEmailBody } = await req.json();
 
     if (!offerId) {
       return new Response(
@@ -61,10 +64,10 @@ serve(async (req) => {
 
     console.log("Fetching offer:", offerId);
 
-    // Fetch offer with instance data
+    // Fetch offer with instance data including contact info
     const { data: offer, error: offerError } = await supabase
       .from("offers")
-      .select("*, instances(name, email, slug, offer_email_template)")
+      .select("*, instances(name, email, slug, phone, address, website, contact_person, offer_email_template)")
       .eq("id", offerId)
       .single();
 
@@ -87,17 +90,46 @@ serve(async (req) => {
     // Generate offer URL - use public subdomain
     const instanceSlug = offer.instances?.slug || "app";
     const offerUrl = `https://${instanceSlug}.n2wash.com/offers/${offer.public_token}`;
-    const customerName = offer.customer_data?.name || "Szanowny Kliencie";
+    const instanceName = offer.instances?.name || "";
+    const contactPerson = offer.instances?.contact_person || "";
+    const phone = offer.instances?.phone || "";
+    const address = offer.instances?.address || "";
+    const website = offer.instances?.website || "";
 
     console.log("Preparing email for:", customerEmail);
 
-    // Build email content from template
-    let emailBody = offer.instances?.offer_email_template || defaultEmailTemplate;
-    emailBody = emailBody
-      .replace(/\{\{customerName\}\}/g, customerName)
-      .replace(/\{\{offerNumber\}\}/g, offer.offer_number)
-      .replace(/\{\{offerUrl\}\}/g, offerUrl)
-      .replace(/\{\{instanceName\}\}/g, offer.instances?.name || "");
+    let emailBody: string;
+    
+    if (customEmailBody) {
+      // User edited the template - convert plain text to simple HTML
+      emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <pre style="font-family: Arial, sans-serif; white-space: pre-wrap; margin: 0;">${customEmailBody}</pre>
+  </div>
+</body>
+</html>`;
+    } else {
+      // Use template and replace placeholders
+      emailBody = offer.instances?.offer_email_template || defaultEmailTemplate;
+      emailBody = emailBody
+        .replace(/\{\{offerUrl\}\}/g, offerUrl)
+        .replace(/\{\{instanceName\}\}/g, instanceName)
+        .replace(/\{\{contactPerson\}\}/g, contactPerson)
+        .replace(/\{\{phone\}\}/g, phone)
+        .replace(/\{\{address\}\}/g, address)
+        .replace(/\{\{website\}\}/g, website);
+    }
 
     // Get SMTP config from secrets
     const smtpHost = Deno.env.get("SMTP_HOST");
@@ -128,14 +160,15 @@ serve(async (req) => {
     });
 
     const replyTo = offer.instances?.email || smtpUser;
+    const fromName = instanceName || "Oferty";
 
-    console.log("Sending email from:", smtpUser, "replyTo:", replyTo);
+    console.log("Sending email from:", fromName, smtpUser, "replyTo:", replyTo);
 
     await client.send({
-      from: smtpUser,
+      from: `${fromName} <${smtpUser}>`,
       to: customerEmail,
       replyTo: replyTo,
-      subject: `Oferta ${offer.offer_number} - ${offer.instances?.name || ""}`,
+      subject: `Oferta ${offer.offer_number} - ${instanceName}`,
       html: emailBody,
     });
 

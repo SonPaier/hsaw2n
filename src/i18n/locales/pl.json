@@ -487,6 +487,15 @@
     "show": "Pokaż",
     "perPage": "na stronie"
   },
+  "sendEmailDialog": {
+    "title": "Wyślij ofertę",
+    "to": "Do",
+    "preview": "Podgląd",
+    "editTemplate": "Treść wiadomości",
+    "send": "Wyślij",
+    "cancel": "Anuluj",
+    "sending": "Wysyłanie..."
+  },
   "products": {
     "title": "Produkty",
     "newProduct": "Nowy produkt",
@@ -998,6 +1007,7 @@
     "instagram": "Instagram",
     "googleMaps": "Link do Google Maps",
     "googleMapsInfo": "Link będzie dodany do SMS-ów z potwierdzeniem rezerwacji",
+    "contactPerson": "Osoba kontaktowa",
     "saved": "Ustawienia zostały zapisane",
     "saveError": "Błąd podczas zapisywania ustawień",
     "saveChanges": "Zapisz zmiany"
