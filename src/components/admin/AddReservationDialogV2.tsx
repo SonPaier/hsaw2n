@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
@@ -1509,8 +1509,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         <button
                           type="button"
                           onClick={() => setServiceDrawerOpen(true)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
+                          <Plus className="w-3 h-3" />
                           {t('common.add')}
                         </button>
                       </div>
