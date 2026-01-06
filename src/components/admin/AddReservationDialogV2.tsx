@@ -436,8 +436,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPpfStartTime(editingReservation.start_time?.substring(0, 5) || '09:00');
         setPpfEndTime(editingReservation.end_time?.substring(0, 5) || '17:00');
         
-        // Extract offer number from admin_notes
-        if (editingReservation.admin_notes) {
+        // Use offer_number column directly (or fallback to parsing from admin_notes for legacy data)
+        if ((editingReservation as any).offer_number) {
+          setOfferNumber((editingReservation as any).offer_number);
+          setAdminNotes(editingReservation.admin_notes || '');
+        } else if (editingReservation.admin_notes) {
+          // Fallback for legacy data with offer in notes
           const offerMatch = editingReservation.admin_notes.match(/Oferta:\s*([^\n]+)/);
           if (offerMatch) {
             setOfferNumber(offerMatch[1].trim());
@@ -997,15 +1001,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           }
         }
 
-        // Build notes with offer number
-        let reservationNotes = '';
-        if (offerNumber) {
-          reservationNotes = `Oferta: ${offerNumber}`;
-        }
-        if (adminNotes) {
-          reservationNotes = reservationNotes ? `${reservationNotes}\n${adminNotes}` : adminNotes;
-        }
-
         const reservationData = {
           station_id: propStationId,
           reservation_date: format(dateRange.from, 'yyyy-MM-dd'),
@@ -1016,7 +1011,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
-          admin_notes: reservationNotes || null,
+          admin_notes: adminNotes || null,
+          offer_number: offerNumber || null,
           service_id: selectedServices[0] || null,
           service_ids: selectedServices.length > 0 ? selectedServices : null,
         };

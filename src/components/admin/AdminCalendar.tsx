@@ -235,6 +235,49 @@ const AdminCalendar = ({
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
 
+  // Touch handling for mobile - lock scroll to one axis
+  const scrollTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const scrollDirectionRef = useRef<'horizontal' | 'vertical' | null>(null);
+
+  const handleScrollTouchStart = useCallback((e: React.TouchEvent) => {
+    scrollTouchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+    scrollDirectionRef.current = null;
+  }, []);
+
+  const handleScrollTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!scrollTouchStartRef.current || !gridScrollRef.current) return;
+    
+    const deltaX = Math.abs(e.touches[0].clientX - scrollTouchStartRef.current.x);
+    const deltaY = Math.abs(e.touches[0].clientY - scrollTouchStartRef.current.y);
+    
+    // Determine scroll direction on first significant movement (threshold 10px)
+    if (!scrollDirectionRef.current && (deltaX > 10 || deltaY > 10)) {
+      scrollDirectionRef.current = deltaX > deltaY ? 'horizontal' : 'vertical';
+    }
+    
+    // Block perpendicular scrolling by preventing default
+    if (scrollDirectionRef.current === 'horizontal') {
+      // Allow only horizontal, block vertical
+      gridScrollRef.current.style.overflowY = 'hidden';
+    } else if (scrollDirectionRef.current === 'vertical') {
+      // Allow only vertical, block horizontal
+      gridScrollRef.current.style.overflowX = 'hidden';
+    }
+  }, []);
+
+  const handleScrollTouchEnd = useCallback(() => {
+    scrollTouchStartRef.current = null;
+    scrollDirectionRef.current = null;
+    // Restore scrolling in both directions
+    if (gridScrollRef.current) {
+      gridScrollRef.current.style.overflowX = 'auto';
+      gridScrollRef.current.style.overflowY = 'auto';
+    }
+  }, []);
+
   // Sync horizontal scroll between headers and grid
   const handleHeaderScroll = useCallback(() => {
     if (headerScrollRef.current && gridScrollRef.current) {
@@ -1178,7 +1221,7 @@ const AdminCalendar = ({
           </div>
           
           {/* Main scrollable container - synced horizontal scroll with headers */}
-          <div ref={gridScrollRef} onScroll={handleGridScroll} className="flex-1 overflow-auto" style={{
+          <div ref={gridScrollRef} onScroll={handleGridScroll} onTouchStart={handleScrollTouchStart} onTouchMove={handleScrollTouchMove} onTouchEnd={handleScrollTouchEnd} className="flex-1 overflow-auto" style={{
         scrollbarWidth: 'none',
         msOverflowStyle: 'none'
       }}>
@@ -1196,7 +1239,7 @@ const AdminCalendar = ({
                   </div>
                 </div>}
               {/* Time column with quarter-hour marks - sticky left on all devices */}
-              <div className="w-12 md:w-16 shrink-0 border-r border-border/50 bg-muted/10 sticky left-0 z-30 bg-background">
+              <div className="w-12 md:w-16 shrink-0 border-r border-border/50 sticky left-0 z-30 bg-card">
                 {HOURS.map((hour, hourIndex) => {
               // Calculate which slots to show for this hour
               const isFirstHour = hourIndex === 0;
@@ -1371,7 +1414,7 @@ const AdminCalendar = ({
                     const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
                     const widthPercent = overlapInfo.hasOverlap ? 100 / overlapInfo.total : 100;
                     const leftPercent = overlapInfo.hasOverlap ? overlapInfo.index * widthPercent : 0;
-                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", overlapInfo.hasOverlap && !isSelected && "border-2 border-dashed", isSelected && "border-4 shadow-lg z-30")} style={{
+                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
                       left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
                       right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
@@ -1396,23 +1439,11 @@ const AdminCalendar = ({
                                 {(reservation.admin_notes || reservation.customer_notes) && <div className="p-0.5 rounded" title={reservation.admin_notes || reservation.customer_notes || ''}>
                                     <FileText className="w-3 h-3 opacity-70" />
                                   </div>}
-                                {reservation.customer_phone && <>
-                                    <button onClick={e => {
-                                e.stopPropagation();
-                                setSmsDialogData({
-                                  phone: reservation.customer_phone!,
-                                  customerName: reservation.customer_name
-                                });
-                                setSmsDialogOpen(true);
-                              }} className="p-0.5 rounded hover:bg-white/20 transition-colors" title="Wyślij SMS">
-                                      <MessageSquare className="w-3.5 h-3.5" />
-                                    </button>
-                                    {isMobile && (
-                                      <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} className="p-0.5 rounded hover:bg-white/20 transition-colors" title={reservation.customer_phone}>
-                                        <Phone className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
-                                  </>}
+                                {reservation.customer_phone && isMobile && (
+                                    <a href={`tel:${reservation.customer_phone}`} onClick={e => e.stopPropagation()} className="p-0.5 rounded hover:bg-white/20 transition-colors" title={reservation.customer_phone}>
+                                      <Phone className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
                               </div>}
                           </div>
                           {/* Line 2: Vehicle plate + customer name with ellipsis */}

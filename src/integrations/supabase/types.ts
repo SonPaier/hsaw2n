@@ -1508,6 +1508,7 @@ export type Database = {
           id: string
           instance_id: string
           no_show_at: string | null
+          offer_number: string | null
           original_reservation_id: string | null
           price: number | null
           released_at: string | null
@@ -1545,6 +1546,7 @@ export type Database = {
           id?: string
           instance_id: string
           no_show_at?: string | null
+          offer_number?: string | null
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
@@ -1582,6 +1584,7 @@ export type Database = {
           id?: string
           instance_id?: string
           no_show_at?: string | null
+          offer_number?: string | null
           original_reservation_id?: string | null
           price?: number | null
           released_at?: string | null
