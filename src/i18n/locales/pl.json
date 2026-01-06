@@ -905,7 +905,11 @@
     "notesPlaceholder": "Dodatkowe informacje...",
     "customerNameRequired": "Podaj imię klienta",
     "phoneRequired": "Podaj numer telefonu",
-    "carModelRequired": "Podaj markę i model auta"
+    "carModelRequired": "Podaj markę i model auta",
+    "term": "Termin",
+    "selectedTerm": "Wybrany termin",
+    "changeTerm": "Zmień termin",
+    "moveReservation": "Przenieś"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",

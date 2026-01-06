@@ -238,6 +238,16 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [timeSelectionMode, setTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
+  
+  // Edit mode: time change flow
+  const [isChangingTime, setIsChangingTime] = useState(false);
+  const [originalDate, setOriginalDate] = useState<Date | null>(null);
+  const [originalTime, setOriginalTime] = useState<string | null>(null);
+  const [originalStationId, setOriginalStationId] = useState<string | null>(null);
+  const [originalManualStartTime, setOriginalManualStartTime] = useState<string>('');
+  const [originalManualEndTime, setOriginalManualEndTime] = useState<string>('');
+  const [originalManualStationId, setOriginalManualStationId] = useState<string | null>(null);
+  const [originalTimeSelectionMode, setOriginalTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
   const [manualStationId, setManualStationId] = useState<string | null>(null);
 
   // Yard mode state
@@ -481,6 +491,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        // Reset time change flow
+        setIsChangingTime(false);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click - use manual mode with provided values
         setCustomerName('');
@@ -1745,187 +1757,258 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             {/* RESERVATION MODE - Date navigation + Time slots */}
             {isReservationMode && (
               <>
-                {/* Date navigation with chevron */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <button
+                {/* Edit mode: show summary or full editor */}
+                {isEditMode && !isChangingTime ? (
+                  // Summary view with "Zmień termin" button
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">{t('addReservation.term')}</Label>
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm text-muted-foreground">{t('addReservation.selectedTerm')}:</p>
+                      <p className="text-lg font-medium mt-1">
+                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' ? `${manualStartTime} - ${manualEndTime}` : selectedTime || '--:--'}
+                      </p>
+                    </div>
+                    <Button 
                       type="button"
-                      onClick={handlePrevDay}
-                      disabled={!canGoPrev}
-                      className={cn(
-                        "p-2 rounded-full transition-colors",
-                        canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
-                      )}
+                      variant="outline" 
+                      onClick={() => {
+                        // Save original values before changing
+                        setOriginalDate(selectedDate);
+                        setOriginalTime(selectedTime);
+                        setOriginalStationId(selectedStationId);
+                        setOriginalManualStartTime(manualStartTime);
+                        setOriginalManualEndTime(manualEndTime);
+                        setOriginalManualStationId(manualStationId);
+                        setOriginalTimeSelectionMode(timeSelectionMode);
+                        setIsChangingTime(true);
+                      }}
                     >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    
-                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                      <PopoverTrigger asChild>
+                      {t('addReservation.changeTerm')}
+                    </Button>
+                  </div>
+                ) : (
+                  // Full date/time selection (new reservation or changing time)
+                  <>
+                    {/* Date navigation with chevron */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
                         <button
                           type="button"
-                          className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
+                          onClick={handlePrevDay}
+                          disabled={!canGoPrev}
+                          className={cn(
+                            "p-2 rounded-full transition-colors",
+                            canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
+                          )}
                         >
-                          {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronLeft className="w-5 h-5" />
                         </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="center">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              setSelectedDate(date);
-                              setSelectedTime(null);
-                              setDatePickerOpen(false);
-                            }
-                          }}
-                          disabled={(date) => isBefore(date, startOfDay(new Date()))}
-                          locale={pl}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    
-                    <button
-                      type="button"
-                      onClick={handleNextDay}
-                      className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+                        
+                        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
+                            >
+                              {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="center">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setSelectedDate(date);
+                                  setSelectedTime(null);
+                                  setDatePickerOpen(false);
+                                }
+                              }}
+                              disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                              locale={pl}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        
+                        <button
+                          type="button"
+                          onClick={handleNextDay}
+                          className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
 
-                {/* Time selection with tabs */}
-                <div className="space-y-2">
-                  <Tabs 
-                    value={timeSelectionMode} 
-                    onValueChange={(v) => {
-                      setTimeSelectionMode(v as 'slots' | 'manual');
-                      // Reset values when switching tabs
-                      if (v === 'slots') {
-                        setManualStartTime('');
-                        setManualEndTime('');
-                        setManualStationId(null);
-                      } else {
-                        setSelectedTime(null);
-                        setSelectedStationId(null);
-                      }
-                    }}
-                  >
-                    <TabsList variant="light" className="w-full">
-                      <TabsTrigger value="slots" className="flex-1">
-                        {t('addReservation.availableSlotsTab')}
-                      </TabsTrigger>
-                      <TabsTrigger value="manual" className="flex-1">
-                        {t('addReservation.manualTimeTab')}
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    {/* Available slots tab */}
-                    <TabsContent value="slots" className="mt-3">
-                      {selectedServices.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          {t('addReservation.selectServiceFirst')}
-                        </p>
-                      ) : availableSlots.length > 0 ? (
-                        <div className="w-full overflow-hidden">
-                          <div 
-                            ref={slotsScrollRef}
-                            className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-                          >
-                            {availableSlots.map((slot) => {
-                              const isSelected = selectedTime === slot.time;
-                              const isOverlapSingle = slot.overlapType === 'single';
-                              const isOverlapDouble = slot.overlapType === 'double';
-                              
-                              return (
-                                <button
-                                  key={slot.time}
-                                  type="button"
-                                  onClick={() => handleSelectSlot(slot)}
-                                  className={cn(
-                                    "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px] flex items-center justify-center gap-1.5",
-                                    isSelected 
-                                      ? "bg-primary text-primary-foreground shadow-lg" 
-                                      : isOverlapDouble
-                                        ? "bg-red-50 border-2 border-red-300 text-red-700 hover:border-red-400"
-                                        : isOverlapSingle
-                                          ? "bg-orange-50 border-2 border-orange-300 text-orange-700 hover:border-orange-400"
-                                          : "bg-card border-2 border-border hover:border-primary/50"
-                                  )}
-                                >
-                                  {(isOverlapSingle || isOverlapDouble) && !isSelected && (
-                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                                  )}
-                                  {slot.time}
-                                </button>
-                              );
-                            })}
+                    {/* Time selection with tabs */}
+                    <div className="space-y-2">
+                      <Tabs 
+                        value={timeSelectionMode} 
+                        onValueChange={(v) => {
+                          setTimeSelectionMode(v as 'slots' | 'manual');
+                          // Reset values when switching tabs
+                          if (v === 'slots') {
+                            setManualStartTime('');
+                            setManualEndTime('');
+                            setManualStationId(null);
+                          } else {
+                            setSelectedTime(null);
+                            setSelectedStationId(null);
+                          }
+                        }}
+                      >
+                        <TabsList variant="light" className="w-full">
+                          <TabsTrigger value="slots" className="flex-1">
+                            {t('addReservation.availableSlotsTab')}
+                          </TabsTrigger>
+                          <TabsTrigger value="manual" className="flex-1">
+                            {t('addReservation.manualTimeTab')}
+                          </TabsTrigger>
+                        </TabsList>
+                        
+                        {/* Available slots tab */}
+                        <TabsContent value="slots" className="mt-3">
+                          {selectedServices.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              {t('addReservation.selectServiceFirst')}
+                            </p>
+                          ) : availableSlots.length > 0 ? (
+                            <div className="w-full overflow-hidden">
+                              <div 
+                                ref={slotsScrollRef}
+                                className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                              >
+                                {availableSlots.map((slot) => {
+                                  const isSelected = selectedTime === slot.time;
+                                  const isOverlapSingle = slot.overlapType === 'single';
+                                  const isOverlapDouble = slot.overlapType === 'double';
+                                  
+                                  return (
+                                    <button
+                                      key={slot.time}
+                                      type="button"
+                                      onClick={() => handleSelectSlot(slot)}
+                                      className={cn(
+                                        "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px] flex items-center justify-center gap-1.5",
+                                        isSelected 
+                                          ? "bg-primary text-primary-foreground shadow-lg" 
+                                          : isOverlapDouble
+                                            ? "bg-red-50 border-2 border-red-300 text-red-700 hover:border-red-400"
+                                            : isOverlapSingle
+                                              ? "bg-orange-50 border-2 border-orange-300 text-orange-700 hover:border-orange-400"
+                                              : "bg-card border-2 border-border hover:border-primary/50"
+                                      )}
+                                    >
+                                      {(isOverlapSingle || isOverlapDouble) && !isSelected && (
+                                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                      )}
+                                      {slot.time}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              {t('booking.noSlotsForDay')}
+                            </p>
+                          )}
+                        </TabsContent>
+                        
+                        {/* Manual time tab */}
+                        <TabsContent value="manual" className="mt-3 space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
+                              <Select value={manualStartTime} onValueChange={setManualStartTime}>
+                                <SelectTrigger id="manualStartTime">
+                                  <SelectValue placeholder="--:--" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover max-h-60">
+                                  {yardTimeOptions.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
+                              <Select value={manualEndTime} onValueChange={setManualEndTime}>
+                                <SelectTrigger id="manualEndTime">
+                                  <SelectValue placeholder="--:--" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover max-h-60">
+                                  {yardTimeOptions.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          {t('booking.noSlotsForDay')}
-                        </p>
-                      )}
-                    </TabsContent>
-                    
-                    {/* Manual time tab */}
-                    <TabsContent value="manual" className="mt-3 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
-                          <Select value={manualStartTime} onValueChange={setManualStartTime}>
-                            <SelectTrigger id="manualStartTime">
-                              <SelectValue placeholder="--:--" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover max-h-60">
-                              {yardTimeOptions.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
-                          <Select value={manualEndTime} onValueChange={setManualEndTime}>
-                            <SelectTrigger id="manualEndTime">
-                              <SelectValue placeholder="--:--" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover max-h-60">
-                              {yardTimeOptions.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
+                            <Select value={manualStationId || ''} onValueChange={setManualStationId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('addReservation.selectStation')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {stations.map((station) => (
+                                  <SelectItem key={station.id} value={station.id}>
+                                    {station.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+
+                    {/* Move/Cancel buttons for edit mode time change */}
+                    {isEditMode && isChangingTime && (
+                      <div className="flex gap-3 pt-2">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setIsChangingTime(false);
+                          }}
+                          disabled={
+                            (timeSelectionMode === 'slots' && !selectedTime) ||
+                            (timeSelectionMode === 'manual' && (!manualStartTime || !manualEndTime || !manualStationId))
+                          }
+                          className="flex-1"
+                        >
+                          {t('addReservation.moveReservation')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            // Restore original values
+                            if (originalDate) setSelectedDate(originalDate);
+                            setSelectedTime(originalTime);
+                            setSelectedStationId(originalStationId);
+                            setManualStartTime(originalManualStartTime);
+                            setManualEndTime(originalManualEndTime);
+                            setManualStationId(originalManualStationId);
+                            setTimeSelectionMode(originalTimeSelectionMode);
+                            setIsChangingTime(false);
+                          }}
+                          className="flex-1"
+                        >
+                          {t('common.cancel')}
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
-                        <Select value={manualStationId || ''} onValueChange={setManualStationId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('addReservation.selectStation')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stations.map((station) => (
-                              <SelectItem key={station.id} value={station.id}>
-                                {station.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 
