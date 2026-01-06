@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -175,9 +176,14 @@ serve(async (req: Request): Promise<Response> => {
 
   } catch (error: unknown) {
     console.error("Error in send-sms-code:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "send-sms-code",
+      request: req,
+      tags: { function: "send-sms-code" },
+    });
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

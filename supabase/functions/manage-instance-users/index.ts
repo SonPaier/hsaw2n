@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -449,6 +450,12 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error('Unexpected error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "manage-instance-users",
+      request: req,
+      tags: { function: "manage-instance-users" },
+    });
     return new Response(
       JSON.stringify({ error: 'Wystąpił nieoczekiwany błąd' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
