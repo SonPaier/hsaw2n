@@ -4,6 +4,7 @@ import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, i
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
 import SendSmsDialog from './SendSmsDialog';
 import { Button } from '@/components/ui/button';
@@ -222,6 +223,7 @@ const AdminCalendar = ({
     phone: string;
     customerName: string;
   } | null>(null);
+  const [closeDayDialogOpen, setCloseDayDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Notify parent when currentDate changes
@@ -971,54 +973,41 @@ const AdminCalendar = ({
                 </PopoverContent>
               </Popover>}
             
-            {/* Close/Open day button - only in day view and not read-only */}
-            {viewMode === 'day' && !readOnly && onToggleClosedDay && <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant={currentDateClosed ? "destructive" : "ghost"} size="icon" className="h-9 w-9" title={currentDateClosed ? t('calendar.openDay') : t('calendar.closeDay')}>
-                    {currentDateClosed ? <CalendarOff className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      {currentDateClosed ? t('calendar.openDayTitle') : t('calendar.closeDayTitle')}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {currentDateClosed ? t('calendar.openDayDescription', {
-                    date: format(currentDate, 'd MMMM yyyy', {
-                      locale: pl
-                    })
-                  }) : t('calendar.closeDayDescription', {
-                    date: format(currentDate, 'd MMMM yyyy', {
-                      locale: pl
-                    })
-                  })}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onToggleClosedDay(currentDateStr)} className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}>
-                      {currentDateClosed ? t('calendar.open') : t('calendar.close')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>}
           </div>
           
           {/* Day name - only visible on desktop in header row */}
-          {!isMobile && <h2 className={cn("text-lg font-semibold", isToday && "text-primary", currentDateClosed && viewMode === 'day' && "text-red-500", hallMode && "flex-1 text-center")}>
-              {viewMode === 'week' ? `${format(weekStart, 'd MMM', {
-            locale: pl
-          })} - ${format(addDays(weekStart, 6), 'd MMM', {
-            locale: pl
-          })}` : viewMode === 'two-days' ? `${format(currentDate, 'd MMM', {
-            locale: pl
-          })} - ${format(addDays(currentDate, 1), 'd MMM', {
-            locale: pl
-          })}` : format(currentDate, 'EEEE, d MMMM', {
-            locale: pl
-          })}
-            </h2>}
+          {!isMobile && (
+            viewMode === 'day' && !readOnly && onToggleClosedDay ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={cn("text-lg font-semibold cursor-pointer", isToday && "text-primary", currentDateClosed && "text-red-500", hallMode && "flex-1 text-center")}>
+                    {format(currentDate, 'EEEE, d MMMM', { locale: pl })}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="bg-popover">
+                  <DropdownMenuItem onClick={() => setCloseDayDialogOpen(true)} className={cn(currentDateClosed ? "text-emerald-600" : "text-destructive")}>
+                    {currentDateClosed ? (
+                      <>
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        {t('calendar.openDay')}
+                      </>
+                    ) : (
+                      <>
+                        <CalendarOff className="w-4 h-4 mr-2" />
+                        {t('calendar.closeDay')}
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <h2 className={cn("text-lg font-semibold", isToday && "text-primary", currentDateClosed && viewMode === 'day' && "text-red-500", hallMode && "flex-1 text-center")}>
+                {viewMode === 'week' ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}` 
+                  : viewMode === 'two-days' ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}` 
+                  : format(currentDate, 'EEEE, d MMMM', { locale: pl })}
+              </h2>
+            )
+          )}
           
           <div className="flex items-center gap-2">
             {/* Station selector for week view */}
@@ -1087,33 +1076,72 @@ const AdminCalendar = ({
           </div>
         </div>
         
-        {/* Second line on mobile: day name centered */}
-        {isMobile && <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger asChild>
-              <button className={cn("text-lg font-semibold cursor-pointer hover:opacity-80 transition-opacity text-center w-full", isToday && "text-primary", currentDateClosed && viewMode === 'day' && "text-red-500")}>
-                {viewMode === 'week' ? `${format(weekStart, 'd MMM', {
-              locale: pl
-            })} - ${format(addDays(weekStart, 6), 'd MMM', {
-              locale: pl
-            })}` : viewMode === 'two-days' ? `${format(currentDate, 'd MMM', {
-              locale: pl
-            })} - ${format(addDays(currentDate, 1), 'd MMM', {
-              locale: pl
-            })}` : format(currentDate, 'EEEE, d MMMM', {
-              locale: pl
-            })}
-              </button>
-            </PopoverTrigger>
+        {/* Second line on mobile: day name centered with dropdown for day options */}
+        {isMobile && (
+          viewMode === 'day' && !readOnly && onToggleClosedDay ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={cn("text-lg font-semibold cursor-pointer text-center w-full", isToday && "text-primary", currentDateClosed && "text-red-500")}>
+                  {format(currentDate, 'EEEE, d MMMM', { locale: pl })}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="bg-popover">
+                <DropdownMenuItem onClick={() => setDatePickerOpen(true)}>
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  {t('calendar.pickDate')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCloseDayDialogOpen(true)} className={cn(currentDateClosed ? "text-emerald-600" : "text-destructive")}>
+                  {currentDateClosed ? (
+                    <>
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      {t('calendar.openDay')}
+                    </>
+                  ) : (
+                    <>
+                      <CalendarOff className="w-4 h-4 mr-2" />
+                      {t('calendar.closeDay')}
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <button className={cn("text-lg font-semibold cursor-pointer hover:opacity-80 transition-opacity text-center w-full", isToday && "text-primary", currentDateClosed && viewMode === 'day' && "text-red-500")}>
+                  {viewMode === 'week' ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}` 
+                    : viewMode === 'two-days' ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}` 
+                    : format(currentDate, 'EEEE, d MMMM', { locale: pl })}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar mode="single" selected={currentDate} onSelect={date => {
+                  if (date) {
+                    setCurrentDate(date);
+                    setViewMode('day');
+                    setDatePickerOpen(false);
+                  }
+                }} initialFocus className="pointer-events-auto" locale={pl} />
+              </PopoverContent>
+            </Popover>
+          )
+        )}
+        
+        {/* Date picker popover for mobile dropdown */}
+        {isMobile && viewMode === 'day' && !readOnly && onToggleClosedDay && (
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger className="hidden" />
             <PopoverContent className="w-auto p-0" align="center">
               <Calendar mode="single" selected={currentDate} onSelect={date => {
-            if (date) {
-              setCurrentDate(date);
-              setViewMode('day');
-              setDatePickerOpen(false);
-            }
-          }} initialFocus className="pointer-events-auto" locale={pl} />
+                if (date) {
+                  setCurrentDate(date);
+                  setViewMode('day');
+                  setDatePickerOpen(false);
+                }
+              }} initialFocus className="pointer-events-auto" locale={pl} />
             </PopoverContent>
-          </Popover>}
+          </Popover>
+        )}
       </div>
       
 
@@ -2042,6 +2070,34 @@ const AdminCalendar = ({
       setSmsDialogOpen(false);
       setSmsDialogData(null);
     }} phone={smsDialogData.phone} customerName={smsDialogData.customerName} instanceId={instanceId || null} />}
+
+      {/* Close/Open Day AlertDialog */}
+      <AlertDialog open={closeDayDialogOpen} onOpenChange={setCloseDayDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {currentDateClosed ? t('calendar.openDayTitle') : t('calendar.closeDayTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {currentDateClosed 
+                ? t('calendar.openDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) }) 
+                : t('calendar.closeDayDescription', { date: format(currentDate, 'd MMMM yyyy', { locale: pl }) })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                onToggleClosedDay?.(currentDateStr);
+                setCloseDayDialogOpen(false);
+              }} 
+              className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+            >
+              {currentDateClosed ? t('calendar.open') : t('calendar.close')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>;
 };
