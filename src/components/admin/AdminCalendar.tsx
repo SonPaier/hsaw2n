@@ -1079,32 +1079,53 @@ const AdminCalendar = ({
         {/* Second line on mobile: day name centered with dropdown for day options */}
         {isMobile && (
           viewMode === 'day' && !readOnly && onToggleClosedDay ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className={cn("text-lg font-semibold cursor-pointer text-center w-full", isToday && "text-primary", currentDateClosed && "text-red-500")}>
-                  {format(currentDate, 'EEEE, d MMMM', { locale: pl })}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="bg-popover">
-                <DropdownMenuItem onClick={() => setDatePickerOpen(true)}>
-                  <CalendarIcon className="w-4 h-4 mr-2" />
-                  {t('calendar.pickDate')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCloseDayDialogOpen(true)} className={cn(currentDateClosed ? "text-emerald-600" : "text-destructive")}>
-                  {currentDateClosed ? (
-                    <>
-                      <CalendarIcon className="w-4 h-4 mr-2" />
-                      {t('calendar.openDay')}
-                    </>
-                  ) : (
-                    <>
-                      <CalendarOff className="w-4 h-4 mr-2" />
-                      {t('calendar.closeDay')}
-                    </>
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <button 
+                onClick={() => setDatePickerOpen(true)}
+                className={cn("text-lg font-semibold cursor-pointer text-center w-full", isToday && "text-primary", currentDateClosed && "text-red-500")}
+              >
+                {format(currentDate, 'EEEE, d MMMM', { locale: pl })}
+              </button>
+              <Sheet open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <SheetContent side="bottom" className="px-4 pb-8" hideCloseButton>
+                  <div className="flex flex-col items-center gap-4">
+                    <Calendar 
+                      mode="single" 
+                      selected={currentDate} 
+                      onSelect={date => {
+                        if (date) {
+                          setCurrentDate(date);
+                          setViewMode('day');
+                          setDatePickerOpen(false);
+                        }
+                      }} 
+                      className="pointer-events-auto" 
+                      locale={pl} 
+                    />
+                    <Button
+                      variant={currentDateClosed ? "outline" : "destructive"}
+                      className="w-full"
+                      onClick={() => {
+                        setDatePickerOpen(false);
+                        setCloseDayDialogOpen(true);
+                      }}
+                    >
+                      {currentDateClosed ? (
+                        <>
+                          <CalendarIcon className="w-4 h-4 mr-2" />
+                          {t('calendar.openDay')}
+                        </>
+                      ) : (
+                        <>
+                          <CalendarOff className="w-4 h-4 mr-2" />
+                          {t('calendar.closeDay')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </>
           ) : (
             <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
@@ -1125,22 +1146,6 @@ const AdminCalendar = ({
               </PopoverContent>
             </Popover>
           )
-        )}
-        
-        {/* Date picker popover for mobile dropdown */}
-        {isMobile && viewMode === 'day' && !readOnly && onToggleClosedDay && (
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger className="hidden" />
-            <PopoverContent className="w-auto p-0" align="center">
-              <Calendar mode="single" selected={currentDate} onSelect={date => {
-                if (date) {
-                  setCurrentDate(date);
-                  setViewMode('day');
-                  setDatePickerOpen(false);
-                }
-              }} initialFocus className="pointer-events-auto" locale={pl} />
-            </PopoverContent>
-          </Popover>
         )}
       </div>
       
