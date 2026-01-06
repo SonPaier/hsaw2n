@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Save, MessageSquare, Clock } from 'lucide-react';
+import { Loader2, Save, MessageSquare, Clock, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SmsUsageCard } from './SmsUsageCard';
+
+interface SmsLogEntry {
+  phone: string;
+  message: string;
+  created_at: string;
+  message_type: string;
+  status: string;
+}
 
 interface SmsMessageSettingsProps {
   instanceId: string | null;
@@ -40,6 +48,9 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<MessageSetting[]>([]);
   const [currentInstanceName, setCurrentInstanceName] = useState(instanceName || '');
+  const [showHistory, setShowHistory] = useState(false);
+  const [smsLogs, setSmsLogs] = useState<SmsLogEntry[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   useEffect(() => {
     if (instanceId) {
@@ -143,6 +154,35 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
     }
   };
 
+  const fetchSmsLogs = async () => {
+    if (!instanceId) return;
+    
+    setLoadingLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('sms_logs')
+        .select('phone, message, created_at, message_type, status')
+        .eq('instance_id', instanceId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setSmsLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching SMS logs:', error);
+      toast.error('Błąd pobierania historii SMS');
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleShowHistory = () => {
+    if (!showHistory) {
+      fetchSmsLogs();
+    }
+    setShowHistory(!showHistory);
+  };
+
   const getMessageTypeLabel = (type: SmsMessageType): string => {
     return t(`sms.messageTypes.${type}.label`);
   };
@@ -169,7 +209,43 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
       {/* SMS Usage */}
       {instanceId && <SmsUsageCard instanceId={instanceId} />}
 
-      {/* Message Type Settings */}
+      {/* SMS History Button */}
+      <Button 
+        variant="outline" 
+        onClick={handleShowHistory}
+        className="w-full"
+      >
+        {loadingLogs ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <History className="w-4 h-4 mr-2" />
+        )}
+        {showHistory ? 'Ukryj historię' : 'Zobacz historię'}
+      </Button>
+
+      {/* SMS History Log */}
+      {showHistory && (
+        <Card className="bg-slate-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Historia SMS (ostatnie 50)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {smsLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Brak wiadomości SMS</p>
+            ) : (
+              <pre className="text-xs bg-slate-900 text-slate-100 p-4 rounded-lg overflow-auto max-h-96">
+{JSON.stringify(smsLogs.map(log => ({
+  phone: log.phone,
+  date: new Date(log.created_at).toLocaleString('pl-PL'),
+  type: log.message_type,
+  status: log.status,
+  message: log.message
+})), null, 2)}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      )}
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-medium">{t('sms.messageSettings')}</h3>
