@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,8 +133,13 @@ WAŻNE: Zwróć TYLKO poprawny JSON bez żadnych dodatkowych komentarzy.`;
 
   } catch (error) {
     console.error('Error in parse-voice-reservation:', error);
-    const message = error instanceof Error ? error.message : 'Nieznany błąd';
-    return new Response(JSON.stringify({ error: message }), {
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "parse-voice-reservation",
+      request: req,
+      tags: { function: "parse-voice-reservation" },
+    });
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

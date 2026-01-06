@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -220,9 +221,14 @@ Zwróć TYLKO tablicę JSON bez dodatkowego tekstu. Przykład:
 
   } catch (error) {
     console.error('Error in extract-price-list:', error);
-    
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "extract-price-list",
+      request: req,
+      tags: { function: "extract-price-list" },
+    });
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

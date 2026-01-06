@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,6 +146,12 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error sending SMS:", error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "send-sms-message",
+      request: req,
+      tags: { function: "send-sms-message" },
+    });
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

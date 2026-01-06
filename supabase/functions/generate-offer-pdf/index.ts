@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -356,9 +357,14 @@ ${html.replace('<!DOCTYPE html>', '').replace(/<html[^>]*>/, '').replace(/<\/htm
 
   } catch (error: unknown) {
     console.error('Error generating PDF:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const err = error instanceof Error ? error : new Error(String(error));
+    await captureException(err, {
+      transaction: "generate-offer-pdf",
+      request: req,
+      tags: { function: "generate-offer-pdf" },
+    });
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
