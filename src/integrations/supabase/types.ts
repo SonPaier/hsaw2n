@@ -2076,6 +2076,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_instance: { Args: { _instance_id: string }; Returns: boolean }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }
       get_availability_blocks: {
@@ -2107,6 +2108,7 @@ export type Database = {
         Returns: boolean
       }
       increment_sms_usage: { Args: { _instance_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       is_user_blocked: { Args: { _user_id: string }; Returns: boolean }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
