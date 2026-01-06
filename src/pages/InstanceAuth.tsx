@@ -285,29 +285,6 @@ const InstanceAuth = ({
 
           {/* Footer */}
           <div className="p-6 border-t border-slate-100 dark:border-slate-800">
-            {/* Sentry Test Buttons - temporarily enabled for production testing */}
-            {true && (
-              <div className="flex gap-2 justify-center mb-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleTestFrontendError}
-                  className="text-xs gap-1"
-                >
-                  <Bug className="w-3 h-3" />
-                  Test FE Error
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleTestBackendError}
-                  className="text-xs gap-1"
-                >
-                  <Bug className="w-3 h-3" />
-                  Test BE Error
-                </Button>
-              </div>
-            )}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-xs text-slate-400">
               <span>© {new Date().getFullYear()} N2Works</span>
               <a href="https://n2works.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
