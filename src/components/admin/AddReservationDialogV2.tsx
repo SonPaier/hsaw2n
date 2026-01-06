@@ -1765,7 +1765,16 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     <div className="p-4 rounded-lg bg-muted/50 border">
                       <p className="text-sm text-muted-foreground">{t('addReservation.selectedTerm')}:</p>
                       <p className="text-lg font-medium mt-1">
-                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {editingReservation ? `${editingReservation.start_time?.substring(0, 5)} - ${editingReservation.end_time?.substring(0, 5)}` : '--:--'}
+                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' 
+                          ? `${manualStartTime || editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${manualEndTime || editingReservation?.end_time?.substring(0, 5) || '--:--'}`
+                          : selectedTime 
+                            ? `${selectedTime} - ${(() => {
+                                const [h, m] = selectedTime.split(':').map(Number);
+                                const endMinutes = h * 60 + m + totalDurationMinutes;
+                                return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+                              })()}`
+                            : `${editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${editingReservation?.end_time?.substring(0, 5) || '--:--'}`
+                        }
                       </p>
                     </div>
                     <Button 
