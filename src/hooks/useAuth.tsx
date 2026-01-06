@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,22 +29,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(false);
+  
+  // Track previous user ID to avoid unnecessary loading on TOKEN_REFRESHED
+  const previousUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] onAuthStateChange:', event, 'userId:', session?.user?.id);
+      
       setSession(session);
       setUser(session?.user ?? null);
 
+      const newUserId = session?.user?.id ?? null;
+      const userChanged = newUserId !== previousUserIdRef.current;
+
       // Fetch roles after auth state change (deferred to avoid deadlocks)
       if (session?.user) {
-        setRolesLoading(true);
-        setTimeout(() => {
-          fetchUserRoles(session.user.id).finally(() => {
-            setRolesLoading(false);
-          });
-        }, 0);
+        // Only show loading and refetch roles if user actually changed
+        // This prevents unmount/remount on TOKEN_REFRESHED for the same user
+        if (userChanged) {
+          previousUserIdRef.current = newUserId;
+          setRolesLoading(true);
+          setTimeout(() => {
+            fetchUserRoles(session.user.id).finally(() => {
+              setRolesLoading(false);
+            });
+          }, 0);
+        }
       } else {
+        previousUserIdRef.current = null;
         setRoles([]);
         setRolesLoading(false);
       }
