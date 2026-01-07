@@ -217,12 +217,14 @@ const ServiceSelectionDrawer = ({
     return service.duration_minutes || 60;
   };
 
-  // Format duration
+  // Format duration - always show hours and minutes
   const formatDuration = (minutes: number): string => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) {
+      return `${hours}h ${mins}min`;
+    } else if (hours > 0) {
+      return `${hours}h`;
     }
     return `${minutes}min`;
   };
@@ -364,24 +366,28 @@ const ServiceSelectionDrawer = ({
             )}
           </div>
 
-          {/* Matching Services Chips */}
+          {/* Matching Services Chips - styled like phone search */}
           {matchingServices.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground font-medium">{t('serviceDrawer.matchingServices')}</p>
-              <div className="flex flex-wrap gap-2">
-                {matchingServices.map(({ service, token }) => (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => addFromMatch(service, token)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors min-h-[36px]"
-                  >
-                    <span className="font-bold">{service.shortcut || '+'}</span>
-                    <span className="text-primary/80">-</span>
-                    <span className="truncate max-w-[150px]">{service.name}</span>
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              {matchingServices.map(({ service, token }) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => addFromMatch(service, token)}
+                  className="w-full flex flex-col items-start px-4 py-3 rounded-lg bg-card border border-border hover:bg-muted/30 transition-colors text-left"
+                >
+                  <span className="text-base font-semibold text-foreground">
+                    {service.name.toUpperCase()}
+                  </span>
+                  <span className="text-sm">
+                    {service.shortcut && (
+                      <span className="text-primary font-medium">{service.shortcut}</span>
+                    )}
+                    {service.shortcut && ' • '}
+                    <span className="text-muted-foreground">{formatDuration(getDuration(service))}</span>
+                  </span>
+                </button>
+              ))}
             </div>
           )}
 
