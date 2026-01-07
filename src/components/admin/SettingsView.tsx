@@ -23,11 +23,12 @@ interface SettingsViewProps {
   instanceId: string | null;
   instanceData: any;
   onInstanceUpdate: (data: any) => void;
+  onWorkingHoursUpdate?: () => void;
 }
 
 type SettingsTab = 'company' | 'pricelist' | 'stations' | 'hours' | 'app' | 'sms' | 'users';
 
-const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsViewProps) => {
+const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
@@ -383,7 +384,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate }: SettingsVi
         return <StationsSettings instanceId={instanceId} />;
 
       case 'hours':
-        return <WorkingHoursSettings instanceId={instanceId} />;
+        return <WorkingHoursSettings instanceId={instanceId} onSave={onWorkingHoursUpdate} />;
 
       case 'app':
         return <ReservationConfirmSettings instanceId={instanceId} />;

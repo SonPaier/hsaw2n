@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 interface WorkingHoursSettingsProps {
   instanceId: string | null;
+  onSave?: () => void;
 }
 
 interface DayHours {
@@ -39,7 +40,7 @@ const DEFAULT_HOURS: WorkingHours = {
   sunday: null,
 };
 
-const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
+const WorkingHoursSettings = ({ instanceId, onSave }: WorkingHoursSettingsProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -99,6 +100,7 @@ const WorkingHoursSettings = ({ instanceId }: WorkingHoursSettingsProps) => {
 
       if (error) throw error;
       toast.success(t('workingHours.saved'));
+      onSave?.();
     } catch (error) {
       console.error('Error saving working hours:', error);
       toast.error(t('workingHours.saveError'));

@@ -1986,6 +1986,7 @@ const AdminDashboard = () => {
                 instanceId={instanceId} 
                 instanceData={instanceData}
                 onInstanceUpdate={(data) => setInstanceData(data)}
+                onWorkingHoursUpdate={fetchWorkingHours}
               />
             )}
 
