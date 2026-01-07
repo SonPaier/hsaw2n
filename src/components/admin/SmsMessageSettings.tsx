@@ -197,9 +197,11 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
 
   const getExampleMessage = (type: SmsMessageType): string => {
     const template = t(`sms.messageTypes.${type}.exampleTemplate`);
+    // Remove spaces from phone number for SMS
+    const phoneWithoutSpaces = (currentReservationPhone || '+48123456789').replace(/\s/g, '');
     return template
       .replace('{{instanceName}}', currentInstanceName || 'Nazwa myjni')
-      .replace('{{reservationPhone}}', currentReservationPhone || '+48 123 456 789');
+      .replace('{{reservationPhone}}', phoneWithoutSpaces);
   };
 
   if (loading) {
