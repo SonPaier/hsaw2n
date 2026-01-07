@@ -1467,7 +1467,7 @@ const AdminDashboard = () => {
     try {
       const dateFormatted = format(new Date(changeRequest.reservation_date), 'd MMMM', { locale: pl });
       const timeFormatted = changeRequest.start_time.slice(0, 5);
-      const manageUrl = `${window.location.origin}/res?code=${originalCode}`;
+      const manageUrl = `https://${instanceData?.slug || 'demo'}.n2wash.com/res?code=${originalCode}`;
       
       // Use short_name if available, fallback to name
       const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
@@ -1534,7 +1534,7 @@ const AdminDashboard = () => {
       try {
         const dateFormatted = format(new Date(originalReservation.reservation_date), 'd MMMM', { locale: pl });
         const timeFormatted = originalReservation.start_time.slice(0, 5);
-        const manageUrl = `${window.location.origin}/res?code=${originalReservation.confirmation_code}`;
+        const manageUrl = `https://${instanceData?.slug || 'demo'}.n2wash.com/res?code=${originalReservation.confirmation_code}`;
         
         // Use short_name if available, fallback to name
         const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
