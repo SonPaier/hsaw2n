@@ -983,6 +983,8 @@
     "contactTab": "Kontakt",
     "usersTab": "Użytkownicy",
     "carWashName": "Nazwa myjni",
+    "shortName": "Skrócona nazwa firmy (do SMS)",
+    "shortNameDescription": "Używana w wiadomościach SMS, max 20 znaków",
     "invoiceCompanyName": "Nazwa firmy (do faktury)",
     "slug": "Slug (URL)",
     "slugDescription": "Adres aplikacji: /rezerwacje/{{slug}}",

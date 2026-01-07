@@ -41,6 +41,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
   
   const [companyForm, setCompanyForm] = useState({
     name: '',
+    short_name: '',
     invoice_company_name: '',
     nip: '',
     phone: '',
@@ -59,6 +60,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     if (instanceData) {
       setCompanyForm({
         name: instanceData.name || '',
+        short_name: instanceData.short_name || '',
         invoice_company_name: instanceData.invoice_company_name || '',
         nip: instanceData.nip || '',
         phone: instanceData.phone || '',
@@ -159,6 +161,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         .from('instances')
         .update({
           name: companyForm.name,
+          short_name: companyForm.short_name || null,
           invoice_company_name: companyForm.invoice_company_name || null,
           nip: companyForm.nip || null,
           phone: companyForm.phone || null,
@@ -255,6 +258,21 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="ARM CAR AUTO SPA"
               />
+            </div>
+
+            {/* Short Name for SMS */}
+            <div className="space-y-2">
+              <Label htmlFor="short_name">{t('instanceSettings.shortName')} *</Label>
+              <Input
+                id="short_name"
+                value={companyForm.short_name}
+                onChange={(e) => handleInputChange('short_name', e.target.value)}
+                placeholder="ARM CAR"
+                maxLength={20}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('instanceSettings.shortNameDescription')}
+              </p>
             </div>
 
             {/* Invoice Company Name */}
