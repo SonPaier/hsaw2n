@@ -51,12 +51,28 @@ serve(async (req) => {
 
     // Normalize phone number
     let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+    
+    // Remove duplicate + signs
+    normalizedPhone = normalizedPhone.replace(/\++/g, "+");
+    
     if (!normalizedPhone.startsWith("+")) {
       if (normalizedPhone.startsWith("48")) {
         normalizedPhone = "+" + normalizedPhone;
       } else {
         normalizedPhone = "+48" + normalizedPhone;
       }
+    }
+    
+    // Validate phone number format (must be 11-15 digits after +)
+    const digitsOnly = normalizedPhone.replace(/\D/g, "");
+    console.log(`Sending SMS to: ${normalizedPhone} (digits: ${digitsOnly.length})`);
+    
+    if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+      console.error(`Invalid phone number length: ${normalizedPhone}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid phone number format", phone: normalizedPhone }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
