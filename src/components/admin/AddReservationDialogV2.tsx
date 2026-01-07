@@ -1246,10 +1246,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         // Send SMS confirmation if phone is provided
         if (phone) {
           try {
-            // Fetch instance data for SMS
+            // Fetch instance data for SMS (prefer short_name)
             const { data: instanceData } = await supabase
               .from('instances')
-              .select('name, google_maps_url, slug')
+              .select('name, short_name, google_maps_url, slug')
               .eq('id', instanceId)
               .single();
 
@@ -1284,20 +1284,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 }
               }
 
-              // Format date and time for SMS
-              const dayNames = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
-              const monthNames = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+              // Format date and time for SMS using full month names
+              const monthNamesFull = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
               const dateObj = selectedDate;
-              const dayName = dayNames[dateObj.getDay()];
               const dayNum = dateObj.getDate();
-              const monthName = monthNames[dateObj.getMonth()];
+              const monthNameFull = monthNamesFull[dateObj.getMonth()];
 
-              const instanceName = instanceData.name || 'Myjnia';
+              // Use short_name if available, fallback to name
+              const instanceName = instanceData.short_name || instanceData.name || 'Myjnia';
               const mapsLink = instanceData.google_maps_url ? ` Dojazd: ${instanceData.google_maps_url}` : '';
               const reservationUrl = `https://${instanceData.slug}.n2wash.com/res?code=${reservationData.confirmation_code}`;
-              const editLink = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : '';
+              const editLink = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : '';
               
-              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${finalStartTime}-${finalEndTime}.${mapsLink}${editLink}`;
+              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${finalStartTime}.${mapsLink}${editLink}`;
 
               await supabase.functions.invoke('send-sms-message', {
                 body: {

@@ -255,14 +255,14 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", customer.id);
     }
 
-    // Fetch instance info including slug
+    // Fetch instance info including slug (prefer short_name for SMS)
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("social_facebook, social_instagram, name, slug, google_maps_url")
+      .select("social_facebook, social_instagram, name, short_name, slug, google_maps_url")
       .eq("id", instanceId)
       .single();
 
-    const instanceName = instanceData?.name || "Myjnia";
+    const instanceName = instanceData?.short_name || instanceData?.name || "Myjnia";
     const googleMapsUrl = instanceData?.google_maps_url || null;
 
     // Check if edit link should be included
@@ -281,11 +281,15 @@ serve(async (req: Request): Promise<Response> => {
     const monthName = monthNames[dateObj.getMonth()];
     
     const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
-    const editLinkPart = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : "";
+    const editLinkPart = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : "";
+    
+    // Format: "7 stycznia" instead of "7 sty"
+    const monthNamesFull = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+    const monthNameFull = monthNamesFull[dateObj.getMonth()];
     
     const smsMessage = autoConfirm 
-      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart}${editLinkPart}`
-      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart}${editLinkPart}`;
+      ? `${instanceName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${reservationData.time}.${mapsLinkPart}${editLinkPart}`
+      : `${instanceName}: Otrzymalismy prosbe o rezerwacje: ${dayNum} ${monthNameFull} o ${reservationData.time}. Potwierdzimy ja wkrotce.${editLinkPart}`;
     
     if (SMSAPI_TOKEN) {
       try {

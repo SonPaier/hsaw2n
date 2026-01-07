@@ -1463,21 +1463,20 @@ const AdminDashboard = () => {
       console.error('Error cancelling original:', cancelError);
     }
 
-    // Send SMS to customer
+    // Send SMS to customer with new optimized format
     try {
       const dateFormatted = format(new Date(changeRequest.reservation_date), 'd MMMM', { locale: pl });
       const timeFormatted = changeRequest.start_time.slice(0, 5);
       const manageUrl = `${window.location.origin}/res?code=${originalCode}`;
       
+      // Use short_name if available, fallback to name
+      const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
+      const smsMessage = `${instanceName}: Potwierdzamy nowy termin: ${dateFormatted} o ${timeFormatted}. Zmien lub anuluj: ${manageUrl}`;
+      
       await supabase.functions.invoke('send-sms-message', {
         body: {
           phone: changeRequest.customer_phone,
-          message: `${instanceData?.name || 'N2Wash'}: ${t('myReservation.notifications.changeApprovedSms', { 
-            date: dateFormatted, 
-            time: timeFormatted,
-            url: manageUrl,
-            instanceName: instanceData?.name || 'N2Wash'
-          }).replace('{{instanceName}}: ', '')}`,
+          message: smsMessage,
           instanceId
         }
       });
@@ -1530,22 +1529,21 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Send SMS to customer
+    // Send SMS to customer with new optimized format
     if (originalReservation) {
       try {
         const dateFormatted = format(new Date(originalReservation.reservation_date), 'd MMMM', { locale: pl });
         const timeFormatted = originalReservation.start_time.slice(0, 5);
         const manageUrl = `${window.location.origin}/res?code=${originalReservation.confirmation_code}`;
         
+        // Use short_name if available, fallback to name
+        const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
+        const smsMessage = `${instanceName}: Niestety nie mozemy zmienic terminu rezerwacji: ${dateFormatted} o ${timeFormatted}. Wybierz inny lub anuluj: ${manageUrl}`;
+        
         await supabase.functions.invoke('send-sms-message', {
           body: {
             phone: changeRequest.customer_phone,
-            message: `${instanceData?.name || 'N2Wash'}: ${t('myReservation.notifications.changeRejectedSms', { 
-              date: dateFormatted, 
-              time: timeFormatted,
-              url: manageUrl,
-              instanceName: instanceData?.name || 'N2Wash'
-            }).replace('{{instanceName}}: ', '')}`,
+            message: smsMessage,
             instanceId
           }
         });

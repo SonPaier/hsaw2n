@@ -55,14 +55,14 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get instance name for SMS
+    // Get instance short_name for SMS (prefer short_name, fallback to name)
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("name")
+      .select("name, short_name")
       .eq("id", instanceId)
       .single();
 
-    const instanceName = instanceData?.name || "Myjnia";
+    const instanceName = instanceData?.short_name || instanceData?.name || "Myjnia";
 
     // Check SMS limit - but don't block, just log warning
     const { data: canSend, error: limitCheckError } = await supabase

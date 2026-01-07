@@ -684,42 +684,47 @@
       "verification_code": {
         "label": "Kod weryfikacyjny",
         "description": "SMS z 4-cyfrowym kodem wysyłany podczas rezerwacji online.",
-        "exampleTemplate": "{{instanceName}}: Kod potwierdzający: 1234"
+        "exampleTemplate": "Kod potwierdzajacy {{instanceName}}: 1234"
       },
       "reservation_confirmed": {
         "label": "Potwierdzenie rezerwacji",
         "description": "SMS z potwierdzeniem rezerwacji i linkiem do zarządzania.",
-        "exampleTemplate": "{{instanceName}}: Rezerwacja potwierdzona! Środa 15 sty o 10:00-11:30. Dojazd: [link] Zmień lub anuluj: [link]"
+        "exampleTemplate": "{{instanceName}}: Rezerwacja potwierdzona! 15 stycznia o 10:00. Dojazd: [link] Zmien lub anuluj: [link]"
       },
       "reservation_pending": {
         "label": "Rezerwacja oczekująca",
         "description": "SMS wysyłany gdy rezerwacja wymaga potwierdzenia przez admina.",
-        "exampleTemplate": "{{instanceName}}: Rezerwacja przyjęta! Środa 15 sty o 10:00. Potwierdzimy ją wkrótce. Zmień lub anuluj: [link]"
+        "exampleTemplate": "{{instanceName}}: Otrzymalismy prosbe o rezerwacje: 15 stycznia o 10:00. Potwierdzimy ja wkrotce. Zmien lub anuluj: [link]"
       },
       "reservation_confirmed_by_admin": {
         "label": "Potwierdzenie przez admina",
         "description": "SMS wysyłany gdy admin potwierdzi oczekującą rezerwację.",
-        "exampleTemplate": "{{instanceName}}: Twoja rezerwacja została potwierdzona! Środa 15 sty o 10:00-11:30. Dojazd: [link] Zmień lub anuluj: [link]"
+        "exampleTemplate": "{{instanceName}}: Rezerwacja potwierdzona! 15 stycznia o 10:00. Dojazd: [link] Zmien lub anuluj: [link]"
       },
       "reservation_edited": {
-        "label": "Zmiana terminu",
-        "description": "SMS wysyłany gdy klient zmieni termin rezerwacji.",
-        "exampleTemplate": "{{instanceName}}: Zmieniono termin wizyty na środa 15 sty o 10:00. Zmień lub anuluj: [link]"
+        "label": "Zmiana terminu zatwierdzona",
+        "description": "SMS wysyłany gdy admin zatwierdzi zmianę terminu.",
+        "exampleTemplate": "{{instanceName}}: Potwierdzamy nowy termin: 15 stycznia o 10:00. Zmien lub anuluj: [link]"
+      },
+      "reservation_rejected": {
+        "label": "Zmiana terminu odrzucona",
+        "description": "SMS wysyłany gdy admin odrzuci prośbę o zmianę terminu.",
+        "exampleTemplate": "{{instanceName}}: Niestety nie mozemy zmienic terminu rezerwacji: 15 stycznia o 10:00. Wybierz inny lub anuluj: [link]"
       },
       "reminder_1day": {
         "label": "Przypomnienie 1 dzień przed",
         "description": "Automatyczne przypomnienie wysyłane dzień przed wizytą.",
-        "exampleTemplate": "{{instanceName}}: Przypomnienie - jutro o 10:00 masz wizytę. Zmień lub anuluj: [link]"
+        "exampleTemplate": "{{instanceName}}: Przypomnienie - jutro o 10:00 masz wizyte. Zmien lub anuluj: [link]"
       },
       "reminder_1hour": {
         "label": "Przypomnienie 1 godzinę przed",
         "description": "Automatyczne przypomnienie wysyłane godzinę przed wizytą.",
-        "exampleTemplate": "{{instanceName}}: Za godzinę o 10:00 masz wizytę. Do zobaczenia!"
+        "exampleTemplate": "{{instanceName}}: Za godzine o 10:00 masz wizyte. Telefon: 123456789. Do zobaczenia!"
       },
       "vehicle_ready": {
         "label": "Samochód do odbioru",
         "description": "SMS wysyłany gdy auto jest gotowe do odebrania.",
-        "exampleTemplate": "{{instanceName}}: Twój samochód jest już gotowy do odbioru!"
+        "exampleTemplate": "Twoj samochod jest gotowy do odbioru. Zapraszamy!"
       }
     },
     "templates": {

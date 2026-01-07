@@ -157,16 +157,16 @@ serve(async (req: Request): Promise<Response> => {
 
     const confirmationCode = await generateUniqueConfirmationCode(supabase);
 
-    // Check instance auto_confirm setting and get google maps URL and name
+    // Check instance auto_confirm setting and get google maps URL and name (prefer short_name)
     const { data: instanceSettings } = await supabase
       .from("instances")
-      .select("auto_confirm_reservations, google_maps_url, name, social_facebook, social_instagram, slug")
+      .select("auto_confirm_reservations, google_maps_url, name, short_name, social_facebook, social_instagram, slug")
       .eq("id", instanceId)
       .single();
 
     const autoConfirm = instanceSettings?.auto_confirm_reservations !== false;
     const googleMapsUrl = instanceSettings?.google_maps_url || null;
-    const instanceName = instanceSettings?.name || "Myjnia";
+    const instanceName = instanceSettings?.short_name || instanceSettings?.name || "Myjnia";
     const reservationStatus = autoConfirm ? "confirmed" : "pending";
 
     // Create reservation
@@ -319,11 +319,15 @@ serve(async (req: Request): Promise<Response> => {
     
     // Different message based on auto-confirm setting, include maps link if available, use dynamic instance name
     const mapsLinkPart = googleMapsUrl ? ` Dojazd: ${googleMapsUrl}` : "";
-    const editLinkPart = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : "";
+    const editLinkPart = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : "";
+    
+    // Format: "7 stycznia" instead of "7 sty"
+    const monthNamesFull = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+    const monthNameFull = monthNamesFull[dateObj.getMonth()];
     
     const smsMessage = autoConfirm 
-      ? `${instanceName}: Rezerwacja potwierdzona! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}-${endTime}.${mapsLinkPart}${editLinkPart}`
-      : `${instanceName}: Rezerwacja przyjęta! ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dayNum} ${monthName} o ${reservationData.time}. Potwierdzimy ją wkrótce.${mapsLinkPart}${editLinkPart}`;
+      ? `${instanceName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${reservationData.time}.${mapsLinkPart}${editLinkPart}`
+      : `${instanceName}: Otrzymalismy prosbe o rezerwacje: ${dayNum} ${monthNameFull} o ${reservationData.time}. Potwierdzimy ja wkrotce.${editLinkPart}`;
     
     if (SMSAPI_TOKEN) {
       try {
