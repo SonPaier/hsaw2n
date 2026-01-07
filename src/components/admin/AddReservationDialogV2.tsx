@@ -799,9 +799,17 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     setSelectedTime(null);
   };
 
-  // Search customer by phone (normalize by removing spaces)
+  // Normalize phone: remove spaces and country code (+48, 0048, 48 at start)
+  const normalizePhone = (phone: string): string => {
+    let normalized = phone.replace(/\s+/g, '').replace(/[()-]/g, '');
+    // Remove common Polish country code prefixes
+    normalized = normalized.replace(/^\+48/, '').replace(/^0048/, '').replace(/^48(?=\d{9}$)/, '');
+    return normalized;
+  };
+
+  // Search customer by phone (normalize by removing spaces and country code)
   const searchByPhone = useCallback(async (searchPhone: string) => {
-    const normalizedSearch = searchPhone.replace(/\s+/g, '');
+    const normalizedSearch = normalizePhone(searchPhone);
     if (normalizedSearch.length < 3) {
       setFoundVehicles([]);
       setShowPhoneDropdown(false);
@@ -814,7 +822,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         .from('customer_vehicles')
         .select('id, phone, model, plate, customer_id')
         .eq('instance_id', instanceId)
-        .or(`phone.ilike.%${normalizedSearch}%,phone.ilike.%${searchPhone}%`)
+        .or(`phone.ilike.%${normalizedSearch}%`)
         .order('last_used_at', { ascending: false })
         .limit(5);
       
@@ -1422,13 +1430,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   if (byCustomerId) {
                     vehicleData = byCustomerId;
                   } else {
-                    // Fallback: try by phone number (normalized)
-                    const normalizedPhone = customer.phone.replace(/\s+/g, '');
+                    // Fallback: try by phone number (normalized - remove spaces and country code)
+                    const normalizedPhone = normalizePhone(customer.phone);
                     const { data: byPhone } = await supabase
                       .from('customer_vehicles')
                       .select('model, car_size')
                       .eq('instance_id', instanceId)
-                      .or(`phone.eq.${normalizedPhone},phone.eq.${customer.phone}`)
+                      .or(`phone.ilike.%${normalizedPhone}%`)
                       .order('last_used_at', { ascending: false })
                       .limit(1)
                       .maybeSingle();
