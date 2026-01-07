@@ -1452,9 +1452,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             console.error('Failed to read clipboard:', err);
                           }
                         }}
-                        className="p-1 rounded hover:bg-muted transition-colors"
+                        className="p-1 rounded hover:bg-muted transition-colors group"
                       >
-                        <ClipboardPaste className="w-3.5 h-3.5 text-muted-foreground" />
+                        <ClipboardPaste className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
