@@ -81,7 +81,7 @@ interface ExistingReservation {
   customer_phone: string;
   vehicle_plate: string;
   car_size: string | null;
-  notes: string | null;
+  customer_notes: string | null;
   instance_id: string;
 }
 export interface CustomerBookingWizardProps {
@@ -573,7 +573,7 @@ export default function CustomerBookingWizard({
       setCustomerName(existingReservation.customer_name || '');
       setCustomerPhone(existingReservation.customer_phone || '');
       setCarModel(existingReservation.vehicle_plate || '');
-      setCustomerNotes(existingReservation.notes || '');
+      setCustomerNotes(existingReservation.customer_notes || '');
       if (existingReservation.car_size) {
         setCarSize(existingReservation.car_size as 'small' | 'medium' | 'large');
       }
@@ -878,7 +878,7 @@ export default function CustomerBookingWizard({
         customer_phone: existingReservation.customer_phone,
         vehicle_plate: existingReservation.vehicle_plate,
         car_size: existingReservation.car_size as 'small' | 'medium' | 'large' | null,
-        notes: existingReservation.notes,
+        customer_notes: existingReservation.customer_notes,
         confirmation_code: newConfirmationCode,
         status: 'change_requested',
         original_reservation_id: existingReservation.id,
