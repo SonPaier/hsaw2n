@@ -249,13 +249,15 @@ const ReservationDetailsDrawer = ({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onClose}>
+      <Sheet open={open} onOpenChange={onClose} modal={false}>
         <SheetContent 
           side="right" 
           className="sm:max-w-lg w-full flex flex-col shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.2)]"
           hideCloseButton
           hideOverlay
-          onFocusOutside={(e) => e.preventDefault()}
+          // Keep drawer open; allow clicking calendar behind
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
         >
           {/* Header with time/date and X button */}
           <SheetHeader className="flex-shrink-0 border-b pb-4">
