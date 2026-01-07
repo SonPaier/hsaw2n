@@ -220,6 +220,27 @@ const ClientSearchAutocomplete = ({
     );
   };
 
+  // Format phone number - remove +48 prefix, format as 666 610 222
+  const formatPhone = (phone: string) => {
+    // Check if it starts with +48 or 0048
+    const isPolish = /^(\+48|0048|48)/.test(phone.replace(/\s/g, ''));
+    // Remove all non-digits
+    let digits = phone.replace(/\D/g, '');
+    // Remove Polish prefix if present
+    if (digits.startsWith('48') && digits.length > 9) {
+      digits = digits.slice(2);
+    }
+    // Format 9-digit number with spaces
+    if (digits.length === 9) {
+      return digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+    }
+    // For non-Polish numbers, show country code
+    if (!isPolish && phone.startsWith('+')) {
+      return phone;
+    }
+    return digits;
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -257,29 +278,27 @@ const ClientSearchAutocomplete = ({
       </div>
 
       {dropdownOpen && foundCustomers.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-popover shadow-lg z-[9999]">
+        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
           {foundCustomers.map((customer, index) => (
             <button
               key={customer.id}
               type="button"
               className={cn(
-                "w-full p-3 text-left transition-colors flex flex-col border-b border-border last:border-0",
-                index === activeIndex ? "bg-accent" : "hover:bg-muted/50"
+                "w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0",
+                index === activeIndex ? "bg-accent" : "hover:bg-muted/30"
               )}
               onClick={() => handleSelectCustomer(customer)}
               onMouseEnter={() => setActiveIndex(index)}
             >
-              <div className="font-medium text-sm">
+              <div className="font-semibold text-base text-foreground">
                 {highlightMatch(customer.name, inputValue)}
-                <span className="text-muted-foreground font-normal ml-2">
-                  ({customer.phone})
-                </span>
               </div>
-              {customer.email && (
-                <div className="text-xs text-muted-foreground">
-                  {customer.email}
-                </div>
-              )}
+              <div className="text-sm">
+                <span className="text-primary font-medium">
+                  {formatPhone(customer.phone)}
+                </span>
+                {customer.email && <span className="text-muted-foreground"> • {customer.email}</span>}
+              </div>
             </button>
           ))}
         </div>
