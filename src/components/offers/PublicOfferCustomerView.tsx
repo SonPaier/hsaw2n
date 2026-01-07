@@ -1087,23 +1087,28 @@ export const PublicOfferCustomerView = ({
                                 <div 
                                   key={item.id}
                                   className={cn(
-                                    "flex items-center justify-between py-2 px-3 rounded-md transition-all",
+                                    "py-2 px-3 rounded-md transition-all space-y-1",
                                     isItemSelected && "bg-primary/5"
                                   )}
                                 >
-                                  <div className="flex-1">
-                                    <p 
-                                      className="font-medium"
-                                      style={{ color: branding.offer_section_text_color }}
-                                    >
-                                      {item.custom_name}
-                                    </p>
-                                    {item.custom_description && renderDescription(item.custom_description)}
-                                  </div>
-                                  <div className="flex items-center gap-3">
+                                  {/* Row 1: Product name */}
+                                  <p 
+                                    className="font-medium"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {item.custom_name}
+                                  </p>
+                                  {/* Row 2: Description */}
+                                  {item.custom_description && (
+                                    <div className="text-sm opacity-70">
+                                      {renderDescription(item.custom_description)}
+                                    </div>
+                                  )}
+                                  {/* Row 3: Price + Button aligned right */}
+                                  <div className="flex items-center justify-end gap-3 pt-1">
                                     {!offer.hide_unit_prices && (
                                       <span 
-                                        className="font-medium"
+                                        className="font-medium text-sm"
                                         style={{ color: branding.offer_section_text_color }}
                                       >
                                         +{formatPrice(itemTotal)}
@@ -1152,17 +1157,25 @@ export const PublicOfferCustomerView = ({
             borderColor: branding.offer_primary_color,
           }}
         >
-          <CardContent className="pt-6 space-y-3">
-            <div className="flex justify-between text-sm" style={{ color: branding.offer_section_text_color }}>
-              <span>{t('publicOffer.netTotal')}</span>
-              <span className="font-medium">{formatPrice(dynamicTotals.net)}</span>
+          <CardContent className="py-3 md:py-4">
+            {/* Mobile: Netto + VAT in one line */}
+            <div className="flex items-center justify-between gap-2 text-xs md:hidden mb-1" style={{ color: branding.offer_section_text_color }}>
+              <span>{t('publicOffer.netTotal')}: <span className="font-medium">{formatPrice(dynamicTotals.net)}</span></span>
+              <span>VAT ({offer.vat_rate}%): <span className="font-medium">{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span></span>
             </div>
-            <div className="flex justify-between text-sm" style={{ color: branding.offer_section_text_color }}>
-              <span>VAT ({offer.vat_rate}%)</span>
-              <span className="font-medium">{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span>
+            {/* Desktop: Separate lines */}
+            <div className="hidden md:block space-y-1">
+              <div className="flex justify-between text-xs" style={{ color: branding.offer_section_text_color }}>
+                <span>{t('publicOffer.netTotal')}</span>
+                <span className="font-medium">{formatPrice(dynamicTotals.net)}</span>
+              </div>
+              <div className="flex justify-between text-xs" style={{ color: branding.offer_section_text_color }}>
+                <span>VAT ({offer.vat_rate}%)</span>
+                <span className="font-medium">{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span>
+              </div>
             </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
+            <Separator className="my-1.5 md:my-2" />
+            <div className="flex justify-between text-sm md:text-base font-bold">
               <span style={{ color: branding.offer_section_text_color }}>
                 {t('publicOffer.grossTotal')}
               </span>
