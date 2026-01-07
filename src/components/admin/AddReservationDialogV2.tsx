@@ -1509,22 +1509,34 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               </div>
               
               {showPhoneDropdown && foundVehicles.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden bg-popover shadow-lg z-[9999]">
-                  {foundVehicles.map((vehicle) => (
-                    <button
-                      key={vehicle.id}
-                      type="button"
-                      className="w-full p-3 text-left hover:bg-muted/50 transition-colors flex flex-col border-b border-border last:border-0"
-                      onClick={() => selectVehicle(vehicle)}
-                    >
-                      <div className="font-medium text-sm">
-                        {vehicle.customer_name || vehicle.phone}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {vehicle.phone}{vehicle.model && ` • ${vehicle.model}`}
-                      </div>
-                    </button>
-                  ))}
+                <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
+                  {foundVehicles.map((vehicle) => {
+                    // Format phone: remove +48 prefix, add spaces for 9-digit numbers
+                    const formatDisplayPhone = (phone: string) => {
+                      let display = phone.replace(/^\+48\s*/, '');
+                      const digits = display.replace(/\D/g, '');
+                      if (digits.length === 9) {
+                        return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6)}`;
+                      }
+                      return display;
+                    };
+                    
+                    return (
+                      <button
+                        key={vehicle.id}
+                        type="button"
+                        className="w-full p-3 text-left hover:bg-muted/30 transition-colors flex flex-col border-b border-border last:border-0"
+                        onClick={() => selectVehicle(vehicle)}
+                      >
+                        <div className="font-medium text-base">
+                          {vehicle.customer_name || formatDisplayPhone(vehicle.phone)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatDisplayPhone(vehicle.phone)}{vehicle.model && ` • ${vehicle.model}`}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
