@@ -66,12 +66,13 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
     
     const { data } = await supabase
       .from('instances')
-      .select('name')
+      .select('name, short_name')
       .eq('id', instanceId)
       .single();
     
     if (data) {
-      setCurrentInstanceName(data.name);
+      // Prefer short_name for SMS examples
+      setCurrentInstanceName(data.short_name || data.name);
     }
   };
 
