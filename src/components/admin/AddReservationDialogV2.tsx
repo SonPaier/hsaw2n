@@ -1366,7 +1366,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
         <SheetContent 
           side="right"
-          className="w-full sm:max-w-lg flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
           hideOverlay
           hideCloseButton
           // Keep drawer open; allow clicking calendar behind
