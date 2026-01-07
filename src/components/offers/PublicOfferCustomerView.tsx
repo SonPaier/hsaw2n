@@ -1175,7 +1175,7 @@ export const PublicOfferCustomerView = ({
               </div>
             </div>
             <Separator className="my-1.5 md:my-2" />
-            <div className="flex justify-between text-sm md:text-base font-bold">
+            <div className="flex justify-between text-xl md:text-base font-bold">
               <span style={{ color: branding.offer_section_text_color }}>
                 {t('publicOffer.grossTotal')}
               </span>
