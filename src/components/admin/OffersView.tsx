@@ -335,7 +335,12 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             offerId={duplicatingOfferId ? undefined : editingOfferId || undefined}
             duplicateFromId={duplicatingOfferId || undefined}
             onClose={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }}
-            onSaved={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); fetchOffers(); }}
+            onSaved={async () => { 
+              await fetchOffers();
+              setShowGenerator(false); 
+              setEditingOfferId(null); 
+              setDuplicatingOfferId(null); 
+            }}
           />
         </div>
       </>
