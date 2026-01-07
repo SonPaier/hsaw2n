@@ -45,6 +45,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     invoice_company_name: '',
     nip: '',
     phone: '',
+    reservation_phone: '',
     email: '',
     address: '',
     logo_url: '',
@@ -64,6 +65,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         invoice_company_name: instanceData.invoice_company_name || '',
         nip: instanceData.nip || '',
         phone: instanceData.phone || '',
+        reservation_phone: instanceData.reservation_phone || '',
         email: instanceData.email || '',
         address: instanceData.address || '',
         logo_url: instanceData.logo_url || '',
@@ -165,6 +167,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
           invoice_company_name: companyForm.invoice_company_name || null,
           nip: companyForm.nip || null,
           phone: companyForm.phone || null,
+          reservation_phone: companyForm.reservation_phone || null,
           email: companyForm.email || null,
           address: companyForm.address || null,
           logo_url: companyForm.logo_url || null,
@@ -308,6 +311,21 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="+48 123 456 789"
               />
+            </div>
+
+            {/* Reservation Phone */}
+            <div className="space-y-2">
+              <Label htmlFor="reservation_phone">{t('instanceSettings.reservationPhone')}</Label>
+              <Input
+                id="reservation_phone"
+                type="tel"
+                value={companyForm.reservation_phone}
+                onChange={(e) => handleInputChange('reservation_phone', e.target.value)}
+                placeholder="+48 123 456 789"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('instanceSettings.reservationPhoneDescription')}
+              </p>
             </div>
 
             {/* Email */}
