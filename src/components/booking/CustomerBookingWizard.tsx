@@ -900,6 +900,19 @@ export default function CustomerBookingWizard({
       navigate(`/res?code=${existingReservation.confirmation_code}`);
     } catch (error) {
       console.error('Error creating change request:', error);
+      // Report unexpected backend errors to Sentry
+      const { captureBackendError } = await import('@/lib/sentry');
+      captureBackendError('handleUpdateReservation', {
+        code: (error as { code?: string })?.code,
+        message: (error as Error)?.message,
+        details: error
+      }, {
+        confirmation_code: existingReservation.confirmation_code,
+        instance_id: existingReservation.instance_id,
+        service_id: selectedService.id,
+        date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
+        time: selectedTime
+      });
       toast({
         title: t('common.error'),
         description: t('errors.generic'),

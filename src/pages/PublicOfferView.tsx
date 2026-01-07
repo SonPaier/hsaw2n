@@ -86,6 +86,13 @@ const PublicOfferView = () => {
         }
       } catch (err) {
         console.error('Error fetching offer:', err);
+        // Report unexpected backend errors to Sentry
+        const { captureBackendError } = await import('@/lib/sentry');
+        captureBackendError('fetchPublicOffer', {
+          code: (err as { code?: string })?.code,
+          message: (err as Error)?.message,
+          details: err
+        }, { token });
         setError(t('publicOffer.loadError'));
       } finally {
         setLoading(false);
