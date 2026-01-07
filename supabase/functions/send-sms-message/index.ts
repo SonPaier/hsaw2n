@@ -63,14 +63,14 @@ serve(async (req) => {
       }
     }
     
-    // Validate phone number format (must be 11-15 digits after +)
+    // Validate phone number format (Polish: 9 digits + country code 48 = 11 digits minimum)
     const digitsOnly = normalizedPhone.replace(/\D/g, "");
     console.log(`Sending SMS to: ${normalizedPhone} (digits: ${digitsOnly.length})`);
     
-    if (digitsOnly.length < 11 || digitsOnly.length > 15) {
-      console.error(`Invalid phone number length: ${normalizedPhone}`);
+    if (digitsOnly.length < 11 || digitsOnly.length > 14) {
+      console.error(`Invalid phone number length: ${normalizedPhone} (${digitsOnly.length} digits)`);
       return new Response(
-        JSON.stringify({ error: "Invalid phone number format", phone: normalizedPhone }),
+        JSON.stringify({ error: "Invalid phone number format", phone: normalizedPhone, digits: digitsOnly.length }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
