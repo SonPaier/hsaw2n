@@ -1357,7 +1357,7 @@ export const PublicOfferCustomerView = ({
                         target="_blank" 
                         rel="noopener noreferrer"
                       >
-                        Zobacz nasze realizacje
+                        Realizacje
                       </a>
                     </Button>
                   </div>
