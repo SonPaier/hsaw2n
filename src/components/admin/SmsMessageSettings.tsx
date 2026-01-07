@@ -48,6 +48,7 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<MessageSetting[]>([]);
   const [currentInstanceName, setCurrentInstanceName] = useState(instanceName || '');
+  const [currentReservationPhone, setCurrentReservationPhone] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [smsLogs, setSmsLogs] = useState<SmsLogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -66,13 +67,15 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
     
     const { data } = await supabase
       .from('instances')
-      .select('name, short_name')
+      .select('name, short_name, phone, reservation_phone')
       .eq('id', instanceId)
       .single();
     
     if (data) {
       // Prefer short_name for SMS examples
       setCurrentInstanceName(data.short_name || data.name);
+      // Prefer reservation_phone for SMS examples
+      setCurrentReservationPhone(data.reservation_phone || data.phone || '');
     }
   };
 
@@ -194,7 +197,9 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
 
   const getExampleMessage = (type: SmsMessageType): string => {
     const template = t(`sms.messageTypes.${type}.exampleTemplate`);
-    return template.replace('{{instanceName}}', currentInstanceName || 'Nazwa myjni');
+    return template
+      .replace('{{instanceName}}', currentInstanceName || 'Nazwa myjni')
+      .replace('{{reservationPhone}}', currentReservationPhone || '+48 123 456 789');
   };
 
   if (loading) {

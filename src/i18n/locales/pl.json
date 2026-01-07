@@ -719,7 +719,7 @@
       "reminder_1hour": {
         "label": "Przypomnienie 1 godzinę przed",
         "description": "Automatyczne przypomnienie wysyłane godzinę przed wizytą.",
-        "exampleTemplate": "{{instanceName}}: Za godzine o 10:00 masz wizyte. Telefon: 123456789. Do zobaczenia!"
+        "exampleTemplate": "{{instanceName}}: Za godzine o 10:00 masz wizyte. Telefon: {{reservationPhone}}. Do zobaczenia!"
       },
       "vehicle_ready": {
         "label": "Samochód do odbioru",
