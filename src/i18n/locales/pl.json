@@ -848,7 +848,11 @@
     "variablePrice": "Zmienna",
     "selectedCount": "Wybrano: {{count}}",
     "totalTime": "Łączny czas",
-    "addButton": "Dodaj"
+    "addButton": "Dodaj",
+    "searchPlaceholder": "Wpisz skrót np. MZ, KPL...",
+    "matchingServices": "Pasujące",
+    "selectedServices": "Zaznaczone",
+    "noMatches": "Brak dopasowań"
   },
   "addReservation": {
     "title": "Nowa rezerwacja",

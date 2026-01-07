@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -21,6 +22,7 @@ type CarSize = 'small' | 'medium' | 'large';
 interface Service {
   id: string;
   name: string;
+  shortcut?: string | null;
   category_id: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
@@ -65,11 +67,18 @@ const ServiceSelectionDrawer = ({
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset selected when drawer opens
+  // Reset selected and search when drawer opens
   useEffect(() => {
     if (open) {
       setSelectedIds(initialSelectedIds);
+      setSearchQuery('');
+      // Focus search input after drawer animation
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 300);
     }
   }, [open, initialSelectedIds]);
 
@@ -82,7 +91,7 @@ const ServiceSelectionDrawer = ({
       
       let servicesQuery = supabase
         .from('services')
-        .select('id, name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
+        .select('id, name, shortcut, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
         .eq('instance_id', instanceId)
         .eq('active', true);
       
@@ -119,18 +128,78 @@ const ServiceSelectionDrawer = ({
     fetchData();
   }, [open, instanceId, stationType]);
 
-  // Group services by category - show all categories even with 0 services
+  // Parse search tokens and find matching services
+  const { matchingServices, searchTokens } = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return { matchingServices: [], searchTokens: [] };
+    }
+
+    const tokens = searchQuery.toUpperCase().split(/\s+/).filter(Boolean);
+    const matched: { service: Service; token: string }[] = [];
+
+    tokens.forEach(token => {
+      // First try exact shortcut match
+      let found = services.find(s => 
+        s.shortcut?.toUpperCase() === token && 
+        !selectedIds.includes(s.id) &&
+        !matched.some(m => m.service.id === s.id)
+      );
+      
+      // Fallback to partial shortcut match
+      if (!found) {
+        found = services.find(s => 
+          s.shortcut?.toUpperCase().startsWith(token) && 
+          !selectedIds.includes(s.id) &&
+          !matched.some(m => m.service.id === s.id)
+        );
+      }
+      
+      // Fallback to name match
+      if (!found) {
+        found = services.find(s => 
+          s.name.toUpperCase().includes(token) && 
+          !selectedIds.includes(s.id) &&
+          !matched.some(m => m.service.id === s.id)
+        );
+      }
+
+      if (found) {
+        matched.push({ service: found, token });
+      }
+    });
+
+    return { matchingServices: matched, searchTokens: tokens };
+  }, [searchQuery, services, selectedIds]);
+
+  // Get selected services with details
+  const selectedServices = useMemo(() => {
+    return selectedIds
+      .map(id => services.find(s => s.id === id))
+      .filter((s): s is Service => s !== undefined);
+  }, [selectedIds, services]);
+
+  // Group services by category - filter based on search
   const groupedServices = useMemo(() => {
     const groups: { category: ServiceCategory; services: Service[] }[] = [];
     
     // All categories with their services
     categories.forEach(category => {
-      const categoryServices = services.filter(s => s.category_id === category.id);
+      let categoryServices = services.filter(s => s.category_id === category.id);
+      
+      // Filter by search if there's a query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toUpperCase();
+        categoryServices = categoryServices.filter(s => 
+          s.shortcut?.toUpperCase().includes(query) ||
+          s.name.toUpperCase().includes(query)
+        );
+      }
+      
       groups.push({ category, services: categoryServices });
     });
     
     return groups;
-  }, [services, categories]);
+  }, [services, categories, searchQuery]);
 
   // Get price for service based on car size
   const getPrice = (service: Service): number | null => {
@@ -171,6 +240,24 @@ const ServiceSelectionDrawer = ({
         ? prev.filter(id => id !== serviceId)
         : [...prev, serviceId]
     );
+  };
+
+  // Add service from matching chips
+  const addFromMatch = (service: Service, token: string) => {
+    setSelectedIds(prev => [...prev, service.id]);
+    // Remove the matched token from search query
+    const newQuery = searchQuery
+      .toUpperCase()
+      .split(/\s+/)
+      .filter(t => t !== token)
+      .join(' ');
+    setSearchQuery(newQuery);
+    searchInputRef.current?.focus();
+  };
+
+  // Remove selected service
+  const removeService = (serviceId: string) => {
+    setSelectedIds(prev => prev.filter(id => id !== serviceId));
   };
 
   // Toggle category expansion
@@ -220,6 +307,15 @@ const ServiceSelectionDrawer = ({
     onClose();
   };
 
+  // Get display label for service chip
+  const getChipLabel = (service: Service): string => {
+    if (service.shortcut) {
+      return service.shortcut;
+    }
+    // Truncate long names
+    return service.name.length > 12 ? service.name.substring(0, 10) + '...' : service.name;
+  };
+
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent 
@@ -240,6 +336,83 @@ const ServiceSelectionDrawer = ({
           </SheetTitle>
         </SheetHeader>
 
+        {/* Search Section */}
+        <div className="px-4 py-3 border-b space-y-3 shrink-0">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              type="search"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('serviceDrawer.searchPlaceholder')}
+              className="pl-9 pr-9 h-11"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Matching Services Chips */}
+          {matchingServices.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">{t('serviceDrawer.matchingServices')}</p>
+              <div className="flex flex-wrap gap-2">
+                {matchingServices.map(({ service, token }) => (
+                  <button
+                    key={service.id}
+                    type="button"
+                    onClick={() => addFromMatch(service, token)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors min-h-[36px]"
+                  >
+                    <span className="font-bold">{service.shortcut || '+'}</span>
+                    <span className="text-primary/80">-</span>
+                    <span className="truncate max-w-[150px]">{service.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No matches message */}
+          {searchQuery.trim() && matchingServices.length === 0 && (
+            <p className="text-sm text-muted-foreground">{t('serviceDrawer.noMatches')}</p>
+          )}
+
+          {/* Selected Services Chips */}
+          {selectedServices.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">
+                {t('serviceDrawer.selectedServices')} ({selectedServices.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selectedServices.map(service => (
+                  <button
+                    key={service.id}
+                    type="button"
+                    onClick={() => removeService(service.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
+                  >
+                    <span>{getChipLabel(service)}</span>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
@@ -251,6 +424,11 @@ const ServiceSelectionDrawer = ({
               {groupedServices.map(({ category, services: categoryServices }) => {
                 const isExpanded = expandedCategories.has(category.id);
                 const serviceCount = categoryServices.length;
+                
+                // Hide empty categories when searching
+                if (searchQuery.trim() && serviceCount === 0) {
+                  return null;
+                }
                 
                 return (
                   <Collapsible
@@ -300,7 +478,12 @@ const ServiceSelectionDrawer = ({
                             >
                               {/* Service info */}
                               <div className="flex-1 text-left">
-                                <p className="font-medium text-foreground">{service.name}</p>
+                                <p className="font-medium text-foreground">
+                                  {service.shortcut && (
+                                    <span className="text-primary font-bold mr-2">{service.shortcut}</span>
+                                  )}
+                                  {service.name}
+                                </p>
                               </div>
                               
                               {/* Price & Duration */}
