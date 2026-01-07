@@ -177,6 +177,16 @@ const MojaRezerwacja = () => {
       toast({ title: t('myReservation.reservationCancelled') });
     } catch (err) {
       console.error('Error cancelling reservation:', err);
+      // Report unexpected backend errors to Sentry
+      const { captureBackendError } = await import('@/lib/sentry');
+      captureBackendError('handleCancelReservation', {
+        code: (err as { code?: string })?.code,
+        message: (err as Error)?.message,
+        details: err
+      }, {
+        confirmation_code: reservation.confirmation_code,
+        instance_id: reservation.instance_id
+      });
       toast({ title: t('common.error'), description: t('errors.generic'), variant: 'destructive' });
     } finally {
       setCancelling(false);

@@ -85,6 +85,27 @@ export const captureError = (error: Error, context?: Record<string, unknown>) =>
   });
 };
 
+// Helper to capture backend/HTTP errors (400, 500, RPC errors, etc.)
+export const captureBackendError = (
+  operation: string,
+  error: { code?: string; message?: string; details?: unknown },
+  context?: Record<string, unknown>
+) => {
+  const err = new Error(`[${operation}] ${error.message || 'Unknown backend error'}`);
+  Sentry.captureException(err, {
+    tags: {
+      error_code: error.code || 'unknown',
+      operation,
+      error_type: 'backend_error',
+    },
+    extra: {
+      ...context,
+      error_details: error.details,
+      original_error: error,
+    },
+  });
+};
+
 // Helper to capture messages
 export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
   Sentry.captureMessage(message, level);
