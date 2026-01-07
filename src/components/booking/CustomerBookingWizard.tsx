@@ -814,7 +814,7 @@ export default function CustomerBookingWizard({
     }
   };
 
-  // Handle update reservation in edit mode - creates a change request
+  // Handle update reservation in edit mode - creates a change request via SECURITY DEFINER function
   const handleUpdateReservation = async () => {
     if (!existingReservation || !selectedService || !selectedDate || !selectedTime || !instance) {
       toast({
@@ -826,77 +826,56 @@ export default function CustomerBookingWizard({
     }
     setIsSaving(true);
     try {
-      // Check if there's already an active change request for this reservation
-      const {
-        data: existingChangeRequest
-      } = await supabase.from('reservations').select('id').eq('original_reservation_id', existingReservation.id).eq('status', 'change_requested').maybeSingle();
-      if (existingChangeRequest) {
-        toast({
-          title: t('common.error'),
-          description: t('myReservation.alreadyHasPendingChange'),
-          variant: 'destructive'
-        });
+      const newReservationDate = format(selectedDate, 'yyyy-MM-dd');
+
+      // Use SECURITY DEFINER function to create change request (bypasses RLS)
+      const { data: changeResult, error: changeError } = await supabase.rpc(
+        'request_reservation_change_by_code',
+        {
+          _original_confirmation_code: existingReservation.confirmation_code,
+          _new_reservation_date: newReservationDate,
+          _new_start_time: selectedTime,
+          _new_service_id: selectedService.id,
+          _new_station_id: selectedStationId
+        }
+      );
+
+      if (changeError) {
+        // Handle specific error messages from function
+        const errMsg = changeError.message || '';
+        if (errMsg.includes('ALREADY_HAS_PENDING_CHANGE')) {
+          toast({
+            title: t('common.error'),
+            description: t('myReservation.alreadyHasPendingChange'),
+            variant: 'destructive'
+          });
+        } else if (errMsg.includes('RESERVATION_NOT_FOUND')) {
+          toast({
+            title: t('common.error'),
+            description: t('errors.notFound'),
+            variant: 'destructive'
+          });
+        } else if (errMsg.includes('RESERVATION_NOT_EDITABLE')) {
+          toast({
+            title: t('common.error'),
+            description: t('myReservation.cannotEdit'),
+            variant: 'destructive'
+          });
+        } else if (errMsg.includes('EDIT_CUTOFF_PASSED')) {
+          toast({
+            title: t('common.error'),
+            description: t('myReservation.editCutoffPassed'),
+            variant: 'destructive'
+          });
+        } else {
+          throw changeError;
+        }
         setIsSaving(false);
         return;
       }
-      const newReservationDate = format(selectedDate, 'yyyy-MM-dd');
-      const serviceDuration = getServiceDuration(selectedService);
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      const endMinutes = hours * 60 + minutes + serviceDuration;
-      const endHours = Math.floor(endMinutes / 60);
-      const endMins = endMinutes % 60;
-      const newEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
-      // Generate new confirmation code for change request
-      const generateCode = () => Math.floor(1000000 + Math.random() * 9000000).toString();
-      let newConfirmationCode = generateCode();
-
-      // Ensure code is unique
-      let attempts = 0;
-      while (attempts < 10) {
-        const {
-          data: existingCode
-        } = await supabase.from('reservations').select('id').eq('confirmation_code', newConfirmationCode).maybeSingle();
-        if (!existingCode) break;
-        newConfirmationCode = generateCode();
-        attempts++;
-      }
-
-      // Create a NEW reservation as change request (original stays untouched)
-      const {
-        data: changeRequest,
-        error: insertError
-      } = await supabase.from('reservations').insert({
-        instance_id: existingReservation.instance_id,
-        reservation_date: newReservationDate,
-        start_time: selectedTime,
-        end_time: newEndTime,
-        station_id: selectedStationId,
-        service_id: selectedService.id,
-        service_ids: [selectedService.id],
-        customer_name: existingReservation.customer_name,
-        customer_phone: existingReservation.customer_phone,
-        vehicle_plate: existingReservation.vehicle_plate,
-        car_size: existingReservation.car_size as 'small' | 'medium' | 'large' | null,
-        customer_notes: existingReservation.customer_notes,
-        confirmation_code: newConfirmationCode,
-        status: 'change_requested',
-        original_reservation_id: existingReservation.id,
-        source: 'customer'
-      }).select().single();
-      if (insertError) throw insertError;
-
-      // Create notification for admin
-      await supabase.from('notifications').insert({
-        instance_id: existingReservation.instance_id,
-        type: 'change_request',
-        title: t('myReservation.notifications.changeRequestTitle', {
-          name: existingReservation.customer_name
-        }),
-        description: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
-        entity_type: 'reservation',
-        entity_id: changeRequest.id
-      });
+      // changeResult is an array with { id, confirmation_code }
+      const newConfirmationCode = changeResult?.[0]?.confirmation_code;
 
       // Send push notification to admin
       try {
@@ -907,7 +886,7 @@ export default function CustomerBookingWizard({
               name: existingReservation.customer_name
             })}`,
             body: `${selectedService.name} - ${newReservationDate} o ${selectedTime}`,
-            url: `/admin?reservationCode=${newConfirmationCode}`
+            url: `/admin?reservationCode=${newConfirmationCode || existingReservation.confirmation_code}`
           }
         });
       } catch (pushError) {

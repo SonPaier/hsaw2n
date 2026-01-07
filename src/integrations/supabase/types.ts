@@ -2123,6 +2123,19 @@ export type Database = {
       increment_sms_usage: { Args: { _instance_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_user_blocked: { Args: { _user_id: string }; Returns: boolean }
+      request_reservation_change_by_code: {
+        Args: {
+          _new_reservation_date: string
+          _new_service_id: string
+          _new_start_time: string
+          _new_station_id?: string
+          _original_confirmation_code: string
+        }
+        Returns: {
+          confirmation_code: string
+          id: string
+        }[]
+      }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
