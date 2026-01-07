@@ -130,21 +130,23 @@ const CustomerSearchInput = ({
       )}
 
       {showDropdown && foundCustomers.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-popover shadow-lg z-[9999]">
+        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
           {foundCustomers.map((customer, index) => (
             <button
               key={customer.id}
               type="button"
               className={cn(
-                "w-full p-3 text-left transition-colors flex flex-col border-b border-border last:border-0",
-                index === selectedIndex ? "bg-accent" : "hover:bg-muted/50"
+                "w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0",
+                index === selectedIndex ? "bg-accent" : "hover:bg-muted/30"
               )}
               onClick={() => handleSelectCustomer(customer)}
             >
-              <div className="font-medium text-sm">{customer.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {customer.phone}
-                {customer.email && ` • ${customer.email}`}
+              <div className="font-semibold text-base text-foreground">{customer.name}</div>
+              <div className="text-sm">
+                <span className="text-primary font-medium">
+                  {customer.phone.replace(/^\+48/, '').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')}
+                </span>
+                {customer.email && <span className="text-muted-foreground"> • {customer.email}</span>}
               </div>
             </button>
           ))}

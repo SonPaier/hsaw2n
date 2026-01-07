@@ -1672,7 +1672,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                       </div>
                       {(isReservationMode || isYardMode) && selectedServices.length > 0 && (
                         <p className="text-base font-bold mt-1">
-                          {t('addReservation.totalDuration')}: {totalDurationMinutes} min, {t('common.price')}: {totalPrice} zł
+                          {t('addReservation.totalDuration')}: {totalDurationMinutes >= 60 
+                            ? `${Math.floor(totalDurationMinutes / 60)}h${totalDurationMinutes % 60 > 0 ? ` ${totalDurationMinutes % 60}min` : ''}`
+                            : `${totalDurationMinutes}min`}, {t('common.price')}: {totalPrice} zł
                         </p>
                       )}
                     </div>
