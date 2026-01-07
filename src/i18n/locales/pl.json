@@ -1013,6 +1013,8 @@
     "primaryButton": "Przycisk główny",
     "secondaryButton": "Przycisk dodatkowy",
     "phone": "Telefon",
+    "reservationPhone": "Telefon do obsługi rezerwacji",
+    "reservationPhoneDescription": "Używany w powiadomieniach SMS",
     "email": "Email",
     "website": "Strona WWW",
     "facebook": "Facebook",

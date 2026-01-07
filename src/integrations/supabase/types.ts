@@ -487,6 +487,7 @@ export type Database = {
           offer_section_text_color: string | null
           phone: string | null
           primary_color: string | null
+          reservation_phone: string | null
           secondary_color: string | null
           short_name: string | null
           show_unit_prices_in_offer: boolean
@@ -533,6 +534,7 @@ export type Database = {
           offer_section_text_color?: string | null
           phone?: string | null
           primary_color?: string | null
+          reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
           show_unit_prices_in_offer?: boolean
@@ -579,6 +581,7 @@ export type Database = {
           offer_section_text_color?: string | null
           phone?: string | null
           primary_color?: string | null
+          reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
           show_unit_prices_in_offer?: boolean
