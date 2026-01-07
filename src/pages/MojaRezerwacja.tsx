@@ -109,8 +109,8 @@ const MojaRezerwacja = () => {
             instance: data.instance as unknown as Reservation['instance'],
           });
           
-          // Check for pending change request linked to this reservation
-          const { data: changeRequest } = await supabase
+          // Check for pending change request linked to this reservation (take the newest)
+          const { data: changeRequest, error: changeRequestError } = await supabase
             .from('reservations')
             .select(`
               id,
@@ -121,8 +121,13 @@ const MojaRezerwacja = () => {
             `)
             .eq('original_reservation_id', data.id)
             .eq('status', 'change_requested')
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
-          
+
+          if (changeRequestError) {
+            console.warn('Error fetching pending change request:', changeRequestError);
+          }
           if (changeRequest) {
             setPendingChangeRequest({
               ...changeRequest,
