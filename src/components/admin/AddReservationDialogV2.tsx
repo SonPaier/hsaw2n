@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle, Plus } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle, Plus, ClipboardPaste } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
@@ -799,9 +799,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     setSelectedTime(null);
   };
 
-  // Search customer by phone
+  // Search customer by phone (normalize by removing spaces)
   const searchByPhone = useCallback(async (searchPhone: string) => {
-    if (searchPhone.length < 3) {
+    const normalizedSearch = searchPhone.replace(/\s+/g, '');
+    if (normalizedSearch.length < 3) {
       setFoundVehicles([]);
       setShowPhoneDropdown(false);
       return;
@@ -813,7 +814,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         .from('customer_vehicles')
         .select('id, phone, model, plate, customer_id')
         .eq('instance_id', instanceId)
-        .ilike('phone', `%${searchPhone}%`)
+        .or(`phone.ilike.%${normalizedSearch}%,phone.ilike.%${searchPhone}%`)
         .order('last_used_at', { ascending: false })
         .limit(5);
       
@@ -867,6 +868,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     setPhone(vehicle.phone);
     setCarModel(vehicle.model);
     setShowPhoneDropdown(false);
+    
+    // Fetch car_size from customer_vehicles
+    const { data: vehicleData } = await supabase
+      .from('customer_vehicles')
+      .select('car_size')
+      .eq('id', vehicle.id)
+      .maybeSingle();
+    
+    if (vehicleData?.car_size) {
+      if (vehicleData.car_size === 'S') setCarSize('small');
+      else if (vehicleData.car_size === 'L') setCarSize('large');
+      else setCarSize('medium');
+    }
     
     if (vehicle.customer_id) {
       const { data } = await supabase
@@ -1387,10 +1401,27 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   setCustomerName(val);
                   setSelectedCustomerId(null);
                 }}
-                onSelect={(customer) => {
+                onSelect={async (customer) => {
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
+                  
+                  // Fetch customer's most recent vehicle
+                  const { data: vehicleData } = await supabase
+                    .from('customer_vehicles')
+                    .select('model, car_size')
+                    .eq('instance_id', instanceId)
+                    .eq('customer_id', customer.id)
+                    .order('last_used_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  
+                  if (vehicleData) {
+                    setCarModel(vehicleData.model);
+                    if (vehicleData.car_size === 'S') setCarSize('small');
+                    else if (vehicleData.car_size === 'L') setCarSize('large');
+                    else setCarSize('medium');
+                  }
                 }}
                 onClear={() => {
                   setSelectedCustomerId(null);
@@ -1401,9 +1432,37 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">
-                {t('common.phone')}
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="phone">
+                  {t('common.phone')}
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const text = await navigator.clipboard.readText();
+                            if (text) {
+                              setPhone(text.trim());
+                              setSelectedCustomerId(null);
+                            }
+                          } catch (err) {
+                            console.error('Failed to read clipboard:', err);
+                          }
+                        }}
+                        className="p-1 rounded hover:bg-muted transition-colors"
+                      >
+                        <ClipboardPaste className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{t('common.paste')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="relative">
                 <Input
                   id="phone"
