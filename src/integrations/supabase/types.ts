@@ -2086,6 +2086,10 @@ export type Database = {
     }
     Functions: {
       can_access_instance: { Args: { _instance_id: string }; Returns: boolean }
+      cancel_reservation_by_code: {
+        Args: { _confirmation_code: string }
+        Returns: boolean
+      }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }
       get_availability_blocks: {
