@@ -408,7 +408,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         return <ReservationConfirmSettings instanceId={instanceId} />;
 
       case 'sms':
-        return <SmsMessageSettings instanceId={instanceId} instanceName={instanceData?.name} />;
+        return <SmsMessageSettings instanceId={instanceId} instanceName={instanceData?.short_name || instanceData?.name} />;
 
       case 'users':
         return instanceId ? <InstanceUsersTab instanceId={instanceId} /> : null;
