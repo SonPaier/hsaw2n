@@ -146,24 +146,14 @@ const MojaRezerwacja = () => {
 
     setCancelling(true);
     try {
-      const { error: updateError } = await supabase
-        .from('reservations')
-        .update({ status: 'cancelled' })
-        .eq('id', reservation.id);
+      // Use SECURITY DEFINER function to cancel reservation
+      const { data: success, error: cancelError } = await supabase
+        .rpc('cancel_reservation_by_code', { _confirmation_code: reservation.confirmation_code });
 
-      if (updateError) throw updateError;
+      if (cancelError) throw cancelError;
+      if (!success) throw new Error('Failed to cancel reservation');
 
-      // Create notification for admin
-      await supabase.from('notifications').insert({
-        instance_id: reservation.instance_id,
-        type: 'reservation_cancelled_by_customer',
-        title: `Klient anulował rezerwację: ${reservation.customer_name}`,
-        description: `${reservation.service.name} - ${format(parseISO(reservation.reservation_date), 'd MMM', { locale: pl })} o ${reservation.start_time.slice(0, 5)}`,
-        entity_type: 'reservation',
-        entity_id: reservation.id
-      });
-
-      // Send push notification to admin
+      // Send push notification to admin via edge function (handles notification creation too)
       try {
         await supabase.functions.invoke('send-push-notification', {
           body: {
