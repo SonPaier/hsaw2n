@@ -1531,8 +1531,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         <div className="font-medium text-base">
                           {vehicle.customer_name || formatDisplayPhone(vehicle.phone)}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDisplayPhone(vehicle.phone)}{vehicle.model && ` • ${vehicle.model}`}
+                        <div className="text-sm">
+                          <span className="text-primary">{formatDisplayPhone(vehicle.phone)}</span>
+                          {vehicle.model && <span className="text-muted-foreground"> • {vehicle.model}</span>}
                         </div>
                       </button>
                     );
