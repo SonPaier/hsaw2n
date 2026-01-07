@@ -1406,8 +1406,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
                   
-                  // Fetch customer's most recent vehicle
-                  const { data: vehicleData } = await supabase
+                  // Fetch customer's most recent vehicle - try by customer_id first, then by phone
+                  let vehicleData = null;
+                  
+                  // Try by customer_id
+                  const { data: byCustomerId } = await supabase
                     .from('customer_vehicles')
                     .select('model, car_size')
                     .eq('instance_id', instanceId)
@@ -1415,6 +1418,25 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     .order('last_used_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();
+                  
+                  if (byCustomerId) {
+                    vehicleData = byCustomerId;
+                  } else {
+                    // Fallback: try by phone number (normalized)
+                    const normalizedPhone = customer.phone.replace(/\s+/g, '');
+                    const { data: byPhone } = await supabase
+                      .from('customer_vehicles')
+                      .select('model, car_size')
+                      .eq('instance_id', instanceId)
+                      .or(`phone.eq.${normalizedPhone},phone.eq.${customer.phone}`)
+                      .order('last_used_at', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    
+                    if (byPhone) {
+                      vehicleData = byPhone;
+                    }
+                  }
                   
                   if (vehicleData) {
                     setCarModel(vehicleData.model);
