@@ -1108,8 +1108,8 @@ const AdminDashboard = () => {
     setAddReservationOpen(true);
   };
   const handleReservationAdded = () => {
-    // Refresh reservations from database - toast is shown in AddReservationDialog
-    fetchReservations();
+    // Realtime already handles adding new reservations to state
+    // Only clear editing state - don't fetch as it causes race condition with realtime
     setEditingReservation(null);
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
