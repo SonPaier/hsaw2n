@@ -139,6 +139,7 @@ export const CarSearchAutocomplete = ({
   const selectCustom = useCallback(() => {
     const trimmedValue = inputValue.trim();
     if (trimmedValue) {
+      setInputValue(trimmedValue);
       setIsOpen(false);
       setActiveIndex(-1);
       onChange({ type: 'custom', label: trimmedValue });
