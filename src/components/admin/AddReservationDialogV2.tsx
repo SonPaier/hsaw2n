@@ -519,12 +519,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
-        // Reset time change flow and manual time state
+        // Reset time change flow and set manual time from editing reservation
         setIsChangingTime(false);
         setTimeSelectionMode('manual');
-        setManualStartTime('');
-        setManualEndTime('');
-        setManualStationId(null);
+        setManualStartTime(editingReservation.start_time?.substring(0, 5) || '');
+        setManualEndTime(editingReservation.end_time?.substring(0, 5) || '');
+        setManualStationId(editingReservation.station_id);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click
         if (wasOpenRef.current) {
