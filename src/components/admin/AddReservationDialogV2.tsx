@@ -1311,12 +1311,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       let finalEndTime: string;
       let finalStationId: string | null;
       
-      if (isEditMode && !isChangingTime && editingReservation) {
-        // Keep original times when not changing time in edit mode
-        finalStartTime = editingReservation.start_time?.substring(0, 5) || '';
-        finalEndTime = editingReservation.end_time?.substring(0, 5) || '';
-        finalStationId = editingReservation.station_id;
-      } else if (timeSelectionMode === 'manual') {
+      // Always use manual values in manual mode (they're prefilled with original values on edit)
+      if (timeSelectionMode === 'manual') {
         finalStartTime = manualStartTime;
         finalEndTime = manualEndTime;
         finalStationId = manualStationId;
