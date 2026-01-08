@@ -9,6 +9,7 @@ import { CarModelsProvider } from "@/contexts/CarModelsContext";
 import Rezerwacje from "./pages/Rezerwacje";
 import MojaRezerwacja from "./pages/MojaRezerwacja";
 import InstanceAuth from "./pages/InstanceAuth";
+import SuperAdminAuth from "./pages/SuperAdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
@@ -79,7 +80,7 @@ const getSubdomainInfo = () => {
 // Super Admin Routes Component
 const SuperAdminRoutes = () => (
   <Routes>
-    <Route path="/login" element={<InstanceAuth subdomainSlug="super" />} />
+    <Route path="/login" element={<SuperAdminAuth />} />
     <Route 
       path="/" 
       element={
@@ -189,7 +190,7 @@ const DevRoutes = () => (
     />
     {/* Legacy routes - redirect to login */}
     <Route path="/admin/login" element={<InstanceAuth />} />
-    <Route path="/super-admin/login" element={<InstanceAuth />} />
+    <Route path="/super-admin/login" element={<SuperAdminAuth />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
