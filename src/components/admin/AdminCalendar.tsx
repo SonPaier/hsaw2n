@@ -1359,9 +1359,9 @@ const AdminCalendar = ({
                         if (!isDisabled) handleDrop(e, station.id, currentDateStr, hour, slotIndex);
                       }}>
                               {/* Hide + on hover in hallMode or disabled slots */}
-                              {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Plus className="w-3 h-3 text-primary/50" />
-                                  <span className="text-[10px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                              {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Plus className="w-4 h-4 text-primary" />
+                                  <span className="text-sm font-medium text-primary">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
                                 </div>}
                             </div>;
                     })}
@@ -1690,9 +1690,9 @@ const AdminCalendar = ({
                           if (!isDisabled) handleDrop(e, station.id, dayStr, hour, slotIndex);
                         }}>
                                   {/* Hide + on hover in hallMode or disabled slots */}
-                                  {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Plus className="w-2 h-2 text-primary/50" />
-                                      <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                                  {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Plus className="w-3 h-3 text-primary" />
+                                      <span className="text-xs font-medium text-primary">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
                                     </div>}
                                 </div>;
                       })}
@@ -1946,9 +1946,9 @@ const AdminCalendar = ({
                       e.stopPropagation();
                       if (!isDisabled && selectedStationId) handleDrop(e, selectedStationId, dayStr, hour, slotIndex);
                     }}>
-                              {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Plus className="w-2 h-2 text-primary/50" />
-                                  <span className="text-[8px] text-primary/70">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
+                              {!hallMode && !isDisabled && <div className="h-full w-full flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Plus className="w-3 h-3 text-primary" />
+                                  <span className="text-xs font-medium text-primary">{`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`}</span>
                                 </div>}
                             </div>;
                   })}
