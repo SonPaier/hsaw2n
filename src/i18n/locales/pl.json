@@ -145,6 +145,8 @@
     "workStarted": "Praca rozpoczęta",
     "workEnded": "Praca zakończona",
     "vehicleReleased": "Pojazd wydany",
+    "sendPickupSms": "Wyślij SMS o odbiorze pojazdu",
+    "pickupSmsSent": "Klient {{customerName}} powiadomiony",
     "revertToConfirmed": "Cofnij do potwierdzonej",
     "revertedToConfirmed": "Przywrócono status potwierdzonej",
     "revertToInProgress": "Cofnij do w trakcie",
