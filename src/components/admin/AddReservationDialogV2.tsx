@@ -2248,28 +2248,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               </>
             )}
 
-            {/* Notes - collapsed by default */}
-            <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronDown className={cn("w-4 h-4 transition-transform", notesOpen && "rotate-180")} />
-                  {t('addReservation.notes')}
-                  {adminNotes && !notesOpen && <span className="text-xs">({t('common.filled')})</span>}
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <Textarea
-                  id="adminNotes"
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  rows={2}
-                  placeholder={t('addReservation.notesPlaceholder')}
-                />
-              </CollapsibleContent>
-            </Collapsible>
+            {/* Notes - always visible */}
+            <div className="space-y-2">
+              <Label htmlFor="adminNotes" className="text-sm text-muted-foreground">
+                {t('addReservation.notes')}
+              </Label>
+              <Textarea
+                id="adminNotes"
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                rows={2}
+                placeholder={t('addReservation.notesPlaceholder')}
+              />
+            </div>
           </div>
         </div>
 
