@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle, Plus, ClipboardPaste } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
@@ -204,6 +205,10 @@ const AddReservationDialogV2 = ({
   const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
   
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  
+  // Mobile: toggle drawer visibility to peek at calendar
+  const [isDrawerHidden, setIsDrawerHidden] = useState(false);
 const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
@@ -1513,10 +1518,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   };
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
+    <>
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
         <SheetContent 
           side="right"
-          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+          className={cn(
+            "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]",
+            isMobile && isDrawerHidden && "!hidden"
+          )}
           hideOverlay
           hideCloseButton
           // Keep drawer open; allow clicking calendar behind
@@ -2412,6 +2421,18 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         </SheetFooter>
       </SheetContent>
     </Sheet>
+    
+    {/* Mobile FAB: Toggle drawer visibility to peek at calendar */}
+    {isMobile && open && (
+      <button
+        type="button"
+        onClick={() => setIsDrawerHidden(prev => !prev)}
+        className="fixed bottom-24 right-4 z-[60] w-14 h-14 rounded-full bg-success text-success-foreground shadow-lg flex items-center justify-center text-xl font-bold hover:bg-success/90 transition-colors"
+      >
+        {isDrawerHidden ? 'R' : 'K'}
+      </button>
+    )}
+    </>
   );
 };
 
