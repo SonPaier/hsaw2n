@@ -84,13 +84,13 @@ const MobileBottomNav = ({
             <List className="w-6 h-6" />
           </button>
 
-          {/* Dodaj rezerwację - Central FAB */}
+          {/* Dodaj rezerwację - Central button */}
           <Button
             size="sm"
             className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg"
             onClick={onAddReservation}
           >
-            <Plus className="w-8 h-8" />
+            <Plus className="w-10 h-10" strokeWidth={2.5} />
           </Button>
 
           {/* Powiadomienia */}
