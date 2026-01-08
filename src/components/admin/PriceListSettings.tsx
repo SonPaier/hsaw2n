@@ -147,14 +147,18 @@ const SortableServiceItem = ({
           )}
         </div>
         <div className="text-sm text-muted-foreground mt-1">
-          {service.duration_minutes} min
           {service.requires_size ? (
-            <span className="ml-2">
-              • S: {service.price_small} zł | M: {service.price_medium} zł | L: {service.price_large} zł
+            <span>
+              S: <span className="font-bold">{service.price_small} zł</span> / <span className="font-bold">{service.duration_small || service.duration_minutes || '-'} min</span>
+              {' | '}M: <span className="font-bold">{service.price_medium} zł</span> / <span className="font-bold">{service.duration_medium || service.duration_minutes || '-'} min</span>
+              {' | '}L: <span className="font-bold">{service.price_large} zł</span> / <span className="font-bold">{service.duration_large || service.duration_minutes || '-'} min</span>
             </span>
-          ) : service.price_from ? (
-            <span className="ml-2">• od {service.price_from} zł</span>
-          ) : null}
+          ) : (
+            <>
+              {service.price_from && <span>od <span className="font-bold">{service.price_from} zł</span></span>}
+              {service.duration_minutes && <span className="ml-2">• <span className="font-bold">{service.duration_minutes} min</span></span>}
+            </>
+          )}
         </div>
       </div>
       
