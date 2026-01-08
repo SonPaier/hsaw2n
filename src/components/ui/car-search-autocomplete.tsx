@@ -3,20 +3,10 @@ import { X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import carsListData from '@/data/carsList.json';
+import { useCarModels, CarModel as ContextCarModel } from '@/contexts/CarModelsContext';
 
 // Types
 type CarSize = 'S' | 'M' | 'L';
-
-interface RawCarModel {
-  name: string;
-  size: string;
-}
-
-interface RawBrand {
-  brand: string;
-  models: RawCarModel[];
-}
 
 interface CarModel {
   id: string;
@@ -42,19 +32,6 @@ interface CarSearchAutocompleteProps {
   suppressAutoOpen?: boolean;
 }
 
-// Parse and flatten car data
-const rawData = carsListData as RawBrand[];
-
-const flattenedModels: CarModel[] = rawData.flatMap((brand) =>
-  brand.models.map((model) => ({
-    id: `${brand.brand}-${model.name}`.replace(/\s+/g, '-').toLowerCase(),
-    brand: brand.brand,
-    name: model.name,
-    size: model.size as CarSize,
-    label: model.name,
-  }))
-);
-
 // Normalize text for searching
 const normalizeText = (text: string): string => {
   return text
@@ -63,6 +40,15 @@ const normalizeText = (text: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
 };
+
+// Convert context model to component model format
+const toCarModel = (model: ContextCarModel): CarModel => ({
+  id: model.id,
+  brand: model.brand,
+  name: model.name,
+  size: model.size,
+  label: model.name,
+});
 
 export const CarSearchAutocomplete = ({
   value = '',
@@ -102,44 +88,29 @@ export const CarSearchAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter and group results
+  // Use car models from context
+  const { searchModels } = useCarModels();
+
+  // Filter and group results using context search
   const { groupedResults, flatResults } = useMemo(() => {
     if (!inputValue || inputValue.length < 1) {
       return { groupedResults: new Map<string, CarModel[]>(), flatResults: [] };
     }
 
-    const normalizedQuery = normalizeText(inputValue);
-    const queryParts = normalizedQuery.split(' ').filter(Boolean);
-
-    // Filter models that match all query parts
-    const matches = flattenedModels.filter((model) => {
-      const normalizedBrand = normalizeText(model.brand);
-      const normalizedName = normalizeText(model.name);
-      const combinedText = `${normalizedBrand} ${normalizedName}`;
-
-      return queryParts.every((part) => combinedText.includes(part));
-    });
-
-    // Sort alphabetically by brand, then by model name
-    matches.sort((a, b) => {
-      const brandCompare = a.brand.localeCompare(b.brand);
-      if (brandCompare !== 0) return brandCompare;
-      return a.name.localeCompare(b.name);
-    });
-
-    // Limit total results
-    const limitedMatches = matches.slice(0, maxResults);
+    // Use context's searchModels for in-memory search
+    const contextMatches = searchModels(inputValue, maxResults);
+    const matches = contextMatches.map(toCarModel);
 
     // Group by brand
     const grouped = new Map<string, CarModel[]>();
-    limitedMatches.forEach((model) => {
+    matches.forEach((model) => {
       const existing = grouped.get(model.brand) || [];
       existing.push(model);
       grouped.set(model.brand, existing);
     });
 
-    return { groupedResults: grouped, flatResults: limitedMatches };
-  }, [inputValue, maxResults]);
+    return { groupedResults: grouped, flatResults: matches };
+  }, [inputValue, maxResults, searchModels]);
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
