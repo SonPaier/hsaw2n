@@ -968,13 +968,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     if (isEditMode) return; // Don't auto-load in edit mode
     
     const normalized = normalizePhone(phone);
-    if (normalized.length === 9 && !selectedCustomerId) {
+    if (normalized.length === 9) {
       loadCustomerVehicles(phone);
     } else if (normalized.length < 9) {
       setCustomerVehicles([]);
       setSelectedVehicleId(null);
     }
-  }, [phone, loadCustomerVehicles, isEditMode, selectedCustomerId]);
+  }, [phone, loadCustomerVehicles, isEditMode]);
 
   const selectVehicle = async (vehicle: CustomerVehicle) => {
     setPhone(vehicle.phone);
