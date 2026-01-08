@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCarModels } from '@/contexts/CarModelsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,26 +21,72 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Search, Upload, Download, Pencil, Trash2, Loader2, Car } from 'lucide-react';
+import { Plus, Search, Upload, Download, Pencil, Trash2, Loader2, Car, Check, X, Clock } from 'lucide-react';
 import { AddCarModelDialog } from './AddCarModelDialog';
 import { EditCarModelDialog } from './EditCarModelDialog';
 
 const ITEMS_PER_PAGE = 20;
 
+interface CarModelWithStatus {
+  id: string;
+  brand: string;
+  name: string;
+  size: string;
+  status: string;
+  created_at: string;
+}
+
 export const CarModelsManager: React.FC = () => {
   const { carModels, isLoading, refetch, getBrands } = useCarModels();
+  const [allModels, setAllModels] = useState<CarModelWithStatus[]>([]);
+  const [loadingAllModels, setLoadingAllModels] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'proposal' | 'all'>('active');
   const [currentPage, setCurrentPage] = useState(1);
   const [isImporting, setIsImporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingModel, setEditingModel] = useState<{ id: string; brand: string; name: string; size: string } | null>(null);
 
-  const brands = useMemo(() => getBrands(), [getBrands]);
+  // Fetch all models including proposals for super admin
+  const fetchAllModels = async () => {
+    setLoadingAllModels(true);
+    try {
+      const { data, error } = await supabase
+        .from('car_models')
+        .select('id, brand, name, size, status, created_at')
+        .eq('active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAllModels((data || []) as CarModelWithStatus[]);
+    } catch (error) {
+      console.error('Error fetching all models:', error);
+    } finally {
+      setLoadingAllModels(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllModels();
+  }, []);
+
+  const proposalCount = useMemo(() => 
+    allModels.filter(m => m.status === 'proposal').length,
+    [allModels]
+  );
+
+  const brands = useMemo(() => {
+    const uniqueBrands = new Set(allModels.map(m => m.brand));
+    return Array.from(uniqueBrands).sort();
+  }, [allModels]);
 
   const filteredModels = useMemo(() => {
-    return carModels.filter(model => {
+    return allModels.filter(model => {
+      // Status filter
+      if (statusFilter !== 'all' && model.status !== statusFilter) return false;
+      
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -57,7 +103,7 @@ export const CarModelsManager: React.FC = () => {
       
       return true;
     });
-  }, [carModels, searchQuery, brandFilter, sizeFilter]);
+  }, [allModels, searchQuery, brandFilter, sizeFilter, statusFilter]);
 
   const paginatedModels = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -75,6 +121,7 @@ export const CarModelsManager: React.FC = () => {
       
       toast.success(`Zaimportowano ${data.inserted} modeli (${data.skipped} już istniało)`);
       await refetch();
+      await fetchAllModels();
     } catch (error) {
       console.error('Import error:', error);
       toast.error('Błąd podczas importu danych');
@@ -85,7 +132,8 @@ export const CarModelsManager: React.FC = () => {
 
   const handleExportToCsv = () => {
     const headers = ['Marka', 'Model', 'Rozmiar'];
-    const rows = carModels.map(m => [m.brand, m.name, m.size]);
+    const activeModels = allModels.filter(m => m.status === 'active');
+    const rows = activeModels.map(m => [m.brand, m.name, m.size]);
     const csvContent = [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n');
@@ -112,9 +160,45 @@ export const CarModelsManager: React.FC = () => {
       
       toast.success(`Usunięto ${brand} ${name}`);
       await refetch();
+      await fetchAllModels();
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Błąd podczas usuwania');
+    }
+  };
+
+  const handleAcceptProposal = async (model: CarModelWithStatus) => {
+    try {
+      const { error } = await supabase
+        .from('car_models')
+        .update({ status: 'active' })
+        .eq('id', model.id);
+      
+      if (error) throw error;
+      
+      toast.success(`Zaakceptowano ${model.brand} ${model.name}`);
+      await refetch();
+      await fetchAllModels();
+    } catch (error) {
+      console.error('Accept error:', error);
+      toast.error('Błąd podczas akceptacji');
+    }
+  };
+
+  const handleRejectProposal = async (model: CarModelWithStatus) => {
+    try {
+      const { error } = await supabase
+        .from('car_models')
+        .update({ active: false })
+        .eq('id', model.id);
+      
+      if (error) throw error;
+      
+      toast.success(`Odrzucono ${model.brand} ${model.name}`);
+      await fetchAllModels();
+    } catch (error) {
+      console.error('Reject error:', error);
+      toast.error('Błąd podczas odrzucania');
     }
   };
 
@@ -136,7 +220,7 @@ export const CarModelsManager: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || loadingAllModels) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -151,7 +235,7 @@ export const CarModelsManager: React.FC = () => {
           <Car className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">Baza samochodów</h2>
           <Badge variant="outline" className="ml-2">
-            {carModels.length} modeli
+            {allModels.filter(m => m.status === 'active').length} modeli
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -177,6 +261,38 @@ export const CarModelsManager: React.FC = () => {
             Dodaj model
           </Button>
         </div>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-2">
+        <Button
+          variant={statusFilter === 'active' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
+        >
+          Zatwierdzone
+        </Button>
+        <Button
+          variant={statusFilter === 'proposal' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setStatusFilter('proposal'); setCurrentPage(1); }}
+          className="relative"
+        >
+          <Clock className="h-4 w-4 mr-2" />
+          Do akceptacji
+          {proposalCount > 0 && (
+            <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1.5">
+              {proposalCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
+        >
+          Wszystkie
+        </Button>
       </div>
 
       <Card>
@@ -225,16 +341,19 @@ export const CarModelsManager: React.FC = () => {
                 <TableHead>Marka</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead>Rozmiar</TableHead>
+                {statusFilter !== 'active' && <TableHead>Status</TableHead>}
                 <TableHead className="w-[100px]">Akcje</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedModels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    {carModels.length === 0 
-                      ? 'Brak modeli w bazie. Kliknij "Importuj z JSON" aby załadować dane.'
-                      : 'Brak wyników dla podanych filtrów'}
+                  <TableCell colSpan={statusFilter !== 'active' ? 5 : 4} className="text-center text-muted-foreground py-8">
+                    {statusFilter === 'proposal' 
+                      ? 'Brak propozycji do akceptacji'
+                      : allModels.length === 0 
+                        ? 'Brak modeli w bazie. Kliknij "Importuj z JSON" aby załadować dane.'
+                        : 'Brak wyników dla podanych filtrów'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -247,27 +366,72 @@ export const CarModelsManager: React.FC = () => {
                         {getSizeLabel(model.size)}
                       </Badge>
                     </TableCell>
+                    {statusFilter !== 'active' && (
+                      <TableCell>
+                        <Badge variant={model.status === 'proposal' ? 'outline' : 'secondary'}>
+                          {model.status === 'proposal' ? 'Propozycja' : 'Aktywny'}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingModel({ 
-                            id: model.id, 
-                            brand: model.brand, 
-                            name: model.name, 
-                            size: model.size 
-                          })}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteModel(model.id, model.brand, model.name)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {model.status === 'proposal' ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingModel({ 
+                                id: model.id, 
+                                brand: model.brand, 
+                                name: model.name, 
+                                size: model.size 
+                              })}
+                              title="Edytuj przed akceptacją"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleAcceptProposal(model)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Akceptuj"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRejectProposal(model)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Odrzuć"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingModel({ 
+                                id: model.id, 
+                                brand: model.brand, 
+                                name: model.name, 
+                                size: model.size 
+                              })}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteModel(model.id, model.brand, model.name)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -312,7 +476,7 @@ export const CarModelsManager: React.FC = () => {
       <AddCarModelDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onSuccess={refetch}
+        onSuccess={async () => { await refetch(); await fetchAllModels(); }}
       />
 
       {editingModel && (
@@ -320,7 +484,7 @@ export const CarModelsManager: React.FC = () => {
           open={!!editingModel}
           onOpenChange={(open) => !open && setEditingModel(null)}
           model={editingModel}
-          onSuccess={refetch}
+          onSuccess={async () => { await refetch(); await fetchAllModels(); }}
         />
       )}
     </div>

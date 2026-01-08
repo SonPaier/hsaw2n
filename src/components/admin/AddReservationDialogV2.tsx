@@ -225,6 +225,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isCustomCarModel, setIsCustomCarModel] = useState(false);
   
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -946,6 +947,37 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     }
   }
 
+  // Helper function to save custom car model as proposal
+  const saveCarModelProposal = async (carModelValue: string, carSizeValue: CarSize) => {
+    try {
+      // Parse brand from car model string (first word is usually brand)
+      const parts = carModelValue.trim().split(/\s+/);
+      const brand = parts[0] || 'Do weryfikacji';
+      const name = parts.length > 1 ? parts.slice(1).join(' ') : carModelValue;
+      const size = carSizeValue === 'small' ? 'S' : carSizeValue === 'large' ? 'L' : 'M';
+
+      // Insert as proposal - use upsert to avoid duplicates
+      await supabase
+        .from('car_models')
+        .upsert({
+          brand,
+          name: name || brand,
+          size,
+          status: 'proposal',
+          active: true,
+        }, { 
+          onConflict: 'brand,name',
+          ignoreDuplicates: true 
+        });
+        
+      console.log('Car model proposal saved:', { brand, name, size });
+    } catch (error) {
+      // Silent failure - don't interrupt user flow
+      console.error('Failed to save car model proposal:', error);
+    }
+  };
+
+
   const handleSubmit = async () => {
     // Yard mode validation and submit
     if (isYardMode) {
@@ -1355,6 +1387,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         });
 
         toast.success(t('addReservation.reservationCreated'));
+        
+        // Save custom car model as proposal (silently in background)
+        if (isCustomCarModel && carModel.trim() && carModel.trim() !== 'BRAK') {
+          saveCarModelProposal(carModel.trim(), carSize);
+        }
       }
       
       onSuccess();
@@ -1586,10 +1623,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     onChange={(val: CarSearchValue) => {
                       if (val === null) {
                         setCarModel('');
+                        setIsCustomCarModel(false);
                       } else if ('type' in val && val.type === 'custom') {
                         setCarModel(val.label);
+                        setIsCustomCarModel(true);
                       } else {
                         setCarModel(val.label);
+                        setIsCustomCarModel(false);
                         if ('size' in val) {
                           if (val.size === 'S') setCarSize('small');
                           else if (val.size === 'M') setCarSize('medium');
