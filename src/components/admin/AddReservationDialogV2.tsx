@@ -2257,7 +2257,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         
                         {/* Manual time tab - always visible content on desktop */}
                         <TabsContent value="manual" className="mt-3 space-y-4 sm:block" forceMount>
-                          <div className="grid grid-cols-2 gap-4">
+                          {/* Time selectors - hidden on mobile when slots tab is active */}
+                          <div className={cn(
+                            "grid grid-cols-2 gap-4",
+                            timeSelectionMode === 'slots' && "hidden sm:grid"
+                          )}>
                             <div className="space-y-2">
                               <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
                               <Select value={manualStartTime} onValueChange={setManualStartTime}>
@@ -2289,8 +2293,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                               </Select>
                             </div>
                           </div>
-                          {/* Station selector hidden on desktop, visible on mobile */}
-                          <div className="space-y-2 sm:hidden">
+                          {/* Station selector - hidden on desktop, also hidden on mobile when slots tab is active */}
+                          <div className={cn(
+                            "space-y-2",
+                            timeSelectionMode === 'slots' ? "hidden" : "sm:hidden"
+                          )}>
                             <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
                             <Select value={manualStationId || ''} onValueChange={setManualStationId}>
                               <SelectTrigger>
