@@ -1743,7 +1743,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               
               {/* Customer vehicles pills */}
               {customerVehicles.length > 1 && (
-                <div className="flex flex-wrap gap-1.5 mt-1">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {customerVehicles.map((vehicle) => (
                     <button
                       key={vehicle.id}
@@ -1756,10 +1756,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         else setCarSize('medium');
                       }}
                       className={cn(
-                        "px-2.5 py-0.5 text-xs rounded-full transition-colors font-medium",
+                        "px-3 py-1.5 text-sm rounded-full transition-colors font-medium",
                         selectedVehicleId === vehicle.id
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted hover:bg-muted/80 text-foreground border border-border"
+                          : "bg-white hover:bg-muted/50 text-foreground border border-border"
                       )}
                     >
                       {vehicle.model}

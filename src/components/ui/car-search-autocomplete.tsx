@@ -296,12 +296,6 @@ export const CarSearchAutocomplete = ({
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
-          <ChevronDown
-            className={cn(
-              'w-4 h-4 text-muted-foreground transition-transform',
-              isOpen && 'rotate-180'
-            )}
-          />
         </div>
       </div>
 
