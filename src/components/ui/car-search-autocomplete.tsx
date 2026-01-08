@@ -47,7 +47,7 @@ const toCarModel = (model: ContextCarModel): CarModel => ({
   brand: model.brand,
   name: model.name,
   size: model.size,
-  label: model.name,
+  label: `${model.brand} ${model.name}`,
 });
 
 export const CarSearchAutocomplete = ({
