@@ -1011,14 +1011,26 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     loadCustomerVehicles(vehicle.phone);
   };
 
-  // Generate time options for yard deadline (every 15 min from 6:00 to 22:00)
-  const yardTimeOptions = [];
+  // Generate time options for start time (every 15 min from 6:00 to 22:00)
+  const startTimeOptions = [];
   for (let h = 6; h <= 22; h++) {
     for (let m = 0; m < 60; m += 15) {
       const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      yardTimeOptions.push(timeStr);
+      startTimeOptions.push(timeStr);
     }
   }
+
+  // Generate time options for end time (every 5 min from 6:00 to 22:00) - allows precise service durations
+  const endTimeOptions = [];
+  for (let h = 6; h <= 22; h++) {
+    for (let m = 0; m < 60; m += 5) {
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      endTimeOptions.push(timeStr);
+    }
+  }
+
+  // Alias for yard deadline (keep 15 min intervals)
+  const yardTimeOptions = startTimeOptions;
 
   // Helper function to save custom car model as proposal
   const saveCarModelProposal = async (carModelValue: string, carSizeValue: CarSize) => {
@@ -2269,7 +2281,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover max-h-60">
-                                  {yardTimeOptions.map((time) => (
+                                  {startTimeOptions.map((time) => (
                                     <SelectItem key={time} value={time}>
                                       {time}
                                     </SelectItem>
@@ -2284,7 +2296,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover max-h-60">
-                                  {yardTimeOptions.map((time) => (
+                                  {endTimeOptions.map((time) => (
                                     <SelectItem key={time} value={time}>
                                       {time}
                                     </SelectItem>
