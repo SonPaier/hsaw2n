@@ -1942,36 +1942,7 @@ const AdminDashboard = () => {
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} />
                 
-                {/* Floating + button for quick add reservation V2 - visible only on mobile */}
-                <button
-                  onClick={() => {
-                    // Reset to default washing mode
-                    const washingStation = stations.find(s => s.type === 'washing') || stations[0];
-                    const now = new Date();
-                    const roundedMinutes = Math.ceil(now.getMinutes() / 15) * 15;
-                    if (roundedMinutes === 60) {
-                      now.setHours(now.getHours() + 1);
-                      now.setMinutes(0);
-                    } else {
-                      now.setMinutes(roundedMinutes);
-                    }
-                    
-                    setEditingReservation(null);
-                    setNewReservationData({
-                      stationId: washingStation?.id || '',
-                      date: format(calendarDate, 'yyyy-MM-dd'),
-                      time: format(now, 'HH:mm'),
-                      stationType: 'washing'
-                    });
-                    setAddReservationV2Open(true);
-                  }}
-                  className="flex sm:hidden fixed bottom-20 right-4 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 items-center justify-center"
-                  title={t('addReservation.quickAdd')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                </button>
+                {/* FAB removed - plus button is now in MobileBottomNav */}
               </div>}
 
             {currentView === 'reservations' && (
