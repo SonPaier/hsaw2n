@@ -1942,7 +1942,7 @@ const AdminDashboard = () => {
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
                 <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} />
                 
-                {/* Floating + button for quick add reservation V2 - hidden on mobile */}
+                {/* Floating + button for quick add reservation V2 - visible only on mobile */}
                 <button
                   onClick={() => {
                     // Reset to default washing mode
@@ -1965,7 +1965,7 @@ const AdminDashboard = () => {
                     });
                     setAddReservationV2Open(true);
                   }}
-                  className="hidden lg:flex fixed bottom-8 right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 items-center justify-center"
+                  className="flex sm:hidden fixed bottom-20 right-4 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 items-center justify-center"
                   title={t('addReservation.quickAdd')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
