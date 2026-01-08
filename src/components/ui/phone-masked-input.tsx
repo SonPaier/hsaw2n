@@ -13,18 +13,38 @@ export interface PhoneMaskedInputProps
  */
 const PhoneMaskedInput = React.forwardRef<HTMLInputElement, PhoneMaskedInputProps>(
   ({ className, value, onChange, ...props }, ref) => {
+    // Strip Polish prefix for display (+48, 0048, or 48 followed by 9 digits)
+    const stripPolishPrefix = (digits: string): string => {
+      if (!digits) return '';
+      // Remove +48 prefix
+      if (digits.startsWith('+48')) {
+        return digits.slice(3);
+      }
+      // Remove 0048 prefix
+      if (digits.startsWith('0048')) {
+        return digits.slice(4);
+      }
+      // Remove 48 only if followed by exactly 9 digits (total 11 digits)
+      if (digits.startsWith('48') && digits.length === 11) {
+        return digits.slice(2);
+      }
+      return digits;
+    };
+
     // Format for display: XXX XXX XXX
     const formatPhone = (digits: string): string => {
       if (!digits) return '';
       const cleaned = digits.replace(/\D/g, '');
+      // Strip Polish prefix before formatting
+      const withoutPrefix = stripPolishPrefix(cleaned);
       const parts: string[] = [];
-      for (let i = 0; i < cleaned.length; i += 3) {
-        parts.push(cleaned.slice(i, i + 3));
+      for (let i = 0; i < withoutPrefix.length; i += 3) {
+        parts.push(withoutPrefix.slice(i, i + 3));
       }
       return parts.join(' ');
     };
 
-    // Extract raw digits from value
+    // Extract raw digits from value (keep original for storage)
     const rawValue = value.replace(/\D/g, '');
     const displayValue = formatPhone(rawValue);
 
