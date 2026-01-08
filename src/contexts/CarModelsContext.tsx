@@ -44,6 +44,7 @@ export const CarModelsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .from('car_models')
         .select('id, brand, name, size')
         .eq('active', true)
+        .eq('status', 'active')
         .order('brand')
         .order('name');
 

@@ -241,6 +241,27 @@ serve(async (req: Request): Promise<Response> => {
           _customer_id: customer.id,
         });
         console.log("Customer vehicle upserted:", reservationData.vehiclePlate);
+        
+        // Save custom car model as proposal (silently)
+        // Parse brand from vehicle plate (first word is usually brand)
+        const parts = reservationData.vehiclePlate.trim().split(/\s+/);
+        const brand = parts[0] || 'Do weryfikacji';
+        const name = parts.length > 1 ? parts.slice(1).join(' ') : reservationData.vehiclePlate;
+        const size = reservationData.carSize === 'small' ? 'S' : reservationData.carSize === 'large' ? 'L' : 'M';
+        
+        await supabase
+          .from('car_models')
+          .upsert({
+            brand,
+            name: name || brand,
+            size,
+            status: 'proposal',
+            active: true,
+          }, { 
+            onConflict: 'brand,name',
+            ignoreDuplicates: true 
+          });
+        console.log("Car model proposal saved:", { brand, name, size });
       } catch (vehicleError) {
         console.error("Failed to upsert customer vehicle:", vehicleError);
         // Non-critical, continue
