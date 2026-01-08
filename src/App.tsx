@@ -155,7 +155,6 @@ const DevRoutes = () => (
     <Route path="/:slug/login" element={<InstanceAuth />} />
     {/* Default login without slug - use demo instance for dev */}
     <Route path="/login" element={<InstanceAuth subdomainSlug="demo" />} />
-    <Route path="/login" element={<InstanceAuth />} />
     <Route 
       path="/admin" 
       element={
