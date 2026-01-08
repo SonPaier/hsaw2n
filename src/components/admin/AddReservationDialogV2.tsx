@@ -236,7 +236,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const slotsScrollRef = useRef<HTMLDivElement>(null);
 
   // Manual time selection mode (for reservation mode only)
-  const [timeSelectionMode, setTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
+  const [timeSelectionMode, setTimeSelectionMode] = useState<'slots' | 'manual'>('manual');
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
   
@@ -248,7 +248,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [originalManualStartTime, setOriginalManualStartTime] = useState<string>('');
   const [originalManualEndTime, setOriginalManualEndTime] = useState<string>('');
   const [originalManualStationId, setOriginalManualStationId] = useState<string | null>(null);
-  const [originalTimeSelectionMode, setOriginalTimeSelectionMode] = useState<'slots' | 'manual'>('slots');
+  const [originalTimeSelectionMode, setOriginalTimeSelectionMode] = useState<'slots' | 'manual'>('manual');
   const [manualStationId, setManualStationId] = useState<string | null>(null);
   
   // Track the last totalDurationMinutes to detect changes
@@ -504,7 +504,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
         // Reset time change flow and manual time state
         setIsChangingTime(false);
-        setTimeSelectionMode('slots');
+        setTimeSelectionMode('manual');
         setManualStartTime('');
         setManualEndTime('');
         setManualStationId(null);
@@ -571,7 +571,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         // Reset manual time mode
-        setTimeSelectionMode('slots');
+        setTimeSelectionMode('manual');
         setManualStartTime('');
         setManualEndTime('');
         setManualStationId(null);
@@ -1732,11 +1732,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             </button>
                           </span>
                         ))}
-                        {/* Add button to open drawer */}
+                        {/* Add button to open drawer - hidden on desktop */}
                         <button
                           type="button"
                           onClick={() => setServiceDrawerOpen(true)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground sm:hidden"
                         >
                           <Plus className="w-3 h-3" />
                           {t('common.add')}
@@ -2092,7 +2092,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           }
                         }}
                       >
-                        <TabsList variant="light" className="w-full">
+                        {/* Tabs hidden on desktop, visible on mobile */}
+                        <TabsList variant="light" className="w-full sm:hidden">
                           <TabsTrigger value="slots" className="flex-1">
                             {t('addReservation.availableSlotsTab')}
                           </TabsTrigger>
@@ -2101,8 +2102,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           </TabsTrigger>
                         </TabsList>
                         
-                        {/* Available slots tab */}
-                        <TabsContent value="slots" className="mt-3">
+                        {/* Available slots tab - hidden on desktop */}
+                        <TabsContent value="slots" className="mt-3 sm:hidden">
                           {selectedServices.length === 0 ? (
                             <p className="text-sm text-muted-foreground py-4 text-center">
                               {t('addReservation.selectServiceFirst')}
@@ -2151,8 +2152,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           )}
                         </TabsContent>
                         
-                        {/* Manual time tab */}
-                        <TabsContent value="manual" className="mt-3 space-y-4">
+                        {/* Manual time tab - always visible content on desktop */}
+                        <TabsContent value="manual" className="mt-3 space-y-4 sm:block" forceMount>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
@@ -2185,7 +2186,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                               </Select>
                             </div>
                           </div>
-                          <div className="space-y-2">
+                          {/* Station selector hidden on desktop, visible on mobile */}
+                          <div className="space-y-2 sm:hidden">
                             <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
                             <Select value={manualStationId || ''} onValueChange={setManualStationId}>
                               <SelectTrigger>
