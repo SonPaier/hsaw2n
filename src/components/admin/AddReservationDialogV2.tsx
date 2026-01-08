@@ -1732,11 +1732,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             </button>
                           </span>
                         ))}
-                        {/* Add button to open drawer - hidden on desktop */}
+                        {/* Add button to open drawer */}
                         <button
                           type="button"
                           onClick={() => setServiceDrawerOpen(true)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground sm:hidden"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
                           <Plus className="w-3 h-3" />
                           {t('common.add')}
