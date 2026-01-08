@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneMaskedInput } from '@/components/ui/phone-masked-input';
 import { Label } from '@/components/ui/label';
 import {
   Popover,
@@ -1563,11 +1564,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 </TooltipProvider>
               </div>
               <div className="relative">
-                <Input
+                <PhoneMaskedInput
                   id="phone"
                   value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
+                  onChange={(value) => {
+                    setPhone(value);
                     setSelectedCustomerId(null);
                   }}
                   autoComplete="off"
