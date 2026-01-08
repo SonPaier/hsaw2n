@@ -65,6 +65,39 @@ export type Database = {
           },
         ]
       }
+      car_models: {
+        Row: {
+          active: boolean
+          brand: string
+          created_at: string
+          id: string
+          name: string
+          size: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          brand: string
+          created_at?: string
+          id?: string
+          name: string
+          size: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          brand?: string
+          created_at?: string
+          id?: string
+          name?: string
+          size?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       closed_days: {
         Row: {
           closed_date: string
@@ -2136,6 +2169,8 @@ export type Database = {
           id: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
