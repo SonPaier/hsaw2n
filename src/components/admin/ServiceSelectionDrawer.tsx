@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, ChevronRight, Loader2, Search, X } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, Search, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 type CarSize = 'small' | 'medium' | 'large';
 
@@ -66,7 +61,6 @@ const ServiceSelectionDrawer = ({
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,10 +110,6 @@ const ServiceSelectionDrawer = ({
       
       if (categoriesRes.data) {
         setCategories(categoriesRes.data);
-        // Expand first category by default
-        if (categoriesRes.data.length > 0) {
-          setExpandedCategories(new Set([categoriesRes.data[0].id]));
-        }
       }
       
       setLoading(false);
@@ -260,19 +250,6 @@ const ServiceSelectionDrawer = ({
   // Remove selected service
   const removeService = (serviceId: string) => {
     setSelectedIds(prev => prev.filter(id => id !== serviceId));
-  };
-
-  // Toggle category expansion
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(categoryId)) {
-        next.delete(categoryId);
-      } else {
-        next.add(categoryId);
-      }
-      return next;
-    });
   };
 
   // Calculate total duration
@@ -422,7 +399,6 @@ const ServiceSelectionDrawer = ({
           ) : (
             <div className="pb-4">
               {groupedServices.map(({ category, services: categoryServices }) => {
-                const isExpanded = expandedCategories.has(category.id);
                 const serviceCount = categoryServices.length;
                 
                 // Hide empty categories when searching
@@ -431,82 +407,59 @@ const ServiceSelectionDrawer = ({
                 }
                 
                 return (
-                  <Collapsible
-                    key={category.id}
-                    open={isExpanded}
-                    onOpenChange={() => toggleCategory(category.id)}
-                  >
-                    {/* Category header */}
-                    <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center gap-3 px-4 py-3 bg-slate-200/70 hover:bg-slate-200 transition-colors">
-                        <ChevronRight 
-                          className={cn(
-                            "w-5 h-5 text-slate-600 transition-transform duration-200",
-                            isExpanded && "rotate-90"
-                          )} 
-                        />
-                        <span className="text-base font-semibold text-slate-800">
-                          {category.name}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          ({serviceCount} usług)
-                        </span>
-                      </div>
-                    </CollapsibleTrigger>
+                  <div key={category.id}>
+                    {/* Category header - centered, readonly */}
+                    <div className="py-2 px-4 bg-muted/50">
+                      <p className="text-sm font-semibold text-muted-foreground text-center uppercase tracking-wide">
+                        {category.name}
+                      </p>
+                    </div>
                     
-                    {/* Services list */}
-                    <CollapsibleContent>
-                      {categoryServices.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-muted-foreground italic">
-                          Brak usług w tej kategorii
-                        </div>
-                      ) : (
-                        categoryServices.map((service) => {
-                          const isSelected = selectedIds.includes(service.id);
-                          const price = getPrice(service);
-                          const duration = getDuration(service);
-                          
-                          return (
-                            <button
-                              key={service.id}
-                              type="button"
-                              onClick={() => toggleService(service.id)}
-                              className={cn(
-                                "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                                isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                    {/* Services list - flat */}
+                    {categoryServices.map((service) => {
+                      const isSelected = selectedIds.includes(service.id);
+                      const price = getPrice(service);
+                      const duration = getDuration(service);
+                      
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => toggleService(service.id)}
+                          className={cn(
+                            "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
+                            isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                          )}
+                        >
+                          {/* Service info */}
+                          <div className="flex-1 text-left">
+                            <p className="font-medium text-foreground">
+                              {service.shortcut && (
+                                <span className="text-primary font-bold mr-2">{service.shortcut}</span>
                               )}
-                            >
-                              {/* Service info */}
-                              <div className="flex-1 text-left">
-                                <p className="font-medium text-foreground">
-                                  {service.shortcut && (
-                                    <span className="text-primary font-bold mr-2">{service.shortcut}</span>
-                                  )}
-                                  {service.name}
-                                </p>
-                              </div>
-                              
-                              {/* Price & Duration */}
-                              <div className="text-right mr-4">
-                                <p className="font-semibold text-foreground">{formatPrice(price)}</p>
-                                <p className="text-xs text-muted-foreground">{formatDuration(duration)}</p>
-                              </div>
-                              
-                              {/* Checkmark */}
-                              <div className={cn(
-                                "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                                isSelected 
-                                  ? "bg-primary border-primary" 
-                                  : "border-muted-foreground/40"
-                              )}>
-                                {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
+                              {service.name}
+                            </p>
+                          </div>
+                          
+                          {/* Price & Duration */}
+                          <div className="text-right mr-4">
+                            <p className="font-semibold text-foreground">{formatPrice(price)}</p>
+                            <p className="text-xs text-muted-foreground">{formatDuration(duration)}</p>
+                          </div>
+                          
+                          {/* Checkmark */}
+                          <div className={cn(
+                            "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                            isSelected 
+                              ? "bg-primary border-primary" 
+                              : "border-muted-foreground/40"
+                          )}>
+                            {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 );
               })}
             </div>
