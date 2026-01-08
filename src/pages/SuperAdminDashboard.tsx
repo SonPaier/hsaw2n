@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ import InstanceSettingsDialog from '@/components/admin/InstanceSettingsDialog';
 import { AllInstancesSmsUsage } from '@/components/admin/AllInstancesSmsUsage';
 import { InstanceFeaturesSettings } from '@/components/admin/InstanceFeaturesSettings';
 import InstanceUsersTab from '@/components/admin/InstanceUsersTab';
+import { CarModelsManager } from '@/components/superadmin/CarModelsManager';
 
 interface Instance {
   id: string;
@@ -56,6 +57,7 @@ const SuperAdminDashboard = () => {
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+  const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings'>('instances');
 
   useEffect(() => {
     fetchInstances();
@@ -196,15 +198,35 @@ const SuperAdminDashboard = () => {
 
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-2">
-              <Button variant="secondary" className="w-full justify-start gap-3">
+              <Button 
+                variant={activeSection === 'instances' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('instances')}
+              >
                 <Building2 className="w-4 h-4" />
                 Instancje
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button 
+                variant={activeSection === 'cars' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('cars')}
+              >
+                <Car className="w-4 h-4" />
+                Samochody
+              </Button>
+              <Button 
+                variant={activeSection === 'admins' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('admins')}
+              >
                 <Users className="w-4 h-4" />
                 Administratorzy
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button 
+                variant={activeSection === 'settings' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('settings')}
+              >
                 <Settings className="w-4 h-4" />
                 Ustawienia
               </Button>
@@ -249,142 +271,151 @@ const SuperAdminDashboard = () => {
 
           {/* Content */}
           <div className="flex-1 p-4 lg:p-8 space-y-8">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Instancje</h1>
-                <p className="text-muted-foreground">
-                  Zarządzaj wszystkimi instancjami aplikacji
-                </p>
-              </div>
-              <Button 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white gap-2"
-                onClick={handleCreateInstance}
-              >
-                <Plus className="w-4 h-4" />
-                Nowa instancja
-              </Button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-foreground">{instances.length}</div>
-                <div className="text-sm text-muted-foreground">Wszystkie instancje</div>
-              </div>
-              <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-success">{instances.filter(i => i.active).length}</div>
-                <div className="text-sm text-muted-foreground">Aktywne</div>
-              </div>
-              <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-foreground">-</div>
-                <div className="text-sm text-muted-foreground">Administratorzy</div>
-              </div>
-              <div className="glass-card p-4 border-purple-500/20">
-                <div className="text-2xl font-bold text-primary">-</div>
-                <div className="text-sm text-muted-foreground">Rezerwacji dzisiaj</div>
-              </div>
-            </div>
-
-            {/* SMS Usage */}
-            <AllInstancesSmsUsage />
-
-            {/* Instances List */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Lista instancji</h2>
-              <div className="space-y-3">
-                {instances.map((instance) => (
-                  <div 
-                    key={instance.id}
-                    className="glass-card p-4 border-purple-500/10 hover:border-purple-500/30 transition-colors"
+            {activeSection === 'cars' ? (
+              <CarModelsManager />
+            ) : activeSection === 'instances' ? (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <h1 className="text-2xl font-bold text-foreground">Instancje</h1>
+                    <p className="text-muted-foreground">
+                      Zarządzaj wszystkimi instancjami aplikacji
+                    </p>
+                  </div>
+                  <Button 
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white gap-2"
+                    onClick={handleCreateInstance}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 min-w-0">
-                        {/* Logo or status indicator */}
-                        {instance.logo_url ? (
-                          <img 
-                            src={instance.logo_url} 
-                            alt={instance.name} 
-                            className="w-10 h-10 rounded-lg object-contain bg-white/10 shrink-0"
-                          />
-                        ) : (
-                          <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                            instance.active ? "bg-success/20" : "bg-muted"
-                          )}>
-                            <Building2 className={cn(
-                              "w-5 h-5",
-                              instance.active ? "text-success" : "text-muted-foreground"
-                            )} />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-foreground truncate">
-                            {instance.name}
-                          </h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{instance.slug}</span>
-                            {instance.phone && (
-                              <>
-                                <span>•</span>
-                                <span>{instance.phone}</span>
-                              </>
+                    <Plus className="w-4 h-4" />
+                    Nowa instancja
+                  </Button>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="glass-card p-4 border-purple-500/20">
+                    <div className="text-2xl font-bold text-foreground">{instances.length}</div>
+                    <div className="text-sm text-muted-foreground">Wszystkie instancje</div>
+                  </div>
+                  <div className="glass-card p-4 border-purple-500/20">
+                    <div className="text-2xl font-bold text-success">{instances.filter(i => i.active).length}</div>
+                    <div className="text-sm text-muted-foreground">Aktywne</div>
+                  </div>
+                  <div className="glass-card p-4 border-purple-500/20">
+                    <div className="text-2xl font-bold text-foreground">-</div>
+                    <div className="text-sm text-muted-foreground">Administratorzy</div>
+                  </div>
+                  <div className="glass-card p-4 border-purple-500/20">
+                    <div className="text-2xl font-bold text-primary">-</div>
+                    <div className="text-sm text-muted-foreground">Rezerwacji dzisiaj</div>
+                  </div>
+                </div>
+
+                {/* SMS Usage */}
+                <AllInstancesSmsUsage />
+
+                {/* Instances List */}
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-foreground">Lista instancji</h2>
+                  <div className="space-y-3">
+                    {instances.map((instance) => (
+                      <div 
+                        key={instance.id}
+                        className="glass-card p-4 border-purple-500/10 hover:border-purple-500/30 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            {instance.logo_url ? (
+                              <img 
+                                src={instance.logo_url} 
+                                alt={instance.name} 
+                                className="w-10 h-10 rounded-lg object-contain bg-white/10 shrink-0"
+                              />
+                            ) : (
+                              <div className={cn(
+                                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                                instance.active ? "bg-success/20" : "bg-muted"
+                              )}>
+                                <Building2 className={cn(
+                                  "w-5 h-5",
+                                  instance.active ? "text-success" : "text-muted-foreground"
+                                )} />
+                              </div>
                             )}
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-foreground truncate">
+                                {instance.name}
+                              </h3>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>{instance.slug}</span>
+                                {instance.phone && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{instance.phone}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="gap-2 hidden sm:flex"
+                              onClick={() => handleSeeAsClient(instance.id, instance.slug)}
+                            >
+                              <Eye className="w-4 h-4" />
+                              Zobacz jako klient
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleSeeAsClient(instance.id, instance.slug)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Zobacz jako klient
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  Otwórz panel admina
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenSettings(instance)}>
+                                  <Settings className="w-4 h-4 mr-2" />
+                                  Ustawienia whitelabel
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenFeatures(instance)}>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Funkcje płatne
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenUsers(instance)}>
+                                  <Users className="w-4 h-4 mr-2" />
+                                  Zarządzaj użytkownikami
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleInstance(instance.id, instance.active)}
+                                  className={instance.active ? "text-destructive" : "text-success"}
+                                >
+                                  <Power className="w-4 h-4 mr-2" />
+                                  {instance.active ? 'Wyłącz instancję' : 'Włącz instancję'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="gap-2 hidden sm:flex"
-                          onClick={() => handleSeeAsClient(instance.id, instance.slug)}
-                        >
-                          <Eye className="w-4 h-4" />
-                          Zobacz jako klient
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleSeeAsClient(instance.id, instance.slug)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Zobacz jako klient
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Otwórz panel admina
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenSettings(instance)}>
-                              <Settings className="w-4 h-4 mr-2" />
-                              Ustawienia whitelabel
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenFeatures(instance)}>
-                              <FileText className="w-4 h-4 mr-2" />
-                              Funkcje płatne
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenUsers(instance)}>
-                              <Users className="w-4 h-4 mr-2" />
-                              Zarządzaj użytkownikami
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleToggleInstance(instance.id, instance.active)}
-                              className={instance.active ? "text-destructive" : "text-success"}
-                            >
-                              <Power className="w-4 h-4 mr-2" />
-                              {instance.active ? 'Wyłącz instancję' : 'Włącz instancję'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground py-12">
+                Sekcja w przygotowaniu
               </div>
-            </div>
+            )}
           </div>
         </main>
       </div>

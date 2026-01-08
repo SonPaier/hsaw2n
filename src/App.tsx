@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CarModelsProvider } from "@/contexts/CarModelsContext";
 import Rezerwacje from "./pages/Rezerwacje";
 import MojaRezerwacja from "./pages/MojaRezerwacja";
 import InstanceAuth from "./pages/InstanceAuth";
@@ -214,13 +215,15 @@ const App = () => {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              {renderRoutes()}
-            </BrowserRouter>
-          </TooltipProvider>
+          <CarModelsProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                {renderRoutes()}
+              </BrowserRouter>
+            </TooltipProvider>
+          </CarModelsProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
