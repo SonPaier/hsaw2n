@@ -121,29 +121,39 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Get reservations that need 1-day reminder (for tomorrow)
+    // Use atomic update to prevent duplicate sends from concurrent function invocations
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
-    const { data: dayReminders, error: dayError } = await supabase
+    
+    // First, atomically claim reservations by setting reminder_1day_sent to false (processing)
+    const { data: claimedDayReminders, error: claimDayError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_sent")
+      .update({ reminder_1day_sent: false })
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
-      .eq("reservation_date", tomorrowDate);
+      .eq("reservation_date", tomorrowDate)
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code");
 
-    if (dayError) {
-      console.error("Error fetching day reminders:", dayError);
+    if (claimDayError) {
+      console.error("Error claiming day reminders:", claimDayError);
     }
+    
+    const dayReminders = claimedDayReminders || [];
 
     // Get reservations that need 1-hour reminder
-    const { data: hourReminders, error: hourError } = await supabase
+    // Use atomic update to prevent duplicate sends from concurrent function invocations
+    const { data: claimedHourReminders, error: claimHourError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_sent")
+      .update({ reminder_1hour_sent: false })
       .eq("status", "confirmed")
       .is("reminder_1hour_sent", null)
-      .eq("reservation_date", now.toISOString().split("T")[0]);
+      .eq("reservation_date", now.toISOString().split("T")[0])
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code");
 
-    if (hourError) {
-      console.error("Error fetching hour reminders:", hourError);
+    if (claimHourError) {
+      console.error("Error claiming hour reminders:", claimHourError);
     }
+    
+    const hourReminders = claimedHourReminders || [];
 
     // Cache instance info to avoid multiple queries
     const instanceCache: Record<string, { name: string; slug: string; reservationPhone: string }> = {};
