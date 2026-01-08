@@ -77,6 +77,8 @@ interface CustomerVehicle {
   plate: string | null;
   customer_id: string | null;
   customer_name?: string;
+  car_size?: string | null;
+  last_used_at?: string | null;
 }
 
 interface Customer {
@@ -227,6 +229,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isCustomCarModel, setIsCustomCarModel] = useState(false);
+  
+  // Customer vehicles pills state
+  const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -404,6 +410,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
       } else if (isYardMode) {
         // Yard create mode
         setCustomerName('');
@@ -420,6 +428,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
       } else if (isPPFOrDetailingMode && editingReservation) {
         // PPF/Detailing edit mode
         suppressPhoneSearchRef.current = true;
@@ -465,6 +475,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
       } else if (isPPFOrDetailingMode) {
         // PPF/Detailing create mode
         setCustomerName('');
@@ -482,6 +494,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
       } else if (editingReservation) {
         // Reservation edit mode
         suppressPhoneSearchRef.current = true;
@@ -503,6 +517,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
         // Reset time change flow and manual time state
         setIsChangingTime(false);
         setTimeSelectionMode('manual');
@@ -549,6 +565,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           setSelectedCustomerId(null);
           setShowPhoneDropdown(false);
           setShowCustomerDropdown(false);
+          setCustomerVehicles([]);
+          setSelectedVehicleId(null);
           // Set manual mode with slot values
           setTimeSelectionMode('manual');
           setManualStartTime(initialTime);
@@ -571,6 +589,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
         // Reset manual time mode
         setTimeSelectionMode('manual');
         setManualStartTime('');
@@ -907,6 +927,55 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     return () => clearTimeout(timer);
   }, [phone, searchByPhone, selectedCustomerId]);
 
+  // Load all vehicles for a phone number (for pills display)
+  const loadCustomerVehicles = useCallback(async (phoneNumber: string) => {
+    const normalized = normalizePhone(phoneNumber);
+    if (normalized.length !== 9) {
+      setCustomerVehicles([]);
+      setSelectedVehicleId(null);
+      return;
+    }
+    
+    try {
+      const { data } = await supabase
+        .from('customer_vehicles')
+        .select('id, phone, model, plate, customer_id, car_size, last_used_at')
+        .eq('instance_id', instanceId)
+        .or(`phone.eq.${normalized},phone.eq.+48${normalized}`)
+        .order('last_used_at', { ascending: false });
+      
+      if (data && data.length > 0) {
+        setCustomerVehicles(data);
+        // Default select the first (most recently used)
+        setSelectedVehicleId(data[0].id);
+        // Auto-fill model from first vehicle
+        setCarModel(data[0].model);
+        // Set car size
+        if (data[0].car_size === 'S') setCarSize('small');
+        else if (data[0].car_size === 'L') setCarSize('large');
+        else setCarSize('medium');
+      } else {
+        setCustomerVehicles([]);
+        setSelectedVehicleId(null);
+      }
+    } catch (err) {
+      console.error('Failed to load customer vehicles:', err);
+    }
+  }, [instanceId]);
+
+  // Effect to load vehicles when phone has 9 digits
+  useEffect(() => {
+    if (isEditMode) return; // Don't auto-load in edit mode
+    
+    const normalized = normalizePhone(phone);
+    if (normalized.length === 9 && !selectedCustomerId) {
+      loadCustomerVehicles(phone);
+    } else if (normalized.length < 9) {
+      setCustomerVehicles([]);
+      setSelectedVehicleId(null);
+    }
+  }, [phone, loadCustomerVehicles, isEditMode, selectedCustomerId]);
+
   const selectVehicle = async (vehicle: CustomerVehicle) => {
     setPhone(vehicle.phone);
     setCarModel(vehicle.model);
@@ -937,6 +1006,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedCustomerId(vehicle.customer_id);
       }
     }
+    
+    // Also load all vehicles for this phone
+    loadCustomerVehicles(vehicle.phone);
   };
 
   // Generate time options for yard deadline (every 15 min from 6:00 to 22:00)
@@ -1625,12 +1697,15 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                       if (val === null) {
                         setCarModel('');
                         setIsCustomCarModel(false);
+                        setSelectedVehicleId(null);
                       } else if ('type' in val && val.type === 'custom') {
                         setCarModel(val.label);
                         setIsCustomCarModel(true);
+                        setSelectedVehicleId(null);
                       } else {
                         setCarModel(val.label);
                         setIsCustomCarModel(false);
+                        setSelectedVehicleId(null);
                         if ('size' in val) {
                           if (val.size === 'S') setCarSize('small');
                           else if (val.size === 'M') setCarSize('medium');
@@ -1665,6 +1740,33 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   </div>
                 </TooltipProvider>
               </div>
+              
+              {/* Customer vehicles pills */}
+              {customerVehicles.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {customerVehicles.map((vehicle) => (
+                    <button
+                      key={vehicle.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedVehicleId(vehicle.id);
+                        setCarModel(vehicle.model);
+                        if (vehicle.car_size === 'S') setCarSize('small');
+                        else if (vehicle.car_size === 'L') setCarSize('large');
+                        else setCarSize('medium');
+                      }}
+                      className={cn(
+                        "px-2.5 py-0.5 text-xs rounded-full transition-colors font-medium",
+                        selectedVehicleId === vehicle.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80 text-foreground border border-border"
+                      )}
+                    >
+                      {vehicle.model}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Services selection - shortcuts + drawer (NOT for PPF mode, only for Detailing/Reservation/Yard) */}
