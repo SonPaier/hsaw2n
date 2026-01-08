@@ -542,6 +542,31 @@ const ReservationDetailsDrawer = ({
                 )}
               </div>
             )}
+            {/* Link: Wyślij SMS o odbiorze - nad Edit dla in_progress, completed, released */}
+            {['in_progress', 'completed', 'released'].includes(reservation.status) && onSendPickupSms && (
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={async () => {
+                    setSendingPickupSms(true);
+                    try {
+                      await onSendPickupSms(reservation.id);
+                    } finally {
+                      setSendingPickupSms(false);
+                    }
+                  }}
+                  disabled={sendingPickupSms}
+                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 hover:underline text-[16px] disabled:opacity-50"
+                >
+                  {sendingPickupSms ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  {t('reservations.sendPickupSms')}
+                </button>
+              </div>
+            )}
+
             {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
             {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
               <div className="flex gap-2">
@@ -716,30 +741,6 @@ const ReservationDetailsDrawer = ({
               </Button>
             )}
 
-            {/* Link: Wyślij SMS o odbiorze - nad akcjami dla in_progress, completed, released */}
-            {['in_progress', 'completed', 'released'].includes(reservation.status) && onSendPickupSms && (
-              <div className="flex justify-end mb-2">
-                <button
-                  onClick={async () => {
-                    setSendingPickupSms(true);
-                    try {
-                      await onSendPickupSms(reservation.id);
-                    } finally {
-                      setSendingPickupSms(false);
-                    }
-                  }}
-                  disabled={sendingPickupSms}
-                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 hover:underline text-[16px] disabled:opacity-50"
-                >
-                  {sendingPickupSms ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <MessageSquare className="w-4 h-4" />
-                  )}
-                  {t('reservations.sendPickupSms')}
-                </button>
-              </div>
-            )}
 
             {/* In Progress: End Work with dropdown for revert */}
             {reservation.status === 'in_progress' && onEndWork && (
