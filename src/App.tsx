@@ -67,8 +67,8 @@ const getSubdomainInfo = () => {
   }
   
   // Lovable staging domain - treat as dev
-  if (hostname.endsWith('.lovable.app')) {
-    console.log('[Subdomain Detection] → dev mode (lovable.app)');
+  if (hostname.endsWith('.lovable.app') || hostname.endsWith('.lovableproject.com')) {
+    console.log('[Subdomain Detection] → dev mode (lovable staging)');
     return { type: 'dev', subdomain: null };
   }
   
