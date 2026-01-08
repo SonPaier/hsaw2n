@@ -379,6 +379,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     return addDays(startOfDay(now), 1);
   }, [workingHours]);
 
+  // Ref to track if dialog was already open (to distinguish first open vs slot change)
+  const wasOpenRef = useRef(false);
+
   // Reset form when dialog opens or populate from editing data
   useEffect(() => {
     if (open) {
@@ -505,26 +508,51 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setManualEndTime('');
         setManualStationId(null);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
-        // Slot click - use manual mode with provided values
-        setCustomerName('');
-        setPhone('');
-        setCarModel('');
-        setCarSize('medium');
-        setSelectedServices([]);
-        setSelectedDate(new Date(initialDate));
-        setSelectedTime(null);
-        setSelectedStationId(null);
-        setAdminNotes('');
-        setFoundVehicles([]);
-        setFoundCustomers([]);
-        setSelectedCustomerId(null);
-        setShowPhoneDropdown(false);
-        setShowCustomerDropdown(false);
-        // Set manual mode with slot values
-        setTimeSelectionMode('manual');
-        setManualStartTime(initialTime);
-        setManualEndTime('');
-        setManualStationId(initialStationId);
+        // Slot click
+        if (wasOpenRef.current) {
+          // Dialog was already open - only update date/time/station, keep other data
+          setSelectedDate(new Date(initialDate));
+          setTimeSelectionMode('manual');
+          setManualStartTime(initialTime);
+          setManualStationId(initialStationId);
+          // Recalculate end time based on current services duration
+          // Note: totalDurationMinutes is calculated from selectedServices which we're keeping
+          const currentDuration = selectedServices.reduce((total, serviceId) => {
+            const service = services.find(s => s.id === serviceId);
+            if (!service) return total;
+            if (carSize === 'small' && service.duration_small) return total + service.duration_small;
+            if (carSize === 'large' && service.duration_large) return total + service.duration_large;
+            if (carSize === 'medium' && service.duration_medium) return total + service.duration_medium;
+            return total + (service.duration_minutes || 60);
+          }, 0);
+          if (currentDuration > 0) {
+            const [h, m] = initialTime.split(':').map(Number);
+            const endMinutes = h * 60 + m + currentDuration;
+            const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+            setManualEndTime(newEndTime);
+          }
+        } else {
+          // First open - full reset with slot values
+          setCustomerName('');
+          setPhone('');
+          setCarModel('');
+          setCarSize('medium');
+          setSelectedServices([]);
+          setSelectedDate(new Date(initialDate));
+          setSelectedTime(null);
+          setSelectedStationId(null);
+          setAdminNotes('');
+          setFoundVehicles([]);
+          setFoundCustomers([]);
+          setSelectedCustomerId(null);
+          setShowPhoneDropdown(false);
+          setShowCustomerDropdown(false);
+          // Set manual mode with slot values
+          setTimeSelectionMode('manual');
+          setManualStartTime(initialTime);
+          setManualEndTime('');
+          setManualStationId(initialStationId);
+        }
       } else {
         // Reservation create mode (FAB click)
         setCustomerName('');
@@ -547,8 +575,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setManualEndTime('');
         setManualStationId(null);
       }
+      // Track that dialog is now open
+      wasOpenRef.current = true;
+    } else {
+      // Dialog closed - reset tracking ref
+      wasOpenRef.current = false;
     }
-  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId, selectedServices, services, carSize]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
