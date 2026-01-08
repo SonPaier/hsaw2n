@@ -336,17 +336,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     fetchData();
   }, [open, instanceId, mode]);
 
+  // Stable date string to prevent refetching when Date object reference changes
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+
   // Fetch availability blocks when date changes (only for reservation mode)
   useEffect(() => {
     const fetchAvailability = async () => {
-      if (!open || !instanceId || !selectedDate || !isReservationMode) return;
+      if (!open || !instanceId || !selectedDateStr || !isReservationMode) return;
       
-      const fromDate = format(selectedDate, 'yyyy-MM-dd');
-      const toDate = format(addDays(selectedDate, 7), 'yyyy-MM-dd');
+      const toDate = format(addDays(new Date(selectedDateStr), 7), 'yyyy-MM-dd');
       
       const { data } = await supabase.rpc('get_availability_blocks', {
         _instance_id: instanceId,
-        _from: fromDate,
+        _from: selectedDateStr,
         _to: toDate,
       });
       
@@ -356,7 +358,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     };
     
     fetchAvailability();
-  }, [open, instanceId, selectedDate, isReservationMode]);
+  }, [open, instanceId, selectedDateStr, isReservationMode]);
 
   // Calculate the next working day based on working hours
   const getNextWorkingDay = useCallback((): Date => {
@@ -608,7 +610,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       // Dialog closed - reset tracking ref
       wasOpenRef.current = false;
     }
-  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId, selectedServices, services, carSize]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
