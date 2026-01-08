@@ -754,8 +754,8 @@ const AdminCalendar = ({
 
   // Drag and drop handlers
   const handleDragStart = (e: DragEvent<HTMLDivElement>, reservation: Reservation) => {
-    // In read-only mode, disable drag
-    if (readOnly) {
+    // Disable drag on mobile and in read-only mode
+    if (readOnly || isMobile) {
       e.preventDefault();
       return;
     }
@@ -1414,7 +1414,7 @@ const AdminCalendar = ({
                     const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
                     const widthPercent = overlapInfo.hasOverlap ? 100 / overlapInfo.total : 100;
                     const leftPercent = overlapInfo.hasOverlap ? overlapInfo.index * widthPercent : 0;
-                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", isSelected && "border-4 shadow-lg z-30")} style={{
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
                       left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
                       right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
@@ -1736,7 +1736,7 @@ const AdminCalendar = ({
                     const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
-                    return <div key={reservation.id} draggable={!hallMode} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
                     }}>
@@ -1992,7 +1992,7 @@ const AdminCalendar = ({
                 const isDragging = draggedReservation?.id === reservation.id;
                 const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                 const selectedStation = stations.find(s => s.id === selectedStationId);
-                return <div key={reservation.id} draggable={!hallMode && !readOnly} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && "cursor-grab active:cursor-grabbing", hallMode && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
+                return <div key={reservation.id} draggable={!hallMode && !readOnly && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
                   e.stopPropagation();
                   onReservationClick?.(reservation);
                 }}>
