@@ -93,6 +93,7 @@ interface ReservationDetailsDrawerProps {
   onRevertToInProgress?: (reservationId: string) => void;
   onApproveChangeRequest?: (reservationId: string) => void;
   onRejectChangeRequest?: (reservationId: string) => void;
+  onSendPickupSms?: (reservationId: string) => Promise<void>;
 }
 
 const ReservationDetailsDrawer = ({ 
@@ -109,7 +110,8 @@ const ReservationDetailsDrawer = ({
   onRevertToConfirmed, 
   onRevertToInProgress,
   onApproveChangeRequest,
-  onRejectChangeRequest
+  onRejectChangeRequest,
+  onSendPickupSms
 }: ReservationDetailsDrawerProps) => {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
@@ -125,6 +127,7 @@ const ReservationDetailsDrawer = ({
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [sendingPickupSms, setSendingPickupSms] = useState(false);
   const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -711,6 +714,31 @@ const ReservationDetailsDrawer = ({
                 )}
                 {t('reservations.startWork')}
               </Button>
+            )}
+
+            {/* Link: Wyślij SMS o odbiorze - nad akcjami dla in_progress, completed, released */}
+            {['in_progress', 'completed', 'released'].includes(reservation.status) && onSendPickupSms && (
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={async () => {
+                    setSendingPickupSms(true);
+                    try {
+                      await onSendPickupSms(reservation.id);
+                    } finally {
+                      setSendingPickupSms(false);
+                    }
+                  }}
+                  disabled={sendingPickupSms}
+                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 hover:underline text-[16px] disabled:opacity-50"
+                >
+                  {sendingPickupSms ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  {t('reservations.sendPickupSms')}
+                </button>
+              </div>
             )}
 
             {/* In Progress: End Work with dropdown for revert */}

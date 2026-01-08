@@ -1286,24 +1286,9 @@ const AdminDashboard = () => {
       status: 'completed'
     } : r));
 
-    // Send SMS about work completion
-    try {
-      await supabase.functions.invoke('send-sms-message', {
-        body: {
-          phone: reservation.customer_phone,
-          message: `Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Zapraszamy!`,
-          instanceId
-        }
-      });
-      toast.success(t('reservations.workEnded'), {
-        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-      });
-    } catch (smsError) {
-      console.error('SMS error:', smsError);
-      toast.success(t('reservations.workEnded'), {
-        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-      });
-    }
+    toast.success(t('reservations.workEnded'), {
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    });
   };
 
   const handleReleaseVehicle = async (reservationId: string) => {
@@ -1332,6 +1317,25 @@ const AdminDashboard = () => {
     toast.success(t('reservations.vehicleReleased'), {
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     });
+  };
+
+  const handleSendPickupSms = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return;
+
+    try {
+      await supabase.functions.invoke('send-sms-message', {
+        body: {
+          phone: reservation.customer_phone,
+          message: `Twój samochód (${reservation.vehicle_plate}) jest gotowy do odbioru. Zapraszamy!`,
+          instanceId
+        }
+      });
+      toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
+    } catch (error) {
+      console.error('SMS error:', error);
+      toast.error(t('errors.generic'));
+    }
   };
 
   const handleRevertToConfirmed = async (reservationId: string) => {
@@ -2046,6 +2050,7 @@ const AdminDashboard = () => {
           await handleRejectChangeRequest(id);
           setSelectedReservation(null);
         }}
+        onSendPickupSms={handleSendPickupSms}
       />
 
       {/* Add/Edit Reservation Dialog V2 */}
