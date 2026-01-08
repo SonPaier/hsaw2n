@@ -2427,7 +2427,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       <button
         type="button"
         onClick={() => setIsDrawerHidden(prev => !prev)}
-        className="fixed bottom-24 right-4 z-[60] w-14 h-14 rounded-full bg-success text-success-foreground shadow-lg flex items-center justify-center text-xl font-bold hover:bg-success/90 transition-colors"
+        className="fixed bottom-24 right-4 z-[60] w-11 h-11 rounded-full bg-success text-success-foreground shadow-lg flex items-center justify-center text-lg font-bold hover:bg-success/90 transition-colors"
       >
         {isDrawerHidden ? 'R' : 'K'}
       </button>
