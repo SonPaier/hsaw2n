@@ -98,10 +98,17 @@ serve(async (req) => {
 
     console.log("Preparing email for:", customerEmail);
 
+    // Helper to convert URLs to clickable links
+    const makeLinksClickable = (text: string): string => {
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      return text.replace(urlRegex, '<a href="$1" style="color: #2563eb;">$1</a>');
+    };
+
     let emailBody: string;
     
     if (customEmailBody) {
-      // User edited the template - convert plain text to simple HTML
+      // User edited the template - convert plain text to simple HTML with clickable links
+      const bodyWithLinks = makeLinksClickable(customEmailBody);
       emailBody = `
 <!DOCTYPE html>
 <html>
@@ -115,7 +122,7 @@ serve(async (req) => {
 </head>
 <body>
   <div class="container">
-    <pre style="font-family: Arial, sans-serif; white-space: pre-wrap; margin: 0;">${customEmailBody}</pre>
+    <pre style="font-family: Arial, sans-serif; white-space: pre-wrap; margin: 0;">${bodyWithLinks}</pre>
   </div>
 </body>
 </html>`;

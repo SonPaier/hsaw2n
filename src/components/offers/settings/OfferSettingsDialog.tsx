@@ -13,7 +13,7 @@ import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettin
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
-import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail, Link } from 'lucide-react';
+import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail, Link, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,6 +42,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [emailTemplate, setEmailTemplate] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [googleReviewsUrl, setGoogleReviewsUrl] = useState('');
 
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
   const variantsRef = useRef<OfferVariantsSettingsRef>(null);
@@ -56,7 +57,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template, offer_portfolio_url')
+        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template, offer_portfolio_url, offer_google_reviews_url')
         .eq('id', instanceId)
         .single();
       
@@ -72,6 +73,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         setDefaultServiceInfo(data.offer_default_service_info || '');
         setEmailTemplate(data.offer_email_template || '');
         setPortfolioUrl(data.offer_portfolio_url || '');
+        setGoogleReviewsUrl(data.offer_google_reviews_url || '');
       }
       setLoadingSettings(false);
     };
@@ -108,6 +110,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
           offer_default_service_info: defaultServiceInfo || null,
           offer_email_template: emailTemplate || null,
           offer_portfolio_url: portfolioUrl || null,
+          offer_google_reviews_url: googleReviewsUrl || null,
         })
         .eq('id', instanceId);
 
@@ -328,6 +331,24 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                       onChange={(e) => { setPortfolioUrl(e.target.value); handleChange(); }}
                       disabled={saving}
                       placeholder="https://example.com/portfolio"
+                    />
+                  </div>
+                </div>
+
+                {/* Google Reviews link section */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4" />
+                    <h4 className="font-medium">{t('offerSettings.googleReviewsLink')}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t('offerSettings.googleReviewsLinkDescription')}</p>
+                  
+                  <div className="space-y-2">
+                    <Input
+                      value={googleReviewsUrl}
+                      onChange={(e) => { setGoogleReviewsUrl(e.target.value); handleChange(); }}
+                      disabled={saving}
+                      placeholder="https://g.page/r/your-business/review"
                     />
                   </div>
                 </div>

@@ -24,6 +24,7 @@ import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
 import { OfferPreviewDialog } from './OfferPreviewDialog';
+import { SendOfferEmailDialog } from '@/components/admin/SendOfferEmailDialog';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -61,6 +62,23 @@ export const OfferGenerator = ({
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [savedOfferForEmail, setSavedOfferForEmail] = useState<{
+    id: string;
+    offer_number: string;
+    public_token: string;
+    customer_data: { name?: string; email?: string };
+  } | null>(null);
+  const [instanceData, setInstanceData] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    website?: string;
+    contact_person?: string;
+    slug?: string;
+    offer_email_template?: string;
+  } | null>(null);
 
   const steps = [
     { id: 1, label: t('offers.steps.customerData'), icon: User },
@@ -95,17 +113,27 @@ export const OfferGenerator = ({
     loadOffer,
   } = useOffer(instanceId);
 
-  // Fetch instance settings for unit prices visibility
+  // Fetch instance settings for unit prices visibility and email dialog
   useEffect(() => {
     const fetchInstanceSettings = async () => {
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer')
+        .select('show_unit_prices_in_offer, name, email, phone, address, website, contact_person, slug, offer_email_template')
         .eq('id', instanceId)
         .single();
       
       if (data) {
         setInstanceShowUnitPrices(data.show_unit_prices_in_offer === true);
+        setInstanceData({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          website: data.website,
+          contact_person: data.contact_person,
+          slug: data.slug,
+          offer_email_template: data.offer_email_template,
+        });
       }
     };
     fetchInstanceSettings();
@@ -212,9 +240,30 @@ export const OfferGenerator = ({
 
   const handleSend = async () => {
     try {
-      await saveOffer();
-      updateOffer({ status: 'sent' });
-      toast.success(t('offers.savedReadyToSend'));
+      const savedId = await saveOffer();
+      if (savedId) {
+        // Fetch the saved offer to get public_token
+        const { data: savedOffer } = await supabase
+          .from('offers')
+          .select('id, offer_number, public_token, customer_data')
+          .eq('id', savedId)
+          .single();
+        
+        if (savedOffer) {
+          const customerData = savedOffer.customer_data as { name?: string; email?: string } | null;
+          if (!customerData?.email) {
+            toast.error(t('offers.noCustomerEmail'));
+            return;
+          }
+          setSavedOfferForEmail({
+            id: savedOffer.id,
+            offer_number: savedOffer.offer_number,
+            public_token: savedOffer.public_token,
+            customer_data: savedOffer.customer_data as { name?: string; email?: string },
+          });
+          setShowEmailDialog(true);
+        }
+      }
     } catch (error) {
       // Error already handled in hook
     }
@@ -500,6 +549,22 @@ export const OfferGenerator = ({
         calculateTotalNet={calculateTotalNet}
         calculateTotalGross={calculateTotalGross}
       />
+
+      {/* Email Dialog */}
+      {savedOfferForEmail && (
+        <SendOfferEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          offer={savedOfferForEmail}
+          instanceData={instanceData}
+          onSent={() => {
+            setShowEmailDialog(false);
+            setSavedOfferForEmail(null);
+            setHasUnsavedChanges(false);
+            onSaved?.(savedOfferForEmail.id);
+          }}
+        />
+      )}
     </div>
   );
 };

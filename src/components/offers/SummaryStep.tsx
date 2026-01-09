@@ -115,7 +115,7 @@ export const SummaryStep = ({
     // Group by scope
     for (const scope of scopes) {
       const scopeOptions = offer.options
-        .filter(o => o.scopeId === scope.id)
+        .filter(o => o.scopeId === scope.id && o.isSelected)
         .sort((a, b) => a.sortOrder - b.sortOrder);
       if (scopeOptions.length > 0) {
         groups.push({ scopeId: scope.id, scopeName: scope.name, options: scopeOptions });
@@ -123,7 +123,7 @@ export const SummaryStep = ({
     }
     
     // Options without scope
-    const noScopeOptions = offer.options.filter(o => !o.scopeId);
+    const noScopeOptions = offer.options.filter(o => !o.scopeId && o.isSelected);
     if (noScopeOptions.length > 0) {
       groups.push({ scopeId: null, scopeName: 'Inne', options: noScopeOptions });
     }
