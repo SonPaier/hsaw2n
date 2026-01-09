@@ -1481,15 +1481,21 @@ export const PublicOfferCustomerView = ({
           </>
         )}
 
-        {/* Bank Transfer Details - minimalist */}
+        {/* Bank Transfer Details */}
         {(instance?.offer_bank_account_number || instance?.offer_bank_company_name) && (
           <Card>
-            <CardContent className="py-4 space-y-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Dane do płatności
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2">
               {/* Company name */}
               <div className="flex items-center justify-between">
                 <p className="text-sm">
                   Nazwa firmy:{' '}
-                  <span className="font-bold">{instance.offer_bank_company_name || instance.name}</span>
+                  <span className="font-medium">{instance.offer_bank_company_name || instance.name}</span>
                 </p>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1515,7 +1521,7 @@ export const PublicOfferCustomerView = ({
                     {instance.offer_bank_name && (
                       <span className="text-muted-foreground">{instance.offer_bank_name} </span>
                     )}
-                    <span className="font-bold font-mono">{instance.offer_bank_account_number}</span>
+                    <span className="font-mono">{instance.offer_bank_account_number}</span>
                   </p>
                   <Tooltip>
                     <TooltipTrigger asChild>
