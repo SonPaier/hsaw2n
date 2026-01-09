@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -684,40 +685,26 @@ export const PublicOfferCustomerView = ({
                   {offer.customer_data.email}
                 </a>
               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Vehicle - separate full-width card */}
-        {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
-          <Card 
-            className="border"
-            style={{ 
-              backgroundColor: branding.offer_section_bg_color,
-              borderColor: `${branding.offer_primary_color}33`,
-            }}
-          >
-            <CardHeader className="pb-3">
-              <CardTitle 
-                className="flex items-center gap-2 text-base"
-                style={{ color: branding.offer_section_text_color }}
-              >
-                <Car className="w-4 h-4" />
-                {t('publicOffer.vehicle')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-1">
-              <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
-                {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
-              </p>
-              {offer.vehicle_data.plate && (
-                <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
-                  {offer.vehicle_data.plate}
-                </p>
+              {/* Vehicle info integrated with customer */}
+              {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
+                <div className="pt-2 mt-2 border-t" style={{ borderColor: `${branding.offer_primary_color}20` }}>
+                  <p 
+                    className="flex items-center gap-1 font-medium"
+                    style={{ color: branding.offer_section_text_color }}
+                  >
+                    <Car className="w-3 h-3" />
+                    {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
+                  </p>
+                  {offer.vehicle_data.plate && (
+                    <p className="opacity-70 ml-4" style={{ color: branding.offer_section_text_color }}>
+                      {offer.vehicle_data.plate}
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
-        )}
+        </div>
 
         {/* Why Trust Us Section - moved below vehicle */}
         <Card 
@@ -905,8 +892,8 @@ export const PublicOfferCustomerView = ({
               return (
                 <section key={section.key} className="space-y-3">
                   <h2 
-                    className="text-base font-semibold flex items-center gap-2"
-                    style={{ color: branding.offer_scope_header_text_color }}
+                    className="font-semibold flex items-center gap-2"
+                    style={{ color: branding.offer_scope_header_text_color, fontSize: '22px' }}
                   >
                     {section.scopeName}
                     {isScopeSelected && (
@@ -986,13 +973,17 @@ export const PublicOfferCustomerView = ({
                               )}
                               {!hasMultipleVariants && !isScopeSelected && (
                                 <Button
-                                  variant="outline"
+                                  variant="default"
                                   size="sm"
                                   onClick={() => handleSelectVariant(section.key, option.id)}
                                   disabled={interactionsDisabled}
                                   className="shrink-0"
+                                  style={{ 
+                                    backgroundColor: branding.offer_primary_color, 
+                                    color: primaryButtonTextColor 
+                                  }}
                                 >
-                                  Wybierz usługę
+                                  Zobacz podgląd
                                 </Button>
                               )}
                               {!hasMultipleVariants && isScopeSelected && (
@@ -1412,62 +1403,56 @@ export const PublicOfferCustomerView = ({
           </>
         )}
 
-        {/* Bank Transfer Details */}
+        {/* Bank Transfer Details - minimalist */}
         {(instance?.offer_bank_account_number || instance?.offer_bank_company_name) && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="w-5 h-5" />
-                Dane do przelewu
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Company name with copy */}
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-muted-foreground">Nazwa firmy</p>
-                  <p className="font-medium truncate">
-                    {instance.offer_bank_company_name || instance.name}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    navigator.clipboard.writeText(instance.offer_bank_company_name || instance.name || '');
-                    toast.success('Nazwa firmy skopiowana do schowka');
-                  }}
-                  className="flex-shrink-0 ml-2"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
+            <CardContent className="py-4 space-y-2">
+              {/* Company name */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm">
+                  Nazwa firmy:{' '}
+                  <span className="font-bold">{instance.offer_bank_company_name || instance.name}</span>
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(instance.offer_bank_company_name || instance.name || '');
+                        toast.success('Skopiowano');
+                      }}
+                      className="p-1 hover:bg-muted rounded transition-colors"
+                    >
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Kopiuj</TooltipContent>
+                </Tooltip>
               </div>
               
-              {/* Bank name + account number with copy */}
+              {/* Account number */}
               {instance.offer_bank_account_number && (
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-muted-foreground">Numer konta</p>
-                    <p className="font-medium">
-                      {instance.offer_bank_name && (
-                        <span className="text-muted-foreground mr-2">
-                          {instance.offer_bank_name}
-                        </span>
-                      )}
-                      <span className="font-mono">{instance.offer_bank_account_number}</span>
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      navigator.clipboard.writeText(instance.offer_bank_account_number || '');
-                      toast.success('Numer konta skopiowany do schowka');
-                    }}
-                    className="flex-shrink-0 ml-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm">
+                    Numer konta:{' '}
+                    {instance.offer_bank_name && (
+                      <span className="text-muted-foreground">{instance.offer_bank_name} </span>
+                    )}
+                    <span className="font-bold font-mono">{instance.offer_bank_account_number}</span>
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(instance.offer_bank_account_number || '');
+                          toast.success('Skopiowano');
+                        }}
+                        className="p-1 hover:bg-muted rounded transition-colors"
+                      >
+                        <Copy className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Kopiuj</TooltipContent>
+                  </Tooltip>
                 </div>
               )}
             </CardContent>
@@ -1482,13 +1467,13 @@ export const PublicOfferCustomerView = ({
                 <p className="text-muted-foreground mb-4">
                   Zobacz nasze realizacje i obserwuj nas w social media
                 </p>
-                <div className="flex flex-wrap justify-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
                   {instance?.social_facebook && (
                     <a 
                       href={instance.social_facebook} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1877F2]/90 transition-colors"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1877F2]/90 transition-colors"
                     >
                       <Facebook className="w-5 h-5" />
                       <span>Facebook</span>
@@ -1499,7 +1484,7 @@ export const PublicOfferCustomerView = ({
                       href={instance.social_instagram} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity"
                     >
                       <Instagram className="w-5 h-5" />
                       <span>Instagram</span>
@@ -1510,30 +1495,24 @@ export const PublicOfferCustomerView = ({
                       href={instance.offer_google_reviews_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <Star className="w-5 h-5 text-yellow-500" />
                       <span>Opinie Google</span>
                     </a>
                   )}
-                </div>
-                {instance?.offer_portfolio_url && (
-                  <div className="mt-4">
-                    <Button
-                      asChild
-                      className="gap-2"
+                  {instance?.offer_portfolio_url && (
+                    <a 
+                      href={instance.offer_portfolio_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
-                      <a 
-                        href={instance.offer_portfolio_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Realizacje
-                      </a>
-                    </Button>
-                  </div>
-                )}
+                      <ExternalLink className="w-5 h-5" />
+                      <span>Realizacje</span>
+                    </a>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
