@@ -443,7 +443,7 @@ const ReservationsView = ({
   };
 
   return (
-    <div className="pt-4 space-y-4">
+    <div className="space-y-4">
       {/* Sticky header on mobile */}
       <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
         {/* Search bar */}
