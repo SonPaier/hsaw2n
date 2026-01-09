@@ -484,7 +484,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setCarModel('');
         setCarSize('medium');
         setSelectedServices([]);
-        setDateRange(undefined);
+        // Set date range to initialDate (slot click) or today
+        const slotDate = initialDate ? new Date(initialDate) : new Date();
+        setDateRange({ from: slotDate, to: slotDate });
         setPpfStartTime('09:00');
         setPpfEndTime('17:00');
         setOfferNumber('');
