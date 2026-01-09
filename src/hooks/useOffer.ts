@@ -485,6 +485,8 @@ export const useOffer = (instanceId: string) => {
         vehicle_data: Json;
         notes?: string;
         payment_terms?: string;
+        warranty?: string;
+        service_info?: string;
         valid_until?: string;
         vat_rate: number;
         total_net: number;
@@ -498,6 +500,8 @@ export const useOffer = (instanceId: string) => {
         vehicle_data: offer.vehicleData as unknown as Json,
         notes: offer.notes,
         payment_terms: offer.paymentTerms,
+        warranty: offer.warranty,
+        service_info: offer.serviceInfo,
         valid_until: offer.validUntil,
         vat_rate: offer.vatRate,
         total_net: totalNet,
@@ -808,6 +812,8 @@ export const useOffer = (instanceId: string) => {
         additions,
         notes: offerData.notes,
         paymentTerms: offerData.payment_terms,
+        warranty: (offerData as any).warranty || '',
+        serviceInfo: (offerData as any).service_info || '',
         validUntil: offerData.valid_until,
         vatRate: Number(offerData.vat_rate),
         hideUnitPrices: offerData.hide_unit_prices || false,
