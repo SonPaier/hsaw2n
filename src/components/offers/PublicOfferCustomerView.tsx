@@ -23,14 +23,16 @@ import {
   MapPin,
   Mail,
   Globe,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  CreditCard
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -97,6 +99,9 @@ interface Instance {
   offer_portfolio_url?: string;
   offer_google_reviews_url?: string;
   contact_person?: string;
+  offer_bank_company_name?: string;
+  offer_bank_account_number?: string;
+  offer_bank_name?: string;
 }
 
 export interface PublicOfferData {
@@ -1405,6 +1410,68 @@ export const PublicOfferCustomerView = ({
               </Card>
             )}
           </>
+        )}
+
+        {/* Bank Transfer Details */}
+        {(instance?.offer_bank_account_number || instance?.offer_bank_company_name) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CreditCard className="w-5 h-5" />
+                Dane do przelewu
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Company name with copy */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">Nazwa firmy</p>
+                  <p className="font-medium truncate">
+                    {instance.offer_bank_company_name || instance.name}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(instance.offer_bank_company_name || instance.name || '');
+                    toast.success('Nazwa firmy skopiowana do schowka');
+                  }}
+                  className="flex-shrink-0 ml-2"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Bank name + account number with copy */}
+              {instance.offer_bank_account_number && (
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground">Numer konta</p>
+                    <p className="font-medium">
+                      {instance.offer_bank_name && (
+                        <span className="text-muted-foreground mr-2">
+                          {instance.offer_bank_name}
+                        </span>
+                      )}
+                      <span className="font-mono">{instance.offer_bank_account_number}</span>
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(instance.offer_bank_account_number || '');
+                      toast.success('Numer konta skopiowany do schowka');
+                    }}
+                    className="flex-shrink-0 ml-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Social media links + Google Reviews */}

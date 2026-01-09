@@ -64,7 +64,10 @@ const PublicOfferView = () => {
               offer_scope_header_text_color,
               offer_portfolio_url,
               offer_google_reviews_url,
-              contact_person
+              contact_person,
+              offer_bank_company_name,
+              offer_bank_account_number,
+              offer_bank_name
             )
           `)
           .eq('public_token', token)

@@ -507,6 +507,9 @@ export type Database = {
           logo_url: string | null
           name: string
           nip: string | null
+          offer_bank_account_number: string | null
+          offer_bank_company_name: string | null
+          offer_bank_name: string | null
           offer_bg_color: string | null
           offer_branding_enabled: boolean
           offer_default_notes: string | null
@@ -555,6 +558,9 @@ export type Database = {
           logo_url?: string | null
           name: string
           nip?: string | null
+          offer_bank_account_number?: string | null
+          offer_bank_company_name?: string | null
+          offer_bank_name?: string | null
           offer_bg_color?: string | null
           offer_branding_enabled?: boolean
           offer_default_notes?: string | null
@@ -603,6 +609,9 @@ export type Database = {
           logo_url?: string | null
           name?: string
           nip?: string | null
+          offer_bank_account_number?: string | null
+          offer_bank_company_name?: string | null
+          offer_bank_name?: string | null
           offer_bg_color?: string | null
           offer_branding_enabled?: boolean
           offer_default_notes?: string | null
