@@ -43,6 +43,9 @@ interface Instance {
   offer_portfolio_url?: string;
   offer_google_reviews_url?: string;
   contact_person?: string;
+  offer_bank_company_name?: string;
+  offer_bank_account_number?: string;
+  offer_bank_name?: string;
 }
 
 interface ScopeData {
@@ -93,7 +96,10 @@ export const OfferPreviewDialog = ({
             offer_scope_header_text_color,
             offer_portfolio_url,
             offer_google_reviews_url,
-            contact_person
+            contact_person,
+            offer_bank_company_name,
+            offer_bank_account_number,
+            offer_bank_name
           `)
           .eq('id', instanceId)
           .single();

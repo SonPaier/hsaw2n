@@ -13,7 +13,7 @@ import { OfferScopesSettings, OfferScopesSettingsRef } from './OfferScopesSettin
 import { OfferVariantsSettings, OfferVariantsSettingsRef } from './OfferVariantsSettings';
 import { OfferScopeProductsSettings, OfferScopeProductsSettingsRef } from './OfferScopeProductsSettings';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
-import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail, Link, Star } from 'lucide-react';
+import { Layers, Tag, Package, Settings, Save, Loader2, FileText, Palette, Mail, Link, Star, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -43,6 +43,11 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [emailTemplate, setEmailTemplate] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [googleReviewsUrl, setGoogleReviewsUrl] = useState('');
+  
+  // Bank transfer details
+  const [bankCompanyName, setBankCompanyName] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankName, setBankName] = useState('');
 
   const scopesRef = useRef<OfferScopesSettingsRef>(null);
   const variantsRef = useRef<OfferVariantsSettingsRef>(null);
@@ -57,7 +62,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template, offer_portfolio_url, offer_google_reviews_url')
+        .select('show_unit_prices_in_offer, slug, offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info, offer_email_template, offer_portfolio_url, offer_google_reviews_url, offer_bank_company_name, offer_bank_account_number, offer_bank_name, name')
         .eq('id', instanceId)
         .single();
       
@@ -74,6 +79,9 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         setEmailTemplate(data.offer_email_template || '');
         setPortfolioUrl(data.offer_portfolio_url || '');
         setGoogleReviewsUrl(data.offer_google_reviews_url || '');
+        setBankCompanyName(data.offer_bank_company_name || '');
+        setBankAccountNumber(data.offer_bank_account_number || '');
+        setBankName(data.offer_bank_name || '');
       }
       setLoadingSettings(false);
     };
@@ -111,6 +119,9 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
           offer_email_template: emailTemplate || null,
           offer_portfolio_url: portfolioUrl || null,
           offer_google_reviews_url: googleReviewsUrl || null,
+          offer_bank_company_name: bankCompanyName || null,
+          offer_bank_account_number: bankAccountNumber || null,
+          offer_bank_name: bankName || null,
         })
         .eq('id', instanceId);
 
@@ -350,6 +361,48 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                       disabled={saving}
                       placeholder="https://g.page/r/your-business/review"
                     />
+                  </div>
+                </div>
+
+                {/* Bank transfer details section */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    <h4 className="font-medium">{t('offerSettings.bankTransferDetails')}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t('offerSettings.bankTransferDescription')}</p>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.bankCompanyName')}</Label>
+                      <Input
+                        value={bankCompanyName}
+                        onChange={(e) => { setBankCompanyName(e.target.value); handleChange(); }}
+                        disabled={saving}
+                        placeholder={t('offerSettings.bankCompanyNamePlaceholder')}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('offerSettings.bankCompanyNameHint')}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.bankName')}</Label>
+                      <Input
+                        value={bankName}
+                        onChange={(e) => { setBankName(e.target.value); handleChange(); }}
+                        disabled={saving}
+                        placeholder="np. ING Bank Śląski"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>{t('offerSettings.bankAccountNumber')}</Label>
+                      <Input
+                        value={bankAccountNumber}
+                        onChange={(e) => { setBankAccountNumber(e.target.value); handleChange(); }}
+                        disabled={saving}
+                        placeholder="44 1050 1764 1000 0090 8170 0214"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
