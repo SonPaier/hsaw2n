@@ -850,11 +850,57 @@ const AdminDashboard = () => {
           }
         });
       } else if (payload.eventType === 'UPDATE') {
-        // Only update if the reservation is already in our state
-        setReservations(prev => prev.map(r => r.id === payload.new.id ? {
-          ...r,
-          ...payload.new
-        } : r));
+        // Refetch the updated reservation to get service_ids mapped to services_data
+        supabase.from('reservations').select(`
+          id,
+          instance_id,
+          customer_name,
+          customer_phone,
+          vehicle_plate,
+          reservation_date,
+          end_date,
+          start_time,
+          end_time,
+          station_id,
+          status,
+          confirmation_code,
+          price,
+          source,
+          service_ids,
+          admin_notes,
+          customer_notes,
+          car_size,
+          offer_number,
+          services:service_id (name, shortcut),
+          stations:station_id (name, type)
+        `).eq('id', payload.new.id).single().then(({ data }) => {
+          if (data) {
+            // Map service_ids if present
+            const serviceIds = (data as any).service_ids as string[] | null;
+            const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+            if (serviceIds && serviceIds.length > 0) {
+              serviceIds.forEach(id => {
+                const svc = servicesMapRef.current.get(id);
+                if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+              });
+            }
+
+            const updatedReservation = {
+              ...data,
+              status: data.status || 'pending',
+              service: data.services ? {
+                name: (data.services as any).name,
+                shortcut: (data.services as any).shortcut
+              } : undefined,
+              services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+              station: data.stations ? {
+                name: (data.stations as any).name,
+                type: (data.stations as any).type
+              } : undefined
+            };
+            setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
+          }
+        });
       } else if (payload.eventType === 'DELETE') {
         setReservations(prev => prev.filter(r => r.id !== payload.old.id));
       }
