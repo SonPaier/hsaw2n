@@ -886,23 +886,36 @@ export const PublicOfferCustomerView = ({
               const selectedOptionId = selectedVariants[section.key];
               const isScopeSelected = selectedScopeId === section.key;
               
+              // Get scope description from first variant (all variants in a scope share the same description)
+              const scopeDescription = variants[0]?.description;
+              
               return (
                 <section key={section.key} className="space-y-3">
-                  <h2 
-                    className="font-semibold flex items-center gap-2"
-                    style={{ color: branding.offer_scope_header_text_color, fontSize: '22px' }}
-                  >
-                    {section.scopeName}
-                    {isScopeSelected && (
-                      <Badge 
-                        variant="default" 
-                        className="text-xs"
-                        style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
+                  <div>
+                    <h2 
+                      className="font-semibold flex items-center gap-2"
+                      style={{ color: branding.offer_scope_header_text_color, fontSize: '22px' }}
+                    >
+                      {section.scopeName}
+                      {isScopeSelected && (
+                        <Badge 
+                          variant="default" 
+                          className="text-xs"
+                          style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
+                        >
+                          Wybrana
+                        </Badge>
+                      )}
+                    </h2>
+                    {scopeDescription && (
+                      <p 
+                        className="text-sm mt-1"
+                        style={{ color: branding.offer_scope_header_text_color }}
                       >
-                        Wybrana
-                      </Badge>
+                        {scopeDescription}
+                      </p>
                     )}
-                  </h2>
+                  </div>
 
                   {/* Render variants */}
                   {variants.map((option) => {
@@ -931,20 +944,12 @@ export const PublicOfferCustomerView = ({
                           <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                               <div>
-                                <CardTitle 
+                              <CardTitle 
                                   className="text-lg font-semibold"
                                   style={{ color: branding.offer_section_text_color }}
                                 >
                                   {variantName}
                                 </CardTitle>
-                                {option.description && (
-                                  <p 
-                                    className="text-sm opacity-70"
-                                    style={{ color: branding.offer_section_text_color }}
-                                  >
-                                    {option.description}
-                                  </p>
-                                )}
                               </div>
                               {hasMultipleVariants && (
                                 <Button
