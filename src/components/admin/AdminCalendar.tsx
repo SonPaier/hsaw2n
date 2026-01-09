@@ -1416,13 +1416,14 @@ const AdminCalendar = ({
                     const isPending = reservation.status === 'pending';
                     const isSelected = selectedReservationId === reservation.id;
 
-                    // Calculate overlap positioning - cascading/staggered layout for better readability
-                    // Last card (highest index, on top) extends to right edge, earlier cards are progressively shorter
+                    // Calculate overlap positioning - diagonal staggered layout
+                    // Each card is the same width but shifted diagonally (left+right offset increase together)
                     const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
-                    const OVERLAP_OFFSET_PERCENT = 12; // Each card is offset by this percentage
+                    const OVERLAP_OFFSET_PERCENT = 15; // Each card is offset by this percentage
+                    // leftOffset increases with index (later cards start more to the right)
                     const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
-                    // Earlier cards (lower index) get more right offset, so they're shorter
-                    const rightOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
+                    // rightOffset decreases with index (later cards extend further to the right edge)
+                    const rightOffset = overlapInfo.hasOverlap ? (overlapInfo.total - 1 - overlapInfo.index) * OVERLAP_OFFSET_PERCENT : 0;
                     return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
                       left: `calc(${leftOffset}% + 2px)`,
