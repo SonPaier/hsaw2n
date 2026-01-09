@@ -379,7 +379,6 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                         value={bankCompanyName}
                         onChange={(e) => { setBankCompanyName(e.target.value); handleChange(); }}
                         disabled={saving}
-                        placeholder={t('offerSettings.bankCompanyNamePlaceholder')}
                       />
                       <p className="text-xs text-muted-foreground">{t('offerSettings.bankCompanyNameHint')}</p>
                     </div>
@@ -390,7 +389,6 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                         value={bankName}
                         onChange={(e) => { setBankName(e.target.value); handleChange(); }}
                         disabled={saving}
-                        placeholder="np. ING Bank Śląski"
                       />
                     </div>
                     
@@ -400,7 +398,6 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
                         value={bankAccountNumber}
                         onChange={(e) => { setBankAccountNumber(e.target.value); handleChange(); }}
                         disabled={saving}
-                        placeholder="44 1050 1764 1000 0090 8170 0214"
                       />
                     </div>
                   </div>
