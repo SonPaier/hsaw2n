@@ -1416,15 +1416,14 @@ const AdminCalendar = ({
                     const isPending = reservation.status === 'pending';
                     const isSelected = selectedReservationId === reservation.id;
 
-                    // Calculate overlap positioning
+                    // Calculate overlap positioning - cascading layout for better readability
                     const overlapInfo = getOverlapInfo(reservation, stationReservations, currentDateStr);
-                    const widthPercent = overlapInfo.hasOverlap ? 100 / overlapInfo.total : 100;
-                    const leftPercent = overlapInfo.hasOverlap ? overlapInfo.index * widthPercent : 0;
+                    const OVERLAP_OFFSET_PERCENT = 14; // Each subsequent card is offset by this percentage
+                    const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
                     return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
-                      left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
-                      right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
-                      width: overlapInfo.hasOverlap ? `calc(${widthPercent}% - 4px)` : undefined,
+                      left: overlapInfo.hasOverlap ? `calc(${leftOffset}% + 2px)` : '2px',
+                      right: '2px',
                       zIndex: isSelected ? 30 : getTimeBasedZIndex(displayStart)
                     }} onClick={e => {
                       e.stopPropagation();
