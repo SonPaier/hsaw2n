@@ -1517,7 +1517,7 @@ const AdminCalendar = ({
               </div>
 
               {/* Current time indicator with time label */}
-              {showCurrentTime && <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{
+              {showCurrentTime && <div className="absolute left-0 right-0 z-40 pointer-events-none" style={{
             top: currentTimeTop
           }}>
                   <div className="flex items-center">
@@ -1774,7 +1774,7 @@ const AdminCalendar = ({
           })}
 
               {/* Current time indicator */}
-              {twoDays.some(d => isSameDay(d, new Date())) && currentHour >= 8 && currentHour <= 18 && <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{
+              {twoDays.some(d => isSameDay(d, new Date())) && currentHour >= 8 && currentHour <= 18 && <div className="absolute left-0 right-0 z-40 pointer-events-none" style={{
             top: currentTimeTop
           }}>
                   <div className="flex items-center">
@@ -2050,7 +2050,7 @@ const AdminCalendar = ({
           })}
 
               {/* Current time indicator */}
-              {weekDays.some(d => isSameDay(d, new Date())) && showCurrentTime && <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{
+              {weekDays.some(d => isSameDay(d, new Date())) && showCurrentTime && <div className="absolute left-0 right-0 z-40 pointer-events-none" style={{
             top: currentTimeTop
           }}>
                   <div className="flex items-center">
