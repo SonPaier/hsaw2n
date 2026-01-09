@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut } from 'lucide-react';
+import { Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -127,10 +127,19 @@ const MobileBottomNav = ({
 
       {/* More Menu Sheet - Full screen from right */}
       <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-full p-0">
+        <SheetContent side="right" className="w-full sm:max-w-full p-0" hideCloseButton>
           <div className="flex flex-col h-full">
             <SheetHeader className="p-6 pb-4 border-b border-border">
-              <SheetTitle>{t('navigation.more')}</SheetTitle>
+              <div className="flex items-center justify-between">
+                <SheetTitle>{t('navigation.more')}</SheetTitle>
+                <button 
+                  type="button"
+                  onClick={() => setMoreMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </SheetHeader>
 
             <div className="flex-1 overflow-auto">

@@ -276,14 +276,13 @@ const ReservationDetailsDrawer = ({
                   {getSourceLabel(reservation.source)}
                 </SheetDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 -mt-1 -mr-2"
+              <button 
+                type="button"
                 onClick={onClose}
+                className="p-2 rounded-full hover:bg-muted transition-colors -mt-1 -mr-2"
               >
-                <X className="h-6 w-6" />
-              </Button>
+                <X className="w-6 h-6" />
+              </button>
             </div>
           </SheetHeader>
 
