@@ -1215,9 +1215,9 @@ export const PublicOfferCustomerView = ({
                                     {item.custom_name}
                                   </p>
                                   {/* Row 2: Description */}
-                                  {item.custom_description && (
+                                  {(item.custom_description || item.products_library?.description) && (
                                     <div className="text-sm opacity-70">
-                                      {renderDescription(item.custom_description)}
+                                      {renderDescription(item.custom_description || item.products_library?.description || '')}
                                     </div>
                                   )}
                                   {/* Row 3: Price + Button aligned right */}
