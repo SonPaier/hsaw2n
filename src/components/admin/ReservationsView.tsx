@@ -445,7 +445,7 @@ const ReservationsView = ({
   return (
     <div className="pt-4 space-y-4">
       {/* Sticky header on mobile */}
-      <div className="sm:static sticky top-0 z-20 bg-background pt-4 pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pt-0">
+      <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
