@@ -1,21 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
-import { APP_VERSION, VERSION_STORAGE_KEY } from '@/lib/version';
+import { VERSION_STORAGE_KEY } from '@/lib/version';
 
 export function useAppUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we have a stored version
-    const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
-    
-    if (storedVersion && storedVersion !== APP_VERSION) {
-      // New version available
-      setUpdateAvailable(true);
-    } else if (!storedVersion) {
-      // First time - store current version
-      localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION);
-    }
+    const checkServerVersion = async () => {
+      try {
+        // Cache-busting query param to always get fresh version
+        const res = await fetch(`/version.json?t=${Date.now()}`);
+        if (!res.ok) throw new Error('Failed to fetch version');
+        
+        const data = await res.json();
+        const serverVersion = data.version;
+        setLatestVersion(serverVersion);
+        
+        const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
+        
+        if (storedVersion && storedVersion !== serverVersion) {
+          // New version available
+          setUpdateAvailable(true);
+        } else if (!storedVersion) {
+          // First time - store current version
+          localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+        }
+      } catch (error) {
+        console.error('Failed to check version:', error);
+      }
+    };
+
+    checkServerVersion();
 
     // Also listen for service worker updates
     if ('serviceWorker' in navigator) {
@@ -32,15 +48,6 @@ export function useAppUpdate() {
           }
         });
       });
-
-      // Check for updates periodically (every 30 minutes)
-      const checkInterval = setInterval(() => {
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.update();
-        });
-      }, 30 * 60 * 1000);
-
-      return () => clearInterval(checkInterval);
     }
   }, []);
 
@@ -48,8 +55,10 @@ export function useAppUpdate() {
     setIsUpdating(true);
     
     try {
-      // Update stored version
-      localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION);
+      // Update stored version with the latest from server
+      if (latestVersion) {
+        localStorage.setItem(VERSION_STORAGE_KEY, latestVersion);
+      }
       
       // If service worker is available, tell it to skip waiting
       if ('serviceWorker' in navigator) {
@@ -72,12 +81,12 @@ export function useAppUpdate() {
       // Fallback - just reload
       window.location.reload();
     }
-  }, []);
+  }, [latestVersion]);
 
   return {
     updateAvailable,
     isUpdating,
     applyUpdate,
-    currentVersion: APP_VERSION
+    currentVersion: latestVersion
   };
 }
