@@ -71,12 +71,12 @@ export const OfferPreviewDialog = ({
 
   useEffect(() => {
     if (open) {
-      console.log('[OfferPreviewDialog] Opening with offer.options:', offer.options.length, offer.options.map(o => ({ name: o.name, isSelected: o.isSelected, itemsCount: o.items.length })));
+      console.log('[OfferPreviewDialog] Opening with instanceId:', instanceId, 'offer.options:', offer.options.length);
       const fetchData = async () => {
         setLoading(true);
         
         // Fetch instance data
-        const { data: instanceData } = await supabase
+        const { data: instanceData, error: instanceError } = await supabase
           .from('instances')
           .select(`
             name,
@@ -105,6 +105,8 @@ export const OfferPreviewDialog = ({
           .eq('id', instanceId)
           .single();
 
+        console.log('[OfferPreviewDialog] Instance fetch result:', !!instanceData, instanceError);
+        
         if (instanceData) {
           setInstance(instanceData);
         }
