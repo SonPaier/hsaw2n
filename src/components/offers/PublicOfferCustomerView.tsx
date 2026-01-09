@@ -821,32 +821,71 @@ export const PublicOfferCustomerView = ({
                           }}
                         >
                           <CardContent className="py-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
+                            {/* Desktop: Name + price/button on one line, description below */}
+                            <div className="hidden md:block">
+                              <div className="flex items-center justify-between">
                                 <p 
                                   className="font-medium"
                                   style={{ color: branding.offer_section_text_color }}
                                 >
                                   {item.custom_name}
                                 </p>
-                                {item.custom_description && renderDescription(item.custom_description)}
-                                {!offer.hide_unit_prices && (
-                                  <p 
-                                    className="text-sm mt-1 opacity-70"
-                                    style={{ color: branding.offer_section_text_color }}
+                                <div className="flex items-center gap-3">
+                                  {!offer.hide_unit_prices && (
+                                    <span 
+                                      className="font-medium"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
+                                      +{formatPrice(itemTotal)}
+                                    </span>
+                                  )}
+                                  <Button
+                                    variant={isItemSelected ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleToggleOptionalItem(item.id)}
+                                    disabled={interactionsDisabled}
+                                    className="shrink-0"
+                                    style={isItemSelected ? { 
+                                      backgroundColor: branding.offer_primary_color, 
+                                      color: primaryButtonTextColor 
+                                    } : {}}
                                   >
-                                    {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                                    {item.discount_percent > 0 && ` (-${item.discount_percent}%)`}
-                                  </p>
-                                )}
+                                    {isItemSelected ? (
+                                      <>
+                                        <Check className="w-4 h-4 mr-1" />
+                                        Dodane
+                                      </>
+                                    ) : (
+                                      'Dodaj'
+                                    )}
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-3">
+                              {(item.custom_description || item.products_library?.description) && (
+                                <div className="mt-1">
+                                  {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Mobile: Name, description, then price/button */}
+                            <div className="md:hidden space-y-2">
+                              <p 
+                                className="font-medium"
+                                style={{ color: branding.offer_section_text_color }}
+                              >
+                                {item.custom_name}
+                              </p>
+                              {(item.custom_description || item.products_library?.description) && 
+                                renderDescription(item.custom_description || item.products_library?.description || '')
+                              }
+                              <div className="flex items-center justify-end gap-3">
                                 {!offer.hide_unit_prices && (
                                   <span 
                                     className="font-medium"
                                     style={{ color: branding.offer_section_text_color }}
                                   >
-                                    {formatPrice(itemTotal)}
+                                    +{formatPrice(itemTotal)}
                                   </span>
                                 )}
                                 <Button
