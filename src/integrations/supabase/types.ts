@@ -514,6 +514,7 @@ export type Database = {
           offer_default_service_info: string | null
           offer_default_warranty: string | null
           offer_email_template: string | null
+          offer_google_reviews_url: string | null
           offer_header_bg_color: string | null
           offer_header_text_color: string | null
           offer_portfolio_url: string | null
@@ -561,6 +562,7 @@ export type Database = {
           offer_default_service_info?: string | null
           offer_default_warranty?: string | null
           offer_email_template?: string | null
+          offer_google_reviews_url?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
           offer_portfolio_url?: string | null
@@ -608,6 +610,7 @@ export type Database = {
           offer_default_service_info?: string | null
           offer_default_warranty?: string | null
           offer_email_template?: string | null
+          offer_google_reviews_url?: string | null
           offer_header_bg_color?: string | null
           offer_header_text_color?: string | null
           offer_portfolio_url?: string | null
@@ -1110,6 +1113,10 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          default_notes: string | null
+          default_payment_terms: string | null
+          default_service_info: string | null
+          default_warranty: string | null
           description: string | null
           has_coating_upsell: boolean
           id: string
@@ -1122,6 +1129,10 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          default_notes?: string | null
+          default_payment_terms?: string | null
+          default_service_info?: string | null
+          default_warranty?: string | null
           description?: string | null
           has_coating_upsell?: boolean
           id?: string
@@ -1134,6 +1145,10 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          default_notes?: string | null
+          default_payment_terms?: string | null
+          default_service_info?: string | null
+          default_warranty?: string | null
           description?: string | null
           has_coating_upsell?: boolean
           id?: string

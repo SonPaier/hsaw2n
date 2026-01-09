@@ -18,7 +18,12 @@ import {
   Facebook,
   Instagram,
   X,
-  Save
+  Save,
+  Phone,
+  MapPin,
+  Mail,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +95,8 @@ interface Instance {
   offer_primary_color?: string;
   offer_scope_header_text_color?: string;
   offer_portfolio_url?: string;
+  offer_google_reviews_url?: string;
+  contact_person?: string;
 }
 
 export interface PublicOfferData {
@@ -559,7 +566,155 @@ export const PublicOfferCustomerView = ({
           </Card>
         )}
 
-        {/* About Us Section */}
+        {/* Contact Cards: Company (left) + Customer (right) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* LEFT - Company Contact / Expert Number */}
+          <Card 
+            className="border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle 
+                className="flex items-center gap-2 text-base"
+                style={{ color: branding.offer_section_text_color }}
+              >
+                <Phone className="w-4 h-4" />
+                {t('publicOffer.expertNumber')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              {instance?.contact_person && (
+                <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
+                  {instance.contact_person}
+                </p>
+              )}
+              {instance?.phone && (
+                <a 
+                  href={`tel:${instance.phone}`}
+                  className="flex items-center gap-2 hover:underline font-medium"
+                  style={{ color: branding.offer_primary_color }}
+                >
+                  <Phone className="w-3 h-3" />
+                  {instance.phone}
+                </a>
+              )}
+              {instance?.address && (
+                <p 
+                  className="flex items-center gap-2 opacity-70"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  {instance.address}
+                </p>
+              )}
+              {instance?.email && (
+                <a 
+                  href={`mailto:${instance.email}`}
+                  className="flex items-center gap-2 opacity-70 hover:underline"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  <Mail className="w-3 h-3" />
+                  {instance.email}
+                </a>
+              )}
+              {instance?.website && (
+                <a 
+                  href={instance.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 opacity-70 hover:underline"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  <Globe className="w-3 h-3" />
+                  {instance.website}
+                </a>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* RIGHT - Customer */}
+          <Card 
+            className="border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle 
+                className="flex items-center gap-2 text-base"
+                style={{ color: branding.offer_section_text_color }}
+              >
+                <User className="w-4 h-4" />
+                {t('publicOffer.forClient')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-1">
+              <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
+                {offer.customer_data?.name}
+              </p>
+              {offer.customer_data?.company && (
+                <p 
+                  className="flex items-center gap-1 opacity-70"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  <Building2 className="w-3 h-3" />
+                  {offer.customer_data.company}
+                </p>
+              )}
+              {offer.customer_data?.nip && (
+                <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                  NIP: {offer.customer_data.nip}
+                </p>
+              )}
+              {offer.customer_data?.email && (
+                <a 
+                  href={`mailto:${offer.customer_data.email}`}
+                  className="block opacity-70 hover:underline"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  {offer.customer_data.email}
+                </a>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Vehicle - separate full-width card */}
+        {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
+          <Card 
+            className="border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle 
+                className="flex items-center gap-2 text-base"
+                style={{ color: branding.offer_section_text_color }}
+              >
+                <Car className="w-4 h-4" />
+                {t('publicOffer.vehicle')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-1">
+              <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
+                {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
+              </p>
+              {offer.vehicle_data.plate && (
+                <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
+                  {offer.vehicle_data.plate}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Why Trust Us Section - moved below vehicle */}
         <Card 
           className="border"
           style={{ 
@@ -625,81 +780,6 @@ export const PublicOfferCustomerView = ({
             </div>
           </CardContent>
         </Card>
-
-        {/* Customer & Vehicle Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card 
-            className="border"
-            style={{ 
-              backgroundColor: branding.offer_section_bg_color,
-              borderColor: `${branding.offer_primary_color}33`,
-            }}
-          >
-            <CardHeader className="pb-3">
-              <CardTitle 
-                className="flex items-center gap-2 text-base"
-                style={{ color: branding.offer_section_text_color }}
-              >
-                <User className="w-4 h-4" />
-                {t('publicOffer.forClient')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-1">
-              <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
-                {offer.customer_data?.name}
-              </p>
-              {offer.customer_data?.company && (
-                <p 
-                  className="flex items-center gap-1 opacity-70"
-                  style={{ color: branding.offer_section_text_color }}
-                >
-                  <Building2 className="w-3 h-3" />
-                  {offer.customer_data.company}
-                </p>
-              )}
-              {offer.customer_data?.nip && (
-                <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
-                  NIP: {offer.customer_data.nip}
-                </p>
-              )}
-              {offer.customer_data?.email && (
-                <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
-                  {offer.customer_data.email}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
-            <Card 
-              className="border"
-              style={{ 
-                backgroundColor: branding.offer_section_bg_color,
-                borderColor: `${branding.offer_primary_color}33`,
-              }}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle 
-                  className="flex items-center gap-2 text-base"
-                  style={{ color: branding.offer_section_text_color }}
-                >
-                  <Car className="w-4 h-4" />
-                  {t('publicOffer.vehicle')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm space-y-1">
-                <p className="font-medium" style={{ color: branding.offer_section_text_color }}>
-                  {offer.vehicle_data.brandModel || `${offer.vehicle_data.brand || ''} ${offer.vehicle_data.model || ''}`.trim()}
-                </p>
-                {offer.vehicle_data.plate && (
-                  <p className="opacity-70" style={{ color: branding.offer_section_text_color }}>
-                    {offer.vehicle_data.plate}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
 
         {/* Service Sections */}
         {scopeSections.length === 0 ? (
@@ -1327,15 +1407,15 @@ export const PublicOfferCustomerView = ({
           </>
         )}
 
-        {/* Social media links */}
-        {(instance?.social_facebook || instance?.social_instagram || instance?.offer_portfolio_url) && (
+        {/* Social media links + Google Reviews */}
+        {(instance?.social_facebook || instance?.social_instagram || instance?.offer_portfolio_url || instance?.offer_google_reviews_url) && (
           <Card>
             <CardContent className="py-6">
               <div className="text-center">
                 <p className="text-muted-foreground mb-4">
                   Zobacz nasze realizacje i obserwuj nas w social media
                 </p>
-                <div className="flex justify-center gap-4">
+                <div className="flex flex-wrap justify-center gap-4">
                   {instance?.social_facebook && (
                     <a 
                       href={instance.social_facebook} 
@@ -1358,6 +1438,17 @@ export const PublicOfferCustomerView = ({
                       <span>Instagram</span>
                     </a>
                   )}
+                  {instance?.offer_google_reviews_url && (
+                    <a 
+                      href={instance.offer_google_reviews_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      <span>Opinie Google</span>
+                    </a>
+                  )}
                 </div>
                 {instance?.offer_portfolio_url && (
                   <div className="mt-4">
@@ -1370,6 +1461,7 @@ export const PublicOfferCustomerView = ({
                         target="_blank" 
                         rel="noopener noreferrer"
                       >
+                        <ExternalLink className="w-4 h-4" />
                         Realizacje
                       </a>
                     </Button>
@@ -1384,8 +1476,16 @@ export const PublicOfferCustomerView = ({
         <footer className="text-center text-sm text-muted-foreground pt-8 pb-4">
           <p>{instance?.name}</p>
           {instance?.address && <p>{instance.address}</p>}
-          {instance?.phone && <p>Tel: {instance.phone}</p>}
-          {instance?.email && <p>Email: {instance.email}</p>}
+          {instance?.phone && (
+            <p>
+              Tel: <a href={`tel:${instance.phone}`} className="hover:underline">{instance.phone}</a>
+            </p>
+          )}
+          {instance?.email && (
+            <p>
+              Email: <a href={`mailto:${instance.email}`} className="hover:underline">{instance.email}</a>
+            </p>
+          )}
         </footer>
       </main>
     </div>

@@ -40,6 +40,9 @@ interface Instance {
   offer_section_text_color?: string;
   offer_primary_color?: string;
   offer_scope_header_text_color?: string;
+  offer_portfolio_url?: string;
+  offer_google_reviews_url?: string;
+  contact_person?: string;
 }
 
 interface ScopeData {
@@ -87,7 +90,10 @@ export const OfferPreviewDialog = ({
             offer_section_bg_color,
             offer_section_text_color,
             offer_primary_color,
-            offer_scope_header_text_color
+            offer_scope_header_text_color,
+            offer_portfolio_url,
+            offer_google_reviews_url,
+            contact_person
           `)
           .eq('id', instanceId)
           .single();

@@ -461,7 +461,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden sm:block">
-                        <div className="font-medium">{formatPrice(offer.total_gross)}</div>
+                        <div className="font-medium">
+                          {offer.approved_at ? formatPrice(offer.total_gross) : <span className="text-muted-foreground text-sm">—</span>}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}
                         </div>
