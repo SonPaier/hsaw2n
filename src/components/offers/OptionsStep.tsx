@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { 
   Plus, 
@@ -242,10 +243,11 @@ export const OptionsStep = ({
             {/* Option Description */}
             <div className="space-y-1">
               <Label className="text-sm text-muted-foreground">Opis opcji</Label>
-              <Input
+              <Textarea
                 value={option.description || ''}
                 onChange={(e) => onUpdateOption(option.id, { description: e.target.value })}
-                className="bg-white"
+                className="bg-white min-h-[80px]"
+                rows={3}
               />
             </div>
 

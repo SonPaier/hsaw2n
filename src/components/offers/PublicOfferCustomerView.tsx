@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { parseMarkdownLists } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, 
@@ -153,20 +154,14 @@ interface PublicOfferCustomerViewProps {
 
 // Helper to render description - supports HTML or plain text with line breaks
 const renderDescription = (text: string) => {
-  const hasHtmlTags = /<[^>]+>/.test(text);
+  const parsed = parseMarkdownLists(text);
   
-  if (hasHtmlTags) {
-    return (
-      <div 
-        className="text-sm text-foreground/70 mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
-        dangerouslySetInnerHTML={{ __html: text }}
-      />
-    );
-  } else {
-    return (
-      <p className="text-sm text-foreground/70 mt-1 whitespace-pre-line">{text}</p>
-    );
-  }
+  return (
+    <div 
+      className="text-sm text-foreground/70 mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+      dangerouslySetInnerHTML={{ __html: parsed }}
+    />
+  );
 };
 
 export const PublicOfferCustomerView = ({
