@@ -1282,9 +1282,10 @@ export const PublicOfferCustomerView = ({
                     <CreditCard className="w-4 h-4 opacity-70" />
                     Warunki płatności
                   </div>
-                  <div className="pl-6 whitespace-pre-wrap opacity-80">
-                    {offer.payment_terms}
-                  </div>
+                  <div 
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.payment_terms) }}
+                  />
                 </div>
               )}
               
@@ -1294,9 +1295,10 @@ export const PublicOfferCustomerView = ({
                     <Shield className="w-4 h-4 opacity-70" />
                     Warunki gwarancji
                   </div>
-                  <div className="pl-6 whitespace-pre-wrap opacity-80">
-                    {offer.warranty}
-                  </div>
+                  <div 
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.warranty) }}
+                  />
                 </div>
               )}
               
@@ -1306,9 +1308,10 @@ export const PublicOfferCustomerView = ({
                     <FileText className="w-4 h-4 opacity-70" />
                     Oferta obejmuje
                   </div>
-                  <div className="pl-6 whitespace-pre-wrap opacity-80">
-                    {offer.service_info}
-                  </div>
+                  <div 
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.service_info) }}
+                  />
                 </div>
               )}
               
@@ -1318,9 +1321,10 @@ export const PublicOfferCustomerView = ({
                     <Clock className="w-4 h-4 opacity-70" />
                     Inne informacje
                   </div>
-                  <div className="pl-6 whitespace-pre-wrap opacity-80">
-                    {offer.notes}
-                  </div>
+                  <div 
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.notes) }}
+                  />
                 </div>
               )}
             </CardContent>
