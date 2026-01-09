@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
+import { UpdateBanner } from '@/components/admin/UpdateBanner';
 
 import {
   DropdownMenu,
@@ -1906,8 +1907,11 @@ const AdminDashboard = () => {
               </Button>
             </nav>
 
-            {/* Collapse toggle & User menu */}
-            <div className={cn(sidebarCollapsed ? "p-2" : "p-4")}>
+            {/* Update banner & Collapse toggle & User menu */}
+            <div className={cn(sidebarCollapsed ? "p-2 space-y-2" : "p-4 space-y-3")}>
+              {/* Update available banner */}
+              <UpdateBanner collapsed={sidebarCollapsed} />
+
               {/* Collapse button - desktop only */}
               <Button
                 variant="ghost"
