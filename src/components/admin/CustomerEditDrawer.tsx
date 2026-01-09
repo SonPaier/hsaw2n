@@ -259,36 +259,44 @@ const CustomerEditDrawer = ({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
           className="w-full sm:max-w-md overflow-y-auto p-6"
+          hideCloseButton
           onFocusOutside={(e) => e.preventDefault()}
         >
-          <SheetHeader className="pr-8">
-            <SheetTitle className="flex items-center gap-2">
-              <div className="flex-1 min-w-0">
+          <SheetHeader>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="text-xl font-semibold truncate">
                   {isAddMode ? t('customers.newCustomer') : (isEditing ? editName || customer?.name : customer?.name)}
                 </div>
-              </div>
-              {!isAddMode && !isEditing && (
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleSmsButton}
-                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCall}
-                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  >
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </SheetTitle>
+                {!isAddMode && !isEditing && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleSmsButton}
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleCall}
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </SheetTitle>
+              <button 
+                type="button"
+                onClick={handleClose}
+                className="p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </SheetHeader>
 
           <div className="mt-6 pb-20">
