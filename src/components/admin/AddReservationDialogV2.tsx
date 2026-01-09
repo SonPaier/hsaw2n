@@ -1179,7 +1179,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           end_date: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
           start_time: ppfStartTime,
           end_time: ppfEndTime,
-          customer_name: customerName.trim() || 'Klient',
+          customer_name: customerName.trim() || phone || 'Klient',
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
@@ -1200,7 +1200,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           sendPushNotification({
             instanceId,
             title: `✏️ Rezerwacja zmieniona`,
-            body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
+            body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
             url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
             tag: `edited-reservation-${editingReservation.id}`,
           });
@@ -1227,7 +1227,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           sendPushNotification({
             instanceId,
             title: `📅 Nowa rezerwacja (admin)`,
-            body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
+            body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
             url: `/admin?reservationCode=${newReservationData.confirmation_code}`,
             tag: `new-reservation-admin-${Date.now()}`,
           });
@@ -1334,7 +1334,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           reservation_date: format(selectedDate, 'yyyy-MM-dd'),
           start_time: finalStartTime,
           end_time: finalEndTime,
-          customer_name: customerName.trim() || 'Klient',
+          customer_name: customerName.trim() || phone || 'Klient',
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
@@ -1354,7 +1354,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         sendPushNotification({
           instanceId,
           title: `✏️ Rezerwacja zmieniona`,
-          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
+          body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
           url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
           tag: `edited-reservation-${editingReservation.id}`,
         });
@@ -1370,7 +1370,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           reservation_date: format(selectedDate, 'yyyy-MM-dd'),
           start_time: finalStartTime,
           end_time: finalEndTime,
-          customer_name: customerName.trim() || 'Klient',
+          customer_name: customerName.trim() || phone || 'Klient',
           customer_phone: phone || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
