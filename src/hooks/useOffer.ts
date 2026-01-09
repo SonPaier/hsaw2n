@@ -465,7 +465,8 @@ export const useOffer = (instanceId: string) => {
   }, [calculateTotalNet, offer.vatRate]);
 
   // Save offer to database
-  const saveOffer = useCallback(async () => {
+  // silent: if true, don't show success toast (used for auto-save)
+  const saveOffer = useCallback(async (silent = false) => {
     setSaving(true);
     try {
       // Generate offer number if new
@@ -712,7 +713,9 @@ export const useOffer = (instanceId: string) => {
         console.error('Error saving customer from offer:', customerSaveError);
       }
 
-      toast.success('Oferta została zapisana');
+      if (!silent) {
+        toast.success('Oferta została zapisana');
+      }
       return offerId;
     } catch (error) {
       console.error('Error saving offer:', error);

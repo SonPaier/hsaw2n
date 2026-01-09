@@ -236,9 +236,9 @@ export const OfferGenerator = ({
 
   const handleNext = async () => {
     if (currentStep < 4) {
-      // Auto-save when moving to next step
+      // Auto-save when moving to next step (silent - no toast)
       try {
-        await saveOffer();
+        await saveOffer(true);
       } catch (error) {
         // Continue even if save fails - user can manually save
         console.error('Auto-save failed:', error);
@@ -249,9 +249,9 @@ export const OfferGenerator = ({
 
   const handlePrev = async () => {
     if (currentStep > 1) {
-      // Auto-save when moving to previous step
+      // Auto-save when moving to previous step (silent - no toast)
       try {
-        await saveOffer();
+        await saveOffer(true);
       } catch (error) {
         console.error('Auto-save failed:', error);
       }
