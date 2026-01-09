@@ -52,8 +52,9 @@ const MobileBottomNav = ({
     { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
     { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
-    ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
+    // Hidden on mobile: products and followup
+    // { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
+    // ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
     { id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') },
   ];
 
