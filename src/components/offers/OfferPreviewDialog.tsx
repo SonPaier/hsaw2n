@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Send, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -144,68 +144,76 @@ export const OfferPreviewDialog = ({
     }
   };
 
-  // Map OfferState to PublicOfferData format
-  console.log('[OfferPreviewDialog] Building mappedOffer, instance:', !!instance, 'options:', offer.options.length);
-  const mappedOffer: PublicOfferData | null = instance ? {
-    id: offer.id || '',
-    offer_number: 'PODGLĄD',
-    instance_id: instanceId,
-    customer_data: {
-      name: offer.customerData.name,
-      email: offer.customerData.email,
-      phone: offer.customerData.phone,
-      company: offer.customerData.company,
-      nip: offer.customerData.nip,
-      address: offer.customerData.companyAddress,
-    },
-    vehicle_data: {
-      brandModel: offer.vehicleData.brandModel,
-      plate: offer.vehicleData.plate,
-    },
-    status: offer.status,
-    total_net: calculateTotalNet(),
-    total_gross: calculateTotalGross(),
-    vat_rate: offer.vatRate,
-    notes: offer.notes,
-    payment_terms: offer.paymentTerms,
-    warranty: offer.warranty,
-    service_info: offer.serviceInfo,
-    valid_until: offer.validUntil,
-    hide_unit_prices: offer.hideUnitPrices,
-    created_at: new Date().toISOString(),
-    approved_at: null,
-    selected_state: null,
-    offer_options: offer.options.map((opt: OfferOption) => ({
-      id: opt.id,
-      name: opt.name,
-      description: opt.description,
-      is_selected: opt.isSelected,
-      subtotal_net: opt.items.reduce((sum, item) => {
-        const itemTotal = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-        return sum + (item.isOptional ? 0 : itemTotal);
-      }, 0),
-      sort_order: opt.sortOrder,
-      scope_id: opt.scopeId,
-      is_upsell: opt.isUpsell,
-      scope: opt.scopeId && scopes[opt.scopeId] ? {
-        id: scopes[opt.scopeId].id,
-        name: scopes[opt.scopeId].name,
-        is_extras_scope: scopes[opt.scopeId].is_extras_scope,
-      } : null,
-      offer_option_items: opt.items.map(item => ({
-        id: item.id,
-        custom_name: item.customName || '',
-        custom_description: item.customDescription,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        unit: item.unit,
-        discount_percent: item.discountPercent,
-        is_optional: item.isOptional,
-        products_library: null,
+  // Map OfferState to PublicOfferData format - only compute when instance is loaded
+  const mappedOffer: PublicOfferData | null = useMemo(() => {
+    if (!instance) {
+      console.log('[OfferPreviewDialog] mappedOffer: no instance yet');
+      return null;
+    }
+    
+    console.log('[OfferPreviewDialog] Building mappedOffer with', offer.options.length, 'options');
+    
+    return {
+      id: offer.id || '',
+      offer_number: 'PODGLĄD',
+      instance_id: instanceId,
+      customer_data: {
+        name: offer.customerData.name,
+        email: offer.customerData.email,
+        phone: offer.customerData.phone,
+        company: offer.customerData.company,
+        nip: offer.customerData.nip,
+        address: offer.customerData.companyAddress,
+      },
+      vehicle_data: {
+        brandModel: offer.vehicleData.brandModel,
+        plate: offer.vehicleData.plate,
+      },
+      status: offer.status,
+      total_net: calculateTotalNet(),
+      total_gross: calculateTotalGross(),
+      vat_rate: offer.vatRate,
+      notes: offer.notes,
+      payment_terms: offer.paymentTerms,
+      warranty: offer.warranty,
+      service_info: offer.serviceInfo,
+      valid_until: offer.validUntil,
+      hide_unit_prices: offer.hideUnitPrices,
+      created_at: new Date().toISOString(),
+      approved_at: null,
+      selected_state: null,
+      offer_options: offer.options.map((opt: OfferOption) => ({
+        id: opt.id,
+        name: opt.name,
+        description: opt.description,
+        is_selected: opt.isSelected,
+        subtotal_net: opt.items.reduce((sum, item) => {
+          const itemTotal = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+          return sum + (item.isOptional ? 0 : itemTotal);
+        }, 0),
+        sort_order: opt.sortOrder,
+        scope_id: opt.scopeId,
+        is_upsell: opt.isUpsell,
+        scope: opt.scopeId && scopes[opt.scopeId] ? {
+          id: scopes[opt.scopeId].id,
+          name: scopes[opt.scopeId].name,
+          is_extras_scope: scopes[opt.scopeId].is_extras_scope,
+        } : null,
+        offer_option_items: opt.items.map(item => ({
+          id: item.id,
+          custom_name: item.customName || '',
+          custom_description: item.customDescription,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          unit: item.unit,
+          discount_percent: item.discountPercent,
+          is_optional: item.isOptional,
+          products_library: null,
+        })),
       })),
-    })),
-    instances: instance,
-  } : null;
+      instances: instance,
+    };
+  }, [instance, offer, scopes, instanceId, calculateTotalNet, calculateTotalGross]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
