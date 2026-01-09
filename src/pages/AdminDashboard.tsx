@@ -1979,7 +1979,7 @@ const AdminDashboard = () => {
           {/* Content */}
           <div className={cn(
             "flex-1 space-y-6 overflow-auto pb-20 lg:pb-8",
-            currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4 pt-0"
+            currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4"
           )}>
             {/* Header - only shown for non-calendar views that need it */}
             {['reservations', 'customers', 'settings'].includes(currentView) && <h1 className="text-2xl font-bold text-foreground">
