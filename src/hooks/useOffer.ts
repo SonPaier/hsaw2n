@@ -211,7 +211,9 @@ export const useOffer = (instanceId: string) => {
             id: crypto.randomUUID(),
             productId: p.product_id || undefined,
             customName: p.custom_name || p.products_library?.name || '',
-            customDescription: p.custom_description || p.products_library?.description || '',
+            // Only use custom_description if explicitly set in template, don't copy from products_library
+            // This allows product description updates to reflect in offers via FK relationship
+            customDescription: p.custom_description || '',
             quantity: Number(p.quantity) || 1,
             unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
             unit: p.unit || p.products_library?.unit || 'szt',
@@ -247,7 +249,8 @@ export const useOffer = (instanceId: string) => {
             id: crypto.randomUUID(),
             productId: p.product_id || undefined,
             customName: p.custom_name || p.products_library?.name || '',
-            customDescription: p.custom_description || p.products_library?.description || '',
+            // Only use custom_description if explicitly set in template, don't copy from products_library
+            customDescription: p.custom_description || '',
             quantity: Number(p.quantity) || 1,
             unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
             unit: p.unit || p.products_library?.unit || 'szt',
