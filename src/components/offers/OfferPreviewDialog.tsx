@@ -71,6 +71,7 @@ export const OfferPreviewDialog = ({
 
   useEffect(() => {
     if (open) {
+      console.log('[OfferPreviewDialog] Opening with offer.options:', offer.options.length, offer.options.map(o => ({ name: o.name, isSelected: o.isSelected, itemsCount: o.items.length })));
       const fetchData = async () => {
         setLoading(true);
         
@@ -142,6 +143,7 @@ export const OfferPreviewDialog = ({
   };
 
   // Map OfferState to PublicOfferData format
+  console.log('[OfferPreviewDialog] Building mappedOffer, instance:', !!instance, 'options:', offer.options.length);
   const mappedOffer: PublicOfferData | null = instance ? {
     id: offer.id || '',
     offer_number: 'PODGLĄD',
