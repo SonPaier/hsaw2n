@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, GripVertical, Tag, ChevronDown, Sparkles } from 'lucide-react';
@@ -468,10 +469,12 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           <span className="text-sm text-muted-foreground">{t('common.active')}</span>
                         </div>
                       </div>
-                      <Input
+                      <Textarea
                         value={scope.description || ''}
                         onChange={(e) => handleUpdateScope(scope.id, { description: e.target.value })}
                         placeholder={t('offerSettings.scopes.descriptionPlaceholder')}
+                        rows={5}
+                        className="min-h-[120px]"
                       />
                       
                       {/* Extras scope toggle */}
