@@ -303,13 +303,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         .eq('instance_id', instanceId)
         .eq('active', true);
       
-      // Only filter station_type for washing reservations and PPF
-      if (isReservationMode) {
-        servicesQuery = servicesQuery.eq('station_type', 'washing');
-      } else if (isPPFMode) {
-        servicesQuery = servicesQuery.eq('station_type', 'ppf');
-      }
-      // Yard and Detailing modes show ALL services
+      // All services available in all modes - no station_type filtering
       
       const { data: servicesData } = await servicesQuery.order('sort_order');
       
@@ -317,14 +311,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setServices(servicesData);
       }
       
-      // Fetch stations (only for reservation mode)
+      // Fetch all active stations (for reservation mode)
       if (isReservationMode) {
         const { data: stationsData } = await supabase
           .from('stations')
           .select('id, name, type')
           .eq('instance_id', instanceId)
           .eq('active', true)
-          .eq('type', 'washing')
           .order('sort_order');
         
         if (stationsData) {
