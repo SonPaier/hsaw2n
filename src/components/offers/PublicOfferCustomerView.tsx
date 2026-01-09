@@ -1569,6 +1569,13 @@ export const PublicOfferCustomerView = ({
             </p>
           )}
         </footer>
+
+        {/* N2Wash branding footer */}
+        <div className="text-center pb-4">
+          <p className="text-muted-foreground" style={{ fontSize: '12px' }}>
+            N2Wash.com - CRM dla myjni samochodowych i detailingu
+          </p>
+        </div>
       </main>
     </div>
   );
