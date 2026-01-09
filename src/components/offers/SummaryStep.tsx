@@ -400,11 +400,11 @@ export const SummaryStep = ({
         </CardContent>
       </Card>
 
-      {/* Notes & Terms */}
+      {/* Notes & Terms - 4 sections */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Dodatkowe informacje</CardTitle>
+            <CardTitle className="text-base">Warunki oferty</CardTitle>
             {templates.length > 0 && (
               <Select onValueChange={(id) => {
                 const template = templates.find(t => t.id === id);
@@ -432,21 +432,45 @@ export const SummaryStep = ({
               onChange={(e) => onUpdateOffer({ validUntil: e.target.value })}
             />
           </div>
+          <Separator />
           <div className="space-y-2">
             <Label htmlFor="paymentTerms">Warunki płatności</Label>
-            <Input
+            <Textarea
               id="paymentTerms"
               value={offer.paymentTerms || ''}
               onChange={(e) => onUpdateOffer({ paymentTerms: e.target.value })}
+              rows={4}
+              placeholder="Np. zaliczka 30%, pozostała kwota przy odbiorze..."
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Uwagi</Label>
+            <Label htmlFor="warranty">Warunki gwarancji</Label>
+            <Textarea
+              id="warranty"
+              value={offer.warranty || ''}
+              onChange={(e) => onUpdateOffer({ warranty: e.target.value })}
+              rows={4}
+              placeholder="Np. 10 lat gwarancji producenta, 2 lata gwarancji na montaż..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="serviceInfo">Oferta obejmuje</Label>
+            <Textarea
+              id="serviceInfo"
+              value={offer.serviceInfo || ''}
+              onChange={(e) => onUpdateOffer({ serviceInfo: e.target.value })}
+              rows={4}
+              placeholder="Np. kompleksowe czyszczenie pojazdu, dekontaminacja lakieru..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Inne informacje</Label>
             <Textarea
               id="notes"
               value={offer.notes || ''}
               onChange={(e) => onUpdateOffer({ notes: e.target.value })}
               rows={4}
+              placeholder="Dodatkowe uwagi..."
             />
           </div>
         </CardContent>

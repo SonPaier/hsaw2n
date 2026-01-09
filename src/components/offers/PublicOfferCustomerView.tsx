@@ -131,6 +131,8 @@ export interface PublicOfferData {
   vat_rate: number;
   notes?: string;
   payment_terms?: string;
+  warranty?: string;
+  service_info?: string;
   valid_until?: string;
   hide_unit_prices: boolean;
   created_at: string;
@@ -1260,8 +1262,8 @@ export const PublicOfferCustomerView = ({
           </CardContent>
         </Card>
 
-        {/* Notes & Terms */}
-        {(offer.notes || offer.payment_terms || offer.valid_until) && (
+        {/* Notes & Terms - 4 sections */}
+        {(offer.payment_terms || offer.warranty || offer.service_info || offer.notes || offer.valid_until) && (
           <Card 
             className="border"
             style={{ 
@@ -1269,27 +1271,61 @@ export const PublicOfferCustomerView = ({
               borderColor: `${branding.offer_primary_color}33`,
             }}
           >
-            <CardContent className="pt-6 space-y-3 text-sm">
+            <CardContent className="pt-6 space-y-4 text-sm">
               {offer.valid_until && (
                 <div className="flex items-center gap-2" style={{ color: branding.offer_section_text_color }}>
-                  <Calendar className="w-4 h-4 opacity-70" />
+                  <Calendar className="w-4 h-4 opacity-70 shrink-0" />
                   <span>
                     {t('publicOffer.offerValidUntil')}: <strong>{format(new Date(offer.valid_until), 'd MMMM yyyy', { locale: pl })}</strong>
                   </span>
                 </div>
               )}
+              
               {offer.payment_terms && (
-                <div className="flex items-center gap-2" style={{ color: branding.offer_section_text_color }}>
-                  <Clock className="w-4 h-4 opacity-70" />
-                  <span>{t('publicOffer.paymentTerms')}: {offer.payment_terms}</span>
+                <div style={{ color: branding.offer_section_text_color }}>
+                  <div className="flex items-center gap-2 font-medium mb-1">
+                    <CreditCard className="w-4 h-4 opacity-70" />
+                    Warunki płatności
+                  </div>
+                  <div className="pl-6 whitespace-pre-wrap opacity-80">
+                    {offer.payment_terms}
+                  </div>
                 </div>
               )}
+              
+              {offer.warranty && (
+                <div style={{ color: branding.offer_section_text_color }}>
+                  <div className="flex items-center gap-2 font-medium mb-1">
+                    <Shield className="w-4 h-4 opacity-70" />
+                    Warunki gwarancji
+                  </div>
+                  <div className="pl-6 whitespace-pre-wrap opacity-80">
+                    {offer.warranty}
+                  </div>
+                </div>
+              )}
+              
+              {offer.service_info && (
+                <div style={{ color: branding.offer_section_text_color }}>
+                  <div className="flex items-center gap-2 font-medium mb-1">
+                    <FileText className="w-4 h-4 opacity-70" />
+                    Oferta obejmuje
+                  </div>
+                  <div className="pl-6 whitespace-pre-wrap opacity-80">
+                    {offer.service_info}
+                  </div>
+                </div>
+              )}
+              
               {offer.notes && (
-                <div 
-                  className="pt-2 whitespace-pre-wrap opacity-70"
-                  style={{ color: branding.offer_section_text_color }}
-                >
-                  {offer.notes}
+                <div style={{ color: branding.offer_section_text_color }}>
+                  <div className="flex items-center gap-2 font-medium mb-1">
+                    <Clock className="w-4 h-4 opacity-70" />
+                    Inne informacje
+                  </div>
+                  <div className="pl-6 whitespace-pre-wrap opacity-80">
+                    {offer.notes}
+                  </div>
                 </div>
               )}
             </CardContent>

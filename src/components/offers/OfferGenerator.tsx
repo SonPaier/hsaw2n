@@ -139,7 +139,7 @@ export const OfferGenerator = ({
     fetchInstanceSettings();
   }, [instanceId]);
 
-  // Load existing offer if editing or duplicating
+  // Load existing offer if editing or duplicating, or load defaults for new offers
   useEffect(() => {
     const loadId = offerId || duplicateFromId;
     if (loadId) {
@@ -149,8 +149,27 @@ export const OfferGenerator = ({
           updateOffer({ id: undefined, status: 'draft' });
         }
       });
+    } else if (instanceData) {
+      // For new offers, load default values from instance settings
+      const loadDefaults = async () => {
+        const { data } = await supabase
+          .from('instances')
+          .select('offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info')
+          .eq('id', instanceId)
+          .single();
+        
+        if (data) {
+          updateOffer({
+            paymentTerms: data.offer_default_payment_terms || '',
+            notes: data.offer_default_notes || '',
+            warranty: data.offer_default_warranty || '',
+            serviceInfo: data.offer_default_service_info || '',
+          });
+        }
+      };
+      loadDefaults();
     }
-  }, [offerId, duplicateFromId]);
+  }, [offerId, duplicateFromId, instanceData]);
 
   // Track changes for new offers
   useEffect(() => {
@@ -215,14 +234,27 @@ export const OfferGenerator = ({
     setPendingClose(false);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 4) {
+      // Auto-save when moving to next step
+      try {
+        await saveOffer();
+      } catch (error) {
+        // Continue even if save fails - user can manually save
+        console.error('Auto-save failed:', error);
+      }
       setCurrentStep(prev => prev + 1);
     }
   };
 
-  const handlePrev = () => {
+  const handlePrev = async () => {
     if (currentStep > 1) {
+      // Auto-save when moving to previous step
+      try {
+        await saveOffer();
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
       setCurrentStep(prev => prev - 1);
     }
   };

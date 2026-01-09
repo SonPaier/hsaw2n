@@ -164,6 +164,8 @@ export const OfferPreviewDialog = ({
     vat_rate: offer.vatRate,
     notes: offer.notes,
     payment_terms: offer.paymentTerms,
+    warranty: offer.warranty,
+    service_info: offer.serviceInfo,
     valid_until: offer.validUntil,
     hide_unit_prices: offer.hideUnitPrices,
     created_at: new Date().toISOString(),

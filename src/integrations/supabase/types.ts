@@ -1281,6 +1281,7 @@ export type Database = {
           responded_at: string | null
           selected_state: Json | null
           sent_at: string | null
+          service_info: string | null
           status: string
           total_gross: number
           total_net: number
@@ -1289,6 +1290,7 @@ export type Database = {
           vat_rate: number
           vehicle_data: Json | null
           viewed_at: string | null
+          warranty: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -1307,6 +1309,7 @@ export type Database = {
           responded_at?: string | null
           selected_state?: Json | null
           sent_at?: string | null
+          service_info?: string | null
           status?: string
           total_gross?: number
           total_net?: number
@@ -1315,6 +1318,7 @@ export type Database = {
           vat_rate?: number
           vehicle_data?: Json | null
           viewed_at?: string | null
+          warranty?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -1333,6 +1337,7 @@ export type Database = {
           responded_at?: string | null
           selected_state?: Json | null
           sent_at?: string | null
+          service_info?: string | null
           status?: string
           total_gross?: number
           total_net?: number
@@ -1341,6 +1346,7 @@ export type Database = {
           vat_rate?: number
           vehicle_data?: Json | null
           viewed_at?: string | null
+          warranty?: string | null
         }
         Relationships: [
           {
