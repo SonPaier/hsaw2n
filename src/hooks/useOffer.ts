@@ -59,6 +59,8 @@ export interface OfferState {
   additions: OfferItem[];
   notes?: string;
   paymentTerms?: string;
+  warranty?: string;
+  serviceInfo?: string;
   validUntil?: string;
   vatRate: number;
   hideUnitPrices: boolean;
@@ -100,6 +102,10 @@ export const useOffer = (instanceId: string) => {
     hideUnitPrices: false,
     status: 'draft',
     validUntil: defaultValidUntil,
+    paymentTerms: '',
+    warranty: '',
+    serviceInfo: '',
+    notes: '',
   });
   
   const [loading, setLoading] = useState(false);
