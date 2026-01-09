@@ -163,6 +163,12 @@ const formatTimeSlot = (hour: number, slotIndex: number): string => {
   const minutes = slotIndex * SLOT_MINUTES;
   return `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
+// Dynamic z-index based on start time - later reservations appear on top
+const getTimeBasedZIndex = (startTime: string): number => {
+  const [hours, minutes] = startTime.split(':').map(Number);
+  // Base z-index 5-18 depending on time (5:00-22:00 range)
+  return 5 + Math.floor((hours - 5 + minutes / 60));
+};
 const AdminCalendar = ({
   stations,
   reservations,
@@ -1419,7 +1425,7 @@ const AdminCalendar = ({
                       left: overlapInfo.hasOverlap ? `calc(${leftPercent}% + 2px)` : '2px',
                       right: overlapInfo.hasOverlap ? `calc(${100 - leftPercent - widthPercent}% + 2px)` : '2px',
                       width: overlapInfo.hasOverlap ? `calc(${widthPercent}% - 4px)` : undefined,
-                      zIndex: isSelected ? 30 : (overlapInfo.hasOverlap ? 10 + overlapInfo.index : undefined)
+                      zIndex: isSelected ? 30 : getTimeBasedZIndex(displayStart)
                     }} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
@@ -1736,7 +1742,7 @@ const AdminCalendar = ({
                     const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
-                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
                     }}>
@@ -1992,7 +1998,7 @@ const AdminCalendar = ({
                 const isDragging = draggedReservation?.id === reservation.id;
                 const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                 const selectedStation = stations.find(s => s.id === selectedStationId);
-                return <div key={reservation.id} draggable={!hallMode && !readOnly && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-50 scale-95")} style={style} onClick={e => {
+                return <div key={reservation.id} draggable={!hallMode && !readOnly && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-50 scale-95")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
                   e.stopPropagation();
                   onReservationClick?.(reservation);
                 }}>
