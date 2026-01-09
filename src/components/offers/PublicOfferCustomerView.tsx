@@ -1203,53 +1203,100 @@ export const PublicOfferCustomerView = ({
                                 <div 
                                   key={item.id}
                                   className={cn(
-                                    "py-2 px-3 rounded-md transition-all space-y-1",
+                                    "py-2 px-3 rounded-md transition-all",
                                     isItemSelected && "bg-primary/5"
                                   )}
                                 >
-                                  {/* Row 1: Product name */}
-                                  <p 
-                                    className="font-medium"
-                                    style={{ color: branding.offer_section_text_color }}
-                                  >
-                                    {item.custom_name}
-                                  </p>
-                                  {/* Row 2: Description */}
-                                  {(item.custom_description || item.products_library?.description) && (
-                                    <div className="text-sm opacity-70">
-                                      {renderDescription(item.custom_description || item.products_library?.description || '')}
-                                    </div>
-                                  )}
-                                  {/* Row 3: Price + Button aligned right */}
-                                  <div className="flex items-center justify-end gap-3 pt-1">
-                                    {!offer.hide_unit_prices && (
-                                      <span 
-                                        className="font-medium text-sm"
+                                  {/* Desktop: Name + price/button on first line, description below */}
+                                  <div className="hidden md:block">
+                                    <div className="flex items-center justify-between">
+                                      <p 
+                                        className="font-medium"
                                         style={{ color: branding.offer_section_text_color }}
                                       >
-                                        +{formatPrice(itemTotal)}
-                                      </span>
+                                        {item.custom_name}
+                                      </p>
+                                      <div className="flex items-center gap-3">
+                                        {!offer.hide_unit_prices && (
+                                          <span 
+                                            className="font-medium text-sm"
+                                            style={{ color: branding.offer_section_text_color }}
+                                          >
+                                            +{formatPrice(itemTotal)}
+                                          </span>
+                                        )}
+                                        <Button
+                                          variant={isItemSelected ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => handleToggleOptionalItem(item.id)}
+                                          disabled={interactionsDisabled}
+                                          className="shrink-0"
+                                          style={isItemSelected ? { 
+                                            backgroundColor: branding.offer_primary_color, 
+                                            color: primaryButtonTextColor 
+                                          } : {}}
+                                        >
+                                          {isItemSelected ? (
+                                            <>
+                                              <Check className="w-4 h-4 mr-1" />
+                                              Dodane
+                                            </>
+                                          ) : (
+                                            'Dodaj'
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    {(item.custom_description || item.products_library?.description) && (
+                                      <div className="text-sm opacity-70 mt-1">
+                                        {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                      </div>
                                     )}
-                                    <Button
-                                      variant={isItemSelected ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => handleToggleOptionalItem(item.id)}
-                                      disabled={interactionsDisabled}
-                                      className="shrink-0"
-                                      style={isItemSelected ? { 
-                                        backgroundColor: branding.offer_primary_color, 
-                                        color: primaryButtonTextColor 
-                                      } : {}}
+                                  </div>
+
+                                  {/* Mobile: Name, description, then price/button */}
+                                  <div className="md:hidden space-y-1">
+                                    <p 
+                                      className="font-medium"
+                                      style={{ color: branding.offer_section_text_color }}
                                     >
-                                      {isItemSelected ? (
-                                        <>
-                                          <Check className="w-4 h-4 mr-1" />
-                                          Dodane
-                                        </>
-                                      ) : (
-                                        'Dodaj'
+                                      {item.custom_name}
+                                    </p>
+                                    {(item.custom_description || item.products_library?.description) && (
+                                      <div className="text-sm opacity-70">
+                                        {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center justify-end gap-3 pt-1">
+                                      {!offer.hide_unit_prices && (
+                                        <span 
+                                          className="font-medium text-sm"
+                                          style={{ color: branding.offer_section_text_color }}
+                                        >
+                                          +{formatPrice(itemTotal)}
+                                        </span>
                                       )}
-                                    </Button>
+                                      <Button
+                                        variant={isItemSelected ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleToggleOptionalItem(item.id)}
+                                        disabled={interactionsDisabled}
+                                        className="shrink-0"
+                                        style={isItemSelected ? { 
+                                          backgroundColor: branding.offer_primary_color, 
+                                          color: primaryButtonTextColor 
+                                        } : {}}
+                                      >
+                                        {isItemSelected ? (
+                                          <>
+                                            <Check className="w-4 h-4 mr-1" />
+                                            Dodane
+                                          </>
+                                        ) : (
+                                          'Dodaj'
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               );
