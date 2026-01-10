@@ -464,7 +464,7 @@ export const SummaryStep = ({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Suma netto</span>
-              <span className="font-medium">{formatPrice(totalNet)}</span>
+              <span className="font-medium">-</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
@@ -484,12 +484,7 @@ export const SummaryStep = ({
                   </SelectContent>
                 </Select>
               </div>
-              <span className="font-medium">{formatPrice(vatAmount)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Razem brutto</span>
-              <span className="text-primary">{formatPrice(totalGross)}</span>
+              <span className="font-medium">-</span>
             </div>
           </div>
         </CardContent>
