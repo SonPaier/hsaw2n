@@ -17,7 +17,6 @@ interface Product {
   unit: string;
   default_price: number;
   metadata: Record<string, unknown> | null;
-  active: boolean;
   source: string;
 }
 
@@ -102,9 +101,6 @@ export function ProductDetailsDialog({
             )}
             <Badge variant={product.source === 'global' ? 'secondary' : 'default'}>
               {product.source === 'global' ? t('productDetails.global') : t('productDetails.local')}
-            </Badge>
-            <Badge variant={product.active ? 'default' : 'outline'}>
-              {product.active ? t('productDetails.active') : t('productDetails.inactive')}
             </Badge>
           </div>
 

@@ -37,7 +37,6 @@ interface Product {
   unit: string;
   default_price: number;
   metadata: Record<string, unknown> | null;
-  active: boolean;
 }
 
 interface PriceListViewerProps {
