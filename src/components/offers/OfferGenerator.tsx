@@ -512,7 +512,7 @@ export const OfferGenerator = ({
           </Button>
 
           {/* Preview button - show on step 3 and 4 */}
-          {currentStep >= 3 && offer.id && (
+          {currentStep >= 3 && (
             <Button
               variant="outline"
               onClick={handleShowPreview}
