@@ -428,11 +428,14 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                   onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
+                  <div className="flex items-start sm:items-center gap-4 min-w-0">
+                    {/* Icon - hidden on mobile */}
+                    <div className="hidden sm:flex w-10 h-10 rounded-lg bg-primary/10 items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {/* Desktop layout */}
+                      <div className="hidden sm:block">
                         <div className="flex items-center gap-2">
                           <span className="font-medium truncate">{offer.offer_number}</span>
                           <button
@@ -460,7 +463,44 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           </div>
                         )}
                       </div>
+                      
+                      {/* Mobile layout - 4 lines */}
+                      <div className="sm:hidden space-y-1">
+                        {/* Line 1: Full offer number */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{offer.offer_number}</span>
+                          <button
+                            onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
+                            className="p-1 hover:bg-secondary/80 rounded transition-colors"
+                            title={t('offers.copyOfferNumber')}
+                          >
+                            <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          </button>
+                        </div>
+                        {/* Line 2: Status */}
+                        <div>
+                          <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
+                            {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                          </Badge>
+                        </div>
+                        {/* Line 3: Customer and vehicle */}
+                        <div className="text-sm text-muted-foreground">
+                          {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
+                          {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
+                        </div>
+                        {/* Line 4: Services */}
+                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {offer.offer_scopes.map((scope) => (
+                              <Badge key={scope.id} variant="secondary" className="text-xs">
+                                {scope.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden sm:block">
                         <div className="font-medium">
