@@ -507,10 +507,10 @@ export const OptionsStep = ({
   );
 
   return (
-    <div className="space-y-6">
-      {/* Grouped Options by Scope */}
+    <>
+      {/* Grouped Options by Scope - each as separate floating container */}
       {groupedOptions.map((group) => (
-        <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5">
+        <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5 mb-4">
           {/* Scope Header */}
           {group.scope && (
             <div className="flex items-center gap-3 mb-4">
@@ -541,6 +541,6 @@ export const OptionsStep = ({
           <p className="text-sm">Wybierz zakresy w poprzednim kroku lub dodaj opcję ręcznie</p>
         </div>
       )}
-    </div>
+    </>
   );
 };
