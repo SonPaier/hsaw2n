@@ -270,10 +270,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   };
 
   const formatPrice = (value: number) => {
-    return new Intl.NumberFormat('pl-PL', {
-      style: 'currency',
-      currency: 'PLN',
-    }).format(value);
+    return `${Math.round(value)} zł`;
   };
 
   const formatDate = (dateStr: string) => {
