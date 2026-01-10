@@ -508,29 +508,27 @@ export const OptionsStep = ({
 
   return (
     <div className="space-y-6">
-      {/* Grouped Options by Scope - each scope in its own container */}
+      {/* Grouped Options by Scope */}
       {groupedOptions.map((group) => (
-        <div key={group.scope?.id || 'ungrouped'}>
+        <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5">
           {/* Scope Header */}
           {group.scope && (
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-4">
               <Package className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-xl">{group.scope.name}</h3>
             </div>
           )}
           
           {group.scope === null && groupedOptions.length > 1 && (
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-4">
               <Package className="w-5 h-5 text-muted-foreground" />
               <h3 className="font-bold text-xl text-muted-foreground">Pozostałe opcje</h3>
             </div>
           )}
 
-          {/* Options in this group - each in white container */}
-          <div className="bg-white rounded-lg shadow-sm border p-5">
-            <div className="space-y-0">
-              {group.options.map(option => renderOptionSection(option))}
-            </div>
+          {/* Options in this group - flat list */}
+          <div className="space-y-0">
+            {group.options.map(option => renderOptionSection(option))}
           </div>
         </div>
       ))}
