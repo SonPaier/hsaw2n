@@ -135,7 +135,9 @@ export const SummaryStep = ({
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
       currency: 'PLN',
-    }).format(value);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(value));
   };
 
   const handleGlobalDiscountStart = (optionId: string) => {
