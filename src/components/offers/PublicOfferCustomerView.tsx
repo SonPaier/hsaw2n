@@ -263,7 +263,9 @@ export const PublicOfferCustomerView = ({
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
       currency: 'PLN',
-    }).format(value);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(value));
   };
 
   // Calculate dynamic total based on selected scope, variant, upsells, optional items, and extras
