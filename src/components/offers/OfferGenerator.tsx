@@ -519,7 +519,7 @@ export const OfferGenerator = ({
               className="gap-2"
             >
               <Eye className="w-4 h-4" />
-              {t('offers.showPreview')}
+              {t('offers.preview')}
             </Button>
           )}
 
