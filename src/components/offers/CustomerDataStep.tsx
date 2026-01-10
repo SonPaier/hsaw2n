@@ -85,7 +85,6 @@ export const CustomerDataStep = ({
           companyCity: parsed.city,
         });
         setShowManualCompany(true);
-        toast.success('Pobrano dane firmy');
       } else {
         toast.error('Nie znaleziono firmy o podanym NIP');
       }
