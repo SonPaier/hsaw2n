@@ -238,7 +238,7 @@ export const OptionsStep = ({
                     <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </PopoverTrigger>
-                <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+                <PopoverContent className="p-0 w-[400px] bg-white" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
                   <Command shouldFilter={false}>
                     <CommandInput 
                       placeholder="Szukaj w bibliotece..." 
@@ -263,8 +263,8 @@ export const OptionsStep = ({
                               onSelect={() => handleProductSelect(option.id, item.id, product)} 
                               className="flex justify-between cursor-pointer"
                             >
-                              <span>{product.name}</span>
-                              <span className="text-muted-foreground text-sm">{formatPrice(product.default_price)}</span>
+                              <span className="flex-1">{product.name}</span>
+                              <span className="font-bold text-sm ml-4">{formatPrice(product.default_price)}</span>
                             </CommandItem>
                           ))
                         }
@@ -379,7 +379,7 @@ export const OptionsStep = ({
                               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                             </div>
                           </PopoverTrigger>
-                          <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+                          <PopoverContent className="p-0 w-[400px] bg-white" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
                             <Command shouldFilter={false}>
                             <CommandInput placeholder="Szukaj w bibliotece..." value={searchTerms[item.id] || ''} onValueChange={value => setSearchTerms(prev => ({
                           ...prev,
@@ -393,8 +393,8 @@ export const OptionsStep = ({
                               if (!searchTerm) return true;
                               return p.name.toLowerCase().includes(searchTerm.toLowerCase());
                             }).slice(0, 10).map(product => <CommandItem key={product.id} value={product.id} onSelect={() => handleProductSelect(option.id, item.id, product)} className="flex justify-between cursor-pointer">
-                                        <span>{product.name}</span>
-                                        <span className="text-muted-foreground text-sm">
+                                        <span className="flex-1">{product.name}</span>
+                                        <span className="font-bold text-sm ml-4">
                                           {formatPrice(product.default_price)}
                                         </span>
                                       </CommandItem>)}
@@ -465,7 +465,7 @@ export const OptionsStep = ({
                               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                             </div>
                           </PopoverTrigger>
-                          <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+                          <PopoverContent className="p-0 w-[400px] bg-white" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
                             <Command shouldFilter={false}>
                               <CommandInput placeholder="Szukaj w bibliotece..." value={searchTerms[item.id] || ''} onValueChange={value => setSearchTerms(prev => ({
                           ...prev,
@@ -479,8 +479,8 @@ export const OptionsStep = ({
                               if (!searchTerm) return true;
                               return p.name.toLowerCase().includes(searchTerm.toLowerCase());
                             }).slice(0, 10).map(product => <CommandItem key={product.id} value={product.id} onSelect={() => handleProductSelect(option.id, item.id, product)} className="flex justify-between cursor-pointer">
-                                        <span>{product.name}</span>
-                                        <span className="text-muted-foreground text-sm">
+                                        <span className="flex-1">{product.name}</span>
+                                        <span className="font-bold text-sm ml-4">
                                           {formatPrice(product.default_price)}
                                         </span>
                                       </CommandItem>)}
