@@ -1198,13 +1198,13 @@ export const PublicOfferCustomerView = ({
 
                   {/* Upsells */}
                   {upsells.length > 0 && (
-                    <div className="space-y-3 mt-4">
+                    <div className="space-y-3 mt-8 pt-6 border-t" style={{ borderColor: `${branding.offer_primary_color}20` }}>
                       <h3 
-                        className="text-sm font-medium flex items-center gap-2"
-                        style={{ color: branding.offer_scope_header_text_color }}
+                        className="font-medium flex items-center gap-2"
+                        style={{ color: branding.offer_scope_header_text_color, fontSize: '18px' }}
                       >
-                        <Sparkles className="w-4 h-4" style={{ color: branding.offer_primary_color }} />
-                        Opcje dodatkowe
+                        <Sparkles className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
+                        Opcje dodatkowe do usługi {section.scopeName}
                       </h3>
                       {upsells.map((upsell) => (
                         <Card 
