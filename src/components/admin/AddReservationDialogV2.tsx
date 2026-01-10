@@ -410,6 +410,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -428,6 +429,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -475,6 +477,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -496,6 +499,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -520,6 +524,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -568,6 +573,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           setFinalPrice('');
           setFoundCustomers([]);
           setSelectedCustomerId(null);
+          setCustomerDiscountPercent(null);
           setShowPhoneDropdown(false);
           setShowCustomerDropdown(false);
           setCustomerVehicles([]);
@@ -596,6 +602,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
+        setCustomerDiscountPercent(null);
         setShowPhoneDropdown(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
@@ -641,6 +648,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const service = services.find(s => s.id === serviceId);
     return total + (service ? getServicePrice(service) : 0);
   }, 0);
+
+  // Calculate discounted price based on customer discount
+  const discountedPrice = customerDiscountPercent && customerDiscountPercent > 0
+    ? Math.round(totalPrice * (1 - customerDiscountPercent / 100))
+    : totalPrice;
 
   // Auto-update manualEndTime when totalDurationMinutes increases and in manual mode
   useEffect(() => {
@@ -1006,7 +1018,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     if (vehicle.customer_id) {
       const { data } = await supabase
         .from('customers')
-        .select('name')
+        .select('name, discount_percent')
         .eq('id', vehicle.customer_id)
         .maybeSingle();
       
@@ -1014,6 +1026,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setCustomerName(data.name);
         setSelectedCustomerId(vehicle.customer_id);
       }
+      // Set customer discount
+      setCustomerDiscountPercent(data?.discount_percent || null);
+    } else {
+      setCustomerDiscountPercent(null);
     }
     
     // Also load all vehicles for this phone
@@ -1573,11 +1589,21 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 onChange={(val) => {
                   setCustomerName(val);
                   setSelectedCustomerId(null);
+                  setCustomerDiscountPercent(null);
                 }}
                 onSelect={async (customer) => {
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
+                  
+                  // Fetch customer discount
+                  const { data: customerData } = await supabase
+                    .from('customers')
+                    .select('discount_percent')
+                    .eq('id', customer.id)
+                    .maybeSingle();
+                  
+                  setCustomerDiscountPercent(customerData?.discount_percent || null);
                   
                   // Fetch customer's most recent vehicle - try by customer_id first, then by phone
                   let vehicleData = null;
@@ -1620,6 +1646,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 }}
                 onClear={() => {
                   setSelectedCustomerId(null);
+                  setCustomerDiscountPercent(null);
                 }}
                 suppressAutoSearch={isEditMode}
               />
@@ -1642,6 +1669,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             if (text) {
                               setPhone(text.trim());
                               setSelectedCustomerId(null);
+                              setCustomerDiscountPercent(null);
                             }
                           } catch (err) {
                             console.error('Failed to read clipboard:', err);
@@ -1665,6 +1693,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   onChange={(value) => {
                     setPhone(value);
                     setSelectedCustomerId(null);
+                    setCustomerDiscountPercent(null);
                   }}
                   autoComplete="off"
                 />
@@ -2406,20 +2435,20 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
                   {t('addReservation.amount')}
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Input
                     id="finalPrice"
                     type="number"
-                    value={finalPrice}
+                    value={finalPrice || discountedPrice}
                     onChange={(e) => setFinalPrice(e.target.value)}
-                    placeholder={`${totalPrice}`}
                     className="w-32"
                   />
                   <span className="text-muted-foreground">zł</span>
-                  {customerDiscountPercent && customerDiscountPercent > 0 && (
-                    <span className="text-sm text-green-600">
-                      -{customerDiscountPercent}% rabat
-                    </span>
+                  {customerDiscountPercent && customerDiscountPercent > 0 && totalPrice > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="line-through text-muted-foreground">{totalPrice} zł</span>
+                      <span className="text-green-600 font-medium">-{customerDiscountPercent}%</span>
+                    </div>
                   )}
                 </div>
               </div>
