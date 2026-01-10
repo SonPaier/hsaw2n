@@ -1433,7 +1433,7 @@
     "nameRequired": "Nazwa produktu jest wymagana",
     "brand": "Marka",
     "brandPlaceholder": "np. 3M, Koch Chemie",
-    "price": "Cena (PLN)",
+    "price": "Cena netto (PLN)",
     "invalidPrice": "Podaj prawidłową cenę",
     "category": "Kategoria",
     "selectCategory": "Wybierz kategorię",
