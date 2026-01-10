@@ -62,6 +62,7 @@ export const OfferGenerator = ({
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [sending, setSending] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [savedOfferForEmail, setSavedOfferForEmail] = useState<{
     id: string;
@@ -265,6 +266,7 @@ export const OfferGenerator = ({
   };
 
   const handleSend = async () => {
+    setSending(true);
     try {
       const savedId = await saveOffer();
       if (savedId) {
@@ -279,6 +281,7 @@ export const OfferGenerator = ({
           const customerData = savedOffer.customer_data as { name?: string; email?: string } | null;
           if (!customerData?.email) {
             toast.error(t('offers.noCustomerEmail'));
+            setSending(false);
             return;
           }
           setSavedOfferForEmail({
@@ -292,6 +295,8 @@ export const OfferGenerator = ({
       }
     } catch (error) {
       // Error already handled in hook
+    } finally {
+      setSending(false);
     }
   };
 
@@ -525,10 +530,10 @@ export const OfferGenerator = ({
           ) : (
             <Button
               onClick={handleSend}
-              disabled={saving || !canProceed}
+              disabled={sending || !canProceed}
               className="gap-2"
             >
-              {saving ? (
+              {sending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
