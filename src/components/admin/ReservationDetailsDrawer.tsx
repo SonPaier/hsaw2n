@@ -76,6 +76,8 @@ interface Reservation {
     start_time: string;
     confirmation_code: string;
   } | null;
+  created_by?: string | null;
+  created_by_username?: string | null;
 }
 
 interface ReservationDetailsDrawerProps {
@@ -155,9 +157,10 @@ const ReservationDetailsDrawer = ({
     }
   }, [reservation]);
 
-  const getSourceLabel = (source?: string | null) => {
+  const getSourceLabel = (source?: string | null, createdByUsername?: string | null) => {
     if (!source || source === 'admin') {
-      return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {t('reservations.sources.employee')}</Badge>;
+      const displayName = createdByUsername || t('reservations.sources.employee');
+      return <Badge variant="outline" className="text-xs font-normal">{t('reservations.addedBy')}: {displayName}</Badge>;
     }
     if (source === 'customer' || source === 'calendar' || source === 'online') {
       return <Badge variant="outline" className="text-xs font-normal border-muted-foreground/30 text-muted-foreground">{t('reservations.addedBy')}: {t('reservations.sources.system')}</Badge>;
@@ -273,7 +276,7 @@ const ReservationDetailsDrawer = ({
                 </SheetTitle>
                 <SheetDescription className="flex items-center gap-2 mt-2">
                   {getStatusBadge(reservation.status)}
-                  {getSourceLabel(reservation.source)}
+                  {getSourceLabel(reservation.source, reservation.created_by_username)}
                 </SheetDescription>
               </div>
               <button 

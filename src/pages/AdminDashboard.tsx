@@ -76,6 +76,8 @@ interface Reservation {
     start_time: string;
     confirmation_code: string;
   } | null;
+  created_by?: string | null;
+  created_by_username?: string | null;
 }
 interface Break {
   id: string;
@@ -481,7 +483,8 @@ const AdminDashboard = () => {
           name: (r.stations as any).name,
           type: (r.stations as any).type
         } : undefined,
-        original_reservation: originalReservation || null
+        original_reservation: originalReservation || null,
+        created_by_username: r.profiles ? (r.profiles as any).username : null
       };
     });
   }, []);
@@ -544,8 +547,10 @@ const AdminDashboard = () => {
         car_size,
         service_ids,
         original_reservation_id,
+        created_by,
         services:service_id (name, shortcut),
-        stations:station_id (name, type)
+        stations:station_id (name, type),
+        profiles:created_by (username)
       `).eq('instance_id', instanceId)
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
     
