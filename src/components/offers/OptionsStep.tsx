@@ -32,6 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Product {
   id: string;
@@ -86,6 +87,7 @@ export const OptionsStep = ({
   const [autocompleteOpen, setAutocompleteOpen] = useState<{ [key: string]: boolean }>({});
   const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
   const [justSelected, setJustSelected] = useState<{ [key: string]: boolean }>({});
+  const [optionToDelete, setOptionToDelete] = useState<OfferOption | null>(null);
 
   // Fetch products
   useEffect(() => {
@@ -224,7 +226,7 @@ export const OptionsStep = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemoveOption(option.id)}
+              onClick={() => setOptionToDelete(option)}
               className="text-destructive hover:text-destructive h-8 w-8 p-0"
             >
               <Trash2 className="w-4 h-4" />
@@ -541,6 +543,23 @@ export const OptionsStep = ({
           <p className="text-sm">Wybierz zakresy w poprzednim kroku lub dodaj opcję ręcznie</p>
         </div>
       )}
+
+      {/* Delete option confirmation */}
+      <ConfirmDialog
+        open={!!optionToDelete}
+        onOpenChange={(open) => !open && setOptionToDelete(null)}
+        title="Usuń opcję"
+        description={`Czy na pewno chcesz usunąć opcję "${optionToDelete?.name.replace(/^.*? - /, '')}"? Ta operacja jest nieodwracalna.`}
+        confirmLabel="Usuń"
+        cancelLabel="Anuluj"
+        variant="destructive"
+        onConfirm={() => {
+          if (optionToDelete) {
+            onRemoveOption(optionToDelete.id);
+            setOptionToDelete(null);
+          }
+        }}
+      />
     </>
   );
 };
