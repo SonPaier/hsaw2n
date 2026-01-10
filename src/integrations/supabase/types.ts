@@ -2158,6 +2158,7 @@ export type Database = {
       }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }
+      generate_short_token: { Args: never; Returns: string }
       get_availability_blocks: {
         Args: { _from: string; _instance_id: string; _to: string }
         Returns: {
