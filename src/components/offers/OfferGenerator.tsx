@@ -388,7 +388,7 @@ export const OfferGenerator = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       {/* Steps Header */}
       <div className="flex items-center justify-center gap-2">
         {steps.map((step, index) => {
