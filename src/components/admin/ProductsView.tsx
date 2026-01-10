@@ -358,7 +358,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                         <TableHead>{t('products.columns.name')}</TableHead>
                         <TableHead>{t('products.columns.brand')}</TableHead>
                         <TableHead>{t('products.columns.category')}</TableHead>
-                        <TableHead className="text-right">{t('products.columns.price')}</TableHead>
+                        <TableHead className="text-right min-w-[100px]">{t('products.columns.price')}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -381,7 +381,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="text-right">
                             {formatPrice(product.default_price)}
                           </TableCell>
                           <TableCell>
