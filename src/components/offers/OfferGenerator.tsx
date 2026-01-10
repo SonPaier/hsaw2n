@@ -234,28 +234,21 @@ export const OfferGenerator = ({
     setPendingClose(false);
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (currentStep < 4) {
-      // Auto-save when moving to next step (silent - no toast)
-      try {
-        await saveOffer(true);
-      } catch (error) {
-        // Continue even if save fails - user can manually save
-        console.error('Auto-save failed:', error);
-      }
+      // Optimistic navigation - change step immediately
       setCurrentStep(prev => prev + 1);
+      // Fire-and-forget auto-save in background (silent - no toast)
+      saveOffer(true).catch(error => console.error('Auto-save failed:', error));
     }
   };
 
-  const handlePrev = async () => {
+  const handlePrev = () => {
     if (currentStep > 1) {
-      // Auto-save when moving to previous step (silent - no toast)
-      try {
-        await saveOffer(true);
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-      }
+      // Optimistic navigation - change step immediately
       setCurrentStep(prev => prev - 1);
+      // Fire-and-forget auto-save in background (silent - no toast)
+      saveOffer(true).catch(error => console.error('Auto-save failed:', error));
     }
   };
 
