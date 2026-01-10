@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OfferGenerator } from '@/components/offers/OfferGenerator';
 import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsDialog';
 import { SendOfferEmailDialog } from './SendOfferEmailDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -122,6 +123,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   // Email dialog state
   const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
   const [selectedOfferForEmail, setSelectedOfferForEmail] = useState<OfferWithOptions | null>(null);
+  
+  // Delete confirmation dialog state
+  const [deleteOfferDialog, setDeleteOfferDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
   const fetchOffers = async () => {
     if (!instanceId) return;
@@ -180,8 +184,6 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   }, [instanceId]);
 
   const handleDeleteOffer = async (offerId: string) => {
-    if (!confirm(t('offers.confirmDelete'))) return;
-    
     try {
       const { error } = await supabase.from('offers').delete().eq('id', offerId);
       if (error) throw error;
@@ -513,7 +515,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           </DropdownMenuSub>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={(e) => { e.stopPropagation(); handleDeleteOffer(offer.id); }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteOfferDialog({ open: true, offer }); }}
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -592,6 +594,23 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           onSent={fetchOffers}
         />
       )}
+
+      {/* Delete Offer Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteOfferDialog.open}
+        onOpenChange={(open) => !open && setDeleteOfferDialog({ open: false, offer: null })}
+        title={t('offers.confirmDeleteTitle')}
+        description={t('offers.confirmDeleteDesc', { number: deleteOfferDialog.offer?.offer_number || '' })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteOfferDialog.offer) {
+            handleDeleteOffer(deleteOfferDialog.offer.id);
+            setDeleteOfferDialog({ open: false, offer: null });
+          }
+        }}
+      />
     </>
   );
 }

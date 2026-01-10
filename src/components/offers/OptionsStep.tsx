@@ -57,7 +57,7 @@ export const OptionsStep = ({
   } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [scopes, setScopes] = useState<Scope[]>([]);
-  const [expandedOptions, setExpandedOptions] = useState<Set<string>>(new Set(options.map(o => o.id)));
+  const [expandedOptions, setExpandedOptions] = useState<Set<string>>(new Set());
   const [autocompleteOpen, setAutocompleteOpen] = useState<{
     [key: string]: boolean;
   }>({});
@@ -192,20 +192,127 @@ export const OptionsStep = ({
     }).format(Math.round(value));
   };
 
-  // Render single option section - flat design
+  // Check if option is a variant (single-select) vs upsell (multi-select with accordion)
+  const isVariantOption = (option: OfferOption) => !option.isUpsell;
+
+  // Render variant section - inline layout without accordion
+  const renderVariantSection = (option: OfferOption) => {
+    const item = option.items[0]; // Variants have exactly one item
+    return (
+      <div key={option.id} className="pb-4 last:pb-0">
+        {/* Variant Title */}
+        <div className="font-semibold text-base mb-3">
+          {option.name.replace(/^.*? - /, '')}
+        </div>
+        
+        {/* Single line: product input + price */}
+        {item && (
+          <div className="grid grid-cols-12 gap-3 items-center">
+            {/* Name with Autocomplete */}
+            <div className="col-span-9">
+              <Popover 
+                open={autocompleteOpen[item.id]} 
+                onOpenChange={open => {
+                  if (!open || !justSelected[item.id]) {
+                    setAutocompleteOpen(prev => ({ ...prev, [item.id]: open }));
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <div className="relative">
+                    <Input 
+                      value={item.customName || ''} 
+                      onChange={e => {
+                        onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
+                        if (e.target.value.length > 0 && !justSelected[item.id]) {
+                          setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                        }
+                      }} 
+                      onFocus={() => {
+                        if (products.length > 0 && !justSelected[item.id]) {
+                          setAutocompleteOpen(prev => ({ ...prev, [item.id]: true }));
+                        }
+                      }} 
+                      className="bg-white pr-8" 
+                    />
+                    <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[300px]" align="start" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+                  <Command shouldFilter={false}>
+                    <CommandInput 
+                      placeholder="Szukaj w bibliotece..." 
+                      value={searchTerms[item.id] || ''} 
+                      onValueChange={value => setSearchTerms(prev => ({ ...prev, [item.id]: value }))} 
+                      className="text-left" 
+                    />
+                    <CommandList>
+                      <CommandEmpty>Brak produktów</CommandEmpty>
+                      <CommandGroup>
+                        {products
+                          .filter(p => {
+                            const searchTerm = searchTerms[item.id] || '';
+                            if (!searchTerm) return true;
+                            return p.name.toLowerCase().includes(searchTerm.toLowerCase());
+                          })
+                          .slice(0, 10)
+                          .map(product => (
+                            <CommandItem 
+                              key={product.id} 
+                              value={product.id} 
+                              onSelect={() => handleProductSelect(option.id, item.id, product)} 
+                              className="flex justify-between cursor-pointer"
+                            >
+                              <span>{product.name}</span>
+                              <span className="text-muted-foreground text-sm">{formatPrice(product.default_price)}</span>
+                            </CommandItem>
+                          ))
+                        }
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Price */}
+            <div className="col-span-2">
+              <Input 
+                type="number" 
+                value={item.quantity * item.unitPrice || ''} 
+                onChange={e => onUpdateItem(option.id, item.id, {
+                  unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value) / (item.quantity || 1),
+                  quantity: 1
+                })} 
+                min={0} 
+                step={1} 
+                className="bg-white text-left" 
+              />
+            </div>
+            
+            {/* No delete button - single required item */}
+            <div className="col-span-1" />
+          </div>
+        )}
+        
+        {!item && (
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Brak pozycji.
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render upsell/additional option section - with accordion
   const renderOptionSection = (option: OfferOption) => <div key={option.id} className="pb-4 last:pb-0">
       <Collapsible open={expandedOptions.has(option.id)} onOpenChange={() => toggleOption(option.id)}>
         {/* Option Header */}
         <div className="flex items-center justify-between py-3 pb-0">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-base">
-                {option.name.replace(/^.*? - /, '')}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {option.items.length} poz. • {formatPrice(calculateOptionTotal(option))} netto
-              </span>
-            </div>
+            <span className="font-semibold text-base">
+              {option.name.replace(/^.*? - /, '')}
+            </span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -315,11 +422,13 @@ export const OptionsStep = ({
                   })} className="bg-white text-left w-16" placeholder="J.m." />
                       </div>
                       
-                      {/* Delete */}
+                      {/* Delete - only if more than one item */}
                       <div className="col-span-1 flex justify-end">
-                        <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {option.items.length > 1 && (
+                          <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </> : <>
                       {/* Name with Autocomplete */}
@@ -390,11 +499,13 @@ export const OptionsStep = ({
                   })} min={0} step={1} className="bg-white text-left" />
                       </div>
                       
-                      {/* Delete */}
+                      {/* Delete - only if more than one item */}
                       <div className="col-span-1 flex justify-end">
-                        <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {option.items.length > 1 && (
+                          <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </>}
                 </div>)}
@@ -427,9 +538,13 @@ export const OptionsStep = ({
               <h3 className="font-bold text-xl text-muted-foreground">Pozostałe opcje</h3>
             </div>}
 
-          {/* Options in this group - flat list */}
+          {/* Options in this group - variants inline, upsells with accordion */}
           <div className="space-y-0">
-            {group.options.map(option => renderOptionSection(option))}
+            {group.options.map(option => 
+              isVariantOption(option) 
+                ? renderVariantSection(option) 
+                : renderOptionSection(option)
+            )}
           </div>
         </div>)}
 
