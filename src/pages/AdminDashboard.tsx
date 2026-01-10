@@ -436,8 +436,7 @@ const AdminDashboard = () => {
   const mapReservationData = useCallback((
     data: any[],
     servicesMap: Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
-    originalReservationsMap: Map<string, any>,
-    creatorsMap: Map<string, string> = new Map()
+    originalReservationsMap: Map<string, any>
   ): Reservation[] => {
     return data.map(r => {
       const serviceIds = (r as any).service_ids as string[] | null;
@@ -485,7 +484,7 @@ const AdminDashboard = () => {
           type: (r.stations as any).type
         } : undefined,
         original_reservation: originalReservation || null,
-        created_by_username: r.created_by ? creatorsMap.get(r.created_by) || null : null
+        created_by_username: r.created_by_username || null
       };
     });
   }, []);
@@ -549,6 +548,7 @@ const AdminDashboard = () => {
         service_ids,
         original_reservation_id,
         created_by,
+        created_by_username,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
@@ -579,23 +579,7 @@ const AdminDashboard = () => {
         }
       }
 
-      // Fetch usernames for created_by (separate query to avoid FK issue)
-      const creatorIds = [...new Set(data.filter(r => r.created_by).map(r => r.created_by as string))];
-      const creatorsMap = new Map<string, string>();
-      if (creatorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username')
-          .in('id', creatorIds);
-        
-        if (profiles) {
-          profiles.forEach(p => {
-            if (p.username) creatorsMap.set(p.id, p.username);
-          });
-        }
-      }
-
-      setReservations(mapReservationData(data, servicesMap, originalReservationsMap, creatorsMap));
+      setReservations(mapReservationData(data, servicesMap, originalReservationsMap));
     }
   };
 
@@ -633,6 +617,8 @@ const AdminDashboard = () => {
           car_size,
           service_ids,
           original_reservation_id,
+          created_by,
+          created_by_username,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
@@ -845,6 +831,7 @@ const AdminDashboard = () => {
                 price,
                 source,
                 service_ids,
+                created_by_username,
                 services:service_id (name, shortcut),
                 stations:station_id (name, type)
               `).eq('id', payload.new.id).single().then(({
@@ -872,7 +859,8 @@ const AdminDashboard = () => {
               station: data.stations ? {
                 name: (data.stations as any).name,
                 type: (data.stations as any).type
-              } : undefined
+              } : undefined,
+              created_by_username: (data as any).created_by_username || null
             };
             setReservations(prev => [...prev, newReservation as Reservation]);
             // Only show toast for customer-created reservations (admin-created reservations show toast in dialog)
@@ -2150,6 +2138,7 @@ const AdminDashboard = () => {
             admin_notes: (editingReservation as any).admin_notes,
             price: editingReservation.price,
           } : null}
+          currentUsername={username}
         />
       )}
 

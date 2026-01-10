@@ -177,6 +177,8 @@ interface AddReservationDialogV2Props {
     endTime: string;
     stationId: string;
   } | null) => void;
+  /** Current user's username to save with new reservations */
+  currentUsername?: string | null;
 }
 
 const SLOT_INTERVAL = 15;
@@ -196,6 +198,7 @@ const AddReservationDialogV2 = ({
   initialTime,
   initialStationId,
   onSlotPreviewChange,
+  currentUsername = null,
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isPPFMode = mode === 'ppf';
@@ -1241,6 +1244,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             status: 'confirmed' as const,
             confirmed_at: new Date().toISOString(),
             created_by: user?.id || null,
+            created_by_username: currentUsername || null,
           };
 
           const { error: insertError } = await supabase
@@ -1408,6 +1412,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           status: 'confirmed' as const,
           confirmed_at: new Date().toISOString(),
           created_by: user?.id || null,
+          created_by_username: currentUsername || null,
         };
 
         const { error: reservationError } = await supabase
