@@ -9,7 +9,8 @@ import {
   Trash2, 
   Package, 
   ChevronDown, 
-  ChevronUp
+  ChevronUp,
+  Search
 } from 'lucide-react';
 import { OfferOption, OfferItem } from '@/hooks/useOffer';
 import { supabase } from '@/integrations/supabase/client';
@@ -201,7 +202,7 @@ export const OptionsStep = ({
 
   // Render single option section - flat design
   const renderOptionSection = (option: OfferOption) => (
-    <div key={option.id} className="border-b last:border-b-0 pb-6 last:pb-0">
+    <div key={option.id} className="pb-4 last:pb-0">
       <Collapsible
         open={expandedOptions.has(option.id)}
         onOpenChange={() => toggleOption(option.id)}
@@ -244,8 +245,6 @@ export const OptionsStep = ({
           <div className="space-y-4 pt-2">
             {/* Items List - flat design */}
             <div className="space-y-3">
-              <Label className="text-sm text-muted-foreground">Pozycje</Label>
-              
               {/* Table Header */}
               {showUnitPrices ? (
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
@@ -277,21 +276,24 @@ export const OptionsStep = ({
                           }}
                         >
                           <PopoverTrigger asChild>
-                            <Input
-                              value={item.customName || ''}
-                              onChange={(e) => {
-                                onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
-                                if (e.target.value.length > 0 && !justSelected[item.id]) {
-                                  setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
-                                }
-                              }}
-                              onFocus={() => {
-                                if (products.length > 0 && !justSelected[item.id]) {
-                                  setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
-                                }
-                              }}
-                              className="bg-white"
-                            />
+                            <div className="relative">
+                              <Input
+                                value={item.customName || ''}
+                                onChange={(e) => {
+                                  onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
+                                  if (e.target.value.length > 0 && !justSelected[item.id]) {
+                                    setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
+                                  }
+                                }}
+                                onFocus={() => {
+                                  if (products.length > 0 && !justSelected[item.id]) {
+                                    setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
+                                  }
+                                }}
+                                className="bg-white pr-8"
+                              />
+                              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                            </div>
                           </PopoverTrigger>
                           <PopoverContent
                             className="p-0 w-[300px]"
@@ -392,21 +394,24 @@ export const OptionsStep = ({
                           }}
                         >
                           <PopoverTrigger asChild>
-                            <Input
-                              value={item.customName || ''}
-                              onChange={(e) => {
-                                onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
-                                if (e.target.value.length > 0 && !justSelected[item.id]) {
-                                  setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
-                                }
-                              }}
-                              onFocus={() => {
-                                if (products.length > 0 && !justSelected[item.id]) {
-                                  setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
-                                }
-                              }}
-                              className="bg-white"
-                            />
+                            <div className="relative">
+                              <Input
+                                value={item.customName || ''}
+                                onChange={(e) => {
+                                  onUpdateItem(option.id, item.id, { customName: e.target.value, isCustom: true });
+                                  if (e.target.value.length > 0 && !justSelected[item.id]) {
+                                    setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
+                                  }
+                                }}
+                                onFocus={() => {
+                                  if (products.length > 0 && !justSelected[item.id]) {
+                                    setAutocompleteOpen((prev) => ({ ...prev, [item.id]: true }));
+                                  }
+                                }}
+                                className="bg-white pr-8"
+                              />
+                              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                            </div>
                           </PopoverTrigger>
                           <PopoverContent
                             className="p-0 w-[300px]"
@@ -505,24 +510,24 @@ export const OptionsStep = ({
     <div className="space-y-8">
       {/* Grouped Options by Scope */}
       {groupedOptions.map((group) => (
-        <div key={group.scope?.id || 'ungrouped'} className="space-y-4">
+        <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5">
           {/* Scope Header */}
           {group.scope && (
-            <div className="flex items-center gap-3 pb-2 border-b">
+            <div className="flex items-center gap-3 mb-4">
               <Package className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-xl">{group.scope.name}</h3>
             </div>
           )}
           
           {group.scope === null && groupedOptions.length > 1 && (
-            <div className="flex items-center gap-3 pb-2 border-b">
+            <div className="flex items-center gap-3 mb-4">
               <Package className="w-5 h-5 text-muted-foreground" />
               <h3 className="font-bold text-xl text-muted-foreground">Pozostałe opcje</h3>
             </div>
           )}
 
           {/* Options in this group - flat list */}
-          <div className="space-y-0 pl-0 md:pl-4">
+          <div className="space-y-0">
             {group.options.map(option => renderOptionSection(option))}
           </div>
         </div>
