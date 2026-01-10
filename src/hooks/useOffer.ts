@@ -544,90 +544,120 @@ export const useOffer = (instanceId: string) => {
         await supabase.from('offer_options').delete().eq('offer_id', offer.id);
       }
 
-      // Insert options
-      for (const option of offer.options) {
-        const optionData = {
-          offer_id: offerId,
-          name: option.name,
-          description: option.description,
-          is_selected: option.isSelected,
-          sort_order: option.sortOrder,
-          subtotal_net: calculateOptionTotal(option),
-          scope_id: option.scopeId || null,
-          variant_id: option.variantId || null,
-          is_upsell: option.isUpsell || false,
-        };
+      // Prepare all options for bulk insert
+      const allOptionsData = offer.options.map((option, idx) => ({
+        offer_id: offerId,
+        name: option.name,
+        description: option.description,
+        is_selected: option.isSelected,
+        sort_order: option.sortOrder,
+        subtotal_net: calculateOptionTotal(option),
+        scope_id: option.scopeId || null,
+        variant_id: option.variantId || null,
+        is_upsell: option.isUpsell || false,
+        _local_idx: idx, // Temporary marker for mapping
+      }));
 
-        const { data: optionResult, error: optionError } = await supabase
-          .from('offer_options')
-          .insert(optionData)
-          .select('id')
-          .single();
-
-        if (optionError) throw optionError;
-
-        // Insert items
-        if (option.items.length > 0) {
-          const itemsData = option.items.map((item, idx) => ({
-            option_id: optionResult.id,
-            product_id: item.productId || null,
-            custom_name: item.customName,
-            custom_description: item.customDescription,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            unit: item.unit,
-            discount_percent: item.discountPercent,
-            is_optional: item.isOptional,
-            is_custom: item.isCustom,
-            sort_order: idx,
-          }));
-
-          const { error: itemsError } = await supabase
-            .from('offer_option_items')
-            .insert(itemsData);
-
-          if (itemsError) throw itemsError;
-        }
-      }
-
-      // Insert additions as a special option
+      // Add additions as a special option if present
       if (offer.additions.length > 0) {
-        const additionsOptionData = {
+        allOptionsData.push({
           offer_id: offerId,
           name: 'Dodatki',
           description: '',
           is_selected: true,
           sort_order: offer.options.length,
           subtotal_net: calculateAdditionsTotal(),
-        };
+          scope_id: null,
+          variant_id: null,
+          is_upsell: false,
+          _local_idx: offer.options.length, // Special index for additions
+        });
+      }
 
-        const { data: additionsOption, error: additionsOptionError } = await supabase
+      // Bulk insert all options at once (remove _local_idx before insert)
+      if (allOptionsData.length > 0) {
+        const cleanOptionsData = allOptionsData.map(({ _local_idx, ...rest }) => rest);
+        const { data: insertedOptions, error: optionsError } = await supabase
           .from('offer_options')
-          .insert(additionsOptionData)
-          .select('id')
-          .single();
+          .insert(cleanOptionsData)
+          .select('id');
 
-        if (additionsOptionError) throw additionsOptionError;
+        if (optionsError) throw optionsError;
 
-        const additionsItemsData = offer.additions.map((item, idx) => ({
-          option_id: additionsOption.id,
-          product_id: item.productId || null,
-          custom_name: item.customName,
-          custom_description: item.customDescription,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          unit: item.unit,
-          discount_percent: item.discountPercent,
-          is_optional: item.isOptional,
-          is_custom: item.isCustom,
-          sort_order: idx,
-        }));
+        // Map inserted option IDs back to original indices
+        // Supabase returns in same order as insert
+        const optionIdMap = new Map<number, string>();
+        (insertedOptions || []).forEach((opt, idx) => {
+          optionIdMap.set(idx, opt.id);
+        });
 
-        const { error: additionsItemsError } = await supabase
-          .from('offer_option_items')
-          .insert(additionsItemsData);
+        // Prepare all items for bulk insert
+        const allItemsData: Array<{
+          option_id: string;
+          product_id: string | null;
+          custom_name: string | undefined;
+          custom_description: string | undefined;
+          quantity: number;
+          unit_price: number;
+          unit: string;
+          discount_percent: number;
+          is_optional: boolean;
+          is_custom: boolean;
+          sort_order: number;
+        }> = [];
 
-        if (additionsItemsError) throw additionsItemsError;
+        // Add items from regular options
+        offer.options.forEach((option, optIdx) => {
+          const optionId = optionIdMap.get(optIdx);
+          if (optionId && option.items.length > 0) {
+            option.items.forEach((item, itemIdx) => {
+              allItemsData.push({
+                option_id: optionId,
+                product_id: item.productId || null,
+                custom_name: item.customName,
+                custom_description: item.customDescription,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                unit: item.unit,
+                discount_percent: item.discountPercent,
+                is_optional: item.isOptional,
+                is_custom: item.isCustom,
+                sort_order: itemIdx,
+              });
+            });
+          }
+        });
+
+        // Add items from additions (if present)
+        if (offer.additions.length > 0) {
+          const additionsOptionId = optionIdMap.get(offer.options.length);
+          if (additionsOptionId) {
+            offer.additions.forEach((item, idx) => {
+              allItemsData.push({
+                option_id: additionsOptionId,
+                product_id: item.productId || null,
+                custom_name: item.customName,
+                custom_description: item.customDescription,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                unit: item.unit,
+                discount_percent: item.discountPercent,
+                is_optional: item.isOptional,
+                is_custom: item.isCustom,
+                sort_order: idx,
+              });
+            });
+          }
+        }
+
+        // Bulk insert all items at once
+        if (allItemsData.length > 0) {
+          const { error: itemsError } = await supabase
+            .from('offer_option_items')
+            .insert(allItemsData);
+
+          if (itemsError) throw itemsError;
+        }
       }
 
       // Save customer to customers table (source: 'oferty')
