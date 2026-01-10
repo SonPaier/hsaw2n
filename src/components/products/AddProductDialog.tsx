@@ -35,7 +35,7 @@ interface AddProductDialogProps {
   onProductAdded: () => void;
 }
 
-const COMMON_UNITS = ['szt', 'mb', 'm²', 'l', 'kg', 'opak', 'kpl'];
+
 
 export function AddProductDialog({
   open,
@@ -51,8 +51,6 @@ export function AddProductDialog({
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
-  const [unit, setUnit] = useState('szt');
-  const [customUnit, setCustomUnit] = useState('');
   const [price, setPrice] = useState('');
   const [metadataFields, setMetadataFields] = useState<MetadataField[]>([]);
 
@@ -62,8 +60,6 @@ export function AddProductDialog({
     setDescription('');
     setCategory('');
     setCustomCategory('');
-    setUnit('szt');
-    setCustomUnit('');
     setPrice('');
     setMetadataFields([]);
   };
@@ -115,7 +111,6 @@ export function AddProductDialog({
       });
 
       const finalCategory = category === '__custom__' ? customCategory.trim() : category;
-      const finalUnit = unit === '__custom__' ? customUnit.trim() : unit;
 
       const { error } = await supabase
         .from('products_library')
@@ -125,7 +120,7 @@ export function AddProductDialog({
           brand: brand.trim() || null,
           description: description.trim() || null,
           category: finalCategory || null,
-          unit: finalUnit || 'szt',
+          unit: 'szt',
           default_price: priceValue,
           metadata: metadata,
           source: 'instance',
@@ -189,53 +184,28 @@ export function AddProductDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t('productDialog.category')}</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('productDialog.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
-                  {categories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                  <SelectItem value="__custom__">{t('productDialog.newCategory')}</SelectItem>
-                </SelectContent>
-              </Select>
-              {category === '__custom__' && (
-                <Input
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value)}
-                  placeholder={t('productDialog.newCategoryPlaceholder')}
-                  className="mt-2"
-                />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('productDialog.unit')}</Label>
-              <Select value={unit} onValueChange={setUnit}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMMON_UNITS.map(u => (
-                    <SelectItem key={u} value={u}>{u}</SelectItem>
-                  ))}
-                  <SelectItem value="__custom__">{t('productDialog.otherUnit')}</SelectItem>
-                </SelectContent>
-              </Select>
-              {unit === '__custom__' && (
-                <Input
-                  value={customUnit}
-                  onChange={(e) => setCustomUnit(e.target.value)}
-                  placeholder={t('productDialog.customUnitPlaceholder')}
-                  className="mt-2"
-                />
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label>{t('productDialog.category')}</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('productDialog.selectCategory')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+                <SelectItem value="__custom__">{t('productDialog.newCategory')}</SelectItem>
+              </SelectContent>
+            </Select>
+            {category === '__custom__' && (
+              <Input
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder={t('productDialog.newCategoryPlaceholder')}
+                className="mt-2"
+              />
+            )}
           </div>
 
           <div className="space-y-2">
@@ -245,7 +215,7 @@ export function AddProductDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('productDialog.descriptionPlaceholder')}
-              rows={3}
+              rows={5}
             />
           </div>
 
