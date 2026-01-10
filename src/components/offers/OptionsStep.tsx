@@ -525,6 +525,20 @@ export const OptionsStep = ({
       </Collapsible>
     </div>;
   return <>
+      {/* Info about product descriptions */}
+      <p className="text-sm text-muted-foreground mb-4">
+        Opisy produktów są pobierane z zakładki{' '}
+        <a 
+          href="/admin/products" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-medium"
+        >
+          Produkty
+        </a>
+        .
+      </p>
+
       {/* Grouped Options by Scope - each as separate floating container */}
       {groupedOptions.map(group => <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5 mb-4">
           {/* Scope Header */}
