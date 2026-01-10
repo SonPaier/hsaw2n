@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { User, Building2, Car, Search, Loader2 } from 'lucide-react';
 import { CustomerData, VehicleData } from '@/hooks/useOffer';
 import { toast } from 'sonner';
@@ -36,9 +36,8 @@ const parseAddress = (fullAddress: string) => {
 };
 
 const paintTypes = [
+  { value: 'gloss', label: 'Połysk' },
   { value: 'matte', label: 'Mat' },
-  { value: 'dark', label: 'Ciemny' },
-  { value: 'other', label: 'Inny' },
 ];
 
 export const CustomerDataStep = ({
@@ -300,22 +299,21 @@ export const CustomerDataStep = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="paintType">Typ lakieru</Label>
-            <Select
-              value={vehicleData.paintType || ''}
+            <Label>Typ lakieru</Label>
+            <RadioGroup
+              value={vehicleData.paintType || 'gloss'}
               onValueChange={(value) => onVehicleChange({ paintType: value })}
+              className="flex items-center gap-6"
             >
-              <SelectTrigger id="paintType">
-                <SelectValue placeholder="Wybierz typ lakieru" />
-              </SelectTrigger>
-              <SelectContent>
-                {paintTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+              {paintTypes.map((type) => (
+                <div key={type.value} className="flex items-center gap-2">
+                  <RadioGroupItem value={type.value} id={`paintType-${type.value}`} />
+                  <Label htmlFor={`paintType-${type.value}`} className="cursor-pointer font-normal">
                     {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
         </div>
       </div>

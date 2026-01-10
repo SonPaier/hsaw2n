@@ -263,7 +263,8 @@ export const OfferGenerator = ({
     try {
       const savedId = await saveOffer();
       if (savedId) {
-        onSaved?.(savedId);
+        // Don't close the generator, just notify about save
+        // onSaved is only called when explicitly closing
       }
     } catch (error) {
       // Error already handled in hook
