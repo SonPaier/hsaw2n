@@ -45,7 +45,6 @@ import {
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
-import { EditProductDialog } from '@/components/products/EditProductDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 
@@ -551,21 +550,21 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
 
       {instanceId && (
         <AddProductDialog
-          open={showAddProductDialog}
-          onOpenChange={setShowAddProductDialog}
+          open={showAddProductDialog || !!editingProduct}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddProductDialog(false);
+              setEditingProduct(null);
+            }
+          }}
           instanceId={instanceId}
           categories={categories}
-          onProductAdded={() => fetchData()}
-        />
-      )}
-
-      {editingProduct && instanceId && (
-        <EditProductDialog
-          open={!!editingProduct}
-          onOpenChange={(open) => !open && setEditingProduct(null)}
+          onProductAdded={() => { 
+            fetchData(); 
+            setEditingProduct(null);
+            setShowAddProductDialog(false);
+          }}
           product={editingProduct}
-          categories={categories}
-          onProductUpdated={() => { fetchData(); setEditingProduct(null); }}
         />
       )}
 

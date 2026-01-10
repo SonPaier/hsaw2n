@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,15 +28,27 @@ interface MetadataField {
   value: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  brand: string | null;
+  description: string | null;
+  category: string | null;
+  unit: string;
+  default_price: number;
+  metadata: Record<string, unknown> | null;
+  source: string;
+  instance_id: string | null;
+}
+
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instanceId: string;
   categories: string[];
   onProductAdded: () => void;
+  product?: Product | null; // For edit mode
 }
-
-
 
 export function AddProductDialog({
   open,
@@ -44,6 +56,7 @@ export function AddProductDialog({
   instanceId,
   categories,
   onProductAdded,
+  product,
 }: AddProductDialogProps) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
@@ -55,6 +68,8 @@ export function AddProductDialog({
   const [price, setPrice] = useState('');
   const [metadataFields, setMetadataFields] = useState<MetadataField[]>([]);
 
+  const isEditMode = !!product;
+
   const resetForm = () => {
     setName('');
     setBrand('');
@@ -65,8 +80,49 @@ export function AddProductDialog({
     setMetadataFields([]);
   };
 
+  // Initialize form with product data in edit mode
+  useEffect(() => {
+    if (product && open) {
+      setName(product.name || '');
+      setBrand(product.brand || '');
+      setDescription(product.description || '');
+      setPrice(product.default_price?.toString() || '0');
+      
+      // Handle category
+      if (product.category) {
+        if (categories.includes(product.category)) {
+          setCategory(product.category);
+          setCustomCategory('');
+        } else {
+          setCategory('__custom__');
+          setCustomCategory(product.category);
+        }
+      } else {
+        setCategory('__none__');
+        setCustomCategory('');
+      }
+      
+      // Handle metadata - exclude internal fields like _source
+      if (product.metadata && typeof product.metadata === 'object') {
+        const fields: MetadataField[] = [];
+        Object.entries(product.metadata).forEach(([key, value]) => {
+          if (!key.startsWith('_')) {
+            fields.push({ key, value: String(value) });
+          }
+        });
+        setMetadataFields(fields);
+      } else {
+        setMetadataFields([]);
+      }
+    } else if (!product && open) {
+      resetForm();
+    }
+  }, [product, open, categories]);
+
   const handleClose = () => {
-    resetForm();
+    if (!isEditMode) {
+      resetForm();
+    }
     onOpenChange(false);
   };
 
@@ -101,41 +157,70 @@ export function AddProductDialog({
     setSaving(true);
 
     try {
-      // Build metadata object from fields - always include _source: 'manual'
+      // Build metadata object from fields
       const metadata: Record<string, string> = {
         _source: 'manual',
       };
+      
+      // Preserve existing _source if editing
+      if (isEditMode && product?.metadata) {
+        const existingMetadata = product.metadata as Record<string, unknown>;
+        if (existingMetadata._source) {
+          metadata._source = String(existingMetadata._source);
+        }
+      }
+      
       metadataFields.forEach(field => {
         if (field.key.trim() && field.value.trim()) {
           metadata[field.key.trim()] = field.value.trim();
         }
       });
 
-      const finalCategory = category === '__custom__' ? customCategory.trim() : category;
+      const finalCategory = category === '__custom__' ? customCategory.trim() : (category === '__none__' ? null : category);
 
-      const { error } = await supabase
-        .from('products_library')
-        .insert({
-          instance_id: instanceId,
-          name: name.trim(),
-          brand: brand.trim() || null,
-          description: description.trim() || null,
-          category: finalCategory || null,
-          unit: 'szt',
-          default_price: priceValue,
-          metadata: metadata,
-          source: 'instance',
-          active: true,
-        });
+      if (isEditMode && product) {
+        // Update existing product
+        const { error } = await supabase
+          .from('products_library')
+          .update({
+            name: name.trim(),
+            brand: brand.trim() || null,
+            description: description.trim() || null,
+            category: finalCategory || null,
+            unit: 'szt',
+            default_price: priceValue,
+            metadata: Object.keys(metadata).length > 0 ? metadata : null,
+          })
+          .eq('id', product.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success(t('productDialog.productUpdated'));
+      } else {
+        // Create new product
+        const { error } = await supabase
+          .from('products_library')
+          .insert({
+            instance_id: instanceId,
+            name: name.trim(),
+            brand: brand.trim() || null,
+            description: description.trim() || null,
+            category: finalCategory || null,
+            unit: 'szt',
+            default_price: priceValue,
+            metadata: metadata,
+            source: 'instance',
+            active: true,
+          });
 
-      toast.success(t('productDialog.productAdded'));
+        if (error) throw error;
+        toast.success(t('productDialog.productAdded'));
+      }
+
       handleClose();
       onProductAdded();
     } catch (error) {
-      console.error('Error adding product:', error);
-      toast.error(t('productDialog.addError'));
+      console.error('Error saving product:', error);
+      toast.error(isEditMode ? t('productDialog.updateError') : t('productDialog.addError'));
     } finally {
       setSaving(false);
     }
@@ -145,7 +230,9 @@ export function AddProductDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-[1100px] max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle>{t('productDialog.addTitle')}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? t('productDialog.editTitle') : t('productDialog.addTitle')}
+          </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
@@ -283,7 +370,7 @@ export function AddProductDialog({
               </Button>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('productDialog.addProduct')}
+                {isEditMode ? t('productDialog.saveChanges') : t('productDialog.addProduct')}
               </Button>
             </DialogFooter>
           </form>
