@@ -81,7 +81,7 @@ export const SummaryStep = ({
   const [discountEditing, setDiscountEditing] = useState<DiscountState | null>(null);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
-  const [conditionsOpen, setConditionsOpen] = useState(false);
+  const [conditionsOpen, setConditionsOpen] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
