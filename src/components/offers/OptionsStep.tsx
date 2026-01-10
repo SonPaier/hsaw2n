@@ -205,11 +205,11 @@ export const OptionsStep = ({
           {option.name.replace(/^.*? - /, '')}
         </div>
         
-        {/* Single line: product input + price */}
+        {/* Product input + price - stacked on mobile */}
         {item && (
           <div className="grid grid-cols-12 gap-3 items-center">
-            {/* Name with Autocomplete */}
-            <div className="col-span-9">
+            {/* Name with Autocomplete - full width on mobile */}
+            <div className="col-span-12 md:col-span-9">
               <Popover 
                 open={autocompleteOpen[item.id]} 
                 onOpenChange={open => {
@@ -275,8 +275,8 @@ export const OptionsStep = ({
               </Popover>
             </div>
             
-            {/* Price */}
-            <div className="col-span-2">
+            {/* Price - second row on mobile */}
+            <div className="col-span-8 md:col-span-2">
               <Input 
                 type="number" 
                 value={item.quantity * item.unitPrice || ''} 
@@ -287,11 +287,12 @@ export const OptionsStep = ({
                 min={0} 
                 step={1} 
                 className="bg-white text-left" 
+                placeholder="Cena netto"
               />
             </div>
             
-            {/* No delete button - single required item */}
-            <div className="col-span-1" />
+            {/* Empty space for alignment on mobile */}
+            <div className="col-span-4 md:col-span-1" />
           </div>
         )}
         
@@ -332,21 +333,21 @@ export const OptionsStep = ({
             {/* Items List - flat design */}
             <div className="space-y-3">
               {/* Table Header */}
-              {showUnitPrices ? <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
+              {showUnitPrices ? <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
                   <div className="col-span-5 text-left">Nazwa</div>
                   <div className="col-span-2 text-left">Cena netto</div>
                   <div className="col-span-4"></div>
                   <div className="col-span-1"></div>
-                </div> : <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
+                </div> : <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
                   <div className="col-span-9 text-left">Nazwa</div>
                   <div className="col-span-2 text-left">Cena netto</div>
                   <div className="col-span-1"></div>
                 </div>}
               
-              {option.items.map(item => <div key={item.id} className="grid grid-cols-12 gap-3 items-center">
+              {option.items.map(item => <div key={item.id} className="grid grid-cols-12 gap-3 items-start md:items-center">
                   {showUnitPrices ? <>
-                      {/* Name with Autocomplete */}
-                      <div className="col-span-5">
+                      {/* Name with Autocomplete - full width on mobile */}
+                      <div className="col-span-12 md:col-span-5">
                         <Popover open={autocompleteOpen[item.id]} onOpenChange={open => {
                     if (!open || !justSelected[item.id]) {
                       setAutocompleteOpen(prev => ({
@@ -405,15 +406,15 @@ export const OptionsStep = ({
                         </Popover>
                       </div>
                       
-                      {/* Price */}
-                      <div className="col-span-1">
+                      {/* Price - stacked on mobile */}
+                      <div className="col-span-6 md:col-span-1">
                         <Input type="number" value={item.unitPrice || ''} onChange={e => onUpdateItem(option.id, item.id, {
                     unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value)
-                  })} min={0} step={1} className="bg-white text-left" />
+                  })} min={0} step={1} className="bg-white text-left" placeholder="Cena" />
                       </div>
                       
-                      {/* Hidden fields for unit prices mode */}
-                      <div className="col-span-5 flex gap-2">
+                      {/* Quantity and unit fields - stacked on mobile */}
+                      <div className="col-span-6 md:col-span-5 flex gap-2">
                         <Input type="number" value={item.quantity || ''} onChange={e => onUpdateItem(option.id, item.id, {
                     quantity: e.target.value === '' ? 0 : parseFloat(e.target.value)
                   })} min={0} step={0.01} className="bg-white text-left" placeholder="Ilość" />
@@ -422,8 +423,8 @@ export const OptionsStep = ({
                   })} className="bg-white text-left w-16" placeholder="J.m." />
                       </div>
                       
-                      {/* Delete - only if more than one item */}
-                      <div className="col-span-1 flex justify-end">
+                      {/* Delete - only if more than one item - on mobile in its own row */}
+                      <div className="col-span-12 md:col-span-1 flex justify-end md:justify-end">
                         {option.items.length > 1 && (
                           <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                             <Trash2 className="w-4 h-4" />
@@ -431,8 +432,8 @@ export const OptionsStep = ({
                         )}
                       </div>
                     </> : <>
-                      {/* Name with Autocomplete */}
-                      <div className="col-span-9">
+                      {/* Name with Autocomplete - full width on mobile */}
+                      <div className="col-span-12 md:col-span-9">
                         <Popover open={autocompleteOpen[item.id]} onOpenChange={open => {
                     if (!open || !justSelected[item.id]) {
                       setAutocompleteOpen(prev => ({
@@ -491,16 +492,16 @@ export const OptionsStep = ({
                         </Popover>
                       </div>
                       
-                      {/* Price (total = quantity * unitPrice) */}
-                      <div className="col-span-2">
+                      {/* Price (total = quantity * unitPrice) - stacked on mobile */}
+                      <div className="col-span-8 md:col-span-2">
                         <Input type="number" value={item.quantity * item.unitPrice || ''} onChange={e => onUpdateItem(option.id, item.id, {
                     unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value) / (item.quantity || 1),
                     quantity: 1
-                  })} min={0} step={1} className="bg-white text-left" />
+                  })} min={0} step={1} className="bg-white text-left" placeholder="Cena netto" />
                       </div>
                       
                       {/* Delete - only if more than one item */}
-                      <div className="col-span-1 flex justify-end">
+                      <div className="col-span-4 md:col-span-1 flex justify-end">
                         {option.items.length > 1 && (
                           <Button variant="ghost" size="sm" onClick={() => onRemoveItem(option.id, item.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                             <Trash2 className="w-4 h-4" />
