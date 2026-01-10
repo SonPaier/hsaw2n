@@ -182,9 +182,9 @@ export function AddProductDialog({
                 id="price"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
+                placeholder="0"
                 type="text"
-                inputMode="decimal"
+                inputMode="numeric"
               />
             </div>
           </div>
