@@ -43,7 +43,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
-import { PriceListViewer } from '@/components/products/PriceListViewer';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { EditProductDialog } from '@/components/products/EditProductDialog';
@@ -54,10 +53,6 @@ interface PriceList {
   name: string;
   file_path: string;
   file_type: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  products_count: number;
-  extracted_at: string | null;
-  error_message: string | null;
   is_global: boolean;
   created_at: string;
   salesperson_name: string | null;
@@ -78,12 +73,6 @@ interface Product {
   instance_id: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
-  processing: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
-  completed: 'bg-green-500/20 text-green-600 border-green-500/30',
-  failed: 'bg-red-500/20 text-red-600 border-red-500/30',
-};
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
@@ -102,7 +91,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
   
@@ -492,24 +480,10 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                           <div className="font-medium">{priceList.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {formatDate(priceList.created_at)}
-                            {priceList.products_count > 0 && ` • ${priceList.products_count} ${t('products.productsCount')}`}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className={statusColors[priceList.status]}>
-                          {priceList.status === 'pending' && t('products.statusPending')}
-                          {priceList.status === 'processing' && t('products.statusProcessing')}
-                          {priceList.status === 'completed' && t('products.statusCompleted')}
-                          {priceList.status === 'failed' && t('products.statusFailed')}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedPriceList(priceList)}
-                        >
-                          <Package className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -542,18 +516,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
           onOpenChange={setShowUploadDialog}
           instanceId={instanceId}
           onSuccess={() => fetchData()}
-        />
-      )}
-
-      {selectedPriceList && (
-        <PriceListViewer
-          priceList={selectedPriceList}
-          products={products.filter(p => {
-            const metadata = p.metadata as Record<string, unknown> | null;
-            return metadata?.price_list_id === selectedPriceList.id;
-          })}
-          open={!!selectedPriceList}
-          onOpenChange={(open) => !open && setSelectedPriceList(null)}
         />
       )}
 
