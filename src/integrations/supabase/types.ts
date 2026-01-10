@@ -1576,6 +1576,7 @@ export type Database = {
           confirmed_at: string | null
           created_at: string | null
           created_by: string | null
+          created_by_username: string | null
           customer_email: string | null
           customer_name: string
           customer_notes: string | null
@@ -1614,6 +1615,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_username?: string | null
           customer_email?: string | null
           customer_name: string
           customer_notes?: string | null
@@ -1652,6 +1654,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_username?: string | null
           customer_email?: string | null
           customer_name?: string
           customer_notes?: string | null
