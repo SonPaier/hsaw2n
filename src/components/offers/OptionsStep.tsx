@@ -255,8 +255,8 @@ export const OptionsStep = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
-                  <div className="col-span-8 text-left">Nazwa</div>
-                  <div className="col-span-3 text-left">Cena netto</div>
+                  <div className="col-span-9 text-left">Nazwa</div>
+                  <div className="col-span-2 text-left">Cena netto</div>
                   <div className="col-span-1"></div>
                 </div>
               )}
@@ -339,7 +339,7 @@ export const OptionsStep = ({
                       </div>
                       
                       {/* Price */}
-                      <div className="col-span-2">
+                      <div className="col-span-1">
                         <Input
                           type="number"
                           value={item.unitPrice || ''}
@@ -351,7 +351,7 @@ export const OptionsStep = ({
                       </div>
                       
                       {/* Hidden fields for unit prices mode */}
-                      <div className="col-span-4 flex gap-2">
+                      <div className="col-span-5 flex gap-2">
                         <Input
                           type="number"
                           value={item.quantity || ''}
@@ -384,7 +384,7 @@ export const OptionsStep = ({
                   ) : (
                     <>
                       {/* Name with Autocomplete */}
-                      <div className="col-span-8">
+                      <div className="col-span-9">
                         <Popover 
                           open={autocompleteOpen[item.id]} 
                           onOpenChange={(open) => {
@@ -456,7 +456,7 @@ export const OptionsStep = ({
                       </div>
                       
                       {/* Price (total = quantity * unitPrice) */}
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <Input
                           type="number"
                           value={item.quantity * item.unitPrice || ''}
