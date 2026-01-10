@@ -481,17 +481,19 @@ export const OfferGenerator = ({
             <Button
               variant="outline"
               onClick={handlePrev}
-              className="gap-2"
+              className="gap-2 px-2 sm:px-4"
             >
               <ChevronLeft className="w-4 h-4" />
-              {t('common.back')}
+              <span className="hidden sm:inline">{t('common.back')}</span>
             </Button>
           ) : onClose ? (
             <Button
               variant="outline"
               onClick={handleClose}
+              className="px-2 sm:px-4"
             >
-              {t('common.cancel')}
+              <span className="hidden sm:inline">{t('common.cancel')}</span>
+              <ChevronLeft className="w-4 h-4 sm:hidden" />
             </Button>
           ) : null}
         </div>
@@ -500,10 +502,10 @@ export const OfferGenerator = ({
           <Button
             variant="outline"
             onClick={handleSave}
-            className="gap-2"
+            className="gap-2 px-2 sm:px-4"
           >
             <Save className="w-4 h-4" />
-            {t('common.save')}
+            <span className="hidden sm:inline">{t('common.save')}</span>
           </Button>
 
           {/* Preview button - show on step 3 and 4 */}
@@ -511,10 +513,10 @@ export const OfferGenerator = ({
             <Button
               variant="outline"
               onClick={handleShowPreview}
-              className="gap-2"
+              className="gap-2 px-2 sm:px-4"
             >
               <Eye className="w-4 h-4" />
-              {t('offers.preview')}
+              <span className="hidden sm:inline">{t('offers.preview')}</span>
             </Button>
           )}
 
@@ -522,23 +524,23 @@ export const OfferGenerator = ({
             <Button
               onClick={handleNext}
               disabled={!canProceed}
-              className="gap-2"
+              className="gap-2 px-2 sm:px-4"
             >
-              {t('common.next')}
+              <span className="hidden sm:inline">{t('common.next')}</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
             <Button
               onClick={handleSend}
               disabled={sending || !canProceed}
-              className="gap-2"
+              className="gap-2 px-2 sm:px-4"
             >
               {sending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              {t('offers.sendOffer')}
+              <span className="hidden sm:inline">{t('offers.sendOffer')}</span>
             </Button>
           )}
         </div>
