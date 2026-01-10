@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -82,6 +83,7 @@ interface ProductsViewProps {
 
 export default function ProductsView({ instanceId }: ProductsViewProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -300,6 +302,17 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
 
   return (
     <div>
+      <div className="mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/admin/offers')}
+          className="gap-2 -ml-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Wróć do ofert
+        </Button>
+      </div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('products.title')}</h1>
         <Button onClick={() => setShowAddProductDialog(true)} className="gap-2">
