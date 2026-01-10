@@ -232,8 +232,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const [finalPrice, setFinalPrice] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isCustomCarModel, setIsCustomCarModel] = useState(false);
+  const [customerDiscountPercent, setCustomerDiscountPercent] = useState<number | null>(null);
   
   // Customer vehicles pills state
   const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
@@ -514,6 +516,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedTime(null); // Reset - will use editingReservation values in display
         setSelectedStationId(editingReservation.station_id);
         setAdminNotes(editingReservation.admin_notes || '');
+        setFinalPrice(editingReservation.price?.toString() || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -562,7 +565,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           setSelectedTime(null);
           setSelectedStationId(null);
           setAdminNotes('');
-          setFoundVehicles([]);
+          setFinalPrice('');
           setFoundCustomers([]);
           setSelectedCustomerId(null);
           setShowPhoneDropdown(false);
@@ -583,6 +586,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setCarSize('medium');
         setSelectedServices([]);
         setSelectedDate(getNextWorkingDay());
+        setSelectedTime(null);
+        setSelectedStationId(null);
+        setAdminNotes('');
+        setFinalPrice('');
         setSelectedTime(null);
         setSelectedStationId(null);
         setAdminNotes('');
@@ -1341,6 +1348,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           admin_notes: adminNotes.trim() || null,
+          price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
         };
@@ -1377,6 +1385,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           admin_notes: adminNotes.trim() || null,
+          price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
@@ -1863,7 +1872,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         <p className="text-base font-bold mt-1">
                           {t('addReservation.totalDuration')}: {totalDurationMinutes >= 60 
                             ? `${Math.floor(totalDurationMinutes / 60)}h${totalDurationMinutes % 60 > 0 ? ` ${totalDurationMinutes % 60}min` : ''}`
-                            : `${totalDurationMinutes}min`}, {t('common.price')}: {totalPrice} zł
+                            : `${totalDurationMinutes}min`}
                         </p>
                       )}
                     </div>
@@ -2094,24 +2103,20 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 {/* Edit mode: show summary or full editor */}
                 {isEditMode && !isChangingTime ? (
                   // Summary view with "Zmień termin" button
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">{t('addReservation.term')}</Label>
-                    <div className="p-4 rounded-lg bg-muted/50 border">
-                      <p className="text-sm text-muted-foreground">{t('addReservation.selectedTerm')}:</p>
-                      <p className="text-lg font-medium mt-1">
-                        {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' 
-                          ? `${manualStartTime || editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${manualEndTime || editingReservation?.end_time?.substring(0, 5) || '--:--'}`
-                          : selectedTime 
-                            ? `${selectedTime} - ${(() => {
-                                const [h, m] = selectedTime.split(':').map(Number);
-                                const endMinutes = h * 60 + m + totalDurationMinutes;
-                                return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-                              })()}`
-                            : `${editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${editingReservation?.end_time?.substring(0, 5) || '--:--'}`
-                        }
-                      </p>
-                    </div>
-                    <Button 
+                  <div className="space-y-2">
+                    <p className="text-lg font-medium">
+                      {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' 
+                        ? `${manualStartTime || editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${manualEndTime || editingReservation?.end_time?.substring(0, 5) || '--:--'}`
+                        : selectedTime 
+                          ? `${selectedTime} - ${(() => {
+                              const [h, m] = selectedTime.split(':').map(Number);
+                              const endMinutes = h * 60 + m + totalDurationMinutes;
+                              return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+                            })()}`
+                          : `${editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${editingReservation?.end_time?.substring(0, 5) || '--:--'}`
+                      }
+                    </p>
+                    <Button
                       type="button"
                       variant="outline" 
                       onClick={() => {
@@ -2168,7 +2173,17 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                                   setDatePickerOpen(false);
                                 }
                               }}
-                              disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                              disabled={(date) => {
+                                // Disable past dates
+                                if (isBefore(date, startOfDay(new Date()))) return true;
+                                // Disable closed days based on working hours
+                                if (workingHours) {
+                                  const dayName = format(date, 'EEEE').toLowerCase();
+                                  const dayHours = workingHours[dayName];
+                                  if (!dayHours || !dayHours.open || !dayHours.close) return true;
+                                }
+                                return false;
+                              }}
                               locale={pl}
                               className="pointer-events-auto"
                             />
@@ -2384,6 +2399,31 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 placeholder={t('addReservation.notesPlaceholder')}
               />
             </div>
+
+            {/* Final Price - always visible in reservation mode */}
+            {isReservationMode && (
+              <div className="space-y-2">
+                <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
+                  {t('addReservation.amount')}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="finalPrice"
+                    type="number"
+                    value={finalPrice}
+                    onChange={(e) => setFinalPrice(e.target.value)}
+                    placeholder={`${totalPrice}`}
+                    className="w-32"
+                  />
+                  <span className="text-muted-foreground">zł</span>
+                  {customerDiscountPercent && customerDiscountPercent > 0 && (
+                    <span className="text-sm text-green-600">
+                      -{customerDiscountPercent}% rabat
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

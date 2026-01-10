@@ -198,6 +198,7 @@ export type Database = {
           address: string | null
           company: string | null
           created_at: string | null
+          discount_percent: number | null
           email: string | null
           id: string
           instance_id: string
@@ -213,6 +214,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string | null
+          discount_percent?: number | null
           email?: string | null
           id?: string
           instance_id: string
@@ -228,6 +230,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string | null
+          discount_percent?: number | null
           email?: string | null
           id?: string
           instance_id?: string
