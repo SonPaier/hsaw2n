@@ -465,7 +465,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           {offer.approved_at ? formatPrice(offer.total_gross) : <span className="text-muted-foreground text-sm">—</span>}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}
+                          Utworzono: {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}
                         </div>
                       </div>
                       <DropdownMenu>
