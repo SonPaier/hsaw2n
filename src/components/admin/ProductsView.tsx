@@ -10,7 +10,6 @@ import {
   Plus,
   Upload,
   Search,
-  Sparkles,
   FileText,
   Package,
   Trash2,
@@ -103,11 +102,9 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [globalPriceLists, setGlobalPriceLists] = useState<PriceList[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [showPriceListProducts, setShowPriceListProducts] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -134,13 +131,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
       .eq('instance_id', instanceId)
       .order('created_at', { ascending: false });
 
-    // Fetch global price lists
-    const { data: globalPriceListsData } = await supabase
-      .from('price_lists')
-      .select('*')
-      .eq('is_global', true)
-      .order('created_at', { ascending: false });
-
     // Fetch products
     const { data: productsData } = await supabase
       .from('products_library')
@@ -150,7 +140,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
       .order('name', { ascending: true });
 
     setPriceLists((priceListsData as PriceList[]) || []);
-    setGlobalPriceLists((globalPriceListsData as PriceList[]) || []);
     setProducts((productsData as Product[]) || []);
     setLoading(false);
   };
@@ -192,11 +181,10 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const filteredProducts = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return products.filter(p => {
-      if (!showPriceListProducts && p.source === 'instance') {
-        const metadata = p.metadata as Record<string, unknown> | null;
-        const isManuallyAdded = !metadata || metadata._source === 'manual';
-        if (!isManuallyAdded) return false;
-      }
+      // Only show manually added products
+      const metadata = p.metadata as Record<string, unknown> | null;
+      const isManuallyAdded = !metadata || metadata._source === 'manual';
+      if (!isManuallyAdded) return false;
       
       const matchesSearch = query === '' || 
         p.name.toLowerCase().includes(query) ||
@@ -208,7 +196,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
       
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, categoryFilter, showPriceListProducts]);
+  }, [products, searchQuery, categoryFilter]);
 
   // Pagination for products
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -327,16 +315,10 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{t('products.title')}</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddProductDialog(true)} variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t('products.addProduct')}
-          </Button>
-          <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            {t('products.uploadPriceList')}
-          </Button>
-        </div>
+        <Button onClick={() => setShowAddProductDialog(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t('products.addProduct')}
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -348,10 +330,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
           <TabsTrigger value="price-lists" className="gap-2 data-[state=active]:bg-background">
             <FileText className="h-4 w-4" />
             {t('products.tabs.priceLists')} ({priceLists.length})
-          </TabsTrigger>
-          <TabsTrigger value="global" className="gap-2 data-[state=active]:bg-background">
-            <Sparkles className="h-4 w-4" />
-            {t('products.tabs.global')} ({globalPriceLists.length})
           </TabsTrigger>
         </TabsList>
 
@@ -384,17 +362,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                     </select>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showPriceListProducts}
-                      onChange={(e) => setShowPriceListProducts(e.target.checked)}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <span className="text-muted-foreground">{t('products.showPriceListProducts')}</span>
-                  </label>
-                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -420,7 +387,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                         <TableHead>{t('products.columns.brand')}</TableHead>
                         <TableHead>{t('products.columns.category')}</TableHead>
                         <TableHead className="text-right">{t('products.columns.price')}</TableHead>
-                        <TableHead>{t('products.columns.unit')}</TableHead>
                         <TableHead>{t('products.columns.status')}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
@@ -450,7 +416,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                           <TableCell className="text-right font-mono">
                             {formatPrice(product.default_price)}
                           </TableCell>
-                          <TableCell>{product.unit}</TableCell>
                           <TableCell>
                             <Badge variant={product.active ? 'default' : 'secondary'}>
                               {product.active ? t('products.active') : t('products.inactive')}
@@ -548,7 +513,13 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
         <TabsContent value="price-lists">
           <Card>
             <CardHeader>
-              <CardTitle>{t('products.yourPriceLists')}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>{t('products.yourPriceLists')}</CardTitle>
+                <Button onClick={() => setShowUploadDialog(true)} variant="secondary" className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  {t('products.uploadPriceList')}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {priceLists.length === 0 ? (
@@ -612,56 +583,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
           </Card>
         </TabsContent>
 
-        {/* Global Price Lists Tab */}
-        <TabsContent value="global">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('products.globalPriceLists')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {globalPriceLists.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">{t('products.noGlobalPriceLists')}</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {globalPriceLists.map((priceList) => (
-                    <div
-                      key={priceList.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                          <Sparkles className="h-5 w-5 text-amber-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{priceList.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {priceList.salesperson_name && `${priceList.salesperson_name} • `}
-                            {priceList.products_count > 0 && `${priceList.products_count} ${t('products.productsCount')}`}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={statusColors[priceList.status]}>
-                          {priceList.status === 'completed' && t('products.statusCompleted')}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedPriceList(priceList)}
-                        >
-                          <Package className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Dialogs */}
