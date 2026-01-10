@@ -6,6 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -19,10 +25,9 @@ import {
   Car, 
   FileText, 
   Calculator,
-  Edit,
-  Check,
+  Tag,
   X,
-  Eye
+  ChevronDown,
 } from 'lucide-react';
 import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
@@ -47,6 +52,12 @@ interface OfferTemplate {
   notes: string | null;
 }
 
+interface DiscountState {
+  optionId: string;
+  type: 'percent' | 'amount';
+  value: string;
+}
+
 const paintTypeLabels: Record<string, string> = {
   matte: 'Mat',
   dark: 'Ciemny',
@@ -67,10 +78,10 @@ export const SummaryStep = ({
   onShowPreview,
 }: SummaryStepProps) => {
   const { t } = useTranslation();
-  const [editingDiscount, setEditingDiscount] = useState<string | null>(null);
-  const [tempDiscount, setTempDiscount] = useState('');
+  const [discountEditing, setDiscountEditing] = useState<DiscountState | null>(null);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
+  const [conditionsOpen, setConditionsOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -140,22 +151,58 @@ export const SummaryStep = ({
     }).format(Math.round(value));
   };
 
-  const handleGlobalDiscountStart = (optionId: string) => {
-    setEditingDiscount(optionId);
-    setTempDiscount('0');
+  // Calculate original total before any discounts
+  const calculateOriginalTotal = (option: OfferOption) => {
+    return option.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
   };
 
-  const handleGlobalDiscountApply = (optionId: string, option: OfferOption) => {
-    const discount = parseFloat(tempDiscount) || 0;
+  // Check if option has any discount
+  const hasDiscount = (option: OfferOption) => {
+    return option.items.some(item => item.discountPercent > 0);
+  };
+
+  const handleOpenDiscount = (optionId: string) => {
+    setDiscountEditing({
+      optionId,
+      type: 'percent',
+      value: '0',
+    });
+  };
+
+  const handleApplyDiscount = (option: OfferOption) => {
+    if (!discountEditing) return;
+    
+    const value = parseFloat(discountEditing.value) || 0;
+    
+    if (discountEditing.type === 'percent') {
+      // Apply percentage discount to all items
+      const updatedItems = option.items.map(item => ({
+        ...item,
+        discountPercent: value,
+      }));
+      onUpdateOption(discountEditing.optionId, { items: updatedItems });
+    } else {
+      // Calculate percentage from fixed amount
+      const originalTotal = calculateOriginalTotal(option);
+      if (originalTotal > 0) {
+        const percentDiscount = (value / originalTotal) * 100;
+        const updatedItems = option.items.map(item => ({
+          ...item,
+          discountPercent: Math.min(percentDiscount, 100),
+        }));
+        onUpdateOption(discountEditing.optionId, { items: updatedItems });
+      }
+    }
+    setDiscountEditing(null);
+  };
+
+  const handleRemoveDiscount = (optionId: string, option: OfferOption) => {
     const updatedItems = option.items.map(item => ({
       ...item,
-      discountPercent: discount,
+      discountPercent: 0,
     }));
     onUpdateOption(optionId, { items: updatedItems });
-    setEditingDiscount(null);
-    setTempDiscount('');
   };
-
 
   const handleApplyTemplate = (template: OfferTemplate) => {
     onUpdateOffer({
@@ -240,119 +287,173 @@ export const SummaryStep = ({
               {/* Scope header */}
               <h3 className="font-bold text-xl border-b pb-2">{group.scopeName}</h3>
               
-              {group.options.map((option) => (
-                <div
-                  key={option.id}
-                  className="space-y-3 py-3 border-b last:border-0"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-lg">{option.name}</h4>
-                      {option.description && (
-                        <p className="text-sm text-muted-foreground">{option.description}</p>
+              {group.options.map((option) => {
+                const originalTotal = calculateOriginalTotal(option);
+                const currentTotal = calculateOptionTotal(option);
+                const optionHasDiscount = hasDiscount(option);
+                const isEditingThisOption = discountEditing?.optionId === option.id;
+                
+                return (
+                  <div
+                    key={option.id}
+                    className="space-y-3 py-3 border-b last:border-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-lg">{option.name}</h4>
+                      </div>
+                      <div className="text-right">
+                        {optionHasDiscount ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground line-through text-sm">
+                              {formatPrice(originalTotal)}
+                            </span>
+                            <span className="font-semibold text-primary">
+                              {formatPrice(currentTotal)}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="font-semibold">{formatPrice(currentTotal)}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">netto</p>
+                      </div>
+                    </div>
+
+                    {/* Items - conditional based on showUnitPrices */}
+                    {showUnitPrices ? (
+                      <div className="text-sm">
+                        <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
+                          <div className="col-span-5">Pozycja</div>
+                          <div className="col-span-2 text-right">Ilość</div>
+                          <div className="col-span-2 text-right">Cena</div>
+                          <div className="col-span-1 text-right">Rabat</div>
+                          <div className="col-span-2 text-right">Wartość</div>
+                        </div>
+                        {option.items.map((item) => {
+                          const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                          return (
+                            <div
+                              key={item.id}
+                              className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0"
+                            >
+                              <div className="col-span-5">
+                                {item.customName}
+                              </div>
+                              <div className="col-span-2 text-right">
+                                {item.quantity} {item.unit}
+                              </div>
+                              <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
+                              <div className="col-span-1 text-right">
+                                {item.discountPercent > 0 && `-${item.discountPercent}%`}
+                              </div>
+                              <div className="col-span-2 text-right font-medium">
+                                {formatPrice(itemValue)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-sm space-y-1">
+                        {option.items.map((item) => {
+                          const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex justify-between py-1"
+                            >
+                              <span>{item.customName}</span>
+                              <span className="font-medium">{formatPrice(itemValue)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Discount section */}
+                    <div className="pt-2">
+                      {isEditingThisOption ? (
+                        <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                          <RadioGroup
+                            value={discountEditing.type}
+                            onValueChange={(val) => setDiscountEditing({
+                              ...discountEditing,
+                              type: val as 'percent' | 'amount',
+                            })}
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="percent" id={`percent-${option.id}`} />
+                              <Label htmlFor={`percent-${option.id}`} className="text-sm cursor-pointer">
+                                Rabat procentowy
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="amount" id={`amount-${option.id}`} />
+                              <Label htmlFor={`amount-${option.id}`} className="text-sm cursor-pointer">
+                                Rabat kwotowy
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                          
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              value={discountEditing.value}
+                              onChange={(e) => setDiscountEditing({
+                                ...discountEditing,
+                                value: e.target.value,
+                              })}
+                              className="w-24 h-8"
+                              min={0}
+                              max={discountEditing.type === 'percent' ? 100 : undefined}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {discountEditing.type === 'percent' ? '%' : 'zł'}
+                            </span>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApplyDiscount(option)}
+                            >
+                              Zastosuj
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDiscountEditing(null)}
+                            >
+                              Anuluj
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDiscount(option.id)}
+                            className="gap-1 text-muted-foreground"
+                          >
+                            <Tag className="w-3 h-3" />
+                            {optionHasDiscount ? 'Zmień rabat' : 'Dodaj rabat'}
+                          </Button>
+                          {optionHasDiscount && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDiscount(option.id, option)}
+                              className="gap-1 text-destructive hover:text-destructive"
+                            >
+                              <X className="w-3 h-3" />
+                              Usuń rabat
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{formatPrice(calculateOptionTotal(option))}</p>
-                      <p className="text-xs text-muted-foreground">netto</p>
-                    </div>
                   </div>
-
-                  {/* Items - conditional based on showUnitPrices */}
-                  {showUnitPrices ? (
-                    <div className="text-sm">
-                      <div className="grid grid-cols-12 gap-2 px-2 py-1 bg-muted/50 rounded text-xs font-medium text-muted-foreground">
-                        <div className="col-span-5">Pozycja</div>
-                        <div className="col-span-2 text-right">Ilość</div>
-                        <div className="col-span-2 text-right">Cena</div>
-                        <div className="col-span-1 text-right">Rabat</div>
-                        <div className="col-span-2 text-right">Wartość</div>
-                      </div>
-                      {option.items.map((item) => {
-                        const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-                        return (
-                          <div
-                            key={item.id}
-                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0"
-                          >
-                            <div className="col-span-5">
-                              {item.customName}
-                            </div>
-                            <div className="col-span-2 text-right">
-                              {item.quantity} {item.unit}
-                            </div>
-                            <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
-                            <div className="col-span-1 text-right">
-                              {item.discountPercent > 0 && `-${item.discountPercent}%`}
-                            </div>
-                            <div className="col-span-2 text-right font-medium">
-                              {formatPrice(itemValue)}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm space-y-1">
-                      {option.items.map((item) => {
-                        const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex justify-between py-1"
-                          >
-                            <span>{item.customName}</span>
-                            <span className="font-medium">{formatPrice(itemValue)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Global discount edit */}
-                  <div className="flex items-center gap-2 pt-2">
-                    {editingDiscount === option.id ? (
-                      <>
-                        <Input
-                          type="number"
-                          value={tempDiscount}
-                          onChange={(e) => setTempDiscount(e.target.value)}
-                          className="w-20 h-8"
-                          min={0}
-                          max={100}
-                        />
-                        <span className="text-sm">%</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => handleGlobalDiscountApply(option.id, option)}
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => setEditingDiscount(null)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleGlobalDiscountStart(option.id)}
-                        className="gap-1 text-muted-foreground"
-                      >
-                        <Edit className="w-3 h-3" />
-                        Ustaw rabat dla całej opcji
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </CardContent>
@@ -402,29 +503,9 @@ export const SummaryStep = ({
         </CardContent>
       </Card>
 
-      {/* Notes & Terms - 4 sections */}
+      {/* Offer validity + Additional conditions */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Warunki oferty</CardTitle>
-            {templates.length > 0 && (
-              <Select onValueChange={(id) => {
-                const template = templates.find(t => t.id === id);
-                if (template) handleApplyTemplate(template);
-              }}>
-                <SelectTrigger className="w-auto h-8">
-                  <span className="text-sm">Wczytaj szablon</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="validUntil">Oferta ważna do</Label>
             <Input
@@ -434,47 +515,78 @@ export const SummaryStep = ({
               onChange={(e) => onUpdateOffer({ validUntil: e.target.value })}
             />
           </div>
-          <Separator />
-          <div className="space-y-2">
-            <Label htmlFor="paymentTerms">Warunki płatności</Label>
-            <Textarea
-              id="paymentTerms"
-              value={offer.paymentTerms || ''}
-              onChange={(e) => onUpdateOffer({ paymentTerms: e.target.value })}
-              rows={4}
-              placeholder="Np. zaliczka 30%, pozostała kwota przy odbiorze..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="warranty">Warunki gwarancji</Label>
-            <Textarea
-              id="warranty"
-              value={offer.warranty || ''}
-              onChange={(e) => onUpdateOffer({ warranty: e.target.value })}
-              rows={4}
-              placeholder="Np. 10 lat gwarancji producenta, 2 lata gwarancji na montaż..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="serviceInfo">Oferta obejmuje</Label>
-            <Textarea
-              id="serviceInfo"
-              value={offer.serviceInfo || ''}
-              onChange={(e) => onUpdateOffer({ serviceInfo: e.target.value })}
-              rows={4}
-              placeholder="Np. kompleksowe czyszczenie pojazdu, dekontaminacja lakieru..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Inne informacje</Label>
-            <Textarea
-              id="notes"
-              value={offer.notes || ''}
-              onChange={(e) => onUpdateOffer({ notes: e.target.value })}
-              rows={4}
-              placeholder="Dodatkowe uwagi..."
-            />
-          </div>
+
+          <Collapsible open={conditionsOpen} onOpenChange={setConditionsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent">
+                <span className="text-sm font-medium">Dodatkowe warunki</span>
+                <ChevronDown className={cn(
+                  "h-4 w-4 transition-transform",
+                  conditionsOpen && "rotate-180"
+                )} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              {templates.length > 0 && (
+                <div className="flex items-center justify-end">
+                  <Select onValueChange={(id) => {
+                    const template = templates.find(t => t.id === id);
+                    if (template) handleApplyTemplate(template);
+                  }}>
+                    <SelectTrigger className="w-auto h-8">
+                      <span className="text-sm">Wczytaj szablon</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="paymentTerms">Warunki płatności</Label>
+                <Textarea
+                  id="paymentTerms"
+                  value={offer.paymentTerms || ''}
+                  onChange={(e) => onUpdateOffer({ paymentTerms: e.target.value })}
+                  rows={4}
+                  placeholder="Np. zaliczka 30%, pozostała kwota przy odbiorze..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="warranty">Warunki gwarancji</Label>
+                <Textarea
+                  id="warranty"
+                  value={offer.warranty || ''}
+                  onChange={(e) => onUpdateOffer({ warranty: e.target.value })}
+                  rows={4}
+                  placeholder="Np. 10 lat gwarancji producenta, 2 lata gwarancji na montaż..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="serviceInfo">Oferta obejmuje</Label>
+                <Textarea
+                  id="serviceInfo"
+                  value={offer.serviceInfo || ''}
+                  onChange={(e) => onUpdateOffer({ serviceInfo: e.target.value })}
+                  rows={4}
+                  placeholder="Np. kompleksowe czyszczenie pojazdu, dekontaminacja lakieru..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Inne informacje</Label>
+                <Textarea
+                  id="notes"
+                  value={offer.notes || ''}
+                  onChange={(e) => onUpdateOffer({ notes: e.target.value })}
+                  rows={4}
+                  placeholder="Dodatkowe uwagi..."
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     </div>

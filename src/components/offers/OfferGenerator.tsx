@@ -463,19 +463,17 @@ export const OfferGenerator = ({
       )}
       
       {currentStep === 4 && (
-        <Card className="p-6">
-          <SummaryStep
-            instanceId={instanceId}
-            offer={offer}
-            showUnitPrices={instanceShowUnitPrices}
-            onUpdateOffer={updateOffer}
-            onUpdateOption={updateOption}
-            calculateOptionTotal={calculateOptionTotal}
-            calculateTotalNet={calculateTotalNet}
-            calculateTotalGross={calculateTotalGross}
-            onShowPreview={handleShowPreview}
-          />
-        </Card>
+        <SummaryStep
+          instanceId={instanceId}
+          offer={offer}
+          showUnitPrices={instanceShowUnitPrices}
+          onUpdateOffer={updateOffer}
+          onUpdateOption={updateOption}
+          calculateOptionTotal={calculateOptionTotal}
+          calculateTotalNet={calculateTotalNet}
+          calculateTotalGross={calculateTotalGross}
+          onShowPreview={handleShowPreview}
+        />
       )}
 
       {/* Navigation */}
