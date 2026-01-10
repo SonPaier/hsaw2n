@@ -484,7 +484,7 @@ const AdminDashboard = () => {
           type: (r.stations as any).type
         } : undefined,
         original_reservation: originalReservation || null,
-        created_by_username: r.profiles ? (r.profiles as any).username : null
+        created_by_username: r.created_by_profile ? (r.created_by_profile as any).username : null
       };
     });
   }, []);
@@ -550,7 +550,7 @@ const AdminDashboard = () => {
         created_by,
         services:service_id (name, shortcut),
         stations:station_id (name, type),
-        profiles:created_by (username)
+        created_by_profile:profiles!reservations_created_by_fkey (username)
       `).eq('instance_id', instanceId)
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
     
