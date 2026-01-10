@@ -14,12 +14,7 @@ import {
   Package,
   Trash2,
   Pencil,
-  ToggleLeft,
-  ToggleRight,
   Loader2,
-  Check,
-  X,
-  AlertCircle,
   Download,
   ChevronLeft,
   ChevronRight,
@@ -79,7 +74,6 @@ interface Product {
   unit: string;
   default_price: number;
   metadata: Record<string, unknown> | null;
-  active: boolean;
   source: string;
   instance_id: string | null;
 }
@@ -256,25 +250,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
     }
   };
 
-  const handleToggleProduct = async (product: Product) => {
-    try {
-      const { error } = await supabase
-        .from('products_library')
-        .update({ active: !product.active })
-        .eq('id', product.id);
-
-      if (error) throw error;
-
-      setProducts(prev => 
-        prev.map(p => p.id === product.id ? { ...p, active: !p.active } : p)
-      );
-      toast.success(product.active ? t('products.productDeactivated') : t('products.productActivated'));
-    } catch (error) {
-      console.error('Error toggling product:', error);
-      toast.error(t('products.toggleError'));
-    }
-  };
-
   const handleDeleteProduct = async (product: Product) => {
     if (!confirm(t('products.confirmDeleteProduct', { name: product.name }))) return;
 
@@ -387,16 +362,12 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                         <TableHead>{t('products.columns.brand')}</TableHead>
                         <TableHead>{t('products.columns.category')}</TableHead>
                         <TableHead className="text-right">{t('products.columns.price')}</TableHead>
-                        <TableHead>{t('products.columns.status')}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedProducts.map((product) => (
-                        <TableRow 
-                          key={product.id}
-                          className={!product.active ? 'opacity-50' : ''}
-                        >
+                        <TableRow key={product.id}>
                           <TableCell className="font-medium">
                             <button 
                               onClick={() => setSelectedProduct(product)}
@@ -417,11 +388,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                             {formatPrice(product.default_price)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={product.active ? 'default' : 'secondary'}>
-                              {product.active ? t('products.active') : t('products.inactive')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -432,19 +398,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                                 <DropdownMenuItem onClick={() => setEditingProduct(product)}>
                                   <Pencil className="h-4 w-4 mr-2" />
                                   {t('common.edit')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleToggleProduct(product)}>
-                                  {product.active ? (
-                                    <>
-                                      <ToggleLeft className="h-4 w-4 mr-2" />
-                                      {t('products.deactivate')}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ToggleRight className="h-4 w-4 mr-2" />
-                                      {t('products.activate')}
-                                    </>
-                                  )}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleDeleteProduct(product)}
