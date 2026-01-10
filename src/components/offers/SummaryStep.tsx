@@ -475,19 +475,6 @@ export const SummaryStep = ({
           </div>
         </CardContent>
       </Card>
-
-      {/* Preview Button */}
-      {onShowPreview && (
-        <Button
-          variant="outline"
-          onClick={onShowPreview}
-          className="w-full gap-2"
-          size="lg"
-        >
-          <Eye className="w-4 h-4" />
-          {t('offers.showPreview')}
-        </Button>
-      )}
     </div>
   );
 };

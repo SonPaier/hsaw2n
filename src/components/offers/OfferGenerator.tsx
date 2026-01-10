@@ -511,6 +511,18 @@ export const OfferGenerator = ({
             {t('common.save')}
           </Button>
 
+          {/* Preview button - show on step 3 and 4 */}
+          {currentStep >= 3 && offer.id && (
+            <Button
+              variant="outline"
+              onClick={handleShowPreview}
+              className="gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              {t('offers.showPreview')}
+            </Button>
+          )}
+
           {currentStep < 4 ? (
             <Button
               onClick={handleNext}
@@ -521,30 +533,18 @@ export const OfferGenerator = ({
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
-            <>
-              {offer.id && (
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadPdf}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('offers.downloadPdf')}
-                </Button>
+            <Button
+              onClick={handleSend}
+              disabled={saving || !canProceed}
+              className="gap-2"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
               )}
-              <Button
-                onClick={handleSend}
-                disabled={saving || !canProceed}
-                className="gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {t('offers.sendOffer')}
-              </Button>
-            </>
+              {t('offers.sendOffer')}
+            </Button>
           )}
         </div>
       </div>
