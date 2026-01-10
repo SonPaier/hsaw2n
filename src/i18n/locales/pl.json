@@ -459,6 +459,8 @@
     "noOffersForStatus": "Brak ofert o wybranym statusie",
     "noCustomer": "Brak danych klienta",
     "confirmDelete": "Czy na pewno chcesz usunąć tę ofertę?",
+    "confirmDeleteTitle": "Usuń ofertę",
+    "confirmDeleteDesc": "Czy na pewno chcesz usunąć ofertę {{number}}? Ta operacja jest nieodwracalna.",
     "deleteSuccess": "Oferta została usunięta",
     "linkCopied": "Link do oferty skopiowany",
     "offerNumberCopied": "Numer oferty skopiowany",

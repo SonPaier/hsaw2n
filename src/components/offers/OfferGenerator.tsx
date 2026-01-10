@@ -502,14 +502,9 @@ export const OfferGenerator = ({
           <Button
             variant="outline"
             onClick={handleSave}
-            disabled={saving}
             className="gap-2"
           >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            <Save className="w-4 h-4" />
             {t('common.save')}
           </Button>
 
