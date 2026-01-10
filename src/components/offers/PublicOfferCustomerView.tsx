@@ -361,6 +361,17 @@ export const PublicOfferCustomerView = ({
 
       return next;
     });
+
+    // Clear selectedItemInOption for options outside the new scope (except extras)
+    setSelectedItemInOption((prev) => {
+      const next: Record<string, string> = {};
+      offer.offer_options.forEach((opt) => {
+        if ((opt.scope_id === scopeId || opt.scope?.is_extras_scope) && prev[opt.id]) {
+          next[opt.id] = prev[opt.id];
+        }
+      });
+      return next;
+    });
   };
 
   const handleSelectVariant = (scopeId: string, optionId: string) => {
@@ -1013,21 +1024,6 @@ export const PublicOfferCustomerView = ({
                                   )}
                                 </Button>
                               )}
-                              {!hasMultipleVariants && !isScopeSelected && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleSelectVariant(section.key, option.id)}
-                                  disabled={interactionsDisabled}
-                                  className="shrink-0"
-                                  style={{ 
-                                    backgroundColor: branding.offer_primary_color, 
-                                    color: primaryButtonTextColor 
-                                  }}
-                                >
-                                  Zobacz podgląd
-                                </Button>
-                              )}
                               {!hasMultipleVariants && isScopeSelected && (
                                 <Badge 
                                   variant="default" 
@@ -1047,21 +1043,89 @@ export const PublicOfferCustomerView = ({
                               
                               return (
                                 <>
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     {option.offer_option_items.map((item) => {
                                       const isOptionalSelected = selectedOptionalItems[item.id];
                                       const isItemSelected = item.id === selectedItemId;
                                       const isNonOptionalInMulti = !item.is_optional && hasMultipleNonOptional;
                                       const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
                                       
+                                      // Multi-item non-optional (e.g., coatings) - card-like layout
+                                      if (isNonOptionalInMulti) {
+                                        return (
+                                          <div
+                                            key={item.id}
+                                            className={cn(
+                                              "rounded-lg border p-4 transition-all",
+                                              isItemSelected 
+                                                ? "ring-2" 
+                                                : "opacity-70 hover:opacity-100"
+                                            )}
+                                            style={{
+                                              borderColor: isItemSelected ? branding.offer_primary_color : undefined,
+                                              boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
+                                              backgroundColor: branding.offer_section_bg_color,
+                                            }}
+                                          >
+                                            {/* Line 1: Name + Button */}
+                                            <div className="flex items-start justify-between gap-3">
+                                              <span 
+                                                className="font-medium text-base"
+                                                style={{ color: branding.offer_section_text_color }}
+                                              >
+                                                {item.custom_name}
+                                              </span>
+                                              <Button
+                                                variant={isItemSelected ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => handleSelectItemInOption(option.id, item.id)}
+                                                disabled={interactionsDisabled}
+                                                className="shrink-0"
+                                                style={isItemSelected ? { 
+                                                  backgroundColor: branding.offer_primary_color, 
+                                                  color: primaryButtonTextColor 
+                                                } : {}}
+                                              >
+                                                {isItemSelected ? (
+                                                  <>
+                                                    <Check className="w-4 h-4 mr-1" />
+                                                    Wybrany
+                                                  </>
+                                                ) : (
+                                                  'Wybierz'
+                                                )}
+                                              </Button>
+                                            </div>
+                                            
+                                            {/* Line 2: Description */}
+                                            {(item.custom_description || item.products_library?.description) && (
+                                              <div className="mt-2">
+                                                {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                              </div>
+                                            )}
+                                            
+                                            {/* Line 3: Price */}
+                                            {!offer.hide_unit_prices && (
+                                              <div className="mt-3 flex justify-end">
+                                                <span 
+                                                  className="font-bold text-lg"
+                                                  style={{ color: branding.offer_primary_color }}
+                                                >
+                                                  {formatPrice(itemTotal)}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // Regular items (optional or single non-optional)
                                       return (
                                         <div
                                           key={item.id}
                                           className={cn(
                                             "flex items-center justify-between py-2 px-3 rounded-md transition-all",
-                                            item.is_optional && !isOptionalSelected && "text-muted-foreground",
-                                            isNonOptionalInMulti && isItemSelected && "bg-primary/5 ring-1 ring-primary/20",
-                                            isNonOptionalInMulti && !isItemSelected && "opacity-60"
+                                            item.is_optional && !isOptionalSelected && "text-muted-foreground"
                                           )}
                                         >
                                           <div className="flex-1">
@@ -1076,30 +1140,7 @@ export const PublicOfferCustomerView = ({
                                             {(item.custom_description || item.products_library?.description) && 
                                               renderDescription(item.custom_description || item.products_library?.description || '')
                                             }
-                                            {!offer.hide_unit_prices && isNonOptionalInMulti && (
-                                              <p className="text-sm text-muted-foreground mt-1">
-                                                {formatPrice(itemTotal)}
-                                              </p>
-                                            )}
                                           </div>
-                                          {isNonOptionalInMulti && (
-                                            <Button
-                                              variant={isItemSelected ? "default" : "outline"}
-                                              size="sm"
-                                              onClick={() => handleSelectItemInOption(option.id, item.id)}
-                                              disabled={interactionsDisabled}
-                                              className="shrink-0"
-                                            >
-                                              {isItemSelected ? (
-                                                <>
-                                                  <Check className="w-4 h-4 mr-1" />
-                                                  Wybrany
-                                                </>
-                                              ) : (
-                                                'Wybierz'
-                                              )}
-                                            </Button>
-                                          )}
                                           {item.is_optional && (
                                             <Button
                                               variant={isOptionalSelected ? "default" : "outline"}
