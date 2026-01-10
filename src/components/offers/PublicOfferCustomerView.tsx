@@ -221,41 +221,12 @@ export const PublicOfferCustomerView = ({
       setSelectedScopeId(savedState.selectedScopeId ?? null);
       setSelectedItemInOption(mergedItemInOption);
     } else {
-      // Initialize selected variants - first non-upsell variant per scope
-      const initialVariants: Record<string, string> = {};
-      const initialItemInOption: Record<string, string> = {};
-      const selectedOptions = offer.offer_options.filter(opt => opt.is_selected);
-      
-      // Group by scope and select first non-upsell variant for each scope
-      const scopeGroups = selectedOptions.reduce((acc, opt) => {
-        const key = opt.scope_id ?? '__ungrouped__';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(opt);
-        return acc;
-      }, {} as Record<string, OfferOption[]>);
-      
-      // Find first non-extras scope to set as default selected
-      let firstNonExtrasScope: string | null = null;
-      
-      Object.entries(scopeGroups).forEach(([scopeId, options]) => {
-        const isExtrasScope = options.some(o => o.scope?.is_extras_scope);
-        const variants = options.filter(o => !o.is_upsell).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-        if (variants.length > 0) {
-          initialVariants[scopeId] = variants[0].id;
-          if (!isExtrasScope && !firstNonExtrasScope) {
-            firstNonExtrasScope = scopeId;
-          }
-          variants.forEach(variant => {
-            const nonOptionalItems = variant.offer_option_items.filter(item => !item.is_optional);
-            if (nonOptionalItems.length > 1) {
-              initialItemInOption[variant.id] = nonOptionalItems[0].id;
-            }
-          });
-        }
-      });
-      setSelectedVariants(initialVariants);
-      setSelectedScopeId(firstNonExtrasScope);
-      setSelectedItemInOption(initialItemInOption);
+      // No saved state - don't select anything by default
+      // User must explicitly choose their main service
+      setSelectedVariants({});
+      setSelectedScopeId(null);
+      setSelectedItemInOption({});
+      setSelectedOptionalItems({});
     }
   }, [offer]);
 
@@ -383,6 +354,21 @@ export const PublicOfferCustomerView = ({
   };
 
   const handleSelectItemInOption = (optionId: string, itemId: string) => {
+    // Find which option this item belongs to
+    const option = offer.offer_options.find(opt => opt.id === optionId);
+    if (!option) {
+      setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
+      return;
+    }
+
+    // If this option is in a non-extras scope that's different from current selectedScopeId,
+    // we need to switch to that scope (only one main service can be selected)
+    if (option.scope_id && !option.scope?.is_extras_scope && option.scope_id !== selectedScopeId) {
+      // Switch to this scope and select this option as the variant
+      handleSelectScope(option.scope_id, optionId);
+    }
+
+    // Update the selected item within this option
     setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
   };
 
