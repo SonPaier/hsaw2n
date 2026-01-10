@@ -424,42 +424,46 @@ export const OfferGenerator = ({
       </div>
 
       {/* Step Content */}
-      <Card className="p-6">
-        {currentStep === 1 && (
+      {currentStep === 1 && (
+        <Card className="p-6">
           <CustomerDataStep
             customerData={offer.customerData}
             vehicleData={offer.vehicleData}
             onCustomerChange={updateCustomerData}
             onVehicleChange={updateVehicleData}
           />
-        )}
+        </Card>
+      )}
 
-        {currentStep === 2 && (
+      {currentStep === 2 && (
+        <Card className="p-6">
           <ScopesStep
             instanceId={instanceId}
             selectedScopeIds={offer.selectedScopeIds}
             onScopesChange={updateSelectedScopes}
           />
-        )}
-        
-        {currentStep === 3 && (
-          <OptionsStep
-            instanceId={instanceId}
-            options={offer.options}
-            selectedScopeIds={offer.selectedScopeIds}
-            showUnitPrices={instanceShowUnitPrices}
-            onAddOption={addOption}
-            onUpdateOption={updateOption}
-            onRemoveOption={removeOption}
-            onDuplicateOption={duplicateOption}
-            onAddItem={addItemToOption}
-            onUpdateItem={updateItemInOption}
-            onRemoveItem={removeItemFromOption}
-            calculateOptionTotal={calculateOptionTotal}
-          />
-        )}
-        
-        {currentStep === 4 && (
+        </Card>
+      )}
+      
+      {currentStep === 3 && (
+        <OptionsStep
+          instanceId={instanceId}
+          options={offer.options}
+          selectedScopeIds={offer.selectedScopeIds}
+          showUnitPrices={instanceShowUnitPrices}
+          onAddOption={addOption}
+          onUpdateOption={updateOption}
+          onRemoveOption={removeOption}
+          onDuplicateOption={duplicateOption}
+          onAddItem={addItemToOption}
+          onUpdateItem={updateItemInOption}
+          onRemoveItem={removeItemFromOption}
+          calculateOptionTotal={calculateOptionTotal}
+        />
+      )}
+      
+      {currentStep === 4 && (
+        <Card className="p-6">
           <SummaryStep
             instanceId={instanceId}
             offer={offer}
@@ -471,8 +475,8 @@ export const OfferGenerator = ({
             calculateTotalGross={calculateTotalGross}
             onShowPreview={handleShowPreview}
           />
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
