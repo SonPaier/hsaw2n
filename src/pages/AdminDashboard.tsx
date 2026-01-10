@@ -194,6 +194,9 @@ const AdminDashboard = () => {
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  
+  // User role (admin or employee)
+  const [userRole, setUserRole] = useState<'admin' | 'employee' | null>(null);
 
   // Get user's username from profiles
   const [username, setUsername] = useState<string | null>(null);
@@ -237,12 +240,22 @@ const AdminDashboard = () => {
       const adminRole = rolesData.find(r => r.role === 'admin' && r.instance_id);
       if (adminRole?.instance_id) {
         setInstanceId(adminRole.instance_id);
+        setUserRole('admin');
+        return;
+      }
+
+      // Check if user has employee role with instance_id
+      const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
+      if (employeeRole?.instance_id) {
+        setInstanceId(employeeRole.instance_id);
+        setUserRole('employee');
         return;
       }
 
       // Check for super_admin - get first available instance
       const isSuperAdmin = rolesData.some(r => r.role === 'super_admin');
       if (isSuperAdmin) {
+        setUserRole('admin'); // super_admin has admin privileges
         const {
           data: instances
         } = await supabase.from('instances').select('id').eq('active', true).limit(1).maybeSingle();
@@ -1901,10 +1914,11 @@ const AdminDashboard = () => {
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>} */}
-              <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }} title="Ustawienia">
+              {/* Hide settings for employees */}
+              {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }} title="Ustawienia">
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
-              </Button>
+              </Button>}
             </nav>
 
             {/* Update banner & Collapse toggle & User menu */}
@@ -2134,6 +2148,7 @@ const AdminDashboard = () => {
         unreadNotificationsCount={unreadNotificationsCount}
         offersEnabled={hasFeature('offers')}
         followupEnabled={hasFeature('followup')}
+        userRole={userRole}
       />
     </>;
 };
