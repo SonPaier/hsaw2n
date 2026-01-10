@@ -436,7 +436,8 @@ const AdminDashboard = () => {
   const mapReservationData = useCallback((
     data: any[],
     servicesMap: Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
-    originalReservationsMap: Map<string, any>
+    originalReservationsMap: Map<string, any>,
+    creatorsMap: Map<string, string> = new Map()
   ): Reservation[] => {
     return data.map(r => {
       const serviceIds = (r as any).service_ids as string[] | null;
@@ -484,7 +485,7 @@ const AdminDashboard = () => {
           type: (r.stations as any).type
         } : undefined,
         original_reservation: originalReservation || null,
-        created_by_username: r.created_by_profile ? (r.created_by_profile as any).username : null
+        created_by_username: r.created_by ? creatorsMap.get(r.created_by) || null : null
       };
     });
   }, []);
@@ -549,8 +550,7 @@ const AdminDashboard = () => {
         original_reservation_id,
         created_by,
         services:service_id (name, shortcut),
-        stations:station_id (name, type),
-        created_by_profile:profiles!reservations_created_by_fkey (username)
+        stations:station_id (name, type)
       `).eq('instance_id', instanceId)
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
     
@@ -579,7 +579,23 @@ const AdminDashboard = () => {
         }
       }
 
-      setReservations(mapReservationData(data, servicesMap, originalReservationsMap));
+      // Fetch usernames for created_by (separate query to avoid FK issue)
+      const creatorIds = [...new Set(data.filter(r => r.created_by).map(r => r.created_by as string))];
+      const creatorsMap = new Map<string, string>();
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', creatorIds);
+        
+        if (profiles) {
+          profiles.forEach(p => {
+            if (p.username) creatorsMap.set(p.id, p.username);
+          });
+        }
+      }
+
+      setReservations(mapReservationData(data, servicesMap, originalReservationsMap, creatorsMap));
     }
   };
 
