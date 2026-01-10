@@ -194,7 +194,9 @@ export const OptionsStep = ({
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
       currency: 'PLN',
-    }).format(value);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(value));
   };
 
   // Render single option section - flat design
@@ -240,17 +242,6 @@ export const OptionsStep = ({
 
         <CollapsibleContent>
           <div className="space-y-4 pt-2">
-            {/* Option Description */}
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Opis opcji</Label>
-              <Textarea
-                value={option.description || ''}
-                onChange={(e) => onUpdateOption(option.id, { description: e.target.value })}
-                className="bg-white min-h-[80px]"
-                rows={3}
-              />
-            </div>
-
             {/* Items List - flat design */}
             <div className="space-y-3">
               <Label className="text-sm text-muted-foreground">Pozycje</Label>
@@ -260,14 +251,13 @@ export const OptionsStep = ({
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
                   <div className="col-span-5 text-left">Nazwa</div>
                   <div className="col-span-2 text-left">Cena netto</div>
-                  <div className="col-span-1 text-left">Rabat %</div>
                   <div className="col-span-4"></div>
+                  <div className="col-span-1"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-12 gap-3 text-xs font-medium text-muted-foreground px-1">
-                  <div className="col-span-6 text-left">Nazwa</div>
+                  <div className="col-span-8 text-left">Nazwa</div>
                   <div className="col-span-3 text-left">Cena netto</div>
-                  <div className="col-span-2 text-left">Rabat %</div>
                   <div className="col-span-1"></div>
                 </div>
               )}
@@ -353,25 +343,13 @@ export const OptionsStep = ({
                           value={item.unitPrice || ''}
                           onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                           min={0}
-                          step={0.01}
+                          step={1}
                           className="bg-white text-left"
                         />
                       </div>
                       
-                      {/* Discount */}
-                      <div className="col-span-1">
-                        <Input
-                          type="number"
-                          value={item.discountPercent || ''}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
-                          min={0}
-                          max={100}
-                          className="bg-white text-left w-[60px]"
-                        />
-                      </div>
-                      
                       {/* Hidden fields for unit prices mode */}
-                      <div className="col-span-3 flex gap-2">
+                      <div className="col-span-4 flex gap-2">
                         <Input
                           type="number"
                           value={item.quantity || ''}
@@ -404,7 +382,7 @@ export const OptionsStep = ({
                   ) : (
                     <>
                       {/* Name with Autocomplete */}
-                      <div className="col-span-6">
+                      <div className="col-span-8">
                         <Popover 
                           open={autocompleteOpen[item.id]} 
                           onOpenChange={(open) => {
@@ -479,20 +457,8 @@ export const OptionsStep = ({
                           value={item.quantity * item.unitPrice || ''}
                           onChange={(e) => onUpdateItem(option.id, item.id, { unitPrice: e.target.value === '' ? 0 : (parseFloat(e.target.value)) / (item.quantity || 1), quantity: 1 })}
                           min={0}
-                          step={0.01}
+                          step={1}
                           className="bg-white text-left"
-                        />
-                      </div>
-                      
-                      {/* Discount */}
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          value={item.discountPercent || ''}
-                          onChange={(e) => onUpdateItem(option.id, item.id, { discountPercent: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
-                          min={0}
-                          max={100}
-                          className="bg-white text-left w-[60px]"
                         />
                       </div>
                       
@@ -544,12 +510,7 @@ export const OptionsStep = ({
           {group.scope && (
             <div className="flex items-center gap-3 pb-2 border-b">
               <Package className="w-5 h-5 text-primary" />
-              <div>
-                <h3 className="font-bold text-xl">{group.scope.name}</h3>
-                {group.scope.description && (
-                  <p className="text-sm text-muted-foreground">{group.scope.description}</p>
-                )}
-              </div>
+              <h3 className="font-bold text-xl">{group.scope.name}</h3>
             </div>
           )}
           
