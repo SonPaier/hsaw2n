@@ -507,7 +507,7 @@ export const OptionsStep = ({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Grouped Options by Scope */}
       {groupedOptions.map((group) => (
         <div key={group.scope?.id || 'ungrouped'} className="bg-white rounded-lg shadow-sm border p-5">
