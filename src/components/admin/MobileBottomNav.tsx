@@ -21,6 +21,7 @@ interface MobileBottomNavProps {
   unreadNotificationsCount?: number;
   offersEnabled?: boolean;
   followupEnabled?: boolean;
+  userRole?: 'admin' | 'employee' | null;
 }
 
 const MobileBottomNav = ({
@@ -31,6 +32,7 @@ const MobileBottomNav = ({
   unreadNotificationsCount = 0,
   offersEnabled = true,
   followupEnabled = true,
+  userRole = 'admin',
 }: MobileBottomNavProps) => {
   const { t } = useTranslation();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -55,7 +57,8 @@ const MobileBottomNav = ({
     // Hidden on mobile: products and followup
     // { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
     // ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
-    { id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') },
+    // Hide settings for employees
+    ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
   ];
 
   return (
