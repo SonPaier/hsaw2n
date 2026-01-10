@@ -475,26 +475,72 @@ const AdminCalendar = ({
     }
   }, []);
 
+  // Helper to check if a day is a working day (has working hours configured)
+  const isWorkingDay = (date: Date): boolean => {
+    if (!workingHours) return true; // If no working hours, all days are "open"
+    const dayName = format(date, 'EEEE').toLowerCase();
+    const dayHours = workingHours[dayName];
+    return !!(dayHours && dayHours.open && dayHours.close);
+  };
+
+  // Find next working day starting from date (inclusive), skipping closed days
+  const findNextWorkingDay = (startDate: Date, direction: 'forward' | 'backward' = 'forward', maxDays: number = 14): Date => {
+    let checkDate = startDate;
+    for (let i = 0; i < maxDays; i++) {
+      if (isWorkingDay(checkDate)) {
+        return checkDate;
+      }
+      checkDate = direction === 'forward' ? addDays(checkDate, 1) : subDays(checkDate, 1);
+    }
+    return startDate; // Fallback to original date if no working day found
+  };
+
   // Navigation handlers
   const handlePrev = () => {
     if (viewMode === 'week') {
       setCurrentDate(subWeeks(currentDate, 1));
     } else {
-      // Both day and two-days view move by 1 day
-      setCurrentDate(subDays(currentDate, 1));
+      // For day and two-days view, skip closed days
+      let newDate = subDays(currentDate, 1);
+      newDate = findNextWorkingDay(newDate, 'backward');
+      setCurrentDate(newDate);
     }
   };
   const handleNext = () => {
     if (viewMode === 'week') {
       setCurrentDate(addWeeks(currentDate, 1));
     } else {
-      // Both day and two-days view move by 1 day
-      setCurrentDate(addDays(currentDate, 1));
+      // For day and two-days view, skip closed days
+      let newDate = addDays(currentDate, 1);
+      newDate = findNextWorkingDay(newDate, 'forward');
+      setCurrentDate(newDate);
     }
   };
 
-  // Get two days for two-days view
-  const twoDays = [currentDate, addDays(currentDate, 1)];
+  // Get two days for two-days view - skip closed days
+  const getTwoDays = (): Date[] => {
+    const days: Date[] = [];
+    let checkDate = currentDate;
+    
+    // Always add current day (even if closed, since user navigated here)
+    days.push(checkDate);
+    
+    // Find next working day for second day
+    for (let i = 1; i <= 7 && days.length < 2; i++) {
+      checkDate = addDays(currentDate, i);
+      if (isWorkingDay(checkDate)) {
+        days.push(checkDate);
+      }
+    }
+    
+    // Fallback: if no working day found, just add next day
+    if (days.length < 2) {
+      days.push(addDays(currentDate, 1));
+    }
+    
+    return days;
+  };
+  const twoDays = viewMode === 'two-days' ? getTwoDays() : [currentDate, addDays(currentDate, 1)];
   const handleToday = () => {
     setCurrentDate(new Date());
     setViewMode('day');
@@ -1478,10 +1524,10 @@ const AdminCalendar = ({
                         <div className="px-0.5">
                           {/* Line 1: Time range + action buttons */}
                           <div className="flex items-center justify-between gap-0.5">
-                            {hallMode ? <div className="text-[11px] md:text-sm font-bold truncate">
+                          {hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
-                              </div> : <span className="text-xs md:text-sm font-bold tabular-nums shrink-0 flex items-center gap-1">
-                                {isMultiDay ? `${displayStart.slice(0, 5)}-${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)}-${reservation.end_time.slice(0, 5)}`}
+                              </div> : <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
+                                {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                 {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
                                 {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-orange-600" />}
                               </span>}
@@ -1795,7 +1841,7 @@ const AdminCalendar = ({
                               <div className={cn(!hallMode && "pl-3")}>
                                 <div className="flex items-center justify-between gap-0.5">
                                   {/* In hallMode show time instead of name */}
-                                  {hallMode ? <div className="text-[10px] md:text-xs font-bold truncate">
+                                  {hallMode ? <div className="text-[11px] md:text-[13px] font-bold truncate pb-0.5">
                                       {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                     </div> : <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
                                       <User className="w-2.5 h-2.5 shrink-0" />
@@ -1811,7 +1857,7 @@ const AdminCalendar = ({
                                     {reservation.vehicle_plate}
                                   </div>}
                                 {/* Hide time row in hallMode */}
-                                {!hallMode && <div className="text-[9px] truncate opacity-80 mt-0.5 hidden md:block flex items-center gap-1">
+                                {!hallMode && <div className="text-[10px] truncate opacity-80 mt-0.5 pb-0.5 hidden md:block flex items-center gap-1">
                                     {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                     {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot shrink-0" />}
                                     {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600 shrink-0" />}
@@ -2050,7 +2096,7 @@ const AdminCalendar = ({
                           {/* Drag handle */}
                           <div className={cn(!hallMode && !readOnly && "pl-2")}>
                             <div className="flex items-center justify-between gap-0.5">
-                              {hallMode ? <div className="text-[9px] md:text-[10px] font-bold truncate">
+                              {hallMode ? <div className="text-[10px] md:text-[11px] font-bold truncate pb-0.5">
                                   {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                 </div> : <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] font-semibold truncate">
                                   <User className="w-2.5 h-2.5 shrink-0" />

@@ -353,7 +353,8 @@
     "tabs": {
       "carWash": "Myjnia",
       "offers": "Oferty"
-    }
+    },
+    "discountPercent": "Rabat (%)"
   },
   "services": {
     "title": "Usługi",

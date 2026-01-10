@@ -72,6 +72,7 @@ const CustomerEditDrawer = ({
   const [editNotes, setEditNotes] = useState('');
   const [editCompany, setEditCompany] = useState('');
   const [editNip, setEditNip] = useState('');
+  const [editDiscountPercent, setEditDiscountPercent] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ const CustomerEditDrawer = ({
         setEditNotes('');
         setEditCompany('');
         setEditNip('');
+        setEditDiscountPercent('');
         setVisits([]);
         setActiveTab('info');
       } else if (customer && instanceId) {
@@ -96,6 +98,7 @@ const CustomerEditDrawer = ({
         setEditNotes(customer.notes || '');
         setEditCompany(customer.company || '');
         setEditNip(customer.nip || '');
+        setEditDiscountPercent((customer as any).discount_percent?.toString() || '');
         setActiveTab('info');
       }
     }
@@ -172,6 +175,7 @@ const CustomerEditDrawer = ({
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
             nip: editNip.trim() || null,
+            discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
             source: 'myjnia',
           });
         
@@ -188,6 +192,7 @@ const CustomerEditDrawer = ({
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
             nip: editNip.trim() || null,
+            discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
           })
           .eq('id', customer.id);
         
@@ -216,6 +221,7 @@ const CustomerEditDrawer = ({
       setEditNotes(customer?.notes || '');
       setEditCompany(customer?.company || '');
       setEditNip(customer?.nip || '');
+      setEditDiscountPercent((customer as any)?.discount_percent?.toString() || '');
     }
   };
 
@@ -352,6 +358,21 @@ const CustomerEditDrawer = ({
                     placeholder={t('customers.notesPlaceholder')}
                     rows={3}
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t('customers.discountPercent')}</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editDiscountPercent}
+                      onChange={(e) => setEditDiscountPercent(e.target.value)}
+                      className="w-24"
+                      placeholder="0"
+                    />
+                    <span className="text-muted-foreground">%</span>
+                  </div>
                 </div>
               </div>
             ) : (
