@@ -316,18 +316,19 @@ export const PublicOfferCustomerView = ({
     setSelectedScopeId(scopeId);
     setSelectedVariants((prev) => ({ ...prev, [scopeId]: optionId }));
 
-    // Keep only optional-item selections that belong to this scope or extras scopes
+    // Clear ALL optional items except those from extras scopes
+    // This ensures that when switching between main services (e.g., PPF Full Body -> PPF Full Front),
+    // all previously selected upsells are deselected since upsells are specific to each service
     setSelectedOptionalItems((prev) => {
-      const allowed = new Set<string>();
-      offer.offer_options.forEach((opt) => {
-        if (opt.scope?.is_extras_scope || opt.scope_id === scopeId) {
-          opt.offer_option_items.forEach((item) => allowed.add(item.id));
-        }
-      });
-
       const next: Record<string, boolean> = {};
-      Object.entries(prev).forEach(([itemId, selected]) => {
-        if (selected && allowed.has(itemId)) next[itemId] = true;
+      
+      // Only keep items from extras scopes (global additional options)
+      offer.offer_options.forEach((opt) => {
+        if (opt.scope?.is_extras_scope) {
+          opt.offer_option_items.forEach((item) => {
+            if (prev[item.id]) next[item.id] = true;
+          });
+        }
       });
 
       return next;
