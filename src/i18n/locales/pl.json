@@ -514,6 +514,7 @@
     "parameterKey": "Nazwa parametru",
     "parameterValue": "Wartość",
     "noProducts": "Brak produktów",
+    "noProductsFound": "Nie znaleziono produktów",
     "searchPlaceholder": "Szukaj produktów...",
     "globalProducts": "Produkty globalne",
     "instanceProducts": "Produkty lokalne",
@@ -521,7 +522,33 @@
     "inactive": "Nieaktywny",
     "productAdded": "Produkt dodany",
     "productUpdated": "Produkt zaktualizowany",
-    "productDeleted": "Produkt usunięty"
+    "productDeleted": "Produkt usunięty",
+    "deleteProductError": "Błąd podczas usuwania produktu",
+    "confirmDeleteProductTitle": "Usuń produkt",
+    "confirmDeleteProductDesc": "Czy na pewno chcesz usunąć produkt \"{{name}}\"? Tej operacji nie można cofnąć.",
+    "productUsedInOffers": "Ten produkt jest używany w ofertach i nie może zostać usunięty.",
+    "allCategories": "Wszystkie kategorie",
+    "addProduct": "Dodaj produkt",
+    "library": "Biblioteka produktów",
+    "show": "Pokaż",
+    "perPage": "na stronie",
+    "tabs": {
+      "products": "Produkty",
+      "priceLists": "Cenniki"
+    },
+    "yourPriceLists": "Twoje cenniki",
+    "uploadPriceList": "Wgraj cennik",
+    "noPriceLists": "Brak cenników",
+    "confirmDeletePriceList": "Czy na pewno chcesz usunąć cennik \"{{name}}\"?",
+    "priceListDeleted": "Cennik usunięty",
+    "deletePriceListError": "Błąd podczas usuwania cennika",
+    "downloadError": "Błąd podczas pobierania pliku",
+    "columns": {
+      "name": "Nazwa",
+      "brand": "Marka",
+      "category": "Kategoria",
+      "price": "Cena"
+    }
   },
   "priceLists": {
     "title": "Cenniki",

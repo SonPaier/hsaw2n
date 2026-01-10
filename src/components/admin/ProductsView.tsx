@@ -46,6 +46,7 @@ import { PriceListUploadDialog } from '@/components/products/PriceListUploadDial
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { EditProductDialog } from '@/components/products/EditProductDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 
 interface PriceList {
@@ -93,6 +94,8 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('products');
+  const [deleteProductDialog, setDeleteProductDialog] = useState<{ open: boolean; product: Product | null }>({ open: false, product: null });
+  const [checkingProductUsage, setCheckingProductUsage] = useState(false);
   
   // Read initial pagination from URL
   const initialPage = parseInt(searchParams.get('page') || '1', 10);
@@ -238,10 +241,32 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
     }
   };
 
-  const handleDeleteProduct = async (product: Product) => {
-    if (!confirm(t('products.confirmDeleteProduct', { name: product.name }))) return;
+  const openDeleteProductDialog = (product: Product) => {
+    setDeleteProductDialog({ open: true, product });
+  };
+
+  const handleDeleteProduct = async () => {
+    const product = deleteProductDialog.product;
+    if (!product) return;
+
+    setCheckingProductUsage(true);
 
     try {
+      // Check if product is used in any offers
+      const { count, error: checkError } = await supabase
+        .from('offer_option_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', product.id);
+
+      if (checkError) throw checkError;
+
+      if (count && count > 0) {
+        toast.error(t('products.productUsedInOffers'));
+        setDeleteProductDialog({ open: false, product: null });
+        setCheckingProductUsage(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('products_library')
         .delete()
@@ -251,9 +276,12 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
 
       setProducts(prev => prev.filter(p => p.id !== product.id));
       toast.success(t('products.productDeleted'));
+      setDeleteProductDialog({ open: false, product: null });
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error(t('products.deleteProductError'));
+    } finally {
+      setCheckingProductUsage(false);
     }
   };
 
@@ -296,35 +324,29 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
         {/* Products Tab */}
         <TabsContent value="products">
           <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle>{t('products.library')}</CardTitle>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder={t('products.searchPlaceholder')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 w-full sm:w-64"
-                      />
-                    </div>
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="all">{t('products.allCategories')}</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
+            <CardContent className="pt-6">
+              {/* Filters above table */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('products.searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full sm:w-64"
+                  />
                 </div>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="all">{t('products.allCategories')}</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
-            </CardHeader>
-            <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -385,7 +407,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                                   {t('common.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={() => handleDeleteProduct(product)}
+                                  onClick={() => openDeleteProductDialog(product)}
                                   className="text-destructive focus:text-destructive"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -546,6 +568,19 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
           onProductUpdated={() => { fetchData(); setEditingProduct(null); }}
         />
       )}
+
+      {/* Delete Product Confirmation */}
+      <ConfirmDialog
+        open={deleteProductDialog.open}
+        onOpenChange={(open) => !open && setDeleteProductDialog({ open: false, product: null })}
+        title={t('products.confirmDeleteProductTitle')}
+        description={t('products.confirmDeleteProductDesc', { name: deleteProductDialog.product?.name || '' })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleDeleteProduct}
+        variant="destructive"
+        loading={checkingProductUsage}
+      />
     </div>
   );
 }

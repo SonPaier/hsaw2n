@@ -21,6 +21,7 @@ import {
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MetadataField {
   key: string;
@@ -142,144 +143,151 @@ export function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[1100px] max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-0">
           <DialogTitle>{t('productDialog.addTitle')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic info */}
-          <div className="space-y-2">
-            <Label htmlFor="name">{t('productDialog.name')} *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('productDialog.namePlaceholder')}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="brand">{t('productDialog.brand')}</Label>
-              <Input
-                id="brand"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder={t('productDialog.brandPlaceholder')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="price">{t('productDialog.price')} *</Label>
-              <Input
-                id="price"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0"
-                type="text"
-                inputMode="numeric"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('productDialog.category')}</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('productDialog.selectCategory')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-                <SelectItem value="__custom__">{t('productDialog.newCategory')}</SelectItem>
-              </SelectContent>
-            </Select>
-            {category === '__custom__' && (
-              <Input
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder={t('productDialog.newCategoryPlaceholder')}
-                className="mt-2"
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">{t('productDialog.description')}</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('productDialog.descriptionPlaceholder')}
-              rows={5}
-            />
-          </div>
-
-          {/* Custom metadata */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>{t('productDialog.additionalParams')}</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addMetadataField}
-                className="gap-1"
-              >
-                <Plus className="h-3 w-3" />
-                {t('common.add')}
-              </Button>
-            </div>
-            
-            {metadataFields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t('productDialog.noParams')}
-              </p>
-            ) : (
+        <ScrollArea className="max-h-[calc(90vh-140px)]">
+          <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-4">
+            {/* Line 1: Name + Price */}
+            <div className="grid grid-cols-[1fr_200px] gap-4">
               <div className="space-y-2">
-                {metadataFields.map((field, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <Input
-                      value={field.key}
-                      onChange={(e) => updateMetadataField(index, 'key', e.target.value)}
-                      placeholder={t('productDialog.paramName')}
-                      className="flex-1"
-                    />
-                    <Input
-                      value={field.value}
-                      onChange={(e) => updateMetadataField(index, 'value', e.target.value)}
-                      placeholder={t('productDialog.paramValue')}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeMetadataField(index)}
-                      className="shrink-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                <Label htmlFor="name">{t('productDialog.name')} *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('productDialog.namePlaceholder')}
+                  required
+                />
               </div>
-            )}
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('productDialog.addProduct')}
-            </Button>
-          </DialogFooter>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="price">{t('productDialog.price')} *</Label>
+                <Input
+                  id="price"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0"
+                  type="text"
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
+
+            {/* Line 2: Brand + Category */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="brand">{t('productDialog.brand')}</Label>
+                <Input
+                  id="brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder={t('productDialog.brandPlaceholder')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('productDialog.category')}</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('productDialog.selectCategory')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">{t('productDialog.newCategory')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                {category === '__custom__' && (
+                  <Input
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder={t('productDialog.newCategoryPlaceholder')}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Line 3: Description - large */}
+            <div className="space-y-2">
+              <Label htmlFor="description">{t('productDialog.description')}</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('productDialog.descriptionPlaceholder')}
+                rows={10}
+                className="min-h-[240px]"
+              />
+            </div>
+
+            {/* Line 4: Custom metadata */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{t('productDialog.additionalParams')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addMetadataField}
+                  className="gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  {t('common.add')}
+                </Button>
+              </div>
+              
+              {metadataFields.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('productDialog.noParams')}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {metadataFields.map((field, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Input
+                        value={field.key}
+                        onChange={(e) => updateMetadataField(index, 'key', e.target.value)}
+                        placeholder={t('productDialog.paramName')}
+                        className="flex-1"
+                      />
+                      <Input
+                        value={field.value}
+                        onChange={(e) => updateMetadataField(index, 'value', e.target.value)}
+                        placeholder={t('productDialog.paramValue')}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeMetadataField(index)}
+                        className="shrink-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={handleClose}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('productDialog.addProduct')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
