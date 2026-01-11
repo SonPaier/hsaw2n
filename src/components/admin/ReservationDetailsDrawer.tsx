@@ -80,6 +80,25 @@ interface Reservation {
   created_by_username?: string | null;
 }
 
+export interface HallVisibleFields {
+  customer_name: boolean;
+  customer_phone: boolean;
+  vehicle_plate: boolean;
+  services: boolean;
+  admin_notes: boolean;
+}
+
+export interface HallAllowedActions {
+  add_services: boolean;
+  change_time: boolean;
+  change_station: boolean;
+}
+
+export interface HallConfig {
+  visible_fields: HallVisibleFields;
+  allowed_actions: HallAllowedActions;
+}
+
 interface ReservationDetailsDrawerProps {
   reservation: Reservation | null;
   open: boolean;
@@ -96,6 +115,9 @@ interface ReservationDetailsDrawerProps {
   onApproveChangeRequest?: (reservationId: string) => void;
   onRejectChangeRequest?: (reservationId: string) => void;
   onSendPickupSms?: (reservationId: string) => Promise<void>;
+  // Hall mode props
+  mode?: 'admin' | 'hall';
+  hallConfig?: HallConfig;
 }
 
 const ReservationDetailsDrawer = ({ 
@@ -113,8 +135,12 @@ const ReservationDetailsDrawer = ({
   onRevertToInProgress,
   onApproveChangeRequest,
   onRejectChangeRequest,
-  onSendPickupSms
+  onSendPickupSms,
+  mode = 'admin',
+  hallConfig
 }: ReservationDetailsDrawerProps) => {
+  const isHallMode = mode === 'hall';
+  const visibleFields = hallConfig?.visible_fields;
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [markingNoShow, setMarkingNoShow] = useState(false);
@@ -291,48 +317,55 @@ const ReservationDetailsDrawer = ({
 
           {/* Content area - scrollable */}
           <div className="flex-1 overflow-y-auto py-4 space-y-4">
-            {/* Customer info row */}
-            <div className="flex items-center justify-between">
+            {/* Customer info row - hide in hall mode if not configured */}
+            {(!isHallMode || visibleFields?.customer_name) && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">{t('reservations.customer')}</div>
+                    <div className="font-medium">{customerName}</div>
+                  </div>
+                </div>
+                {/* Contact buttons - hide in hall mode if phone not visible */}
+                {(!isHallMode || visibleFields?.customer_phone) && (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      onClick={handleCall}
+                      title={t('common.call')}
+                    >
+                      <PhoneCall className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      onClick={handleSMS}
+                      title={t('common.sendSms')}
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Phone - hide in hall mode if not configured */}
+            {(!isHallMode || visibleFields?.customer_phone) && (
               <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-muted-foreground" />
+                <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <div className="text-xs text-muted-foreground">{t('reservations.customer')}</div>
-                  <div className="font-medium">{customerName}</div>
+                  <div className="text-xs text-muted-foreground">{t('common.phone')}</div>
+                  <div className="font-medium">{customerPhone}</div>
                 </div>
               </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-accent"
-                  onClick={handleCall}
-                  title={t('common.call')}
-                >
-                  <PhoneCall className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-accent"
-                  onClick={handleSMS}
-                  title={t('common.sendSms')}
-                >
-                  <MessageSquare className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
+            )}
 
-            {/* Phone */}
-            <div className="flex items-center gap-3">
-              <Phone className="w-5 h-5 text-muted-foreground" />
-              <div>
-                <div className="text-xs text-muted-foreground">{t('common.phone')}</div>
-                <div className="font-medium">{customerPhone}</div>
-              </div>
-            </div>
-
-            {/* Reservation code */}
-            {reservation.confirmation_code && (
+            {/* Reservation code - hide in hall mode */}
+            {!isHallMode && reservation.confirmation_code && (
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 flex items-center justify-center text-muted-foreground font-bold text-xs">#</div>
                 <div>
@@ -342,7 +375,7 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Car model */}
+            {/* Car model - vehicle_plate is always visible */}
             {carModel && (
               <div className="flex items-center gap-3">
                 <Car className="w-5 h-5 text-muted-foreground" />
@@ -442,21 +475,23 @@ const ReservationDetailsDrawer = ({
               );
             })()}
 
-            {/* Customer Notes */}
-            {customerNotes && (
+            {/* Customer Notes - hide in hall mode if notes not configured */}
+            {(!isHallMode || visibleFields?.admin_notes) && customerNotes && (
               <div className="border-t border-border/30 pt-3">
                 <div className="text-xs text-muted-foreground mb-1">{t('reservations.customerNotes')}</div>
                 <div className="text-sm whitespace-pre-wrap bg-blue-50 dark:bg-blue-950/30 p-2 rounded">{customerNotes}</div>
               </div>
             )}
 
-            {/* Admin Notes */}
-            <div className="border-t border-border/30 pt-3">
-              <div className="text-xs text-muted-foreground mb-1">{t('reservations.adminNotes')}</div>
-              <div className="text-sm whitespace-pre-wrap">
-                {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
+            {/* Admin Notes - hide in hall mode if notes not configured */}
+            {(!isHallMode || visibleFields?.admin_notes) && (
+              <div className="border-t border-border/30 pt-3">
+                <div className="text-xs text-muted-foreground mb-1">{t('reservations.adminNotes')}</div>
+                <div className="text-sm whitespace-pre-wrap">
+                  {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Change request info - show original reservation reference */}
             {reservation.status === 'change_requested' && reservation.original_reservation && (
@@ -569,8 +604,8 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
-            {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
+            {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released - hide in hall mode */}
+            {!isHallMode && (reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
               <div className="flex gap-2">
                 {onEdit && (
                   <Button 
@@ -640,8 +675,8 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Pending: Edit and Reject/Confirm actions */}
-            {reservation.status === 'pending' && (
+            {/* Pending: Edit and Reject/Confirm actions - hide in hall mode */}
+            {!isHallMode && reservation.status === 'pending' && (
               <div className="flex gap-2">
                 {onEdit && (
                   <Button 
@@ -656,8 +691,8 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Pending: Reject and Confirm */}
-            {reservation.status === 'pending' && (
+            {/* Pending: Reject and Confirm - hide in hall mode */}
+            {!isHallMode && reservation.status === 'pending' && (
               <div className="flex gap-2">
                 {onDelete && (
                   <AlertDialog>
