@@ -362,7 +362,12 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
         </Helmet>
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <Button variant="ghost" onClick={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }} className="gap-2">
+            <Button variant="ghost" onClick={async () => { 
+              await fetchOffers();
+              setShowGenerator(false); 
+              setEditingOfferId(null); 
+              setDuplicatingOfferId(null); 
+            }} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               {t('offers.backToList')}
             </Button>
@@ -374,7 +379,12 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             instanceId={instanceId}
             offerId={duplicatingOfferId ? undefined : editingOfferId || undefined}
             duplicateFromId={duplicatingOfferId || undefined}
-            onClose={() => { setShowGenerator(false); setEditingOfferId(null); setDuplicatingOfferId(null); }}
+            onClose={async () => { 
+              await fetchOffers();
+              setShowGenerator(false); 
+              setEditingOfferId(null); 
+              setDuplicatingOfferId(null); 
+            }}
             onSaved={async () => { 
               await fetchOffers();
               setShowGenerator(false); 
