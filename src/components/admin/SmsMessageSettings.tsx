@@ -213,7 +213,7 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-0">
       {/* SMS Usage */}
       {instanceId && <SmsUsageCard instanceId={instanceId} />}
 
