@@ -522,8 +522,8 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           >
                             <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                           </button>
-                          <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
-                            {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                          <Badge className={cn('text-xs', statusColors[offer.status])}>
+                            {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
                           </Badge>
                           {/* Selected option label for accepted offers */}
                           {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
@@ -562,8 +562,8 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                         </div>
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
-                          <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
-                            {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                          <Badge className={cn('text-xs', statusColors[offer.status])}>
+                            {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
                           </Badge>
                           {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
                             <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
@@ -628,7 +628,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                               {t('offers.changeStatus')}
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
-                              {STATUS_OPTIONS.map((status) => (
+                              {STATUS_OPTIONS.filter(s => s !== 'completed').map((status) => (
                                 <DropdownMenuItem
                                   key={status}
                                   onClick={(e) => { e.stopPropagation(); handleChangeStatus(offer.id, status); }}
@@ -639,6 +639,22 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                                   </Badge>
                                 </DropdownMenuItem>
                               ))}
+                              {/* Completed status opens dialog instead of direct change */}
+                              <DropdownMenuItem
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if (offer.status === 'accepted' || offer.approved_at) {
+                                    setCompleteOfferDialog({ open: true, offer });
+                                  } else {
+                                    handleChangeStatus(offer.id, 'completed');
+                                  }
+                                }}
+                                disabled={offer.status === 'completed'}
+                              >
+                                <Badge className={cn('text-xs mr-2', statusColors['completed'])}>
+                                  {t('offers.statusCompleted')}
+                                </Badge>
+                              </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                           {(offer.status === 'accepted' || offer.approved_at) && offer.status !== 'completed' && (
