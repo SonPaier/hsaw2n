@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -118,6 +118,7 @@ interface OffersViewProps {
 export default function OffersView({ instanceId, instanceData, onNavigateToProducts }: OffersViewProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [showGenerator, setShowGenerator] = useState(false);
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
   const [duplicatingOfferId, setDuplicatingOfferId] = useState<string | null>(null);
@@ -146,6 +147,16 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   
   // Reminders dialog state
   const [remindersDialog, setRemindersDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
+
+  // Reset generator state when clicking sidebar link (same route navigation)
+  useEffect(() => {
+    if (showGenerator) {
+      setShowGenerator(false);
+      setEditingOfferId(null);
+      setDuplicatingOfferId(null);
+      fetchOffers();
+    }
+  }, [location.key]);
 
   const fetchOffers = async () => {
     if (!instanceId) return;
