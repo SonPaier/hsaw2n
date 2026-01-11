@@ -45,29 +45,19 @@ export interface Hall {
 
 interface HallCardProps {
   hall: Hall;
+  instanceSlug: string;
   onEdit: (hall: Hall) => void;
   onDelete: (hallId: string) => void;
 }
 
-const HallCard = ({ hall, onEdit, onDelete }: HallCardProps) => {
+const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Generate full URL for this hall
+  // Generate full URL for this hall - always use production subdomain format
   const getHallUrl = () => {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    const port = window.location.port ? `:${window.location.port}` : '';
-    
-    // On production admin subdomain: [slug].admin.n2wash.com/hall/[id]
-    // On dev: /admin/hall/[id]
-    if (hostname.includes('.admin.') || hostname.endsWith('.admin.n2wash.com')) {
-      return `${protocol}//${hostname}${port}/hall/${hall.id}`;
-    }
-    
-    // Dev/staging
-    return `${protocol}//${hostname}${port}/admin/hall/${hall.id}`;
+    return `https://${instanceSlug}.admin.n2wash.com/hall/${hall.id}`;
   };
 
   const handleCopyUrl = async () => {
