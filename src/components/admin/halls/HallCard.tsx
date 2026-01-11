@@ -163,7 +163,7 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
           </div>
 
           {/* Stations - renamed to "Widoczne stanowiska" */}
-          <div className="mt-3 space-y-1">
+          <div className="mt-6 space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Columns className="h-3.5 w-3.5" />
               <span className="font-medium">{t('halls.visibleStationsLabel')}:</span>
@@ -182,7 +182,7 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
           </div>
 
           {/* Visible fields */}
-          <div className="mt-3 space-y-1">
+          <div className="mt-6 space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Eye className="h-3.5 w-3.5" />
               <span className="font-medium">{t('halls.visibleFieldsLabel')}:</span>
@@ -201,7 +201,7 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
           </div>
 
           {/* Allowed actions - new "Możliwość edycji" section */}
-          <div className="mt-3 space-y-1">
+          <div className="mt-6 space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Settings className="h-3.5 w-3.5" />
               <span className="font-medium">{t('halls.editCapabilitiesLabel')}:</span>
