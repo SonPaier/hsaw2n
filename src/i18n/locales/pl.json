@@ -499,7 +499,10 @@
       "deleteError": "Błąd usuwania oferty",
       "statusChangeError": "Błąd zmiany statusu",
       "emailError": "Błąd wysyłania e-mail",
-      "completionError": "Błąd oznaczania oferty jako zrealizowanej"
+      "completionError": "Błąd oznaczania oferty jako zrealizowanej",
+      "loadRemindersError": "Błąd pobierania przypomnień",
+      "deleteReminderError": "Błąd usuwania przypomnienia",
+      "deleteRemindersError": "Błąd usuwania przypomnień"
     },
     "delete": "Usuń",
     "changeStatus": "Zmień status",
@@ -507,7 +510,21 @@
     "emailSent": "Oferta wysłana na e-mail",
     "noCustomerEmail": "Brak adresu e-mail klienta",
     "show": "Pokaż",
-    "perPage": "na stronie"
+    "perPage": "na stronie",
+    "reminders": "Przypomnienia",
+    "noReminders": "Brak przypomnień dla tej oferty",
+    "reminderDeleted": "Przypomnienie usunięte",
+    "allRemindersDeleted": "Wszystkie przypomnienia usunięte",
+    "deleteAllReminders": "Usuń wszystkie",
+    "confirmDeleteRemindersTitle": "Usuń przypomnienia",
+    "confirmDeleteRemindersDesc": "Czy na pewno chcesz usunąć wszystkie {{count}} przypomnień dla tej oferty? Ta operacja jest nieodwracalna.",
+    "reminderStatus": {
+      "pending": "Oczekujące",
+      "sent": "Wysłane",
+      "completed": "Zrealizowane",
+      "cancelled": "Anulowane"
+    },
+    "selectedOption": "Wybrano"
   },
   "sendEmailDialog": {
     "title": "Wyślij ofertę",

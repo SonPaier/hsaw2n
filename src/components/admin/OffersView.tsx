@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +29,21 @@ import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsD
 import { SendOfferEmailDialog } from './SendOfferEmailDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
+import { OfferRemindersDialog } from '@/components/offers/OfferRemindersDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+interface SelectedState {
+  selectedVariants?: Record<string, string>;
+  selectedUpsells?: Record<string, boolean>;
+  selectedOptionalItems?: Record<string, boolean>;
+  selectedScopeId?: string | null;
+  selectedItemInOption?: Record<string, string>;
+}
 
 interface Offer {
   id: string;
@@ -58,11 +67,13 @@ interface Offer {
   valid_until?: string;
   public_token: string;
   approved_at?: string | null;
+  selected_state?: SelectedState | null;
 }
 
 interface OfferWithOptions extends Offer {
   offer_options?: {
     id: string;
+    name?: string;
     scope_id?: string | null;
     offer_option_items?: {
       custom_name?: string;
@@ -72,6 +83,7 @@ interface OfferWithOptions extends Offer {
     id: string;
     name: string;
   }[];
+  selectedOptionName?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -131,6 +143,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   
   // Mark as completed dialog state
   const [completeOfferDialog, setCompleteOfferDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
+  
+  // Reminders dialog state
+  const [remindersDialog, setRemindersDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
   const fetchOffers = async () => {
     if (!instanceId) return;
@@ -142,6 +157,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           *,
           offer_options (
             id,
+            name,
             scope_id,
             offer_option_items (
               custom_name
@@ -167,13 +183,30 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
         scopesMap = (scopesData || []).reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {});
       }
 
-      // Attach scope names to offers
-      const offersWithScopes = (data || []).map(o => ({
-        ...o,
-        offer_scopes: [...new Set(o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || [])]
-          .map(id => ({ id, name: scopesMap[id as string] || '' }))
-          .filter(s => s.name)
-      }));
+      // Attach scope names and selected option name to offers
+      const offersWithScopes = (data || []).map(o => {
+        // Get selected option name from selected_state
+        let selectedOptionName: string | undefined;
+        const selectedState = o.selected_state as unknown as SelectedState | null;
+        if (selectedState?.selectedVariants && o.offer_options) {
+          // Get first selected variant's option name
+          const selectedOptionIds = Object.values(selectedState.selectedVariants).filter(Boolean);
+          if (selectedOptionIds.length > 0) {
+            const selectedOption = o.offer_options.find((opt: { id: string; name?: string }) => 
+              selectedOptionIds.includes(opt.id)
+            );
+            selectedOptionName = selectedOption?.name;
+          }
+        }
+        
+        return {
+          ...o,
+          offer_scopes: [...new Set(o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || [])]
+            .map(id => ({ id, name: scopesMap[id as string] || '' }))
+            .filter(s => s.name),
+          selectedOptionName
+        };
+      });
 
       setOffers(offersWithScopes as OfferWithOptions[]);
     } catch (error) {
@@ -454,6 +487,12 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
                             {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
                           </Badge>
+                          {/* Selected option label for accepted offers */}
+                          {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
+                            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                              {offer.selectedOptionName}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
@@ -483,11 +522,16 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                             <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                           </button>
                         </div>
-                        {/* Line 2: Status */}
-                        <div>
+                        {/* Line 2: Status and selected option */}
+                        <div className="flex flex-wrap gap-1">
                           <Badge className={cn('text-xs', statusColors[offer.approved_at ? 'accepted' : offer.status])}>
                             {offer.approved_at ? t('offers.statusAccepted') : t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
                           </Badge>
+                          {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
+                            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                              {offer.selectedOptionName}
+                            </Badge>
+                          )}
                         </div>
                         {/* Line 3: Customer and vehicle */}
                         <div className="text-sm text-muted-foreground">
@@ -568,6 +612,17 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                               >
                                 <CheckCheck className="w-4 h-4 mr-2" />
                                 {t('offers.markAsCompleted')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {offer.status === 'completed' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={(e) => { e.stopPropagation(); setRemindersDialog({ open: true, offer }); }}
+                              >
+                                <Bell className="w-4 h-4 mr-2" />
+                                {t('offers.reminders')}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -681,6 +736,17 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             fetchOffers();
             setCompleteOfferDialog({ open: false, offer: null });
           }}
+        />
+      )}
+
+      {/* Reminders Dialog */}
+      {remindersDialog.offer && (
+        <OfferRemindersDialog
+          open={remindersDialog.open}
+          onOpenChange={(open) => !open && setRemindersDialog({ open: false, offer: null })}
+          offerId={remindersDialog.offer.id}
+          offerNumber={remindersDialog.offer.offer_number}
+          customerName={remindersDialog.offer.customer_data?.name}
         />
       )}
     </>
