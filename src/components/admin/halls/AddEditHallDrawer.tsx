@@ -171,7 +171,24 @@ const AddEditHallDrawer = ({
     setLoading(true);
 
     try {
-      const slug = generateSlug(name);
+      let slug = generateSlug(name);
+
+      // Check if slug already exists (including inactive halls) and make it unique if needed
+      const { data: existingHalls } = await supabase
+        .from('halls')
+        .select('id, slug')
+        .eq('instance_id', instanceId)
+        .eq('slug', slug);
+
+      // If slug exists and it's not the current hall being edited, add a unique suffix
+      const slugConflict = existingHalls?.some(h => 
+        h.slug === slug && (!isEditing || h.id !== hall?.id)
+      );
+
+      if (slugConflict) {
+        // Add timestamp suffix to make slug unique
+        slug = `${slug}-${Date.now().toString(36)}`;
+      }
 
       const hallData = {
         instance_id: instanceId,
