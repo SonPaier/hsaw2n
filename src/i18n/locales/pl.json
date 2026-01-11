@@ -117,7 +117,9 @@
     "actions": {
       "add_services": "Dodawanie usług",
       "change_time": "Zmiana terminu",
-      "change_station": "Zmiana stanowiska"
+      "change_station": "Zmiana stanowiska",
+      "edit_reservation": "Edycja rezerwacji",
+      "delete_reservation": "Usuwanie rezerwacji"
     },
     "urlCopied": "Skopiowano link do hali",
     "preview": "Podgląd hali",
@@ -127,7 +129,8 @@
     "updated": "Hala zaktualizowana",
     "created": "Hala utworzona",
     "slugExists": "Hala o takiej nazwie już istnieje",
-    "notFound": "Nie znaleziono hali"
+    "notFound": "Nie znaleziono hali",
+    "editNotAvailable": "Edycja rezerwacji wymaga panelu admina"
   },
   "reservations": {
     "title": "Rezerwacje",

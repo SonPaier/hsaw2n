@@ -39,6 +39,8 @@ export interface Hall {
     add_services: boolean;
     change_time: boolean;
     change_station: boolean;
+    edit_reservation: boolean;
+    delete_reservation: boolean;
   };
   sort_order: number;
   active: boolean;

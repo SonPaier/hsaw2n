@@ -190,6 +190,8 @@ const HallView = () => {
           add_services: false,
           change_time: false,
           change_station: false,
+          edit_reservation: false,
+          delete_reservation: false,
         },
         sort_order: hallData.sort_order || 0,
         active: hallData.active,
@@ -437,6 +439,19 @@ const HallView = () => {
     ));
   };
 
+  const handleDeleteReservation = async (reservationId: string) => {
+    await supabase.from('reservations').delete().eq('id', reservationId);
+    setReservations(prev => prev.filter(r => r.id !== reservationId));
+    setSelectedReservation(null);
+    toast.success(t('reservations.deleted'));
+  };
+
+  const handleEditReservation = (reservation: Reservation) => {
+    // For now, just close the drawer - full edit would require AddReservationDialogV2
+    toast.info(t('halls.editNotAvailable'));
+    setSelectedReservation(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -483,6 +498,8 @@ const HallView = () => {
         onClose={() => setSelectedReservation(null)}
         mode="hall"
         hallConfig={hallConfig}
+        onEdit={hallConfig?.allowed_actions.edit_reservation ? handleEditReservation : undefined}
+        onDelete={hallConfig?.allowed_actions.delete_reservation ? (id) => handleDeleteReservation(id) : undefined}
         onStartWork={async (id) => {
           await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
           handleStatusChange(id, 'in_progress');

@@ -74,6 +74,8 @@ const AddEditHallDrawer = ({
     add_services: false,
     change_time: false,
     change_station: false,
+    edit_reservation: false,
+    delete_reservation: false,
   });
 
   const isEditing = !!hall;
@@ -116,6 +118,8 @@ const AddEditHallDrawer = ({
         add_services: false,
         change_time: false,
         change_station: false,
+        edit_reservation: false,
+        delete_reservation: false,
       });
     } else {
       setName('');
@@ -131,6 +135,8 @@ const AddEditHallDrawer = ({
         add_services: false,
         change_time: false,
         change_station: false,
+        edit_reservation: false,
+        delete_reservation: false,
       });
     }
   }, [hall, open]);

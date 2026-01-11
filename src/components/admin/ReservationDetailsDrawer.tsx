@@ -92,6 +92,8 @@ export interface HallAllowedActions {
   add_services: boolean;
   change_time: boolean;
   change_station: boolean;
+  edit_reservation: boolean;
+  delete_reservation: boolean;
 }
 
 export interface HallConfig {
@@ -141,6 +143,14 @@ const ReservationDetailsDrawer = ({
 }: ReservationDetailsDrawerProps) => {
   const isHallMode = mode === 'hall';
   const visibleFields = hallConfig?.visible_fields;
+  const allowedActions = hallConfig?.allowed_actions;
+  
+  // In hall mode, check allowed_actions for edit/delete visibility
+  const canEditInHallMode = isHallMode && allowedActions?.edit_reservation;
+  const canDeleteInHallMode = isHallMode && allowedActions?.delete_reservation;
+  const showEdit = !isHallMode || canEditInHallMode;
+  const showDelete = !isHallMode || canDeleteInHallMode;
+  
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const [markingNoShow, setMarkingNoShow] = useState(false);
@@ -604,10 +614,10 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released - hide in hall mode */}
-            {!isHallMode && (reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (
+            {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
+            {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (showEdit || showDelete) && (
               <div className="flex gap-2">
-                {onEdit && (
+                {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
                     className="flex-1 gap-2"
@@ -619,7 +629,7 @@ const ReservationDetailsDrawer = ({
                 )}
                 
                 {/* Delete only for confirmed */}
-                {reservation.status === 'confirmed' && onDelete && (
+                {showDelete && reservation.status === 'confirmed' && onDelete && (
                   <>
                     <Button 
                       variant="outline" 
@@ -675,10 +685,10 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Pending: Edit and Reject/Confirm actions - hide in hall mode */}
-            {!isHallMode && reservation.status === 'pending' && (
+            {/* Pending: Edit and Reject/Confirm actions */}
+            {reservation.status === 'pending' && showEdit && (
               <div className="flex gap-2">
-                {onEdit && (
+                {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
                     className="flex-1 gap-2"
@@ -691,10 +701,10 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Pending: Reject and Confirm - hide in hall mode */}
-            {!isHallMode && reservation.status === 'pending' && (
+            {/* Pending: Reject and Confirm */}
+            {reservation.status === 'pending' && (
               <div className="flex gap-2">
-                {onDelete && (
+                {showDelete && onDelete && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
