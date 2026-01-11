@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.send-offer-reminders]
 verify_jwt = false
+
+[functions.seed-e2e-reset]
+verify_jwt = false
+
+[functions.seed-e2e-scenario]
+verify_jwt = false
