@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Check, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Copy, Check, Pencil, Trash2, MoreVertical, Eye, Columns } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,14 +44,20 @@ export interface Hall {
   active: boolean;
 }
 
+interface Station {
+  id: string;
+  name: string;
+}
+
 interface HallCardProps {
   hall: Hall;
   instanceSlug: string;
+  stations: Station[];
   onEdit: (hall: Hall) => void;
   onDelete: (hallId: string) => void;
 }
 
-const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
+const HallCard = ({ hall, instanceSlug, stations, onEdit, onDelete }: HallCardProps) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -76,6 +83,16 @@ const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
     setDeleteDialogOpen(false);
   };
 
+  // Get visible field names
+  const visibleFieldNames = Object.entries(hall.visible_fields)
+    .filter(([_, visible]) => visible)
+    .map(([key]) => t(`halls.fields.${key}`));
+
+  // Get station names for this hall
+  const hallStationNames = stations
+    .filter(s => hall.station_ids.includes(s.id))
+    .map(s => s.name);
+
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
@@ -84,7 +101,7 @@ const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-lg truncate">{hall.name}</h3>
               <div className="flex items-center gap-2 mt-2">
-                <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[250px] sm:max-w-none">
+                <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[200px]">
                   {getHallUrl()}
                 </code>
                 <Button
@@ -100,8 +117,39 @@ const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
                   )}
                 </Button>
               </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                {hall.station_ids.length} {t('halls.stationsCount')}
+
+              {/* Stations */}
+              <div className="mt-3 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Columns className="h-3.5 w-3.5" />
+                  <span className="font-medium">{t('halls.stationsLabel')}:</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {hallStationNames.length > 0 ? (
+                    hallStationNames.map((name, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{t('halls.noStationsSelected')}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Visible fields */}
+              <div className="mt-3 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Eye className="h-3.5 w-3.5" />
+                  <span className="font-medium">{t('halls.visibleFieldsLabel')}:</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {visibleFieldNames.map((name, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -111,7 +159,7 @@ const HallCard = ({ hall, instanceSlug, onEdit, onDelete }: HallCardProps) => {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-white">
                 <DropdownMenuItem onClick={() => onEdit(hall)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   {t('common.edit')}
