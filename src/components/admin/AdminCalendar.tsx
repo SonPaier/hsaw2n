@@ -61,6 +61,25 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
+export interface HallVisibleFields {
+  customer_name: boolean;
+  customer_phone: boolean;
+  vehicle_plate: boolean;
+  services: boolean;
+  admin_notes: boolean;
+}
+
+export interface HallAllowedActions {
+  add_services: boolean;
+  change_time: boolean;
+  change_station: boolean;
+}
+
+export interface HallConfig {
+  visible_fields: HallVisibleFields;
+  allowed_actions: HallAllowedActions;
+}
+
 interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
@@ -85,6 +104,9 @@ interface AdminCalendarProps {
   showStationFilter?: boolean;
   showWeekView?: boolean;
   hallMode?: boolean; // Simplified view for hall workers
+  hallConfig?: HallConfig; // Configuration for hall view (visible fields, allowed actions)
+  hallDataVisible?: boolean; // Toggle for data visibility in hall mode
+  onToggleHallDataVisibility?: () => void; // Callback when eye icon is clicked
   instanceId?: string; // Instance ID for yard vehicles
   yardVehicleCount?: number; // Count of vehicles on yard for badge
   selectedReservationId?: string | null; // ID of currently selected reservation (for drawer highlight)
@@ -189,6 +211,9 @@ const AdminCalendar = ({
   showStationFilter = true,
   showWeekView = true,
   hallMode = false,
+  hallConfig,
+  hallDataVisible = true,
+  onToggleHallDataVisibility,
   instanceId,
   yardVehicleCount = 0,
   selectedReservationId,
@@ -1202,6 +1227,19 @@ const AdminCalendar = ({
                 </PopoverContent>
               </Popover>}
             
+            {/* Eye toggle for hall mode - show/hide sensitive data */}
+            {hallMode && onToggleHallDataVisibility && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-9 w-9" 
+                onClick={onToggleHallDataVisibility}
+                title={hallDataVisible ? 'Ukryj dane klienta' : 'Pokaż dane klienta'}
+              >
+                {hallDataVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </Button>
+            )}
+            
             {/* Plac button */}
             <Button variant="outline" size="sm" onClick={() => setPlacDrawerOpen(true)} className="gap-1 relative">
               <ParkingSquare className="w-4 h-4" />
@@ -1524,8 +1562,9 @@ const AdminCalendar = ({
                         <div className="px-0.5">
                           {/* Line 1: Time range + action buttons */}
                           <div className="flex items-center justify-between gap-0.5">
-                          {hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5">
+                          {hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5 flex items-center gap-1">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
+                                {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
                               </div> : <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                 {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
@@ -1544,15 +1583,31 @@ const AdminCalendar = ({
                               </div>}
                           </div>
                           {/* Line 2: Vehicle plate + customer name with ellipsis */}
-                          {!hallMode && <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
+                          {hallMode ? (
+                            // Hall mode: show based on hallConfig and hallDataVisible
+                            <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
+                              {/* Vehicle plate is always visible */}
+                              <span className="font-semibold truncate max-w-[50%]">
+                                {reservation.vehicle_plate}
+                              </span>
+                              {/* Customer name based on config and visibility toggle */}
+                              {hallConfig?.visible_fields?.customer_name && hallDataVisible && (
+                                <span className="truncate min-w-0 opacity-80">
+                                  {reservation.customer_name}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
                               <span className="font-semibold truncate max-w-[50%]">
                                 {reservation.vehicle_plate}
                               </span>
                               <span className="truncate min-w-0 opacity-80">
                                 {reservation.customer_name}
                               </span>
-                            </div>}
-                          {/* Line 3: Service chips */}
+                            </div>
+                          )}
+                          {/* Line 3: Service chips - always visible in hall mode */}
                           {reservation.services_data && reservation.services_data.length > 0 ? <div className="flex flex-wrap gap-0.5 mt-0.5">
                               {reservation.services_data.map((svc, idx) => <span key={idx} className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                   {svc.shortcut || svc.name}
@@ -1562,11 +1617,15 @@ const AdminCalendar = ({
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
                             </div>}
-                          {/* Line 4: Notes (only if duration > 30 minutes) */}
+                          {/* Line 4: Notes (only if duration > 30 minutes and visible) */}
                           {(() => {
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
                             const notesToShow = reservation.admin_notes || reservation.customer_notes;
-                            if (durationMinutes > 30 && notesToShow) {
+                            // In hall mode, respect hallConfig and hallDataVisible
+                            const showNotes = hallMode 
+                              ? (hallConfig?.visible_fields?.admin_notes && hallDataVisible && durationMinutes > 30 && notesToShow)
+                              : (durationMinutes > 30 && notesToShow);
+                            if (showNotes) {
                               return <div 
                                 className="text-[13px] opacity-70 mt-0.5 break-words overflow-hidden"
                                 style={{ 

@@ -65,6 +65,7 @@ const HallView = () => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
+  const [hallDataVisible, setHallDataVisible] = useState(true); // Toggle for sensitive data visibility
 
   // Prevent navigation away - capture back button and history manipulation
   useEffect(() => {
@@ -418,6 +419,12 @@ const HallView = () => {
     );
   }
 
+  // Prepare hallConfig for passing to calendar and drawer
+  const hallConfig = hall ? {
+    visible_fields: hall.visible_fields,
+    allowed_actions: hall.allowed_actions,
+  } : undefined;
+
   return (
     <>
       <Helmet>
@@ -436,6 +443,9 @@ const HallView = () => {
           showStationFilter={false}
           showWeekView={false}
           hallMode={true}
+          hallConfig={hallConfig}
+          hallDataVisible={hallDataVisible}
+          onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
           instanceId={instanceId || undefined}
           yardVehicleCount={yardVehicleCount}
         />
@@ -445,6 +455,28 @@ const HallView = () => {
         reservation={selectedReservation}
         open={!!selectedReservation}
         onClose={() => setSelectedReservation(null)}
+        mode="hall"
+        hallConfig={hallConfig}
+        onStartWork={async (id) => {
+          await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
+          handleStatusChange(id, 'in_progress');
+        }}
+        onEndWork={async (id) => {
+          await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+          handleStatusChange(id, 'completed');
+        }}
+        onRelease={async (id) => {
+          await supabase.from('reservations').update({ status: 'released', released_at: new Date().toISOString() }).eq('id', id);
+          handleStatusChange(id, 'released');
+        }}
+        onRevertToConfirmed={async (id) => {
+          await supabase.from('reservations').update({ status: 'confirmed', started_at: null }).eq('id', id);
+          handleStatusChange(id, 'confirmed');
+        }}
+        onRevertToInProgress={async (id) => {
+          await supabase.from('reservations').update({ status: 'in_progress', completed_at: null }).eq('id', id);
+          handleStatusChange(id, 'in_progress');
+        }}
       />
     </>
   );
