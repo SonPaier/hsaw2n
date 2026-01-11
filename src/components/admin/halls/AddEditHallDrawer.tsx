@@ -222,8 +222,8 @@ const AddEditHallDrawer = ({
         toast.success(t('halls.created'));
       }
 
-      onSaved();
       onOpenChange(false);
+      onSaved();
     } catch (error: any) {
       console.error('Error saving hall:', error);
       if (error.code === '23505') {
