@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Check, Pencil, Trash2, MoreVertical, Eye, Columns, ExternalLink } from 'lucide-react';
+import { Copy, Check, Pencil, Trash2, MoreVertical, Eye, Columns, ExternalLink, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +100,11 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
     .filter(([_, visible]) => visible)
     .map(([key]) => t(`halls.fields.${key}`));
 
+  // Get allowed action names (for edit section)
+  const allowedActionNames = Object.entries(hall.allowed_actions)
+    .filter(([_, allowed]) => allowed)
+    .map(([key]) => t(`halls.actions.${key}`));
+
   // Get station names for this hall
   const hallStationNames = stations
     .filter(s => hall.station_ids.includes(s.id))
@@ -107,78 +112,13 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow flex flex-col">
+        <CardContent className="p-4 flex flex-col flex-1">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg truncate">{hall.name}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[200px]">
-                  {getHallUrl()}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleCopyUrl}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              {/* Stations */}
-              <div className="mt-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Columns className="h-3.5 w-3.5" />
-                  <span className="font-medium">{t('halls.stationsLabel')}:</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {hallStationNames.length > 0 ? (
-                    hallStationNames.map((name, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {name}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">{t('halls.noStationsSelected')}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Visible fields */}
-              <div className="mt-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Eye className="h-3.5 w-3.5" />
-                  <span className="font-medium">{t('halls.visibleFieldsLabel')}:</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {visibleFieldNames.map((name, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
-                      {name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preview button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4 w-full"
-                onClick={handlePreview}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {t('halls.preview')}
-              </Button>
-            </div>
-
+            <h3 className="font-semibold text-lg truncate flex-1">{hall.name}</h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -197,6 +137,96 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* URL field - white background, full width */}
+          <div className="flex items-center gap-2 mt-3 bg-white border rounded-md px-3 py-2">
+            <code className="text-xs text-muted-foreground truncate flex-1">
+              {getHallUrl()}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              onClick={handleCopyUrl}
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          </div>
+
+          {/* Stations - renamed to "Widoczne stanowiska" */}
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Columns className="h-3.5 w-3.5" />
+              <span className="font-medium">{t('halls.visibleStationsLabel')}:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {hallStationNames.length > 0 ? (
+                hallStationNames.map((name, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-xs">
+                    {name}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">{t('halls.noStationsSelected')}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Visible fields */}
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Eye className="h-3.5 w-3.5" />
+              <span className="font-medium">{t('halls.visibleFieldsLabel')}:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {visibleFieldNames.length > 0 ? (
+                visibleFieldNames.map((name, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {name}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">{t('halls.noFieldsSelected')}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Allowed actions - new "Możliwość edycji" section */}
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Settings className="h-3.5 w-3.5" />
+              <span className="font-medium">{t('halls.editCapabilitiesLabel')}:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {allowedActionNames.length > 0 ? (
+                allowedActionNames.map((name, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {name}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">{t('halls.noActionsSelected')}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Spacer to push button to bottom */}
+          <div className="flex-1" />
+
+          {/* Preview button - pinned to bottom, full width */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 w-full"
+            onClick={handlePreview}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            {t('halls.preview')}
+          </Button>
         </CardContent>
       </Card>
 
