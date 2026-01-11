@@ -51,25 +51,26 @@ interface Station {
 
 interface HallCardProps {
   hall: Hall;
+  hallNumber: number; // 1-indexed order number for URL
   instanceSlug: string;
   stations: Station[];
   onEdit: (hall: Hall) => void;
   onDelete: (hallId: string) => void;
 }
 
-const HallCard = ({ hall, instanceSlug, stations, onEdit, onDelete }: HallCardProps) => {
+const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }: HallCardProps) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Generate full URL for this hall - always use production subdomain format
+  // Generate full URL for this hall - use simple number for user-friendly URLs
   const getHallUrl = () => {
-    return `https://${instanceSlug}.admin.n2wash.com/hall/${hall.id}`;
+    return `https://${instanceSlug}.admin.n2wash.com/hall/${hallNumber}`;
   };
 
   // Get dev/preview URL for this hall
   const getDevHallUrl = () => {
-    return `/admin/hall/${hall.id}`;
+    return `/admin/hall/${hallNumber}`;
   };
 
   const handleCopyUrl = async () => {

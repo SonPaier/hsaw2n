@@ -169,10 +169,11 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {halls.map((hall) => (
+          {halls.map((hall, index) => (
             <HallCard
               key={hall.id}
               hall={hall}
+              hallNumber={index + 1}
               instanceSlug={instanceSlug}
               stations={stations}
               onEdit={handleEdit}

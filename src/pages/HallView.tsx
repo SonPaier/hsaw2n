@@ -128,56 +128,82 @@ const HallView = () => {
     fetchUserInstanceId();
   }, [user]);
 
-  // Fetch hall config
+  // Fetch hall config - supports both UUID and numeric order (1, 2, 3...)
   useEffect(() => {
     const fetchHall = async () => {
-      if (!hallId) {
-        toast.error(t('halls.notFound'));
-        navigate(-1);
+      if (!hallId || !instanceId) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('halls')
-        .select('*')
-        .eq('id', hallId)
-        .eq('active', true)
-        .maybeSingle();
+      let hallData = null;
 
-      if (error || !data) {
+      // Check if hallId is a number (order-based lookup)
+      const hallNumber = parseInt(hallId, 10);
+      const isNumeric = !isNaN(hallNumber) && hallNumber > 0;
+
+      if (isNumeric) {
+        // Fetch halls ordered by sort_order and get the Nth one
+        const { data: hallsData, error } = await supabase
+          .from('halls')
+          .select('*')
+          .eq('instance_id', instanceId)
+          .eq('active', true)
+          .order('sort_order', { ascending: true });
+
+        if (!error && hallsData && hallsData.length >= hallNumber) {
+          hallData = hallsData[hallNumber - 1]; // 1-indexed
+        }
+      } else {
+        // UUID-based lookup
+        const { data, error } = await supabase
+          .from('halls')
+          .select('*')
+          .eq('id', hallId)
+          .eq('active', true)
+          .maybeSingle();
+
+        if (!error) {
+          hallData = data;
+        }
+      }
+
+      if (!hallData) {
         toast.error(t('halls.notFound'));
         navigate(-1);
         return;
       }
 
       const mappedHall: Hall = {
-        id: data.id,
-        instance_id: data.instance_id,
-        name: data.name,
-        slug: data.slug,
-        station_ids: data.station_ids || [],
-        visible_fields: (data.visible_fields as Hall['visible_fields']) || {
+        id: hallData.id,
+        instance_id: hallData.instance_id,
+        name: hallData.name,
+        slug: hallData.slug,
+        station_ids: hallData.station_ids || [],
+        visible_fields: (hallData.visible_fields as Hall['visible_fields']) || {
           customer_name: true,
           customer_phone: false,
           vehicle_plate: true,
           services: true,
           admin_notes: false,
         },
-        allowed_actions: (data.allowed_actions as Hall['allowed_actions']) || {
+        allowed_actions: (hallData.allowed_actions as Hall['allowed_actions']) || {
           add_services: false,
           change_time: false,
           change_station: false,
         },
-        sort_order: data.sort_order || 0,
-        active: data.active,
+        sort_order: hallData.sort_order || 0,
+        active: hallData.active,
       };
 
       setHall(mappedHall);
-      setInstanceId(data.instance_id);
+      // Only set instanceId if it wasn't already set (from user roles)
+      if (!instanceId) {
+        setInstanceId(hallData.instance_id);
+      }
     };
 
     fetchHall();
-  }, [hallId, navigate, t]);
+  }, [hallId, instanceId, navigate, t]);
 
   // Fetch data
   useEffect(() => {
