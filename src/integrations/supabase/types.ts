@@ -874,6 +874,101 @@ export type Database = {
           },
         ]
       }
+      offer_reminders: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          instance_id: string
+          is_paid: boolean
+          months_after: number
+          offer_id: string
+          product_id: string | null
+          scheduled_date: string
+          sent_at: string | null
+          service_name: string
+          service_type: string
+          sms_template: string
+          status: string
+          vehicle_info: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          instance_id: string
+          is_paid?: boolean
+          months_after: number
+          offer_id: string
+          product_id?: string | null
+          scheduled_date: string
+          sent_at?: string | null
+          service_name: string
+          service_type: string
+          sms_template: string
+          status?: string
+          vehicle_info?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          instance_id?: string
+          is_paid?: boolean
+          months_after?: number
+          offer_id?: string
+          product_id?: string | null
+          scheduled_date?: string
+          sent_at?: string | null
+          service_name?: string
+          service_type?: string
+          sms_template?: string
+          status?: string
+          vehicle_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_reminders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_reminders_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_reminders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_reminders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_library"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_scope_extra_products: {
         Row: {
           created_at: string
@@ -1270,6 +1365,8 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           customer_data: Json
@@ -1298,6 +1395,8 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_data?: Json
@@ -1326,6 +1425,8 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           customer_data?: Json
@@ -1435,6 +1536,7 @@ export type Database = {
           instance_id: string | null
           metadata: Json | null
           name: string
+          reminder_template_id: string | null
           sort_order: number | null
           source: string
           unit: string
@@ -1451,6 +1553,7 @@ export type Database = {
           instance_id?: string | null
           metadata?: Json | null
           name: string
+          reminder_template_id?: string | null
           sort_order?: number | null
           source?: string
           unit?: string
@@ -1467,6 +1570,7 @@ export type Database = {
           instance_id?: string | null
           metadata?: Json | null
           name?: string
+          reminder_template_id?: string | null
           sort_order?: number | null
           source?: string
           unit?: string
@@ -1478,6 +1582,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_library_reminder_template_id_fkey"
+            columns: ["reminder_template_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1557,6 +1668,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "push_subscriptions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          instance_id: string
+          items: Json
+          name: string
+          sms_template: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          instance_id: string
+          items?: Json
+          name: string
+          sms_template?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          instance_id?: string
+          items?: Json
+          name?: string
+          sms_template?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_templates_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
@@ -2163,6 +2315,10 @@ export type Database = {
         Returns: boolean
       }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
+      create_offer_reminders: {
+        Args: { p_completed_at: string; p_offer_id: string }
+        Returns: number
+      }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }
       generate_short_token: { Args: never; Returns: string }
       get_availability_blocks: {

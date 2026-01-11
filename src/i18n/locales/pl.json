@@ -1457,7 +1457,9 @@
     "productAdded": "Produkt został dodany",
     "productUpdated": "Produkt został zaktualizowany",
     "addError": "Nie udało się dodać produktu",
-    "updateError": "Nie udało się zaktualizować produktu"
+    "updateError": "Nie udało się zaktualizować produktu",
+    "reminderTemplate": "Szablon przypomnień",
+    "reminderTemplateHelp": "Po zrealizowaniu oferty z tym produktem system automatycznie utworzy przypomnienia SMS"
   },
   "priceListUpload": {
     "title": "Wgraj cennik",
@@ -1798,5 +1800,58 @@
     "reservationCancelled": "Rezerwacja anulowana",
     "reservationModified": "Rezerwacja zmieniona",
     "enableError": "Błąd włączania powiadomień"
+  },
+  "reminderTemplates": {
+    "title": "Szablony przypomnień",
+    "add": "Dodaj szablon",
+    "edit": "Edytuj szablon",
+    "create": "Utwórz szablon",
+    "name": "Nazwa szablonu",
+    "namePlaceholder": "np. Ceramika 24 miesiące",
+    "description": "Opis",
+    "descriptionPlaceholder": "Opcjonalny opis szablonu...",
+    "smsTemplate": "Szablon SMS",
+    "smsTemplateHelp": "Zmienne: {short_name}, {service_type}, {vehicle_info}, {paid_info}, {reservation_phone}",
+    "schedule": "Harmonogram przypomnień",
+    "addReminder": "Dodaj przypomnienie",
+    "reminder": "Przypomnienie",
+    "monthsAfter": "Miesięcy po",
+    "serviceType": "Typ serwisu",
+    "isPaid": "Płatność",
+    "paid": "Płatny",
+    "free": "Bezpłatny",
+    "remindersCount": "przypomnień",
+    "empty": "Brak szablonów przypomnień",
+    "noItemsYet": "Dodaj co najmniej jedno przypomnienie",
+    "noItems": "Dodaj co najmniej jedno przypomnienie do szablonu",
+    "nameRequired": "Nazwa szablonu jest wymagana",
+    "smsTemplateRequired": "Szablon SMS jest wymagany",
+    "created": "Szablon utworzony",
+    "updated": "Szablon zaktualizowany",
+    "deleted": "Szablon usunięty",
+    "fetchError": "Błąd pobierania szablonów",
+    "createError": "Błąd tworzenia szablonu",
+    "updateError": "Błąd aktualizacji szablonu",
+    "deleteError": "Błąd usuwania szablonu",
+    "templateInUse": "Szablon jest używany w produktach i nie może zostać usunięty",
+    "deleteConfirmTitle": "Usuń szablon",
+    "deleteConfirmDesc": "Czy na pewno chcesz usunąć szablon \"{{name}}\"?",
+    "serviceTypes": {
+      "serwis": "Serwis",
+      "kontrola": "Kontrola",
+      "serwis_gwarancyjny": "Serwis gwarancyjny"
+    },
+    "noTemplate": "Brak"
+  },
+  "offerReminders": {
+    "markAsCompleted": "Oznacz jako zrealizowane",
+    "completionDate": "Data realizacji",
+    "confirmTitle": "Zrealizować ofertę?",
+    "confirmDesc": "Po oznaczeniu oferty jako zrealizowanej zostaną utworzone przypomnienia SMS dla produktów z przypisanymi szablonami.",
+    "remindersToCreate": "Przypomnienia do utworzenia",
+    "noReminders": "Brak przypomnień do utworzenia",
+    "completed": "Oferta oznaczona jako zrealizowana",
+    "completedWithReminders": "Oferta zrealizowana. Utworzono {{count}} przypomnień.",
+    "completeError": "Błąd podczas realizacji oferty"
   }
 }

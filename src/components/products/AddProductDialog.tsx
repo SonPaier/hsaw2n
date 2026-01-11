@@ -39,6 +39,12 @@ interface Product {
   metadata: Record<string, unknown> | null;
   source: string;
   instance_id: string | null;
+  reminder_template_id?: string | null;
+}
+
+interface ReminderTemplateOption {
+  id: string;
+  name: string;
 }
 
 interface AddProductDialogProps {
@@ -67,8 +73,25 @@ export function AddProductDialog({
   const [customCategory, setCustomCategory] = useState('');
   const [price, setPrice] = useState('');
   const [metadataFields, setMetadataFields] = useState<MetadataField[]>([]);
+  const [reminderTemplateId, setReminderTemplateId] = useState<string>('__none__');
+  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
 
   const isEditMode = !!product;
+
+  // Fetch reminder templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data } = await supabase
+        .from('reminder_templates')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .order('name');
+      setReminderTemplates(data || []);
+    };
+    if (open && instanceId) {
+      fetchTemplates();
+    }
+  }, [open, instanceId]);
 
   const resetForm = () => {
     setName('');
@@ -78,6 +101,7 @@ export function AddProductDialog({
     setCustomCategory('');
     setPrice('');
     setMetadataFields([]);
+    setReminderTemplateId('__none__');
   };
 
   // Initialize form with product data in edit mode
@@ -87,6 +111,7 @@ export function AddProductDialog({
       setBrand(product.brand || '');
       setDescription(product.description || '');
       setPrice(product.default_price?.toString() || '0');
+      setReminderTemplateId(product.reminder_template_id || '__none__');
       
       // Handle category
       if (product.category) {
@@ -177,6 +202,7 @@ export function AddProductDialog({
       });
 
       const finalCategory = category === '__custom__' ? customCategory.trim() : (category === '__none__' ? null : category);
+      const finalTemplateId = reminderTemplateId === '__none__' ? null : reminderTemplateId;
 
       if (isEditMode && product) {
         // Update existing product
@@ -190,6 +216,7 @@ export function AddProductDialog({
             unit: 'szt',
             default_price: priceValue,
             metadata: Object.keys(metadata).length > 0 ? metadata : null,
+            reminder_template_id: finalTemplateId,
           })
           .eq('id', product.id);
 
@@ -210,6 +237,7 @@ export function AddProductDialog({
             metadata: metadata,
             source: 'instance',
             active: true,
+            reminder_template_id: finalTemplateId,
           });
 
         if (error) throw error;
@@ -327,7 +355,28 @@ export function AddProductDialog({
                   <Plus className="h-3 w-3" />
                   {t('common.add')}
                 </Button>
+            </div>
+
+            {/* Reminder Template */}
+            {reminderTemplates.length > 0 && (
+              <div className="space-y-2">
+                <Label>{t('productDialog.reminderTemplate')}</Label>
+                <Select value={reminderTemplateId} onValueChange={setReminderTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('reminderTemplates.noTemplate')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">{t('reminderTemplates.noTemplate')}</SelectItem>
+                    {reminderTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('productDialog.reminderTemplateHelp')}
+                </p>
               </div>
+            )}
               
               {metadataFields.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
