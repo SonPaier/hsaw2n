@@ -33,6 +33,14 @@ interface ReminderPreview {
   }[];
 }
 
+interface SelectedState {
+  selectedVariants: Record<string, string>;
+  selectedUpsells: Record<string, boolean>;
+  selectedOptionalItems: Record<string, boolean>;
+  selectedScopeId?: string | null;
+  selectedItemInOption?: Record<string, string>;
+}
+
 interface MarkOfferCompletedDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,7 +71,33 @@ export function MarkOfferCompletedDialog({
   const loadReminderPreviews = async () => {
     setLoadingPreviews(true);
     try {
-      // Fetch selected options with products that have reminder templates
+      // First fetch the offer to get selected_state
+      const { data: offerData, error: offerError } = await supabase
+        .from('offers')
+        .select('selected_state')
+        .eq('id', offerId)
+        .single();
+
+      if (offerError) throw offerError;
+
+      const selectedState = offerData?.selected_state as unknown as SelectedState | null;
+      
+      // Collect IDs of selected options from selected_state
+      const selectedOptionIds = new Set<string>();
+      
+      if (selectedState?.selectedVariants) {
+        Object.values(selectedState.selectedVariants).forEach(optionId => {
+          if (optionId) selectedOptionIds.add(optionId);
+        });
+      }
+      
+      if (selectedState?.selectedUpsells) {
+        Object.entries(selectedState.selectedUpsells).forEach(([optionId, isSelected]) => {
+          if (isSelected) selectedOptionIds.add(optionId);
+        });
+      }
+
+      // Fetch options that were selected by the customer
       const { data: options, error } = await supabase
         .from('offer_options')
         .select(`
@@ -85,7 +119,7 @@ export function MarkOfferCompletedDialog({
           )
         `)
         .eq('offer_id', offerId)
-        .eq('is_selected', true);
+        .in('id', Array.from(selectedOptionIds).length > 0 ? Array.from(selectedOptionIds) : ['00000000-0000-0000-0000-000000000000']);
 
       if (error) throw error;
 
@@ -93,6 +127,14 @@ export function MarkOfferCompletedDialog({
 
       for (const option of options || []) {
         for (const item of option.offer_option_items || []) {
+          // For options with item selection, check if this item was selected
+          if (selectedState?.selectedItemInOption) {
+            const selectedItemId = selectedState.selectedItemInOption[option.id];
+            if (selectedItemId && selectedItemId !== item.id) {
+              continue; // Skip items not selected within the option
+            }
+          }
+          
           const product = item.products_library;
           if (!product?.reminder_template_id || !product.reminder_templates) continue;
 
