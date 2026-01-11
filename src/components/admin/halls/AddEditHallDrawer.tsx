@@ -240,18 +240,9 @@ const AddEditHallDrawer = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="border-b pb-4 mb-4">
-          <div className="flex items-center justify-between">
-            <SheetTitle>
-              {isEditing ? t('halls.edit') : t('halls.add')}
-            </SheetTitle>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="p-2 rounded-full hover:bg-muted transition-colors -mr-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <SheetTitle>
+            {isEditing ? t('halls.edit') : t('halls.add')}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6">
