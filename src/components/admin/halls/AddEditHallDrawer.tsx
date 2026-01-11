@@ -102,42 +102,42 @@ const AddEditHallDrawer = ({
     }
   }, [open, instanceId]);
 
+  // Default values for fields
+  const defaultVisibleFields = {
+    customer_name: true,
+    customer_phone: false,
+    vehicle_plate: true,
+    services: true,
+    admin_notes: false,
+  };
+
+  const defaultAllowedActions = {
+    add_services: false,
+    change_time: false,
+    change_station: false,
+    edit_reservation: false,
+    delete_reservation: false,
+  };
+
   // Initialize form when editing
   useEffect(() => {
     if (hall) {
       setName(hall.name);
       setSelectedStationIds(hall.station_ids || []);
-      setVisibleFields(hall.visible_fields || {
-        customer_name: true,
-        customer_phone: false,
-        vehicle_plate: true,
-        services: true,
-        admin_notes: false,
+      // Merge with defaults to ensure new fields are present
+      setVisibleFields({
+        ...defaultVisibleFields,
+        ...(hall.visible_fields || {}),
       });
-      setAllowedActions(hall.allowed_actions || {
-        add_services: false,
-        change_time: false,
-        change_station: false,
-        edit_reservation: false,
-        delete_reservation: false,
+      setAllowedActions({
+        ...defaultAllowedActions,
+        ...(hall.allowed_actions || {}),
       });
     } else {
       setName('');
       setSelectedStationIds([]);
-      setVisibleFields({
-        customer_name: true,
-        customer_phone: false,
-        vehicle_plate: true,
-        services: true,
-        admin_notes: false,
-      });
-      setAllowedActions({
-        add_services: false,
-        change_time: false,
-        change_station: false,
-        edit_reservation: false,
-        delete_reservation: false,
-      });
+      setVisibleFields(defaultVisibleFields);
+      setAllowedActions(defaultAllowedActions);
     }
   }, [hall, open]);
 
