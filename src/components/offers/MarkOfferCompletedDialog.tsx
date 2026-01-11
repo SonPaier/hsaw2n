@@ -244,7 +244,7 @@ export function MarkOfferCompletedDialog({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left font-normal"
+                  className="w-full justify-start text-left font-normal bg-white"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(completionDate, 'dd MMMM yyyy', { locale: pl })}
@@ -280,7 +280,7 @@ export function MarkOfferCompletedDialog({
             ) : (
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {previews.map((preview, idx) => (
-                  <div key={idx} className="text-sm border rounded-lg p-3">
+                  <div key={idx} className="text-sm border rounded-lg p-3 bg-white">
                     <div className="font-medium mb-2">{preview.productName}</div>
                     <div className="space-y-1">
                       {preview.reminders.map((r, rIdx) => (
