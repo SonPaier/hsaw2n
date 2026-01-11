@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
+import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +67,7 @@ const HallView = () => {
   const [loading, setLoading] = useState(true);
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
   const [hallDataVisible, setHallDataVisible] = useState(true); // Toggle for sensitive data visibility
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 
   // Prevent navigation away - capture back button and history manipulation
   useEffect(() => {
@@ -447,9 +449,42 @@ const HallView = () => {
   };
 
   const handleEditReservation = (reservation: Reservation) => {
-    // For now, just close the drawer - full edit would require AddReservationDialogV2
-    toast.info(t('halls.editNotAvailable'));
     setSelectedReservation(null);
+    setEditingReservation(reservation);
+  };
+
+  const handleReservationSaved = async () => {
+    // Refresh reservations after edit
+    const { data: reservationsData } = await supabase
+      .from('reservations')
+      .select(`
+        id,
+        instance_id,
+        customer_name,
+        customer_phone,
+        vehicle_plate,
+        reservation_date,
+        end_date,
+        start_time,
+        end_time,
+        station_id,
+        status,
+        confirmation_code,
+        price,
+        services:service_id (name, shortcut),
+        stations:station_id (name, type)
+      `)
+      .eq('instance_id', instanceId);
+
+    if (reservationsData) {
+      setReservations(reservationsData.map(r => ({
+        ...r,
+        status: r.status || 'pending',
+        service: r.services ? { name: (r.services as any).name, shortcut: (r.services as any).shortcut } : undefined,
+        station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
+      })));
+    }
+    setEditingReservation(null);
   };
 
   if (loading) {
@@ -521,6 +556,28 @@ const HallView = () => {
           handleStatusChange(id, 'in_progress');
         }}
       />
+
+      {/* Edit reservation drawer - only shown when hall allows editing */}
+      {editingReservation && instanceId && (
+        <AddReservationDialogV2
+          open={!!editingReservation}
+          onClose={() => setEditingReservation(null)}
+          instanceId={instanceId}
+          onSuccess={handleReservationSaved}
+          editingReservation={{
+            id: editingReservation.id,
+            customer_name: editingReservation.customer_name,
+            customer_phone: editingReservation.customer_phone,
+            vehicle_plate: editingReservation.vehicle_plate,
+            reservation_date: editingReservation.reservation_date,
+            end_date: editingReservation.end_date,
+            start_time: editingReservation.start_time,
+            end_time: editingReservation.end_time,
+            station_id: editingReservation.station_id,
+            price: editingReservation.price,
+          }}
+        />
+      )}
     </>
   );
 };
