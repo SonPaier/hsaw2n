@@ -19,6 +19,7 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingHall, setEditingHall] = useState<Hall | null>(null);
+  const [instanceSlug, setInstanceSlug] = useState<string>('');
 
   const fetchHalls = async () => {
     try {
@@ -63,8 +64,21 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
     }
   };
 
+  const fetchInstanceSlug = async () => {
+    const { data } = await supabase
+      .from('instances')
+      .select('slug')
+      .eq('id', instanceId)
+      .single();
+    
+    if (data) {
+      setInstanceSlug(data.slug);
+    }
+  };
+
   useEffect(() => {
     fetchHalls();
+    fetchInstanceSlug();
   }, [instanceId]);
 
   const handleEdit = (hall: Hall) => {
@@ -139,6 +153,7 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
             <HallCard
               key={hall.id}
               hall={hall}
+              instanceSlug={instanceSlug}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />

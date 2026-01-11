@@ -107,7 +107,7 @@
     "fields": {
       "customer_name": "Imię klienta",
       "customer_phone": "Telefon klienta",
-      "vehicle_plate": "Numer rejestracyjny",
+      "vehicle_plate": "Pojazd",
       "services": "Usługi",
       "admin_notes": "Notatki wewnętrzne"
     },
