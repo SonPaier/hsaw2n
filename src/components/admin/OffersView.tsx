@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ import { OfferGenerator } from '@/components/offers/OfferGenerator';
 import { OfferSettingsDialog } from '@/components/offers/settings/OfferSettingsDialog';
 import { SendOfferEmailDialog } from './SendOfferEmailDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -80,11 +81,10 @@ const statusColors: Record<string, string> = {
   accepted: 'bg-green-500/20 text-green-600',
   rejected: 'bg-red-500/20 text-red-600',
   expired: 'bg-gray-500/20 text-gray-500',
+  completed: 'bg-emerald-600/20 text-emerald-700',
 };
 
-const STATUS_OPTIONS = ['draft', 'sent', 'viewed', 'accepted', 'rejected'] as const;
-
-const statusCompleted = 'bg-emerald-600/20 text-emerald-700';
+const STATUS_OPTIONS = ['draft', 'sent', 'viewed', 'accepted', 'rejected', 'completed'] as const;
 
 interface InstanceData {
   name?: string;
@@ -128,6 +128,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   
   // Delete confirmation dialog state
   const [deleteOfferDialog, setDeleteOfferDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
+  
+  // Mark as completed dialog state
+  const [completeOfferDialog, setCompleteOfferDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
   const fetchOffers = async () => {
     if (!instanceId) return;
@@ -398,6 +401,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                 <SelectItem value="sent">{t('offers.statusSent')}</SelectItem>
                 <SelectItem value="viewed">{t('offers.statusViewed')}</SelectItem>
                 <SelectItem value="accepted">{t('offers.statusAccepted')}</SelectItem>
+                <SelectItem value="completed">{t('offers.statusCompleted')}</SelectItem>
                 <SelectItem value="rejected">{t('offers.statusRejected')}</SelectItem>
               </SelectContent>
             </Select>
@@ -555,6 +559,18 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                               ))}
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
+                          {(offer.status === 'accepted' || offer.approved_at) && offer.status !== 'completed' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={(e) => { e.stopPropagation(); setCompleteOfferDialog({ open: true, offer }); }}
+                                className="text-emerald-600 focus:text-emerald-600"
+                              >
+                                <CheckCheck className="w-4 h-4 mr-2" />
+                                {t('offers.markAsCompleted')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={(e) => { e.stopPropagation(); setDeleteOfferDialog({ open: true, offer }); }}
@@ -653,6 +669,20 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           }
         }}
       />
+
+      {/* Mark as Completed Dialog */}
+      {completeOfferDialog.offer && (
+        <MarkOfferCompletedDialog
+          open={completeOfferDialog.open}
+          onOpenChange={(open) => !open && setCompleteOfferDialog({ open: false, offer: null })}
+          offerId={completeOfferDialog.offer.id}
+          offerNumber={completeOfferDialog.offer.offer_number}
+          onCompleted={() => {
+            fetchOffers();
+            setCompleteOfferDialog({ open: false, offer: null });
+          }}
+        />
+      )}
     </>
   );
 }

@@ -399,9 +399,23 @@
     "statusSent": "Wysłana",
     "statusViewed": "Obejrzana",
     "statusAccepted": "Zaakceptowana",
+    "statusCompleted": "Zrealizowana",
     "statusRejected": "Odrzucona",
     "statusExpired": "Wygasła",
     "statusAll": "Wszystkie",
+    "markAsCompleted": "Oznacz jako zrealizowane",
+    "markAsCompletedDesc": "Oznacz ofertę {{number}} jako zrealizowaną i utwórz zaplanowane przypomnienia o serwisach.",
+    "completionDate": "Data realizacji",
+    "remindersToCreate": "Przypomnienia do utworzenia",
+    "noRemindersToCreate": "Brak produktów z przypisanymi szablonami przypomnień.",
+    "markedAsCompleted": "Oferta oznaczona jako zrealizowana. Utworzono {{count}} przypomnień.",
+    "paid": "Płatny",
+    "free": "Bezpłatny",
+    "serviceTypes": {
+      "serwis": "Serwis",
+      "kontrola": "Kontrola",
+      "serwis_gwarancyjny": "Serwis gwarancyjny"
+    },
     "validUntil": "Ważna do",
     "totalNet": "Netto",
     "totalGross": "Brutto",
@@ -479,11 +493,13 @@
     "showPreview": "Zobacz podgląd",
     "previewTitle": "Podgląd oferty",
     "backToEdit": "Wróć do edycji",
+    "confirm": "Potwierdź",
     "errors": {
       "fetchError": "Błąd pobierania ofert",
       "deleteError": "Błąd usuwania oferty",
       "statusChangeError": "Błąd zmiany statusu",
-      "emailError": "Błąd wysyłania e-mail"
+      "emailError": "Błąd wysyłania e-mail",
+      "completionError": "Błąd oznaczania oferty jako zrealizowanej"
     },
     "delete": "Usuń",
     "changeStatus": "Zmień status",
