@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ import { SendOfferEmailDialog } from './SendOfferEmailDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
 import { OfferRemindersDialog } from '@/components/offers/OfferRemindersDialog';
+import { OfferSelectionDialog } from '@/components/offers/OfferSelectionDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -75,8 +76,14 @@ interface OfferWithOptions extends Offer {
     id: string;
     name?: string;
     scope_id?: string | null;
+    is_upsell?: boolean;
+    subtotal_net?: number;
     offer_option_items?: {
+      id: string;
       custom_name?: string;
+      unit_price?: number;
+      quantity?: number;
+      discount_percent?: number;
     }[];
   }[];
   offer_scopes?: {
@@ -84,6 +91,7 @@ interface OfferWithOptions extends Offer {
     name: string;
   }[];
   selectedOptionName?: string;
+  vat_rate?: number;
 }
 
 const statusColors: Record<string, string> = {
@@ -147,6 +155,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   
   // Reminders dialog state
   const [remindersDialog, setRemindersDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
+  
+  // Selection dialog state
+  const [selectionDialog, setSelectionDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
   // Reset generator state when clicking sidebar link (same route navigation)
   useEffect(() => {
@@ -170,8 +181,14 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             id,
             name,
             scope_id,
+            is_upsell,
+            subtotal_net,
             offer_option_items (
-              custom_name
+              id,
+              custom_name,
+              unit_price,
+              quantity,
+              discount_percent
             )
           )
         `)
@@ -647,6 +664,14 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                               </DropdownMenuItem>
                             </>
                           )}
+                          {(offer.status === 'accepted' || offer.status === 'completed') && offer.selected_state && (
+                            <DropdownMenuItem 
+                              onClick={(e) => { e.stopPropagation(); setSelectionDialog({ open: true, offer }); }}
+                            >
+                              <Receipt className="w-4 h-4 mr-2" />
+                              {t('offers.viewSelection', 'Zobacz wybór')}
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={(e) => { e.stopPropagation(); setDeleteOfferDialog({ open: true, offer }); }}
@@ -768,6 +793,15 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           offerId={remindersDialog.offer.id}
           offerNumber={remindersDialog.offer.offer_number}
           customerName={remindersDialog.offer.customer_data?.name}
+        />
+      )}
+
+      {/* Customer Selection Dialog */}
+      {selectionDialog.offer && (
+        <OfferSelectionDialog
+          open={selectionDialog.open}
+          onOpenChange={(open) => !open && setSelectionDialog({ open: false, offer: null })}
+          offer={selectionDialog.offer}
         />
       )}
     </>
