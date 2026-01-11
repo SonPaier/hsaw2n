@@ -138,7 +138,7 @@ export function OfferRemindersDialog({
                 {reminders.map((reminder) => (
                   <div 
                     key={reminder.id} 
-                    className="flex items-start justify-between gap-3 p-3 border rounded-lg"
+                    className="flex items-start justify-between gap-3 p-3 border rounded-lg bg-white"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="font-medium">{reminder.service_name}</div>
