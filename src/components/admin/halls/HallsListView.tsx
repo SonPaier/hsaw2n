@@ -56,6 +56,8 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
           add_services: false,
           change_time: false,
           change_station: false,
+          edit_reservation: false,
+          delete_reservation: false,
         },
         sort_order: h.sort_order || 0,
         active: h.active,
