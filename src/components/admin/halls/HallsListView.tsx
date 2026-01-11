@@ -12,10 +12,16 @@ interface HallsListViewProps {
   instanceId: string;
 }
 
+interface Station {
+  id: string;
+  name: string;
+}
+
 const HallsListView = ({ instanceId }: HallsListViewProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [halls, setHalls] = useState<Hall[]>([]);
+  const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingHall, setEditingHall] = useState<Hall | null>(null);
@@ -76,9 +82,23 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
     }
   };
 
+  const fetchStations = async () => {
+    const { data } = await supabase
+      .from('stations')
+      .select('id, name')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    
+    if (data) {
+      setStations(data);
+    }
+  };
+
   useEffect(() => {
     fetchHalls();
     fetchInstanceSlug();
+    fetchStations();
   }, [instanceId]);
 
   const handleEdit = (hall: Hall) => {
@@ -154,6 +174,7 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
               key={hall.id}
               hall={hall}
               instanceSlug={instanceSlug}
+              stations={stations}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
