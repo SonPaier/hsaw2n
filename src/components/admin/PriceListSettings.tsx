@@ -740,7 +740,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{t('priceList.title')}</h3>
-        <Button onClick={() => openCategoryDialog()} variant="outline" size="sm" className="gap-2">
+        <Button onClick={() => openCategoryDialog()} size="sm" className="gap-2">
           <FolderPlus className="w-4 h-4" />
           {t('priceList.addCategory')}
         </Button>
@@ -766,7 +766,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               onOpenChange={() => toggleSection(category.id)}
             >
               <CollapsibleTrigger asChild>
-                <div className="p-4 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+                <div className="p-4 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">
                   {/* Mobile: 2 lines */}
                   <div className="md:hidden space-y-2">
                     <div className="flex items-center gap-3">
