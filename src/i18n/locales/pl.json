@@ -518,6 +518,8 @@
     "deleteAllReminders": "Usuń wszystkie",
     "confirmDeleteRemindersTitle": "Usuń przypomnienia",
     "confirmDeleteRemindersDesc": "Czy na pewno chcesz usunąć wszystkie {{count}} przypomnień dla tej oferty? Ta operacja jest nieodwracalna.",
+    "confirmDeleteReminderTitle": "Usuń przypomnienie",
+    "confirmDeleteReminderDesc": "Czy na pewno chcesz usunąć to przypomnienie? Ta operacja jest nieodwracalna.",
     "reminderStatus": {
       "pending": "Oczekujące",
       "sent": "Wysłane",
