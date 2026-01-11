@@ -139,22 +139,27 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
           </div>
 
           {/* URL field - white background, full width */}
-          <div className="flex items-center gap-2 mt-3 bg-white border rounded-md px-3 py-2">
-            <code className="text-xs text-muted-foreground truncate flex-1">
-              {getHallUrl()}
-            </code>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0"
-              onClick={handleCopyUrl}
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
+          <div className="mt-3 space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {t('halls.calendarLinkLabel')}
+            </span>
+            <div className="flex items-center gap-2 bg-white border rounded-md px-3 py-2">
+              <code className="text-xs text-muted-foreground truncate flex-1">
+                {getHallUrl()}
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={handleCopyUrl}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Stations - renamed to "Widoczne stanowiska" */}
