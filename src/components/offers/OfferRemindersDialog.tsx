@@ -46,6 +46,7 @@ export function OfferRemindersDialog({
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteReminderDialog, setDeleteReminderDialog] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -111,7 +112,7 @@ export function OfferRemindersDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5" />
@@ -140,7 +141,7 @@ export function OfferRemindersDialog({
                     className="flex items-start justify-between gap-3 p-3 border rounded-lg"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">{reminder.service_name}</div>
+                      <div className="font-medium">{reminder.service_name}</div>
                       <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                         <Calendar className="w-3.5 h-3.5" />
                         {format(new Date(reminder.scheduled_date), 'dd MMMM yyyy', { locale: pl })}
@@ -171,7 +172,7 @@ export function OfferRemindersDialog({
                       variant="ghost"
                       size="icon"
                       className="shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDeleteReminder(reminder.id)}
+                      onClick={() => setDeleteReminderDialog(reminder.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -205,6 +206,22 @@ export function OfferRemindersDialog({
         cancelLabel={t('common.cancel')}
         variant="destructive"
         onConfirm={handleDeleteAllReminders}
+      />
+
+      <ConfirmDialog
+        open={!!deleteReminderDialog}
+        onOpenChange={(open) => !open && setDeleteReminderDialog(null)}
+        title={t('offers.confirmDeleteReminderTitle')}
+        description={t('offers.confirmDeleteReminderDesc')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteReminderDialog) {
+            handleDeleteReminder(deleteReminderDialog);
+            setDeleteReminderDialog(null);
+          }
+        }}
       />
     </>
   );
