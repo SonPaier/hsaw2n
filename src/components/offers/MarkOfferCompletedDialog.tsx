@@ -125,13 +125,32 @@ export function MarkOfferCompletedDialog({
 
       const previewsMap = new Map<string, ReminderPreview>();
 
+      // Build a set of explicitly selected optional item IDs
+      const selectedOptionalItemIds = new Set<string>();
+      if (selectedState?.selectedOptionalItems) {
+        Object.entries(selectedState.selectedOptionalItems).forEach(([itemId, isSelected]) => {
+          if (isSelected) selectedOptionalItemIds.add(itemId);
+        });
+      }
+
       for (const option of options || []) {
+        // Check if this is an upsell option
+        const isUpsellOption = selectedState?.selectedUpsells?.[option.id] === true;
+        
         for (const item of option.offer_option_items || []) {
-          // For options with item selection, check if this item was selected
+          // For variant options with item selection, check selectedItemInOption
           if (selectedState?.selectedItemInOption) {
             const selectedItemId = selectedState.selectedItemInOption[option.id];
             if (selectedItemId && selectedItemId !== item.id) {
-              continue; // Skip items not selected within the option
+              continue; // Skip items not selected within the variant option
+            }
+          }
+          
+          // For upsell options: only include items that were explicitly selected in selectedOptionalItems
+          // If this is an upsell and selectedOptionalItems has entries, filter by them
+          if (isUpsellOption && selectedOptionalItemIds.size > 0) {
+            if (!selectedOptionalItemIds.has(item.id)) {
+              continue; // Skip items not explicitly selected in this upsell
             }
           }
           
