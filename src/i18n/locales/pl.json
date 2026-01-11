@@ -120,6 +120,7 @@
       "change_station": "Zmiana stanowiska"
     },
     "urlCopied": "Skopiowano link do hali",
+    "preview": "Podgląd hali",
     "deleteConfirmTitle": "Usuń halę",
     "deleteConfirmDescription": "Czy na pewno chcesz usunąć halę \"{{name}}\"? Ta operacja jest nieodwracalna.",
     "deleted": "Hala usunięta",

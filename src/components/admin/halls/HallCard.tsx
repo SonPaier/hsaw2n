@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Check, Pencil, Trash2, MoreVertical, Eye, Columns } from 'lucide-react';
+import { Copy, Check, Pencil, Trash2, MoreVertical, Eye, Columns, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +67,11 @@ const HallCard = ({ hall, instanceSlug, stations, onEdit, onDelete }: HallCardPr
     return `https://${instanceSlug}.admin.n2wash.com/hall/${hall.id}`;
   };
 
+  // Get dev/preview URL for this hall
+  const getDevHallUrl = () => {
+    return `/admin/hall/${hall.id}`;
+  };
+
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(getHallUrl());
@@ -81,6 +86,10 @@ const HallCard = ({ hall, instanceSlug, stations, onEdit, onDelete }: HallCardPr
   const handleDelete = () => {
     onDelete(hall.id);
     setDeleteDialogOpen(false);
+  };
+
+  const handlePreview = () => {
+    window.open(getDevHallUrl(), '_blank');
   };
 
   // Get visible field names
@@ -151,6 +160,17 @@ const HallCard = ({ hall, instanceSlug, stations, onEdit, onDelete }: HallCardPr
                   ))}
                 </div>
               </div>
+
+              {/* Preview button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 w-full"
+                onClick={handlePreview}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {t('halls.preview')}
+              </Button>
             </div>
 
             <DropdownMenu>
