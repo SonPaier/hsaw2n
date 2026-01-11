@@ -171,6 +171,14 @@ const DevRoutes = () => (
         </ProtectedRoute>
       } 
     />
+    <Route 
+      path="/admin/halls/:hallId" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <HallView />
+        </ProtectedRoute>
+      } 
+    />
     <Route
       path="/admin/:view" 
       element={
