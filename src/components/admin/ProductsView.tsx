@@ -48,6 +48,7 @@ import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PriceList {
   id: string;
@@ -84,6 +85,7 @@ interface ProductsViewProps {
 export default function ProductsView({ instanceId }: ProductsViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -372,8 +374,90 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                       : t('products.noProductsFound')}
                   </p>
                 </div>
+              ) : isMobile ? (
+                // Mobile: Card layout
+                <div className="space-y-3">
+                  {paginatedProducts.map((product) => (
+                    <div 
+                      key={product.id} 
+                      className="p-4 border rounded-lg bg-card"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <button 
+                            onClick={() => setSelectedProduct(product)}
+                            className="text-left font-medium hover:text-primary transition-colors line-clamp-2"
+                          >
+                            {product.name}
+                          </button>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+                            {product.brand && <span>{product.brand}</span>}
+                            {product.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {product.category}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold whitespace-nowrap">
+                            {formatPrice(product.default_price)}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditingProduct(product)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {t('common.edit')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteProductDialog(product)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t('common.delete')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Pagination - Mobile */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 pt-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => p - 1)}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground px-2">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className="overflow-x-auto">
+                // Desktop: Table layout
+                <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-primary/10 border border-border">
@@ -433,7 +517,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
                     </TableBody>
                   </Table>
                   
-                  {/* Pagination */}
+                  {/* Pagination - Desktop */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between mt-4 pt-4 border-t">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
