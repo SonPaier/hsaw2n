@@ -309,7 +309,7 @@ export function AddProductDialog({
                   <SelectTrigger>
                     <SelectValue placeholder={t('productDialog.selectCategory')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -341,7 +341,28 @@ export function AddProductDialog({
               />
             </div>
 
-            {/* Line 4: Custom metadata */}
+            {/* Reminder Template - under description, 30% width */}
+            {reminderTemplates.length > 0 && (
+              <div className="space-y-2 w-[30%]">
+                <Label>{t('productDialog.reminderTemplate')}</Label>
+                <Select value={reminderTemplateId} onValueChange={setReminderTemplateId}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder={t('reminderTemplates.noTemplate')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="__none__">{t('reminderTemplates.noTemplate')}</SelectItem>
+                    {reminderTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('productDialog.reminderTemplateHelp')}
+                </p>
+              </div>
+            )}
+
+            {/* Custom metadata - at the bottom */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('productDialog.additionalParams')}</Label>
@@ -355,28 +376,7 @@ export function AddProductDialog({
                   <Plus className="h-3 w-3" />
                   {t('common.add')}
                 </Button>
-            </div>
-
-            {/* Reminder Template */}
-            {reminderTemplates.length > 0 && (
-              <div className="space-y-2">
-                <Label>{t('productDialog.reminderTemplate')}</Label>
-                <Select value={reminderTemplateId} onValueChange={setReminderTemplateId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('reminderTemplates.noTemplate')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">{t('reminderTemplates.noTemplate')}</SelectItem>
-                    {reminderTemplates.map(template => (
-                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {t('productDialog.reminderTemplateHelp')}
-                </p>
               </div>
-            )}
               
               {metadataFields.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
