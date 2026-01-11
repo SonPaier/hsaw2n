@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
+import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
 import { UpdateBanner } from '@/components/admin/UpdateBanner';
-
+import HallsListView from '@/components/admin/halls/HallsListView';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,8 +94,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -1966,6 +1966,11 @@ const AdminDashboard = () => {
                 <Settings className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Ustawienia"}
               </Button>}
+              {/* Halls - visible when feature is enabled and user is admin */}
+              {hasFeature('hall_view') && userRole !== 'employee' && <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setCurrentView('halls'); setSidebarOpen(false); }} title={t('navigation.halls')}>
+                <Building2 className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && t('navigation.halls')}
+              </Button>}
             </nav>
 
             {/* Update banner & Collapse toggle & User menu */}
@@ -2090,6 +2095,8 @@ const AdminDashboard = () => {
               onNavigateToReservations={() => setCurrentView('reservations')}
               onReservationClick={handleReservationClick}
             />}
+
+            {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
           </div>
         </main>
       </div>
@@ -2196,6 +2203,7 @@ const AdminDashboard = () => {
         unreadNotificationsCount={unreadNotificationsCount}
         offersEnabled={hasFeature('offers')}
         followupEnabled={hasFeature('followup')}
+        hallViewEnabled={hasFeature('hall_view')}
         userRole={userRole}
       />
     </>;

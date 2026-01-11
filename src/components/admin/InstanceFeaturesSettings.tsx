@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { FileText, Loader2, TrendingUp, Link2 } from 'lucide-react';
+import { Building2, FileText, Link2, TrendingUp } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InstanceFeature {
@@ -55,6 +56,13 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
     parameterLabel: 'Numery telefonów (opcjonalne)',
     parameterDescription: 'Wpisz numery telefonów (po przecinku), które otrzymają link. Puste = wszyscy.',
     parameterPlaceholder: '+48501234567, +48600111222',
+  },
+  {
+    key: 'hall_view',
+    name: 'Widok Hali',
+    description: 'Uproszczony widok kalendarza dla pracowników hali z konfigurowalnymi stanowiskami',
+    icon: Building2,
+    isPaid: false,
   },
 ];
 
