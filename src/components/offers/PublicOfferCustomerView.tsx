@@ -196,14 +196,20 @@ export const PublicOfferCustomerView = ({
       const restoredItemInOption = savedState.selectedItemInOption || {};
 
       // Backward compatibility: old offers stored upsells as whole-option selection.
+      // ONLY apply this if there are NO selectedOptionalItems saved (truly old format)
       const mergedOptionalItems: Record<string, boolean> = { ...restoredOptionalItems };
-      offer.offer_options.forEach((opt) => {
-        if (opt.is_upsell && restoredUpsells[opt.id]) {
-          opt.offer_option_items?.forEach((item) => {
-            mergedOptionalItems[item.id] = true;
-          });
-        }
-      });
+      const hasAnyOptionalItems = Object.keys(restoredOptionalItems).length > 0;
+      
+      if (!hasAnyOptionalItems) {
+        // Only migrate from old format if no new format data exists
+        offer.offer_options.forEach((opt) => {
+          if (opt.is_upsell && restoredUpsells[opt.id]) {
+            opt.offer_option_items?.forEach((item) => {
+              mergedOptionalItems[item.id] = true;
+            });
+          }
+        });
+      }
 
       // Backward compatibility: initialize selectedItemInOption for multi-item options if not saved
       const mergedItemInOption: Record<string, string> = { ...restoredItemInOption };
