@@ -1089,7 +1089,7 @@
     "deleteConfirm": "Czy na pewno chcesz usunąć to stanowisko?"
   },
   "instanceUsers": {
-    "title": "Użytkownicy instancji",
+    "title": "Użytkownicy aplikacji",
     "addUser": "Dodaj użytkownika",
     "noUsers": "Brak użytkowników w tej instancji",
     "addFirstUser": "Dodaj pierwszego użytkownika",

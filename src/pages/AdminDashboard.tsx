@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { format, subMonths, addDays, parseISO } from 'date-fns';
+import { format, subMonths, addDays, parseISO, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
@@ -355,6 +355,44 @@ const AdminDashboard = () => {
     fetchYardVehicleCount();
     fetchUnreadNotificationsCount();
   }, [instanceId]);
+
+  // Helper to find nearest working day
+  const findNearestWorkingDay = (date: Date, hours: Record<string, { open: string; close: string } | null>): Date => {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    
+    for (let i = 0; i < 7; i++) {
+      const checkDate = addDays(date, i);
+      const dayName = dayNames[getDay(checkDate)];
+      const dayConfig = hours[dayName];
+      
+      // Day is open if it has valid open/close times
+      if (dayConfig && dayConfig.open && dayConfig.close) {
+        return checkDate;
+      }
+    }
+    
+    // Fallback to original date if no working day found
+    return date;
+  };
+
+  // Set calendar to nearest working day when working hours are loaded
+  useEffect(() => {
+    if (!workingHours) return;
+    
+    const today = new Date();
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayDayName = dayNames[getDay(today)];
+    const todayConfig = workingHours[todayDayName];
+    
+    // Check if today is a working day
+    const isTodayWorkingDay = todayConfig && todayConfig.open && todayConfig.close;
+    
+    if (!isTodayWorkingDay) {
+      const nearestWorkingDay = findNearestWorkingDay(today, workingHours);
+      setCalendarDate(nearestWorkingDay);
+      localStorage.setItem('admin-calendar-date', nearestWorkingDay.toISOString());
+    }
+  }, [workingHours]);
 
   // Subscribe to yard_vehicles changes for real-time count updates
   useEffect(() => {

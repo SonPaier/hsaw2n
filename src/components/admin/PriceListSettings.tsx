@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save, GripVertical, Star, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -97,7 +98,8 @@ const SortableServiceItem = ({
   onDelete, 
   onToggleActive,
   onTogglePopular,
-  t
+  t,
+  isMobile
 }: { 
   service: Service; 
   onEdit: () => void; 
@@ -105,6 +107,7 @@ const SortableServiceItem = ({
   onToggleActive: () => void;
   onTogglePopular: () => void;
   t: (key: string) => string;
+  isMobile: boolean;
 }) => {
   const {
     attributes,
@@ -121,6 +124,79 @@ const SortableServiceItem = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "p-4 border border-border/50 rounded-lg bg-background",
+          !service.active && "opacity-50"
+        )}
+      >
+        <div className="flex items-start gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground mt-0.5"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          
+          <div className="flex-1 min-w-0 space-y-2">
+            {/* Line 1: Service name */}
+            <div className="flex items-center gap-2">
+              {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+              <span className="font-medium">{service.name}</span>
+              {!service.active && (
+                <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('priceList.inactive')}</span>
+              )}
+            </div>
+            
+            {/* Lines 2-4: Prices per size OR single price */}
+            {service.requires_size ? (
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>S: <span className="font-bold">{service.price_small} zł</span> / <span className="font-bold">{service.duration_small || service.duration_minutes || '-'} min</span></div>
+                <div>M: <span className="font-bold">{service.price_medium} zł</span> / <span className="font-bold">{service.duration_medium || service.duration_minutes || '-'} min</span></div>
+                <div>L: <span className="font-bold">{service.price_large} zł</span> / <span className="font-bold">{service.duration_large || service.duration_minutes || '-'} min</span></div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                {service.price_from && <span>od <span className="font-bold">{service.price_from} zł</span></span>}
+                {service.duration_minutes && <span className="ml-2">• <span className="font-bold">{service.duration_minutes} min</span></span>}
+              </div>
+            )}
+            
+            {/* Line 5: Actions */}
+            <div className="flex items-center gap-1 pt-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onTogglePopular}
+                title={service.is_popular ? t('priceList.removeFromPopular') : t('priceList.markAsPopular')}
+                className="h-8 w-8"
+              >
+                <Star className={cn("w-4 h-4", service.is_popular ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
+              </Button>
+              <Switch
+                checked={service.active ?? true}
+                onCheckedChange={onToggleActive}
+              />
+              <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={onDelete}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div
       ref={setNodeRef}
@@ -188,6 +264,7 @@ const SortableServiceItem = ({
 
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -689,44 +766,57 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               onOpenChange={() => toggleSection(category.id)}
             >
               <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
-                  <div className="flex items-center gap-3">
-                    {isOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({categoryServices.length} {t('priceList.servicesCount')})
-                    </span>
+                <div className="p-4 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+                  {/* Mobile: 2 lines */}
+                  <div className="md:hidden space-y-2">
+                    <div className="flex items-center gap-3">
+                      {isOpen ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                      <span className="font-medium">{category.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({categoryServices.length} {t('priceList.servicesCount')})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 pl-7" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(undefined, category.id)} className="h-8 px-2">
+                        <Plus className="w-4 h-4 mr-1" />{t('common.add')}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} className="h-8 w-8">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteCategory(category.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditDialog(undefined, category.id)}
-                      title={t('priceList.addService')}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openCategoryDialog(category)}
-                      title={t('priceList.editCategory')}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => handleDeleteCategory(category.id)}
-                      title={t('priceList.deleteCategory')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  
+                  {/* Desktop: single line */}
+                  <div className="hidden md:flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {isOpen ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                      <span className="font-medium">{category.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({categoryServices.length} {t('priceList.servicesCount')})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} title={t('priceList.addService')}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} title={t('priceList.editCategory')}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteCategory(category.id)} title={t('priceList.deleteCategory')}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CollapsibleTrigger>
@@ -756,6 +846,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                             onToggleActive={() => toggleServiceActive(service)}
                             onTogglePopular={() => toggleServicePopular(service)}
                             t={t}
+                            isMobile={isMobile}
                           />
                         ))
                       )}

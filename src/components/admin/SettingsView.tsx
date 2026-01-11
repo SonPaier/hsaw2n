@@ -503,7 +503,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="glass-card p-6 bg-secondary-foreground">
+        <div className="glass-card p-6 pb-24 md:pb-6 bg-secondary-foreground">
           {renderTabContent()}
         </div>
       </div>

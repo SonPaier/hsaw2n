@@ -111,66 +111,15 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
   }
 
   return (
-    <div className="space-y-6">
-      {/* Push Notifications Section - always show, with info if not supported */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Smartphone className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold">Powiadomienia push</h3>
-        </div>
-        
-        {!isPushSupported ? (
-          <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">
-              Powiadomienia push nie są wspierane
-            </p>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p><strong>iPhone:</strong> Otwórz w Safari → Dodaj do ekranu głównego → Otwórz zainstalowaną aplikację</p>
-              <p><strong>Android:</strong> Chrome/Edge → Zainstaluj aplikację</p>
-            </div>
-            <p className="text-xs text-muted-foreground/60 mt-2">
-              Chrome na iOS nie wspiera push (ograniczenie Apple)
-            </p>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
-            <div className="space-y-1">
-              <Label className="font-medium">
-                Powiadomienia na tym urządzeniu
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {isSubscribed 
-                  ? 'Otrzymasz powiadomienia o nowych rezerwacjach'
-                  : 'Włącz, aby otrzymywać powiadomienia o nowych rezerwacjach'}
-              </p>
-            </div>
-            {isSubscribed ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <Check className="w-5 h-5" />
-                <span className="text-sm font-medium">{t('pushNotifications.enabled')}</span>
-              </div>
-            ) : (
-              <Button 
-                onClick={handleEnablePush} 
-                disabled={isPushLoading}
-                size="sm"
-              >
-                {isPushLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {t('pushNotifications.enable')}
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Reservation Confirmation Settings */}
+    <div className="space-y-6 pb-24 md:pb-0">
+      {/* Reservation Confirmation Settings - moved up */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Potwierdzanie rezerwacji</h3>
         </div>
         
-        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
+        <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
           <div className="space-y-1">
             <Label htmlFor="auto-confirm" className="font-medium">
               Automatyczne potwierdzanie
@@ -220,6 +169,57 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Push Notifications Section - moved to bottom */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Smartphone className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold">Powiadomienia push</h3>
+        </div>
+        
+        {!isPushSupported ? (
+          <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-2">
+            <p className="text-sm text-muted-foreground font-medium">
+              Powiadomienia push nie są wspierane
+            </p>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p><strong>iPhone:</strong> Otwórz w Safari → Dodaj do ekranu głównego → Otwórz zainstalowaną aplikację</p>
+              <p><strong>Android:</strong> Chrome/Edge → Zainstaluj aplikację</p>
+            </div>
+            <p className="text-xs text-muted-foreground/60 mt-2">
+              Chrome na iOS nie wspiera push (ograniczenie Apple)
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
+            <div className="space-y-1">
+              <Label className="font-medium">
+                Powiadomienia na tym urządzeniu
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {isSubscribed 
+                  ? 'Otrzymasz powiadomienia o nowych rezerwacjach'
+                  : 'Włącz, aby otrzymywać powiadomienia o nowych rezerwacjach'}
+              </p>
+            </div>
+            {isSubscribed ? (
+              <div className="flex items-center gap-2 text-green-600">
+                <Check className="w-5 h-5" />
+                <span className="text-sm font-medium">{t('pushNotifications.enabled')}</span>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleEnablePush} 
+                disabled={isPushLoading}
+                size="sm"
+              >
+                {isPushLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {t('pushNotifications.enable')}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

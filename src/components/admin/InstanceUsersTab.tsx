@@ -1,16 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, UserPlus, MoreVertical, Shield, User, Lock, Unlock, Trash2, KeyRound } from 'lucide-react';
+import { Loader2, UserPlus, MoreVertical, Shield, User, Lock, Unlock, Trash2, KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -191,10 +184,11 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 pb-24 md:pb-0">
+      {/* Header */}
+      <div className="space-y-3">
         <h3 className="text-lg font-medium">{t('instanceUsers.title')}</h3>
-        <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setAddDialogOpen(true)} className="gap-2 w-full sm:w-auto">
           <UserPlus className="w-4 h-4" />
           {t('instanceUsers.addUser')}
         </Button>
@@ -213,79 +207,77 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('instanceUsers.user')}</TableHead>
-                <TableHead>{t('instanceUsers.role')}</TableHead>
-                <TableHead>{t('instanceUsers.status')}</TableHead>
-                <TableHead>{t('instanceUsers.createdAt')}</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.username}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{getStatusBadge(user.is_blocked)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(user.created_at), 'd MMM yyyy', { locale: pl })}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          disabled={actionLoading === user.id}
-                        >
-                          {actionLoading === user.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <MoreVertical className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(user)}>
-                          <User className="w-4 h-4 mr-2" />
-                          {t('instanceUsers.edit')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleResetPassword(user)}>
-                          <KeyRound className="w-4 h-4 mr-2" />
-                          {t('instanceUsers.resetPassword')}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleBlockUnblock(user)}>
-                          {user.is_blocked ? (
-                            <>
-                              <Unlock className="w-4 h-4 mr-2" />
-                              {t('instanceUsers.unblock')}
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="w-4 h-4 mr-2" />
-                              {t('instanceUsers.block')}
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(user)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          {t('instanceUsers.delete')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="space-y-3">
+          {users.map((user) => (
+            <Card key={user.id} className="bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    {/* Username */}
+                    <div className="font-medium truncate">{user.username}</div>
+                    {/* Badges */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {getRoleBadge(user.role)}
+                      {getStatusBadge(user.is_blocked)}
+                    </div>
+                    {/* Date */}
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(user.created_at), 'd MMM yyyy', { locale: pl })}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        disabled={actionLoading === user.id}
+                      >
+                        {actionLoading === user.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MoreVertical className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(user)}>
+                        <User className="w-4 h-4 mr-2" />
+                        {t('instanceUsers.edit')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleResetPassword(user)}>
+                        <KeyRound className="w-4 h-4 mr-2" />
+                        {t('instanceUsers.resetPassword')}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleBlockUnblock(user)}>
+                        {user.is_blocked ? (
+                          <>
+                            <Unlock className="w-4 h-4 mr-2" />
+                            {t('instanceUsers.unblock')}
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-4 h-4 mr-2" />
+                            {t('instanceUsers.block')}
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(user)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('instanceUsers.delete')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
