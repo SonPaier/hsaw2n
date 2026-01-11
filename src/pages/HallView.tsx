@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
-import HallReservationDetails from '@/components/admin/HallReservationDetails';
-import HallNextReservations from '@/components/admin/HallNextReservations';
+import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import type { Hall } from '@/components/admin/halls/HallCard';
 
 interface Station {
   id: string;
@@ -54,8 +54,10 @@ interface Break {
 const HallView = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { hallId } = useParams<{ hallId: string }>();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [hall, setHall] = useState<Hall | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [breaks, setBreaks] = useState<Break[]>([]);
@@ -125,19 +127,71 @@ const HallView = () => {
     fetchUserInstanceId();
   }, [user]);
 
+  // Fetch hall config
+  useEffect(() => {
+    const fetchHall = async () => {
+      if (!hallId) {
+        toast.error(t('halls.notFound'));
+        navigate(-1);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('halls')
+        .select('*')
+        .eq('id', hallId)
+        .eq('active', true)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error(t('halls.notFound'));
+        navigate(-1);
+        return;
+      }
+
+      const mappedHall: Hall = {
+        id: data.id,
+        instance_id: data.instance_id,
+        name: data.name,
+        slug: data.slug,
+        station_ids: data.station_ids || [],
+        visible_fields: (data.visible_fields as Hall['visible_fields']) || {
+          customer_name: true,
+          customer_phone: false,
+          vehicle_plate: true,
+          services: true,
+          admin_notes: false,
+        },
+        allowed_actions: (data.allowed_actions as Hall['allowed_actions']) || {
+          add_services: false,
+          change_time: false,
+          change_station: false,
+        },
+        sort_order: data.sort_order || 0,
+        active: data.active,
+      };
+
+      setHall(mappedHall);
+      setInstanceId(data.instance_id);
+    };
+
+    fetchHall();
+  }, [hallId, navigate, t]);
+
   // Fetch data
   useEffect(() => {
-    if (!instanceId) return;
+    if (!instanceId || !hall) return;
 
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch stations
+      // Fetch stations - filter by hall config
       const { data: stationsData } = await supabase
         .from('stations')
         .select('id, name, type')
         .eq('instance_id', instanceId)
         .eq('active', true)
+        .in('id', hall.station_ids.length > 0 ? hall.station_ids : ['__none__'])
         .order('sort_order');
 
       if (stationsData) {
@@ -196,7 +250,7 @@ const HallView = () => {
         setBreaks(breaksData);
       }
 
-      // Fetch yard vehicles count (today or earlier only)
+      // Fetch yard vehicles count
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const { count } = await supabase
         .from('yard_vehicles')
@@ -211,7 +265,7 @@ const HallView = () => {
     };
 
     fetchData();
-  }, [instanceId]);
+  }, [instanceId, hall]);
 
   // Subscribe to yard vehicles changes for counter
   useEffect(() => {
@@ -367,12 +421,12 @@ const HallView = () => {
   return (
     <>
       <Helmet>
-        <title>{t('hall.title')} | {t('hall.employeePanel')}</title>
+        <title>{hall?.name || t('hall.title')} | {t('hall.employeePanel')}</title>
       </Helmet>
 
-      <div className="h-screen w-screen overflow-hidden bg-background pb-16">
+      <div className="h-screen w-screen overflow-hidden bg-background">
         <AdminCalendar
-          stations={stations.filter(s => s.type === 'washing')}
+          stations={stations}
           reservations={reservations}
           breaks={breaks}
           workingHours={workingHours}
@@ -385,18 +439,12 @@ const HallView = () => {
           instanceId={instanceId || undefined}
           yardVehicleCount={yardVehicleCount}
         />
-        
-        <HallNextReservations 
-          stations={stations} 
-          reservations={reservations} 
-        />
       </div>
 
-      <HallReservationDetails
+      <ReservationDetailsDrawer
         reservation={selectedReservation}
         open={!!selectedReservation}
-        onOpenChange={(open) => !open && setSelectedReservation(null)}
-        onStatusChange={handleStatusChange}
+        onClose={() => setSelectedReservation(null)}
       />
     </>
   );

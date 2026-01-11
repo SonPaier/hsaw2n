@@ -458,6 +458,56 @@ export type Database = {
           },
         ]
       }
+      halls: {
+        Row: {
+          active: boolean | null
+          allowed_actions: Json | null
+          created_at: string | null
+          id: string
+          instance_id: string
+          name: string
+          slug: string
+          sort_order: number | null
+          station_ids: string[] | null
+          updated_at: string | null
+          visible_fields: Json | null
+        }
+        Insert: {
+          active?: boolean | null
+          allowed_actions?: Json | null
+          created_at?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          slug: string
+          sort_order?: number | null
+          station_ids?: string[] | null
+          updated_at?: string | null
+          visible_fields?: Json | null
+        }
+        Update: {
+          active?: boolean | null
+          allowed_actions?: Json | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          station_ids?: string[] | null
+          updated_at?: string | null
+          visible_fields?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "halls_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instance_features: {
         Row: {
           created_at: string

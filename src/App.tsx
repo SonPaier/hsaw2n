@@ -120,7 +120,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     <Route 
-      path="/hall" 
+      path="/hall/:hallId" 
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
@@ -164,7 +164,7 @@ const DevRoutes = () => (
       } 
     />
     <Route 
-      path="/admin/hall" 
+      path="/admin/hall/:hallId" 
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />

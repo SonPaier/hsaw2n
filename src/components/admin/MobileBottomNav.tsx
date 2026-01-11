@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X } from 'lucide-react';
+import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications';
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls';
 
 interface MobileBottomNavProps {
   currentView: ViewType;
@@ -21,6 +21,7 @@ interface MobileBottomNavProps {
   unreadNotificationsCount?: number;
   offersEnabled?: boolean;
   followupEnabled?: boolean;
+  hallViewEnabled?: boolean;
   userRole?: 'admin' | 'employee' | null;
 }
 
@@ -32,6 +33,7 @@ const MobileBottomNav = ({
   unreadNotificationsCount = 0,
   offersEnabled = true,
   followupEnabled = true,
+  hallViewEnabled = false,
   userRole = 'admin',
 }: MobileBottomNavProps) => {
   const { t } = useTranslation();
@@ -59,6 +61,8 @@ const MobileBottomNav = ({
     // ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
     // Hide settings for employees
     ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
+    // Halls - visible when feature is enabled and user is admin
+    ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
   ];
 
   return (

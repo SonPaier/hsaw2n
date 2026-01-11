@@ -6,6 +6,7 @@ interface InstanceFeatures {
   upsell: boolean;
   followup: boolean;
   sms_edit_link: boolean;
+  hall_view: boolean;
 }
 
 interface FeatureWithParams {
@@ -18,6 +19,7 @@ const defaultFeatures: InstanceFeatures = {
   upsell: false,
   followup: false,
   sms_edit_link: false,
+  hall_view: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
