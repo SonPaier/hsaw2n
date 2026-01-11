@@ -94,6 +94,10 @@ Deno.serve(async (req) => {
       // Breaks
       "breaks",
       "closed_days",
+      
+      // Configuration (stations, services)
+      "services",
+      "stations",
     ];
 
     for (const table of tablesToClear) {
