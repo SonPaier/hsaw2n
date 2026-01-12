@@ -1092,6 +1092,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
 
   const handleSubmit = async () => {
+    // Clear slot preview immediately as first action
+    onSlotPreviewChange?.(null);
+    
     // Yard mode validation and submit
     if (isYardMode) {
       if (!carModel.trim()) {
