@@ -850,173 +850,207 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!instanceId) return;
     
-    const channel = supabase.channel('reservations-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'reservations',
-        filter: `instance_id=eq.${instanceId}`
-      }, payload => {
-        console.log('Realtime reservation update:', payload);
-        
-        if (payload.eventType === 'INSERT') {
-          const newRecord = payload.new as any;
-          const reservationDate = parseISO(newRecord.reservation_date);
+    let retryCount = 0;
+    const maxRetries = 10;
+    let currentChannel: ReturnType<typeof supabase.channel> | null = null;
+    let retryTimeoutId: NodeJS.Timeout | null = null;
+    let isCleanedUp = false;
+
+    const setupRealtimeChannel = () => {
+      if (isCleanedUp) return;
+      
+      // Remove previous channel if exists
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+        currentChannel = null;
+      }
+
+      currentChannel = supabase.channel(`reservations-changes-${Date.now()}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `instance_id=eq.${instanceId}`
+        }, payload => {
+          console.log('Realtime reservation update:', payload);
           
-          // Use ref to check date range without causing re-subscription
-          const isWithinRange = reservationDate >= loadedDateRangeRef.current.from;
-          
-          if (!isWithinRange) {
-            return;
-          }
+          if (payload.eventType === 'INSERT') {
+            const newRecord = payload.new as any;
+            const reservationDate = parseISO(newRecord.reservation_date);
+            
+            // Use ref to check date range without causing re-subscription
+            const isWithinRange = reservationDate >= loadedDateRangeRef.current.from;
+            
+            if (!isWithinRange) {
+              return;
+            }
 
-          // Play sound only for customer reservations
-          if (newRecord.source === 'customer') {
-            playNotificationSound();
-          }
+            // Play sound only for customer reservations
+            if (newRecord.source === 'customer') {
+              playNotificationSound();
+            }
 
-          // Fetch the new reservation with service and station info
-          supabase.from('reservations').select(`
-            id,
-            instance_id,
-            customer_name,
-            customer_phone,
-            vehicle_plate,
-            reservation_date,
-            end_date,
-            start_time,
-            end_time,
-            station_id,
-            status,
-            confirmation_code,
-            price,
-            source,
-            service_ids,
-            created_by_username,
-            offer_number,
-            services:service_id (name, shortcut),
-            stations:station_id (name, type)
-          `).eq('id', payload.new.id).single().then(({ data }) => {
-            if (data) {
-              const serviceIds = (data as any).service_ids as string[] | null;
-              const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
-              if (serviceIds && serviceIds.length > 0) {
-                serviceIds.forEach(id => {
-                  const svc = servicesMapRef.current.get(id);
-                  if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
-                });
-              }
-
-              const newReservation = {
-                ...data,
-                status: data.status || 'pending',
-                service: data.services ? {
-                  name: (data.services as any).name,
-                  shortcut: (data.services as any).shortcut
-                } : undefined,
-                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-                station: data.stations ? {
-                  name: (data.stations as any).name,
-                  type: (data.stations as any).type
-                } : undefined,
-                created_by_username: (data as any).created_by_username || null
-              };
-              setReservations(prev => {
-                // Prevent duplicates (in case fetch also returned this reservation)
-                if (prev.some(r => r.id === data.id)) {
-                  return prev.map(r => r.id === data.id ? newReservation as Reservation : r);
+            // Fetch the new reservation with service and station info
+            supabase.from('reservations').select(`
+              id,
+              instance_id,
+              customer_name,
+              customer_phone,
+              vehicle_plate,
+              reservation_date,
+              end_date,
+              start_time,
+              end_time,
+              station_id,
+              status,
+              confirmation_code,
+              price,
+              source,
+              service_ids,
+              created_by_username,
+              offer_number,
+              services:service_id (name, shortcut),
+              stations:station_id (name, type)
+            `).eq('id', payload.new.id).single().then(({ data }) => {
+              if (data) {
+                const serviceIds = (data as any).service_ids as string[] | null;
+                const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+                if (serviceIds && serviceIds.length > 0) {
+                  serviceIds.forEach(id => {
+                    const svc = servicesMapRef.current.get(id);
+                    if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                  });
                 }
-                return [...prev, newReservation as Reservation];
-              });
-              
-              const isCustomerReservation = (data as any).source === 'customer';
-              if (isCustomerReservation) {
-                toast.success('🔔 Nowa rezerwacja od klienta!', {
-                  description: `${data.customer_name} - ${data.start_time}`
-                });
-              }
-            }
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          supabase.from('reservations').select(`
-            id,
-            instance_id,
-            customer_name,
-            customer_phone,
-            vehicle_plate,
-            reservation_date,
-            end_date,
-            start_time,
-            end_time,
-            station_id,
-            status,
-            confirmation_code,
-            price,
-            source,
-            service_ids,
-            admin_notes,
-            customer_notes,
-            car_size,
-            offer_number,
-            services:service_id (name, shortcut),
-            stations:station_id (name, type)
-          `).eq('id', payload.new.id).single().then(({ data }) => {
-            if (data) {
-              const serviceIds = (data as any).service_ids as string[] | null;
-              const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
-              if (serviceIds && serviceIds.length > 0) {
-                serviceIds.forEach(id => {
-                  const svc = servicesMapRef.current.get(id);
-                  if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
-                });
-              }
 
-              const updatedReservation = {
-                ...data,
-                status: data.status || 'pending',
-                service: data.services ? {
-                  name: (data.services as any).name,
-                  shortcut: (data.services as any).shortcut
-                } : undefined,
-                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-                station: data.stations ? {
-                  name: (data.stations as any).name,
-                  type: (data.stations as any).type
-                } : undefined
-              };
-              setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
-            }
-          });
-        } else if (payload.eventType === 'DELETE') {
-          setReservations(prev => prev.filter(r => r.id !== payload.old.id));
-        }
-      })
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          setRealtimeConnected(true);
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setRealtimeConnected(false);
-          // Silent retry - no warning shown to user, just reconnect
-          // Retry with exponential backoff up to 10 times
-          let retryCount = 0;
-          const maxRetries = 10;
-          const retryWithBackoff = () => {
+                const newReservation = {
+                  ...data,
+                  status: data.status || 'pending',
+                  service: data.services ? {
+                    name: (data.services as any).name,
+                    shortcut: (data.services as any).shortcut
+                  } : undefined,
+                  services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                  station: data.stations ? {
+                    name: (data.stations as any).name,
+                    type: (data.stations as any).type
+                  } : undefined,
+                  created_by_username: (data as any).created_by_username || null
+                };
+                setReservations(prev => {
+                  // Prevent duplicates (in case fetch also returned this reservation)
+                  if (prev.some(r => r.id === data.id)) {
+                    return prev.map(r => r.id === data.id ? newReservation as Reservation : r);
+                  }
+                  return [...prev, newReservation as Reservation];
+                });
+                
+                const isCustomerReservation = (data as any).source === 'customer';
+                if (isCustomerReservation) {
+                  toast.success('🔔 Nowa rezerwacja od klienta!', {
+                    description: `${data.customer_name} - ${data.start_time}`
+                  });
+                }
+              }
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            supabase.from('reservations').select(`
+              id,
+              instance_id,
+              customer_name,
+              customer_phone,
+              vehicle_plate,
+              reservation_date,
+              end_date,
+              start_time,
+              end_time,
+              station_id,
+              status,
+              confirmation_code,
+              price,
+              source,
+              service_ids,
+              admin_notes,
+              customer_notes,
+              car_size,
+              offer_number,
+              services:service_id (name, shortcut),
+              stations:station_id (name, type)
+            `).eq('id', payload.new.id).single().then(({ data }) => {
+              if (data) {
+                const serviceIds = (data as any).service_ids as string[] | null;
+                const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+                if (serviceIds && serviceIds.length > 0) {
+                  serviceIds.forEach(id => {
+                    const svc = servicesMapRef.current.get(id);
+                    if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                  });
+                }
+
+                const updatedReservation = {
+                  ...data,
+                  status: data.status || 'pending',
+                  service: data.services ? {
+                    name: (data.services as any).name,
+                    shortcut: (data.services as any).shortcut
+                  } : undefined,
+                  services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                  station: data.stations ? {
+                    name: (data.stations as any).name,
+                    type: (data.stations as any).type
+                  } : undefined
+                };
+                setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
+              }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+          }
+        })
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            setRealtimeConnected(true);
+            retryCount = 0; // Reset on successful connection
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            setRealtimeConnected(false);
+            
+            if (isCleanedUp) return;
+            
+            // Silent retry with exponential backoff
             if (retryCount < maxRetries) {
               retryCount++;
               const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000); // Max 30 seconds
-              console.log(`Realtime retry attempt ${retryCount}/${maxRetries} in ${delay}ms`);
-              setTimeout(() => {
+              console.log(`Realtime retry ${retryCount}/${maxRetries} in ${delay}ms`);
+              
+              retryTimeoutId = setTimeout(() => {
+                if (isCleanedUp) return;
+                // Fetch data in case events were missed
                 fetchReservations();
+                // Setup new WebSocket connection
+                setupRealtimeChannel();
               }, delay);
+            } else {
+              console.error('Max realtime retries reached, falling back to periodic fetch');
+              // Fallback: periodic fetch every 30s and retry connection
+              retryTimeoutId = setTimeout(() => {
+                if (isCleanedUp) return;
+                fetchReservations();
+                retryCount = 0; // Reset and try again
+                setupRealtimeChannel();
+              }, 30000);
             }
-          };
-          retryWithBackoff();
-        }
-      });
+          }
+        });
+    };
+
+    // Initial connection
+    setupRealtimeChannel();
 
     return () => {
-      supabase.removeChannel(channel);
+      isCleanedUp = true;
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+      if (currentChannel) supabase.removeChannel(currentChannel);
     };
   }, [instanceId]); // Only instanceId - stable subscription
 
