@@ -1536,11 +1536,6 @@ const AdminCalendar = ({
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                 {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
                                 {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-orange-600" />}
-                                {reservation.offer_number && (
-                                  <span className="text-[10px] font-mono opacity-80 ml-1">
-                                    #{reservation.offer_number}
-                                  </span>
-                                )}
                               </span>}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
                             {!hallMode && <div className="flex items-center gap-0.5 shrink-0">
@@ -1589,6 +1584,12 @@ const AdminCalendar = ({
                                 {reservation.service.shortcut || reservation.service.name}
                               </span>
                             </div>}
+                          {/* Offer number - above notes */}
+                          {!hallMode && reservation.offer_number && (
+                            <div className="text-[10px] font-mono opacity-80 mt-0.5">
+                              #{reservation.offer_number}
+                            </div>
+                          )}
                           {/* Line 4: Notes (only if duration > 30 minutes and visible) */}
                           {(() => {
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;
