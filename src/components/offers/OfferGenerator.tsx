@@ -468,6 +468,7 @@ export const OfferGenerator = ({
           onUpdateOffer={updateOffer}
           onUpdateOption={updateOption}
           onRemoveItem={removeItemFromOption}
+          onUpdateDefaultSelection={(state) => updateOffer({ defaultSelectedState: state })}
           calculateOptionTotal={calculateOptionTotal}
           calculateTotalNet={calculateTotalNet}
           calculateTotalGross={calculateTotalGross}

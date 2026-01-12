@@ -79,6 +79,7 @@ interface SelectedState {
   selectedOptionalItems: Record<string, boolean>;
   selectedScopeId?: string | null;
   selectedItemInOption?: Record<string, string>;
+  isDefault?: boolean; // Marker indicating this is admin's pre-selection (not customer's choice)
 }
 
 interface Instance {
@@ -190,6 +191,9 @@ export const PublicOfferCustomerView = ({
     const savedState = offer.selected_state;
     
     if (savedState) {
+      // Check if this is a customer's confirmed choice (not just admin's default)
+      const isCustomerChoice = !savedState.isDefault;
+      
       const restoredVariants = savedState.selectedVariants || {};
       const restoredUpsells = savedState.selectedUpsells || {};
       const restoredOptionalItems = savedState.selectedOptionalItems || {};
@@ -217,7 +221,10 @@ export const PublicOfferCustomerView = ({
         if (!opt.is_upsell && !opt.scope?.is_extras_scope) {
           const nonOptionalItems = opt.offer_option_items?.filter(i => !i.is_optional) || [];
           if (nonOptionalItems.length > 1 && !mergedItemInOption[opt.id]) {
-            mergedItemInOption[opt.id] = nonOptionalItems[0].id;
+            // Only auto-select first item if there's no saved state at all
+            if (!savedState.isDefault) {
+              mergedItemInOption[opt.id] = nonOptionalItems[0].id;
+            }
           }
         }
       });

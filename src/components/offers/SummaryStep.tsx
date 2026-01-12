@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,8 +29,9 @@ import {
   Tag,
   X,
   ChevronDown,
+  Star,
 } from 'lucide-react';
-import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem } from '@/hooks/useOffer';
+import { CustomerData, VehicleData, OfferOption, OfferState, OfferItem, DefaultSelectedState } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -40,6 +42,7 @@ interface SummaryStepProps {
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
   onRemoveItem?: (optionId: string, itemId: string) => void;
+  onUpdateDefaultSelection?: (state: DefaultSelectedState) => void;
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
@@ -74,6 +77,7 @@ export const SummaryStep = ({
   onUpdateOffer,
   onUpdateOption,
   onRemoveItem,
+  onUpdateDefaultSelection,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
@@ -84,6 +88,59 @@ export const SummaryStep = ({
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
   const [conditionsOpen, setConditionsOpen] = useState(true);
+
+  // Local state for default selections (synced from offer.defaultSelectedState)
+  const [defaultScopeId, setDefaultScopeId] = useState<string | null>(null);
+  const [defaultVariants, setDefaultVariants] = useState<Record<string, string>>({});
+  const [defaultOptionalItems, setDefaultOptionalItems] = useState<Record<string, boolean>>({});
+  const [defaultItemInOption, setDefaultItemInOption] = useState<Record<string, string>>({});
+
+  // Initialize from offer.defaultSelectedState
+  useEffect(() => {
+    if (offer.defaultSelectedState) {
+      setDefaultScopeId(offer.defaultSelectedState.selectedScopeId ?? null);
+      setDefaultVariants(offer.defaultSelectedState.selectedVariants || {});
+      setDefaultOptionalItems(offer.defaultSelectedState.selectedOptionalItems || {});
+      setDefaultItemInOption(offer.defaultSelectedState.selectedItemInOption || {});
+    }
+  }, [offer.id]); // Only run when offer changes (new load)
+
+  // Sync local changes back to parent
+  const updateDefaultState = (updates: Partial<DefaultSelectedState>) => {
+    const newState: DefaultSelectedState = {
+      selectedScopeId: updates.selectedScopeId !== undefined ? updates.selectedScopeId : defaultScopeId,
+      selectedVariants: updates.selectedVariants || defaultVariants,
+      selectedOptionalItems: updates.selectedOptionalItems || defaultOptionalItems,
+      selectedItemInOption: updates.selectedItemInOption || defaultItemInOption,
+    };
+    
+    // Update local state
+    if (updates.selectedScopeId !== undefined) setDefaultScopeId(updates.selectedScopeId);
+    if (updates.selectedVariants) setDefaultVariants(updates.selectedVariants);
+    if (updates.selectedOptionalItems) setDefaultOptionalItems(updates.selectedOptionalItems);
+    if (updates.selectedItemInOption) setDefaultItemInOption(updates.selectedItemInOption);
+    
+    // Notify parent
+    onUpdateDefaultSelection?.(newState);
+  };
+
+  const handleSetDefaultVariant = (scopeId: string, optionId: string) => {
+    const newVariants = { ...defaultVariants, [scopeId]: optionId };
+    updateDefaultState({
+      selectedScopeId: scopeId,
+      selectedVariants: newVariants,
+    });
+  };
+
+  const handleToggleDefaultOptionalItem = (itemId: string) => {
+    const newOptionalItems = { ...defaultOptionalItems, [itemId]: !defaultOptionalItems[itemId] };
+    updateDefaultState({ selectedOptionalItems: newOptionalItems });
+  };
+
+  const handleSetDefaultItemInOption = (optionId: string, itemId: string) => {
+    const newItemInOption = { ...defaultItemInOption, [optionId]: itemId };
+    updateDefaultState({ selectedItemInOption: newItemInOption });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -290,12 +347,43 @@ export const SummaryStep = ({
               const currentTotal = calculateOptionTotal(option);
               const optionHasDiscount = hasDiscount(option);
               const isEditingThisOption = discountEditing?.optionId === option.id;
+              const isUpsell = option.isUpsell;
+              const scopeId = option.scopeId || group.scopeId || '';
+              
+              // Check if this option is the default variant for its scope
+              const isDefaultVariant = !isUpsell && scopeId && defaultVariants[scopeId] === option.id;
+              // For upsells, check if all items are marked as default
+              const hasOptionalItems = option.items.some(i => i.isOptional || isUpsell);
+              // Check for multi-item options (non-optional items > 1)
+              const nonOptionalItems = option.items.filter(i => !i.isOptional);
+              const hasMultipleNonOptional = nonOptionalItems.length > 1;
               
               return (
                 <div key={option.id} className="space-y-3 border-b last:border-0 pb-4 last:pb-0">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-center gap-2">
+                      {/* Default variant selector (for non-upsell options) */}
+                      {!isUpsell && scopeId && onUpdateDefaultSelection && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefaultVariant(scopeId, option.id)}
+                          className={cn(
+                            "p-1 rounded-full transition-colors",
+                            isDefaultVariant 
+                              ? "text-amber-500 bg-amber-50" 
+                              : "text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-50/50"
+                          )}
+                          title={isDefaultVariant ? "Domyślny wariant" : "Ustaw jako domyślny"}
+                        >
+                          <Star className={cn("h-4 w-4", isDefaultVariant && "fill-current")} />
+                        </button>
+                      )}
                       <h4 className="font-semibold">{option.name}</h4>
+                      {isDefaultVariant && (
+                        <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                          domyślny
+                        </span>
+                      )}
                     </div>
                     <div className="text-right">
                       {optionHasDiscount ? (
@@ -326,12 +414,43 @@ export const SummaryStep = ({
                       </div>
                       {option.items.map((item) => {
                         const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                        const isOptionalOrUpsell = item.isOptional || isUpsell;
+                        const isDefaultItem = defaultOptionalItems[item.id];
+                        const isSelectedInMultiOption = hasMultipleNonOptional && !item.isOptional && defaultItemInOption[option.id] === item.id;
+                        
                         return (
                           <div
                             key={item.id}
                             className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 group hover:bg-muted/30"
                           >
                             <div className="col-span-5 flex items-center gap-1">
+                              {/* Default selection for optional items / upsells */}
+                              {isOptionalOrUpsell && onUpdateDefaultSelection && (
+                                <Checkbox
+                                  checked={isDefaultItem}
+                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id)}
+                                  className="h-4 w-4"
+                                  title="Domyślnie zaznaczony dodatek"
+                                />
+                              )}
+                              {/* Default selection for multi-item options (radio) */}
+                              {hasMultipleNonOptional && !item.isOptional && onUpdateDefaultSelection && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetDefaultItemInOption(option.id, item.id)}
+                                  className={cn(
+                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
+                                    isSelectedInMultiOption 
+                                      ? "border-amber-500 bg-amber-500" 
+                                      : "border-muted-foreground/40 hover:border-amber-400"
+                                  )}
+                                  title={isSelectedInMultiOption ? "Domyślna pozycja" : "Ustaw jako domyślną"}
+                                >
+                                  {isSelectedInMultiOption && (
+                                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                  )}
+                                </button>
+                              )}
                               {onRemoveItem && option.items.length > 1 && (
                                 <Button
                                   variant="ghost"
@@ -343,6 +462,9 @@ export const SummaryStep = ({
                                 </Button>
                               )}
                               <span>{item.customName}</span>
+                              {isDefaultItem && isOptionalOrUpsell && (
+                                <span className="text-xs text-amber-600">✓</span>
+                              )}
                             </div>
                             <div className="col-span-2 text-right">
                               {item.quantity} {item.unit}
@@ -362,12 +484,43 @@ export const SummaryStep = ({
                     <div className="text-sm space-y-1">
                       {option.items.map((item) => {
                         const itemValue = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
+                        const isOptionalOrUpsell = item.isOptional || isUpsell;
+                        const isDefaultItem = defaultOptionalItems[item.id];
+                        const isSelectedInMultiOption = hasMultipleNonOptional && !item.isOptional && defaultItemInOption[option.id] === item.id;
+                        
                         return (
                           <div
                             key={item.id}
                             className="flex justify-between py-1 group hover:bg-muted/30 px-1 rounded"
                           >
                             <div className="flex items-center gap-1">
+                              {/* Default selection for optional items / upsells */}
+                              {isOptionalOrUpsell && onUpdateDefaultSelection && (
+                                <Checkbox
+                                  checked={isDefaultItem}
+                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id)}
+                                  className="h-4 w-4"
+                                  title="Domyślnie zaznaczony dodatek"
+                                />
+                              )}
+                              {/* Default selection for multi-item options (radio) */}
+                              {hasMultipleNonOptional && !item.isOptional && onUpdateDefaultSelection && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetDefaultItemInOption(option.id, item.id)}
+                                  className={cn(
+                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
+                                    isSelectedInMultiOption 
+                                      ? "border-amber-500 bg-amber-500" 
+                                      : "border-muted-foreground/40 hover:border-amber-400"
+                                  )}
+                                  title={isSelectedInMultiOption ? "Domyślna pozycja" : "Ustaw jako domyślną"}
+                                >
+                                  {isSelectedInMultiOption && (
+                                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                  )}
+                                </button>
+                              )}
                               {onRemoveItem && option.items.length > 1 && (
                                 <Button
                                   variant="ghost"
@@ -379,6 +532,9 @@ export const SummaryStep = ({
                                 </Button>
                               )}
                               <span>{item.customName}</span>
+                              {isDefaultItem && isOptionalOrUpsell && (
+                                <span className="text-xs text-amber-600">✓</span>
+                              )}
                             </div>
                             <span className="font-medium">{formatPrice(itemValue)}</span>
                           </div>
