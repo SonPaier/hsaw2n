@@ -467,6 +467,7 @@ export const OfferGenerator = ({
           showUnitPrices={instanceShowUnitPrices}
           onUpdateOffer={updateOffer}
           onUpdateOption={updateOption}
+          onRemoveItem={removeItemFromOption}
           calculateOptionTotal={calculateOptionTotal}
           calculateTotalNet={calculateTotalNet}
           calculateTotalGross={calculateTotalGross}
