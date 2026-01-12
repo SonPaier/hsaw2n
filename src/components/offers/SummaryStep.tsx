@@ -555,15 +555,15 @@ export const SummaryStep = ({
                                   type="button"
                                   onClick={() => handleSetDefaultItemInOption(option.id, item.id)}
                                   className={cn(
-                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
+                                    "h-5 w-5 min-w-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
                                     isSelectedInMultiOption 
                                       ? "border-amber-500 bg-amber-500" 
-                                      : "border-muted-foreground/40 hover:border-amber-400"
+                                      : "border-gray-400 hover:border-amber-400"
                                   )}
                                   title={isSelectedInMultiOption ? "Domyślna pozycja" : "Ustaw jako domyślną"}
                                 >
                                   {isSelectedInMultiOption && (
-                                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                    <div className="h-2 w-2 rounded-full bg-white" />
                                   )}
                                 </button>
                               )}
@@ -571,7 +571,7 @@ export const SummaryStep = ({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  className="h-5 w-5 text-gray-400 hover:text-destructive flex-shrink-0"
                                   onClick={() => onRemoveItem(option.id, item.id)}
                                 >
                                   <X className="h-3 w-3" />
@@ -649,15 +649,15 @@ export const SummaryStep = ({
                                   type="button"
                                   onClick={() => handleSetDefaultItemInOption(option.id, item.id)}
                                   className={cn(
-                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
+                                    "h-5 w-5 min-w-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
                                     isSelectedInMultiOption 
                                       ? "border-amber-500 bg-amber-500" 
-                                      : "border-muted-foreground/40 hover:border-amber-400"
+                                      : "border-gray-400 hover:border-amber-400"
                                   )}
                                   title={isSelectedInMultiOption ? "Domyślna pozycja" : "Ustaw jako domyślną"}
                                 >
                                   {isSelectedInMultiOption && (
-                                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                    <div className="h-2 w-2 rounded-full bg-white" />
                                   )}
                                 </button>
                               )}
@@ -665,7 +665,7 @@ export const SummaryStep = ({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  className="h-5 w-5 text-gray-400 hover:text-destructive flex-shrink-0"
                                   onClick={() => onRemoveItem(option.id, item.id)}
                                 >
                                   <X className="h-3 w-3" />
