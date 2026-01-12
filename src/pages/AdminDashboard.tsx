@@ -78,6 +78,7 @@ interface Reservation {
   } | null;
   created_by?: string | null;
   created_by_username?: string | null;
+  offer_number?: string | null;
 }
 interface Break {
   id: string;
@@ -596,6 +597,7 @@ const AdminDashboard = () => {
         original_reservation_id,
         created_by,
         created_by_username,
+        offer_number,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
@@ -666,6 +668,7 @@ const AdminDashboard = () => {
           original_reservation_id,
           created_by,
           created_by_username,
+          offer_number,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
@@ -778,6 +781,7 @@ const AdminDashboard = () => {
             car_size,
             service_ids,
             original_reservation_id,
+            offer_number,
             services:service_id (name, shortcut),
             stations:station_id (name, type)
           `)
@@ -881,6 +885,7 @@ const AdminDashboard = () => {
             source,
             service_ids,
             created_by_username,
+            offer_number,
             services:service_id (name, shortcut),
             stations:station_id (name, type)
           `).eq('id', payload.new.id).single().then(({ data }) => {
