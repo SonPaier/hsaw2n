@@ -67,6 +67,12 @@ interface EditingPriceState {
   value: string;
 }
 
+interface EditingItemPriceState {
+  optionId: string;
+  itemId: string;
+  value: string;
+}
+
 const paintTypeLabels: Record<string, string> = {
   matte: 'Mat',
   dark: 'Ciemny',
@@ -91,6 +97,7 @@ export const SummaryStep = ({
   const { t } = useTranslation();
   const [discountEditing, setDiscountEditing] = useState<DiscountState | null>(null);
   const [editingPrice, setEditingPrice] = useState<EditingPriceState | null>(null);
+  const [editingItemPrice, setEditingItemPrice] = useState<EditingItemPriceState | null>(null);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
   const [conditionsOpen, setConditionsOpen] = useState(true);
@@ -293,6 +300,30 @@ export const SummaryStep = ({
       onUpdateOption(editingPrice.optionId, { items: updatedItems });
     }
     setEditingPrice(null);
+  };
+
+  // Handle editing individual item price
+  const handleStartEditItemPrice = (optionId: string, itemId: string, currentPrice: number) => {
+    setEditingItemPrice({
+      optionId,
+      itemId,
+      value: String(Math.round(currentPrice)),
+    });
+  };
+
+  const handleApplyEditedItemPrice = (option: OfferOption) => {
+    if (!editingItemPrice) return;
+    
+    const newPrice = parseFloat(editingItemPrice.value) || 0;
+    if (newPrice >= 0) {
+      const updatedItems = option.items.map(item => 
+        item.id === editingItemPrice.itemId 
+          ? { ...item, unitPrice: newPrice }
+          : item
+      );
+      onUpdateOption(editingItemPrice.optionId, { items: updatedItems });
+    }
+    setEditingItemPrice(null);
   };
 
   const handleApplyTemplate = (template: OfferTemplate) => {
@@ -531,7 +562,31 @@ export const SummaryStep = ({
                             <div className="col-span-2 text-right">
                               {item.quantity} {item.unit}
                             </div>
-                            <div className="col-span-2 text-right">{formatPrice(item.unitPrice)}</div>
+                            <div className="col-span-2 text-right">
+                              {editingItemPrice?.optionId === option.id && editingItemPrice?.itemId === item.id ? (
+                                <Input
+                                  type="number"
+                                  value={editingItemPrice.value}
+                                  onChange={(e) => setEditingItemPrice({ ...editingItemPrice, value: e.target.value })}
+                                  className="w-20 h-6 text-right text-xs"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleApplyEditedItemPrice(option);
+                                    if (e.key === 'Escape') setEditingItemPrice(null);
+                                  }}
+                                  onBlur={() => handleApplyEditedItemPrice(option)}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditItemPrice(option.id, item.id, item.unitPrice)}
+                                  className="hover:bg-muted rounded px-1 transition-colors cursor-pointer"
+                                  title="Kliknij aby edytować"
+                                >
+                                  {formatPrice(item.unitPrice)}
+                                </button>
+                              )}
+                            </div>
                             <div className="col-span-1 text-right">
                               {item.discountPercent > 0 && `-${item.discountPercent}%`}
                             </div>
@@ -598,7 +653,32 @@ export const SummaryStep = ({
                                 <span className="text-xs text-amber-600">✓</span>
                               )}
                             </div>
-                            <span className="font-medium">{formatPrice(itemValue)}</span>
+                            {editingItemPrice?.optionId === option.id && editingItemPrice?.itemId === item.id ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  value={editingItemPrice.value}
+                                  onChange={(e) => setEditingItemPrice({ ...editingItemPrice, value: e.target.value })}
+                                  className="w-20 h-6 text-right text-xs"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleApplyEditedItemPrice(option);
+                                    if (e.key === 'Escape') setEditingItemPrice(null);
+                                  }}
+                                  onBlur={() => handleApplyEditedItemPrice(option)}
+                                />
+                                <span className="text-xs text-muted-foreground">zł</span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditItemPrice(option.id, item.id, item.unitPrice)}
+                                className="font-medium hover:bg-muted rounded px-1 transition-colors cursor-pointer"
+                                title="Kliknij aby edytować"
+                              >
+                                {formatPrice(itemValue)}
+                              </button>
+                            )}
                           </div>
                         );
                       })}
