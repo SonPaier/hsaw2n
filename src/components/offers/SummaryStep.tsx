@@ -116,7 +116,7 @@ export const SummaryStep = ({
       setDefaultOptionalItems(offer.defaultSelectedState.selectedOptionalItems || {});
       setDefaultItemInOption(offer.defaultSelectedState.selectedItemInOption || {});
     }
-  }, [offer.id]); // Only run when offer changes (new load)
+  }, [offer.id, offer.defaultSelectedState]); // Re-run when offer or its defaultSelectedState changes
 
   // Sync local changes back to parent
   const updateDefaultState = (updates: Partial<DefaultSelectedState>) => {
@@ -145,14 +145,37 @@ export const SummaryStep = ({
     });
   };
 
-  const handleToggleDefaultOptionalItem = (itemId: string) => {
+  const handleToggleDefaultOptionalItem = (itemId: string, option?: OfferOption) => {
     const newOptionalItems = { ...defaultOptionalItems, [itemId]: !defaultOptionalItems[itemId] };
-    updateDefaultState({ selectedOptionalItems: newOptionalItems });
+    
+    // If selecting an item from a non-extras scope, ensure scope is selected
+    if (option?.scopeId && !option.isUpsell) {
+      const newVariants = { ...defaultVariants, [option.scopeId]: option.id };
+      updateDefaultState({
+        selectedScopeId: defaultScopeId || option.scopeId,
+        selectedVariants: newVariants,
+        selectedOptionalItems: newOptionalItems,
+      });
+    } else {
+      updateDefaultState({ selectedOptionalItems: newOptionalItems });
+    }
   };
 
   const handleSetDefaultItemInOption = (optionId: string, itemId: string) => {
     const newItemInOption = { ...defaultItemInOption, [optionId]: itemId };
-    updateDefaultState({ selectedItemInOption: newItemInOption });
+    
+    // Find the option to get its scopeId and auto-set scope/variant
+    const option = offer.options.find(o => o.id === optionId);
+    if (option?.scopeId) {
+      const newVariants = { ...defaultVariants, [option.scopeId]: optionId };
+      updateDefaultState({ 
+        selectedScopeId: option.scopeId,
+        selectedVariants: newVariants,
+        selectedItemInOption: newItemInOption,
+      });
+    } else {
+      updateDefaultState({ selectedItemInOption: newItemInOption });
+    }
   };
 
   useEffect(() => {
@@ -521,7 +544,7 @@ export const SummaryStep = ({
                               {isOptionalOrUpsell && onUpdateDefaultSelection && (
                                 <Checkbox
                                   checked={isDefaultItem}
-                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id)}
+                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id, option)}
                                   className="h-4 w-4"
                                   title="Domyślnie zaznaczony dodatek"
                                 />
@@ -615,7 +638,7 @@ export const SummaryStep = ({
                               {isOptionalOrUpsell && onUpdateDefaultSelection && (
                                 <Checkbox
                                   checked={isDefaultItem}
-                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id)}
+                                  onCheckedChange={() => handleToggleDefaultOptionalItem(item.id, option)}
                                   className="h-4 w-4"
                                   title="Domyślnie zaznaczony dodatek"
                                 />
