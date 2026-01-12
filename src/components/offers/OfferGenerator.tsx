@@ -81,11 +81,12 @@ export const OfferGenerator = ({
     offer_email_template?: string;
   } | null>(null);
 
+  // Step 3 (Options) is temporarily hidden but code remains
   const steps = [
     { id: 1, label: t('offers.steps.customerData'), icon: User },
     { id: 2, label: t('offers.steps.scope'), icon: Layers },
-    { id: 3, label: t('offers.steps.optionsProducts'), icon: Package },
-    { id: 4, label: t('offers.steps.summary'), icon: FileCheck },
+    // { id: 3, label: t('offers.steps.optionsProducts'), icon: Package }, // Hidden temporarily
+    { id: 3, label: t('offers.steps.summary'), icon: FileCheck }, // Summary is now step 3
   ];
   
   const {
@@ -236,7 +237,7 @@ export const OfferGenerator = ({
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) { // Max step is now 3 (Summary)
       // Optimistic navigation - change step immediately
       setCurrentStep(prev => prev + 1);
       // Fire-and-forget auto-save in background (silent - no toast)
@@ -367,10 +368,7 @@ export const OfferGenerator = ({
         return !!(offer.customerData.name && offer.customerData.email && offer.vehicleData.brandModel);
       case 2:
         return offer.selectedScopeIds.length > 0;
-      case 3:
-        return offer.options.length > 0 && 
-          offer.options.some(opt => opt.items.length > 0);
-      case 4:
+      case 3: // Summary (was step 4)
         return true;
       default:
         return false;
@@ -443,6 +441,7 @@ export const OfferGenerator = ({
         </Card>
       )}
       
+      {/* Step 3 (Options) is temporarily hidden - code preserved for future use
       {currentStep === 3 && (
         <OptionsStep
           instanceId={instanceId}
@@ -459,8 +458,9 @@ export const OfferGenerator = ({
           calculateOptionTotal={calculateOptionTotal}
         />
       )}
+      */}
       
-      {currentStep === 4 && (
+      {currentStep === 3 && (
         <SummaryStep
           instanceId={instanceId}
           offer={offer}

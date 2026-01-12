@@ -62,6 +62,11 @@ interface DiscountState {
   value: string;
 }
 
+interface EditingPriceState {
+  optionId: string;
+  value: string;
+}
+
 const paintTypeLabels: Record<string, string> = {
   matte: 'Mat',
   dark: 'Ciemny',
@@ -85,6 +90,7 @@ export const SummaryStep = ({
 }: SummaryStepProps) => {
   const { t } = useTranslation();
   const [discountEditing, setDiscountEditing] = useState<DiscountState | null>(null);
+  const [editingPrice, setEditingPrice] = useState<EditingPriceState | null>(null);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [scopes, setScopes] = useState<{ id: string; name: string }[]>([]);
   const [conditionsOpen, setConditionsOpen] = useState(true);
@@ -263,6 +269,32 @@ export const SummaryStep = ({
     onUpdateOption(optionId, { items: updatedItems });
   };
 
+  // Handle editing price for multi-variant options
+  const handleStartEditPrice = (optionId: string, currentTotal: number) => {
+    setEditingPrice({
+      optionId,
+      value: String(Math.round(currentTotal)),
+    });
+  };
+
+  const handleApplyEditedPrice = (option: OfferOption) => {
+    if (!editingPrice) return;
+    
+    const newTotal = parseFloat(editingPrice.value) || 0;
+    const currentTotal = calculateOptionTotal(option);
+    
+    if (newTotal > 0 && currentTotal > 0 && option.items.length > 0) {
+      // Distribute the new total proportionally across items
+      const ratio = newTotal / currentTotal;
+      const updatedItems = option.items.map(item => ({
+        ...item,
+        unitPrice: Math.round(item.unitPrice * ratio),
+      }));
+      onUpdateOption(editingPrice.optionId, { items: updatedItems });
+    }
+    setEditingPrice(null);
+  };
+
   const handleApplyTemplate = (template: OfferTemplate) => {
     onUpdateOffer({
       paymentTerms: template.payment_terms || offer.paymentTerms,
@@ -385,21 +417,51 @@ export const SummaryStep = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
-                      {optionHasDiscount ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground line-through text-sm">
-                            {formatPrice(originalTotal)}
-                          </span>
-                          <span className="font-semibold text-primary">
-                            {formatPrice(currentTotal)}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="font-semibold">{formatPrice(currentTotal)}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">netto</p>
-                    </div>
+                    {/* Hide total sum for multi-variant options (customer chooses one) */}
+                    {!hasMultipleNonOptional && (
+                      <div className="text-right">
+                        {editingPrice?.optionId === option.id ? (
+                          <div className="flex items-center gap-2 justify-end">
+                            <Input
+                              type="number"
+                              value={editingPrice.value}
+                              onChange={(e) => setEditingPrice({ ...editingPrice, value: e.target.value })}
+                              className="w-28 h-8 text-right"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleApplyEditedPrice(option);
+                                if (e.key === 'Escape') setEditingPrice(null);
+                              }}
+                            />
+                            <span className="text-xs text-muted-foreground">zł</span>
+                            <Button size="sm" variant="ghost" onClick={() => handleApplyEditedPrice(option)}>
+                              ✓
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditPrice(option.id, currentTotal)}
+                            className="text-right hover:bg-muted/50 rounded px-2 py-1 transition-colors cursor-pointer"
+                            title="Kliknij aby edytować wartość"
+                          >
+                            {optionHasDiscount ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground line-through text-sm">
+                                  {formatPrice(originalTotal)}
+                                </span>
+                                <span className="font-semibold text-primary">
+                                  {formatPrice(currentTotal)}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="font-semibold">{formatPrice(currentTotal)}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">netto</p>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Items - conditional based on showUnitPrices */}
