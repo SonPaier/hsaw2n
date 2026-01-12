@@ -336,7 +336,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
         <TabsList className="mb-6 bg-muted/50">
           <TabsTrigger value="products" className="gap-2 data-[state=active]:bg-background">
             <Package className="h-4 w-4" />
-            {t('products.tabs.products')} ({products.length})
+            {t('products.tabs.products')} ({filteredProducts.length})
           </TabsTrigger>
           <TabsTrigger value="price-lists" className="gap-2 data-[state=active]:bg-background">
             <FileText className="h-4 w-4" />
