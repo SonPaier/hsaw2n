@@ -1214,9 +1214,10 @@ const AdminDashboard = () => {
     });
     setAddReservationOpen(true);
   };
-  const handleReservationAdded = () => {
-    // Realtime already handles adding new reservations to state
-    // Only clear editing state - don't fetch as it causes race condition with realtime
+const handleReservationAdded = () => {
+    // Fetch to ensure new reservations are visible
+    // Realtime should also handle this, but fetch as backup for reliability
+    fetchReservations();
     setEditingReservation(null);
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
