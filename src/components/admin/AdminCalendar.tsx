@@ -35,6 +35,7 @@ interface Reservation {
   status: string;
   customer_notes?: string | null;
   admin_notes?: string | null;
+  offer_number?: string | null;
   service?: {
     name: string;
     shortcut?: string | null;
@@ -255,6 +256,14 @@ const AdminCalendar = ({
     customerName: string;
   } | null>(null);
   const [closeDayDialogOpen, setCloseDayDialogOpen] = useState(false);
+  const [moveWarningData, setMoveWarningData] = useState<{
+    reservation: Reservation;
+    targetStationId: string;
+    targetDate: string;
+    targetTime?: string;
+    isMultiDay: boolean;
+    hasOfferNumber: boolean;
+  } | null>(null);
   const isMobile = useIsMobile();
 
   // Notify parent when currentDate changes
@@ -987,8 +996,34 @@ const AdminCalendar = ({
       return;
     }
     if (draggedReservation) {
-      // No station type restrictions - admin can move reservations freely between any stations
+      // Check if moving from PPF/Detailing to Washing with special fields
+      const sourceStation = stations.find(s => s.id === draggedReservation.station_id);
+      const targetStation = stations.find(s => s.id === stationId);
+      
+      const isPPFOrDetailingSource = sourceStation?.type === 'ppf' || sourceStation?.type === 'detailing';
+      const isWashingTarget = targetStation?.type === 'washing';
+      
+      // Multi-day = end_date exists AND is different from reservation_date
+      const isMultiDay = !!(draggedReservation.end_date && 
+                         draggedReservation.end_date !== draggedReservation.reservation_date);
+      
+      const hasSpecialFields = isMultiDay || !!draggedReservation.offer_number;
+      
       const newTime = hour !== undefined && slotIndex !== undefined ? formatTimeSlot(hour, slotIndex) : undefined;
+      
+      // Show warning dialog when moving PPF/Detailing with special fields to Washing
+      if (isPPFOrDetailingSource && isWashingTarget && hasSpecialFields) {
+        setMoveWarningData({
+          reservation: draggedReservation,
+          targetStationId: stationId,
+          targetDate: dateStr,
+          targetTime: newTime,
+          isMultiDay,
+          hasOfferNumber: !!draggedReservation.offer_number
+        });
+        setDraggedReservation(null);
+        return;
+      }
 
       // Validate that reservation fits within working hours
       if (newTime) {
@@ -1535,6 +1570,11 @@ const AdminCalendar = ({
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                 {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
                                 {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-orange-600" />}
+                                {reservation.offer_number && (
+                                  <span className="text-[10px] font-mono opacity-80 ml-1">
+                                    #{reservation.offer_number}
+                                  </span>
+                                )}
                               </span>}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
                             {!hallMode && <div className="flex items-center gap-0.5 shrink-0">
@@ -2252,6 +2292,46 @@ const AdminCalendar = ({
               className={currentDateClosed ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
             >
               {currentDateClosed ? t('calendar.open') : t('calendar.close')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Move Warning Dialog - when moving PPF/Detailing reservation with special fields to Washing station */}
+      <AlertDialog open={!!moveWarningData} onOpenChange={(open) => !open && setMoveWarningData(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Uwaga - zmiana typu stanowiska</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-2">Ta rezerwacja zawiera dane specyficzne dla stanowiska PPF/Detailing:</p>
+                <ul className="list-disc list-inside space-y-1 mb-3">
+                  {moveWarningData?.isMultiDay && (
+                    <li>Zakres dat: {moveWarningData.reservation.reservation_date} - {moveWarningData.reservation.end_date}</li>
+                  )}
+                  {moveWarningData?.hasOfferNumber && (
+                    <li>Numer oferty: #{moveWarningData.reservation.offer_number}</li>
+                  )}
+                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Po przeniesieniu na stanowisko myjni te dane zostaną zachowane w systemie, ale nie będą widoczne w kalendarzu.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!moveWarningData) return;
+              onReservationMove?.(
+                moveWarningData.reservation.id,
+                moveWarningData.targetStationId,
+                moveWarningData.targetDate,
+                moveWarningData.targetTime
+              );
+              setMoveWarningData(null);
+            }}>
+              Przenieś mimo to
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
