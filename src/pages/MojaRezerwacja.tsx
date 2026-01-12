@@ -109,6 +109,15 @@ const MojaRezerwacja = () => {
             instance: data.instance as unknown as Reservation['instance'],
           });
           
+          // Log 'viewed' event for analytics (fire and forget)
+          supabase.from('reservation_events').insert({
+            reservation_id: data.id,
+            event_type: 'viewed',
+            instance_id: data.instance_id
+          }).then(({ error: logError }) => {
+            if (logError) console.warn('Failed to log view event:', logError);
+          });
+          
           // Check for pending change request linked to this reservation (take the newest)
           const { data: changeRequest, error: changeRequestError } = await supabase
             .from('reservations')
@@ -171,6 +180,15 @@ const MojaRezerwacja = () => {
       } catch (pushError) {
         console.error('Push notification error:', pushError);
       }
+
+      // Log 'cancelled' event for analytics (fire and forget)
+      supabase.from('reservation_events').insert({
+        reservation_id: reservation.id,
+        event_type: 'cancelled',
+        instance_id: reservation.instance_id
+      }).then(({ error: logError }) => {
+        if (logError) console.warn('Failed to log cancel event:', logError);
+      });
 
       setReservation({ ...reservation, status: 'cancelled' });
       setCancelDialogOpen(false);
