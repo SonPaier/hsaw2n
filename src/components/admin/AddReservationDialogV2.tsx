@@ -1421,74 +1421,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
         if (reservationError) throw reservationError;
 
-        // Send SMS confirmation if phone is provided
-        if (phone) {
-          try {
-            // Fetch instance data for SMS (prefer short_name)
-            const { data: instanceData } = await supabase
-              .from('instances')
-              .select('name, short_name, google_maps_url, slug')
-              .eq('id', instanceId)
-              .single();
-
-            if (instanceData) {
-              // Check if SMS edit link feature is enabled
-              const { data: smsEditLinkFeature } = await supabase
-                .from('instance_features')
-                .select('enabled, parameters')
-                .eq('instance_id', instanceId)
-                .eq('feature_key', 'sms_edit_link')
-                .maybeSingle();
-              
-              // Determine if edit link should be included
-              let includeEditLink = false;
-              if (smsEditLinkFeature?.enabled) {
-                const params = smsEditLinkFeature.parameters as { phones?: string[] } | null;
-                if (!params || !params.phones || params.phones.length === 0) {
-                  includeEditLink = true;
-                } else {
-                  // Check if phone is in allowed list
-                  let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-                  if (!normalizedPhone.startsWith("+")) {
-                    normalizedPhone = "+48" + normalizedPhone;
-                  }
-                  includeEditLink = params.phones.some(p => {
-                    let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-                    if (!normalizedAllowed.startsWith("+")) {
-                      normalizedAllowed = "+48" + normalizedAllowed;
-                    }
-                    return normalizedPhone === normalizedAllowed;
-                  });
-                }
-              }
-
-              // Format date and time for SMS using full month names
-              const monthNamesFull = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
-              const dateObj = selectedDate;
-              const dayNum = dateObj.getDate();
-              const monthNameFull = monthNamesFull[dateObj.getMonth()];
-
-              // Use short_name if available, fallback to name
-              const instanceName = instanceData.short_name || instanceData.name || 'Myjnia';
-              const mapsLink = instanceData.google_maps_url ? ` Dojazd: ${instanceData.google_maps_url}` : '';
-              const reservationUrl = `https://${instanceData.slug}.n2wash.com/res?code=${reservationData.confirmation_code}`;
-              const editLink = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : '';
-              
-              const smsMessage = `${instanceName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${finalStartTime}.${mapsLink}${editLink}`;
-
-              await supabase.functions.invoke('send-sms-message', {
-                body: {
-                  phone: phone,
-                  message: smsMessage,
-                  instanceId: instanceId
-                }
-              });
-            }
-          } catch (smsError) {
-            console.error('Error sending SMS confirmation:', smsError);
-            // Don't block reservation creation if SMS fails
-          }
-        }
+        // SMS confirmation is now sent manually via drawer button
+        // (automatic SMS removed - admin uses "Wyślij SMS o potwierdzeniu" button)
 
         // Send push notification for new reservation by admin
         sendPushNotification({
