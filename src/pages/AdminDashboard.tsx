@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, WifiOff, RefreshCw } from 'lucide-react';
+import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
 import { UpdateBanner } from '@/components/admin/UpdateBanner';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
@@ -997,11 +997,21 @@ const AdminDashboard = () => {
           setRealtimeConnected(true);
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setRealtimeConnected(false);
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            console.log('Attempting to reconnect realtime...');
-            fetchReservations();
-          }, 3000);
+          // Silent retry - no warning shown to user, just reconnect
+          // Retry with exponential backoff up to 10 times
+          let retryCount = 0;
+          const maxRetries = 10;
+          const retryWithBackoff = () => {
+            if (retryCount < maxRetries) {
+              retryCount++;
+              const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000); // Max 30 seconds
+              console.log(`Realtime retry attempt ${retryCount}/${maxRetries} in ${delay}ms`);
+              setTimeout(() => {
+                fetchReservations();
+              }, delay);
+            }
+          };
+          retryWithBackoff();
         }
       });
 
@@ -1471,6 +1481,18 @@ const AdminDashboard = () => {
     if (!reservation) return;
 
     const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
+    
+    // Optimistic update - set timestamp immediately
+    const now = new Date().toISOString();
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      pickup_sms_sent_at: now
+    } : r));
+    // Also update selectedReservation for drawer UI
+    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      ...prev,
+      pickup_sms_sent_at: now
+    } : prev);
 
     try {
       await supabase.functions.invoke('send-sms-message', {
@@ -1481,22 +1503,24 @@ const AdminDashboard = () => {
         }
       });
       
-      // Save pickup SMS sent timestamp
-      const now = new Date().toISOString();
+      // Save pickup SMS sent timestamp to DB
       await supabase
         .from('reservations')
         .update({ pickup_sms_sent_at: now })
         .eq('id', reservationId);
       
-      // Update local state
-      setReservations(prev => prev.map(r => r.id === reservationId ? {
-        ...r,
-        pickup_sms_sent_at: now
-      } : r));
-      
       toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
     } catch (error) {
       console.error('SMS error:', error);
+      // Rollback optimistic update on error
+      setReservations(prev => prev.map(r => r.id === reservationId ? {
+        ...r,
+        pickup_sms_sent_at: reservation.pickup_sms_sent_at
+      } : r));
+      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+        ...prev,
+        pickup_sms_sent_at: reservation.pickup_sms_sent_at
+      } : prev);
       toast.error(t('errors.generic'));
     }
   };
@@ -1504,6 +1528,18 @@ const AdminDashboard = () => {
   const handleSendConfirmationSms = async (reservationId: string) => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation || !reservation.customer_phone) return;
+
+    // Optimistic update - set timestamp immediately
+    const now = new Date().toISOString();
+    setReservations(prev => prev.map(r => r.id === reservationId ? {
+      ...r,
+      confirmation_sms_sent_at: now
+    } : r));
+    // Also update selectedReservation for drawer UI
+    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      ...prev,
+      confirmation_sms_sent_at: now
+    } : prev);
 
     try {
       // Fetch instance data for SMS
@@ -1565,22 +1601,24 @@ const AdminDashboard = () => {
         }
       });
 
-      // Save confirmation SMS sent timestamp
-      const now = new Date().toISOString();
+      // Save confirmation SMS sent timestamp to DB
       await supabase
         .from('reservations')
         .update({ confirmation_sms_sent_at: now })
         .eq('id', reservationId);
       
-      // Update local state
-      setReservations(prev => prev.map(r => r.id === reservationId ? {
-        ...r,
-        confirmation_sms_sent_at: now
-      } : r));
-      
       toast.success(t('reservations.confirmationSmsSent', { customerName: reservation.customer_name }));
     } catch (error) {
       console.error('SMS error:', error);
+      // Rollback optimistic update on error
+      setReservations(prev => prev.map(r => r.id === reservationId ? {
+        ...r,
+        confirmation_sms_sent_at: reservation.confirmation_sms_sent_at
+      } : r));
+      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+        ...prev,
+        confirmation_sms_sent_at: reservation.confirmation_sms_sent_at
+      } : prev);
       toast.error(t('errors.generic'));
     }
   };
@@ -2176,20 +2214,6 @@ const AdminDashboard = () => {
 
         {/* Main Content - scrollable */}
         <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-          {/* Realtime connection status indicator */}
-          {!realtimeConnected && (
-            <div className="bg-yellow-500 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2 shrink-0">
-              <WifiOff className="h-4 w-4" />
-              <span>Połączenie przerwane</span>
-              <button 
-                onClick={() => fetchReservations()} 
-                className="ml-2 flex items-center gap-1 underline hover:no-underline"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Odśwież
-              </button>
-            </div>
-          )}
 
           {/* Content */}
           <div className={cn(
