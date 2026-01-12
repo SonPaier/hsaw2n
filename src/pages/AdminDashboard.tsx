@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
+import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, WifiOff, RefreshCw } from 'lucide-react';
 import { UpdateBanner } from '@/components/admin/UpdateBanner';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
@@ -142,6 +142,15 @@ const AdminDashboard = () => {
     to: null
   });
   const [isLoadingMoreReservations, setIsLoadingMoreReservations] = useState(false);
+  
+  // Realtime connection state
+  const [realtimeConnected, setRealtimeConnected] = useState(true);
+  
+  // Ref to track loadedDateRange for realtime handler (avoids re-subscribing on date change)
+  const loadedDateRangeRef = useRef(loadedDateRange);
+  useEffect(() => {
+    loadedDateRangeRef.current = loadedDateRange;
+  }, [loadedDateRange]);
   
   const [allServices, setAllServices] = useState<Array<{
     id: string;
@@ -825,151 +834,168 @@ const AdminDashboard = () => {
   };
 
   // Subscribe to realtime updates for reservations
+  // IMPORTANT: Only instanceId as dependency to maintain stable WebSocket connection
   useEffect(() => {
     if (!instanceId) return;
-    const channel = supabase.channel('reservations-changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'reservations',
-      filter: `instance_id=eq.${instanceId}`
-    }, payload => {
-      console.log('Realtime reservation update:', payload);
-      if (payload.eventType === 'INSERT') {
-        const newRecord = payload.new as any;
-        const reservationDate = parseISO(newRecord.reservation_date);
+    
+    const channel = supabase.channel('reservations-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reservations',
+        filter: `instance_id=eq.${instanceId}`
+      }, payload => {
+        console.log('Realtime reservation update:', payload);
         
-        // Check if the new reservation is within loaded date range
-        // Since loadedDateRange.to is null (all future), we only check from
-        const isWithinRange = reservationDate >= loadedDateRange.from;
-        
-        if (!isWithinRange) {
-          // Reservation is before our loaded range, skip adding to state
-          return;
-        }
-
-        // Play sound only for customer reservations
-        if (newRecord.source === 'customer') {
-          playNotificationSound();
-        }
-
-        // Fetch the new reservation with service and station info
-        supabase.from('reservations').select(`
-                id,
-                instance_id,
-                customer_name,
-                customer_phone,
-                vehicle_plate,
-                reservation_date,
-                end_date,
-                start_time,
-                end_time,
-                station_id,
-                status,
-                confirmation_code,
-                price,
-                source,
-                service_ids,
-                created_by_username,
-                services:service_id (name, shortcut),
-                stations:station_id (name, type)
-              `).eq('id', payload.new.id).single().then(({
-          data
-        }) => {
-          if (data) {
-            // Map service_ids if present
-            const serviceIds = (data as any).service_ids as string[] | null;
-            const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
-            if (serviceIds && serviceIds.length > 0) {
-              serviceIds.forEach(id => {
-                const svc = servicesMapRef.current.get(id);
-                if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
-              });
-            }
-
-            const newReservation = {
-              ...data,
-              status: data.status || 'pending',
-              service: data.services ? {
-                name: (data.services as any).name,
-                shortcut: (data.services as any).shortcut
-              } : undefined,
-              services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-              station: data.stations ? {
-                name: (data.stations as any).name,
-                type: (data.stations as any).type
-              } : undefined,
-              created_by_username: (data as any).created_by_username || null
-            };
-            setReservations(prev => [...prev, newReservation as Reservation]);
-            // Only show toast for customer-created reservations (admin-created reservations show toast in dialog)
-            const isCustomerReservation = (data as any).source === 'customer';
-            if (isCustomerReservation) {
-              toast.success('🔔 Nowa rezerwacja od klienta!', {
-                description: `${data.customer_name} - ${data.start_time}`
-              });
-            }
+        if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new as any;
+          const reservationDate = parseISO(newRecord.reservation_date);
+          
+          // Use ref to check date range without causing re-subscription
+          const isWithinRange = reservationDate >= loadedDateRangeRef.current.from;
+          
+          if (!isWithinRange) {
+            return;
           }
-        });
-      } else if (payload.eventType === 'UPDATE') {
-        // Refetch the updated reservation to get service_ids mapped to services_data
-        supabase.from('reservations').select(`
-          id,
-          instance_id,
-          customer_name,
-          customer_phone,
-          vehicle_plate,
-          reservation_date,
-          end_date,
-          start_time,
-          end_time,
-          station_id,
-          status,
-          confirmation_code,
-          price,
-          source,
-          service_ids,
-          admin_notes,
-          customer_notes,
-          car_size,
-          offer_number,
-          services:service_id (name, shortcut),
-          stations:station_id (name, type)
-        `).eq('id', payload.new.id).single().then(({ data }) => {
-          if (data) {
-            // Map service_ids if present
-            const serviceIds = (data as any).service_ids as string[] | null;
-            const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
-            if (serviceIds && serviceIds.length > 0) {
-              serviceIds.forEach(id => {
-                const svc = servicesMapRef.current.get(id);
-                if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
-              });
-            }
 
-            const updatedReservation = {
-              ...data,
-              status: data.status || 'pending',
-              service: data.services ? {
-                name: (data.services as any).name,
-                shortcut: (data.services as any).shortcut
-              } : undefined,
-              services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-              station: data.stations ? {
-                name: (data.stations as any).name,
-                type: (data.stations as any).type
-              } : undefined
-            };
-            setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
+          // Play sound only for customer reservations
+          if (newRecord.source === 'customer') {
+            playNotificationSound();
           }
-        });
-      } else if (payload.eventType === 'DELETE') {
-        setReservations(prev => prev.filter(r => r.id !== payload.old.id));
-      }
-    }).subscribe();
+
+          // Fetch the new reservation with service and station info
+          supabase.from('reservations').select(`
+            id,
+            instance_id,
+            customer_name,
+            customer_phone,
+            vehicle_plate,
+            reservation_date,
+            end_date,
+            start_time,
+            end_time,
+            station_id,
+            status,
+            confirmation_code,
+            price,
+            source,
+            service_ids,
+            created_by_username,
+            services:service_id (name, shortcut),
+            stations:station_id (name, type)
+          `).eq('id', payload.new.id).single().then(({ data }) => {
+            if (data) {
+              const serviceIds = (data as any).service_ids as string[] | null;
+              const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+              if (serviceIds && serviceIds.length > 0) {
+                serviceIds.forEach(id => {
+                  const svc = servicesMapRef.current.get(id);
+                  if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                });
+              }
+
+              const newReservation = {
+                ...data,
+                status: data.status || 'pending',
+                service: data.services ? {
+                  name: (data.services as any).name,
+                  shortcut: (data.services as any).shortcut
+                } : undefined,
+                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                station: data.stations ? {
+                  name: (data.stations as any).name,
+                  type: (data.stations as any).type
+                } : undefined,
+                created_by_username: (data as any).created_by_username || null
+              };
+              setReservations(prev => {
+                // Prevent duplicates (in case fetch also returned this reservation)
+                if (prev.some(r => r.id === data.id)) {
+                  return prev.map(r => r.id === data.id ? newReservation as Reservation : r);
+                }
+                return [...prev, newReservation as Reservation];
+              });
+              
+              const isCustomerReservation = (data as any).source === 'customer';
+              if (isCustomerReservation) {
+                toast.success('🔔 Nowa rezerwacja od klienta!', {
+                  description: `${data.customer_name} - ${data.start_time}`
+                });
+              }
+            }
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          supabase.from('reservations').select(`
+            id,
+            instance_id,
+            customer_name,
+            customer_phone,
+            vehicle_plate,
+            reservation_date,
+            end_date,
+            start_time,
+            end_time,
+            station_id,
+            status,
+            confirmation_code,
+            price,
+            source,
+            service_ids,
+            admin_notes,
+            customer_notes,
+            car_size,
+            offer_number,
+            services:service_id (name, shortcut),
+            stations:station_id (name, type)
+          `).eq('id', payload.new.id).single().then(({ data }) => {
+            if (data) {
+              const serviceIds = (data as any).service_ids as string[] | null;
+              const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+              if (serviceIds && serviceIds.length > 0) {
+                serviceIds.forEach(id => {
+                  const svc = servicesMapRef.current.get(id);
+                  if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                });
+              }
+
+              const updatedReservation = {
+                ...data,
+                status: data.status || 'pending',
+                service: data.services ? {
+                  name: (data.services as any).name,
+                  shortcut: (data.services as any).shortcut
+                } : undefined,
+                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                station: data.stations ? {
+                  name: (data.stations as any).name,
+                  type: (data.stations as any).type
+                } : undefined
+              };
+              setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
+            }
+          });
+        } else if (payload.eventType === 'DELETE') {
+          setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+        }
+      })
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          setRealtimeConnected(true);
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setRealtimeConnected(false);
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            console.log('Attempting to reconnect realtime...');
+            fetchReservations();
+          }, 3000);
+        }
+      });
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [instanceId, loadedDateRange.from]);
+  }, [instanceId]); // Only instanceId - stable subscription
 
   // Calculate free time ranges (gaps) per station
   const getFreeRangesPerStation = () => {
@@ -1214,10 +1240,10 @@ const AdminDashboard = () => {
     });
     setAddReservationOpen(true);
   };
-const handleReservationAdded = () => {
-    // Fetch to ensure new reservations are visible
-    // Realtime should also handle this, but fetch as backup for reliability
-    fetchReservations();
+  const handleReservationAdded = () => {
+    // Realtime handles synchronization for other users
+    // Local user sees optimistic updates immediately
+    // Only clear editing state - no fetch needed
     setEditingReservation(null);
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
@@ -2039,9 +2065,20 @@ const handleReservationAdded = () => {
 
         {/* Main Content - scrollable */}
         <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-          {/* Mobile Header - removed for cleaner mobile experience */}
-
-          {/* Desktop Notification Bell - now in fixed position via AdminLayout */}
+          {/* Realtime connection status indicator */}
+          {!realtimeConnected && (
+            <div className="bg-yellow-500 text-white px-4 py-2 text-center text-sm flex items-center justify-center gap-2 shrink-0">
+              <WifiOff className="h-4 w-4" />
+              <span>Połączenie przerwane</span>
+              <button 
+                onClick={() => fetchReservations()} 
+                className="ml-2 flex items-center gap-1 underline hover:no-underline"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Odśwież
+              </button>
+            </div>
+          )}
 
           {/* Content */}
           <div className={cn(
