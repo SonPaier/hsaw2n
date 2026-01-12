@@ -478,6 +478,29 @@ export const useOffer = (instanceId: string) => {
   const saveOffer = useCallback(async (silent = false) => {
     setSaving(true);
     try {
+      // ===================== LOG A: BEFORE SAVE =====================
+      const allOptionIds = offer.options.map(o => o.id);
+      const allItemIds = offer.options.flatMap(o => o.items.map(i => i.id));
+      const selectedVariantIds = Object.values(offer.defaultSelectedState?.selectedVariants || {});
+      const selectedOptionalItemIds = Object.keys(offer.defaultSelectedState?.selectedOptionalItems || {});
+      const selectedItemInOptionIds = Object.values(offer.defaultSelectedState?.selectedItemInOption || {});
+      
+      const missingVariants = selectedVariantIds.filter(id => !allOptionIds.includes(id));
+      const missingOptionalItems = selectedOptionalItemIds.filter(id => !allItemIds.includes(id));
+      const missingItemInOption = selectedItemInOptionIds.filter(id => !allItemIds.includes(id));
+      
+      console.group('📝 [SAVE] Offer Selection State BEFORE save');
+      console.log('offer.id:', offer.id);
+      console.log('defaultSelectedState:', JSON.stringify(offer.defaultSelectedState, null, 2));
+      console.log('options (id, scopeId, isUpsell):', offer.options.map(o => ({ id: o.id, scopeId: o.scopeId, isUpsell: o.isUpsell })));
+      console.log('all item IDs:', allItemIds);
+      console.log('🔍 Consistency check:');
+      console.log('  - Missing variant IDs in options:', missingVariants.length > 0 ? missingVariants : '✅ all found');
+      console.log('  - Missing optional item IDs:', missingOptionalItems.length > 0 ? missingOptionalItems : '✅ all found');
+      console.log('  - Missing itemInOption IDs:', missingItemInOption.length > 0 ? missingItemInOption : '✅ all found');
+      console.groupEnd();
+      // ===================== END LOG A =====================
+
       // Generate offer number if new
       let offerNumber = '';
       if (!offer.id) {
@@ -565,8 +588,10 @@ export const useOffer = (instanceId: string) => {
         await supabase.from('offer_options').delete().eq('offer_id', offer.id);
       }
 
-      // Prepare all options for bulk insert
+      // FIX: Insert options WITH their existing IDs to prevent selected_state mismatch
+      // Prepare all options for bulk insert - now includes id to preserve references
       const allOptionsData = offer.options.map((option, idx) => ({
+        id: option.id, // CRITICAL: preserve existing ID
         offer_id: offerId,
         name: option.name,
         description: option.description,
@@ -576,12 +601,13 @@ export const useOffer = (instanceId: string) => {
         scope_id: option.scopeId || null,
         variant_id: option.variantId || null,
         is_upsell: option.isUpsell || false,
-        _local_idx: idx, // Temporary marker for mapping
       }));
 
-      // Add additions as a special option if present
-      if (offer.additions.length > 0) {
+      // Add additions as a special option if present (generate new ID for additions)
+      const additionsId = offer.additions.length > 0 ? crypto.randomUUID() : null;
+      if (offer.additions.length > 0 && additionsId) {
         allOptionsData.push({
+          id: additionsId,
           offer_id: offerId,
           name: 'Dodatki',
           description: '',
@@ -591,29 +617,20 @@ export const useOffer = (instanceId: string) => {
           scope_id: null,
           variant_id: null,
           is_upsell: false,
-          _local_idx: offer.options.length, // Special index for additions
         });
       }
 
-      // Bulk insert all options at once (remove _local_idx before insert)
+      // Bulk insert all options at once - now with stable IDs
       if (allOptionsData.length > 0) {
-        const cleanOptionsData = allOptionsData.map(({ _local_idx, ...rest }) => rest);
-        const { data: insertedOptions, error: optionsError } = await supabase
+        const { error: optionsError } = await supabase
           .from('offer_options')
-          .insert(cleanOptionsData)
-          .select('id');
+          .insert(allOptionsData);
 
         if (optionsError) throw optionsError;
 
-        // Map inserted option IDs back to original indices
-        // Supabase returns in same order as insert
-        const optionIdMap = new Map<number, string>();
-        (insertedOptions || []).forEach((opt, idx) => {
-          optionIdMap.set(idx, opt.id);
-        });
-
-        // Prepare all items for bulk insert
+        // FIX: Insert items WITH their existing IDs to prevent selected_state mismatch
         const allItemsData: Array<{
+          id: string;
           option_id: string;
           product_id: string | null;
           custom_name: string | undefined;
@@ -627,13 +644,13 @@ export const useOffer = (instanceId: string) => {
           sort_order: number;
         }> = [];
 
-        // Add items from regular options
-        offer.options.forEach((option, optIdx) => {
-          const optionId = optionIdMap.get(optIdx);
-          if (optionId && option.items.length > 0) {
+        // Add items from regular options - use option.id directly (no mapping needed)
+        offer.options.forEach((option) => {
+          if (option.items.length > 0) {
             option.items.forEach((item, itemIdx) => {
               allItemsData.push({
-                option_id: optionId,
+                id: item.id, // CRITICAL: preserve existing ID
+                option_id: option.id, // Use stable option ID
                 product_id: item.productId || null,
                 custom_name: item.customName,
                 custom_description: item.customDescription,
@@ -650,25 +667,23 @@ export const useOffer = (instanceId: string) => {
         });
 
         // Add items from additions (if present)
-        if (offer.additions.length > 0) {
-          const additionsOptionId = optionIdMap.get(offer.options.length);
-          if (additionsOptionId) {
-            offer.additions.forEach((item, idx) => {
-              allItemsData.push({
-                option_id: additionsOptionId,
-                product_id: item.productId || null,
-                custom_name: item.customName,
-                custom_description: item.customDescription,
-                quantity: item.quantity,
-                unit_price: item.unitPrice,
-                unit: item.unit,
-                discount_percent: item.discountPercent,
-                is_optional: item.isOptional,
-                is_custom: item.isCustom,
-                sort_order: idx,
-              });
+        if (offer.additions.length > 0 && additionsId) {
+          offer.additions.forEach((item, idx) => {
+            allItemsData.push({
+              id: item.id, // CRITICAL: preserve existing ID
+              option_id: additionsId,
+              product_id: item.productId || null,
+              custom_name: item.customName,
+              custom_description: item.customDescription,
+              quantity: item.quantity,
+              unit_price: item.unitPrice,
+              unit: item.unit,
+              discount_percent: item.discountPercent,
+              is_optional: item.isOptional,
+              is_custom: item.isCustom,
+              sort_order: idx,
             });
-          }
+          });
         }
 
         // Bulk insert all items at once
@@ -860,6 +875,10 @@ export const useOffer = (instanceId: string) => {
       };
 
       // Parse defaultSelectedState from selected_state if it has isDefault marker
+      // ===================== LOG B: AFTER LOAD =====================
+      const loadedOptionIds = options.map((o: any) => o.id);
+      const loadedItemIds = options.flatMap((o: any) => o.items.map((i: any) => i.id));
+      
       const rawSelectedState = offerData.selected_state as any;
       let defaultSelectedState: DefaultSelectedState | undefined;
       if (rawSelectedState?.isDefault) {
@@ -869,6 +888,26 @@ export const useOffer = (instanceId: string) => {
           selectedOptionalItems: rawSelectedState.selectedOptionalItems || {},
           selectedItemInOption: rawSelectedState.selectedItemInOption || {},
         };
+        
+        // Consistency check
+        const selectedVariantIds = Object.values(defaultSelectedState.selectedVariants);
+        const selectedOptionalItemIds = Object.keys(defaultSelectedState.selectedOptionalItems);
+        const selectedItemInOptionIds = Object.values(defaultSelectedState.selectedItemInOption);
+        
+        const missingVariants = selectedVariantIds.filter(id => !loadedOptionIds.includes(id));
+        const missingOptionalItems = selectedOptionalItemIds.filter(id => !loadedItemIds.includes(id));
+        const missingItemInOption = selectedItemInOptionIds.filter(id => !loadedItemIds.includes(id));
+        
+        console.group('📥 [LOAD] Offer Selection State AFTER load (entering step 3)');
+        console.log('offer.id:', offerData.id);
+        console.log('selected_state from DB:', JSON.stringify(rawSelectedState, null, 2));
+        console.log('loaded option IDs:', loadedOptionIds);
+        console.log('loaded item IDs:', loadedItemIds);
+        console.log('🔍 Consistency check:');
+        console.log('  - Missing variant IDs in loaded options:', missingVariants.length > 0 ? missingVariants : '✅ all found');
+        console.log('  - Missing optional item IDs in loaded items:', missingOptionalItems.length > 0 ? missingOptionalItems : '✅ all found');
+        console.log('  - Missing itemInOption IDs in loaded items:', missingItemInOption.length > 0 ? missingItemInOption : '✅ all found');
+        console.groupEnd();
       }
 
       setOffer({
