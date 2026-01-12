@@ -39,6 +39,7 @@ interface SummaryStepProps {
   showUnitPrices: boolean;
   onUpdateOffer: (data: Partial<OfferState>) => void;
   onUpdateOption: (optionId: string, data: Partial<OfferOption>) => void;
+  onRemoveItem?: (optionId: string, itemId: string) => void;
   calculateOptionTotal: (option: OfferOption) => number;
   calculateTotalNet: () => number;
   calculateTotalGross: () => number;
@@ -72,6 +73,7 @@ export const SummaryStep = ({
   showUnitPrices,
   onUpdateOffer,
   onUpdateOption,
+  onRemoveItem,
   calculateOptionTotal,
   calculateTotalNet,
   calculateTotalGross,
@@ -327,10 +329,20 @@ export const SummaryStep = ({
                         return (
                           <div
                             key={item.id}
-                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0"
+                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 group hover:bg-muted/30"
                           >
-                            <div className="col-span-5">
-                              {item.customName}
+                            <div className="col-span-5 flex items-center gap-1">
+                              {onRemoveItem && option.items.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  onClick={() => onRemoveItem(option.id, item.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <span>{item.customName}</span>
                             </div>
                             <div className="col-span-2 text-right">
                               {item.quantity} {item.unit}
@@ -353,9 +365,21 @@ export const SummaryStep = ({
                         return (
                           <div
                             key={item.id}
-                            className="flex justify-between py-1"
+                            className="flex justify-between py-1 group hover:bg-muted/30 px-1 rounded"
                           >
-                            <span>{item.customName}</span>
+                            <div className="flex items-center gap-1">
+                              {onRemoveItem && option.items.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  onClick={() => onRemoveItem(option.id, item.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <span>{item.customName}</span>
+                            </div>
                             <span className="font-medium">{formatPrice(itemValue)}</span>
                           </div>
                         );
