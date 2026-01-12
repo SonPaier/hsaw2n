@@ -172,11 +172,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const filteredProducts = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return products.filter(p => {
-      // Only show manually added products
-      const metadata = p.metadata as Record<string, unknown> | null;
-      const isManuallyAdded = !metadata || metadata._source === 'manual';
-      if (!isManuallyAdded) return false;
-      
       const matchesSearch = query === '' || 
         p.name.toLowerCase().includes(query) ||
         (p.brand && p.brand.toLowerCase().includes(query)) ||
