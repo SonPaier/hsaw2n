@@ -49,6 +49,13 @@ export interface OfferOption {
   isUpsell?: boolean;
 }
 
+export interface DefaultSelectedState {
+  selectedScopeId?: string | null;
+  selectedVariants: Record<string, string>; // scopeId → optionId
+  selectedOptionalItems: Record<string, boolean>; // itemId → true
+  selectedItemInOption: Record<string, string>; // optionId → itemId
+}
+
 export interface OfferState {
   id?: string;
   instanceId: string;
@@ -65,6 +72,7 @@ export interface OfferState {
   vatRate: number;
   hideUnitPrices: boolean;
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  defaultSelectedState?: DefaultSelectedState;
 }
 
 const defaultCustomerData: CustomerData = {
@@ -106,6 +114,7 @@ export const useOffer = (instanceId: string) => {
     warranty: '',
     serviceInfo: '',
     notes: '',
+    defaultSelectedState: undefined,
   });
   
   const [loading, setLoading] = useState(false);
@@ -482,6 +491,16 @@ export const useOffer = (instanceId: string) => {
       const totalNet = calculateTotalNet();
       const totalGross = calculateTotalGross();
 
+      // Build selected_state from defaultSelectedState if present (for admin pre-selection)
+      const selectedStateToSave = offer.defaultSelectedState ? {
+        selectedScopeId: offer.defaultSelectedState.selectedScopeId,
+        selectedVariants: offer.defaultSelectedState.selectedVariants,
+        selectedOptionalItems: offer.defaultSelectedState.selectedOptionalItems,
+        selectedItemInOption: offer.defaultSelectedState.selectedItemInOption,
+        selectedUpsells: {}, // Legacy field, derive from selectedOptionalItems
+        isDefault: true, // Marker that this is admin's pre-selection, not customer's choice
+      } : null;
+
       // Save main offer - cast to Json for Supabase
       const offerData: {
         instance_id: string;
@@ -498,6 +517,7 @@ export const useOffer = (instanceId: string) => {
         status: string;
         hide_unit_prices: boolean;
         offer_number?: string;
+        selected_state?: Json;
       } = {
         instance_id: instanceId,
         customer_data: offer.customerData as unknown as Json,
@@ -513,6 +533,7 @@ export const useOffer = (instanceId: string) => {
         status: offer.status,
         hide_unit_prices: offer.hideUnitPrices,
         ...(offerNumber && { offer_number: offerNumber }),
+        ...(selectedStateToSave && { selected_state: selectedStateToSave as unknown as Json }),
       };
 
       let offerId = offer.id;
@@ -838,6 +859,18 @@ export const useOffer = (instanceId: string) => {
         plate: vehicleDataRaw.plate || '',
       };
 
+      // Parse defaultSelectedState from selected_state if it has isDefault marker
+      const rawSelectedState = offerData.selected_state as any;
+      let defaultSelectedState: DefaultSelectedState | undefined;
+      if (rawSelectedState?.isDefault) {
+        defaultSelectedState = {
+          selectedScopeId: rawSelectedState.selectedScopeId ?? null,
+          selectedVariants: rawSelectedState.selectedVariants || {},
+          selectedOptionalItems: rawSelectedState.selectedOptionalItems || {},
+          selectedItemInOption: rawSelectedState.selectedItemInOption || {},
+        };
+      }
+
       setOffer({
         id: offerData.id,
         instanceId: offerData.instance_id,
@@ -854,6 +887,7 @@ export const useOffer = (instanceId: string) => {
         vatRate: Number(offerData.vat_rate),
         hideUnitPrices: offerData.hide_unit_prices || false,
         status: offerData.status as OfferState['status'],
+        defaultSelectedState,
       });
     } catch (error) {
       console.error('Error loading offer:', error);
