@@ -79,6 +79,8 @@ interface Reservation {
   created_by?: string | null;
   created_by_username?: string | null;
   offer_number?: string | null;
+  confirmation_sms_sent_at?: string | null;
+  pickup_sms_sent_at?: string | null;
 }
 interface Break {
   id: string;
@@ -598,6 +600,8 @@ const AdminDashboard = () => {
         created_by,
         created_by_username,
         offer_number,
+        confirmation_sms_sent_at,
+        pickup_sms_sent_at,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
@@ -669,6 +673,8 @@ const AdminDashboard = () => {
           created_by,
           created_by_username,
           offer_number,
+          confirmation_sms_sent_at,
+          pickup_sms_sent_at,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
@@ -782,6 +788,8 @@ const AdminDashboard = () => {
             service_ids,
             original_reservation_id,
             offer_number,
+            confirmation_sms_sent_at,
+            pickup_sms_sent_at,
             services:service_id (name, shortcut),
             stations:station_id (name, type)
           `)
@@ -1472,7 +1480,105 @@ const AdminDashboard = () => {
           instanceId
         }
       });
+      
+      // Save pickup SMS sent timestamp
+      const now = new Date().toISOString();
+      await supabase
+        .from('reservations')
+        .update({ pickup_sms_sent_at: now })
+        .eq('id', reservationId);
+      
+      // Update local state
+      setReservations(prev => prev.map(r => r.id === reservationId ? {
+        ...r,
+        pickup_sms_sent_at: now
+      } : r));
+      
       toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
+    } catch (error) {
+      console.error('SMS error:', error);
+      toast.error(t('errors.generic'));
+    }
+  };
+
+  const handleSendConfirmationSms = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation || !reservation.customer_phone) return;
+
+    try {
+      // Fetch instance data for SMS
+      const { data: instData } = await supabase
+        .from('instances')
+        .select('name, short_name, google_maps_url, slug')
+        .eq('id', instanceId)
+        .single();
+
+      if (!instData) return;
+
+      // Check if SMS edit link feature is enabled
+      const { data: smsEditLinkFeature } = await supabase
+        .from('instance_features')
+        .select('enabled, parameters')
+        .eq('instance_id', instanceId)
+        .eq('feature_key', 'sms_edit_link')
+        .maybeSingle();
+      
+      // Determine if edit link should be included
+      let includeEditLink = false;
+      if (smsEditLinkFeature?.enabled) {
+        const params = smsEditLinkFeature.parameters as { phones?: string[] } | null;
+        if (!params || !params.phones || params.phones.length === 0) {
+          includeEditLink = true;
+        } else {
+          let normalizedPhone = reservation.customer_phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+          if (!normalizedPhone.startsWith("+")) {
+            normalizedPhone = "+48" + normalizedPhone;
+          }
+          includeEditLink = params.phones.some(p => {
+            let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+            if (!normalizedAllowed.startsWith("+")) {
+              normalizedAllowed = "+48" + normalizedAllowed;
+            }
+            return normalizedPhone === normalizedAllowed;
+          });
+        }
+      }
+
+      // Format date for SMS
+      const monthNamesFull = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'wrzesnia', 'pazdziernika', 'listopada', 'grudnia'];
+      const dateObj = new Date(reservation.reservation_date);
+      const dayNum = dateObj.getDate();
+      const monthNameFull = monthNamesFull[dateObj.getMonth()];
+
+      const instName = instData.short_name || instData.name || 'Myjnia';
+      const mapsLink = instData.google_maps_url ? ` Dojazd: ${instData.google_maps_url}` : '';
+      const reservationUrl = `https://${instData.slug}.n2wash.com/res?code=${reservation.confirmation_code}`;
+      const editLink = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : '';
+      
+      const smsMessage = `${instName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${reservation.start_time.slice(0,5)}.${mapsLink}${editLink}`;
+
+      await supabase.functions.invoke('send-sms-message', {
+        body: {
+          phone: reservation.customer_phone,
+          message: smsMessage,
+          instanceId
+        }
+      });
+
+      // Save confirmation SMS sent timestamp
+      const now = new Date().toISOString();
+      await supabase
+        .from('reservations')
+        .update({ confirmation_sms_sent_at: now })
+        .eq('id', reservationId);
+      
+      // Update local state
+      setReservations(prev => prev.map(r => r.id === reservationId ? {
+        ...r,
+        confirmation_sms_sent_at: now
+      } : r));
+      
+      toast.success(t('reservations.confirmationSmsSent', { customerName: reservation.customer_name }));
     } catch (error) {
       console.error('SMS error:', error);
       toast.error(t('errors.generic'));
@@ -2185,6 +2291,7 @@ const AdminDashboard = () => {
           setSelectedReservation(null);
         }}
         onSendPickupSms={handleSendPickupSms}
+        onSendConfirmationSms={handleSendConfirmationSms}
       />
 
       {/* Add/Edit Reservation Dialog V2 */}

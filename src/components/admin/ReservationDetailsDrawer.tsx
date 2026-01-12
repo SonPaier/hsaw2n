@@ -78,6 +78,8 @@ interface Reservation {
   } | null;
   created_by?: string | null;
   created_by_username?: string | null;
+  confirmation_sms_sent_at?: string | null;
+  pickup_sms_sent_at?: string | null;
 }
 
 export interface HallVisibleFields {
@@ -117,6 +119,7 @@ interface ReservationDetailsDrawerProps {
   onApproveChangeRequest?: (reservationId: string) => void;
   onRejectChangeRequest?: (reservationId: string) => void;
   onSendPickupSms?: (reservationId: string) => Promise<void>;
+  onSendConfirmationSms?: (reservationId: string) => Promise<void>;
   // Hall mode props
   mode?: 'admin' | 'hall';
   hallConfig?: HallConfig;
@@ -138,6 +141,7 @@ const ReservationDetailsDrawer = ({
   onApproveChangeRequest,
   onRejectChangeRequest,
   onSendPickupSms,
+  onSendConfirmationSms,
   mode = 'admin',
   hallConfig
 }: ReservationDetailsDrawerProps) => {
@@ -166,6 +170,7 @@ const ReservationDetailsDrawer = ({
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [sendingPickupSms, setSendingPickupSms] = useState(false);
+  const [sendingConfirmationSms, setSendingConfirmationSms] = useState(false);
   const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -589,9 +594,48 @@ const ReservationDetailsDrawer = ({
                 )}
               </div>
             )}
+            {/* Link: Wyślij SMS o potwierdzeniu - dla confirmed i pending */}
+            {['confirmed', 'pending'].includes(reservation.status) && onSendConfirmationSms && (
+              <div className="mb-2">
+                {reservation.confirmation_sms_sent_at && (
+                  <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {t('reservations.smsSentAt', { datetime: format(new Date(reservation.confirmation_sms_sent_at), 'dd.MM.yyyy HH:mm', { locale: pl }) })}
+                  </div>
+                )}
+                <button
+                  onClick={async () => {
+                    setSendingConfirmationSms(true);
+                    try {
+                      await onSendConfirmationSms(reservation.id);
+                    } finally {
+                      setSendingConfirmationSms(false);
+                    }
+                  }}
+                  disabled={sendingConfirmationSms}
+                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 hover:underline text-[16px] disabled:opacity-50"
+                >
+                  {sendingConfirmationSms ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  {reservation.confirmation_sms_sent_at 
+                    ? t('reservations.sendConfirmationSmsAgain', { time: reservation.start_time.slice(0, 5) })
+                    : t('reservations.sendConfirmationSms')}
+                </button>
+              </div>
+            )}
+            
             {/* Link: Wyślij SMS o odbiorze - nad Edit dla in_progress, completed, released */}
             {['in_progress', 'completed', 'released'].includes(reservation.status) && onSendPickupSms && (
-              <div className="flex justify-end mb-2">
+              <div className="mb-2">
+                {reservation.pickup_sms_sent_at && (
+                  <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-green-600" />
+                    {t('reservations.smsSentAt', { datetime: format(new Date(reservation.pickup_sms_sent_at), 'dd.MM.yyyy HH:mm', { locale: pl }) })}
+                  </div>
+                )}
                 <button
                   onClick={async () => {
                     setSendingPickupSms(true);
@@ -609,7 +653,9 @@ const ReservationDetailsDrawer = ({
                   ) : (
                     <MessageSquare className="w-4 h-4" />
                   )}
-                  {t('reservations.sendPickupSms')}
+                  {reservation.pickup_sms_sent_at 
+                    ? t('reservations.sendPickupSmsAgain')
+                    : t('reservations.sendPickupSms')}
                 </button>
               </div>
             )}

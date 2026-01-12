@@ -1775,6 +1775,7 @@ export type Database = {
           change_request_note: string | null
           completed_at: string | null
           confirmation_code: string
+          confirmation_sms_sent_at: string | null
           confirmed_at: string | null
           created_at: string | null
           created_by: string | null
@@ -1791,6 +1792,7 @@ export type Database = {
           no_show_at: string | null
           offer_number: string | null
           original_reservation_id: string | null
+          pickup_sms_sent_at: string | null
           price: number | null
           released_at: string | null
           reminder_1day_sent: boolean | null
@@ -1814,6 +1816,7 @@ export type Database = {
           change_request_note?: string | null
           completed_at?: string | null
           confirmation_code: string
+          confirmation_sms_sent_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1830,6 +1833,7 @@ export type Database = {
           no_show_at?: string | null
           offer_number?: string | null
           original_reservation_id?: string | null
+          pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
           reminder_1day_sent?: boolean | null
@@ -1853,6 +1857,7 @@ export type Database = {
           change_request_note?: string | null
           completed_at?: string | null
           confirmation_code?: string
+          confirmation_sms_sent_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1869,6 +1874,7 @@ export type Database = {
           no_show_at?: string | null
           offer_number?: string | null
           original_reservation_id?: string | null
+          pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
           reminder_1day_sent?: boolean | null
