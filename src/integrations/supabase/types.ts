@@ -1140,6 +1140,64 @@ export type Database = {
           },
         ]
       }
+      offer_scope_products: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          is_default: boolean
+          product_id: string
+          scope_id: string
+          sort_order: number
+          updated_at: string
+          variant_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          is_default?: boolean
+          product_id: string
+          scope_id: string
+          sort_order?: number
+          updated_at?: string
+          variant_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          is_default?: boolean
+          product_id?: string
+          scope_id?: string
+          sort_order?: number
+          updated_at?: string
+          variant_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_scope_products_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_products_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_scope_variant_products: {
         Row: {
           created_at: string
