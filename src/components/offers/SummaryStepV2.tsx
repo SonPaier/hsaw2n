@@ -29,7 +29,7 @@ import {
   X,
 } from 'lucide-react';
 import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
-import { CustomerData, VehicleData, OfferState, OfferItem } from '@/hooks/useOffer';
+import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -157,20 +157,45 @@ export const SummaryStepV2 = ({
             product: p.product as { id: string; name: string; default_price: number } | null
           }));
 
-        // Initialize with default products
-        const defaultProducts = scopeProducts
-          .filter(p => p.is_default && p.product)
-          .map(p => ({
-            id: crypto.randomUUID(),
-            scopeProductId: p.id,
-            productId: p.product_id,
-            variantName: p.variant_name,
-            productName: p.product!.name,
-            price: p.product!.default_price,
-            isDefault: p.is_default
-          }));
+        // Check if we have saved options for this scope - restore them
+        const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
+        
+        let selectedProducts: SelectedProduct[];
+        
+        if (existingOption && existingOption.items.length > 0) {
+          // Restore from saved option items
+          selectedProducts = existingOption.items.map(item => {
+            // Find matching scope product to get scopeProductId
+            const matchingProduct = scopeProducts.find(sp => 
+              sp.product?.name === item.customName || sp.product_id === item.productId
+            );
+            
+            return {
+              id: item.id,
+              scopeProductId: matchingProduct?.id || '',
+              productId: item.productId || '',
+              variantName: matchingProduct?.variant_name || null,
+              productName: item.customName || '',
+              price: item.unitPrice,
+              isDefault: matchingProduct?.is_default || false
+            };
+          });
+        } else {
+          // Initialize with default products
+          selectedProducts = scopeProducts
+            .filter(p => p.is_default && p.product)
+            .map(p => ({
+              id: p.id, // Use stable ID
+              scopeProductId: p.id,
+              productId: p.product_id,
+              variantName: p.variant_name,
+              productName: p.product!.name,
+              price: p.product!.default_price,
+              isDefault: p.is_default
+            }));
+        }
 
-        const totalPrice = defaultProducts.reduce((sum, p) => sum + p.price, 0);
+        const totalPrice = selectedProducts.reduce((sum, p) => sum + p.price, 0);
 
         return {
           scopeId: scope.id,
@@ -178,7 +203,7 @@ export const SummaryStepV2 = ({
           shortName: scope.short_name,
           isExtrasScope: scope.is_extras_scope,
           availableProducts: scopeProducts,
-          selectedProducts: defaultProducts,
+          selectedProducts,
           totalPrice
         };
       });
@@ -322,6 +347,38 @@ export const SummaryStepV2 = ({
   }, [totalNet, offer.vatRate]);
 
   const vatAmount = totalGross - totalNet;
+
+  // Sync services to offer.options whenever services change (but not on initial load)
+  useEffect(() => {
+    if (loading || services.length === 0) return;
+    
+    // Convert services to offer options format
+    const newOptions: OfferOption[] = services.map((service, idx) => ({
+      id: service.scopeId, // Use scopeId as option id for stability
+      name: service.name,
+      description: '',
+      items: service.selectedProducts.map(p => ({
+        id: p.id,
+        productId: p.productId,
+        customName: p.variantName 
+          ? `${p.variantName}\n${p.productName}`
+          : p.productName,
+        customDescription: '',
+        quantity: 1,
+        unitPrice: p.price,
+        unit: 'szt',
+        discountPercent: 0,
+        isOptional: false,
+        isCustom: false,
+      })),
+      isSelected: true,
+      sortOrder: idx,
+      scopeId: service.scopeId,
+      isUpsell: service.isExtrasScope,
+    }));
+    
+    onUpdateOffer({ options: newOptions });
+  }, [services, loading]);
 
   if (loading) {
     return (
