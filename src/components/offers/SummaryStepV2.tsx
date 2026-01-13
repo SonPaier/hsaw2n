@@ -382,9 +382,14 @@ export const SummaryStepV2 = ({
   };
 
 
-  // Calculate totals from services
+  // Calculate totals from services - only count preselected items
   const totalNet = useMemo(() => {
-    return services.reduce((sum, s) => sum + s.totalPrice, 0);
+    return services.reduce((sum, s) => {
+      const preselectedTotal = s.selectedProducts
+        .filter(p => p.isPreselected)
+        .reduce((pSum, p) => pSum + p.price, 0);
+      return sum + preselectedTotal;
+    }, 0);
   }, [services]);
 
   const totalGross = useMemo(() => {
@@ -617,10 +622,23 @@ export const SummaryStepV2 = ({
               }))}
             alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
             onConfirm={(products) => {
+              const newSelectedIds = new Set(products.map(p => p.id));
+              const currentSelectedIds = new Set(service.selectedProducts.map(p => p.scopeProductId));
+              
+              // Add new products
               products.forEach(product => {
-                const scopeProduct = service.availableProducts.find(p => p.id === product.id);
-                if (scopeProduct) {
-                  addProduct(service.scopeId, scopeProduct);
+                if (!currentSelectedIds.has(product.id)) {
+                  const scopeProduct = service.availableProducts.find(p => p.id === product.id);
+                  if (scopeProduct) {
+                    addProduct(service.scopeId, scopeProduct);
+                  }
+                }
+              });
+              
+              // Remove deselected products
+              service.selectedProducts.forEach(p => {
+                if (!newSelectedIds.has(p.scopeProductId)) {
+                  removeProduct(service.scopeId, p.id);
                 }
               });
             }}

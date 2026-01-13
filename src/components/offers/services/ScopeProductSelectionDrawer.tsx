@@ -37,16 +37,16 @@ export function ScopeProductSelectionDrawer({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset when drawer opens
+  // Initialize with already selected products when drawer opens
   useEffect(() => {
     if (open) {
       setSearchQuery('');
-      setSelectedIds([]);
+      setSelectedIds(alreadySelectedIds); // Start with already selected
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 300);
     }
-  }, [open]);
+  }, [open, alreadySelectedIds]);
 
   // Filter products based on search
   const filteredProducts = useMemo(() => {
