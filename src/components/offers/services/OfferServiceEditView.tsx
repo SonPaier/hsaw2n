@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Package } from 'lucide-react';
+import { ArrowLeft, Package, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
+
+interface Product {
+  id: string;
+  name: string;
+  default_price: number;
+}
 
 interface OfferServiceEditViewProps {
   instanceId: string;
@@ -22,10 +29,44 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
+
+  // Fetch product details when selected IDs change
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (selectedProductIds.length === 0) {
+        setSelectedProducts([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('products_library')
+        .select('id, name, default_price')
+        .in('id', selectedProductIds);
+
+      if (data) {
+        // Maintain order based on selectedProductIds
+        const orderedProducts = selectedProductIds
+          .map(id => data.find(p => p.id === id))
+          .filter((p): p is Product => p !== undefined);
+        setSelectedProducts(orderedProducts);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedProductIds]);
 
   const handleProductConfirm = (productIds: string[]) => {
     setSelectedProductIds(productIds);
+  };
+
+  const removeProduct = (productId: string) => {
+    setSelectedProductIds(prev => prev.filter(id => id !== productId));
+  };
+
+  const formatPrice = (price: number): string => {
+    return `${price.toFixed(0)} zł`;
   };
 
   return (
@@ -88,10 +129,32 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               )}
             </Button>
             
-            {selectedProductIds.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Wybrano {selectedProductIds.length} produktów
-              </p>
+            {/* Lista wybranych produktów */}
+            {selectedProducts.length > 0 && (
+              <div className="space-y-2 mt-3">
+                {selectedProducts.map(product => (
+                  <div 
+                    key={product.id}
+                    className="flex items-center justify-between p-3 bg-white border rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium">{product.name}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-foreground">
+                        {formatPrice(product.default_price)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeProduct(product.id)}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
