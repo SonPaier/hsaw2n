@@ -26,8 +26,9 @@ import {
   Calculator,
   ChevronDown,
   Plus,
-  X,
+  Trash2,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
 import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,7 @@ interface SelectedProduct {
   productName: string;
   price: number;
   isDefault: boolean;
+  isPreselected: boolean; // Admin can preselect for customer
 }
 
 interface SummaryStepV2Props {
@@ -177,7 +179,8 @@ export const SummaryStepV2 = ({
               variantName: matchingProduct?.variant_name || null,
               productName: item.customName || '',
               price: item.unitPrice,
-              isDefault: matchingProduct?.is_default || false
+              isDefault: matchingProduct?.is_default || false,
+              isPreselected: !item.isOptional, // Restore preselect state
             };
           });
         } else {
@@ -191,7 +194,8 @@ export const SummaryStepV2 = ({
               variantName: p.variant_name,
               productName: p.product!.name,
               price: p.product!.default_price,
-              isDefault: p.is_default
+              isDefault: p.is_default,
+              isPreselected: true, // Default products are preselected
             }));
         }
 
@@ -266,7 +270,8 @@ export const SummaryStepV2 = ({
         variantName: scopeProduct.variant_name,
         productName: scopeProduct.product!.name,
         price: scopeProduct.product!.default_price,
-        isDefault: scopeProduct.is_default
+        isDefault: scopeProduct.is_default,
+        isPreselected: false, // New products added manually are not preselected by default
       };
 
       const newSelectedProducts = [...service.selectedProducts, newProduct];
@@ -310,6 +315,22 @@ export const SummaryStepV2 = ({
         ...service,
         selectedProducts: newSelectedProducts,
         totalPrice
+      };
+    }));
+  };
+
+  // Toggle product preselection
+  const togglePreselect = (scopeId: string, productId: string) => {
+    setServices(prev => prev.map(service => {
+      if (service.scopeId !== scopeId) return service;
+
+      const newSelectedProducts = service.selectedProducts.map(p => 
+        p.id === productId ? { ...p, isPreselected: !p.isPreselected } : p
+      );
+
+      return {
+        ...service,
+        selectedProducts: newSelectedProducts,
       };
     }));
   };
@@ -368,7 +389,7 @@ export const SummaryStepV2 = ({
         unitPrice: p.price,
         unit: 'szt',
         discountPercent: 0,
-        isOptional: false,
+        isOptional: !p.isPreselected, // isOptional = NOT preselected (for customer view)
         isCustom: false,
       })),
       isSelected: true,
@@ -473,15 +494,24 @@ export const SummaryStepV2 = ({
             {service.selectedProducts.map((product) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-lg group"
+                className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-lg"
               >
-                <div className="flex-1">
-                  {product.variantName && (
-                    <p className="text-xs text-muted-foreground font-medium uppercase">
-                      {product.variantName}
-                    </p>
-                  )}
-                  <p className="font-medium">{product.productName}</p>
+                {/* Preselect checkbox */}
+                <div className="flex items-center gap-3 flex-1">
+                  <Checkbox
+                    id={`preselect-${product.id}`}
+                    checked={product.isPreselected}
+                    onCheckedChange={() => togglePreselect(service.scopeId, product.id)}
+                    title="Zaznacz dla klienta"
+                  />
+                  <div className="flex-1">
+                    {product.variantName && (
+                      <p className="text-xs text-muted-foreground font-medium uppercase">
+                        {product.variantName}
+                      </p>
+                    )}
+                    <p className="font-medium">{product.productName}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id ? (
@@ -523,9 +553,10 @@ export const SummaryStepV2 = ({
                   <button
                     type="button"
                     onClick={() => removeProduct(service.scopeId, product.id)}
-                    className="p-1 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1 text-destructive hover:text-destructive/80 transition-colors"
+                    title="Usuń produkt"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
