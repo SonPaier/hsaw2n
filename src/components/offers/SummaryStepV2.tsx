@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
-import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption } from '@/hooks/useOffer';
+import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption, DefaultSelectedState } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -398,7 +398,7 @@ export const SummaryStepV2 = ({
 
   const vatAmount = totalGross - totalNet;
 
-  // Sync services to offer.options whenever services change (but not on initial load)
+  // Sync services to offer.options and defaultSelectedState whenever services change (but not on initial load)
   useEffect(() => {
     if (loading || services.length === 0) return;
     
@@ -427,7 +427,41 @@ export const SummaryStepV2 = ({
       isUpsell: service.isExtrasScope,
     }));
     
-    onUpdateOffer({ options: newOptions });
+    // Build defaultSelectedState for public view
+    // For extras scope: selectedOptionalItems maps itemId -> true for preselected items
+    // For regular scopes: selectedItemInOption maps optionId -> itemId for preselected item
+    const selectedOptionalItems: Record<string, boolean> = {};
+    const selectedItemInOption: Record<string, string> = {};
+    
+    services.forEach(service => {
+      if (service.isExtrasScope) {
+        // For extras: mark all preselected items
+        service.selectedProducts.forEach(p => {
+          if (p.isPreselected) {
+            selectedOptionalItems[p.id] = true;
+          }
+        });
+      } else {
+        // For regular services: set the first preselected item as selected
+        const firstPreselected = service.selectedProducts.find(p => p.isPreselected);
+        if (firstPreselected) {
+          selectedItemInOption[service.scopeId] = firstPreselected.id;
+        }
+      }
+    });
+    
+    // Find the first non-extras scope as selected scope
+    const selectedScopeId = services.find(s => !s.isExtrasScope)?.scopeId || null;
+    
+    onUpdateOffer({ 
+      options: newOptions,
+      defaultSelectedState: {
+        selectedScopeId,
+        selectedVariants: {},
+        selectedOptionalItems,
+        selectedItemInOption,
+      }
+    });
   }, [services, loading]);
 
   if (loading) {

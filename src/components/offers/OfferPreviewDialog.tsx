@@ -181,7 +181,14 @@ export const OfferPreviewDialog = ({
       hide_unit_prices: offer.hideUnitPrices,
       created_at: new Date().toISOString(),
       approved_at: null,
-      selected_state: null,
+      selected_state: offer.defaultSelectedState ? {
+        selectedScopeId: offer.defaultSelectedState.selectedScopeId,
+        selectedVariants: offer.defaultSelectedState.selectedVariants || {},
+        selectedUpsells: {},
+        selectedOptionalItems: offer.defaultSelectedState.selectedOptionalItems || {},
+        selectedItemInOption: offer.defaultSelectedState.selectedItemInOption || {},
+        isDefault: true,
+      } : null,
       offer_options: offer.options.map((opt: OfferOption) => ({
         id: opt.id,
         name: opt.name,
