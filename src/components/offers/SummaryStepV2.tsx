@@ -391,10 +391,12 @@ export const SummaryStepV2 = ({
                 </span>
               )}
             </div>
-            <div className="text-right">
-              <p className="font-semibold text-lg">{formatPrice(service.totalPrice)}</p>
-              <p className="text-xs text-muted-foreground">netto</p>
-            </div>
+            {service.isExtrasScope && (
+              <div className="text-right">
+                <p className="font-semibold text-lg">{formatPrice(service.totalPrice)}</p>
+                <p className="text-xs text-muted-foreground">netto</p>
+              </div>
+            )}
           </div>
           
           {/* Selected Products */}
