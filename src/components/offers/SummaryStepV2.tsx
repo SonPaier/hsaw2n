@@ -125,10 +125,10 @@ export const SummaryStepV2 = ({
 
       setLoading(true);
 
-      // Fetch scopes
+      // Fetch scopes with default conditions
       const { data: scopesData } = await supabase
         .from('offer_scopes')
-        .select('id, name, short_name, is_extras_scope')
+        .select('id, name, short_name, is_extras_scope, default_warranty, default_payment_terms, default_notes, default_service_info')
         .in('id', offer.selectedScopeIds)
         .order('sort_order');
 
@@ -191,6 +191,48 @@ export const SummaryStepV2 = ({
       });
 
       setServices(newServices);
+
+      // Combine default conditions from all scopes with headers
+      // Only populate if the offer fields are empty (first load)
+      const combineWithHeaders = (
+        field: 'default_warranty' | 'default_payment_terms' | 'default_notes' | 'default_service_info'
+      ): string => {
+        const parts: string[] = [];
+        scopesData.forEach(scope => {
+          const value = scope[field];
+          if (value && value.trim()) {
+            if (scopesData.length > 1) {
+              parts.push(`${scope.name}:\n${value}`);
+            } else {
+              parts.push(value);
+            }
+          }
+        });
+        return parts.join('\n\n');
+      };
+
+      // Only set defaults if fields are empty
+      const updates: Partial<OfferState> = {};
+      if (!offer.warranty) {
+        const combined = combineWithHeaders('default_warranty');
+        if (combined) updates.warranty = combined;
+      }
+      if (!offer.paymentTerms) {
+        const combined = combineWithHeaders('default_payment_terms');
+        if (combined) updates.paymentTerms = combined;
+      }
+      if (!offer.notes) {
+        const combined = combineWithHeaders('default_notes');
+        if (combined) updates.notes = combined;
+      }
+      if (!offer.serviceInfo) {
+        const combined = combineWithHeaders('default_service_info');
+        if (combined) updates.serviceInfo = combined;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        onUpdateOffer(updates);
+      }
 
       // Fetch templates
       const { data: templatesData } = await supabase
