@@ -167,17 +167,22 @@ export const SummaryStepV2 = ({
         if (existingOption && existingOption.items.length > 0) {
           // Restore from saved option items
           selectedProducts = existingOption.items.map(item => {
-            // Find matching scope product to get scopeProductId
+            // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
+            const nameParts = (item.customName || '').split('\n');
+            const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
+            const variantFromItem = nameParts.length > 1 ? nameParts[0] : null;
+            
             const matchingProduct = scopeProducts.find(sp => 
-              sp.product?.name === item.customName || sp.product_id === item.productId
+              sp.product_id === item.productId || 
+              (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
             );
             
             return {
               id: item.id,
               scopeProductId: matchingProduct?.id || '',
-              productId: item.productId || '',
-              variantName: matchingProduct?.variant_name || null,
-              productName: item.customName || '',
+              productId: item.productId || matchingProduct?.product_id || '',
+              variantName: variantFromItem || matchingProduct?.variant_name || null,
+              productName: productNameFromItem || matchingProduct?.product?.name || '',
               price: item.unitPrice,
               isDefault: matchingProduct?.is_default || false,
               isPreselected: !item.isOptional, // Restore preselect state
