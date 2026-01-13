@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, Check, Loader2, Search, X } from 'lucide-react';
+import { ArrowLeft, Check, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -22,24 +22,26 @@ interface ScopeProductSelectionDrawerProps {
   open: boolean;
   onClose: () => void;
   availableProducts: ScopeProduct[];
-  selectedProductIds: string[];
-  onSelect: (product: ScopeProduct) => void;
+  alreadySelectedIds: string[];
+  onConfirm: (products: ScopeProduct[]) => void;
 }
 
 export function ScopeProductSelectionDrawer({
   open,
   onClose,
   availableProducts,
-  selectedProductIds,
-  onSelect,
+  alreadySelectedIds,
+  onConfirm,
 }: ScopeProductSelectionDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset search when drawer opens
+  // Reset when drawer opens
   useEffect(() => {
     if (open) {
       setSearchQuery('');
+      setSelectedIds([]);
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 300);
@@ -57,15 +59,42 @@ export function ScopeProductSelectionDrawer({
     );
   }, [availableProducts, searchQuery]);
 
+  // Get selected products details
+  const selectedProducts = useMemo(() => {
+    return selectedIds
+      .map(id => availableProducts.find(p => p.id === id))
+      .filter((p): p is ScopeProduct => p !== undefined);
+  }, [selectedIds, availableProducts]);
+
   // Format price
   const formatPrice = (price: number): string => {
     return `${price.toFixed(0)} zł`;
   };
 
-  // Handle product selection
-  const handleSelectProduct = (product: ScopeProduct) => {
-    onSelect(product);
+  // Toggle product selection
+  const toggleProduct = (productId: string) => {
+    setSelectedIds(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  // Remove from selection
+  const removeProduct = (productId: string) => {
+    setSelectedIds(prev => prev.filter(id => id !== productId));
+  };
+
+  // Handle confirm
+  const handleConfirm = () => {
+    onConfirm(selectedProducts);
     onClose();
+  };
+
+  // Get chip label
+  const getChipLabel = (product: ScopeProduct): string => {
+    const label = product.variantName || product.productName;
+    return label.length > 20 ? label.substring(0, 18) + '...' : label;
   };
 
   return (
@@ -77,20 +106,19 @@ export function ScopeProductSelectionDrawer({
         className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
         onFocusOutside={(e) => e.preventDefault()}
       >
-        {/* Header - clicking closes drawer */}
+        {/* Header */}
         <SheetHeader 
           className="border-b px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors shrink-0"
           onClick={onClose}
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
             <ArrowLeft className="w-5 h-5" />
-            Dodaj produkt
+            Dodaj produkty
           </SheetTitle>
         </SheetHeader>
 
         {/* Search Section */}
         <div className="px-4 py-3 border-b space-y-3 shrink-0">
-          {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -115,6 +143,28 @@ export function ScopeProductSelectionDrawer({
               </button>
             )}
           </div>
+
+          {/* Selected Products Chips */}
+          {selectedProducts.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground font-medium">
+                Wybrane ({selectedProducts.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selectedProducts.map(product => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => removeProduct(product.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
+                  >
+                    <span>{getChipLabel(product)}</span>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -126,19 +176,22 @@ export function ScopeProductSelectionDrawer({
               </div>
             ) : (
               filteredProducts.map((product) => {
-                const isSelected = selectedProductIds.includes(product.id);
+                const isSelected = selectedIds.includes(product.id);
+                const isAlreadyAdded = alreadySelectedIds.includes(product.id);
                 
                 return (
                   <button
                     key={product.id}
                     type="button"
-                    onClick={() => handleSelectProduct(product)}
-                    disabled={isSelected}
+                    onClick={() => !isAlreadyAdded && toggleProduct(product.id)}
+                    disabled={isAlreadyAdded}
                     className={cn(
                       "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                      isSelected 
+                      isAlreadyAdded 
                         ? "bg-muted/50 opacity-50 cursor-not-allowed" 
-                        : "hover:bg-muted/30"
+                        : isSelected 
+                          ? "bg-primary/5" 
+                          : "hover:bg-muted/30"
                     )}
                   >
                     {/* Product info */}
@@ -158,17 +211,31 @@ export function ScopeProductSelectionDrawer({
                       <p className="font-semibold text-foreground">{formatPrice(product.price)}</p>
                     </div>
                     
-                    {/* Checkmark for already selected */}
-                    {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <Check className="w-4 h-4 text-primary-foreground" />
-                      </div>
-                    )}
+                    {/* Checkmark */}
+                    <div className={cn(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                      (isSelected || isAlreadyAdded)
+                        ? "bg-primary border-primary" 
+                        : "border-muted-foreground/40"
+                    )}>
+                      {(isSelected || isAlreadyAdded) && <Check className="w-4 h-4 text-primary-foreground" />}
+                    </div>
                   </button>
                 );
               })
             )}
           </div>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="border-t px-4 py-4 shrink-0 bg-background">
+          <Button 
+            onClick={handleConfirm}
+            disabled={selectedIds.length === 0}
+            className="w-full h-12 text-base font-semibold"
+          >
+            Dodaj wybrane ({selectedIds.length})
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
