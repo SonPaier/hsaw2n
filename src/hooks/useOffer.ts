@@ -120,7 +120,7 @@ export const useOffer = (instanceId: string) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Generate options from selected scopes × variants
+  // Generate options from selected scopes (simplified - no variants)
   const generateOptionsFromScopes = useCallback(async (scopeIds: string[]) => {
     if (scopeIds.length === 0) {
       setOffer(prev => ({ ...prev, options: [] }));
@@ -138,148 +138,67 @@ export const useOffer = (instanceId: string) => {
 
       if (scopesError) throw scopesError;
 
-      // Fetch active variants
-      const { data: variants, error: variantsError } = await supabase
-        .from('offer_variants')
-        .select('*')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('sort_order');
-
-      if (variantsError) throw variantsError;
-
-      // Fetch scope-variant links (which variants are assigned to which scopes)
-      const { data: scopeVariantLinks, error: linksError } = await supabase
-        .from('offer_scope_variants')
-        .select('scope_id, variant_id')
-        .eq('instance_id', instanceId)
-        .in('scope_id', scopeIds);
-
-      if (linksError) throw linksError;
-
-      // Build a map of scope_id -> variant_ids
-      const scopeVariantsMap = (scopeVariantLinks || []).reduce((acc, link) => {
-        if (!acc[link.scope_id]) acc[link.scope_id] = new Set<string>();
-        acc[link.scope_id].add(link.variant_id);
-        return acc;
-      }, {} as Record<string, Set<string>>);
-
-      // Fetch scope-variant products
-      const { data: scopeVariantProducts, error: productsError } = await supabase
-        .from('offer_scope_variant_products')
-        .select('*, products_library(*)')
-        .eq('instance_id', instanceId)
-        .in('scope_id', scopeIds);
-
-      if (productsError) throw productsError;
-
-      // Fetch scope extras (additional options like coating)
-      const { data: scopeExtras, error: extrasError } = await supabase
-        .from('offer_scope_extras')
-        .select('*')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
+      // Fetch scope products (new simplified structure)
+      const { data: scopeProducts, error: productsError } = await supabase
+        .from('offer_scope_products')
+        .select(`
+          id,
+          scope_id,
+          product_id,
+          variant_name,
+          is_default,
+          sort_order,
+          product:products_library(id, name, default_price, unit, description)
+        `)
         .in('scope_id', scopeIds)
         .order('sort_order');
 
-      if (extrasError) throw extrasError;
+      if (productsError) throw productsError;
 
-      // Fetch extra products from the new linking table
-      const extraIds = (scopeExtras || []).map(e => e.id);
-      let extraProducts: any[] = [];
-      if (extraIds.length > 0) {
-        const { data: extraProds, error: extraProdsError } = await supabase
-          .from('offer_scope_extra_products')
-          .select('*, products_library(*)')
-          .eq('instance_id', instanceId)
-          .in('extra_id', extraIds)
-          .order('sort_order');
-        
-        if (extraProdsError) throw extraProdsError;
-        extraProducts = extraProds || [];
-      }
-
-      // Generate options: for each scope × assigned variant combination
+      // Generate one option per scope containing all its products
       const newOptions: OfferOption[] = [];
       let sortOrder = 0;
 
-      for (const scope of scopes || []) {
-        // Get variants assigned to this scope, or all variants if none assigned
-        const assignedVariantIds = scopeVariantsMap[scope.id];
-        const variantsForScope = assignedVariantIds && assignedVariantIds.size > 0
-          ? (variants || []).filter(v => assignedVariantIds.has(v.id))
-          : (variants && variants.length > 0 ? variants : [{ id: null, name: '' }]);
+      // Sort scopes: extras last
+      const sortedScopes = [...(scopes || [])].sort((a, b) => {
+        if (a.is_extras_scope && !b.is_extras_scope) return 1;
+        if (!a.is_extras_scope && b.is_extras_scope) return -1;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
 
-        for (const variant of variantsForScope) {
-          // Find products for this scope-variant combo
-          const products = (scopeVariantProducts || [])
-            .filter(p => p.scope_id === scope.id && (variant.id === null || p.variant_id === variant.id))
-            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      for (const scope of sortedScopes) {
+        // Get products for this scope
+        const products = (scopeProducts || [])
+          .filter(p => p.scope_id === scope.id)
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-          const items: OfferItem[] = products.map(p => ({
-            id: crypto.randomUUID(),
-            productId: p.product_id || undefined,
-            customName: p.custom_name || p.products_library?.name || '',
-            // Only use custom_description if explicitly set in template, don't copy from products_library
-            // This allows product description updates to reflect in offers via FK relationship
-            customDescription: p.custom_description || '',
-            quantity: Number(p.quantity) || 1,
-            unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
-            unit: p.unit || p.products_library?.unit || 'szt',
-            discountPercent: 0,
-            isOptional: false,
-            isCustom: !p.product_id,
-          }));
+        const items: OfferItem[] = products.map(p => ({
+          id: crypto.randomUUID(),
+          productId: p.product_id || undefined,
+          customName: p.variant_name 
+            ? `${p.variant_name}\n${p.product?.name || ''}` 
+            : (p.product?.name || ''),
+          customDescription: '', // Description comes from products_library via FK
+          quantity: 1,
+          unitPrice: p.product?.default_price || 0,
+          unit: p.product?.unit || 'szt',
+          discountPercent: 0,
+          isOptional: !p.is_default, // Non-default items are optional
+          isCustom: !p.product_id,
+        }));
 
-          const optionName = variant.name 
-            ? `${scope.name} - ${variant.name}` 
-            : scope.name;
-
-          newOptions.push({
-            id: crypto.randomUUID(),
-            name: optionName,
-            description: scope.description || '',
-            items,
-            isSelected: true, // All options selected by default
-            sortOrder,
-            scopeId: scope.id,
-            variantId: variant.id || undefined,
-            isUpsell: false,
-          });
-          sortOrder++;
-        }
-
-        // Add scope extras (custom additional options like coating)
-        const extras = (scopeExtras || []).filter(e => e.scope_id === scope.id);
-        for (const extra of extras) {
-          // Get products for this extra from the linking table
-          const products = extraProducts.filter(p => p.extra_id === extra.id);
-          const items: OfferItem[] = products.map(p => ({
-            id: crypto.randomUUID(),
-            productId: p.product_id || undefined,
-            customName: p.custom_name || p.products_library?.name || '',
-            // Only use custom_description if explicitly set in template, don't copy from products_library
-            customDescription: p.custom_description || '',
-            quantity: Number(p.quantity) || 1,
-            unitPrice: Number(p.unit_price) || p.products_library?.default_price || 0,
-            unit: p.unit || p.products_library?.unit || 'szt',
-            discountPercent: 0,
-            isOptional: true, // Extra items are optional by default
-            isCustom: !p.product_id,
-          }));
-
-          newOptions.push({
-            id: crypto.randomUUID(),
-            name: `${scope.name} - ${extra.name}`,
-            description: extra.description || '',
-            items,
-            isSelected: true,
-            sortOrder,
-            scopeId: scope.id,
-            isUpsell: extra.is_upsell,
-          });
-          sortOrder++;
-        }
+        newOptions.push({
+          id: crypto.randomUUID(),
+          name: scope.name,
+          description: scope.description || '',
+          items,
+          isSelected: true,
+          sortOrder,
+          scopeId: scope.id,
+          variantId: undefined,
+          isUpsell: scope.is_extras_scope || false,
+        });
+        sortOrder++;
       }
 
       setOffer(prev => ({ ...prev, options: newOptions }));
