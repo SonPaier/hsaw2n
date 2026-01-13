@@ -325,8 +325,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
 
           {/* Wybierz produkty */}
           <div className="space-y-3">
-            <Label>Produkty</Label>
-            <Button 
+            <Button
               variant="outline" 
               onClick={() => setIsProductDrawerOpen(true)}
               className="gap-2"
