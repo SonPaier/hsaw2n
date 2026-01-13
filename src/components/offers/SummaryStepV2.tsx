@@ -557,7 +557,7 @@ export const SummaryStepV2 = ({
             {service.selectedProducts.map((product) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-lg"
+                className="flex items-center justify-between py-2 px-3 bg-muted/15 rounded-lg"
               >
                 {/* Preselect checkbox */}
                 <div className="flex items-center gap-3 flex-1">
