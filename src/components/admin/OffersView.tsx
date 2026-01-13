@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,8 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
 import { OfferRemindersDialog } from '@/components/offers/OfferRemindersDialog';
 import { OfferSelectionDialog } from '@/components/offers/OfferSelectionDialog';
+import { OfferServicesListView } from '@/components/offers/services/OfferServicesListView';
+import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -159,12 +161,18 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   // Selection dialog state
   const [selectionDialog, setSelectionDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
+  // Services view state
+  const [showServicesView, setShowServicesView] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+
   // Reset generator state when clicking sidebar link (same route navigation)
   useEffect(() => {
-    if (showGenerator) {
+    if (showGenerator || showServicesView) {
       setShowGenerator(false);
+      setShowServicesView(false);
       setEditingOfferId(null);
       setDuplicatingOfferId(null);
+      setEditingServiceId(null);
       fetchOffers();
     }
   }, [location.key]);
@@ -425,6 +433,29 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
     );
   }
 
+  // Show services list view
+  if (showServicesView && instanceId && !editingServiceId) {
+    return (
+      <OfferServicesListView
+        instanceId={instanceId}
+        onBack={() => setShowServicesView(false)}
+        onEdit={(scopeId) => setEditingServiceId(scopeId)}
+        onCreate={() => setEditingServiceId('new')}
+      />
+    );
+  }
+
+  // Show service edit/create view
+  if (showServicesView && instanceId && editingServiceId) {
+    return (
+      <OfferServiceEditView
+        instanceId={instanceId}
+        scopeId={editingServiceId === 'new' ? undefined : editingServiceId}
+        onBack={() => setEditingServiceId(null)}
+      />
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -434,6 +465,10 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowServicesView(true)} className="gap-2 px-2 sm:px-4">
+              <Layers className="w-4 h-4" />
+              <span className="hidden sm:inline">Twoje Usługi</span>
+            </Button>
             <Button variant="outline" onClick={onNavigateToProducts} className="gap-2 px-2 sm:px-4">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">{t('offers.products')}</span>
