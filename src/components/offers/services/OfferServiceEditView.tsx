@@ -46,14 +46,14 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         </h1>
 
         <div className="space-y-6">
-          {/* Nagłówek */}
+          {/* Nazwa usługi */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nagłówek</Label>
+            <Label htmlFor="name">Nazwa usługi</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Premium, Standard"
+              placeholder="PPF Full Front"
               className="bg-white"
             />
           </div>
