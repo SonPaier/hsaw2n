@@ -480,19 +480,23 @@ export const SummaryStepV2 = ({
           <ScopeProductSelectionDrawer
             open={productDrawerOpen === service.scopeId}
             onClose={() => setProductDrawerOpen(null)}
-            availableProducts={getAvailableProducts(service).map(p => ({
-              id: p.id,
-              productId: p.product_id,
-              productName: p.product?.name || '',
-              variantName: p.variant_name,
-              price: p.product?.default_price || 0
-            }))}
-            selectedProductIds={service.selectedProducts.map(p => p.scopeProductId)}
-            onSelect={(product) => {
-              const scopeProduct = service.availableProducts.find(p => p.id === product.id);
-              if (scopeProduct) {
-                addProduct(service.scopeId, scopeProduct);
-              }
+            availableProducts={service.availableProducts
+              .filter(p => p.product)
+              .map(p => ({
+                id: p.id,
+                productId: p.product_id,
+                productName: p.product?.name || '',
+                variantName: p.variant_name,
+                price: p.product?.default_price || 0
+              }))}
+            alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
+            onConfirm={(products) => {
+              products.forEach(product => {
+                const scopeProduct = service.availableProducts.find(p => p.id === product.id);
+                if (scopeProduct) {
+                  addProduct(service.scopeId, scopeProduct);
+                }
+              });
             }}
           />
         </Card>
