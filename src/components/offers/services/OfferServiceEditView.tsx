@@ -38,6 +38,10 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [defaultWarranty, setDefaultWarranty] = useState('');
+  const [defaultPaymentTerms, setDefaultPaymentTerms] = useState('');
+  const [defaultNotes, setDefaultNotes] = useState('');
+  const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [scopeProducts, setScopeProducts] = useState<ScopeProduct[]>([]);
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,13 +57,17 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       // Fetch scope
       const { data: scope } = await supabase
         .from('offer_scopes')
-        .select('name, description')
+        .select('name, description, default_warranty, default_payment_terms, default_notes, default_service_info')
         .eq('id', scopeId)
         .single();
 
       if (scope) {
         setName(scope.name || '');
         setDescription(scope.description || '');
+        setDefaultWarranty(scope.default_warranty || '');
+        setDefaultPaymentTerms(scope.default_payment_terms || '');
+        setDefaultNotes(scope.default_notes || '');
+        setDefaultServiceInfo(scope.default_service_info || '');
       }
 
       // Fetch scope products with product details
@@ -163,11 +171,20 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
     try {
       let currentScopeId = scopeId;
 
+      const scopeData = {
+        name,
+        description: description || null,
+        default_warranty: defaultWarranty || null,
+        default_payment_terms: defaultPaymentTerms || null,
+        default_notes: defaultNotes || null,
+        default_service_info: defaultServiceInfo || null
+      };
+
       if (isEditMode && scopeId) {
         // Update existing scope
         const { error } = await supabase
           .from('offer_scopes')
-          .update({ name, description })
+          .update(scopeData)
           .eq('id', scopeId);
 
         if (error) throw error;
@@ -176,8 +193,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         const { data, error } = await supabase
           .from('offer_scopes')
           .insert({
-            name,
-            description,
+            ...scopeData,
             instance_id: instanceId,
             active: true
           })
@@ -340,6 +356,59 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Domyślne wartości dla oferty */}
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="font-medium text-lg">Domyślne wartości dla oferty</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="defaultWarranty">Gwarancja</Label>
+              <Textarea
+                id="defaultWarranty"
+                value={defaultWarranty}
+                onChange={(e) => setDefaultWarranty(e.target.value)}
+                placeholder="Np. 5 lat gwarancji na powłokę..."
+                rows={5}
+                className="bg-white resize-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="defaultPaymentTerms">Warunki płatności</Label>
+              <Textarea
+                id="defaultPaymentTerms"
+                value={defaultPaymentTerms}
+                onChange={(e) => setDefaultPaymentTerms(e.target.value)}
+                placeholder="Np. 50% zaliczki, reszta przy odbiorze..."
+                rows={5}
+                className="bg-white resize-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="defaultServiceInfo">Informacje o serwisie</Label>
+              <Textarea
+                id="defaultServiceInfo"
+                value={defaultServiceInfo}
+                onChange={(e) => setDefaultServiceInfo(e.target.value)}
+                placeholder="Np. Czas realizacji 3-5 dni roboczych..."
+                rows={5}
+                className="bg-white resize-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="defaultNotes">Inne uwagi</Label>
+              <Textarea
+                id="defaultNotes"
+                value={defaultNotes}
+                onChange={(e) => setDefaultNotes(e.target.value)}
+                placeholder="Dodatkowe informacje..."
+                rows={5}
+                className="bg-white resize-none"
+              />
+            </div>
           </div>
 
           {/* Przycisk zapisz */}
