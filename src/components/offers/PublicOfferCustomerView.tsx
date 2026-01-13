@@ -823,8 +823,7 @@ export const PublicOfferCustomerView = ({
                             key={item.id}
                             className={cn(
                               "transition-all border",
-                              isItemSelected && "ring-2",
-                              !isItemSelected && "opacity-70"
+                              isItemSelected && "ring-2"
                             )}
                             style={{
                               backgroundColor: branding.offer_section_bg_color,
