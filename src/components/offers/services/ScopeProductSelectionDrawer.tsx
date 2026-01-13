@@ -177,21 +177,17 @@ export function ScopeProductSelectionDrawer({
             ) : (
               filteredProducts.map((product) => {
                 const isSelected = selectedIds.includes(product.id);
-                const isAlreadyAdded = alreadySelectedIds.includes(product.id);
                 
                 return (
                   <button
                     key={product.id}
                     type="button"
-                    onClick={() => !isAlreadyAdded && toggleProduct(product.id)}
-                    disabled={isAlreadyAdded}
+                    onClick={() => toggleProduct(product.id)}
                     className={cn(
                       "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                      isAlreadyAdded 
-                        ? "bg-muted/50 opacity-50 cursor-not-allowed" 
-                        : isSelected 
-                          ? "bg-primary/5" 
-                          : "hover:bg-muted/30"
+                      isSelected 
+                        ? "bg-primary/5" 
+                        : "hover:bg-muted/30"
                     )}
                   >
                     {/* Product info */}
@@ -214,11 +210,11 @@ export function ScopeProductSelectionDrawer({
                     {/* Checkmark */}
                     <div className={cn(
                       "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                      (isSelected || isAlreadyAdded)
+                      isSelected
                         ? "bg-primary border-primary" 
                         : "border-muted-foreground/40"
                     )}>
-                      {(isSelected || isAlreadyAdded) && <Check className="w-4 h-4 text-primary-foreground" />}
+                      {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
                     </div>
                   </button>
                 );
