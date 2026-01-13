@@ -161,36 +161,12 @@ export const SummaryStepV2 = ({
 
         // Check if we have saved options for this scope - restore them
         const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
-        
+
         let selectedProducts: SelectedProduct[];
-        
-        if (existingOption && existingOption.items.length > 0) {
-          // Restore from saved option items
-          selectedProducts = existingOption.items.map(item => {
-            // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
-            const nameParts = (item.customName || '').split('\n');
-            const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
-            const variantFromItem = nameParts.length > 1 ? nameParts[0] : null;
-            
-            const matchingProduct = scopeProducts.find(sp => 
-              sp.product_id === item.productId || 
-              (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
-            );
-            
-            return {
-              id: item.id,
-              scopeProductId: matchingProduct?.id || '',
-              productId: item.productId || matchingProduct?.product_id || '',
-              variantName: variantFromItem || matchingProduct?.variant_name || null,
-              productName: productNameFromItem || matchingProduct?.product?.name || '',
-              price: item.unitPrice,
-              isDefault: matchingProduct?.is_default || false,
-              isPreselected: !item.isOptional, // Restore preselect state
-            };
-          });
-        } else {
-          // Initialize with default products
-          selectedProducts = scopeProducts
+
+        // Helper: build defaults
+        const buildDefaultSelected = (): SelectedProduct[] => {
+          return scopeProducts
             .filter(p => p.is_default && p.product)
             .map(p => ({
               id: p.id, // Use stable ID
@@ -202,6 +178,49 @@ export const SummaryStepV2 = ({
               isDefault: p.is_default,
               isPreselected: true, // Default products are preselected
             }));
+        };
+
+        if (existingOption && existingOption.items.length > 0) {
+          // If option.id !== scopeId, it's the older auto-generated "full catalog" structure.
+          // For step 3 we want the old behavior: start only with defaults.
+          const isLegacyAutoCatalog = existingOption.id !== scope.id;
+          if (isLegacyAutoCatalog) {
+            selectedProducts = buildDefaultSelected();
+          } else {
+            // Restore from saved option items (new step-3-driven structure)
+            const restored = existingOption.items.map(item => {
+              // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
+              const nameParts = (item.customName || '').split('\n');
+              const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
+              const variantFromItem = nameParts.length > 1 ? nameParts[0] : null;
+
+              const matchingProduct = scopeProducts.find(sp =>
+                sp.product_id === item.productId ||
+                (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
+              );
+
+              return {
+                id: item.id,
+                scopeProductId: matchingProduct?.id || '',
+                productId: item.productId || matchingProduct?.product_id || '',
+                variantName: variantFromItem || matchingProduct?.variant_name || null,
+                productName: productNameFromItem || matchingProduct?.product?.name || '',
+                price: item.unitPrice,
+                isDefault: matchingProduct?.is_default || false,
+                isPreselected: !item.isOptional, // Restore preselect state
+              };
+            }).filter(p => p.productId && p.scopeProductId);
+
+            // Guard: some legacy/auto-generated offers may store ALL products as "selected".
+            // In such case we fall back to defaults (behavior "jak wcześniej").
+            const availableCount = scopeProducts.filter(p => p.product).length;
+            const looksLikeFullCatalog = restored.length >= availableCount && availableCount > 0;
+
+            selectedProducts = looksLikeFullCatalog ? buildDefaultSelected() : restored;
+          }
+        } else {
+          // Initialize with default products
+          selectedProducts = buildDefaultSelected();
         }
 
         const totalPrice = selectedProducts.reduce((sum, p) => sum + p.price, 0);
