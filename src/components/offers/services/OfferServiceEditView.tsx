@@ -50,6 +50,25 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
 
+  // Load instance defaults for new service
+  useEffect(() => {
+    if (scopeId) return; // Only for create mode
+    
+    const fetchInstanceDefaults = async () => {
+      const { data } = await supabase
+        .from('instances')
+        .select('offer_default_payment_terms')
+        .eq('id', instanceId)
+        .single();
+      
+      if (data) {
+        setDefaultPaymentTerms(data.offer_default_payment_terms || '');
+      }
+    };
+    
+    fetchInstanceDefaults();
+  }, [instanceId, scopeId]);
+
   // Load existing scope data in edit mode
   useEffect(() => {
     if (!scopeId) return;
