@@ -23,6 +23,7 @@ import { CustomerDataStep } from './CustomerDataStep';
 import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
+import { SummaryStepV2 } from './SummaryStepV2';
 import { OfferPreviewDialog } from './OfferPreviewDialog';
 import { SendOfferEmailDialog } from '@/components/admin/SendOfferEmailDialog';
 import { toast } from 'sonner';
@@ -461,15 +462,11 @@ export const OfferGenerator = ({
       */}
       
       {currentStep === 3 && (
-        <SummaryStep
+        <SummaryStepV2
           instanceId={instanceId}
           offer={offer}
           showUnitPrices={instanceShowUnitPrices}
           onUpdateOffer={updateOffer}
-          onUpdateOption={updateOption}
-          onRemoveItem={removeItemFromOption}
-          onUpdateDefaultSelection={(state) => updateOffer({ defaultSelectedState: state })}
-          calculateOptionTotal={calculateOptionTotal}
           calculateTotalNet={calculateTotalNet}
           calculateTotalGross={calculateTotalGross}
           onShowPreview={handleShowPreview}

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
@@ -39,6 +40,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [shortName, setShortName] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isExtrasScope, setIsExtrasScope] = useState(false);
   const [defaultWarranty, setDefaultWarranty] = useState('');
   const [defaultPaymentTerms, setDefaultPaymentTerms] = useState('');
   const [defaultNotes, setDefaultNotes] = useState('');
@@ -58,7 +60,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       // Fetch scope
       const { data: scope } = await supabase
         .from('offer_scopes')
-        .select('short_name, name, description, default_warranty, default_payment_terms, default_notes, default_service_info')
+        .select('short_name, name, description, is_extras_scope, default_warranty, default_payment_terms, default_notes, default_service_info')
         .eq('id', scopeId)
         .single();
 
@@ -66,6 +68,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         setShortName(scope.short_name || '');
         setName(scope.name || '');
         setDescription(scope.description || '');
+        setIsExtrasScope(scope.is_extras_scope || false);
         setDefaultWarranty(scope.default_warranty || '');
         setDefaultPaymentTerms(scope.default_payment_terms || '');
         setDefaultNotes(scope.default_notes || '');
@@ -177,6 +180,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         short_name: shortName || null,
         name,
         description: description || null,
+        is_extras_scope: isExtrasScope,
         default_warranty: defaultWarranty || null,
         default_payment_terms: defaultPaymentTerms || null,
         default_notes: defaultNotes || null,
@@ -292,6 +296,18 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               placeholder="PPF Full Front"
               className="bg-white"
             />
+          </div>
+
+          {/* Usługa typu dodatki */}
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="isExtrasScope" 
+              checked={isExtrasScope}
+              onCheckedChange={(checked) => setIsExtrasScope(checked === true)}
+            />
+            <Label htmlFor="isExtrasScope" className="cursor-pointer">
+              Usługa typu dodatki
+            </Label>
           </div>
 
           {/* Opis */}
