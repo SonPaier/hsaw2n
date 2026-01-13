@@ -1580,7 +1580,11 @@ export type Database = {
           brand: string | null
           category: string | null
           created_at: string
+          default_payment_terms: string | null
           default_price: number
+          default_service_info: string | null
+          default_validity_days: number | null
+          default_warranty_terms: string | null
           description: string | null
           id: string
           instance_id: string | null
@@ -1597,7 +1601,11 @@ export type Database = {
           brand?: string | null
           category?: string | null
           created_at?: string
+          default_payment_terms?: string | null
           default_price?: number
+          default_service_info?: string | null
+          default_validity_days?: number | null
+          default_warranty_terms?: string | null
           description?: string | null
           id?: string
           instance_id?: string | null
@@ -1614,7 +1622,11 @@ export type Database = {
           brand?: string | null
           category?: string | null
           created_at?: string
+          default_payment_terms?: string | null
           default_price?: number
+          default_service_info?: string | null
+          default_validity_days?: number | null
+          default_warranty_terms?: string | null
           description?: string | null
           id?: string
           instance_id?: string | null
