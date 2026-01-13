@@ -256,20 +256,28 @@ export const PublicOfferCustomerView = ({
   const calculateDynamicTotal = () => {
     let totalNet = 0;
     
-    // Identify extras scope options
+    // Identify extras scope options and non-extras scopes
     const extrasScopeOptionIds = new Set<string>();
+    const nonExtrasScopeIds = new Set<string>();
     offer.offer_options.forEach(opt => {
       if (opt.scope?.is_extras_scope) {
         extrasScopeOptionIds.add(opt.id);
+      } else if (opt.scope_id) {
+        nonExtrasScopeIds.add(opt.scope_id);
       }
     });
+    
+    const hasSingleNonExtrasScope = nonExtrasScopeIds.size === 1;
+    const effectiveScopeId = hasSingleNonExtrasScope 
+      ? Array.from(nonExtrasScopeIds)[0] 
+      : selectedScopeId;
     
     // For non-extras scopes: only count the selected item from the selected scope
     offer.offer_options.forEach(option => {
       if (extrasScopeOptionIds.has(option.id)) return; // Skip extras, handled separately
       
-      // Check if this option's scope is selected
-      if (option.scope_id !== selectedScopeId) return;
+      // Check if this option's scope is selected (or single scope case)
+      if (option.scope_id !== effectiveScopeId) return;
       
       const selectedItemId = selectedItemInOption[option.id];
       if (selectedItemId) {
@@ -285,7 +293,7 @@ export const PublicOfferCustomerView = ({
     offer.offer_options.forEach(option => {
       if (extrasScopeOptionIds.has(option.id)) {
         option.offer_option_items.forEach(item => {
-          if (selectedOptionalItems[item.id]) {
+          if (item.id && selectedOptionalItems[item.id]) {
             const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
             totalNet += itemTotal;
           }
@@ -296,6 +304,18 @@ export const PublicOfferCustomerView = ({
     const totalGross = totalNet * (1 + offer.vat_rate / 100);
     return { net: totalNet, gross: totalGross };
   };
+
+  // Calculate if there's only one non-extras scope (for confirm button)
+  const nonExtrasScopeIds = new Set<string>();
+  offer.offer_options.forEach(opt => {
+    if (!opt.scope?.is_extras_scope && opt.scope_id) {
+      nonExtrasScopeIds.add(opt.scope_id);
+    }
+  });
+  const hasSingleNonExtrasScope = nonExtrasScopeIds.size === 1;
+  const hasSelectedProduct = hasSingleNonExtrasScope 
+    ? Object.keys(selectedItemInOption).length > 0 
+    : !!selectedScopeId;
 
   const dynamicTotals = calculateDynamicTotal();
 
@@ -764,58 +784,114 @@ export const PublicOfferCustomerView = ({
           </Card>
         ) : (
           <div className="space-y-8">
-            {scopeSections.map((section) => {
-              // For extras scope, flatten all items from all options as individually selectable
-              if (section.isExtrasScope) {
-                const allItems = section.options.flatMap(option => 
-                  option.offer_option_items.map(item => ({
-                    ...item,
-                    optionId: option.id,
-                    optionDescription: option.description
-                  }))
-                );
+            {/* Calculate if there's only one non-extras scope */}
+            {(() => {
+              const nonExtrasSections = scopeSections.filter(s => !s.isExtrasScope);
+              const hasSingleNonExtrasScope = nonExtrasSections.length === 1;
+              
+              return scopeSections.map((section) => {
+                // For extras scope, flatten all items from all options as individually selectable
+                if (section.isExtrasScope) {
+                  const allItems = section.options.flatMap(option => 
+                    (option.offer_option_items || []).map(item => ({
+                      ...item,
+                      optionId: option.id,
+                      optionDescription: option.description
+                    }))
+                  ).filter(item => item.id); // Filter out items without id
 
-                return (
-                  <section key={section.key} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <h2 
-                        className="text-base font-semibold"
-                        style={{ color: branding.offer_scope_header_text_color }}
-                      >
-                        {section.scopeName}
-                      </h2>
-                      <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
-                    </div>
+                  if (allItems.length === 0) return null;
 
-                    {allItems.map((item) => {
-                      const isItemSelected = selectedOptionalItems[item.id];
-                      const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                      
-                      return (
-                        <Card 
-                          key={item.id}
-                          className={cn(
-                            "transition-all border",
-                            isItemSelected && "ring-2",
-                            !isItemSelected && "opacity-70"
-                          )}
-                          style={{
-                            backgroundColor: branding.offer_section_bg_color,
-                            borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                            ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
-                          }}
+                  return (
+                    <section key={section.key} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h2 
+                          className="text-base font-semibold"
+                          style={{ color: branding.offer_scope_header_text_color }}
                         >
-                          <CardContent className="py-4">
-                            {/* Desktop: Name + price/button on one line, description below */}
-                            <div className="hidden md:block">
-                              <div className="flex items-center justify-between">
+                          {section.scopeName}
+                        </h2>
+                        <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
+                      </div>
+
+                      {allItems.map((item) => {
+                        const isItemSelected = selectedOptionalItems[item.id];
+                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                        
+                        return (
+                          <Card 
+                            key={item.id}
+                            className={cn(
+                              "transition-all border",
+                              isItemSelected && "ring-2",
+                              !isItemSelected && "opacity-70"
+                            )}
+                            style={{
+                              backgroundColor: branding.offer_section_bg_color,
+                              borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                              ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
+                            }}
+                          >
+                            <CardContent className="py-4">
+                              {/* Desktop: Name + price/button on one line, description below */}
+                              <div className="hidden md:block">
+                                <div className="flex items-center justify-between">
+                                  <p 
+                                    className="font-medium"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {item.custom_name}
+                                  </p>
+                                  <div className="flex items-center gap-3">
+                                    {!offer.hide_unit_prices && (
+                                      <span 
+                                        className="font-medium"
+                                        style={{ color: branding.offer_section_text_color }}
+                                      >
+                                        +{formatPrice(itemTotal)}
+                                      </span>
+                                    )}
+                                    <Button
+                                      variant={isItemSelected ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => handleToggleOptionalItem(item.id)}
+                                      disabled={interactionsDisabled}
+                                      className="shrink-0"
+                                      style={isItemSelected ? { 
+                                        backgroundColor: branding.offer_primary_color, 
+                                        color: primaryButtonTextColor 
+                                      } : {}}
+                                    >
+                                      {isItemSelected ? (
+                                        <>
+                                          <Check className="w-4 h-4 mr-1" />
+                                          Dodane
+                                        </>
+                                      ) : (
+                                        'Dodaj'
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                                {(item.custom_description || item.products_library?.description) && (
+                                  <div className="mt-1">
+                                    {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Mobile: Name, description, then price/button */}
+                              <div className="md:hidden space-y-2">
                                 <p 
                                   className="font-medium"
                                   style={{ color: branding.offer_section_text_color }}
                                 >
                                   {item.custom_name}
                                 </p>
-                                <div className="flex items-center gap-3">
+                                {(item.custom_description || item.products_library?.description) && 
+                                  renderDescription(item.custom_description || item.products_library?.description || '')
+                                }
+                                <div className="flex items-center justify-end gap-3">
                                   {!offer.hide_unit_prices && (
                                     <span 
                                       className="font-medium"
@@ -846,185 +922,145 @@ export const PublicOfferCustomerView = ({
                                   </Button>
                                 </div>
                               </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </section>
+                  );
+                }
+
+                // Regular scope (non-extras) - single product selection (radio behavior)
+                // Flatten all items from all options in this scope
+                const allItems = section.options.flatMap(opt => 
+                  (opt.offer_option_items || []).filter(item => item.id)
+                );
+                if (allItems.length === 0) return null;
+                
+                const option = section.options[0]; // Use first option for selection tracking
+                if (!option) return null;
+                
+                const selectedItemId = selectedItemInOption[option.id];
+                const isScopeSelected = selectedScopeId === section.key;
+                
+                // Get scope description
+                const scopeDescription = option.description;
+                
+                // If there's only one non-extras scope, auto-select it and don't show "Wybrana" badge
+                const showSelectionUI = !hasSingleNonExtrasScope;
+                
+                return (
+                  <section key={section.key} className="space-y-3">
+                    <div>
+                      <h2 
+                        className="font-semibold flex items-center gap-2"
+                        style={{ color: branding.offer_scope_header_text_color, fontSize: '22px' }}
+                      >
+                        <FileText className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
+                        {section.scopeName}
+                        {showSelectionUI && isScopeSelected && (
+                          <Badge 
+                            variant="default" 
+                            className="text-xs"
+                            style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
+                          >
+                            Wybrana
+                          </Badge>
+                        )}
+                      </h2>
+                      {scopeDescription && (
+                        <div 
+                          className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                          style={{ color: branding.offer_scope_header_text_color }}
+                          dangerouslySetInnerHTML={{ __html: parseMarkdownLists(scopeDescription) }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Products as radio selection - customer picks ONE */}
+                    <Card 
+                      className="border"
+                      style={{
+                        backgroundColor: branding.offer_section_bg_color,
+                        borderColor: (isScopeSelected || hasSingleNonExtrasScope) ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                      }}
+                    >
+                      <CardContent className="py-4 space-y-3">
+                        {allItems.map((item) => {
+                          const effectiveScopeSelected = hasSingleNonExtrasScope || isScopeSelected;
+                          const isItemSelected = selectedItemId === item.id && effectiveScopeSelected;
+                          const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                          
+                          // Parse variant name from custom_name if present (format: "VARIANT\nProduct name")
+                          const nameParts = (item.custom_name || '').split('\n');
+                          const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
+                          const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
+                          
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "rounded-lg border p-4 transition-all cursor-pointer",
+                                isItemSelected 
+                                  ? "ring-2" 
+                                  : "opacity-70 hover:opacity-100"
+                              )}
+                              style={{
+                                borderColor: isItemSelected ? branding.offer_primary_color : undefined,
+                                boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
+                                backgroundColor: branding.offer_section_bg_color,
+                              }}
+                              onClick={() => {
+                                if (!interactionsDisabled) {
+                                  // Select this scope and this item
+                                  handleSelectScope(section.key, option.id);
+                                  setSelectedItemInOption(prev => ({ ...prev, [option.id]: item.id }));
+                                }
+                              }}
+                            >
+                              {/* Variant label (e.g., PREMIUM, STANDARD) */}
+                              {variantLabel && (
+                                <p 
+                                  className="text-xs font-semibold uppercase tracking-wide mb-1"
+                                  style={{ color: branding.offer_primary_color }}
+                                >
+                                  {variantLabel}
+                                </p>
+                              )}
+                              
+                              {/* Name + Price row */}
+                              <div className="flex items-start justify-between gap-3">
+                                <span 
+                                  className="font-medium text-base"
+                                  style={{ color: branding.offer_section_text_color }}
+                                >
+                                  {productName}
+                                </span>
+                                {!offer.hide_unit_prices && (
+                                  <span 
+                                    className="font-bold text-lg shrink-0"
+                                    style={{ color: branding.offer_primary_color }}
+                                  >
+                                    {formatPrice(itemTotal)}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Description */}
                               {(item.custom_description || item.products_library?.description) && (
-                                <div className="mt-1">
+                                <div className="mt-2">
                                   {renderDescription(item.custom_description || item.products_library?.description || '')}
                                 </div>
                               )}
                             </div>
-
-                            {/* Mobile: Name, description, then price/button */}
-                            <div className="md:hidden space-y-2">
-                              <p 
-                                className="font-medium"
-                                style={{ color: branding.offer_section_text_color }}
-                              >
-                                {item.custom_name}
-                              </p>
-                              {(item.custom_description || item.products_library?.description) && 
-                                renderDescription(item.custom_description || item.products_library?.description || '')
-                              }
-                              <div className="flex items-center justify-end gap-3">
-                                {!offer.hide_unit_prices && (
-                                  <span 
-                                    className="font-medium"
-                                    style={{ color: branding.offer_section_text_color }}
-                                  >
-                                    +{formatPrice(itemTotal)}
-                                  </span>
-                                )}
-                                <Button
-                                  variant={isItemSelected ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleToggleOptionalItem(item.id)}
-                                  disabled={interactionsDisabled}
-                                  className="shrink-0"
-                                  style={isItemSelected ? { 
-                                    backgroundColor: branding.offer_primary_color, 
-                                    color: primaryButtonTextColor 
-                                  } : {}}
-                                >
-                                  {isItemSelected ? (
-                                    <>
-                                      <Check className="w-4 h-4 mr-1" />
-                                      Dodane
-                                    </>
-                                  ) : (
-                                    'Dodaj'
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
                   </section>
                 );
-              }
-
-              // Regular scope (non-extras) - single product selection (radio behavior)
-              // Each option represents a service, each item is a product choice
-              const option = section.options[0]; // There's only one option per scope in new structure
-              if (!option) return null;
-              
-              const allItems = option.offer_option_items || [];
-              const selectedItemId = selectedItemInOption[option.id];
-              const isScopeSelected = selectedScopeId === section.key;
-              
-              // Get scope description
-              const scopeDescription = option.description;
-              
-              return (
-                <section key={section.key} className="space-y-3">
-                  <div>
-                    <h2 
-                      className="font-semibold flex items-center gap-2"
-                      style={{ color: branding.offer_scope_header_text_color, fontSize: '22px' }}
-                    >
-                      <FileText className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
-                      {section.scopeName}
-                      {isScopeSelected && (
-                        <Badge 
-                          variant="default" 
-                          className="text-xs"
-                          style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
-                        >
-                          Wybrana
-                        </Badge>
-                      )}
-                    </h2>
-                    {scopeDescription && (
-                      <div 
-                        className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
-                        style={{ color: branding.offer_scope_header_text_color }}
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownLists(scopeDescription) }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Products as radio selection - customer picks ONE */}
-                  <Card 
-                    className="border"
-                    style={{
-                      backgroundColor: branding.offer_section_bg_color,
-                      borderColor: isScopeSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                    }}
-                  >
-                    <CardContent className="py-4 space-y-3">
-                      {allItems.map((item) => {
-                        const isItemSelected = selectedItemId === item.id && isScopeSelected;
-                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                        
-                        // Parse variant name from custom_name if present (format: "VARIANT\nProduct name")
-                        const nameParts = (item.custom_name || '').split('\n');
-                        const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
-                        const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
-                        
-                        return (
-                          <div
-                            key={item.id}
-                            className={cn(
-                              "rounded-lg border p-4 transition-all cursor-pointer",
-                              isItemSelected 
-                                ? "ring-2" 
-                                : "opacity-70 hover:opacity-100"
-                            )}
-                            style={{
-                              borderColor: isItemSelected ? branding.offer_primary_color : undefined,
-                              boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
-                              backgroundColor: branding.offer_section_bg_color,
-                            }}
-                            onClick={() => {
-                              if (!interactionsDisabled) {
-                                // Select this scope and this item
-                                handleSelectScope(section.key, option.id);
-                                setSelectedItemInOption(prev => ({ ...prev, [option.id]: item.id }));
-                              }
-                            }}
-                          >
-                            {/* Variant label (e.g., PREMIUM, STANDARD) */}
-                            {variantLabel && (
-                              <p 
-                                className="text-xs font-semibold uppercase tracking-wide mb-1"
-                                style={{ color: branding.offer_primary_color }}
-                              >
-                                {variantLabel}
-                              </p>
-                            )}
-                            
-                            {/* Name + Price row */}
-                            <div className="flex items-start justify-between gap-3">
-                              <span 
-                                className="font-medium text-base"
-                                style={{ color: branding.offer_section_text_color }}
-                              >
-                                {productName}
-                              </span>
-                              {!offer.hide_unit_prices && (
-                                <span 
-                                  className="font-bold text-lg shrink-0"
-                                  style={{ color: branding.offer_primary_color }}
-                                >
-                                  {formatPrice(itemTotal)}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Description */}
-                            {(item.custom_description || item.products_library?.description) && (
-                              <div className="mt-2">
-                                {renderDescription(item.custom_description || item.products_library?.description || '')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </Card>
-                </section>
-              );
-            })}
+              });
+            })()}
           </div>
         )}
 
@@ -1154,7 +1190,7 @@ export const PublicOfferCustomerView = ({
                       className="gap-2" 
                       size="lg"
                       onClick={handleConfirmSelection}
-                      disabled={responding || !selectedScopeId}
+                      disabled={responding || !hasSelectedProduct}
                       style={{ 
                         backgroundColor: branding.offer_primary_color, 
                         color: primaryButtonTextColor 
