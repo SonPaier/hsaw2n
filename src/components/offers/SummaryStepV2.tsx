@@ -186,7 +186,6 @@ export const SummaryStepV2 = ({
       setServices(newServices);
 
       // Combine default conditions from all scopes with headers
-      // Only populate if the offer fields are empty (first load)
       const combineWithHeaders = (
         field: 'default_warranty' | 'default_payment_terms' | 'default_notes' | 'default_service_info'
       ): string => {
@@ -204,28 +203,15 @@ export const SummaryStepV2 = ({
         return parts.join('\n\n');
       };
 
-      // Only set defaults if fields are empty
-      const updates: Partial<OfferState> = {};
-      if (!offer.warranty) {
-        const combined = combineWithHeaders('default_warranty');
-        if (combined) updates.warranty = combined;
-      }
-      if (!offer.paymentTerms) {
-        const combined = combineWithHeaders('default_payment_terms');
-        if (combined) updates.paymentTerms = combined;
-      }
-      if (!offer.notes) {
-        const combined = combineWithHeaders('default_notes');
-        if (combined) updates.notes = combined;
-      }
-      if (!offer.serviceInfo) {
-        const combined = combineWithHeaders('default_service_info');
-        if (combined) updates.serviceInfo = combined;
-      }
+      // Always update conditions based on selected scopes (regenerate on scope change)
+      const updates: Partial<OfferState> = {
+        warranty: combineWithHeaders('default_warranty'),
+        paymentTerms: combineWithHeaders('default_payment_terms'),
+        notes: combineWithHeaders('default_notes'),
+        serviceInfo: combineWithHeaders('default_service_info'),
+      };
       
-      if (Object.keys(updates).length > 0) {
-        onUpdateOffer(updates);
-      }
+      onUpdateOffer(updates);
 
 
       setLoading(false);
