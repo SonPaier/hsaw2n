@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
 
 interface OfferServiceEditViewProps {
   instanceId: string;
@@ -12,6 +18,15 @@ interface OfferServiceEditViewProps {
 export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServiceEditViewProps) {
   const { t } = useTranslation();
   const isEditMode = !!scopeId;
+  
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
+
+  const handleProductConfirm = (productIds: string[]) => {
+    setSelectedProductIds(productIds);
+  };
 
   return (
     <>
@@ -30,11 +45,69 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           {isEditMode ? 'Edytuj usługę' : 'Nowa usługa'}
         </h1>
 
-        <div className="text-center py-12 text-muted-foreground border rounded-lg">
-          <p>Formularz edycji usługi będzie tutaj...</p>
-          {isEditMode && <p className="text-sm mt-2">ID: {scopeId}</p>}
+        <div className="space-y-6">
+          {/* Nagłówek */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Nagłówek</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Premium, Standard"
+              className="bg-white"
+            />
+          </div>
+
+          {/* Opis */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Opis</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Opis usługi..."
+              rows={12}
+              className="bg-white resize-none"
+            />
+          </div>
+
+          {/* Wybierz produkty */}
+          <div className="space-y-3">
+            <Label>Wybierz produkty</Label>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsProductDrawerOpen(true)}
+              className="gap-2"
+            >
+              <Package className="w-4 h-4" />
+              Wybierz produkty
+              {selectedProductIds.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedProductIds.length}
+                </Badge>
+              )}
+            </Button>
+            
+            {selectedProductIds.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Wybrano {selectedProductIds.length} produktów
+              </p>
+            )}
+          </div>
+
+          {isEditMode && (
+            <p className="text-sm text-muted-foreground">ID: {scopeId}</p>
+          )}
         </div>
       </div>
+
+      <OfferProductSelectionDrawer
+        open={isProductDrawerOpen}
+        onClose={() => setIsProductDrawerOpen(false)}
+        instanceId={instanceId}
+        selectedProductIds={selectedProductIds}
+        onConfirm={handleProductConfirm}
+      />
     </>
   );
 }
