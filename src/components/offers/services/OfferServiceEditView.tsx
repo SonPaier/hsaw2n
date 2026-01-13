@@ -343,6 +343,10 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             {/* Lista wybranych produktów */}
             {scopeProducts.length > 0 && (
               <div className="space-y-2 mt-3">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                  oznacza, że produkt będzie zawsze dodany w kreatorze dla tej usługi
+                </p>
                 {scopeProducts.map(scopeProduct => (
                   <div 
                     key={scopeProduct.product_id}
@@ -377,12 +381,15 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
                         </button>
                       </div>
                     </div>
-                    <Input
-                      value={scopeProduct.variant_name}
-                      onChange={(e) => updateVariantName(scopeProduct.product_id, e.target.value)}
-                      placeholder="Np. Premium"
-                      className="bg-slate-50"
-                    />
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Dodatkowa nazwa pozycji</Label>
+                      <Input
+                        value={scopeProduct.variant_name}
+                        onChange={(e) => updateVariantName(scopeProduct.product_id, e.target.value)}
+                        placeholder="Np. Premium"
+                        className="bg-slate-50"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
