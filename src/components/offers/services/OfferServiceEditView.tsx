@@ -36,6 +36,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const { t } = useTranslation();
   const isEditMode = !!scopeId;
   
+  const [shortName, setShortName] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [defaultWarranty, setDefaultWarranty] = useState('');
@@ -57,11 +58,12 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       // Fetch scope
       const { data: scope } = await supabase
         .from('offer_scopes')
-        .select('name, description, default_warranty, default_payment_terms, default_notes, default_service_info')
+        .select('short_name, name, description, default_warranty, default_payment_terms, default_notes, default_service_info')
         .eq('id', scopeId)
         .single();
 
       if (scope) {
+        setShortName(scope.short_name || '');
         setName(scope.name || '');
         setDescription(scope.description || '');
         setDefaultWarranty(scope.default_warranty || '');
@@ -172,6 +174,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       let currentScopeId = scopeId;
 
       const scopeData = {
+        short_name: shortName || null,
         name,
         description: description || null,
         default_warranty: defaultWarranty || null,
@@ -267,9 +270,21 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         </h1>
 
         <div className="space-y-6">
-          {/* Nazwa usługi */}
+          {/* Nazwa skrócona */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nazwa usługi</Label>
+            <Label htmlFor="shortName">Nazwa skrócona</Label>
+            <Input
+              id="shortName"
+              value={shortName}
+              onChange={(e) => setShortName(e.target.value)}
+              placeholder="PPF"
+              className="bg-white"
+            />
+          </div>
+
+          {/* Nazwa usługi widoczna w ofercie */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Nazwa usługi widoczna w ofercie</Label>
             <Input
               id="name"
               value={name}
