@@ -977,86 +977,157 @@ export const PublicOfferCustomerView = ({
                       )}
                     </div>
 
-                    {/* Products as radio selection - customer picks ONE */}
-                    <Card 
-                      className="border"
-                      style={{
-                        backgroundColor: branding.offer_section_bg_color,
-                        borderColor: (isScopeSelected || hasSingleNonExtrasScope) ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                      }}
-                    >
-                      <CardContent className="py-4 space-y-3">
-                        {allItems.map((item) => {
-                          const effectiveScopeSelected = hasSingleNonExtrasScope || isScopeSelected;
-                          const isItemSelected = selectedItemId === item.id && effectiveScopeSelected;
-                          const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                          
-                          // Parse variant name from custom_name if present (format: "VARIANT\nProduct name")
-                          const nameParts = (item.custom_name || '').split('\n');
-                          const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
-                          const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
-                          
-                          return (
-                            <div
-                              key={item.id}
-                              className={cn(
-                                "rounded-lg border p-4 transition-all cursor-pointer",
-                                isItemSelected 
-                                  ? "ring-2" 
-                                  : "opacity-70 hover:opacity-100"
-                              )}
-                              style={{
-                                borderColor: isItemSelected ? branding.offer_primary_color : undefined,
-                                boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
+                    {/* Products - if single item in single non-extras scope, just show it without selection UI */}
+                    {hasSingleNonExtrasScope && allItems.length === 1 ? (
+                      // Single product - just display, no selection behavior
+                      <Card 
+                        className="border"
+                        style={{
+                          backgroundColor: branding.offer_section_bg_color,
+                          borderColor: branding.offer_primary_color,
+                        }}
+                      >
+                        <CardContent className="py-4">
+                          {allItems.map((item) => {
+                            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                            
+                            // Parse variant name from custom_name if present (format: "VARIANT\nProduct name")
+                            const nameParts = (item.custom_name || '').split('\n');
+                            const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
+                            const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
+                            
+                            // Get description from custom_description or products_library
+                            const description = item.custom_description || item.products_library?.description;
+                            
+                            return (
+                              <div key={item.id} className="rounded-lg border p-4" style={{
+                                borderColor: branding.offer_primary_color,
                                 backgroundColor: branding.offer_section_bg_color,
-                              }}
-                              onClick={() => {
-                                if (!interactionsDisabled) {
-                                  // Select this scope and this item
-                                  handleSelectScope(section.key, option.id);
-                                  setSelectedItemInOption(prev => ({ ...prev, [option.id]: item.id }));
-                                }
-                              }}
-                            >
-                              {/* Variant label (e.g., PREMIUM, STANDARD) */}
-                              {variantLabel && (
-                                <p 
-                                  className="text-xs font-semibold uppercase tracking-wide mb-1"
-                                  style={{ color: branding.offer_primary_color }}
-                                >
-                                  {variantLabel}
-                                </p>
-                              )}
-                              
-                              {/* Name + Price row */}
-                              <div className="flex items-start justify-between gap-3">
-                                <span 
-                                  className="font-medium text-base"
-                                  style={{ color: branding.offer_section_text_color }}
-                                >
-                                  {productName}
-                                </span>
-                                {!offer.hide_unit_prices && (
-                                  <span 
-                                    className="font-bold text-lg shrink-0"
+                              }}>
+                                {/* Variant label (e.g., PREMIUM, STANDARD) */}
+                                {variantLabel && (
+                                  <p 
+                                    className="text-xs font-semibold uppercase tracking-wide mb-1"
                                     style={{ color: branding.offer_primary_color }}
                                   >
-                                    {formatPrice(itemTotal)}
+                                    {variantLabel}
+                                  </p>
+                                )}
+                                
+                                {/* Name + Price row */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <span 
+                                    className="font-medium text-base"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {productName}
                                   </span>
+                                  {!offer.hide_unit_prices && (
+                                    <span 
+                                      className="font-bold text-lg shrink-0"
+                                      style={{ color: branding.offer_primary_color }}
+                                    >
+                                      {formatPrice(itemTotal)}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {/* Description from product library */}
+                                {description && (
+                                  <div className="mt-2">
+                                    {renderDescription(description)}
+                                  </div>
                                 )}
                               </div>
-                              
-                              {/* Description */}
-                              {(item.custom_description || item.products_library?.description) && (
-                                <div className="mt-2">
-                                  {renderDescription(item.custom_description || item.products_library?.description || '')}
+                            );
+                          })}
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      // Multiple items - radio selection behavior
+                      <Card 
+                        className="border"
+                        style={{
+                          backgroundColor: branding.offer_section_bg_color,
+                          borderColor: (isScopeSelected || hasSingleNonExtrasScope) ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                        }}
+                      >
+                        <CardContent className="py-4 space-y-3">
+                          {allItems.map((item) => {
+                            const effectiveScopeSelected = hasSingleNonExtrasScope || isScopeSelected;
+                            const isItemSelected = selectedItemId === item.id && effectiveScopeSelected;
+                            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                            
+                            // Parse variant name from custom_name if present (format: "VARIANT\nProduct name")
+                            const nameParts = (item.custom_name || '').split('\n');
+                            const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
+                            const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
+                            
+                            // Get description from custom_description or products_library
+                            const description = item.custom_description || item.products_library?.description;
+                            
+                            return (
+                              <div
+                                key={item.id}
+                                className={cn(
+                                  "rounded-lg border p-4 transition-all cursor-pointer",
+                                  isItemSelected 
+                                    ? "ring-2" 
+                                    : "opacity-70 hover:opacity-100"
+                                )}
+                                style={{
+                                  borderColor: isItemSelected ? branding.offer_primary_color : undefined,
+                                  boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
+                                  backgroundColor: branding.offer_section_bg_color,
+                                }}
+                                onClick={() => {
+                                  if (!interactionsDisabled) {
+                                    // Select this scope and this item
+                                    handleSelectScope(section.key, option.id);
+                                    setSelectedItemInOption(prev => ({ ...prev, [option.id]: item.id }));
+                                  }
+                                }}
+                              >
+                                {/* Variant label (e.g., PREMIUM, STANDARD) */}
+                                {variantLabel && (
+                                  <p 
+                                    className="text-xs font-semibold uppercase tracking-wide mb-1"
+                                    style={{ color: branding.offer_primary_color }}
+                                  >
+                                    {variantLabel}
+                                  </p>
+                                )}
+                                
+                                {/* Name + Price row */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <span 
+                                    className="font-medium text-base"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {productName}
+                                  </span>
+                                  {!offer.hide_unit_prices && (
+                                    <span 
+                                      className="font-bold text-lg shrink-0"
+                                      style={{ color: branding.offer_primary_color }}
+                                    >
+                                      {formatPrice(itemTotal)}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </CardContent>
-                    </Card>
+                                
+                                {/* Description from product library */}
+                                {description && (
+                                  <div className="mt-2">
+                                    {renderDescription(description)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </CardContent>
+                      </Card>
+                    )}
                   </section>
                 );
               });
