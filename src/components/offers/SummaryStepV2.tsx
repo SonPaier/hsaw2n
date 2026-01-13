@@ -183,7 +183,14 @@ export const SummaryStepV2 = ({
         };
       });
 
-      setServices(newServices);
+      // Sort services: extras scope always last
+      const sortedServices = newServices.sort((a, b) => {
+        if (a.isExtrasScope && !b.isExtrasScope) return 1;
+        if (!a.isExtrasScope && b.isExtrasScope) return -1;
+        return 0;
+      });
+
+      setServices(sortedServices);
 
       // Combine default conditions from all scopes with headers
       const combineWithHeaders = (
