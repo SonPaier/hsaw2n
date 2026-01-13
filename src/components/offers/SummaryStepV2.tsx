@@ -82,12 +82,6 @@ interface SummaryStepV2Props {
   onShowPreview?: () => void;
 }
 
-interface OfferTemplate {
-  id: string;
-  name: string;
-  payment_terms: string | null;
-  notes: string | null;
-}
 
 const paintTypeLabels: Record<string, string> = {
   matte: 'Mat',
@@ -107,7 +101,6 @@ export const SummaryStepV2 = ({
   onShowPreview,
 }: SummaryStepV2Props) => {
   const { t } = useTranslation();
-  const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [conditionsOpen, setConditionsOpen] = useState(true);
   const [services, setServices] = useState<ServiceState[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,23 +227,6 @@ export const SummaryStepV2 = ({
         onUpdateOffer(updates);
       }
 
-      // Fetch templates
-      const { data: templatesData } = await supabase
-        .from('text_blocks_library')
-        .select('*')
-        .eq('active', true)
-        .eq('block_type', 'offer_template')
-        .or(`instance_id.eq.${instanceId},source.eq.global`)
-        .order('sort_order');
-      
-      if (templatesData) {
-        setTemplates(templatesData.map(t => ({
-          id: t.id,
-          name: t.name,
-          payment_terms: t.content.split('|||')[0] || null,
-          notes: t.content.split('|||')[1] || null,
-        })));
-      }
 
       setLoading(false);
     };
@@ -342,12 +318,6 @@ export const SummaryStepV2 = ({
     }).format(Math.round(value));
   };
 
-  const handleApplyTemplate = (template: OfferTemplate) => {
-    onUpdateOffer({
-      paymentTerms: template.payment_terms || offer.paymentTerms,
-      notes: template.notes || offer.notes,
-    });
-  };
 
   // Calculate totals from services
   const totalNet = useMemo(() => {
