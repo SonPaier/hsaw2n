@@ -28,6 +28,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
 import { CustomerData, VehicleData, OfferState, OfferItem } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -463,42 +464,37 @@ export const SummaryStepV2 = ({
           {/* Add Product Button */}
           {getAvailableProducts(service).length > 0 && (
             <div className="mt-3">
-              <Select
-                onValueChange={(value) => {
-                  const scopeProduct = service.availableProducts.find(p => p.id === value);
-                  if (scopeProduct) {
-                    addProduct(service.scopeId, scopeProduct);
-                  }
-                }}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full bg-white"
+                onClick={() => setProductDrawerOpen(service.scopeId)}
               >
-                <SelectTrigger className="w-full bg-white">
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Dodaj produkt</span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {getAvailableProducts(service).map((scopeProduct) => (
-                    <SelectItem key={scopeProduct.id} value={scopeProduct.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {scopeProduct.variant_name && (
-                            <span className="text-muted-foreground mr-1">
-                              [{scopeProduct.variant_name}]
-                            </span>
-                          )}
-                          {scopeProduct.product?.name}
-                        </span>
-                        <span className="ml-4 font-medium">
-                          {formatPrice(scopeProduct.product?.default_price || 0)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Plus className="w-4 h-4 mr-2" />
+                Dodaj produkt
+              </Button>
             </div>
           )}
+
+          {/* Product Selection Drawer */}
+          <ScopeProductSelectionDrawer
+            open={productDrawerOpen === service.scopeId}
+            onClose={() => setProductDrawerOpen(null)}
+            availableProducts={getAvailableProducts(service).map(p => ({
+              id: p.id,
+              productId: p.product_id,
+              productName: p.product?.name || '',
+              variantName: p.variant_name,
+              price: p.product?.default_price || 0
+            }))}
+            selectedProductIds={service.selectedProducts.map(p => p.scopeProductId)}
+            onSelect={(product) => {
+              const scopeProduct = service.availableProducts.find(p => p.id === product.id);
+              if (scopeProduct) {
+                addProduct(service.scopeId, scopeProduct);
+              }
+            }}
+          />
         </Card>
       ))}
 
