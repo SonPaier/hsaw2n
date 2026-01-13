@@ -1338,6 +1338,7 @@ export type Database = {
           instance_id: string
           is_extras_scope: boolean
           name: string
+          short_name: string | null
           sort_order: number | null
           updated_at: string
         }
@@ -1354,6 +1355,7 @@ export type Database = {
           instance_id: string
           is_extras_scope?: boolean
           name: string
+          short_name?: string | null
           sort_order?: number | null
           updated_at?: string
         }
@@ -1370,6 +1372,7 @@ export type Database = {
           instance_id?: string
           is_extras_scope?: boolean
           name?: string
+          short_name?: string | null
           sort_order?: number | null
           updated_at?: string
         }
