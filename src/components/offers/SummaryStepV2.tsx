@@ -320,6 +320,13 @@ export const SummaryStepV2 = ({
     }));
   };
 
+  // Calculate textarea rows based on content
+  const getTextareaRows = (value: string | undefined | null, minRows: number = 3): number => {
+    if (!value) return minRows;
+    const lineCount = value.split('\n').length;
+    return Math.max(lineCount + 1, minRows);
+  };
+
   // Get available products that are not yet added
   const getAvailableProducts = (service: ServiceState) => {
     const addedProductIds = new Set(service.selectedProducts.map(p => p.scopeProductId));
@@ -588,27 +595,6 @@ export const SummaryStepV2 = ({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
-              {/* Templates */}
-              {templates.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Załaduj szablon</Label>
-                  <Select onValueChange={(id) => {
-                    const template = templates.find(t => t.id === id);
-                    if (template) handleApplyTemplate(template);
-                  }}>
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Wybierz szablon..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {templates.map(template => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               {/* Valid until */}
               <div className="space-y-2">
@@ -630,7 +616,7 @@ export const SummaryStepV2 = ({
                   value={offer.warranty || ''}
                   onChange={(e) => onUpdateOffer({ warranty: e.target.value })}
                   placeholder="Warunki gwarancji..."
-                  rows={3}
+                  rows={getTextareaRows(offer.warranty)}
                   className="bg-white"
                 />
               </div>
@@ -643,7 +629,7 @@ export const SummaryStepV2 = ({
                   value={offer.paymentTerms || ''}
                   onChange={(e) => onUpdateOffer({ paymentTerms: e.target.value })}
                   placeholder="Np. 50% zaliczki, reszta przy odbiorze..."
-                  rows={3}
+                  rows={getTextareaRows(offer.paymentTerms)}
                   className="bg-white"
                 />
               </div>
@@ -656,7 +642,7 @@ export const SummaryStepV2 = ({
                   value={offer.serviceInfo || ''}
                   onChange={(e) => onUpdateOffer({ serviceInfo: e.target.value })}
                   placeholder="Czas realizacji, sposób przygotowania..."
-                  rows={3}
+                  rows={getTextareaRows(offer.serviceInfo)}
                   className="bg-white"
                 />
               </div>
@@ -669,7 +655,7 @@ export const SummaryStepV2 = ({
                   value={offer.notes || ''}
                   onChange={(e) => onUpdateOffer({ notes: e.target.value })}
                   placeholder="Dodatkowe uwagi do oferty..."
-                  rows={3}
+                  rows={getTextareaRows(offer.notes)}
                   className="bg-white"
                 />
               </div>
