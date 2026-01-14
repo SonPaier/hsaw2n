@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Package, X, Star, GripVertical } from 'lucide-react';
+import { ArrowLeft, Package, X, Star, GripVertical, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
+import { AddProductDialog } from '@/components/products/AddProductDialog';
 import {
   DndContext,
   closestCenter,
@@ -58,12 +59,14 @@ function SortableProductItem({
   toggleDefault,
   removeProduct,
   updateVariantName,
+  onEditProduct,
 }: {
   scopeProduct: ScopeProduct;
   formatPrice: (price: number) => string;
   toggleDefault: (productId: string) => void;
   removeProduct: (productId: string) => void;
   updateVariantName: (productId: string, variantName: string) => void;
+  onEditProduct: (productId: string) => void;
 }) {
   const {
     attributes,
@@ -97,7 +100,17 @@ function SortableProductItem({
             <GripVertical className="w-4 h-4" />
           </button>
           <div className="flex-1">
-            <p className="font-medium">{scopeProduct.product?.name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-medium">{scopeProduct.product?.name}</p>
+              <button
+                type="button"
+                onClick={() => onEditProduct(scopeProduct.product_id)}
+                className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                title="Edytuj produkt"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
             {scopeProduct.product?.short_name && (
               <p className="text-xs text-muted-foreground">Skrót: {scopeProduct.product.short_name}</p>
             )}
@@ -155,6 +168,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [scopeProducts, setScopeProducts] = useState<ScopeProduct[]>([]);
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
 
@@ -518,6 +532,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
                           toggleDefault={toggleDefault}
                           removeProduct={removeProduct}
                           updateVariantName={updateVariantName}
+                          onEditProduct={setEditingProductId}
                         />
                       ))}
                     </div>
@@ -599,6 +614,36 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         instanceId={instanceId}
         selectedProductIds={scopeProducts.map(sp => sp.product_id)}
         onConfirm={handleProductConfirm}
+      />
+
+      {/* Product Edit Dialog */}
+      <AddProductDialog
+        open={!!editingProductId}
+        onOpenChange={(open) => !open && setEditingProductId(null)}
+        instanceId={instanceId}
+        categories={[]}
+        onProductAdded={async () => {
+          // Refresh the product data after edit
+          if (editingProductId) {
+            const { data } = await supabase
+              .from('products_library')
+              .select('id, name, short_name, default_price')
+              .eq('id', editingProductId)
+              .single();
+            
+            if (data) {
+              setScopeProducts(prev => 
+                prev.map(sp => 
+                  sp.product_id === editingProductId 
+                    ? { ...sp, product: data }
+                    : sp
+                )
+              );
+            }
+          }
+          setEditingProductId(null);
+        }}
+        product={scopeProducts.find(sp => sp.product_id === editingProductId)?.product as any}
       />
     </>
   );
