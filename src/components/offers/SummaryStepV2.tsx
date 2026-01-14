@@ -201,6 +201,9 @@ export const SummaryStepV2 = ({
         let selectedProducts: SelectedProduct[] = [];
         let suggestedProducts: SelectedProduct[] = [];
 
+        // Get customer selections from saved state (when customer accepted offer)
+        const customerSelectedOptionalItems = offer.defaultSelectedState?.selectedOptionalItems || {};
+
         if (existingOption && existingOption.items.length > 0) {
           // If option.id !== scopeId, it's the older auto-generated "full catalog" structure.
           // For step 3 we want the old behavior: start only with defaults.
@@ -220,6 +223,9 @@ export const SummaryStepV2 = ({
                 (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
               );
 
+              // Check if customer selected this item (from selectedOptionalItems)
+              const wasSelectedByCustomer = customerSelectedOptionalItems[item.id] === true;
+              
               return {
                 id: item.id,
                 scopeProductId: matchingProduct?.id || '',
@@ -229,7 +235,8 @@ export const SummaryStepV2 = ({
                 productShortName: matchingProduct?.product?.short_name || null,
                 price: item.unitPrice,
                 isDefault: matchingProduct?.is_default || false,
-                isPreselected: !item.isOptional, // Restore preselect state
+                // Item is preselected if: was admin preselected (!isOptional) OR customer selected it
+                isPreselected: !item.isOptional || wasSelectedByCustomer,
               };
             }).filter(p => p.productId && p.scopeProductId);
 
@@ -692,10 +699,7 @@ export const SummaryStepV2 = ({
                 variantName: p.variant_name,
                 price: p.product?.default_price || 0
               }))}
-            alreadySelectedIds={[
-              ...service.selectedProducts.map(p => p.scopeProductId),
-              ...service.suggestedProducts.map(p => p.scopeProductId)
-            ]}
+            alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
             onConfirm={(products) => {
               setServices(prev => prev.map(s => {
                 if (s.scopeId !== service.scopeId) return s;
@@ -843,10 +847,8 @@ export const SummaryStepV2 = ({
                   variantName: p.variant_name,
                   price: p.product?.default_price || 0
                 }))}
-              alreadySelectedIds={[
-                ...service.selectedProducts.map(p => p.scopeProductId),
-                ...service.suggestedProducts.map(p => p.scopeProductId)
-              ]}
+              alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
+              disabledIds={service.suggestedProducts.map(p => p.scopeProductId)}
               onConfirm={(products) => {
                 setServices(prev => prev.map(s => {
                   if (s.scopeId !== service.scopeId) return s;
@@ -983,10 +985,8 @@ export const SummaryStepV2 = ({
                   variantName: p.variant_name,
                   price: p.product?.default_price || 0
                 }))}
-              alreadySelectedIds={[
-                ...service.selectedProducts.map(p => p.scopeProductId),
-                ...service.suggestedProducts.map(p => p.scopeProductId)
-              ]}
+              alreadySelectedIds={service.suggestedProducts.map(p => p.scopeProductId)}
+              disabledIds={service.selectedProducts.map(p => p.scopeProductId)}
               onConfirm={(products) => {
                 setServices(prev => prev.map(s => {
                   if (s.scopeId !== service.scopeId) return s;
