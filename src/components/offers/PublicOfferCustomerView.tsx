@@ -43,6 +43,7 @@ import { DEFAULT_BRANDING, OfferBranding, getContrastTextColor } from '@/lib/col
 interface OfferScopeRef {
   id: string;
   name: string;
+  description?: string | null;
   is_extras_scope?: boolean;
 }
 
@@ -476,11 +477,15 @@ export const PublicOfferCustomerView = ({
           : inferredNameFromTitle ?? 'Pozostałe';
         
         const isExtrasScope = opt.scope?.is_extras_scope ?? false;
+        
+        // Get scope description - prefer from scope, fallback to option description
+        const scopeDescription = opt.scope?.description ?? opt.description ?? null;
 
         if (!acc[key]) {
           acc[key] = {
             key,
             scopeName: inferredScopeName,
+            scopeDescription,
             sortKey: opt.sort_order ?? 0,
             isExtrasScope,
             options: [] as OfferOption[],
@@ -491,7 +496,7 @@ export const PublicOfferCustomerView = ({
       },
       {} as Record<
         string,
-        { key: string; scopeName: string; sortKey: number; isExtrasScope: boolean; options: OfferOption[] }
+        { key: string; scopeName: string; scopeDescription: string | null; sortKey: number; isExtrasScope: boolean; options: OfferOption[] }
       >
     )
   ).sort((a, b) => a.sortKey - b.sortKey);
@@ -804,14 +809,23 @@ export const PublicOfferCustomerView = ({
 
                   return (
                     <section key={section.key} className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <h2 
-                          className="text-base font-semibold"
-                          style={{ color: branding.offer_scope_header_text_color }}
-                        >
-                          {section.scopeName}
-                        </h2>
-                        <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 
+                            className="text-base font-semibold"
+                            style={{ color: branding.offer_scope_header_text_color }}
+                          >
+                            {section.scopeName}
+                          </h2>
+                          <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
+                        </div>
+                        {section.scopeDescription && (
+                          <div 
+                            className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                            style={{ color: branding.offer_scope_header_text_color }}
+                            dangerouslySetInnerHTML={{ __html: parseMarkdownLists(section.scopeDescription) }}
+                          />
+                        )}
                       </div>
 
                       {allItems.map((item) => {
@@ -942,8 +956,8 @@ export const PublicOfferCustomerView = ({
                 const selectedItemId = selectedItemInOption[option.id];
                 const isScopeSelected = selectedScopeId === section.key;
                 
-                // Get scope description
-                const scopeDescription = option.description;
+                // Get scope description from section (already resolved from scope or option)
+                const scopeDescription = section.scopeDescription;
                 
                 // If there's only one non-extras scope, auto-select it and don't show "Wybrana" badge
                 const showSelectionUI = !hasSingleNonExtrasScope;
