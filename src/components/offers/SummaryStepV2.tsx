@@ -192,7 +192,7 @@ export const SummaryStepV2 = ({
               productShortName: p.product!.short_name,
               price: p.product!.default_price,
               isDefault: p.is_default,
-              isPreselected: true, // Default products are preselected
+              isPreselected: false, // Admin must manually preselect
             }));
         };
 
