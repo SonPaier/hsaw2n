@@ -61,6 +61,7 @@ interface ServiceState {
   isExtrasScope: boolean;
   availableProducts: ScopeProduct[];
   selectedProducts: SelectedProduct[];
+  suggestedProducts: SelectedProduct[]; // For extras: suggested (not preselected)
   totalPrice: number;
 }
 
@@ -109,7 +110,8 @@ export const SummaryStepV2 = ({
   const [services, setServices] = useState<ServiceState[]>([]);
   const [loading, setLoading] = useState(true);
   const [productDrawerOpen, setProductDrawerOpen] = useState<string | null>(null); // scopeId
-  const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string } | null>(null);
+  const [suggestedDrawerOpen, setSuggestedDrawerOpen] = useState<string | null>(null); // for suggested extras
+  const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string; isSuggested?: boolean } | null>(null);
 
   // Load scope data and products for selected scopes + always include extras scopes
   useEffect(() => {
@@ -177,13 +179,11 @@ export const SummaryStepV2 = ({
         // Check if we have saved options for this scope - restore them
         const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
 
-        let selectedProducts: SelectedProduct[];
-
         // Helper: build defaults
         const buildDefaultSelected = (): SelectedProduct[] => {
           return scopeProducts
             .filter(p => p.is_default && p.product)
-            .map(p => ({
+            .map((p, idx) => ({
               id: p.id, // Use stable ID
               scopeProductId: p.id,
               productId: p.product_id,
@@ -192,9 +192,14 @@ export const SummaryStepV2 = ({
               productShortName: p.product!.short_name,
               price: p.product!.default_price,
               isDefault: p.is_default,
-              isPreselected: false, // Admin must manually preselect
+              // For non-extras: auto-preselect first item only
+              // For extras: all selected products are preselected
+              isPreselected: scope.is_extras_scope ? true : idx === 0,
             }));
         };
+
+        let selectedProducts: SelectedProduct[] = [];
+        let suggestedProducts: SelectedProduct[] = [];
 
         if (existingOption && existingOption.items.length > 0) {
           // If option.id !== scopeId, it's the older auto-generated "full catalog" structure.
@@ -204,7 +209,7 @@ export const SummaryStepV2 = ({
             selectedProducts = buildDefaultSelected();
           } else {
             // Restore from saved option items (new step-3-driven structure)
-            const restored = existingOption.items.map(item => {
+            const allRestored = existingOption.items.map(item => {
               // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
               const nameParts = (item.customName || '').split('\n');
               const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
@@ -231,9 +236,19 @@ export const SummaryStepV2 = ({
             // Guard: some legacy/auto-generated offers may store ALL products as "selected".
             // In such case we fall back to defaults (behavior "jak wcześniej").
             const availableCount = scopeProducts.filter(p => p.product).length;
-            const looksLikeFullCatalog = restored.length >= availableCount && availableCount > 0;
+            const looksLikeFullCatalog = allRestored.length >= availableCount && availableCount > 0;
 
-            selectedProducts = looksLikeFullCatalog ? buildDefaultSelected() : restored;
+            if (looksLikeFullCatalog) {
+              selectedProducts = buildDefaultSelected();
+            } else {
+              // Split into selected (preselected) and suggested (not preselected) for extras
+              if (scope.is_extras_scope) {
+                selectedProducts = allRestored.filter(p => p.isPreselected);
+                suggestedProducts = allRestored.filter(p => !p.isPreselected);
+              } else {
+                selectedProducts = allRestored;
+              }
+            }
           }
         } else {
           // Initialize with default products
@@ -249,6 +264,7 @@ export const SummaryStepV2 = ({
           isExtrasScope: scope.is_extras_scope,
           availableProducts: scopeProducts,
           selectedProducts,
+          suggestedProducts,
           totalPrice
         };
       });
@@ -337,7 +353,7 @@ export const SummaryStepV2 = ({
     }));
   };
 
-  // Remove product from service
+  // Remove product from service (selected)
   const removeProduct = (scopeId: string, productId: string) => {
     setServices(prev => prev.map(service => {
       if (service.scopeId !== scopeId) return service;
@@ -353,10 +369,29 @@ export const SummaryStepV2 = ({
     }));
   };
 
-  // Update product price
-  const updateProductPrice = (scopeId: string, productId: string, newPrice: number) => {
+  // Remove product from suggested
+  const removeSuggestedProduct = (scopeId: string, productId: string) => {
     setServices(prev => prev.map(service => {
       if (service.scopeId !== scopeId) return service;
+
+      return {
+        ...service,
+        suggestedProducts: service.suggestedProducts.filter(p => p.id !== productId)
+      };
+    }));
+  };
+
+  // Update product price
+  const updateProductPrice = (scopeId: string, productId: string, newPrice: number, isSuggested: boolean = false) => {
+    setServices(prev => prev.map(service => {
+      if (service.scopeId !== scopeId) return service;
+
+      if (isSuggested) {
+        const newSuggestedProducts = service.suggestedProducts.map(p => 
+          p.id === productId ? { ...p, price: newPrice } : p
+        );
+        return { ...service, suggestedProducts: newSuggestedProducts };
+      }
 
       const newSelectedProducts = service.selectedProducts.map(p => 
         p.id === productId ? { ...p, price: newPrice } : p
@@ -371,22 +406,6 @@ export const SummaryStepV2 = ({
     }));
   };
 
-  // Toggle product preselection
-  const togglePreselect = (scopeId: string, productId: string) => {
-    setServices(prev => prev.map(service => {
-      if (service.scopeId !== scopeId) return service;
-
-      const newSelectedProducts = service.selectedProducts.map(p => 
-        p.id === productId ? { ...p, isPreselected: !p.isPreselected } : p
-      );
-
-      return {
-        ...service,
-        selectedProducts: newSelectedProducts,
-      };
-    }));
-  };
-
   // Calculate textarea rows based on content
   const getTextareaRows = (value: string | undefined | null, minRows: number = 3): number => {
     if (!value) return minRows;
@@ -394,9 +413,12 @@ export const SummaryStepV2 = ({
     return Math.max(lineCount + 1, minRows);
   };
 
-  // Get available products that are not yet added
+  // Get available products that are not yet added (to either selected or suggested)
   const getAvailableProducts = (service: ServiceState) => {
-    const addedProductIds = new Set(service.selectedProducts.map(p => p.scopeProductId));
+    const addedProductIds = new Set([
+      ...service.selectedProducts.map(p => p.scopeProductId),
+      ...service.suggestedProducts.map(p => p.scopeProductId)
+    ]);
     return service.availableProducts.filter(p => !addedProductIds.has(p.id));
   };
 
@@ -431,49 +453,55 @@ export const SummaryStepV2 = ({
     if (loading || services.length === 0) return;
     
     // Convert services to offer options format
-    const newOptions: OfferOption[] = services.map((service, idx) => ({
-      id: service.scopeId, // Use scopeId as option id for stability
-      name: service.name,
-      description: '',
-      items: service.selectedProducts.map(p => ({
-        id: p.id,
-        productId: p.productId,
-        customName: p.variantName 
-          ? `${p.variantName}\n${p.productName}`
-          : p.productName,
-        customDescription: '',
-        quantity: 1,
-        unitPrice: p.price,
-        unit: 'szt',
-        discountPercent: 0,
-        isOptional: !p.isPreselected, // isOptional = NOT preselected (for customer view)
-        isCustom: false,
-      })),
-      isSelected: true,
-      sortOrder: idx,
-      scopeId: service.scopeId,
-      isUpsell: service.isExtrasScope,
-    }));
+    // Include both selected (preselected) and suggested (not preselected) products
+    const newOptions: OfferOption[] = services.map((service, idx) => {
+      const allProducts = [
+        ...service.selectedProducts.map(p => ({ ...p, isPreselected: true })),
+        ...service.suggestedProducts.map(p => ({ ...p, isPreselected: false }))
+      ];
+      
+      return {
+        id: service.scopeId, // Use scopeId as option id for stability
+        name: service.name,
+        description: '',
+        items: allProducts.map(p => ({
+          id: p.id,
+          productId: p.productId,
+          customName: p.variantName 
+            ? `${p.variantName}\n${p.productName}`
+            : p.productName,
+          customDescription: '',
+          quantity: 1,
+          unitPrice: p.price,
+          unit: 'szt',
+          discountPercent: 0,
+          isOptional: !p.isPreselected, // isOptional = NOT preselected (for customer view)
+          isCustom: false,
+        })),
+        isSelected: true,
+        sortOrder: idx,
+        scopeId: service.scopeId,
+        isUpsell: service.isExtrasScope,
+      };
+    });
     
     // Build defaultSelectedState for public view
-    // For extras scope: selectedOptionalItems maps itemId -> true for preselected items
-    // For regular scopes: selectedItemInOption maps optionId -> itemId for preselected item
+    // For extras scope: selectedOptionalItems maps itemId -> true for preselected items (from selectedProducts)
+    // For regular scopes: selectedItemInOption maps optionId -> itemId for first item
     const selectedOptionalItems: Record<string, boolean> = {};
     const selectedItemInOption: Record<string, string> = {};
     
     services.forEach(service => {
       if (service.isExtrasScope) {
-        // For extras: mark all preselected items
+        // For extras: mark all products in selectedProducts (these are preselected)
         service.selectedProducts.forEach(p => {
-          if (p.isPreselected) {
-            selectedOptionalItems[p.id] = true;
-          }
+          selectedOptionalItems[p.id] = true;
         });
       } else {
-        // For regular services: set the first preselected item as selected
-        const firstPreselected = service.selectedProducts.find(p => p.isPreselected);
-        if (firstPreselected) {
-          selectedItemInOption[service.scopeId] = firstPreselected.id;
+        // For regular services: set the first item as selected
+        const firstItem = service.selectedProducts[0];
+        if (firstItem) {
+          selectedItemInOption[service.scopeId] = firstItem.id;
         }
       }
     });
@@ -559,7 +587,7 @@ export const SummaryStepV2 = ({
       </Card>
 
       {/* Services */}
-      {services.map((service) => (
+      {services.filter(s => !s.isExtrasScope).map((service) => (
         <Card key={service.scopeId} className="p-5">
           {/* Service header */}
           <div className="flex items-center justify-between mb-4">
@@ -567,40 +595,25 @@ export const SummaryStepV2 = ({
               <FileText className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-lg">{service.name}</h3>
             </div>
-            {service.isExtrasScope && (
-              <div className="text-right">
-                <p className="font-semibold text-lg">{formatPrice(service.totalPrice)}</p>
-                <p className="text-xs text-muted-foreground">netto</p>
-              </div>
-            )}
           </div>
           
-          {/* Selected Products */}
+          {/* Selected Products - no checkbox */}
           <div className="space-y-2">
             {service.selectedProducts.map((product) => (
               <div
                 key={product.id}
                 className="flex items-center justify-between py-2 px-3 bg-muted/15 rounded-lg"
               >
-                {/* Preselect checkbox */}
-                <div className="flex items-center gap-3 flex-1">
-                  <Checkbox
-                    id={`preselect-${product.id}`}
-                    checked={product.isPreselected}
-                    onCheckedChange={() => togglePreselect(service.scopeId, product.id)}
-                    title="Zaznacz dla klienta"
-                  />
-                  <div className="flex-1">
-                    {product.variantName && (
-                      <p className="text-xs text-muted-foreground font-medium uppercase">
-                        {product.variantName}
-                      </p>
-                    )}
-                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
-                  </div>
+                <div className="flex-1">
+                  {product.variantName && (
+                    <p className="text-xs text-muted-foreground font-medium uppercase">
+                      {product.variantName}
+                    </p>
+                  )}
+                  <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id ? (
+                  {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && !editingPrice?.isSuggested ? (
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -610,13 +623,13 @@ export const SummaryStepV2 = ({
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
-                            updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0);
+                            updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, false);
                             setEditingPrice(null);
                           }
                           if (e.key === 'Escape') setEditingPrice(null);
                         }}
                         onBlur={() => {
-                          updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0);
+                          updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, false);
                           setEditingPrice(null);
                         }}
                       />
@@ -628,7 +641,8 @@ export const SummaryStepV2 = ({
                       onClick={() => setEditingPrice({ 
                         scopeId: service.scopeId, 
                         productId: product.id, 
-                        value: String(product.price) 
+                        value: String(product.price),
+                        isSuggested: false
                       })}
                       className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
                       title="Kliknij aby edytować"
@@ -678,22 +692,22 @@ export const SummaryStepV2 = ({
                 variantName: p.variant_name,
                 price: p.product?.default_price || 0
               }))}
-            alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
+            alreadySelectedIds={[
+              ...service.selectedProducts.map(p => p.scopeProductId),
+              ...service.suggestedProducts.map(p => p.scopeProductId)
+            ]}
             onConfirm={(products) => {
-              // Replace entire product list at once to avoid state race conditions
               setServices(prev => prev.map(s => {
                 if (s.scopeId !== service.scopeId) return s;
                 
                 const newSelectedIds = new Set(products.map(p => p.id));
                 
-                // Keep existing products that are still selected (preserve their prices/preselect)
                 const kept = s.selectedProducts.filter(p => newSelectedIds.has(p.scopeProductId));
                 const keptIds = new Set(kept.map(p => p.scopeProductId));
                 
-                // Add new products
                 const added: SelectedProduct[] = products
                   .filter(p => !keptIds.has(p.id))
-                  .map(p => {
+                  .map((p, idx) => {
                     const scopeProduct = s.availableProducts.find(sp => sp.id === p.id);
                     return {
                       id: crypto.randomUUID(),
@@ -704,7 +718,8 @@ export const SummaryStepV2 = ({
                       productShortName: p.productShortName,
                       price: p.price,
                       isDefault: scopeProduct?.is_default || false,
-                      isPreselected: false,
+                      // For non-extras: first item is preselected
+                      isPreselected: kept.length === 0 && idx === 0,
                     };
                   });
                 
@@ -718,6 +733,295 @@ export const SummaryStepV2 = ({
             }}
           />
         </Card>
+      ))}
+
+      {/* Extras Sections */}
+      {services.filter(s => s.isExtrasScope).map((service) => (
+        <div key={service.scopeId} className="space-y-4">
+          {/* Selected Extras - "Dodatki wybrane przez klienta" */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-lg">Dodatki wybrane przez klienta</h3>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-lg">{formatPrice(service.totalPrice)}</p>
+                <p className="text-xs text-muted-foreground">netto</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              {service.selectedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between py-2 px-3 bg-muted/15 rounded-lg"
+                >
+                  <div className="flex-1">
+                    {product.variantName && (
+                      <p className="text-xs text-muted-foreground font-medium uppercase">
+                        {product.variantName}
+                      </p>
+                    )}
+                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && !editingPrice?.isSuggested ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={editingPrice.value}
+                          onChange={(e) => setEditingPrice({ ...editingPrice, value: e.target.value })}
+                          className="w-24 h-8 text-right"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, false);
+                              setEditingPrice(null);
+                            }
+                            if (e.key === 'Escape') setEditingPrice(null);
+                          }}
+                          onBlur={() => {
+                            updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, false);
+                            setEditingPrice(null);
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">zł</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingPrice({ 
+                          scopeId: service.scopeId, 
+                          productId: product.id, 
+                          value: String(product.price),
+                          isSuggested: false
+                        })}
+                        className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
+                        title="Kliknij aby edytować"
+                      >
+                        {formatPrice(product.price)}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeProduct(service.scopeId, product.id)}
+                      className="p-1 text-destructive hover:text-destructive/80 transition-colors"
+                      title="Usuń produkt"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {getAvailableProducts(service).length > 0 && (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-white"
+                  onClick={() => setProductDrawerOpen(service.scopeId)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Dodaj produkt
+                </Button>
+              </div>
+            )}
+
+            <ScopeProductSelectionDrawer
+              open={productDrawerOpen === service.scopeId}
+              onClose={() => setProductDrawerOpen(null)}
+              availableProducts={service.availableProducts
+                .filter(p => p.product)
+                .map(p => ({
+                  id: p.id,
+                  productId: p.product_id,
+                  productName: p.product?.name || '',
+                  productShortName: p.product?.short_name || null,
+                  variantName: p.variant_name,
+                  price: p.product?.default_price || 0
+                }))}
+              alreadySelectedIds={[
+                ...service.selectedProducts.map(p => p.scopeProductId),
+                ...service.suggestedProducts.map(p => p.scopeProductId)
+              ]}
+              onConfirm={(products) => {
+                setServices(prev => prev.map(s => {
+                  if (s.scopeId !== service.scopeId) return s;
+                  
+                  const newSelectedIds = new Set(products.map(p => p.id));
+                  
+                  const kept = s.selectedProducts.filter(p => newSelectedIds.has(p.scopeProductId));
+                  const keptIds = new Set(kept.map(p => p.scopeProductId));
+                  
+                  const added: SelectedProduct[] = products
+                    .filter(p => !keptIds.has(p.id))
+                    .map(p => {
+                      const scopeProduct = s.availableProducts.find(sp => sp.id === p.id);
+                      return {
+                        id: crypto.randomUUID(),
+                        scopeProductId: p.id,
+                        productId: p.productId,
+                        variantName: p.variantName,
+                        productName: p.productName,
+                        productShortName: p.productShortName,
+                        price: p.price,
+                        isDefault: scopeProduct?.is_default || false,
+                        isPreselected: true, // Selected extras are always preselected
+                      };
+                    });
+                  
+                  const newSelectedProducts = [...kept, ...added];
+                  return {
+                    ...s,
+                    selectedProducts: newSelectedProducts,
+                    totalPrice: newSelectedProducts.reduce((sum, p) => sum + p.price, 0),
+                  };
+                }));
+              }}
+            />
+          </Card>
+
+          {/* Suggested Extras - "Dodatki sugerowane dla zapytania" */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-5 h-5 text-muted-foreground" />
+              <h3 className="font-bold text-lg text-muted-foreground">Dodatki sugerowane dla zapytania</h3>
+            </div>
+            
+            <div className="space-y-2">
+              {service.suggestedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between py-2 px-3 bg-muted/15 rounded-lg"
+                >
+                  <div className="flex-1">
+                    {product.variantName && (
+                      <p className="text-xs text-muted-foreground font-medium uppercase">
+                        {product.variantName}
+                      </p>
+                    )}
+                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && editingPrice?.isSuggested ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={editingPrice.value}
+                          onChange={(e) => setEditingPrice({ ...editingPrice, value: e.target.value })}
+                          className="w-24 h-8 text-right"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, true);
+                              setEditingPrice(null);
+                            }
+                            if (e.key === 'Escape') setEditingPrice(null);
+                          }}
+                          onBlur={() => {
+                            updateProductPrice(service.scopeId, product.id, parseFloat(editingPrice.value) || 0, true);
+                            setEditingPrice(null);
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">zł</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingPrice({ 
+                          scopeId: service.scopeId, 
+                          productId: product.id, 
+                          value: String(product.price),
+                          isSuggested: true
+                        })}
+                        className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
+                        title="Kliknij aby edytować"
+                      >
+                        {formatPrice(product.price)}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeSuggestedProduct(service.scopeId, product.id)}
+                      className="p-1 text-destructive hover:text-destructive/80 transition-colors"
+                      title="Usuń produkt"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {getAvailableProducts(service).length > 0 && (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-white"
+                  onClick={() => setSuggestedDrawerOpen(service.scopeId)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Dodaj sugerowany produkt
+                </Button>
+              </div>
+            )}
+
+            <ScopeProductSelectionDrawer
+              open={suggestedDrawerOpen === service.scopeId}
+              onClose={() => setSuggestedDrawerOpen(null)}
+              availableProducts={service.availableProducts
+                .filter(p => p.product)
+                .map(p => ({
+                  id: p.id,
+                  productId: p.product_id,
+                  productName: p.product?.name || '',
+                  productShortName: p.product?.short_name || null,
+                  variantName: p.variant_name,
+                  price: p.product?.default_price || 0
+                }))}
+              alreadySelectedIds={[
+                ...service.selectedProducts.map(p => p.scopeProductId),
+                ...service.suggestedProducts.map(p => p.scopeProductId)
+              ]}
+              onConfirm={(products) => {
+                setServices(prev => prev.map(s => {
+                  if (s.scopeId !== service.scopeId) return s;
+                  
+                  const newSelectedIds = new Set(products.map(p => p.id));
+                  
+                  const kept = s.suggestedProducts.filter(p => newSelectedIds.has(p.scopeProductId));
+                  const keptIds = new Set(kept.map(p => p.scopeProductId));
+                  
+                  const added: SelectedProduct[] = products
+                    .filter(p => !keptIds.has(p.id))
+                    .map(p => {
+                      const scopeProduct = s.availableProducts.find(sp => sp.id === p.id);
+                      return {
+                        id: crypto.randomUUID(),
+                        scopeProductId: p.id,
+                        productId: p.productId,
+                        variantName: p.variantName,
+                        productName: p.productName,
+                        productShortName: p.productShortName,
+                        price: p.price,
+                        isDefault: scopeProduct?.is_default || false,
+                        isPreselected: false, // Suggested extras are NOT preselected
+                      };
+                    });
+                  
+                  return {
+                    ...s,
+                    suggestedProducts: [...kept, ...added],
+                  };
+                }));
+              }}
+            />
+          </Card>
+        </div>
       ))}
 
       {/* Totals */}
