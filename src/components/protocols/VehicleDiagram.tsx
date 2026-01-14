@@ -141,29 +141,9 @@ export const VehicleDiagram = ({
       <div className="grid grid-cols-2 gap-3">
         {renderViewPanel('front')}
         {renderViewPanel('rear')}
-        {renderViewPanel('left')}
+      {renderViewPanel('left')}
         {renderViewPanel('right')}
       </div>
-      {damagePoints.length > 0 && (
-        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2">
-          <span>Legenda:</span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-yellow-500" /> Rysa
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-orange-500" /> Wgniecenie
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-red-500" /> Uszkodzenie
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-blue-500" /> Odprysek
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-purple-500" /> Inne
-          </span>
-        </div>
-      )}
     </div>
   );
 };
