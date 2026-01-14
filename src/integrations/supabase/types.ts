@@ -2475,6 +2475,7 @@ export type Database = {
           offer_number: string | null
           phone: string | null
           protocol_date: string
+          protocol_time: string | null
           received_by: string | null
           registration_number: string | null
           status: string
@@ -2495,6 +2496,7 @@ export type Database = {
           offer_number?: string | null
           phone?: string | null
           protocol_date?: string
+          protocol_time?: string | null
           received_by?: string | null
           registration_number?: string | null
           status?: string
@@ -2515,6 +2517,7 @@ export type Database = {
           offer_number?: string | null
           phone?: string | null
           protocol_date?: string
+          protocol_time?: string | null
           received_by?: string | null
           registration_number?: string | null
           status?: string
