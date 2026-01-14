@@ -203,9 +203,9 @@ export function ScopeProductSelectionDrawer({
                       </p>
                     </div>
                     
-                    {/* Price - with bigger gap on mobile */}
+                    {/* Price */}
                     <div className="text-right mr-4 sm:mr-4 ml-4">
-                      <p className="font-semibold text-foreground">{formatPrice(product.price)}</p>
+                      <p className="font-semibold text-primary">{formatPrice(product.price)}</p>
                     </div>
                     
                     {/* Checkmark */}
