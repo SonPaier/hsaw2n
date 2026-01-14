@@ -120,6 +120,7 @@ interface ReservationDetailsDrawerProps {
   onRejectChangeRequest?: (reservationId: string) => void;
   onSendPickupSms?: (reservationId: string) => Promise<void>;
   onSendConfirmationSms?: (reservationId: string) => Promise<void>;
+  onStatusChange?: (reservationId: string, newStatus: string) => Promise<void>;
   // Hall mode props
   mode?: 'admin' | 'hall';
   hallConfig?: HallConfig;
@@ -142,6 +143,7 @@ const ReservationDetailsDrawer = ({
   onRejectChangeRequest,
   onSendPickupSms,
   onSendConfirmationSms,
+  onStatusChange,
   mode = 'admin',
   hallConfig
 }: ReservationDetailsDrawerProps) => {
@@ -168,6 +170,8 @@ const ReservationDetailsDrawer = ({
   const [rejectingChange, setRejectingChange] = useState(false);
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [sendingPickupSms, setSendingPickupSms] = useState(false);
   const [sendingConfirmationSms, setSendingConfirmationSms] = useState(false);
@@ -811,31 +815,72 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Confirmed: Start Work */}
+            {/* Confirmed: Start Work with dropdown for all statuses */}
             {reservation.status === 'confirmed' && onStartWork && (
-              <Button 
-                className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={async () => {
-                  setStartingWork(true);
-                  try {
-                    await onStartWork(reservation.id);
-                  } finally {
-                    setStartingWork(false);
-                  }
-                }}
-                disabled={startingWork}
-              >
-                {startingWork ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Clock className="w-4 h-4" />
+              <div className="flex gap-0">
+                <Button 
+                  className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-r-none"
+                  onClick={async () => {
+                    setStartingWork(true);
+                    try {
+                      await onStartWork(reservation.id);
+                    } finally {
+                      setStartingWork(false);
+                    }
+                  }}
+                  disabled={startingWork || changingStatus}
+                >
+                  {startingWork ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Clock className="w-4 h-4" />
+                  )}
+                  {t('reservations.startWork')}
+                </Button>
+                
+                {onStatusChange && (
+                  <Popover open={statusDropdownOpen} onOpenChange={setStatusDropdownOpen}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        className="px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-l-none border-l border-emerald-500"
+                        disabled={startingWork || changingStatus}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
+                      {['in_progress', 'completed', 'released'].map((status) => (
+                        <Button
+                          key={status}
+                          variant="ghost"
+                          className="w-full justify-start gap-2 text-sm"
+                          onClick={async () => {
+                            setStatusDropdownOpen(false);
+                            setChangingStatus(true);
+                            try {
+                              await onStatusChange(reservation.id, status);
+                            } finally {
+                              setChangingStatus(false);
+                            }
+                          }}
+                          disabled={changingStatus}
+                        >
+                          {changingStatus ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4" />
+                          )}
+                          {t(`reservations.statuses.${status === 'in_progress' ? 'inProgress' : status}`)}
+                        </Button>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
                 )}
-                {t('reservations.startWork')}
-              </Button>
+              </div>
             )}
 
 
-            {/* In Progress: End Work with dropdown for revert */}
+            {/* In Progress: End Work with dropdown for all statuses */}
             {reservation.status === 'in_progress' && onEndWork && (
               <div className="flex gap-0">
                 <Button 
@@ -848,7 +893,7 @@ const ReservationDetailsDrawer = ({
                       setEndingWork(false);
                     }
                   }}
-                  disabled={endingWork || reverting}
+                  disabled={endingWork || changingStatus}
                 >
                   {endingWork ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -858,45 +903,48 @@ const ReservationDetailsDrawer = ({
                   {t('reservations.endWork')}
                 </Button>
                 
-                {onRevertToConfirmed && (
+                {onStatusChange && (
                   <Popover open={inProgressDropdownOpen} onOpenChange={setInProgressDropdownOpen}>
                     <PopoverTrigger asChild>
                       <Button 
                         className="px-2 bg-sky-500 hover:bg-sky-600 text-white rounded-l-none border-l border-sky-400"
-                        disabled={endingWork || reverting}
+                        disabled={endingWork || changingStatus}
                       >
                         <ChevronDown className="w-4 h-4" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-sm"
-                        onClick={async () => {
-                          setInProgressDropdownOpen(false);
-                          setReverting(true);
-                          try {
-                            await onRevertToConfirmed(reservation.id);
-                          } finally {
-                            setReverting(false);
-                          }
-                        }}
-                        disabled={reverting}
-                      >
-                        {reverting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RotateCcw className="w-4 h-4" />
-                        )}
-                        {t('reservations.revertToConfirmed')}
-                      </Button>
+                      {['confirmed', 'completed', 'released'].map((status) => (
+                        <Button
+                          key={status}
+                          variant="ghost"
+                          className="w-full justify-start gap-2 text-sm"
+                          onClick={async () => {
+                            setInProgressDropdownOpen(false);
+                            setChangingStatus(true);
+                            try {
+                              await onStatusChange(reservation.id, status);
+                            } finally {
+                              setChangingStatus(false);
+                            }
+                          }}
+                          disabled={changingStatus}
+                        >
+                          {changingStatus ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4" />
+                          )}
+                          {t(`reservations.statuses.${status}`)}
+                        </Button>
+                      ))}
                     </PopoverContent>
                   </Popover>
                 )}
               </div>
             )}
 
-            {/* Completed: Release Vehicle with dropdown for revert to in_progress */}
+            {/* Completed: Release Vehicle with dropdown for all statuses */}
             {reservation.status === 'completed' && onRelease && (
               <div className="flex gap-0">
                 <Button 
@@ -910,7 +958,7 @@ const ReservationDetailsDrawer = ({
                       setReleasing(false);
                     }
                   }}
-                  disabled={releasing || reverting}
+                  disabled={releasing || changingStatus}
                 >
                   {releasing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -920,39 +968,42 @@ const ReservationDetailsDrawer = ({
                   {t('reservations.releaseVehicle')}
                 </Button>
                 
-                {onRevertToInProgress && (
+                {onStatusChange && (
                   <Popover open={completedDropdownOpen} onOpenChange={setCompletedDropdownOpen}>
                     <PopoverTrigger asChild>
                       <Button 
                         variant="outline"
                         className="px-2 rounded-l-none border-l-0"
-                        disabled={releasing || reverting}
+                        disabled={releasing || changingStatus}
                       >
                         <ChevronDown className="w-4 h-4" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-sm"
-                        onClick={async () => {
-                          setCompletedDropdownOpen(false);
-                          setReverting(true);
-                          try {
-                            await onRevertToInProgress(reservation.id);
-                          } finally {
-                            setReverting(false);
-                          }
-                        }}
-                        disabled={reverting}
-                      >
-                        {reverting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RotateCcw className="w-4 h-4" />
-                        )}
-                        {t('reservations.revertToInProgress')}
-                      </Button>
+                      {['confirmed', 'in_progress', 'released'].map((status) => (
+                        <Button
+                          key={status}
+                          variant="ghost"
+                          className="w-full justify-start gap-2 text-sm"
+                          onClick={async () => {
+                            setCompletedDropdownOpen(false);
+                            setChangingStatus(true);
+                            try {
+                              await onStatusChange(reservation.id, status);
+                            } finally {
+                              setChangingStatus(false);
+                            }
+                          }}
+                          disabled={changingStatus}
+                        >
+                          {changingStatus ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4" />
+                          )}
+                          {t(`reservations.statuses.${status === 'in_progress' ? 'inProgress' : status}`)}
+                        </Button>
+                      ))}
                     </PopoverContent>
                   </Popover>
                 )}
