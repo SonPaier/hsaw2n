@@ -19,6 +19,7 @@ import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } fro
 import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
 import { SignatureDialog } from './SignatureDialog';
+import ClientSearchAutocomplete, { type ClientSearchValue } from '@/components/ui/client-search-autocomplete';
 
 interface Instance {
   id: string;
@@ -69,6 +70,7 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
   const [vehicleModel, setVehicleModel] = useState('');
   const [nip, setNip] = useState('');
   const [phone, setPhone] = useState('');
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [fuelLevel, setFuelLevel] = useState('');
   const [odometerReading, setOdometerReading] = useState('');
@@ -138,6 +140,18 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
     setPhone(offer.customer_phone);
     if (offer.customer_nip) setNip(offer.customer_nip);
     if (offer.vehicle_model) setVehicleModel(offer.vehicle_model);
+  };
+
+  const handleCustomerSelect = (customer: ClientSearchValue) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setPhone(customer.phone);
+  };
+
+  const handleCustomerClear = () => {
+    setCustomerId(null);
+    setCustomerName('');
+    setPhone('');
   };
 
   const handleAddPoint = (view: VehicleView, xPercent: number, yPercent: number) => {
@@ -278,10 +292,26 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Imię i nazwisko *</Label>
-                <Input
+                <ClientSearchAutocomplete
+                  instanceId={instanceId}
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Jan Kowalski"
+                  onChange={setCustomerName}
+                  onSelect={handleCustomerSelect}
+                  onClear={handleCustomerClear}
+                  placeholder="Wyszukaj klienta lub wpisz nowe dane"
+                  className="bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <ClientSearchAutocomplete
+                  instanceId={instanceId}
+                  value={phone}
+                  onChange={setPhone}
+                  onSelect={handleCustomerSelect}
+                  onClear={handleCustomerClear}
+                  placeholder="Wyszukaj po numerze telefonu"
+                  className="bg-white"
                 />
               </div>
               <div className="space-y-2">
@@ -298,14 +328,6 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
                   value={nip}
                   onChange={(e) => setNip(e.target.value)}
                   placeholder="1234567890"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+48 123 456 789"
                 />
               </div>
               <div className="space-y-2">
