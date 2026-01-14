@@ -510,8 +510,15 @@ export const useOffer = (instanceId: string) => {
       }
 
       // Delete existing options and items (will re-insert)
-      if (offer.id) {
-        await supabase.from('offer_options').delete().eq('offer_id', offer.id);
+      // Use offerId (not offer.id) to handle both new and existing offers consistently
+      const { error: deleteError } = await supabase
+        .from('offer_options')
+        .delete()
+        .eq('offer_id', offerId);
+      
+      if (deleteError) {
+        console.error('Error deleting old options:', deleteError);
+        // Continue anyway - the insert might still work if there were no options
       }
 
       // FIX: Insert options WITH their existing IDs to prevent selected_state mismatch
