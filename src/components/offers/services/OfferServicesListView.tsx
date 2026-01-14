@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Plus, Pencil, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 
 interface OfferScope {
   id: string;
@@ -27,6 +29,8 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
   const { t } = useTranslation();
   const [scopes, setScopes] = useState<OfferScope[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scopeToDelete, setScopeToDelete] = useState<OfferScope | null>(null);
 
   useEffect(() => {
     fetchScopes();
@@ -47,6 +51,33 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
       console.error('Error fetching scopes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (scope: OfferScope) => {
+    setScopeToDelete(scope);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!scopeToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('offer_scopes')
+        .update({ active: false })
+        .eq('id', scopeToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Usługa została usunięta');
+      fetchScopes();
+    } catch (error) {
+      console.error('Error deleting scope:', error);
+      toast.error('Nie udało się usunąć usługi');
+    } finally {
+      setDeleteDialogOpen(false);
+      setScopeToDelete(null);
     }
   };
 
@@ -112,21 +143,41 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
                         )}
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full gap-2"
-                      onClick={() => onEdit(scope.id)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                      Edytuj
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 gap-2"
+                        onClick={() => onEdit(scope.id)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Edytuj
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => handleDeleteClick(scope)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Usuń usługę"
+          description={`Czy na pewno chcesz usunąć usługę "${scopeToDelete?.name}"?`}
+          confirmLabel="Usuń"
+          onConfirm={handleConfirmDelete}
+          variant="destructive"
+        />
       </div>
     </>
   );
