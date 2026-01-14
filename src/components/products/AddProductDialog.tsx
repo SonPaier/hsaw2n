@@ -250,8 +250,8 @@ export function AddProductDialog({
         toast.success(t('productDialog.productAdded'));
       }
 
-      handleClose();
       onProductAdded();
+      handleClose();
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error(isEditMode ? t('productDialog.updateError') : t('productDialog.addError'));
