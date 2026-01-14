@@ -111,22 +111,35 @@ export const SummaryStepV2 = ({
   const [productDrawerOpen, setProductDrawerOpen] = useState<string | null>(null); // scopeId
   const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string } | null>(null);
 
-  // Load scope data and products for selected scopes
+  // Load scope data and products for selected scopes + always include extras scopes
   useEffect(() => {
     const fetchData = async () => {
-      if (offer.selectedScopeIds.length === 0) {
+      setLoading(true);
+
+      // First, fetch all extras scopes for this instance (always shown)
+      const { data: extrasScopes } = await supabase
+        .from('offer_scopes')
+        .select('id')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .eq('is_extras_scope', true);
+
+      const extrasScopeIds = (extrasScopes || []).map(s => s.id);
+      
+      // Combine selected scopes with extras scopes
+      const allScopeIds = [...new Set([...offer.selectedScopeIds, ...extrasScopeIds])];
+
+      if (allScopeIds.length === 0) {
         setServices([]);
         setLoading(false);
         return;
       }
 
-      setLoading(true);
-
       // Fetch scopes with default conditions
       const { data: scopesData } = await supabase
         .from('offer_scopes')
         .select('id, name, short_name, is_extras_scope, default_warranty, default_payment_terms, default_notes, default_service_info')
-        .in('id', offer.selectedScopeIds)
+        .in('id', allScopeIds)
         .order('sort_order');
 
       if (!scopesData) {
@@ -134,7 +147,7 @@ export const SummaryStepV2 = ({
         return;
       }
 
-      // Fetch products for each scope
+      // Fetch products for all scopes (selected + extras)
       const { data: scopeProductsData } = await supabase
         .from('offer_scope_products')
         .select(`
@@ -146,7 +159,7 @@ export const SummaryStepV2 = ({
           sort_order,
           product:products_library(id, name, short_name, default_price)
         `)
-        .in('scope_id', offer.selectedScopeIds)
+        .in('scope_id', allScopeIds)
         .order('sort_order');
 
       // Build services state
