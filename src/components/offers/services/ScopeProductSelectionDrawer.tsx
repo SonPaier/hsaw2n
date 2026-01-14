@@ -196,19 +196,11 @@ export function ScopeProductSelectionDrawer({
                         : "hover:bg-muted/30"
                     )}
                   >
-                    {/* Product info - use short_name if available */}
+                    {/* Product name only */}
                     <div className="flex-1 text-left">
-                      {product.variantName && (
-                        <p className="text-xs text-muted-foreground font-medium uppercase">
-                          {product.variantName}
-                        </p>
-                      )}
                       <p className="font-medium text-foreground">
                         {getDisplayName(product)}
                       </p>
-                      {product.productShortName && (
-                        <p className="text-xs text-muted-foreground">{product.productName}</p>
-                      )}
                     </div>
                     
                     {/* Price - with bigger gap on mobile */}
