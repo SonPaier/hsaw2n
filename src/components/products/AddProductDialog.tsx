@@ -31,6 +31,7 @@ interface MetadataField {
 interface Product {
   id: string;
   name: string;
+  short_name: string | null;
   brand: string | null;
   description: string | null;
   category: string | null;
@@ -67,6 +68,7 @@ export function AddProductDialog({
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  const [shortName, setShortName] = useState('');
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -95,6 +97,7 @@ export function AddProductDialog({
 
   const resetForm = () => {
     setName('');
+    setShortName('');
     setBrand('');
     setDescription('');
     setCategory('');
@@ -108,6 +111,7 @@ export function AddProductDialog({
   useEffect(() => {
     if (product && open) {
       setName(product.name || '');
+      setShortName(product.short_name || '');
       setBrand(product.brand || '');
       setDescription(product.description || '');
       setPrice(product.default_price?.toString() || '0');
@@ -210,6 +214,7 @@ export function AddProductDialog({
           .from('products_library')
           .update({
             name: name.trim(),
+            short_name: shortName.trim() || null,
             brand: brand.trim() || null,
             description: description.trim() || null,
             category: finalCategory || null,
@@ -229,6 +234,7 @@ export function AddProductDialog({
           .insert({
             instance_id: instanceId,
             name: name.trim(),
+            short_name: shortName.trim() || null,
             brand: brand.trim() || null,
             description: description.trim() || null,
             category: finalCategory || null,
@@ -265,8 +271,8 @@ export function AddProductDialog({
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-4">
-            {/* Line 1: Name + Price */}
-            <div className="grid grid-cols-[1fr_200px] gap-4">
+            {/* Line 1: Name + Short Name + Price */}
+            <div className="grid grid-cols-[1fr_200px_150px] gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">{t('productDialog.name')} *</Label>
                 <Input
@@ -275,6 +281,16 @@ export function AddProductDialog({
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('productDialog.namePlaceholder')}
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shortName">Nazwa skrócona</Label>
+                <Input
+                  id="shortName"
+                  value={shortName}
+                  onChange={(e) => setShortName(e.target.value)}
+                  placeholder="Np. Q² Pure"
                 />
               </div>
 

@@ -14,6 +14,7 @@ interface ScopeProduct {
   id: string;
   productId: string;
   productName: string;
+  productShortName: string | null;
   variantName: string | null;
   price: number;
 }
@@ -91,10 +92,15 @@ export function ScopeProductSelectionDrawer({
     onClose();
   };
 
-  // Get chip label
+  // Get chip label - use short_name if available
   const getChipLabel = (product: ScopeProduct): string => {
-    const label = product.variantName || product.productName;
-    return label.length > 20 ? label.substring(0, 18) + '...' : label;
+    const displayName = product.productShortName || product.variantName || product.productName;
+    return displayName.length > 20 ? displayName.substring(0, 18) + '...' : displayName;
+  };
+
+  // Get display name for list - use short_name if available
+  const getDisplayName = (product: ScopeProduct): string => {
+    return product.productShortName || product.productName;
   };
 
   return (
@@ -190,7 +196,7 @@ export function ScopeProductSelectionDrawer({
                         : "hover:bg-muted/30"
                     )}
                   >
-                    {/* Product info */}
+                    {/* Product info - use short_name if available */}
                     <div className="flex-1 text-left">
                       {product.variantName && (
                         <p className="text-xs text-muted-foreground font-medium uppercase">
@@ -198,12 +204,15 @@ export function ScopeProductSelectionDrawer({
                         </p>
                       )}
                       <p className="font-medium text-foreground">
-                        {product.productName}
+                        {getDisplayName(product)}
                       </p>
+                      {product.productShortName && (
+                        <p className="text-xs text-muted-foreground">{product.productName}</p>
+                      )}
                     </div>
                     
-                    {/* Price */}
-                    <div className="text-right mr-4">
+                    {/* Price - with bigger gap on mobile */}
+                    <div className="text-right mr-4 sm:mr-4 ml-4">
                       <p className="font-semibold text-foreground">{formatPrice(product.price)}</p>
                     </div>
                     

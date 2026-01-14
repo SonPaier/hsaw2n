@@ -67,6 +67,7 @@ interface PriceList {
 interface Product {
   id: string;
   name: string;
+  short_name: string | null;
   brand: string | null;
   description: string | null;
   category: string | null;

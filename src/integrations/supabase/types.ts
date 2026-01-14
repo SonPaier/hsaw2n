@@ -1652,6 +1652,7 @@ export type Database = {
           metadata: Json | null
           name: string
           reminder_template_id: string | null
+          short_name: string | null
           sort_order: number | null
           source: string
           unit: string
@@ -1673,6 +1674,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           reminder_template_id?: string | null
+          short_name?: string | null
           sort_order?: number | null
           source?: string
           unit?: string
@@ -1694,6 +1696,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           reminder_template_id?: string | null
+          short_name?: string | null
           sort_order?: number | null
           source?: string
           unit?: string

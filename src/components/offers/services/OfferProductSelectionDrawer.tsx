@@ -15,6 +15,7 @@ import {
 interface Product {
   id: string;
   name: string;
+  short_name: string | null;
   category: string | null;
   default_price: number;
   unit: string;
@@ -62,7 +63,7 @@ export function OfferProductSelectionDrawer({
       
       const { data, error } = await supabase
         .from('products_library')
-        .select('id, name, category, default_price, unit')
+        .select('id, name, short_name, category, default_price, unit')
         .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
         .eq('active', true)
         .order('category')
@@ -138,9 +139,10 @@ export function OfferProductSelectionDrawer({
     onClose();
   };
 
-  // Get display label for product chip
+  // Get display label for product chip - use short_name if available
   const getChipLabel = (product: Product): string => {
-    return product.name.length > 20 ? product.name.substring(0, 18) + '...' : product.name;
+    const displayName = product.short_name || product.name;
+    return displayName.length > 20 ? displayName.substring(0, 18) + '...' : displayName;
   };
 
   return (
@@ -251,11 +253,14 @@ export function OfferProductSelectionDrawer({
                             isSelected ? "bg-primary/5" : "hover:bg-muted/30"
                           )}
                         >
-                          {/* Product info */}
+                          {/* Product info - show short_name if available */}
                           <div className="flex-1 text-left">
                             <p className="font-medium text-foreground">
-                              {product.name}
+                              {product.short_name || product.name}
                             </p>
+                            {product.short_name && (
+                              <p className="text-xs text-muted-foreground">{product.name}</p>
+                            )}
                           </div>
                           
                           {/* Price */}

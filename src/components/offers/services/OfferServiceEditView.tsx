@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Package, X, Star } from 'lucide-react';
+import { ArrowLeft, Package, X, Star, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,28 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Product {
   id: string;
   name: string;
+  short_name: string | null;
   default_price: number;
 }
 
@@ -33,6 +51,96 @@ interface OfferServiceEditViewProps {
   onBack: () => void;
 }
 
+// Sortable product item component
+function SortableProductItem({
+  scopeProduct,
+  formatPrice,
+  toggleDefault,
+  removeProduct,
+  updateVariantName,
+}: {
+  scopeProduct: ScopeProduct;
+  formatPrice: (price: number) => string;
+  toggleDefault: (productId: string) => void;
+  removeProduct: (productId: string) => void;
+  updateVariantName: (productId: string, variantName: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: scopeProduct.product_id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="p-3 bg-white border rounded-lg space-y-3"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-1">
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <div className="flex-1">
+            <p className="font-medium">{scopeProduct.product?.name}</p>
+            {scopeProduct.product?.short_name && (
+              <p className="text-xs text-muted-foreground">Skrót: {scopeProduct.product.short_name}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-foreground">
+            {formatPrice(scopeProduct.product?.default_price || 0)}
+          </span>
+          <button
+            type="button"
+            onClick={() => toggleDefault(scopeProduct.product_id)}
+            className={`p-1 transition-colors ${
+              scopeProduct.is_default 
+                ? 'text-yellow-500' 
+                : 'text-muted-foreground hover:text-yellow-500'
+            }`}
+            title={scopeProduct.is_default ? 'Domyślny' : 'Ustaw jako domyślny'}
+          >
+            <Star className={`w-4 h-4 ${scopeProduct.is_default ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => removeProduct(scopeProduct.product_id)}
+            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Dodatkowa nazwa pozycji</Label>
+        <Input
+          value={scopeProduct.variant_name}
+          onChange={(e) => updateVariantName(scopeProduct.product_id, e.target.value)}
+          placeholder="Np. Premium"
+          className="bg-slate-50"
+        />
+      </div>
+    </div>
+  );
+}
+
 export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServiceEditViewProps) {
   const { t } = useTranslation();
   const isEditMode = !!scopeId;
@@ -49,6 +157,14 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Load instance defaults for new service
   useEffect(() => {
@@ -103,7 +219,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, default_price)
+          product:products_library(id, name, short_name, default_price)
         `)
         .eq('scope_id', scopeId)
         .order('sort_order');
@@ -125,6 +241,22 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
     fetchScopeData();
   }, [scopeId]);
 
+  // Handle drag end for reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setScopeProducts((items) => {
+        const oldIndex = items.findIndex((item) => item.product_id === active.id);
+        const newIndex = items.findIndex((item) => item.product_id === over.id);
+        return arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+          ...item,
+          sort_order: index,
+        }));
+      });
+    }
+  };
+
   // Handle product selection from drawer
   const handleProductConfirm = async (productIds: string[]) => {
     // Fetch product details for new IDs
@@ -135,7 +267,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
     if (newProductIds.length > 0) {
       const { data } = await supabase
         .from('products_library')
-        .select('id, name, default_price')
+        .select('id, name, short_name, default_price')
         .in('id', newProductIds);
 
       if (data) {
@@ -238,7 +370,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           .delete()
           .eq('scope_id', currentScopeId);
 
-        // Insert new products
+        // Insert new products with correct sort_order
         if (scopeProducts.length > 0) {
           const productsToInsert = scopeProducts.map((sp, index) => ({
             scope_id: currentScopeId,
@@ -358,58 +490,39 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               )}
             </Button>
             
-            {/* Lista wybranych produktów */}
+            {/* Lista wybranych produktów z drag & drop */}
             {scopeProducts.length > 0 && (
               <div className="space-y-2 mt-3">
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                   oznacza, że produkt będzie zawsze dodany w kreatorze dla tej usługi
                 </p>
-                {scopeProducts.map(scopeProduct => (
-                  <div 
-                    key={scopeProduct.product_id}
-                    className="p-3 bg-white border rounded-lg space-y-3"
+                <p className="text-xs text-muted-foreground">
+                  Przeciągnij aby zmienić kolejność produktów
+                </p>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={scopeProducts.map(sp => sp.product_id)}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium">{scopeProduct.product?.name}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-foreground">
-                          {formatPrice(scopeProduct.product?.default_price || 0)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => toggleDefault(scopeProduct.product_id)}
-                          className={`p-1 transition-colors ${
-                            scopeProduct.is_default 
-                              ? 'text-yellow-500' 
-                              : 'text-muted-foreground hover:text-yellow-500'
-                          }`}
-                          title={scopeProduct.is_default ? 'Domyślny' : 'Ustaw jako domyślny'}
-                        >
-                          <Star className={`w-4 h-4 ${scopeProduct.is_default ? 'fill-current' : ''}`} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeProduct(scopeProduct.product_id)}
-                          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <div className="space-y-2">
+                      {scopeProducts.map(scopeProduct => (
+                        <SortableProductItem
+                          key={scopeProduct.product_id}
+                          scopeProduct={scopeProduct}
+                          formatPrice={formatPrice}
+                          toggleDefault={toggleDefault}
+                          removeProduct={removeProduct}
+                          updateVariantName={updateVariantName}
+                        />
+                      ))}
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Dodatkowa nazwa pozycji</Label>
-                      <Input
-                        value={scopeProduct.variant_name}
-                        onChange={(e) => updateVariantName(scopeProduct.product_id, e.target.value)}
-                        placeholder="Np. Premium"
-                        className="bg-slate-50"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
           </div>

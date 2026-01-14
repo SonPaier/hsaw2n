@@ -11,6 +11,7 @@ import { Package } from 'lucide-react';
 interface Product {
   id: string;
   name: string;
+  short_name: string | null;
   brand: string | null;
   description: string | null;
   category: string | null;
@@ -79,6 +80,9 @@ export function ProductDetailsDialog({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">{product.name}</h3>
+                {product.short_name && (
+                  <p className="text-sm text-muted-foreground">Skrót: {product.short_name}</p>
+                )}
                 {product.brand && (
                   <p className="text-muted-foreground">{product.brand}</p>
                 )}
