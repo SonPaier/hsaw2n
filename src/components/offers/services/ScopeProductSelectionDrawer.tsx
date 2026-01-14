@@ -23,7 +23,8 @@ interface ScopeProductSelectionDrawerProps {
   open: boolean;
   onClose: () => void;
   availableProducts: ScopeProduct[];
-  alreadySelectedIds: string[];
+  alreadySelectedIds: string[]; // IDs to initialize as selected when drawer opens
+  disabledIds?: string[]; // IDs that are already in another section (can't be selected)
   onConfirm: (products: ScopeProduct[]) => void;
 }
 
@@ -32,6 +33,7 @@ export function ScopeProductSelectionDrawer({
   onClose,
   availableProducts,
   alreadySelectedIds,
+  disabledIds = [],
   onConfirm,
 }: ScopeProductSelectionDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +45,7 @@ export function ScopeProductSelectionDrawer({
     if (open && !initRef.current) {
       initRef.current = true;
       setSearchQuery('');
-      setSelectedIds(alreadySelectedIds); // Start with already selected
+      setSelectedIds(alreadySelectedIds); // Start with already selected (only from this section)
     }
 
     if (!open) {
@@ -51,16 +53,19 @@ export function ScopeProductSelectionDrawer({
     }
   }, [open, alreadySelectedIds]);
 
-  // Filter products based on search
+  // Filter products based on search and exclude disabled ones from view
   const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return availableProducts;
+    const disabledSet = new Set(disabledIds);
+    let products = availableProducts.filter(p => !disabledSet.has(p.id));
+    
+    if (!searchQuery.trim()) return products;
     
     const query = searchQuery.toLowerCase();
-    return availableProducts.filter(p => 
+    return products.filter(p => 
       p.productName.toLowerCase().includes(query) ||
       (p.variantName && p.variantName.toLowerCase().includes(query))
     );
-  }, [availableProducts, searchQuery]);
+  }, [availableProducts, searchQuery, disabledIds]);
 
   // Get selected products details
   const selectedProducts = useMemo(() => {
