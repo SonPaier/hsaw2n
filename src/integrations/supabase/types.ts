@@ -1763,6 +1763,50 @@ export type Database = {
           },
         ]
       }
+      protocol_damage_points: {
+        Row: {
+          created_at: string
+          custom_note: string | null
+          damage_type: string | null
+          id: string
+          photo_url: string | null
+          protocol_id: string
+          view: string
+          x_percent: number
+          y_percent: number
+        }
+        Insert: {
+          created_at?: string
+          custom_note?: string | null
+          damage_type?: string | null
+          id?: string
+          photo_url?: string | null
+          protocol_id: string
+          view: string
+          x_percent: number
+          y_percent: number
+        }
+        Update: {
+          created_at?: string
+          custom_note?: string | null
+          damage_type?: string | null
+          id?: string
+          photo_url?: string | null
+          protocol_id?: string
+          view?: string
+          x_percent?: number
+          y_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_damage_points_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -2412,6 +2456,84 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_protocols: {
+        Row: {
+          body_type: string
+          created_at: string
+          customer_name: string
+          customer_signature: string | null
+          fuel_level: number | null
+          id: string
+          instance_id: string
+          nip: string | null
+          odometer_reading: number | null
+          offer_id: string | null
+          offer_number: string | null
+          phone: string | null
+          protocol_date: string
+          received_by: string | null
+          registration_number: string | null
+          status: string
+          updated_at: string
+          vehicle_model: string | null
+        }
+        Insert: {
+          body_type?: string
+          created_at?: string
+          customer_name: string
+          customer_signature?: string | null
+          fuel_level?: number | null
+          id?: string
+          instance_id: string
+          nip?: string | null
+          odometer_reading?: number | null
+          offer_id?: string | null
+          offer_number?: string | null
+          phone?: string | null
+          protocol_date?: string
+          received_by?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_model?: string | null
+        }
+        Update: {
+          body_type?: string
+          created_at?: string
+          customer_name?: string
+          customer_signature?: string | null
+          fuel_level?: number | null
+          id?: string
+          instance_id?: string
+          nip?: string | null
+          odometer_reading?: number | null
+          offer_id?: string | null
+          offer_number?: string | null
+          phone?: string | null
+          protocol_date?: string
+          received_by?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_protocols_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_protocols_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]

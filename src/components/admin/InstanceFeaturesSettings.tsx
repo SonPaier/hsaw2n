@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Building2, FileText, Link2, TrendingUp } from 'lucide-react';
+import { Building2, ClipboardCheck, FileText, Link2, TrendingUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -63,6 +63,13 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
     description: 'Uproszczony widok kalendarza dla pracowników hali z konfigurowalnymi stanowiskami',
     icon: Building2,
     isPaid: false,
+  },
+  {
+    key: 'vehicle_reception_protocol',
+    name: 'Protokół przyjęcia pojazdu',
+    description: 'Formularz do dokumentowania stanu pojazdu przy przyjęciu z zaznaczaniem uszkodzeń na diagramie',
+    icon: ClipboardCheck,
+    isPaid: true,
   },
 ];
 

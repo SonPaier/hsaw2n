@@ -7,6 +7,7 @@ interface InstanceFeatures {
   followup: boolean;
   sms_edit_link: boolean;
   hall_view: boolean;
+  vehicle_reception_protocol: boolean;
 }
 
 interface FeatureWithParams {
@@ -20,6 +21,7 @@ const defaultFeatures: InstanceFeatures = {
   followup: false,
   sms_edit_link: false,
   hall_view: false,
+  vehicle_reception_protocol: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
