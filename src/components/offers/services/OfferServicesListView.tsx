@@ -90,11 +90,6 @@ function SortableScopeCard({ scope, onEdit, onDelete }: SortableScopeCardProps) 
                   </Badge>
                 )}
               </div>
-              {scope.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {scope.description}
-                </p>
-              )}
             </div>
           </div>
           <div className="flex gap-2">
