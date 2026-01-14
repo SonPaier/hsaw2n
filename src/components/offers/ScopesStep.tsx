@@ -108,11 +108,6 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
                         </Badge>
                       )}
                     </div>
-                    {scope.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {scope.description}
-                      </p>
-                    )}
                   </div>
                   <div className={cn(
                     "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
