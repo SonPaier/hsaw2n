@@ -171,6 +171,7 @@ const ReservationDetailsDrawer = ({
   const [inProgressDropdownOpen, setInProgressDropdownOpen] = useState(false);
   const [completedDropdownOpen, setCompletedDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [releasedDropdownOpen, setReleasedDropdownOpen] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [sendingPickupSms, setSendingPickupSms] = useState(false);
@@ -1007,6 +1008,58 @@ const ReservationDetailsDrawer = ({
                     </PopoverContent>
                   </Popover>
                 )}
+              </div>
+            )}
+
+            {/* Released: Status change dropdown only */}
+            {reservation.status === 'released' && onStatusChange && (
+              <div className="flex gap-0">
+                <Button 
+                  variant="outline"
+                  className="flex-1 gap-2 rounded-r-none"
+                  disabled
+                >
+                  <Check className="w-4 h-4" />
+                  {t('reservations.statuses.released')}
+                </Button>
+                
+                <Popover open={releasedDropdownOpen} onOpenChange={setReleasedDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      className="px-2 rounded-l-none border-l-0"
+                      disabled={changingStatus}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
+                    {['confirmed', 'in_progress', 'completed'].map((status) => (
+                      <Button
+                        key={status}
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-sm"
+                        onClick={async () => {
+                          setReleasedDropdownOpen(false);
+                          setChangingStatus(true);
+                          try {
+                            await onStatusChange(reservation.id, status);
+                          } finally {
+                            setChangingStatus(false);
+                          }
+                        }}
+                        disabled={changingStatus}
+                      >
+                        {changingStatus ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-4 h-4" />
+                        )}
+                        {t(`reservations.statuses.${status === 'in_progress' ? 'inProgress' : status}`)}
+                      </Button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
           </div>
