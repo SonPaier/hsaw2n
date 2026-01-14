@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Loader2, Save, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Loader2, Save, ArrowLeft, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import { ProtocolHeader } from './ProtocolHeader';
 import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } from './VehicleDiagram';
 import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
+import { SignatureDialog } from './SignatureDialog';
 
 interface Instance {
   id: string;
@@ -81,6 +82,10 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
   const [pendingPoint, setPendingPoint] = useState<{ view: VehicleView; x_percent: number; y_percent: number } | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<DamagePoint | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Signature
+  const [customerSignature, setCustomerSignature] = useState<string | null>(null);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   // Generate notes from damage points
   const generatedNotes = useMemo(() => {
@@ -415,12 +420,31 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
               </div>
             </div>
 
-            {/* Placeholder for signature */}
+            {/* Customer signature */}
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Podpis klienta</Label>
-              <div className="h-24 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground text-sm">
-                Funkcja podpisu będzie dostępna wkrótce
-              </div>
+              <Label>Podpis klienta</Label>
+              {customerSignature ? (
+                <div 
+                  className="h-24 border rounded-lg bg-white flex items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => setSignatureDialogOpen(true)}
+                >
+                  <img 
+                    src={customerSignature} 
+                    alt="Podpis klienta" 
+                    className="max-h-20 max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-24 border-2 border-dashed"
+                  onClick={() => setSignatureDialogOpen(true)}
+                >
+                  <PenLine className="h-5 w-5 mr-2" />
+                  Kliknij, aby złożyć podpis
+                </Button>
+              )}
             </div>
 
             {/* Save button */}
@@ -446,6 +470,13 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
         onDelete={selectedPoint ? handleDeletePoint : undefined}
         isEditing={!!selectedPoint}
         offerNumber={offerNumber}
+      />
+
+      <SignatureDialog
+        open={signatureDialogOpen}
+        onOpenChange={setSignatureDialogOpen}
+        onSave={setCustomerSignature}
+        initialSignature={customerSignature}
       />
     </div>
   );
