@@ -984,15 +984,12 @@ export const PublicOfferCustomerView = ({
                       {preselectedItems.length > 0 && (
                         <section className="space-y-3">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <h2 
-                                className="text-base font-semibold"
-                                style={{ color: branding.offer_scope_header_text_color }}
-                              >
-                                Twoje dodatki
-                              </h2>
-                              <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
-                            </div>
+                            <h2 
+                              className="text-base font-semibold"
+                              style={{ color: branding.offer_scope_header_text_color }}
+                            >
+                              Twoje dodatki
+                            </h2>
                             {section.scopeDescription && (
                               <div 
                                 className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
@@ -1010,7 +1007,7 @@ export const PublicOfferCustomerView = ({
                         <section className="space-y-3">
                           <div>
                             <h2 
-                              className="text-sm font-medium opacity-80"
+                              className="text-base font-semibold"
                               style={{ color: branding.offer_scope_header_text_color }}
                             >
                               Sugerowane dodatki do Twojego zapytania

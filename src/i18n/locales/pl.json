@@ -210,6 +210,7 @@
     "revertedToConfirmed": "Przywrócono status potwierdzonej",
     "revertToInProgress": "Cofnij do w trakcie",
     "revertedToInProgress": "Przywrócono status w trakcie",
+    "statusChanged": "Status zmieniony",
     "addedBy": "Dodano przez",
     "reject": "Odrzuć",
     "completeVisit": "Zakończ wizytę",
