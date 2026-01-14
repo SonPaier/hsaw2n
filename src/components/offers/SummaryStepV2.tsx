@@ -49,6 +49,7 @@ interface ScopeProduct {
   product: {
     id: string;
     name: string;
+    short_name: string | null;
     default_price: number;
   } | null;
 }
@@ -142,7 +143,7 @@ export const SummaryStepV2 = ({
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, default_price)
+          product:products_library(id, name, short_name, default_price)
         `)
         .in('scope_id', offer.selectedScopeIds)
         .order('sort_order');
@@ -156,7 +157,7 @@ export const SummaryStepV2 = ({
             product_id: p.product_id,
             variant_name: p.variant_name,
             is_default: p.is_default,
-            product: p.product as { id: string; name: string; default_price: number } | null
+            product: p.product as { id: string; name: string; short_name: string | null; default_price: number } | null
           }));
 
         // Check if we have saved options for this scope - restore them
@@ -651,6 +652,7 @@ export const SummaryStepV2 = ({
                 id: p.id,
                 productId: p.product_id,
                 productName: p.product?.name || '',
+                productShortName: p.product?.short_name || null,
                 variantName: p.variant_name,
                 price: p.product?.default_price || 0
               }))}
