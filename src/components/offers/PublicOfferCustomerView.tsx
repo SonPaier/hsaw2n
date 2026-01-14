@@ -1630,7 +1630,9 @@ export const PublicOfferCustomerView = ({
             <div className="space-y-2 border-b border-black/10 pb-4">
               {getSelectedItemsList().map((item, idx) => (
                 <div key={idx} className="flex justify-between items-start gap-4">
-                  <span className="text-black text-sm flex-1">{item.name}</span>
+                  <span className="text-black text-sm flex-1">
+                    {idx + 1}. {item.name}
+                  </span>
                   <span className="text-black font-medium text-sm whitespace-nowrap">
                     {formatPrice(item.price)}
                   </span>
@@ -1643,9 +1645,9 @@ export const PublicOfferCustomerView = ({
               <span className="text-black font-semibold">Razem netto</span>
               <span className="text-black font-bold text-lg">{formatPrice(dynamicTotals.net)}</span>
             </div>
-            <div className="flex justify-between items-center pt-1">
-              <span className="text-black/70 text-sm">Razem brutto</span>
-              <span className="text-black/70 font-medium">{formatPrice(dynamicTotals.gross)}</span>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-black font-semibold">Razem brutto</span>
+              <span className="text-black font-bold text-xl">{formatPrice(dynamicTotals.gross)}</span>
             </div>
           </div>
           
