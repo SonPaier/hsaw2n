@@ -975,9 +975,10 @@ export const PublicOfferCustomerView = ({
                 }
 
                 // Regular scope (non-extras) - single product selection (radio behavior)
-                // Flatten all items from all options in this scope
+                // Flatten all items from all options in this scope - ONLY non-optional items
+                // Optional items (is_optional: true) are "suggested extras" and should NOT appear in regular service sections
                 const allItems = section.options.flatMap(opt => 
-                  (opt.offer_option_items || []).filter(item => item.id)
+                  (opt.offer_option_items || []).filter(item => item.id && !item.is_optional)
                 );
                 if (allItems.length === 0) return null;
                 
