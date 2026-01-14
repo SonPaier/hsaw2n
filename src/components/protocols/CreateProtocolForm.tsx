@@ -204,7 +204,10 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
 
     setSaving(true);
     try {
-      // Create protocol
+      // Create protocol with current time
+      const now = new Date();
+      const currentTime = format(now, 'HH:mm:ss');
+
       const { data: protocol, error: protocolError } = await supabase
         .from('vehicle_protocols')
         .insert({
@@ -220,6 +223,7 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
           odometer_reading: odometerReading ? parseInt(odometerReading) : null,
           body_type: bodyType,
           protocol_date: format(protocolDate, 'yyyy-MM-dd'),
+          protocol_time: currentTime,
           received_by: receivedBy || null,
           status: 'completed',
         })
