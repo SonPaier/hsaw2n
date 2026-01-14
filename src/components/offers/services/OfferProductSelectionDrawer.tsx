@@ -253,14 +253,11 @@ export function OfferProductSelectionDrawer({
                             isSelected ? "bg-primary/5" : "hover:bg-muted/30"
                           )}
                         >
-                          {/* Product info - show short_name if available */}
+                          {/* Product name only */}
                           <div className="flex-1 text-left">
                             <p className="font-medium text-foreground">
                               {product.short_name || product.name}
                             </p>
-                            {product.short_name && (
-                              <p className="text-xs text-muted-foreground">{product.name}</p>
-                            )}
                           </div>
                           
                           {/* Price */}
