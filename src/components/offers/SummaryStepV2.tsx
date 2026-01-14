@@ -70,6 +70,7 @@ interface SelectedProduct {
   productId: string;
   variantName: string | null;
   productName: string;
+  productShortName: string | null;
   price: number;
   isDefault: boolean;
   isPreselected: boolean; // Admin can preselect for customer
@@ -175,6 +176,7 @@ export const SummaryStepV2 = ({
               productId: p.product_id,
               variantName: p.variant_name,
               productName: p.product!.name,
+              productShortName: p.product!.short_name,
               price: p.product!.default_price,
               isDefault: p.is_default,
               isPreselected: true, // Default products are preselected
@@ -206,6 +208,7 @@ export const SummaryStepV2 = ({
                 productId: item.productId || matchingProduct?.product_id || '',
                 variantName: variantFromItem || matchingProduct?.variant_name || null,
                 productName: productNameFromItem || matchingProduct?.product?.name || '',
+                productShortName: matchingProduct?.product?.short_name || null,
                 price: item.unitPrice,
                 isDefault: matchingProduct?.is_default || false,
                 isPreselected: !item.isOptional, // Restore preselect state
@@ -294,6 +297,7 @@ export const SummaryStepV2 = ({
         productId: scopeProduct.product_id,
         variantName: scopeProduct.variant_name,
         productName: scopeProduct.product!.name,
+        productShortName: scopeProduct.product!.short_name,
         price: scopeProduct.product!.default_price,
         isDefault: scopeProduct.is_default,
         isPreselected: false, // New products added manually are not preselected by default
@@ -574,7 +578,7 @@ export const SummaryStepV2 = ({
                         {product.variantName}
                       </p>
                     )}
-                    <p className="font-medium">{product.productName}</p>
+                    <p className="font-medium">{product.productShortName || product.productName}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
