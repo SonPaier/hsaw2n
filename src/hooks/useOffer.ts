@@ -225,11 +225,18 @@ export const useOffer = (instanceId: string) => {
 
   // Scope handlers
   const updateSelectedScopes = useCallback((scopeIds: string[]) => {
-    setOffer(prev => ({
-      ...prev,
-      selectedScopeIds: scopeIds,
-    }));
-    // Generate options based on selected scopes
+    // First update the scope IDs in state
+    setOffer(prev => {
+      // Only update if actually changed to prevent loops
+      if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        selectedScopeIds: scopeIds,
+      };
+    });
+    // Generate options based on selected scopes (don't await - let it run async)
     generateOptionsFromScopes(scopeIds);
   }, [generateOptionsFromScopes]);
 
