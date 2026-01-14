@@ -111,19 +111,21 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 20);
 
   // Fetch data function
-  const fetchData = async () => {
+  const fetchPriceLists = async () => {
     if (!instanceId) return;
     
-    setLoading(true);
-
-    // Fetch price lists
     const { data: priceListsData } = await supabase
       .from('price_lists')
       .select('*')
       .eq('instance_id', instanceId)
       .order('created_at', { ascending: false });
 
-    // Fetch products
+    setPriceLists((priceListsData as PriceList[]) || []);
+  };
+
+  const fetchProducts = async () => {
+    if (!instanceId) return;
+    
     const { data: productsData } = await supabase
       .from('products_library')
       .select('*')
@@ -131,8 +133,14 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
       .order('category', { ascending: true })
       .order('name', { ascending: true });
 
-    setPriceLists((priceListsData as PriceList[]) || []);
     setProducts((productsData as Product[]) || []);
+  };
+
+  const fetchData = async () => {
+    if (!instanceId) return;
+    
+    setLoading(true);
+    await Promise.all([fetchPriceLists(), fetchProducts()]);
     setLoading(false);
   };
 
@@ -153,7 +161,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
           table: 'price_lists',
         },
         () => {
-          fetchData();
+          fetchPriceLists();
         }
       )
       .subscribe();
