@@ -73,86 +73,55 @@ export function OfferSelectionDialog({ open, onOpenChange, offer }: OfferSelecti
   // Parse selections from selected_state
   const selections: { name: string; price: number }[] = [];
 
-  // 1. Get selected variants (main options)
-  if (selectedState.selectedVariants && offer.offer_options) {
-    Object.entries(selectedState.selectedVariants).forEach(([scopeId, optionId]) => {
-      if (!optionId) return;
+  // 1. Get selected items from non-extras scopes using selectedItemInOption
+  if (selectedState.selectedItemInOption && offer.offer_options) {
+    Object.entries(selectedState.selectedItemInOption).forEach(([optionOrScopeId, itemId]) => {
+      if (!itemId) return;
       
-      const option = offer.offer_options?.find(opt => opt.id === optionId);
-      if (option) {
-        // Calculate total from items
-        let optionTotal = 0;
-        option.offer_option_items?.forEach(item => {
-          optionTotal += calculateItemPrice(item);
-        });
-        
-        selections.push({
-          name: option.name || 'Usługa',
-          price: optionTotal || option.subtotal_net || 0
-        });
-      }
-    });
-  }
-
-  // 2. Get selected upsells and their items
-  if (selectedState.selectedUpsells && offer.offer_options) {
-    Object.entries(selectedState.selectedUpsells).forEach(([optionId, isSelected]) => {
-      if (!isSelected) return;
+      // Find the item across all options (key might be option_id or scope_id)
+      let foundItem: { custom_name?: string; unit_price?: number; quantity?: number; discount_percent?: number } | null = null;
+      let foundOption: OfferOption | null = null;
       
-      const option = offer.offer_options?.find(opt => opt.id === optionId && opt.is_upsell);
-      if (option) {
-        // Check if we have specific items selected within this upsell
-        const selectedItemIds = selectedState.selectedOptionalItems || {};
-        const hasSpecificItems = option.offer_option_items?.some(item => selectedItemIds[item.id]);
-        
-        if (hasSpecificItems) {
-          // Add only selected items
-          option.offer_option_items?.forEach(item => {
-            if (selectedItemIds[item.id]) {
-              selections.push({
-                name: item.custom_name || 'Dodatek',
-                price: calculateItemPrice(item)
-              });
-            }
-          });
-        } else {
-          // Add the whole upsell
-          let optionTotal = 0;
-          option.offer_option_items?.forEach(item => {
-            optionTotal += calculateItemPrice(item);
-          });
-          
-          selections.push({
-            name: option.name || 'Dodatek',
-            price: optionTotal || option.subtotal_net || 0
-          });
+      for (const option of offer.offer_options || []) {
+        // Check if this option matches by id or scope_id
+        if (option.id === optionOrScopeId || option.scope_id === optionOrScopeId) {
+          const item = option.offer_option_items?.find(i => i.id === itemId);
+          if (item) {
+            foundItem = item;
+            foundOption = option;
+            break;
+          }
         }
       }
+      
+      if (foundItem) {
+        selections.push({
+          name: foundItem.custom_name || foundOption?.name || 'Usługa',
+          price: calculateItemPrice(foundItem)
+        });
+      }
     });
   }
 
-  // 3. Add any standalone selected optional items not covered above
-  if (selectedState.selectedOptionalItems && offer.offer_options) {
-    const coveredOptionIds = new Set(Object.values(selectedState.selectedVariants || {}));
-    const coveredUpsellIds = new Set(
-      Object.entries(selectedState.selectedUpsells || {})
-        .filter(([_, selected]) => selected)
-        .map(([id]) => id)
-    );
+  // Track which item IDs have been added to avoid duplicates
+  const addedItemIds = new Set<string>();
+  selections.forEach(s => {
+    // Mark items added by selectedItemInOption
+    Object.values(selectedState?.selectedItemInOption || {}).forEach(itemId => {
+      if (itemId) addedItemIds.add(itemId);
+    });
+  });
 
+  // 2. Get selected optional items (extras)
+  if (selectedState.selectedOptionalItems && offer.offer_options) {
     offer.offer_options.forEach(option => {
-      if (coveredOptionIds.has(option.id) || coveredUpsellIds.has(option.id)) return;
-      
       option.offer_option_items?.forEach(item => {
-        if (selectedState.selectedOptionalItems?.[item.id]) {
-          // Check if not already added
-          const alreadyAdded = selections.some(s => s.name === item.custom_name);
-          if (!alreadyAdded) {
-            selections.push({
-              name: item.custom_name || 'Pozycja',
-              price: calculateItemPrice(item)
-            });
-          }
+        if (selectedState.selectedOptionalItems?.[item.id] && !addedItemIds.has(item.id)) {
+          addedItemIds.add(item.id);
+          selections.push({
+            name: item.custom_name || 'Dodatek',
+            price: calculateItemPrice(item)
+          });
         }
       });
     });
