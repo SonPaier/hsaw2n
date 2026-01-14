@@ -1142,22 +1142,50 @@ export const PublicOfferCustomerView = ({
                                   </p>
                                 )}
                                 
-                                {/* Name + Price row */}
+                                {/* Name + Price + Button row */}
                                 <div className="flex items-start justify-between gap-3">
                                   <span 
-                                    className="font-medium text-base"
+                                    className="font-medium text-base flex-1"
                                     style={{ color: branding.offer_section_text_color }}
                                   >
                                     {productName}
                                   </span>
-                                  {!offer.hide_unit_prices && (
-                                    <span 
-                                      className="font-bold text-lg shrink-0"
-                                      style={{ color: branding.offer_primary_color }}
+                                  <div className="flex items-center gap-3 shrink-0">
+                                    {!offer.hide_unit_prices && (
+                                      <span 
+                                        className="font-bold text-lg"
+                                        style={{ color: branding.offer_primary_color }}
+                                      >
+                                        {formatPrice(itemTotal)}
+                                      </span>
+                                    )}
+                                    <Button
+                                      variant={isItemSelected ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!interactionsDisabled) {
+                                          handleSelectScope(section.key, option.id);
+                                          setSelectedItemInOption(prev => ({ ...prev, [option.id]: item.id }));
+                                        }
+                                      }}
+                                      disabled={interactionsDisabled}
+                                      className="shrink-0"
+                                      style={isItemSelected ? { 
+                                        backgroundColor: branding.offer_primary_color, 
+                                        color: primaryButtonTextColor 
+                                      } : {}}
                                     >
-                                      {formatPrice(itemTotal)}
-                                    </span>
-                                  )}
+                                      {isItemSelected ? (
+                                        <>
+                                          <Check className="w-4 h-4 mr-1" />
+                                          Wybrana
+                                        </>
+                                      ) : (
+                                        'Wybierz'
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
                                 
                                 {/* Description from product library */}
