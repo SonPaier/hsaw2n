@@ -186,6 +186,8 @@ export const PublicOfferCustomerView = ({
   const [selectedScopeId, setSelectedScopeId] = useState<string | null>(null);
   // Track which item is selected within multi-item options (key: option_id, value: item_id)
   const [selectedItemInOption, setSelectedItemInOption] = useState<Record<string, string>>({});
+  // Track which items were preselected by admin (never changes after initial load)
+  const [adminPreselectedItems, setAdminPreselectedItems] = useState<Record<string, boolean>>({});
 
   // Initialize state from offer.selected_state or defaults
   useEffect(() => {
@@ -234,6 +236,8 @@ export const PublicOfferCustomerView = ({
       setSelectedOptionalItems(mergedOptionalItems);
       setSelectedScopeId(savedState.selectedScopeId ?? null);
       setSelectedItemInOption(mergedItemInOption);
+      // Store admin's original preselection (from saved state, not migrated)
+      setAdminPreselectedItems(savedState.selectedOptionalItems || {});
     } else {
       // No saved state - don't select anything by default
       // User must explicitly choose their main service
@@ -241,6 +245,7 @@ export const PublicOfferCustomerView = ({
       setSelectedScopeId(null);
       setSelectedItemInOption({});
       setSelectedOptionalItems({});
+      setAdminPreselectedItems({});
     }
   }, [offer]);
 
@@ -807,139 +812,165 @@ export const PublicOfferCustomerView = ({
 
                   if (allItems.length === 0) return null;
 
-                  return (
-                    <section key={section.key} className="space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 
-                            className="text-base font-semibold"
-                            style={{ color: branding.offer_scope_header_text_color }}
-                          >
-                            {section.scopeName}
-                          </h2>
-                          <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
-                        </div>
-                        {section.scopeDescription && (
-                          <div 
-                            className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
-                            style={{ color: branding.offer_scope_header_text_color }}
-                            dangerouslySetInnerHTML={{ __html: parseMarkdownLists(section.scopeDescription) }}
-                          />
-                        )}
-                      </div>
+                  // Split items into preselected (by admin) and suggested
+                  const preselectedItems = allItems.filter(item => adminPreselectedItems[item.id]);
+                  const suggestedItems = allItems.filter(item => !adminPreselectedItems[item.id]);
 
-                      {allItems.map((item) => {
-                        const isItemSelected = selectedOptionalItems[item.id];
-                        const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
-                        
-                        return (
-                          <Card 
-                            key={item.id}
-                            className={cn(
-                              "transition-all border",
-                              isItemSelected && "ring-2"
-                            )}
-                            style={{
-                              backgroundColor: branding.offer_section_bg_color,
-                              borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                              ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
-                            }}
-                          >
-                            <CardContent className="py-4">
-                              {/* Desktop: Name + price/button on one line, description below */}
-                              <div className="hidden md:block">
-                                <div className="flex items-center justify-between">
-                                  <p 
+                  // Helper to render a single extras item card
+                  const renderExtrasItem = (item: typeof allItems[0]) => {
+                    const isItemSelected = selectedOptionalItems[item.id];
+                    const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+                    
+                    return (
+                      <Card 
+                        key={item.id}
+                        className={cn(
+                          "transition-all border",
+                          isItemSelected && "ring-2"
+                        )}
+                        style={{
+                          backgroundColor: branding.offer_section_bg_color,
+                          borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                          ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
+                        }}
+                      >
+                        <CardContent className="py-4">
+                          {/* Desktop: Name + price/button on one line, description below */}
+                          <div className="hidden md:block">
+                            <div className="flex items-center justify-between">
+                              <p 
+                                className="font-medium"
+                                style={{ color: branding.offer_section_text_color }}
+                              >
+                                {item.custom_name}
+                              </p>
+                              <div className="flex items-center gap-3">
+                                {!offer.hide_unit_prices && (
+                                  <span 
                                     className="font-medium"
                                     style={{ color: branding.offer_section_text_color }}
                                   >
-                                    {item.custom_name}
-                                  </p>
-                                  <div className="flex items-center gap-3">
-                                    {!offer.hide_unit_prices && (
-                                      <span 
-                                        className="font-medium"
-                                        style={{ color: branding.offer_section_text_color }}
-                                      >
-                                        +{formatPrice(itemTotal)}
-                                      </span>
-                                    )}
-                                    <Button
-                                      variant={isItemSelected ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => handleToggleOptionalItem(item.id)}
-                                      disabled={interactionsDisabled}
-                                      className="shrink-0"
-                                      style={isItemSelected ? { 
-                                        backgroundColor: branding.offer_primary_color, 
-                                        color: primaryButtonTextColor 
-                                      } : {}}
-                                    >
-                                      {isItemSelected ? (
-                                        <>
-                                          <Check className="w-4 h-4 mr-1" />
-                                          Dodane
-                                        </>
-                                      ) : (
-                                        'Dodaj'
-                                      )}
-                                    </Button>
-                                  </div>
-                                </div>
-                                {(item.custom_description || item.products_library?.description) && (
-                                  <div className="mt-1">
-                                    {renderDescription(item.custom_description || item.products_library?.description || '')}
-                                  </div>
+                                    +{formatPrice(itemTotal)}
+                                  </span>
                                 )}
+                                <Button
+                                  variant={isItemSelected ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleToggleOptionalItem(item.id)}
+                                  disabled={interactionsDisabled}
+                                  className="shrink-0"
+                                  style={isItemSelected ? { 
+                                    backgroundColor: branding.offer_primary_color, 
+                                    color: primaryButtonTextColor 
+                                  } : {}}
+                                >
+                                  {isItemSelected ? (
+                                    <>
+                                      <Check className="w-4 h-4 mr-1" />
+                                      Dodane
+                                    </>
+                                  ) : (
+                                    'Dodaj'
+                                  )}
+                                </Button>
                               </div>
+                            </div>
+                            {(item.custom_description || item.products_library?.description) && (
+                              <div className="mt-1">
+                                {renderDescription(item.custom_description || item.products_library?.description || '')}
+                              </div>
+                            )}
+                          </div>
 
-                              {/* Mobile: Name, description, then price/button */}
-                              <div className="md:hidden space-y-2">
-                                <p 
+                          {/* Mobile: Name, description, then price/button */}
+                          <div className="md:hidden space-y-2">
+                            <p 
+                              className="font-medium"
+                              style={{ color: branding.offer_section_text_color }}
+                            >
+                              {item.custom_name}
+                            </p>
+                            {(item.custom_description || item.products_library?.description) && 
+                              renderDescription(item.custom_description || item.products_library?.description || '')
+                            }
+                            <div className="flex items-center justify-end gap-3">
+                              {!offer.hide_unit_prices && (
+                                <span 
                                   className="font-medium"
                                   style={{ color: branding.offer_section_text_color }}
                                 >
-                                  {item.custom_name}
-                                </p>
-                                {(item.custom_description || item.products_library?.description) && 
-                                  renderDescription(item.custom_description || item.products_library?.description || '')
-                                }
-                                <div className="flex items-center justify-end gap-3">
-                                  {!offer.hide_unit_prices && (
-                                    <span 
-                                      className="font-medium"
-                                      style={{ color: branding.offer_section_text_color }}
-                                    >
-                                      +{formatPrice(itemTotal)}
-                                    </span>
-                                  )}
-                                  <Button
-                                    variant={isItemSelected ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => handleToggleOptionalItem(item.id)}
-                                    disabled={interactionsDisabled}
-                                    className="shrink-0"
-                                    style={isItemSelected ? { 
-                                      backgroundColor: branding.offer_primary_color, 
-                                      color: primaryButtonTextColor 
-                                    } : {}}
-                                  >
-                                    {isItemSelected ? (
-                                      <>
-                                        <Check className="w-4 h-4 mr-1" />
-                                        Dodane
-                                      </>
-                                    ) : (
-                                      'Dodaj'
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </section>
+                                  +{formatPrice(itemTotal)}
+                                </span>
+                              )}
+                              <Button
+                                variant={isItemSelected ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handleToggleOptionalItem(item.id)}
+                                disabled={interactionsDisabled}
+                                className="shrink-0"
+                                style={isItemSelected ? { 
+                                  backgroundColor: branding.offer_primary_color, 
+                                  color: primaryButtonTextColor 
+                                } : {}}
+                              >
+                                {isItemSelected ? (
+                                  <>
+                                    <Check className="w-4 h-4 mr-1" />
+                                    Dodane
+                                  </>
+                                ) : (
+                                  'Dodaj'
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  };
+
+                  return (
+                    <div key={section.key} className="space-y-6">
+                      {/* Preselected extras - "Twoje dodatki" */}
+                      {preselectedItems.length > 0 && (
+                        <section className="space-y-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 
+                                className="text-base font-semibold"
+                                style={{ color: branding.offer_scope_header_text_color }}
+                              >
+                                Twoje dodatki
+                              </h2>
+                              <Badge variant="secondary" className="text-xs">{t('publicOffer.extras')}</Badge>
+                            </div>
+                            {section.scopeDescription && (
+                              <div 
+                                className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                                style={{ color: branding.offer_scope_header_text_color }}
+                                dangerouslySetInnerHTML={{ __html: parseMarkdownLists(section.scopeDescription) }}
+                              />
+                            )}
+                          </div>
+                          {preselectedItems.map(renderExtrasItem)}
+                        </section>
+                      )}
+
+                      {/* Suggested extras - "Sugerowane dodatki" */}
+                      {suggestedItems.length > 0 && (
+                        <section className="space-y-3">
+                          <div>
+                            <h2 
+                              className="text-sm font-medium opacity-80"
+                              style={{ color: branding.offer_scope_header_text_color }}
+                            >
+                              Sugerowane dodatki do Twojego zapytania
+                            </h2>
+                          </div>
+                          {suggestedItems.map(renderExtrasItem)}
+                        </section>
+                      )}
+                    </div>
                   );
                 }
 
