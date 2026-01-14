@@ -1528,6 +1528,58 @@ export const PublicOfferCustomerView = ({
                   </Tooltip>
                 </div>
               )}
+              
+              {/* Address */}
+              {instance.address && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm">
+                    Adres:{' '}
+                    <span className="font-medium">{instance.address}</span>
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(instance.address || '');
+                          toast.success('Skopiowano');
+                        }}
+                        className="p-1 hover:bg-muted rounded transition-colors"
+                      >
+                        <Copy className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Kopiuj</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+              
+              {/* Transfer title */}
+              {(() => {
+                const vehicleModel = offer.vehicle_data?.brandModel || offer.vehicle_data?.model || offer.vehicle_data?.brand || '';
+                const transferTitle = `Usługa ${vehicleModel}, oferta ${offer.offer_number}`.trim();
+                return (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm">
+                      Tytuł przelewu:{' '}
+                      <span className="font-medium">{transferTitle}</span>
+                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(transferTitle);
+                            toast.success('Skopiowano');
+                          }}
+                          className="p-1 hover:bg-muted rounded transition-colors"
+                        >
+                          <Copy className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Kopiuj</TooltipContent>
+                    </Tooltip>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
