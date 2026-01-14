@@ -263,19 +263,29 @@ export const SummaryStepV2 = ({
       setServices(sortedServices);
 
       // Combine default conditions from all scopes with headers
+      // If all scopes have the same value, use it only once without headers
       const combineWithHeaders = (
         field: 'default_warranty' | 'default_payment_terms' | 'default_notes' | 'default_service_info'
       ): string => {
+        // Get all non-empty values
+        const scopeValues = scopesData
+          .map(scope => ({ name: scope.name, value: (scope[field] || '').trim() }))
+          .filter(sv => sv.value);
+        
+        if (scopeValues.length === 0) return '';
+        
+        // Check if all values are the same
+        const uniqueValues = new Set(scopeValues.map(sv => sv.value));
+        
+        if (uniqueValues.size === 1) {
+          // All values are identical - use just the value without header
+          return scopeValues[0].value;
+        }
+        
+        // Values differ - include headers
         const parts: string[] = [];
-        scopesData.forEach(scope => {
-          const value = scope[field];
-          if (value && value.trim()) {
-            if (scopesData.length > 1) {
-              parts.push(`${scope.name}:\n${value}`);
-            } else {
-              parts.push(value);
-            }
-          }
+        scopeValues.forEach(sv => {
+          parts.push(`${sv.name}:\n${sv.value}`);
         });
         return parts.join('\n\n');
       };
