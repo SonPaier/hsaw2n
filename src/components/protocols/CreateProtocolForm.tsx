@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, Loader2, Save, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -39,6 +40,21 @@ const BODY_TYPES: { value: BodyType; label: string }[] = [
   { value: 'hatchback', label: 'Hatchback' },
 ];
 
+const VIEW_LABELS: Record<VehicleView, string> = {
+  front: 'Przód pojazdu',
+  rear: 'Tył pojazdu',
+  left: 'Lewa strona pojazdu',
+  right: 'Prawa strona pojazdu',
+};
+
+const DAMAGE_TYPE_LABELS: Record<string, string> = {
+  scratch: 'rysa',
+  dent: 'wgniecenie',
+  damage: 'uszkodzenie',
+  chip: 'odprysek',
+  custom: 'inne',
+};
+
 export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormProps) => {
   const navigate = useNavigate();
   const [instance, setInstance] = useState<Instance | null>(null);
@@ -58,12 +74,29 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
   const [bodyType, setBodyType] = useState<BodyType>('sedan');
   const [protocolDate, setProtocolDate] = useState<Date>(new Date());
   const [receivedBy, setReceivedBy] = useState('');
+  const [notes, setNotes] = useState('');
 
   // Damage points
   const [damagePoints, setDamagePoints] = useState<DamagePoint[]>([]);
   const [pendingPoint, setPendingPoint] = useState<{ view: VehicleView; x_percent: number; y_percent: number } | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<DamagePoint | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Generate notes from damage points
+  const generatedNotes = useMemo(() => {
+    if (damagePoints.length === 0) return '';
+    return damagePoints.map(point => {
+      const viewLabel = VIEW_LABELS[point.view];
+      const damageLabel = point.damage_type ? DAMAGE_TYPE_LABELS[point.damage_type] || point.damage_type : 'usterka';
+      const customNote = point.custom_note ? ` - ${point.custom_note}` : '';
+      return `- ${viewLabel}: ${damageLabel}${customNote}`;
+    }).join('\n');
+  }, [damagePoints]);
+
+  // Update notes when damage points change
+  useEffect(() => {
+    setNotes(generatedNotes);
+  }, [generatedNotes]);
 
   useEffect(() => {
     const fetchInstance = async () => {
@@ -326,6 +359,23 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
                 onSelectPoint={handleSelectPoint}
                 selectedPointId={selectedPoint?.id}
               />
+            </div>
+
+            {/* Notes - auto-filled with damage points */}
+            <div className="space-y-2">
+              <Label>Uwagi</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Uwagi dotyczące stanu pojazdu..."
+                rows={3}
+                className="resize-none"
+              />
+              {damagePoints.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Uwagi są automatycznie uzupełniane na podstawie zaznaczonych usterek
+                </p>
+              )}
             </div>
 
             {/* Protocol metadata */}
