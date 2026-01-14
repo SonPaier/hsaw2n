@@ -51,6 +51,7 @@ interface Instance {
 interface ScopeData {
   id: string;
   name: string;
+  description: string | null;
   is_extras_scope: boolean;
 }
 
@@ -66,6 +67,7 @@ export const OfferPreviewDialog = ({
   const { t } = useTranslation();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [scopes, setScopes] = useState<Record<string, ScopeData>>({});
+  const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -117,7 +119,7 @@ export const OfferPreviewDialog = ({
         if (scopeIds.length > 0) {
           const { data: scopesData } = await supabase
             .from('offer_scopes')
-            .select('id, name, is_extras_scope')
+            .select('id, name, description, is_extras_scope')
             .in('id', scopeIds);
           
           if (scopesData) {
@@ -126,6 +128,30 @@ export const OfferPreviewDialog = ({
               scopeMap[s.id] = s;
             });
             setScopes(scopeMap);
+          }
+        }
+
+        // Fetch product descriptions from products_library
+        const productIds = [...new Set(
+          offer.options.flatMap(opt => 
+            opt.items.map(item => item.productId).filter(Boolean)
+          )
+        )] as string[];
+        
+        if (productIds.length > 0) {
+          const { data: productsData } = await supabase
+            .from('products_library')
+            .select('id, description')
+            .in('id', productIds);
+          
+          if (productsData) {
+            const descMap: Record<string, string> = {};
+            productsData.forEach(p => {
+              if (p.description) {
+                descMap[p.id] = p.description;
+              }
+            });
+            setProductDescriptions(descMap);
           }
         }
 
@@ -204,6 +230,7 @@ export const OfferPreviewDialog = ({
         scope: opt.scopeId && scopes[opt.scopeId] ? {
           id: scopes[opt.scopeId].id,
           name: scopes[opt.scopeId].name,
+          description: scopes[opt.scopeId].description,
           is_extras_scope: scopes[opt.scopeId].is_extras_scope,
         } : null,
         offer_option_items: opt.items.map(item => ({
@@ -215,12 +242,14 @@ export const OfferPreviewDialog = ({
           unit: item.unit,
           discount_percent: item.discountPercent,
           is_optional: item.isOptional,
-          products_library: null,
+          products_library: item.productId && productDescriptions[item.productId] 
+            ? { description: productDescriptions[item.productId] } 
+            : null,
         })),
       })),
       instances: instance,
     };
-  }, [instance, offer, scopes, instanceId, calculateTotalNet, calculateTotalGross]);
+  }, [instance, offer, scopes, productDescriptions, instanceId, calculateTotalNet, calculateTotalGross]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

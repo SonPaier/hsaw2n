@@ -36,6 +36,7 @@ const PublicOfferView = () => {
               scope:offer_scopes (
                 id,
                 name,
+                description,
                 is_extras_scope
               ),
               offer_option_items (
