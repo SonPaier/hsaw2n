@@ -10,6 +10,7 @@ interface OfferScope {
   name: string;
   description: string | null;
   has_coating_upsell: boolean;
+  is_extras_scope: boolean;
 }
 
 interface ScopesStepProps {
@@ -30,9 +31,10 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
     try {
       const { data, error } = await supabase
         .from('offer_scopes')
-        .select('id, name, description, has_coating_upsell')
+        .select('id, name, description, has_coating_upsell, is_extras_scope')
         .eq('instance_id', instanceId)
         .eq('active', true)
+        .eq('is_extras_scope', false) // Exclude extras scopes - they are always shown in step 3
         .order('sort_order');
 
       if (error) throw error;
