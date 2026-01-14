@@ -20,6 +20,7 @@ import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
 import { SignatureDialog } from './SignatureDialog';
 import ClientSearchAutocomplete, { type ClientSearchValue } from '@/components/ui/client-search-autocomplete';
+import { CarSearchAutocomplete, type CarSearchValue } from '@/components/ui/car-search-autocomplete';
 
 interface Instance {
   id: string;
@@ -320,10 +321,17 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
               </div>
               <div className="space-y-2">
                 <Label>Model samochodu</Label>
-                <Input
+                <CarSearchAutocomplete
                   value={vehicleModel}
-                  onChange={(e) => setVehicleModel(e.target.value)}
-                  placeholder="np. BMW X5"
+                  onChange={(val: CarSearchValue) => {
+                    if (val && 'label' in val) {
+                      setVehicleModel(val.label);
+                    } else {
+                      setVehicleModel('');
+                    }
+                  }}
+                  onClear={() => setVehicleModel('')}
+                  className="bg-white"
                 />
               </div>
               <div className="space-y-2">
