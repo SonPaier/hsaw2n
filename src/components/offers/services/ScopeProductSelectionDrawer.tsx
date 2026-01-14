@@ -151,27 +151,6 @@ export function ScopeProductSelectionDrawer({
             )}
           </div>
 
-          {/* Selected Products Chips */}
-          {selectedProducts.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground font-medium">
-                Wybrane ({selectedProducts.length})
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selectedProducts.map(product => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    onClick={() => removeProduct(product.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
-                  >
-                    <span>{getChipLabel(product)}</span>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Content */}
