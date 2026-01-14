@@ -41,16 +41,18 @@ export function OfferProductSelectionDrawer({
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
   const [searchQuery, setSearchQuery] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const initRef = useRef(false);
 
-  // Reset selected and search when drawer opens
+  // Reset selected and search when drawer opens (but don't keep resetting while open)
   useEffect(() => {
-    if (open) {
+    if (open && !initRef.current) {
+      initRef.current = true;
       setSelectedIds(initialSelectedIds);
       setSearchQuery('');
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 300);
+    }
+
+    if (!open) {
+      initRef.current = false;
     }
   }, [open, initialSelectedIds]);
 
@@ -152,6 +154,7 @@ export function OfferProductSelectionDrawer({
         hideOverlay
         hideCloseButton
         className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
       >
         {/* Header - clicking closes drawer */}
@@ -171,7 +174,6 @@ export function OfferProductSelectionDrawer({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              ref={searchInputRef}
               type="search"
               inputMode="search"
               value={searchQuery}
@@ -184,7 +186,6 @@ export function OfferProductSelectionDrawer({
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
-                  searchInputRef.current?.focus();
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >

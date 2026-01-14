@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, Check, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,13 +36,18 @@ export function ScopeProductSelectionDrawer({
 }: ScopeProductSelectionDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+  const initRef = useRef(false);
 
   // Initialize with already selected products when drawer opens
   useEffect(() => {
-    if (open) {
+    if (open && !initRef.current) {
+      initRef.current = true;
       setSearchQuery('');
       setSelectedIds(alreadySelectedIds); // Start with already selected
+    }
+
+    if (!open) {
+      initRef.current = false;
     }
   }, [open, alreadySelectedIds]);
 
