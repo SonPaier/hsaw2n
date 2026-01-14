@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell } from 'lucide-react';
+import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck } from 'lucide-react';
 import { UpdateBanner } from '@/components/admin/UpdateBanner';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
@@ -32,6 +32,7 @@ import ProductsView from '@/components/admin/ProductsView';
 import FollowUpView from '@/components/admin/FollowUpView';
 import NotificationsView from '@/components/admin/NotificationsView';
 import SettingsView from '@/components/admin/SettingsView';
+import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 interface Station {
@@ -97,8 +98,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -2214,6 +2215,11 @@ const AdminDashboard = () => {
                 <Building2 className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && t('navigation.halls')}
               </Button>}
+              {/* Protocols - visible when feature is enabled */}
+              {hasFeature('vehicle_reception_protocol') && userRole !== 'employee' && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('protocols'), 50); }} title="Protokoły">
+                <ClipboardCheck className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Protokoły"}
+              </Button>}
             </nav>
 
             {/* Update banner & Collapse toggle & User menu */}
@@ -2337,6 +2343,8 @@ const AdminDashboard = () => {
             />}
 
             {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
+
+            {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} />}
           </div>
         </main>
       </div>
