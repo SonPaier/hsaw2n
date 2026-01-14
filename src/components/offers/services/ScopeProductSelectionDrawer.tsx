@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Check, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,16 +36,13 @@ export function ScopeProductSelectionDrawer({
 }: ScopeProductSelectionDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  
 
   // Initialize with already selected products when drawer opens
   useEffect(() => {
     if (open) {
       setSearchQuery('');
       setSelectedIds(alreadySelectedIds); // Start with already selected
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 300);
     }
   }, [open, alreadySelectedIds]);
 
@@ -110,6 +107,7 @@ export function ScopeProductSelectionDrawer({
         hideOverlay
         hideCloseButton
         className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
       >
         {/* Header */}
@@ -128,7 +126,6 @@ export function ScopeProductSelectionDrawer({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              ref={searchInputRef}
               type="search"
               inputMode="search"
               value={searchQuery}
@@ -141,7 +138,6 @@ export function ScopeProductSelectionDrawer({
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
-                  searchInputRef.current?.focus();
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
