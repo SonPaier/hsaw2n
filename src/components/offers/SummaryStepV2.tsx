@@ -556,11 +556,6 @@ export const SummaryStepV2 = ({
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-lg">{service.name}</h3>
-              {service.isExtrasScope && (
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                  Dodatki
-                </span>
-              )}
             </div>
             {service.isExtrasScope && (
               <div className="text-right">
@@ -675,25 +670,41 @@ export const SummaryStepV2 = ({
               }))}
             alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
             onConfirm={(products) => {
-              const newSelectedIds = new Set(products.map(p => p.id));
-              const currentSelectedIds = new Set(service.selectedProducts.map(p => p.scopeProductId));
-              
-              // Add new products
-              products.forEach(product => {
-                if (!currentSelectedIds.has(product.id)) {
-                  const scopeProduct = service.availableProducts.find(p => p.id === product.id);
-                  if (scopeProduct) {
-                    addProduct(service.scopeId, scopeProduct);
-                  }
-                }
-              });
-              
-              // Remove deselected products
-              service.selectedProducts.forEach(p => {
-                if (!newSelectedIds.has(p.scopeProductId)) {
-                  removeProduct(service.scopeId, p.id);
-                }
-              });
+              // Replace entire product list at once to avoid state race conditions
+              setServices(prev => prev.map(s => {
+                if (s.scopeId !== service.scopeId) return s;
+                
+                const newSelectedIds = new Set(products.map(p => p.id));
+                
+                // Keep existing products that are still selected (preserve their prices/preselect)
+                const kept = s.selectedProducts.filter(p => newSelectedIds.has(p.scopeProductId));
+                const keptIds = new Set(kept.map(p => p.scopeProductId));
+                
+                // Add new products
+                const added: SelectedProduct[] = products
+                  .filter(p => !keptIds.has(p.id))
+                  .map(p => {
+                    const scopeProduct = s.availableProducts.find(sp => sp.id === p.id);
+                    return {
+                      id: crypto.randomUUID(),
+                      scopeProductId: p.id,
+                      productId: p.productId,
+                      variantName: p.variantName,
+                      productName: p.productName,
+                      productShortName: p.productShortName,
+                      price: p.price,
+                      isDefault: scopeProduct?.is_default || false,
+                      isPreselected: false,
+                    };
+                  });
+                
+                const newSelectedProducts = [...kept, ...added];
+                return {
+                  ...s,
+                  selectedProducts: newSelectedProducts,
+                  totalPrice: newSelectedProducts.reduce((sum, p) => sum + p.price, 0),
+                };
+              }));
             }}
           />
         </Card>
