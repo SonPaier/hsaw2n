@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -188,6 +189,8 @@ export const PublicOfferCustomerView = ({
   const [selectedItemInOption, setSelectedItemInOption] = useState<Record<string, string>>({});
   // Track which items were preselected by admin (never changes after initial load)
   const [adminPreselectedItems, setAdminPreselectedItems] = useState<Record<string, boolean>>({});
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Initialize state from offer.selected_state or defaults
   useEffect(() => {
@@ -324,6 +327,52 @@ export const PublicOfferCustomerView = ({
     : !!selectedScopeId;
 
   const dynamicTotals = calculateDynamicTotal();
+
+  // Generate list of selected items for confirmation dialog
+  const getSelectedItemsList = () => {
+    const items: { name: string; price: number }[] = [];
+    
+    // Identify extras scope options and non-extras scopes
+    const extrasScopeOptionIds = new Set<string>();
+    offer.offer_options.forEach(opt => {
+      if (opt.scope?.is_extras_scope) {
+        extrasScopeOptionIds.add(opt.id);
+      }
+    });
+    
+    const effectiveScopeId = hasSingleNonExtrasScope 
+      ? Array.from(nonExtrasScopeIds)[0] 
+      : selectedScopeId;
+    
+    // For non-extras scopes: only add the selected item from the selected scope
+    offer.offer_options.forEach(option => {
+      if (extrasScopeOptionIds.has(option.id)) return;
+      if (option.scope_id !== effectiveScopeId) return;
+      
+      const selectedItemId = selectedItemInOption[option.id];
+      if (selectedItemId) {
+        const item = option.offer_option_items.find(i => i.id === selectedItemId);
+        if (item) {
+          const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+          items.push({ name: item.custom_name || 'Usługa', price: itemTotal });
+        }
+      }
+    });
+    
+    // Add selected items from extras scope
+    offer.offer_options.forEach(option => {
+      if (extrasScopeOptionIds.has(option.id)) {
+        option.offer_option_items.forEach(item => {
+          if (item.id && selectedOptionalItems[item.id]) {
+            const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
+            items.push({ name: item.custom_name || 'Dodatek', price: itemTotal });
+          }
+        });
+      }
+    });
+    
+    return items;
+  };
 
   // Handle selecting a scope (and its variant)
   const handleSelectScope = (scopeId: string, optionId: string) => {
@@ -1333,7 +1382,7 @@ export const PublicOfferCustomerView = ({
                     <Button 
                       className="gap-2" 
                       size="lg"
-                      onClick={handleConfirmSelection}
+                      onClick={() => setShowConfirmDialog(true)}
                       disabled={responding || !hasSelectedProduct}
                       style={{ 
                         backgroundColor: branding.offer_primary_color, 
@@ -1390,8 +1439,8 @@ export const PublicOfferCustomerView = ({
                           {t('publicOffer.cancelEdit')}
                         </Button>
                         <Button 
-                          onClick={handleConfirmSelection}
-                          disabled={responding || !selectedScopeId}
+                          onClick={() => setShowConfirmDialog(true)}
+                          disabled={responding || !hasSelectedProduct}
                           className="gap-2"
                         >
                           {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -1568,6 +1617,71 @@ export const PublicOfferCustomerView = ({
           </p>
         </div>
       </main>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-black text-center">Podsumowanie wyboru</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {/* Receipt-style list */}
+            <div className="space-y-2 border-b border-black/10 pb-4">
+              {getSelectedItemsList().map((item, idx) => (
+                <div key={idx} className="flex justify-between items-start gap-4">
+                  <span className="text-black text-sm flex-1">{item.name}</span>
+                  <span className="text-black font-medium text-sm whitespace-nowrap">
+                    {formatPrice(item.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            
+            {/* Total */}
+            <div className="flex justify-between items-center pt-4 border-t border-black">
+              <span className="text-black font-semibold">Razem netto</span>
+              <span className="text-black font-bold text-lg">{formatPrice(dynamicTotals.net)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-1">
+              <span className="text-black/70 text-sm">Razem brutto</span>
+              <span className="text-black/70 font-medium">{formatPrice(dynamicTotals.gross)}</span>
+            </div>
+          </div>
+          
+          {/* Disclaimer */}
+          <p className="text-center text-sm text-black/60 mb-4">
+            Zatwierdzenie oferty jest niewiążące
+          </p>
+          
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConfirmDialog(false)}
+              className="flex-1"
+              disabled={responding}
+            >
+              Wróć do edycji
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowConfirmDialog(false);
+                handleConfirmSelection();
+              }}
+              disabled={responding}
+              className="flex-1 gap-2"
+              style={{ 
+                backgroundColor: branding.offer_primary_color, 
+                color: primaryButtonTextColor 
+              }}
+            >
+              {responding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Zatwierdzam
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
