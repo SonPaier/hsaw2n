@@ -578,7 +578,7 @@ export const SummaryStepV2 = ({
                         {product.variantName}
                       </p>
                     )}
-                    <p className="font-medium">{product.productShortName || product.productName}</p>
+                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
