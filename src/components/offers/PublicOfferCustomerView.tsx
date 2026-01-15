@@ -791,6 +791,13 @@ export const PublicOfferCustomerView = ({
               </p>
             </div>
 
+            <p 
+              className="text-sm mb-6 opacity-80 text-center max-w-3xl mx-auto"
+              style={{ color: branding.offer_section_text_color }}
+            >
+              Sprawdzone studio z ponad 800 opiniami i średnią 5.0 w Google, setkami realizacji, oferujące gwarantowaną jakość, precyzyjne wykonanie w profesjonalnych warunkach oraz premium obsługę opartą na markowych materiałach i pełnej odpowiedzialności za każdy detal.
+            </p>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: Sparkles, title: t('publicOffer.methodBryt'), desc: t('publicOffer.methodBrytDesc') },
