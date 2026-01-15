@@ -208,57 +208,41 @@ export const SummaryStepV2 = ({
         const customerSelectedOptionalItems = offer.defaultSelectedState?.selectedOptionalItems || {};
 
         if (existingOption && existingOption.items.length > 0) {
-          // If option.id !== scopeId, it's the older auto-generated "full catalog" structure.
-          // For step 3 we want the old behavior: start only with defaults.
-          const isLegacyAutoCatalog = existingOption.id !== scope.id;
-          if (isLegacyAutoCatalog) {
-            selectedProducts = buildDefaultSelected();
+          // Always restore from saved option items - no legacy checks
+          const allRestored = existingOption.items.map(item => {
+            // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
+            const nameParts = (item.customName || '').split('\n');
+            const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
+            const variantFromItem = nameParts.length > 1 ? nameParts[0] : null;
+
+            const matchingProduct = scopeProducts.find(sp =>
+              sp.product_id === item.productId ||
+              (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
+            );
+
+            // Check if customer selected this item (from selectedOptionalItems)
+            const wasSelectedByCustomer = customerSelectedOptionalItems[item.id] === true;
+            
+            return {
+              id: item.id,
+              scopeProductId: matchingProduct?.id || '',
+              productId: item.productId || matchingProduct?.product_id || '',
+              variantName: variantFromItem || matchingProduct?.variant_name || null,
+              productName: productNameFromItem || matchingProduct?.product?.name || '',
+              productShortName: matchingProduct?.product?.short_name || null,
+              price: item.unitPrice,
+              isDefault: matchingProduct?.is_default || false,
+              // Item is preselected if: was admin preselected (!isOptional) OR customer selected it
+              isPreselected: !item.isOptional || wasSelectedByCustomer,
+            };
+          }).filter(p => p.productId);
+
+          // Split into selected (preselected) and suggested (not preselected) for extras
+          if (scope.is_extras_scope) {
+            selectedProducts = allRestored.filter(p => p.isPreselected);
+            suggestedProducts = allRestored.filter(p => !p.isPreselected);
           } else {
-            // Restore from saved option items (new step-3-driven structure)
-            const allRestored = existingOption.items.map(item => {
-              // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
-              const nameParts = (item.customName || '').split('\n');
-              const productNameFromItem = nameParts.length > 1 ? nameParts[nameParts.length - 1] : item.customName;
-              const variantFromItem = nameParts.length > 1 ? nameParts[0] : null;
-
-              const matchingProduct = scopeProducts.find(sp =>
-                sp.product_id === item.productId ||
-                (sp.product?.name === productNameFromItem && sp.variant_name === variantFromItem)
-              );
-
-              // Check if customer selected this item (from selectedOptionalItems)
-              const wasSelectedByCustomer = customerSelectedOptionalItems[item.id] === true;
-              
-              return {
-                id: item.id,
-                scopeProductId: matchingProduct?.id || '',
-                productId: item.productId || matchingProduct?.product_id || '',
-                variantName: variantFromItem || matchingProduct?.variant_name || null,
-                productName: productNameFromItem || matchingProduct?.product?.name || '',
-                productShortName: matchingProduct?.product?.short_name || null,
-                price: item.unitPrice,
-                isDefault: matchingProduct?.is_default || false,
-                // Item is preselected if: was admin preselected (!isOptional) OR customer selected it
-                isPreselected: !item.isOptional || wasSelectedByCustomer,
-              };
-            }).filter(p => p.productId && p.scopeProductId);
-
-            // Guard: some legacy/auto-generated offers may store ALL products as "selected".
-            // In such case we fall back to defaults (behavior "jak wcześniej").
-            const availableCount = scopeProducts.filter(p => p.product).length;
-            const looksLikeFullCatalog = allRestored.length >= availableCount && availableCount > 0;
-
-            if (looksLikeFullCatalog) {
-              selectedProducts = buildDefaultSelected();
-            } else {
-              // Split into selected (preselected) and suggested (not preselected) for extras
-              if (scope.is_extras_scope) {
-                selectedProducts = allRestored.filter(p => p.isPreselected);
-                suggestedProducts = allRestored.filter(p => !p.isPreselected);
-              } else {
-                selectedProducts = allRestored;
-              }
-            }
+            selectedProducts = allRestored;
           }
         } else {
           // Initialize with default products
