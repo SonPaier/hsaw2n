@@ -2460,6 +2460,7 @@ const AdminDashboard = () => {
         followupEnabled={hasFeature('followup')}
         hallViewEnabled={hasFeature('hall_view')}
         userRole={userRole}
+        currentVersion={currentVersion}
       />
     </>;
 };

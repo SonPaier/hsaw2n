@@ -9,7 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Separator } from '@/components/ui/separator';
+
 
 type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
 
@@ -23,6 +23,7 @@ interface MobileBottomNavProps {
   followupEnabled?: boolean;
   hallViewEnabled?: boolean;
   userRole?: 'admin' | 'employee' | null;
+  currentVersion?: string;
 }
 
 const MobileBottomNav = ({
@@ -35,6 +36,7 @@ const MobileBottomNav = ({
   followupEnabled = true,
   hallViewEnabled = false,
   userRole = 'admin',
+  currentVersion,
 }: MobileBottomNavProps) => {
   const { t } = useTranslation();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -172,17 +174,21 @@ const MobileBottomNav = ({
                 ))}
               </div>
 
-              <Separator className="my-2" />
-
-              <div className="py-2">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-muted transition-colors text-destructive"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="text-base">{t('auth.logout')}</span>
-                </button>
+              {/* Version display */}
+              <div className="px-6 py-3 text-xs text-muted-foreground">
+                Panel Admina {currentVersion && `v${currentVersion}`}
               </div>
+            </div>
+
+            {/* Logout button - sticky at bottom */}
+            <div className="border-t border-border p-4 safe-area-pb">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-colors text-destructive"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="text-base font-medium">{t('auth.logout')}</span>
+              </button>
             </div>
           </div>
         </SheetContent>
