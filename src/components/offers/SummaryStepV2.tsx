@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
+import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption, DefaultSelectedState } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,6 +113,8 @@ export const SummaryStepV2 = ({
   const [productDrawerOpen, setProductDrawerOpen] = useState<string | null>(null); // scopeId
   const [suggestedDrawerOpen, setSuggestedDrawerOpen] = useState<string | null>(null); // for suggested extras
   const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string; isSuggested?: boolean } | null>(null);
+  const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; short_name: string | null; brand: string | null; description: string | null; category: string | null; unit: string; default_price: number; metadata: Record<string, unknown> | null; source: string; instance_id: string | null; reminder_template_id?: string | null } | null>(null);
+  const [productCategories, setProductCategories] = useState<string[]>([]);
 
   // Load scope data and products for selected scopes + always include extras scopes
   useEffect(() => {
@@ -438,6 +441,81 @@ export const SummaryStepV2 = ({
     }).format(Math.round(value));
   };
 
+  // Open product edit dialog
+  const openProductEdit = async (productId: string) => {
+    const { data } = await supabase
+      .from('products_library')
+      .select('*')
+      .eq('id', productId)
+      .single();
+    
+    if (data) {
+      setEditingProduct(data as typeof editingProduct);
+      // Also fetch categories
+      const { data: products } = await supabase
+        .from('products_library')
+        .select('category')
+        .eq('instance_id', instanceId);
+      
+      const cats = [...new Set((products || []).map(p => p.category).filter(Boolean) as string[])];
+      setProductCategories(cats);
+    }
+  };
+
+  // Refresh product data after edit
+  const refreshProductData = async () => {
+    // Trigger a refetch of services by toggling a dep
+    const { data: scopeProductsData } = await supabase
+      .from('offer_scope_products')
+      .select(`
+        id,
+        scope_id,
+        product_id,
+        variant_name,
+        is_default,
+        sort_order,
+        product:products_library(id, name, short_name, default_price)
+      `)
+      .in('scope_id', services.map(s => s.scopeId))
+      .order('sort_order');
+
+    // Update services with fresh product data
+    setServices(prev => prev.map(service => {
+      const updatedProducts = service.selectedProducts.map(sp => {
+        const freshData = (scopeProductsData || []).find(p => p.id === sp.scopeProductId);
+        if (freshData?.product) {
+          return {
+            ...sp,
+            productName: freshData.product.name,
+            productShortName: freshData.product.short_name,
+            price: freshData.product.default_price,
+          };
+        }
+        return sp;
+      });
+
+      const updatedSuggested = service.suggestedProducts.map(sp => {
+        const freshData = (scopeProductsData || []).find(p => p.id === sp.scopeProductId);
+        if (freshData?.product) {
+          return {
+            ...sp,
+            productName: freshData.product.name,
+            productShortName: freshData.product.short_name,
+            price: freshData.product.default_price,
+          };
+        }
+        return sp;
+      });
+
+      return {
+        ...service,
+        selectedProducts: updatedProducts,
+        suggestedProducts: updatedSuggested,
+        totalPrice: updatedProducts.reduce((sum, p) => sum + p.price, 0),
+      };
+    }));
+  };
+
 
   // Calculate totals from services - only count preselected items
   const totalNet = useMemo(() => {
@@ -617,7 +695,13 @@ export const SummaryStepV2 = ({
                       {product.variantName}
                     </p>
                   )}
-                  <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
+                  <button
+                    type="button"
+                    onClick={() => openProductEdit(product.productId)}
+                    className="font-medium text-sm text-left hover:text-primary hover:underline transition-colors"
+                  >
+                    {product.productShortName || product.productName}
+                  </button>
                 </div>
                 <div className="flex items-center gap-2">
                   {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && !editingPrice?.isSuggested ? (
@@ -767,7 +851,13 @@ export const SummaryStepV2 = ({
                         {product.variantName}
                       </p>
                     )}
-                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
+                    <button
+                      type="button"
+                      onClick={() => openProductEdit(product.productId)}
+                      className="font-medium text-sm text-left hover:text-primary hover:underline transition-colors"
+                    >
+                      {product.productShortName || product.productName}
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
                     {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && !editingPrice?.isSuggested ? (
@@ -905,7 +995,13 @@ export const SummaryStepV2 = ({
                         {product.variantName}
                       </p>
                     )}
-                    <p className="font-medium text-sm">{product.productShortName || product.productName}</p>
+                    <button
+                      type="button"
+                      onClick={() => openProductEdit(product.productId)}
+                      className="font-medium text-sm text-left hover:text-primary hover:underline transition-colors"
+                    >
+                      {product.productShortName || product.productName}
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
                     {editingPrice?.scopeId === service.scopeId && editingPrice?.productId === product.id && editingPrice?.isSuggested ? (
@@ -1134,6 +1230,19 @@ export const SummaryStepV2 = ({
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* Product Edit Dialog */}
+      <AddProductDialog
+        open={!!editingProduct}
+        onOpenChange={(open) => !open && setEditingProduct(null)}
+        instanceId={instanceId}
+        categories={productCategories}
+        onProductAdded={() => {
+          refreshProductData();
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+      />
     </div>
   );
 };
