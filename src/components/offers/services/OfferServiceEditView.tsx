@@ -273,7 +273,10 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
 
   // Handle product selection from drawer
   const handleProductConfirm = async (productIds: string[]) => {
-    // Fetch product details for new IDs
+    // Start with current products that are still selected
+    const keepProducts = scopeProducts.filter(sp => productIds.includes(sp.product_id));
+    
+    // Find new product IDs that aren't in current list
     const newProductIds = productIds.filter(
       id => !scopeProducts.some(sp => sp.product_id === id)
     );
@@ -288,19 +291,21 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         const newScopeProducts: ScopeProduct[] = data.map((product, index) => ({
           product_id: product.id,
           variant_name: '',
-          is_default: scopeProducts.length === 0 && index === 0, // First product is default
-          sort_order: scopeProducts.length + index,
+          is_default: keepProducts.length === 0 && index === 0, // First product is default if list was empty
+          sort_order: keepProducts.length + index,
           product
         }));
 
-        setScopeProducts(prev => [...prev, ...newScopeProducts]);
+        // Combine kept products with new ones in a single setState
+        setScopeProducts([...keepProducts, ...newScopeProducts]);
+      } else {
+        // No new products fetched, just update with kept products
+        setScopeProducts(keepProducts);
       }
+    } else {
+      // No new products, just update with kept products (handles removals)
+      setScopeProducts(keepProducts);
     }
-
-    // Remove products that were deselected
-    setScopeProducts(prev => 
-      prev.filter(sp => productIds.includes(sp.product_id))
-    );
   };
 
   const removeProduct = (productId: string) => {
