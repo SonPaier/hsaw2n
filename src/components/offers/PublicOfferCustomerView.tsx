@@ -783,12 +783,6 @@ export const PublicOfferCustomerView = ({
               >
                 {t('publicOffer.whyTrustUs')}
               </h2>
-              <p 
-                className="text-sm max-w-2xl mx-auto opacity-70"
-                style={{ color: branding.offer_section_text_color }}
-              >
-                {t('publicOffer.trustDescription')}
-              </p>
             </div>
 
             <p 
