@@ -843,8 +843,10 @@ export const useOffer = (instanceId: string) => {
         .sort((a: any, b: any) => a.sort_order - b.sort_order);
       
       // Separate additions from regular options
-      const additionsOption = allOptions.find((opt: any) => opt.name === 'Dodatki');
-      const regularOptions = allOptions.filter((opt: any) => opt.name !== 'Dodatki');
+      // "Additions" option has name 'Dodatki' but NO scope_id - these are manually added items
+      // Options with scope_id (even if named 'Dodatki') are service-based and should be loaded as regular options
+      const additionsOption = allOptions.find((opt: any) => opt.name === 'Dodatki' && !opt.scope_id);
+      const regularOptions = allOptions.filter((opt: any) => !(opt.name === 'Dodatki' && !opt.scope_id));
 
       // Build ID mappings for duplication
       const optionIdMap: Record<string, string> = {};
