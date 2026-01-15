@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck } from 'lucide-react';
 import { UpdateBanner } from '@/components/admin/UpdateBanner';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
   DropdownMenu,
@@ -113,6 +114,7 @@ const AdminDashboard = () => {
     user,
     signOut
   } = useAuth();
+  const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -2226,6 +2228,13 @@ const AdminDashboard = () => {
             <div className={cn(sidebarCollapsed ? "p-2 space-y-2" : "p-4 space-y-3")}>
               {/* Update available banner */}
               <UpdateBanner collapsed={sidebarCollapsed} />
+
+              {/* Version display */}
+              {!sidebarCollapsed && currentVersion && (
+                <p className="text-muted-foreground text-center" style={{ fontSize: '8px' }}>
+                  wersja: v{currentVersion}
+                </p>
+              )}
 
               {/* Collapse button - desktop only */}
               <Button
