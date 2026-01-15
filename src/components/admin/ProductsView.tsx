@@ -83,9 +83,10 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 interface ProductsViewProps {
   instanceId: string | null;
+  onBackToOffers?: () => void;
 }
 
-export default function ProductsView({ instanceId }: ProductsViewProps) {
+export default function ProductsView({ instanceId, onBackToOffers }: ProductsViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -315,11 +316,11 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => navigate('/admin/offers')}
+          onClick={() => onBackToOffers?.()}
           className="gap-2 -ml-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          Wróć do ofert
+          {t('offers.backToList')}
         </Button>
       </div>
       <div className="flex items-center justify-between mb-6">
