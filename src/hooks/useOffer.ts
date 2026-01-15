@@ -521,10 +521,105 @@ export const useOffer = (instanceId: string) => {
         // Continue anyway - the insert might still work if there were no options
       }
 
-      // FIX: Insert options WITH their existing IDs to prevent selected_state mismatch
-      // Prepare all options for bulk insert - now includes id to preserve references
-      const allOptionsData = offer.options.map((option, idx) => ({
-        id: option.id, // CRITICAL: preserve existing ID
+      // ===================== AUTO-REPAIR: Detect and fix stale IDs from duplication =====================
+      // Check if any option IDs already exist in the database for a DIFFERENT offer
+      const optionIdsToCheck = offer.options.map(o => o.id);
+      const itemIdsToCheck = offer.options.flatMap(o => o.items.map(i => i.id));
+      
+      let optionIdMap: Record<string, string> = {};
+      let itemIdMap: Record<string, string> = {};
+      let needsIdRegeneration = false;
+      
+      if (optionIdsToCheck.length > 0) {
+        const { data: existingOptions } = await supabase
+          .from('offer_options')
+          .select('id, offer_id')
+          .in('id', optionIdsToCheck);
+        
+        // If any option ID exists for a DIFFERENT offer, we need to regenerate
+        const conflictingOptions = (existingOptions || []).filter(o => o.offer_id !== offerId);
+        if (conflictingOptions.length > 0) {
+          needsIdRegeneration = true;
+          console.warn('[AUTO-REPAIR] Detected conflicting option IDs from another offer:', conflictingOptions.map(o => o.id));
+        }
+      }
+      
+      // Prepare options and items with potentially regenerated IDs
+      let processedOptions = offer.options;
+      let processedAdditions = offer.additions;
+      let processedDefaultSelectedState = offer.defaultSelectedState;
+      
+      if (needsIdRegeneration) {
+        console.log('[AUTO-REPAIR] Regenerating all option and item IDs to prevent conflicts...');
+        
+        // Generate new IDs for all options and items
+        processedOptions = offer.options.map(option => {
+          const newOptionId = crypto.randomUUID();
+          optionIdMap[option.id] = newOptionId;
+          
+          return {
+            ...option,
+            id: newOptionId,
+            items: option.items.map(item => {
+              const newItemId = crypto.randomUUID();
+              itemIdMap[item.id] = newItemId;
+              return { ...item, id: newItemId };
+            }),
+          };
+        });
+        
+        // Regenerate additions IDs
+        processedAdditions = offer.additions.map(item => {
+          const newItemId = crypto.randomUUID();
+          itemIdMap[item.id] = newItemId;
+          return { ...item, id: newItemId };
+        });
+        
+        // Update defaultSelectedState with new IDs
+        if (offer.defaultSelectedState) {
+          const { selectedVariants, selectedOptionalItems, selectedItemInOption } = offer.defaultSelectedState;
+          
+          const newSelectedVariants: Record<string, string> = {};
+          for (const [scopeId, oldOptionId] of Object.entries(selectedVariants || {})) {
+            newSelectedVariants[scopeId] = optionIdMap[oldOptionId] || oldOptionId;
+          }
+          
+          const newSelectedOptionalItems: Record<string, boolean> = {};
+          for (const [oldItemId, value] of Object.entries(selectedOptionalItems || {})) {
+            const newItemId = itemIdMap[oldItemId] || oldItemId;
+            newSelectedOptionalItems[newItemId] = value;
+          }
+          
+          const newSelectedItemInOption: Record<string, string> = {};
+          for (const [oldOptionId, oldItemId] of Object.entries(selectedItemInOption || {})) {
+            const newOptionId = optionIdMap[oldOptionId] || oldOptionId;
+            const newItemId = itemIdMap[oldItemId] || oldItemId;
+            newSelectedItemInOption[newOptionId] = newItemId;
+          }
+          
+          processedDefaultSelectedState = {
+            ...offer.defaultSelectedState,
+            selectedVariants: newSelectedVariants,
+            selectedOptionalItems: newSelectedOptionalItems,
+            selectedItemInOption: newSelectedItemInOption,
+          };
+        }
+        
+        // Update local state with regenerated IDs
+        setOffer(prev => ({
+          ...prev,
+          options: processedOptions,
+          additions: processedAdditions,
+          defaultSelectedState: processedDefaultSelectedState,
+        }));
+        
+        console.log('[AUTO-REPAIR] Regenerated', Object.keys(optionIdMap).length, 'option IDs and', Object.keys(itemIdMap).length, 'item IDs');
+      }
+      // ===================== END AUTO-REPAIR =====================
+
+      // Prepare all options for bulk insert
+      const allOptionsData = processedOptions.map((option, idx) => ({
+        id: option.id,
         offer_id: offerId,
         name: option.name,
         description: option.description,
@@ -537,15 +632,15 @@ export const useOffer = (instanceId: string) => {
       }));
 
       // Add additions as a special option if present (generate new ID for additions)
-      const additionsId = offer.additions.length > 0 ? crypto.randomUUID() : null;
-      if (offer.additions.length > 0 && additionsId) {
+      const additionsId = processedAdditions.length > 0 ? crypto.randomUUID() : null;
+      if (processedAdditions.length > 0 && additionsId) {
         allOptionsData.push({
           id: additionsId,
           offer_id: offerId,
           name: 'Dodatki',
           description: '',
           is_selected: true,
-          sort_order: offer.options.length,
+          sort_order: processedOptions.length,
           subtotal_net: calculateAdditionsTotal(),
           scope_id: null,
           variant_id: null,
@@ -553,7 +648,7 @@ export const useOffer = (instanceId: string) => {
         });
       }
 
-      // Bulk insert all options at once - now with stable IDs
+      // Bulk insert all options at once
       if (allOptionsData.length > 0) {
         const { error: optionsError } = await supabase
           .from('offer_options')
@@ -577,13 +672,13 @@ export const useOffer = (instanceId: string) => {
           sort_order: number;
         }> = [];
 
-        // Add items from regular options - use option.id directly (no mapping needed)
-        offer.options.forEach((option) => {
+        // Add items from regular options - use processedOptions with potentially regenerated IDs
+        processedOptions.forEach((option) => {
           if (option.items.length > 0) {
             option.items.forEach((item, itemIdx) => {
               allItemsData.push({
-                id: item.id, // CRITICAL: preserve existing ID
-                option_id: option.id, // Use stable option ID
+                id: item.id,
+                option_id: option.id,
                 product_id: item.productId || null,
                 custom_name: item.customName,
                 custom_description: item.customDescription,
@@ -600,10 +695,10 @@ export const useOffer = (instanceId: string) => {
         });
 
         // Add items from additions (if present)
-        if (offer.additions.length > 0 && additionsId) {
-          offer.additions.forEach((item, idx) => {
+        if (processedAdditions.length > 0 && additionsId) {
+          processedAdditions.forEach((item, idx) => {
             allItemsData.push({
-              id: item.id, // CRITICAL: preserve existing ID
+              id: item.id,
               option_id: additionsId,
               product_id: item.productId || null,
               custom_name: item.customName,
