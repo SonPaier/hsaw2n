@@ -726,7 +726,8 @@ export const useOffer = (instanceId: string) => {
   }, [offer, instanceId, calculateTotalNet, calculateTotalGross, calculateOptionTotal, calculateAdditionsTotal]);
 
   // Load offer from database
-  const loadOffer = useCallback(async (offerId: string) => {
+  // isDuplicate: if true, regenerates all option/item IDs to prevent primary key conflicts
+  const loadOffer = useCallback(async (offerId: string, isDuplicate = false) => {
     setLoading(true);
     try {
       const { data: offerData, error: offerError } = await supabase
@@ -750,30 +751,52 @@ export const useOffer = (instanceId: string) => {
       const additionsOption = allOptions.find((opt: any) => opt.name === 'Dodatki');
       const regularOptions = allOptions.filter((opt: any) => opt.name !== 'Dodatki');
 
-      const options: OfferOption[] = regularOptions.map((opt: any) => ({
-        id: opt.id,
-        name: opt.name,
-        description: opt.description,
-        isSelected: opt.is_selected,
-        sortOrder: opt.sort_order,
-        scopeId: opt.scope_id,
-        variantId: opt.variant_id,
-        isUpsell: opt.is_upsell,
-        items: (opt.offer_option_items || [])
-          .sort((a: any, b: any) => a.sort_order - b.sort_order)
-          .map((item: any) => ({
-            id: item.id,
-            productId: item.product_id,
-            customName: item.custom_name,
-            customDescription: item.custom_description,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unit_price),
-            unit: item.unit,
-            discountPercent: Number(item.discount_percent),
-            isOptional: item.is_optional,
-            isCustom: item.is_custom,
-          })),
-      }));
+      // Build ID mappings for duplication
+      const optionIdMap: Record<string, string> = {};
+      const itemIdMap: Record<string, string> = {};
+
+      let options: OfferOption[] = regularOptions.map((opt: any) => {
+        const originalOptionId = opt.id;
+        const newOptionId = isDuplicate ? crypto.randomUUID() : originalOptionId;
+        
+        if (isDuplicate) {
+          optionIdMap[originalOptionId] = newOptionId;
+        }
+        
+        return {
+          id: newOptionId,
+          name: opt.name,
+          description: opt.description,
+          isSelected: opt.is_selected,
+          sortOrder: opt.sort_order,
+          scopeId: opt.scope_id,
+          variantId: opt.variant_id,
+          isUpsell: opt.is_upsell,
+          items: (opt.offer_option_items || [])
+            .sort((a: any, b: any) => a.sort_order - b.sort_order)
+            .map((item: any) => {
+              const originalItemId = item.id;
+              const newItemId = isDuplicate ? crypto.randomUUID() : originalItemId;
+              
+              if (isDuplicate) {
+                itemIdMap[originalItemId] = newItemId;
+              }
+              
+              return {
+                id: newItemId,
+                productId: item.product_id,
+                customName: item.custom_name,
+                customDescription: item.custom_description,
+                quantity: Number(item.quantity),
+                unitPrice: Number(item.unit_price),
+                unit: item.unit,
+                discountPercent: Number(item.discount_percent),
+                isOptional: item.is_optional,
+                isCustom: item.is_custom,
+              };
+            }),
+        };
+      });
 
       // Extract unique scope IDs from options
       const scopeIdsFromOptions = [...new Set(
@@ -782,21 +805,30 @@ export const useOffer = (instanceId: string) => {
           .map(opt => opt.scopeId as string)
       )];
 
-      const additions: OfferItem[] = additionsOption 
+      let additions: OfferItem[] = additionsOption 
         ? (additionsOption.offer_option_items || [])
             .sort((a: any, b: any) => a.sort_order - b.sort_order)
-            .map((item: any) => ({
-              id: item.id,
-              productId: item.product_id,
-              customName: item.custom_name,
-              customDescription: item.custom_description,
-              quantity: Number(item.quantity),
-              unitPrice: Number(item.unit_price),
-              unit: item.unit,
-              discountPercent: Number(item.discount_percent),
-              isOptional: item.is_optional,
-              isCustom: item.is_custom,
-            }))
+            .map((item: any) => {
+              const originalItemId = item.id;
+              const newItemId = isDuplicate ? crypto.randomUUID() : originalItemId;
+              
+              if (isDuplicate) {
+                itemIdMap[originalItemId] = newItemId;
+              }
+              
+              return {
+                id: newItemId,
+                productId: item.product_id,
+                customName: item.custom_name,
+                customDescription: item.custom_description,
+                quantity: Number(item.quantity),
+                unitPrice: Number(item.unit_price),
+                unit: item.unit,
+                discountPercent: Number(item.discount_percent),
+                isOptional: item.is_optional,
+                isCustom: item.is_custom,
+              };
+            })
         : [];
 
       // Handle legacy vehicle data format
@@ -808,43 +840,83 @@ export const useOffer = (instanceId: string) => {
       };
 
       // Parse defaultSelectedState from selected_state if it has isDefault marker
-      // ===================== LOG B: AFTER LOAD =====================
       const loadedOptionIds = options.map((o: any) => o.id);
       const loadedItemIds = options.flatMap((o: any) => o.items.map((i: any) => i.id));
       
       const rawSelectedState = offerData.selected_state as any;
       let defaultSelectedState: DefaultSelectedState | undefined;
+      
       if (rawSelectedState?.isDefault) {
-        defaultSelectedState = {
-          selectedScopeId: rawSelectedState.selectedScopeId ?? null,
-          selectedVariants: rawSelectedState.selectedVariants || {},
-          selectedOptionalItems: rawSelectedState.selectedOptionalItems || {},
-          selectedItemInOption: rawSelectedState.selectedItemInOption || {},
-        };
+        if (isDuplicate) {
+          // Remap IDs in selected state for duplication
+          const { selectedVariants, selectedOptionalItems, selectedItemInOption } = rawSelectedState;
+          
+          // Map selectedVariants values (optionIds) to new IDs
+          const newSelectedVariants: Record<string, string> = {};
+          for (const [scopeId, oldOptionId] of Object.entries(selectedVariants || {})) {
+            newSelectedVariants[scopeId] = optionIdMap[oldOptionId as string] || (oldOptionId as string);
+          }
+          
+          // Map selectedOptionalItems keys (itemIds) to new IDs
+          const newSelectedOptionalItems: Record<string, boolean> = {};
+          for (const [oldItemId, value] of Object.entries(selectedOptionalItems || {})) {
+            const newItemId = itemIdMap[oldItemId] || oldItemId;
+            newSelectedOptionalItems[newItemId] = value as boolean;
+          }
+          
+          // Map selectedItemInOption keys (optionIds) and values (itemIds) to new IDs
+          const newSelectedItemInOption: Record<string, string> = {};
+          for (const [oldOptionId, oldItemId] of Object.entries(selectedItemInOption || {})) {
+            const newOptionId = optionIdMap[oldOptionId] || oldOptionId;
+            const newItemIdVal = itemIdMap[oldItemId as string] || (oldItemId as string);
+            newSelectedItemInOption[newOptionId] = newItemIdVal;
+          }
+          
+          defaultSelectedState = {
+            selectedScopeId: rawSelectedState.selectedScopeId ?? null,
+            selectedVariants: newSelectedVariants,
+            selectedOptionalItems: newSelectedOptionalItems,
+            selectedItemInOption: newSelectedItemInOption,
+          };
+          
+          console.log('[Duplicate] Regenerated IDs:', {
+            optionIdMapCount: Object.keys(optionIdMap).length,
+            itemIdMapCount: Object.keys(itemIdMap).length,
+          });
+        } else {
+          defaultSelectedState = {
+            selectedScopeId: rawSelectedState.selectedScopeId ?? null,
+            selectedVariants: rawSelectedState.selectedVariants || {},
+            selectedOptionalItems: rawSelectedState.selectedOptionalItems || {},
+            selectedItemInOption: rawSelectedState.selectedItemInOption || {},
+          };
+        }
         
-        // Consistency check
-        const selectedVariantIds = Object.values(defaultSelectedState.selectedVariants);
-        const selectedOptionalItemIds = Object.keys(defaultSelectedState.selectedOptionalItems);
-        const selectedItemInOptionIds = Object.values(defaultSelectedState.selectedItemInOption);
-        
-        const missingVariants = selectedVariantIds.filter(id => !loadedOptionIds.includes(id));
-        const missingOptionalItems = selectedOptionalItemIds.filter(id => !loadedItemIds.includes(id));
-        const missingItemInOption = selectedItemInOptionIds.filter(id => !loadedItemIds.includes(id));
-        
-        console.group('📥 [LOAD] Offer Selection State AFTER load (entering step 3)');
-        console.log('offer.id:', offerData.id);
-        console.log('selected_state from DB:', JSON.stringify(rawSelectedState, null, 2));
-        console.log('loaded option IDs:', loadedOptionIds);
-        console.log('loaded item IDs:', loadedItemIds);
-        console.log('🔍 Consistency check:');
-        console.log('  - Missing variant IDs in loaded options:', missingVariants.length > 0 ? missingVariants : '✅ all found');
-        console.log('  - Missing optional item IDs in loaded items:', missingOptionalItems.length > 0 ? missingOptionalItems : '✅ all found');
-        console.log('  - Missing itemInOption IDs in loaded items:', missingItemInOption.length > 0 ? missingItemInOption : '✅ all found');
-        console.groupEnd();
+        // Consistency check (only log for non-duplicates to avoid noise)
+        if (!isDuplicate) {
+          const selectedVariantIds = Object.values(defaultSelectedState.selectedVariants);
+          const selectedOptionalItemIds = Object.keys(defaultSelectedState.selectedOptionalItems);
+          const selectedItemInOptionIds = Object.values(defaultSelectedState.selectedItemInOption);
+          
+          const missingVariants = selectedVariantIds.filter(id => !loadedOptionIds.includes(id));
+          const missingOptionalItems = selectedOptionalItemIds.filter(id => !loadedItemIds.includes(id));
+          const missingItemInOption = selectedItemInOptionIds.filter(id => !loadedItemIds.includes(id));
+          
+          console.group('📥 [LOAD] Offer Selection State AFTER load (entering step 3)');
+          console.log('offer.id:', offerData.id);
+          console.log('selected_state from DB:', JSON.stringify(rawSelectedState, null, 2));
+          console.log('loaded option IDs:', loadedOptionIds);
+          console.log('loaded item IDs:', loadedItemIds);
+          console.log('🔍 Consistency check:');
+          console.log('  - Missing variant IDs in loaded options:', missingVariants.length > 0 ? missingVariants : '✅ all found');
+          console.log('  - Missing optional item IDs in loaded items:', missingOptionalItems.length > 0 ? missingOptionalItems : '✅ all found');
+          console.log('  - Missing itemInOption IDs in loaded items:', missingItemInOption.length > 0 ? missingItemInOption : '✅ all found');
+          console.groupEnd();
+        }
       }
 
       setOffer({
-        id: offerData.id,
+        id: isDuplicate ? undefined : offerData.id, // Clear ID for duplicates
         instanceId: offerData.instance_id,
         customerData: (offerData.customer_data || defaultCustomerData) as unknown as CustomerData,
         vehicleData,
@@ -858,7 +930,7 @@ export const useOffer = (instanceId: string) => {
         validUntil: offerData.valid_until,
         vatRate: Number(offerData.vat_rate),
         hideUnitPrices: offerData.hide_unit_prices || false,
-        status: offerData.status as OfferState['status'],
+        status: isDuplicate ? 'draft' : offerData.status as OfferState['status'], // Reset status for duplicates
         defaultSelectedState,
       });
     } catch (error) {
