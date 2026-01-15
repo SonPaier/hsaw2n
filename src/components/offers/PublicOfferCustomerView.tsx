@@ -794,12 +794,12 @@ export const PublicOfferCustomerView = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { icon: Sparkles, title: t('publicOffer.methodBryt'), desc: t('publicOffer.methodBrytDesc') },
-                { icon: Award, title: t('publicOffer.premiumProducts'), desc: t('publicOffer.premiumProductsDesc') },
-                { icon: Shield, title: t('publicOffer.oemPrecision'), desc: t('publicOffer.oemPrecisionDesc') },
-                { icon: Car, title: t('publicOffer.fullProtection'), desc: t('publicOffer.fullProtectionDesc') },
-                { icon: Star, title: t('publicOffer.reviews'), desc: t('publicOffer.reviewsDesc') },
-                { icon: Heart, title: t('publicOffer.individualApproach'), desc: t('publicOffer.individualApproachDesc') },
+                { icon: Star, title: 'Sprawdzone studio, któremu klienci ufają', desc: 'Ponad 800 opinii ze średnią 5.0 w Google – realne doświadczenie, realne realizacje. Setki kompleksowo zabezpieczonych pojazdów – od aut nowych i używanych, po najbardziej wymagające projekty klasy premium i supercars.' },
+                { icon: Shield, title: 'Gwarancja na każdą wykonaną usługę', desc: 'Odpowiadamy za jakość naszej pracy. Każda realizacja wykonywana z pełną odpowiedzialnością i dbałością o detale.' },
+                { icon: Sparkles, title: 'Profesjonalne warunki pracy', desc: 'Przystosowane, dedykowane stanowiska do foli PPF i powłok ceramicznych. Kontrolowane środowisko zapewniające najwyższą jakość aplikacji.' },
+                { icon: Award, title: 'Jakość zamiast masówki', desc: 'Skupiamy się na precyzji, nie ilości. Pracujemy na markowych materiałach i sprawdzonych technikach.' },
+                { icon: Heart, title: 'Obsługa na poziomie premium', desc: 'Doradztwo przed wyborem usługi. Jasne warunki, transparentna oferta, profesjonalne wydanie pojazdu.' },
+                { icon: Car, title: 'Kompleksowa ochrona pojazdu', desc: 'Od folii ochronnych PPF, przez powłoki ceramiczne, po profesjonalną korektę lakieru – wszystko w jednym miejscu.' },
               ].map((item, idx) => (
                 <div 
                   key={idx}
