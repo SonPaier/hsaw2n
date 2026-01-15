@@ -146,12 +146,8 @@ export const OfferGenerator = ({
   useEffect(() => {
     const loadId = offerId || duplicateFromId;
     if (loadId) {
-      loadOffer(loadId).then(() => {
-        // If duplicating, reset the ID so it creates a new offer
-        if (duplicateFromId) {
-          updateOffer({ id: undefined, status: 'draft' });
-        }
-      });
+      // Pass isDuplicate flag to regenerate all UUIDs and prevent primary key conflicts
+      loadOffer(loadId, !!duplicateFromId);
     } else if (instanceData) {
       // For new offers, load default values from instance settings
       const loadDefaults = async () => {
