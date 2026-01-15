@@ -2151,7 +2151,7 @@ const AdminDashboard = () => {
                 )}
                 {!sidebarCollapsed && <div className="text-left">
                     <h1 className="font-bold text-foreground">{instanceData?.name || 'Panel Admina'}</h1>
-                    <p className="text-xs text-muted-foreground">Panel Admina</p>
+                    <p className="text-xs text-muted-foreground">Panel Admina {currentVersion && `v${currentVersion}`}</p>
                   </div>}
               </button>
             </div>
@@ -2228,13 +2228,6 @@ const AdminDashboard = () => {
             <div className={cn(sidebarCollapsed ? "p-2 space-y-2" : "p-4 space-y-3")}>
               {/* Update available banner */}
               <UpdateBanner collapsed={sidebarCollapsed} />
-
-              {/* Version display */}
-              {!sidebarCollapsed && currentVersion && (
-                <p className="text-muted-foreground text-center" style={{ fontSize: '8px' }}>
-                  wersja: v{currentVersion}
-                </p>
-              )}
 
               {/* Collapse button - desktop only */}
               <Button
