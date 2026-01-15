@@ -148,28 +148,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
   // Fetch data on instanceId change
   useEffect(() => {
     if (!instanceId) return;
-
     fetchData();
-
-    // Subscribe to price_lists changes for real-time status updates
-    const channel = supabase
-      .channel('price-lists-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_lists',
-        },
-        () => {
-          fetchPriceLists();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [instanceId]);
 
   // Get unique categories
