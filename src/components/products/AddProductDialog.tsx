@@ -262,16 +262,15 @@ export function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[1100px] max-h-[90vh] p-0 w-[calc(100%-2rem)] sm:w-full">
+      <DialogContent className="w-full h-full max-w-full max-h-full sm:max-w-[1100px] sm:max-h-[90vh] sm:h-auto p-0 rounded-none sm:rounded-lg">
         <DialogHeader className="p-4 sm:p-6 pb-0">
           <DialogTitle>
             {isEditMode ? t('productDialog.editTitle') : t('productDialog.addTitle')}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-140px)]">
-          <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6 pt-4">
-            {/* Mobile: stacked layout, Desktop: grid */}
+        <ScrollArea className="flex-1 h-[calc(100vh-140px)] sm:max-h-[calc(90vh-140px)]">
+          <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6 pt-4 pb-24 sm:pb-4">
             {/* 1. Nazwa */}
             <div className="space-y-2">
               <Label htmlFor="name">{t('productDialog.name')} *</Label>
@@ -279,12 +278,11 @@ export function AddProductDialog({
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={t('productDialog.namePlaceholder')}
                 required
               />
             </div>
 
-            {/* 2. Nazwa skrócona + 3. Cena netto - side by side */}
+            {/* 2. Nazwa skrócona + 3. Cena netto */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="shortName">Nazwa skrócona</Label>
@@ -292,7 +290,6 @@ export function AddProductDialog({
                   id="shortName"
                   value={shortName}
                   onChange={(e) => setShortName(e.target.value)}
-                  placeholder="Np. Q² Pure"
                 />
               </div>
 
@@ -302,14 +299,13 @@ export function AddProductDialog({
                   id="price"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0"
                   type="text"
                   inputMode="numeric"
                 />
               </div>
             </div>
 
-            {/* 4. Marka + 5. Kategoria - side by side */}
+            {/* 4. Marka + 5. Kategoria */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="brand">{t('productDialog.brand')}</Label>
@@ -317,7 +313,6 @@ export function AddProductDialog({
                   id="brand"
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  placeholder={t('productDialog.brandPlaceholder')}
                 />
               </div>
 
@@ -325,7 +320,7 @@ export function AddProductDialog({
                 <Label>{t('productDialog.category')}</Label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={t('productDialog.selectCategory')} />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="__none__">{t('productDialog.noCategory')}</SelectItem>
@@ -339,7 +334,6 @@ export function AddProductDialog({
                   <Input
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder={t('productDialog.newCategoryPlaceholder')}
                     className="mt-2"
                   />
                 )}
@@ -353,7 +347,6 @@ export function AddProductDialog({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('productDialog.descriptionPlaceholder')}
                 rows={6}
                 className="min-h-[120px] sm:min-h-[240px] sm:rows-10"
               />
@@ -365,7 +358,7 @@ export function AddProductDialog({
                 <Label>{t('productDialog.reminderTemplate')}</Label>
                 <Select value={reminderTemplateId} onValueChange={setReminderTemplateId}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={t('reminderTemplates.noTemplate')} />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="__none__">{t('reminderTemplates.noTemplate')}</SelectItem>
@@ -380,7 +373,7 @@ export function AddProductDialog({
               </div>
             )}
 
-            {/* Custom metadata - at the bottom */}
+            {/* 8. Dodatkowe parametry */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{t('productDialog.additionalParams')}</Label>
@@ -407,13 +400,11 @@ export function AddProductDialog({
                       <Input
                         value={field.key}
                         onChange={(e) => updateMetadataField(index, 'key', e.target.value)}
-                        placeholder={t('productDialog.paramName')}
                         className="flex-1"
                       />
                       <Input
                         value={field.value}
                         onChange={(e) => updateMetadataField(index, 'value', e.target.value)}
-                        placeholder={t('productDialog.paramValue')}
                         className="flex-1"
                       />
                       <Button
