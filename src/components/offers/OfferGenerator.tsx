@@ -302,16 +302,29 @@ export const OfferGenerator = ({
     try {
       const savedId = await saveOffer();
       if (savedId) {
-        // Update status to sent
-        await supabase
+        // Fetch the saved offer to get public_token
+        const { data: savedOffer } = await supabase
           .from('offers')
-          .update({ status: 'sent', sent_at: new Date().toISOString() })
-          .eq('id', savedId);
+          .select('id, offer_number, public_token, customer_data')
+          .eq('id', savedId)
+          .single();
         
-        toast.success(t('offers.savedReadyToSend'));
-        setShowPreview(false);
-        setHasUnsavedChanges(false);
-        onClose?.();
+        if (savedOffer) {
+          const customerData = savedOffer.customer_data as { name?: string; email?: string } | null;
+          if (!customerData?.email) {
+            toast.error(t('offers.noCustomerEmail'));
+            return;
+          }
+          // Close preview and open email dialog
+          setShowPreview(false);
+          setSavedOfferForEmail({
+            id: savedOffer.id,
+            offer_number: savedOffer.offer_number,
+            public_token: savedOffer.public_token,
+            customer_data: savedOffer.customer_data as { name?: string; email?: string },
+          });
+          setShowEmailDialog(true);
+        }
       }
     } catch (error) {
       // Error already handled in hook
