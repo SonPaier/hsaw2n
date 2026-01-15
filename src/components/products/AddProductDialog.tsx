@@ -262,28 +262,30 @@ export function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[1100px] max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="max-w-[1100px] max-h-[90vh] p-0 w-[calc(100%-2rem)] sm:w-full">
+        <DialogHeader className="p-4 sm:p-6 pb-0">
           <DialogTitle>
             {isEditMode ? t('productDialog.editTitle') : t('productDialog.addTitle')}
           </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
-          <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-4">
-            {/* Line 1: Name + Short Name + Price */}
-            <div className="grid grid-cols-[1fr_200px_150px] gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('productDialog.name')} *</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t('productDialog.namePlaceholder')}
-                  required
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6 pt-4">
+            {/* Mobile: stacked layout, Desktop: grid */}
+            {/* 1. Nazwa */}
+            <div className="space-y-2">
+              <Label htmlFor="name">{t('productDialog.name')} *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('productDialog.namePlaceholder')}
+                required
+              />
+            </div>
 
+            {/* 2. Nazwa skrócona + 3. Cena netto - side by side */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="shortName">Nazwa skrócona</Label>
                 <Input
@@ -307,8 +309,8 @@ export function AddProductDialog({
               </div>
             </div>
 
-            {/* Line 2: Brand + Category */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* 4. Marka + 5. Kategoria - side by side */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="brand">{t('productDialog.brand')}</Label>
                 <Input
@@ -322,7 +324,7 @@ export function AddProductDialog({
               <div className="space-y-2">
                 <Label>{t('productDialog.category')}</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue placeholder={t('productDialog.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -344,7 +346,7 @@ export function AddProductDialog({
               </div>
             </div>
 
-            {/* Line 3: Description - large */}
+            {/* 6. Opis */}
             <div className="space-y-2">
               <Label htmlFor="description">{t('productDialog.description')}</Label>
               <Textarea
@@ -352,14 +354,14 @@ export function AddProductDialog({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t('productDialog.descriptionPlaceholder')}
-                rows={10}
-                className="min-h-[240px]"
+                rows={6}
+                className="min-h-[120px] sm:min-h-[240px] sm:rows-10"
               />
             </div>
 
-            {/* Reminder Template - under description, 30% width */}
+            {/* 7. Szablon przypomnień */}
             {reminderTemplates.length > 0 && (
-              <div className="space-y-2 w-[30%]">
+              <div className="space-y-2 w-full sm:w-[30%]">
                 <Label>{t('productDialog.reminderTemplate')}</Label>
                 <Select value={reminderTemplateId} onValueChange={setReminderTemplateId}>
                   <SelectTrigger className="bg-white">
