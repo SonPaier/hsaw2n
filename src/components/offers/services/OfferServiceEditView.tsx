@@ -456,9 +456,9 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
-          {/* Nazwa usługi widoczna w ofercie */}
+          {/* Nazwa szablonu widoczna w ofercie */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nazwa usługi widoczna w ofercie</Label>
+            <Label htmlFor="name">Nazwa szablonu widoczna w ofercie</Label>
             <Input
               id="name"
               value={name}
@@ -468,7 +468,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
-          {/* Usługa typu dodatki */}
+          {/* Szablon typu dodatki */}
           <div className="flex items-center space-x-2">
             <Checkbox 
               id="isExtrasScope" 
@@ -476,7 +476,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               onCheckedChange={(checked) => setIsExtrasScope(checked === true)}
             />
             <Label htmlFor="isExtrasScope" className="cursor-pointer">
-              Usługa typu dodatki
+              Szablon typu dodatki
             </Label>
           </div>
 
@@ -493,7 +493,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
-          {/* Wybierz usługi */}
+          {/* Wybierz usługi dla szablonu */}
           <div className="space-y-3">
             <Button
               variant="outline" 
@@ -501,7 +501,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               className="gap-2"
             >
               <Package className="w-4 h-4" />
-              Wybierz usługi
+              Wybierz usługi do szablonu
               {scopeProducts.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {scopeProducts.length}
@@ -607,7 +607,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               disabled={isSaving}
               className="w-full sm:w-auto"
             >
-              {isSaving ? 'Zapisywanie...' : 'Zapisz usługę'}
+              {isSaving ? 'Zapisywanie...' : 'Zapisz szablon'}
             </Button>
           </div>
         </div>
