@@ -313,12 +313,12 @@ const ReservationDetailsDrawer = ({
         >
           {/* Header with time/date and X button */}
           <SheetHeader className="flex-shrink-0 border-b pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <SheetTitle className="text-xl flex items-center gap-3">
-                  <span>{formatTime(startTime)} - {formatTime(endTime)}</span>
-                  <span className="text-muted-foreground font-normal">•</span>
-                  <span className="font-normal">{format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}</span>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold whitespace-nowrap">{formatTime(startTime)} - {formatTime(endTime)}</span>
+                  <span className="text-muted-foreground font-normal hidden sm:inline">•</span>
+                  <span className="font-normal text-muted-foreground sm:text-foreground">{format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}</span>
                 </SheetTitle>
                 <SheetDescription className="flex items-center gap-2 mt-2">
                   {getStatusBadge(reservation.status)}
@@ -328,9 +328,9 @@ const ReservationDetailsDrawer = ({
               <button 
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors -mt-1 -mr-2"
+                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
           </SheetHeader>
