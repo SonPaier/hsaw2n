@@ -153,6 +153,7 @@ interface PublicOfferCustomerViewProps {
   isAdmin?: boolean;
   onSaveState?: () => Promise<void>;
   savingState?: boolean;
+  onClose?: () => void;
 }
 
 // Helper to render description - supports HTML or plain text with line breaks
@@ -174,6 +175,7 @@ export const PublicOfferCustomerView = ({
   isAdmin = false,
   onSaveState,
   savingState = false,
+  onClose,
 }: PublicOfferCustomerViewProps) => {
   const { t } = useTranslation();
   const [responding, setResponding] = useState(false);
@@ -597,26 +599,40 @@ export const PublicOfferCustomerView = ({
                 </p>
               </div>
             </div>
-            {/* Only show admin save button in public mode */}
-            {mode === 'public' && isAdmin && onSaveState && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onSaveState}
-                disabled={savingState}
-                className="gap-1"
-                style={{ 
-                  backgroundColor: branding.offer_primary_color,
-                  color: primaryButtonTextColor,
-                }}
-              >
-                {savingState ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
+            {/* Admin controls in public mode */}
+            {mode === 'public' && isAdmin && (
+              <div className="flex items-center gap-2">
+                {onSaveState && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={onSaveState}
+                    disabled={savingState}
+                    className="gap-1"
+                    style={{ 
+                      backgroundColor: branding.offer_primary_color,
+                      color: primaryButtonTextColor,
+                    }}
+                  >
+                    {savingState ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {t('publicOffer.save')}
+                  </Button>
                 )}
-                {t('publicOffer.save')}
-              </Button>
+                {onClose && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="h-9 w-9 rounded-full hover:bg-black/10"
+                  >
+                    <X className="h-5 w-5" style={{ color: branding.offer_header_text_color }} />
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>

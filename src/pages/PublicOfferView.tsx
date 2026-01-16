@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -12,6 +12,7 @@ import { PublicOfferCustomerView, PublicOfferData } from '@/components/offers/Pu
 const PublicOfferView = () => {
   const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const { user, hasRole, hasInstanceRole } = useAuth();
   const [offer, setOffer] = useState<PublicOfferData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,6 +175,7 @@ const PublicOfferView = () => {
         isAdmin={isAdmin ?? false}
         onSaveState={handleSaveState}
         savingState={savingState}
+        onClose={isAdmin ? () => navigate(-1) : undefined}
       />
     </>
   );
