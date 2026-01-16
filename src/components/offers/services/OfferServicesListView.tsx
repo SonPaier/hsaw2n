@@ -236,7 +236,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
             <h1 className="text-2xl font-bold">Twoje Szablony</h1>
             <Button onClick={onCreate} className="gap-2">
               <Plus className="w-4 h-4" />
-              Stwórz szablon
+              Dodaj szablon
             </Button>
           </div>
           <p className="text-muted-foreground text-sm">
@@ -255,7 +255,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
             </p>
             <Button onClick={onCreate} className="gap-2">
               <Plus className="w-4 h-4" />
-              Stwórz pierwszy szablon
+              Dodaj pierwszy szablon
             </Button>
           </div>
         ) : (
