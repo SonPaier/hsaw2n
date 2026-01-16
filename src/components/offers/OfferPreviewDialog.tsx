@@ -254,7 +254,7 @@ export const OfferPreviewDialog = ({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent 
-        className="w-full h-full sm:w-[90vw] sm:h-[90vh] max-w-none p-0 gap-0 overflow-hidden flex flex-col"
+        className="w-full h-full sm:w-[90vw] sm:h-[90vh] max-w-none p-0 gap-0 overflow-hidden flex flex-col [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         {/* Header */}
