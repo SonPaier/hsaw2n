@@ -729,7 +729,7 @@ export const SummaryStepV2 = ({
                     type="button"
                     onClick={() => removeProduct(service.scopeId, product.id)}
                     className="p-1 text-destructive hover:text-destructive/80 transition-colors"
-                    title="Usuń produkt"
+                    title="Usuń usługę"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -748,7 +748,7 @@ export const SummaryStepV2 = ({
                 onClick={() => setProductDrawerOpen(service.scopeId)}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Dodaj produkt
+                Dodaj usługę
               </Button>
             </div>
           )}
@@ -885,7 +885,7 @@ export const SummaryStepV2 = ({
                       type="button"
                       onClick={() => removeProduct(service.scopeId, product.id)}
                       className="p-1 text-destructive hover:text-destructive/80 transition-colors"
-                      title="Usuń produkt"
+                      title="Usuń usługę"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -903,7 +903,7 @@ export const SummaryStepV2 = ({
                   onClick={() => setProductDrawerOpen(service.scopeId)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Dodaj produkt
+                  Dodaj usługę
                 </Button>
               </div>
             )}
