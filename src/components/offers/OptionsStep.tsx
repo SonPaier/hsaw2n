@@ -247,7 +247,7 @@ export const OptionsStep = ({
                       className="text-left" 
                     />
                     <CommandList>
-                      <CommandEmpty>Brak produktów</CommandEmpty>
+                      <CommandEmpty>Brak usług</CommandEmpty>
                       <CommandGroup>
                         {products
                           .filter(p => {
@@ -387,7 +387,7 @@ export const OptionsStep = ({
                           [item.id]: value
                         }))} className="text-left" />
                               <CommandList>
-                                <CommandEmpty>Brak produktów</CommandEmpty>
+                                <CommandEmpty>Brak usług</CommandEmpty>
                                 <CommandGroup>
                                   {products.filter(p => {
                               const searchTerm = searchTerms[item.id] || '';
@@ -473,7 +473,7 @@ export const OptionsStep = ({
                           [item.id]: value
                         }))} />
                               <CommandList>
-                                <CommandEmpty>Brak produktów</CommandEmpty>
+                                <CommandEmpty>Brak usług</CommandEmpty>
                                 <CommandGroup>
                                   {products.filter(p => {
                               const searchTerm = searchTerms[item.id] || '';
@@ -528,14 +528,14 @@ export const OptionsStep = ({
   return <>
       {/* Info about product descriptions */}
       <p className="text-sm text-muted-foreground mb-4">
-        Opisy produktów są pobierane z zakładki{' '}
+        Opisy usług są pobierane z zakładki{' '}
         <a 
           href="/admin/products" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-primary hover:underline font-medium"
         >
-          Produkty
+          Usługi
         </a>
         .
       </p>

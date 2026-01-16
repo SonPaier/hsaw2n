@@ -164,7 +164,7 @@ export function OfferProductSelectionDrawer({
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
             <ArrowLeft className="w-5 h-5" />
-            Wybierz produkty
+            Wybierz usługi
           </SheetTitle>
         </SheetHeader>
 
@@ -178,7 +178,7 @@ export function OfferProductSelectionDrawer({
               inputMode="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Szukaj produktu..."
+              placeholder="Szukaj usługi..."
               className="pl-9 pr-9 h-11"
             />
             {searchQuery && (
@@ -198,7 +198,7 @@ export function OfferProductSelectionDrawer({
           {selectedProducts.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground font-medium">
-                Wybrane produkty ({selectedProducts.length})
+                Wybrane usługi ({selectedProducts.length})
               </p>
               <div className="flex flex-wrap gap-2">
                 {selectedProducts.map(product => (

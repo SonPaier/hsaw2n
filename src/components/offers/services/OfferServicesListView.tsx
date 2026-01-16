@@ -183,7 +183,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
           .eq('id', update.id);
       }
 
-      toast.success('Kolejność usług została zapisana');
+      toast.success('Kolejność szablonów została zapisana');
     } catch (error) {
       console.error('Error updating sort order:', error);
       toast.error('Nie udało się zapisać kolejności');
@@ -207,11 +207,11 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
 
       if (error) throw error;
 
-      toast.success('Usługa została usunięta');
+      toast.success('Szablon został usunięty');
       fetchScopes();
     } catch (error) {
       console.error('Error deleting scope:', error);
-      toast.error('Nie udało się usunąć usługi');
+      toast.error('Nie udało się usunąć szablonu');
     } finally {
       setDeleteDialogOpen(false);
       setScopeToDelete(null);
@@ -221,7 +221,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
   return (
     <>
       <Helmet>
-        <title>Twoje Usługi - {t('common.adminPanel')}</title>
+        <title>Twoje Szablony - {t('common.adminPanel')}</title>
       </Helmet>
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
@@ -231,26 +231,31 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
           </Button>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Twoje Usługi</h1>
-          <Button onClick={onCreate} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Stwórz usługę
-          </Button>
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Twoje Szablony</h1>
+            <Button onClick={onCreate} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Stwórz szablon
+            </Button>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Szablon może zawierać różne usługi oraz posiada indywidualne warunki gwarancji, płatności, serwisu lub inne uwagi widoczne dla Klienta.
+          </p>
         </div>
 
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">
-            Ładowanie usług...
+            Ładowanie szablonów...
           </div>
         ) : scopes.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">
-              Brak zdefiniowanych usług. Dodaj pierwszą usługę, aby rozpocząć.
+              Brak zdefiniowanych szablonów. Dodaj pierwszy szablon, aby rozpocząć.
             </p>
             <Button onClick={onCreate} className="gap-2">
               <Plus className="w-4 h-4" />
-              Stwórz pierwszą usługę
+              Stwórz pierwszy szablon
             </Button>
           </div>
         ) : (
@@ -277,8 +282,8 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
         <ConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
-          title="Usuń usługę"
-          description={`Czy na pewno chcesz usunąć usługę "${scopeToDelete?.name}"?`}
+          title="Usuń szablon"
+          description={`Czy na pewno chcesz usunąć szablon "${scopeToDelete?.name}"?`}
           confirmLabel="Usuń"
           onConfirm={handleConfirmDelete}
           variant="destructive"
