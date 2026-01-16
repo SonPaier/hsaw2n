@@ -467,7 +467,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowServicesView(true)} className="gap-2 px-2 sm:px-4">
               <Layers className="w-4 h-4" />
-              <span className="hidden sm:inline">Twoje Usługi</span>
+              <span className="hidden sm:inline">Twoje Szablony</span>
             </Button>
             <Button variant="outline" onClick={onNavigateToProducts} className="gap-2 px-2 sm:px-4">
               <Package className="w-4 h-4" />

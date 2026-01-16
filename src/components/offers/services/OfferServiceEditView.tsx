@@ -106,7 +106,7 @@ function SortableProductItem({
                 type="button"
                 onClick={() => onEditProduct(scopeProduct.product_id)}
                 className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                title="Edytuj produkt"
+                title="Edytuj usługę"
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -493,7 +493,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
-          {/* Wybierz produkty */}
+          {/* Wybierz usługi */}
           <div className="space-y-3">
             <Button
               variant="outline" 
@@ -501,7 +501,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               className="gap-2"
             >
               <Package className="w-4 h-4" />
-              Wybierz produkty
+              Wybierz usługi
               {scopeProducts.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {scopeProducts.length}
@@ -509,15 +509,15 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               )}
             </Button>
             
-            {/* Lista wybranych produktów z drag & drop */}
+            {/* Lista wybranych usług z drag & drop */}
             {scopeProducts.length > 0 && (
               <div className="space-y-2 mt-3">
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                  oznacza, że produkt będzie zawsze dodany w kreatorze dla tej usługi
+                  oznacza, że usługa będzie zawsze dodana w kreatorze dla tego szablonu
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Przeciągnij aby zmienić kolejność produktów
+                  Przeciągnij aby zmienić kolejność usług
                 </p>
                 <DndContext
                   sensors={sensors}
