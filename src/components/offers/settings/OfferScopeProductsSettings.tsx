@@ -168,7 +168,7 @@ const SortableProductRow = ({
         </div>
         <CollapsibleContent>
           <div className="px-3 pb-3 pt-0 ml-8">
-            <label className="text-sm text-muted-foreground mb-1 block">Opis produktu</label>
+            <label className="text-sm text-muted-foreground mb-1 block">Opis usługi</label>
             <Textarea
               value={currentDescription}
               onChange={(e) => onUpdate(sp.id, { custom_description: e.target.value })}
