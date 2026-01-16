@@ -387,7 +387,7 @@ export const OptionsStep = ({
                           [item.id]: value
                         }))} className="text-left" />
                               <CommandList>
-                                <CommandEmpty>Brak produktów</CommandEmpty>
+                                <CommandEmpty>Brak usług</CommandEmpty>
                                 <CommandGroup>
                                   {products.filter(p => {
                               const searchTerm = searchTerms[item.id] || '';
@@ -473,7 +473,7 @@ export const OptionsStep = ({
                           [item.id]: value
                         }))} />
                               <CommandList>
-                                <CommandEmpty>Brak produktów</CommandEmpty>
+                                <CommandEmpty>Brak usług</CommandEmpty>
                                 <CommandGroup>
                                   {products.filter(p => {
                               const searchTerm = searchTerms[item.id] || '';
