@@ -559,14 +559,14 @@ export const PublicOfferCustomerView = ({
 
   return (
     <div 
-      className={embedded ? "min-h-full" : "min-h-screen"}
+      className={cn(embedded ? "min-h-full" : "min-h-screen", "w-full overflow-x-hidden")}
       style={{ backgroundColor: branding.offer_bg_color }}
     >
       {/* Header */}
       <header 
         style={{ backgroundColor: branding.offer_header_bg_color }}
       >
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl w-full mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {instance?.logo_url ? (
@@ -638,7 +638,7 @@ export const PublicOfferCustomerView = ({
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-4xl w-full mx-auto px-4 py-8 space-y-6">
         {/* Validity warning - only in public mode */}
         {mode === 'public' && isExpired && (
           <Card className="border-destructive bg-destructive/10">
