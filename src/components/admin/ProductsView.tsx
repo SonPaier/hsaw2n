@@ -302,18 +302,23 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
           {t('offers.backToList')}
         </Button>
       </div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{t('products.title')}</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowTemplatesDialog(true)} className="gap-2 px-2 sm:px-4">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('reminderTemplates.title')}</span>
-          </Button>
-          <Button onClick={() => setShowAddProductDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('products.addProduct')}</span>
-          </Button>
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{t('products.title')}</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowTemplatesDialog(true)} className="gap-2 px-2 sm:px-4">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('reminderTemplates.title')}</span>
+            </Button>
+            <Button onClick={() => setShowAddProductDialog(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('products.addService')}</span>
+            </Button>
+          </div>
         </div>
+        <p className="text-muted-foreground text-sm">
+          Na ich podstawie możesz tworzyć własne szablony oraz wykorzystywać je w ofertach.
+        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
