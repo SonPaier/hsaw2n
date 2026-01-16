@@ -57,7 +57,7 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
   if (loading) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Ładowanie zakresów...
+        Ładowanie szablonów...
       </div>
     );
   }
@@ -66,7 +66,7 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground mb-4">
-          Brak zdefiniowanych zakresów. Dodaj zakresy w ustawieniach ofert.
+          Brak zdefiniowanych szablonów. Dodaj szablony w sekcji "Twoje Szablony".
         </p>
       </div>
     );
@@ -75,9 +75,9 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
   return (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className="text-lg font-semibold">Wybierz zakresy usług</h2>
+        <h2 className="text-lg font-semibold">Wybierz szablony</h2>
         <p className="text-sm text-muted-foreground">
-          Zaznacz jeden lub więcej zakresów, które chcesz uwzględnić w ofercie
+          Zaznacz jeden lub więcej szablonów, które chcesz uwzględnić w ofercie
         </p>
       </div>
 
@@ -126,8 +126,8 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
 
       {selectedScopeIds.length > 0 && (
         <div className="text-center text-sm text-muted-foreground pt-4">
-          Wybrano: {selectedScopeIds.length} {selectedScopeIds.length === 1 ? 'zakres' : 
-            selectedScopeIds.length < 5 ? 'zakresy' : 'zakresów'}
+          Wybrano: {selectedScopeIds.length} {selectedScopeIds.length === 1 ? 'szablon' : 
+            selectedScopeIds.length < 5 ? 'szablony' : 'szablonów'}
         </div>
       )}
     </div>
