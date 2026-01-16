@@ -337,7 +337,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Podaj nazwę usługi');
+      toast.error('Podaj nazwę szablonu');
       return;
     }
 
@@ -408,7 +408,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         }
       }
 
-      toast.success(isEditMode ? 'Usługa zaktualizowana' : 'Usługa utworzona');
+      toast.success(isEditMode ? 'Szablon zaktualizowany' : 'Szablon utworzony');
       onBack();
     } catch (error) {
       console.error('Error saving scope:', error);
@@ -429,7 +429,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   return (
     <>
       <Helmet>
-        <title>{isEditMode ? 'Edytuj usługę' : 'Nowa usługa'} - {t('common.adminPanel')}</title>
+        <title>{isEditMode ? `Edytuj szablon ${name}` : 'Nowy szablon'} - {t('common.adminPanel')}</title>
       </Helmet>
       <div className="max-w-4xl mx-auto pb-24">
         <div className="mb-6">
@@ -440,7 +440,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         </div>
 
         <h1 className="text-2xl font-bold mb-6">
-          {isEditMode ? 'Edytuj usługę' : 'Nowa usługa'}
+          {isEditMode ? `Edytuj szablon ${name}` : 'Nowy szablon'}
         </h1>
 
         <div className="space-y-6">
