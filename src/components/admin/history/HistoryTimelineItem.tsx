@@ -1,6 +1,5 @@
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { RotateCcw } from 'lucide-react';
 import {
   GroupedChange,
   ReservationChange,
@@ -8,17 +7,14 @@ import {
   formatStatus,
   formatTimeShort,
 } from '@/services/reservationHistoryService';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Props {
   group: GroupedChange;
   servicesMap: Map<string, string>;
   stationsMap: Map<string, string>;
-  onRevert?: (change: ReservationChange) => void;
 }
 
-export function HistoryTimelineItem({ group, servicesMap, stationsMap, onRevert }: Props) {
+export function HistoryTimelineItem({ group, servicesMap, stationsMap }: Props) {
   const renderChange = (change: ReservationChange) => {
     // Skip car_size changes - don't display them
     if (change.field_name === 'car_size') {
@@ -116,23 +112,8 @@ export function HistoryTimelineItem({ group, servicesMap, stationsMap, onRevert 
     if (!content) return null;
 
     return (
-      <div key={change.id} className="flex items-start justify-between gap-2 group">
-        <div className="flex-1">{content}</div>
-        {onRevert && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => onRevert(change)}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Cofnij</TooltipContent>
-          </Tooltip>
-        )}
+      <div key={change.id} className="flex-1">
+        {content}
       </div>
     );
   };
