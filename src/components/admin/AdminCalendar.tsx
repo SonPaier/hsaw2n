@@ -1865,7 +1865,7 @@ const AdminCalendar = ({
                     const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
-                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95 pointer-events-none")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
                     }}>
