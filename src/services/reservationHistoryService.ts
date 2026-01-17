@@ -29,7 +29,7 @@ export async function fetchReservationHistory(reservationId: string): Promise<Gr
     .from('reservation_changes')
     .select('*')
     .eq('reservation_id', reservationId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
 
