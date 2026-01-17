@@ -1106,11 +1106,6 @@ const ReservationDetailsDrawer = ({
         instanceId={reservation?.instance_id || ''}
         open={historyDrawerOpen}
         onClose={() => setHistoryDrawerOpen(false)}
-        onRevertSuccess={() => {
-          // Close both drawers and let parent refetch
-          setHistoryDrawerOpen(false);
-          onClose();
-        }}
       />
     </>
   );
