@@ -1341,15 +1341,12 @@ const AdminDashboard = () => {
     setAddReservationOpen(true);
   };
   const handleReservationAdded = (reservationId?: string) => {
-    // Mark as locally updated to prevent realtime from overwriting during edit
-    if (reservationId) {
-      markAsLocallyUpdated(reservationId);
-    } else if (editingReservation?.id) {
-      markAsLocallyUpdated(editingReservation.id);
+    // For edit mode, refresh reservations to show updated data in UI
+    // Realtime debounce was blocking updates for locally edited reservations
+    if (reservationId || editingReservation?.id) {
+      // Refresh immediately to show updated reservation
+      fetchReservations();
     }
-    // Realtime handles synchronization for other users
-    // Local user sees optimistic updates immediately
-    // Only clear editing state - no fetch needed
     setEditingReservation(null);
   };
   const handleAddBreak = (stationId: string, date: string, time: string) => {
