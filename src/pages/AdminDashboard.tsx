@@ -200,6 +200,16 @@ const AdminDashboard = () => {
     endTime: string;
     stationId: string;
   } | null>(null);
+  
+  // Memoized callback to prevent re-renders in AddReservationDialogV2
+  const handleSlotPreviewChange = useCallback((preview: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    stationId: string;
+  } | null) => {
+    setSlotPreview(preview);
+  }, []);
 
   // Breaks state
   const [breaks, setBreaks] = useState<Break[]>([]);
@@ -2448,7 +2458,7 @@ const AdminDashboard = () => {
             setEditingReservation(null);
             setSlotPreview(null);
           }}
-          onSlotPreviewChange={setSlotPreview}
+          onSlotPreviewChange={handleSlotPreviewChange}
           instanceId={instanceId}
           onSuccess={handleReservationAdded}
           workingHours={workingHours}

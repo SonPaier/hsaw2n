@@ -271,6 +271,18 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Track the last totalDurationMinutes to detect changes
   const prevTotalDurationRef = useRef<number>(0);
 
+  // Protection against Realtime overwriting form during active editing
+  const isUserEditingRef = useRef(false);
+  const lastEditingReservationIdRef = useRef<string | null>(null);
+  
+  // Flag to prevent auto-calculation from overwriting manual end time
+  const [userModifiedEndTime, setUserModifiedEndTime] = useState(false);
+
+  // Helper to mark form as being actively edited by user
+  const markUserEditing = useCallback(() => {
+    isUserEditingRef.current = true;
+  }, []);
+
   // Yard mode state
   const [arrivalDate, setArrivalDate] = useState<Date>(new Date());
   const [arrivalDateOpen, setArrivalDateOpen] = useState(false);
@@ -369,7 +381,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const todayName = format(now, 'EEEE').toLowerCase();
     const todayHours = workingHours[todayName];
     
-    if (todayHours) {
+    if (todayHours?.close && todayHours.close.includes(':')) {
       const [closeH, closeM] = todayHours.close.split(':').map(Number);
       const closeTime = new Date(now);
       closeTime.setHours(closeH, closeM, 0, 0);
@@ -398,6 +410,19 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Reset form when dialog opens or populate from editing data
   useEffect(() => {
     if (open) {
+      // PROTECTION: Skip re-initialization if user is actively editing the same reservation
+      if (isUserEditingRef.current && 
+          editingReservation?.id === lastEditingReservationIdRef.current) {
+        console.log('[ReservationDialog] Skipping re-init - user is actively editing');
+        return;
+      }
+      
+      // Track which reservation we're editing
+      lastEditingReservationIdRef.current = editingReservation?.id || null;
+      
+      // Reset user editing flags for new dialog session
+      setUserModifiedEndTime(false);
+      
       if (isYardMode && editingYardVehicle) {
         // Yard edit mode
         suppressPhoneSearchRef.current = true;
@@ -619,8 +644,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       // Track that dialog is now open
       wasOpenRef.current = true;
     } else {
-      // Dialog closed - reset tracking ref
+      // Dialog closed - reset tracking refs
       wasOpenRef.current = false;
+      isUserEditingRef.current = false;
+      lastEditingReservationIdRef.current = null;
     }
   }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
 
@@ -664,8 +691,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       return;
     }
     
+    // PROTECTION: Don't overwrite manually set end time
+    if (userModifiedEndTime) {
+      prevTotalDurationRef.current = totalDurationMinutes;
+      return;
+    }
+    
     // Only update if duration increased and we have a start time
-    if (totalDurationMinutes > 0 && manualStartTime) {
+    if (totalDurationMinutes > 0 && manualStartTime && manualStartTime.includes(':')) {
       const [h, m] = manualStartTime.split(':').map(Number);
       const startMinutes = h * 60 + m;
       const endMinutes = startMinutes + totalDurationMinutes;
@@ -674,7 +707,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     }
     
     prevTotalDurationRef.current = totalDurationMinutes;
-  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode]);
+  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode, userModifiedEndTime]);
 
   // Emit slot preview for live calendar highlight
   useEffect(() => {
@@ -1780,6 +1813,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           key={service.id}
                           type="button"
                           onClick={() => {
+                            markUserEditing();
                             setSelectedServices(prev => [...prev, service.id]);
                             if (isReservationMode) {
                               setSelectedTime(null);
@@ -1812,10 +1846,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
                           >
                             {name}
-                            <button
+                              <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                markUserEditing();
                                 const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
                                 if (serviceToRemove) {
                                   setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
@@ -1872,6 +1907,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 selectedServiceIds={selectedServices}
                 stationType={getStationType()}
                 onConfirm={(serviceIds, duration) => {
+                  markUserEditing();
                   setSelectedServices(serviceIds);
                   // Reset time selection when services change (reservation mode only)
                   if (isReservationMode) {
@@ -2266,7 +2302,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           )}>
                             <div className="space-y-2">
                               <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
-                              <Select value={manualStartTime} onValueChange={setManualStartTime}>
+                              <Select value={manualStartTime} onValueChange={(val) => { markUserEditing(); setManualStartTime(val); }}>
                                 <SelectTrigger id="manualStartTime">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
@@ -2281,7 +2317,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
-                              <Select value={manualEndTime} onValueChange={setManualEndTime}>
+                              <Select value={manualEndTime} onValueChange={(val) => { markUserEditing(); setUserModifiedEndTime(true); setManualEndTime(val); }}>
                                 <SelectTrigger id="manualEndTime">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
