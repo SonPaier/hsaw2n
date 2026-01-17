@@ -563,6 +563,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setManualStartTime(editingReservation.start_time?.substring(0, 5) || '');
         setManualEndTime(editingReservation.end_time?.substring(0, 5) || '');
         setManualStationId(editingReservation.station_id);
+        // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
+        // This preserves the original end_time from the reservation being edited
+        setUserModifiedEndTime(true);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click
         if (wasOpenRef.current) {
