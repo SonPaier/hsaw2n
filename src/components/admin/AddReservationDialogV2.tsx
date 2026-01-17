@@ -154,7 +154,7 @@ interface AddReservationDialogV2Props {
   open: boolean;
   onClose: () => void;
   instanceId: string;
-  onSuccess: () => void;
+  onSuccess: (reservationId?: string) => void;
   workingHours?: Record<string, WorkingHours | null> | null;
   /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
@@ -1267,7 +1267,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           toast.success(t('addReservation.reservationCreated'));
         }
         
-        onSuccess();
+        // Pass reservation ID for debounce marking (only in edit mode - new reservations don't have ID yet)
+        onSuccess(editingReservation?.id);
         onClose();
       } catch (error) {
         console.error('Error saving reservation:', error);
@@ -1444,7 +1445,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         }
       }
       
-      onSuccess();
+      // Pass reservation ID for debounce marking (only in edit mode - new reservations don't have ID yet)
+      onSuccess(editingReservation?.id);
       onClose();
     } catch (error) {
       console.error('Error saving reservation:', error);

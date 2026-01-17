@@ -157,6 +157,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadedDateRangeRef.current = loadedDateRange;
   }, [loadedDateRange]);
+
+  // Debounce mechanism to prevent realtime updates from overwriting local changes
+  const recentlyUpdatedReservationsRef = useRef<Map<string, number>>(new Map());
+  
+  const markAsLocallyUpdated = useCallback((reservationId: string, durationMs = 3000) => {
+    recentlyUpdatedReservationsRef.current.set(reservationId, Date.now());
+    setTimeout(() => {
+      recentlyUpdatedReservationsRef.current.delete(reservationId);
+    }, durationMs);
+  }, []);
+
+  // Deep link handling ref to prevent infinite loops
+  const deepLinkHandledRef = useRef(false);
   
   const [allServices, setAllServices] = useState<Array<{
     id: string;
@@ -753,13 +766,20 @@ const AdminDashboard = () => {
 
   // Deep linking: auto-open reservation from URL param
   // If reservation is not in loaded range, fetch it directly
+  // Reset handled flag when reservation code changes
+  useEffect(() => {
+    deepLinkHandledRef.current = false;
+  }, [reservationCodeFromUrl]);
+
   useEffect(() => {
     const handleDeepLink = async () => {
       if (!reservationCodeFromUrl || !instanceId) return;
+      if (deepLinkHandledRef.current) return; // Already handled this code
       
       // First check if reservation is already in state
       const existingReservation = reservations.find(r => r.confirmation_code === reservationCodeFromUrl);
       if (existingReservation) {
+        deepLinkHandledRef.current = true;
         setSelectedReservation(existingReservation);
         searchParams.delete('reservationCode');
         setSearchParams(searchParams, { replace: true });
@@ -767,7 +787,9 @@ const AdminDashboard = () => {
       }
       
       // If not found in state (might be outside loaded date range), fetch directly
+      // Only try once when reservations are loaded
       if (reservations.length > 0) {
+        deepLinkHandledRef.current = true;
         const { data } = await supabase
           .from('reservations')
           .select(`
@@ -823,7 +845,8 @@ const AdminDashboard = () => {
     };
     
     handleDeepLink();
-  }, [reservationCodeFromUrl, reservations, instanceId, searchParams, setSearchParams]);
+    // IMPORTANT: Removed 'reservations' from dependencies to prevent infinite loop
+  }, [reservationCodeFromUrl, instanceId, searchParams, setSearchParams]);
 
   // Play notification sound for new customer reservations
   const playNotificationSound = () => {
@@ -956,6 +979,13 @@ const AdminDashboard = () => {
               }
             });
           } else if (payload.eventType === 'UPDATE') {
+            // Skip if recently updated locally (debounce to prevent flickering)
+            const lastLocalUpdate = recentlyUpdatedReservationsRef.current.get(payload.new.id);
+            if (lastLocalUpdate && Date.now() - lastLocalUpdate < 3000) {
+              console.log('[Realtime] Skipping update for locally modified reservation:', payload.new.id);
+              return;
+            }
+            
             supabase.from('reservations').select(`
               id,
               instance_id,
@@ -1300,7 +1330,13 @@ const AdminDashboard = () => {
     });
     setAddReservationOpen(true);
   };
-  const handleReservationAdded = () => {
+  const handleReservationAdded = (reservationId?: string) => {
+    // Mark as locally updated to prevent realtime from overwriting during edit
+    if (reservationId) {
+      markAsLocallyUpdated(reservationId);
+    } else if (editingReservation?.id) {
+      markAsLocallyUpdated(editingReservation.id);
+    }
     // Realtime handles synchronization for other users
     // Local user sees optimistic updates immediately
     // Only clear editing state - no fetch needed
@@ -1976,6 +2012,9 @@ const AdminDashboard = () => {
       updates.start_time = newTime;
       updates.end_time = `${newEndHours.toString().padStart(2, '0')}:${newEndMins.toString().padStart(2, '0')}`;
     }
+
+    // Mark as locally updated to prevent realtime from overwriting
+    markAsLocallyUpdated(reservationId);
 
     // Update in database
     const {

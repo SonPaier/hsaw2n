@@ -26,9 +26,27 @@ const navigationHandler = new NetworkFirst({
 
 registerRoute(new NavigationRoute(navigationHandler));
 
-// Use Stale While Revalidate for API calls - show cached but update in background
+// Use Network First for Supabase API calls - always get fresh data to prevent stale cache issues
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api') || url.origin.includes('supabase'),
+  ({ url }) => url.origin.includes('supabase'),
+  new NetworkFirst({
+    cacheName: 'supabase-api-cache',
+    networkTimeoutSeconds: 10,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 5 * 60, // 5 minutes
+      }),
+    ],
+  })
+);
+
+// Use Stale While Revalidate for other API calls
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api') && !url.origin.includes('supabase'),
   new StaleWhileRevalidate({
     cacheName: 'api-cache',
     plugins: [
