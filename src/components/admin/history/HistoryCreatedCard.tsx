@@ -26,30 +26,25 @@ export function HistoryCreatedCard({ group, servicesMap, stationsMap }: Props) {
         <Sparkles className="w-5 h-5 text-green-600" />
         <span className="font-semibold text-green-800">Rezerwacja utworzona</span>
       </div>
-      <div className="text-sm text-muted-foreground mb-2">
+      <div className="text-base font-medium text-foreground mb-2">
         {group.changed_by_username} • {format(new Date(group.created_at), 'd MMM, HH:mm', { locale: pl })}
       </div>
 
       <div className="space-y-1 text-sm">
         {snapshot.reservation_date && (
           <div>
-            📅 {format(new Date(snapshot.reservation_date), 'd MMM yyyy', { locale: pl })}
+            • {format(new Date(snapshot.reservation_date), 'd MMM yyyy', { locale: pl })}
             {snapshot.start_time && snapshot.end_time && (
               <>, {formatTimeShort(snapshot.start_time)}-{formatTimeShort(snapshot.end_time)}</>
             )}
           </div>
         )}
-        {stationName && <div>🏢 Stanowisko: {stationName}</div>}
-        {serviceNames && <div>🔧 {serviceNames}</div>}
-        {snapshot.vehicle_plate && (
-          <div>
-            🚗 {snapshot.vehicle_plate}
-            {snapshot.car_size && ` (${snapshot.car_size.toUpperCase()})`}
-          </div>
-        )}
-        {snapshot.price != null && <div>💰 {snapshot.price} zł</div>}
-        {snapshot.admin_notes && <div>📝 {snapshot.admin_notes}</div>}
-        {snapshot.offer_number && <div>📋 #{snapshot.offer_number}</div>}
+        {stationName && <div>• Stanowisko: {stationName}</div>}
+        {serviceNames && <div>• {serviceNames}</div>}
+        {snapshot.vehicle_plate && <div>• {snapshot.vehicle_plate}</div>}
+        {snapshot.price != null && <div>• {snapshot.price} zł</div>}
+        {snapshot.admin_notes && <div>• {snapshot.admin_notes}</div>}
+        {snapshot.offer_number && <div>• Oferta #{snapshot.offer_number}</div>}
       </div>
     </div>
   );
