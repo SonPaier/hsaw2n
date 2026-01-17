@@ -9,6 +9,7 @@ import {
   formatTimeShort,
 } from '@/services/reservationHistoryService';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Props {
   group: GroupedChange;
@@ -118,15 +119,19 @@ export function HistoryTimelineItem({ group, servicesMap, stationsMap, onRevert 
       <div key={change.id} className="flex items-start justify-between gap-2 group">
         <div className="flex-1">{content}</div>
         {onRevert && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={() => onRevert(change)}
-            title="Cofnij tę zmianę"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => onRevert(change)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Cofnij</TooltipContent>
+          </Tooltip>
         )}
       </div>
     );
