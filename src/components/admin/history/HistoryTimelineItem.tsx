@@ -133,9 +133,7 @@ export function HistoryTimelineItem({ group, servicesMap, stationsMap, onRevert 
   };
 
   return (
-    <div className="relative pl-6 pb-6 border-l-2 border-muted last:border-transparent">
-      <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-primary -translate-x-1/2" />
-
+    <div className="bg-white rounded-lg p-3 shadow-sm border">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="text-base font-medium text-foreground">
           {group.changed_by_username}

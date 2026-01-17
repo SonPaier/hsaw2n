@@ -122,7 +122,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     <Sheet open={open} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="right"
-        className="sm:max-w-md w-full flex flex-col"
+        className="w-full sm:max-w-[27rem] flex flex-col"
         hideCloseButton
         hideOverlay
       >
@@ -149,7 +149,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
               Brak historii zmian
             </div>
           ) : (
-            <div className="space-y-4 pr-2">
+            <div className="flex flex-col gap-2 pr-2">
               {history.map((group) =>
                 group.changes[0]?.change_type === 'created' ? (
                   <HistoryCreatedCard
