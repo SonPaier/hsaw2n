@@ -584,16 +584,23 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                       
                       {/* Mobile layout - 4 lines */}
                       <div className="sm:hidden space-y-1">
-                        {/* Line 1: Full offer number */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{offer.offer_number}</span>
-                          <button
-                            onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
-                            className="p-1 hover:bg-secondary/80 rounded transition-colors"
-                            title={t('offers.copyOfferNumber')}
-                          >
-                            <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                          </button>
+                        {/* Line 1: Offer number and price */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{offer.offer_number}</span>
+                            <button
+                              onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
+                              className="p-1 hover:bg-secondary/80 rounded transition-colors"
+                              title={t('offers.copyOfferNumber')}
+                            >
+                              <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                            </button>
+                          </div>
+                          {offer.approved_at && (
+                            <span className="font-semibold text-sm whitespace-nowrap">
+                              {formatPrice(offer.total_gross)}
+                            </span>
+                          )}
                         </div>
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
@@ -611,23 +618,16 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
                           {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
                         </div>
-                      {/* Line 4: Services and price */}
-                        <div className="flex items-center justify-between gap-2">
-                          {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                            <div className="flex flex-wrap gap-1 flex-1">
-                              {offer.offer_scopes.map((scope) => (
-                                <Badge key={scope.id} variant="secondary" className="text-xs">
-                                  {scope.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          {offer.approved_at && (
-                            <span className="font-semibold text-sm whitespace-nowrap">
-                              {formatPrice(offer.total_gross)}
-                            </span>
-                          )}
-                        </div>
+                        {/* Line 4: Services */}
+                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {offer.offer_scopes.map((scope) => (
+                              <Badge key={scope.id} variant="secondary" className="text-xs">
+                                {scope.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
