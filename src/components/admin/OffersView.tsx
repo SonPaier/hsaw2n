@@ -597,7 +597,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                             </button>
                           </div>
                           {offer.approved_at && (
-                            <span className="font-semibold text-sm whitespace-nowrap">
+                            <span className="font-semibold text-sm whitespace-nowrap text-right ml-auto">
                               {formatPrice(offer.total_gross)}
                             </span>
                           )}
