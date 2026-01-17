@@ -673,7 +673,7 @@ const ReservationDetailsDrawer = ({
                 {/* History button - always visible in admin mode */}
                 {!isHallMode && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     className="h-10 w-10"
                     onClick={() => setHistoryDrawerOpen(true)}
@@ -756,7 +756,7 @@ const ReservationDetailsDrawer = ({
                 {/* History button - always visible in admin mode */}
                 {!isHallMode && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     className="h-10 w-10"
                     onClick={() => setHistoryDrawerOpen(true)}
