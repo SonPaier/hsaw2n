@@ -611,16 +611,23 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
                           {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
                         </div>
-                        {/* Line 4: Services */}
-                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {offer.offer_scopes.map((scope) => (
-                              <Badge key={scope.id} variant="secondary" className="text-xs">
-                                {scope.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                      {/* Line 4: Services and price */}
+                        <div className="flex items-center justify-between gap-2">
+                          {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                            <div className="flex flex-wrap gap-1 flex-1">
+                              {offer.offer_scopes.map((scope) => (
+                                <Badge key={scope.id} variant="secondary" className="text-xs">
+                                  {scope.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {offer.approved_at && (
+                            <span className="font-semibold text-sm whitespace-nowrap">
+                              {formatPrice(offer.total_gross)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
