@@ -233,7 +233,8 @@
       "system": "System rezerwacji",
       "booksy": "Booksy",
       "generic": "{{source}}"
-    }
+    },
+    "changeHistory": "Historia zmian"
   },
   "myReservation": {
     "cancelDialog": {

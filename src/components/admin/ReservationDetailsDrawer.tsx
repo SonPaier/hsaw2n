@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
+import { ReservationHistoryDrawer } from './history/ReservationHistoryDrawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -177,6 +178,7 @@ const ReservationDetailsDrawer = ({
   const [sendingPickupSms, setSendingPickupSms] = useState(false);
   const [sendingConfirmationSms, setSendingConfirmationSms] = useState(false);
   const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const [customerName, setCustomerName] = useState('');
@@ -665,9 +667,21 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Row 1: Edit and Delete for confirmed, in_progress, completed, released */}
+            {/* Row 1: History, Edit and Delete for confirmed, in_progress, completed, released */}
             {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (showEdit || showDelete) && (
               <div className="flex gap-2">
+                {/* History button - always visible in admin mode */}
+                {!isHallMode && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10"
+                    onClick={() => setHistoryDrawerOpen(true)}
+                    title={t('reservations.changeHistory')}
+                  >
+                    <History className="w-5 h-5" />
+                  </Button>
+                )}
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
@@ -739,6 +753,18 @@ const ReservationDetailsDrawer = ({
             {/* Pending: Edit and Reject/Confirm actions */}
             {reservation.status === 'pending' && showEdit && (
               <div className="flex gap-2">
+                {/* History button - always visible in admin mode */}
+                {!isHallMode && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10"
+                    onClick={() => setHistoryDrawerOpen(true)}
+                    title={t('reservations.changeHistory')}
+                  >
+                    <History className="w-5 h-5" />
+                  </Button>
+                )}
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
@@ -1072,6 +1098,14 @@ const ReservationDetailsDrawer = ({
         instanceId={reservation?.instance_id || null}
         open={smsDialogOpen}
         onClose={() => setSmsDialogOpen(false)}
+      />
+      
+      {/* Reservation History Drawer */}
+      <ReservationHistoryDrawer
+        reservationId={reservation?.id || null}
+        instanceId={reservation?.instance_id || ''}
+        open={historyDrawerOpen}
+        onClose={() => setHistoryDrawerOpen(false)}
       />
     </>
   );

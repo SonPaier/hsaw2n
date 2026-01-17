@@ -1886,6 +1886,66 @@ export type Database = {
           },
         ]
       }
+      reservation_changes: {
+        Row: {
+          batch_id: string
+          change_type: string
+          changed_by: string | null
+          changed_by_type: string
+          changed_by_username: string
+          created_at: string | null
+          field_name: string | null
+          id: string
+          instance_id: string
+          new_value: Json
+          old_value: Json | null
+          reservation_id: string | null
+        }
+        Insert: {
+          batch_id: string
+          change_type: string
+          changed_by?: string | null
+          changed_by_type?: string
+          changed_by_username: string
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          instance_id: string
+          new_value: Json
+          old_value?: Json | null
+          reservation_id?: string | null
+        }
+        Update: {
+          batch_id?: string
+          change_type?: string
+          changed_by?: string | null
+          changed_by_type?: string
+          changed_by_username?: string
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          instance_id?: string
+          new_value?: Json
+          old_value?: Json | null
+          reservation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_changes_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_changes_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservation_events: {
         Row: {
           created_at: string | null
