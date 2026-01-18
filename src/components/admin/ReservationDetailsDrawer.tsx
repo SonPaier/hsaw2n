@@ -320,7 +320,11 @@ const ReservationDetailsDrawer = ({
                 <SheetTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
                   <span className="font-semibold whitespace-nowrap">{formatTime(startTime)} - {formatTime(endTime)}</span>
                   <span className="text-muted-foreground font-normal hidden sm:inline">•</span>
-                  <span className="font-normal text-muted-foreground sm:text-foreground">{format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}</span>
+                  <span className="font-normal text-muted-foreground sm:text-foreground">
+                    {reservation.end_date && reservation.end_date !== reservation.reservation_date
+                      ? `${format(new Date(reservation.reservation_date), 'd MMM', { locale: pl })} - ${format(new Date(reservation.end_date), 'd MMM yyyy', { locale: pl })}`
+                      : format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}
+                  </span>
                 </SheetTitle>
                 <SheetDescription className="flex items-center gap-2 mt-2">
                   {getStatusBadge(reservation.status)}
