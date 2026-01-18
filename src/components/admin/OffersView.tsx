@@ -397,7 +397,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           <title>{editingOfferId ? (duplicatingOfferId ? t('offers.duplicateOffer') : t('offers.editOffer')) : t('offers.newOffer')} - {t('offers.generator')}</title>
         </Helmet>
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-2">
             <Button variant="ghost" onClick={async () => { 
               await fetchOffers();
               setShowGenerator(false); 
@@ -408,7 +408,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
               {t('offers.backToList')}
             </Button>
           </div>
-          <h1 className="text-2xl font-bold mb-6">
+          <h1 className="text-2xl font-bold mb-4">
             {duplicatingOfferId ? t('offers.duplicateOffer') : (editingOfferId ? t('offers.editOffer') : t('offers.newOffer'))}
           </h1>
           <OfferGenerator
