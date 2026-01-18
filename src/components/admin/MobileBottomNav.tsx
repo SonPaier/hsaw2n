@@ -56,18 +56,19 @@ const MobileBottomNav = ({
     onLogout?.();
   };
 
+  // Menu items in same order as desktop sidebar (excluding calendar/reservations which are on bottom bar)
   const moreMenuItems = [
-    { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
+    // 1. Klienci
     { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
+    // 2. Oferty (when enabled)
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    // Hidden on mobile: products and followup
-    // { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
-    // ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
-    // Protocols - visible when feature is enabled and user is admin
-    ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-    // Halls - visible when feature is enabled and user is admin
+    // 3. Hale (when enabled and admin)
     ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-    // Hide settings for employees
+    // 4. Protokoły (when enabled and admin)
+    ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
+    // 5. Powiadomienia (second to last)
+    { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
+    // 6. Ustawienia (always last, admin only)
     ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
   ];
 
