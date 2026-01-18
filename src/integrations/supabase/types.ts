@@ -936,7 +936,7 @@ export type Database = {
           instance_id: string
           is_paid: boolean
           months_after: number
-          offer_id: string
+          offer_id: string | null
           product_id: string | null
           scheduled_date: string
           sent_at: string | null
@@ -957,7 +957,7 @@ export type Database = {
           instance_id: string
           is_paid?: boolean
           months_after: number
-          offer_id: string
+          offer_id?: string | null
           product_id?: string | null
           scheduled_date: string
           sent_at?: string | null
@@ -978,7 +978,7 @@ export type Database = {
           instance_id?: string
           is_paid?: boolean
           months_after?: number
-          offer_id?: string
+          offer_id?: string | null
           product_id?: string | null
           scheduled_date?: string
           sent_at?: string | null

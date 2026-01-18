@@ -18,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import SendSmsDialog from './SendSmsDialog';
+import { CustomerRemindersTab } from './CustomerRemindersTab';
 
 interface Customer {
   id: string;
@@ -62,7 +63,7 @@ const CustomerEditDrawer = ({
   const [visits, setVisits] = useState<VisitHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'visits'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'visits' | 'reminders'>('info');
   
   // Edit mode state
   const [isEditing, setIsEditing] = useState(isAddMode);
@@ -377,10 +378,11 @@ const CustomerEditDrawer = ({
               </div>
             ) : (
               // View mode with tabs
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'visits')}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'visits' | 'reminders')}>
                 <AdminTabsList className="mb-4">
                   <AdminTabsTrigger value="info">{t('common.details')}</AdminTabsTrigger>
                   <AdminTabsTrigger value="visits">{t('customers.visitHistory')}</AdminTabsTrigger>
+                  <AdminTabsTrigger value="reminders">{t('customers.reminders')}</AdminTabsTrigger>
                 </AdminTabsList>
 
                 <TabsContent value="info" className="space-y-4 mt-0">
@@ -482,6 +484,16 @@ const CustomerEditDrawer = ({
                         </div>
                       ))}
                     </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="reminders" className="mt-0">
+                  {customer && instanceId && (
+                    <CustomerRemindersTab
+                      customerPhone={customer.phone}
+                      customerName={customer.name}
+                      instanceId={instanceId}
+                    />
                   )}
                 </TabsContent>
               </Tabs>
