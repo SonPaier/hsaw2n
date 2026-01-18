@@ -36,6 +36,13 @@ interface StationsSettingsProps {
   instanceId: string | null;
 }
 
+interface SubscriptionData {
+  station_limit: number;
+  subscription_plans: {
+    name: string;
+  } | null;
+}
+
 const useStationTypeConfig = () => {
   const { t } = useTranslation();
   
@@ -80,6 +87,10 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
   
+  // Subscription limit state
+  const [maxStations, setMaxStations] = useState<number>(2);
+  const [currentPlanName, setCurrentPlanName] = useState<string>('');
+  
   const [formData, setFormData] = useState({
     name: '',
     type: 'washing' as Station['type'],
@@ -107,8 +118,31 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
     }
   };
 
+  const fetchSubscription = async () => {
+    if (!instanceId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('instance_subscriptions')
+        .select('station_limit, subscription_plans(name)')
+        .eq('instance_id', instanceId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        const subData = data as unknown as SubscriptionData;
+        setMaxStations(subData.station_limit);
+        setCurrentPlanName(subData.subscription_plans?.name || '');
+      }
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    }
+  };
+
   useEffect(() => {
     fetchStations();
+    fetchSubscription();
   }, [instanceId]);
 
   const openEditDialog = (station?: Station) => {
@@ -166,9 +200,14 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
 
       setEditDialogOpen(false);
       fetchStations();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving station:', error);
-      toast.error(t('stationsSettings.saveError'));
+      // Handle station limit error from trigger
+      if (error.message?.includes('Limit stanowisk')) {
+        toast.error('Osiągnięto limit stanowisk dla Twojego planu');
+      } else {
+        toast.error(t('stationsSettings.saveError'));
+      }
     } finally {
       setSaving(false);
     }
@@ -215,11 +254,24 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
     );
   }
 
+  const isAtLimit = stations.length >= maxStations;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">{t('stationsSettings.title')}</h3>
-        <Button onClick={() => openEditDialog()} size="sm" className="gap-2 w-full sm:w-auto">
+        <div>
+          <h3 className="text-lg font-semibold">{t('stationsSettings.title')}</h3>
+          <p className="text-sm text-muted-foreground">
+            Twój plan {currentPlanName && `(${currentPlanName})`} obejmuje maksymalnie {maxStations} stanowisk
+          </p>
+        </div>
+        <Button 
+          onClick={() => openEditDialog()} 
+          size="sm" 
+          className="gap-2 w-full sm:w-auto"
+          disabled={isAtLimit}
+          title={isAtLimit ? 'Osiągnięto limit stanowisk' : undefined}
+        >
           <Plus className="w-4 h-4" />
           {t('stationsSettings.addStation')}
         </Button>

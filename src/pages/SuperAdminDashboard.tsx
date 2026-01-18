@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ import { AllInstancesSmsUsage } from '@/components/admin/AllInstancesSmsUsage';
 import { InstanceFeaturesSettings } from '@/components/admin/InstanceFeaturesSettings';
 import InstanceUsersTab from '@/components/admin/InstanceUsersTab';
 import { CarModelsManager } from '@/components/superadmin/CarModelsManager';
+import { InstancePlanSettings } from '@/components/superadmin/InstancePlanSettings';
 
 interface Instance {
   id: string;
@@ -56,6 +57,7 @@ const SuperAdminDashboard = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings'>('instances');
 
@@ -145,6 +147,11 @@ const SuperAdminDashboard = () => {
   const handleOpenUsers = (instance: Instance) => {
     setSelectedInstance(instance);
     setUsersOpen(true);
+  };
+
+  const handleOpenPlan = (instance: Instance) => {
+    setSelectedInstance(instance);
+    setPlanOpen(true);
   };
 
   const handleInstanceUpdate = (updatedInstance: Instance) => {
@@ -387,6 +394,10 @@ const SuperAdminDashboard = () => {
                                   <Settings className="w-4 h-4 mr-2" />
                                   Ustawienia whitelabel
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenPlan(instance)}>
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                  Plan i subskrypcja
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenFeatures(instance)}>
                                   <FileText className="w-4 h-4 mr-2" />
                                   Funkcje płatne
@@ -451,6 +462,24 @@ const SuperAdminDashboard = () => {
               </DialogTitle>
             </DialogHeader>
             <InstanceUsersTab instanceId={selectedInstance.id} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Instance Plan Dialog */}
+      {selectedInstance && (
+        <Dialog open={planOpen} onOpenChange={setPlanOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Plan i subskrypcja - {selectedInstance.name}
+              </DialogTitle>
+            </DialogHeader>
+            <InstancePlanSettings 
+              instanceId={selectedInstance.id} 
+              instanceName={selectedInstance.name}
+            />
           </DialogContent>
         </Dialog>
       )}
