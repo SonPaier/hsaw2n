@@ -50,7 +50,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
   
   const [planId, setPlanId] = useState("");
   const [stationLimit, setStationLimit] = useState(1);
-  const [isTrial, setIsTrial] = useState(false);
+  const [trialDays, setTrialDays] = useState<number | null>(null);
   
   const [adminUsername, setAdminUsername] = useState("admin");
   const [adminEmail, setAdminEmail] = useState("");
@@ -172,8 +172,9 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
       if (instanceError) throw instanceError;
 
       // 2. Create subscription
+      const isTrial = trialDays !== null && trialDays > 0;
       const trialExpiresAt = isTrial 
-        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
       const { error: subError } = await supabase
@@ -229,6 +230,14 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
       
     } catch (error: any) {
       console.error('Error creating instance:', error);
+      
+      // Handle specific error for duplicate slug
+      if (error.code === '23505' && error.message?.includes('instances_slug_key')) {
+        setSlugStatus('taken');
+        toast.error('Ten slug jest już zajęty. Wybierz inny.');
+        return;
+      }
+      
       toast.error(`Błąd: ${error.message || 'Nie udało się utworzyć instancji'}`);
     } finally {
       setLoading(false);
@@ -245,7 +254,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
     setNip("");
     setPlanId(plans[0]?.id || "");
     setStationLimit(1);
-    setIsTrial(false);
+    setTrialDays(null);
     setAdminUsername("admin");
     setAdminEmail("");
     setAdminPassword("");
@@ -253,8 +262,10 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
   };
 
   const selectedPlan = plans.find(p => p.id === planId);
+  // base_price includes 1 station, so we only add price for extra stations
+  const extraStations = Math.max(0, stationLimit - 1);
   const monthlyPrice = selectedPlan 
-    ? selectedPlan.base_price + (stationLimit * selectedPlan.price_per_station)
+    ? selectedPlan.base_price + (extraStations * selectedPlan.price_per_station)
     : 0;
 
   const SlugStatusIcon = () => {
@@ -426,15 +437,28 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                   </div>
                 )}
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-3">
                   <Checkbox
                     id="trial"
-                    checked={isTrial}
-                    onCheckedChange={(checked) => setIsTrial(checked === true)}
+                    checked={trialDays !== null}
+                    onCheckedChange={(checked) => setTrialDays(checked ? 7 : null)}
                   />
                   <Label htmlFor="trial" className="text-sm font-normal cursor-pointer">
-                    Okres próbny (7 dni)
+                    Okres próbny
                   </Label>
+                  {trialDays !== null && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={trialDays}
+                        onChange={(e) => setTrialDays(Math.max(1, parseInt(e.target.value) || 7))}
+                        className="w-20 h-8"
+                      />
+                      <span className="text-sm text-muted-foreground">dni</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
