@@ -102,13 +102,13 @@ export const mockReservations: Reservation[] = [
 
 export const mockInstance: Instance = {
   id: 'inst1',
-  name: 'ARM CAR AUTO SPA GDAŃSK',
+  name: 'Auto Spa Gdańsk',
   phone: '+48 123 456 789',
   address: 'ul. Przykładowa 123, 80-000 Gdańsk',
-  website: 'https://armcar.pl',
+  website: 'https://example.pl',
   socialLinks: {
-    facebook: 'https://facebook.com/armcar',
-    instagram: 'https://instagram.com/armcar',
+    facebook: 'https://facebook.com/example',
+    instagram: 'https://instagram.com/example',
   },
   active: true,
   stations: mockStations,

@@ -271,7 +271,7 @@ const MojaRezerwacja = () => {
     return (
       <>
         <Helmet>
-          <title>Rezerwacja nie znaleziona - ARM CAR AUTO SPA</title>
+          <title>Rezerwacja nie znaleziona</title>
         </Helmet>
         <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
           <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mb-4">

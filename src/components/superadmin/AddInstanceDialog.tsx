@@ -310,7 +310,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                     id="name"
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="np. ARM CAR Gdańsk"
+                    placeholder="np. Auto Spa Gdańsk"
                   />
                 </div>
                 
@@ -321,7 +321,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                       id="slug"
                       value={slug}
                       onChange={(e) => setSlug(e.target.value.toLowerCase())}
-                      placeholder="np. armcar-gdansk"
+                      placeholder="np. auto-spa-gdansk"
                       className={slugStatus === 'taken' || slugStatus === 'invalid' ? 'border-destructive' : ''}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -342,7 +342,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                     id="shortName"
                     value={shortName}
                     onChange={(e) => setShortName(e.target.value)}
-                    placeholder="np. ARM CAR"
+                    placeholder="np. Auto Spa"
                   />
                 </div>
                 
@@ -489,7 +489,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                     type="email"
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="np. admin@armcar.pl"
+                    placeholder="np. admin@firma.pl"
                     className={adminEmail && !isValidEmail(adminEmail) ? 'border-destructive' : ''}
                   />
                   {adminEmail && !isValidEmail(adminEmail) && (

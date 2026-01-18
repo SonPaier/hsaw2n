@@ -22,7 +22,7 @@ const ClientLayout = forwardRef<HTMLDivElement, ClientLayoutProps>(({
     const fetchInstance = async () => {
       // Get subdomain from hostname
       const hostname = window.location.hostname;
-      let slug = 'armcar'; // default fallback
+      let slug = 'demo'; // default fallback
 
       if (hostname.endsWith('.n2wash.com')) {
         slug = hostname.replace('.n2wash.com', '');
