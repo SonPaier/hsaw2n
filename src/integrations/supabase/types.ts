@@ -549,11 +549,13 @@ export type Database = {
           ends_at: string | null
           id: string
           instance_id: string
+          is_trial: boolean | null
           monthly_price: number | null
           plan_id: string
           starts_at: string
           station_limit: number
           status: string | null
+          trial_expires_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -561,11 +563,13 @@ export type Database = {
           ends_at?: string | null
           id?: string
           instance_id: string
+          is_trial?: boolean | null
           monthly_price?: number | null
           plan_id: string
           starts_at?: string
           station_limit?: number
           status?: string | null
+          trial_expires_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -573,11 +577,13 @@ export type Database = {
           ends_at?: string | null
           id?: string
           instance_id?: string
+          is_trial?: boolean | null
           monthly_price?: number | null
           plan_id?: string
           starts_at?: string
           station_limit?: number
           status?: string | null
+          trial_expires_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
