@@ -47,49 +47,37 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch profiles for this instance
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, email, is_blocked, created_at')
-        .eq('instance_id', instanceId)
-        .order('created_at', { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Fetch roles for these users
-      const userIds = profiles?.map(p => p.id) || [];
-      
-      if (userIds.length === 0) {
-        setUsers([]);
-        setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error(t('instanceUsers.sessionExpired'));
         return;
       }
 
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .eq('instance_id', instanceId)
-        .in('user_id', userIds);
+      const response = await supabase.functions.invoke('manage-instance-users', {
+        body: {
+          action: 'list',
+          instanceId,
+        },
+      });
 
-      if (rolesError) throw rolesError;
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
 
-      // Combine profiles with roles
-      const usersWithRoles: InstanceUser[] = profiles?.map(profile => {
-        const userRole = roles?.find(r => r.user_id === profile.id);
-        return {
-          id: profile.id,
-          username: profile.username || t('common.noName', 'Brak nazwy'),
-          email: profile.email || '',
-          is_blocked: profile.is_blocked || false,
-          created_at: profile.created_at || new Date().toISOString(),
-          role: (userRole?.role === 'admin' ? 'admin' : 'employee') as 'admin' | 'employee',
-        };
-      }) || [];
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
 
-      setUsers(usersWithRoles);
-    } catch (error) {
+      const fetchedUsers = (response.data?.users || []) as InstanceUser[];
+      setUsers(
+        fetchedUsers.map(u => ({
+          ...u,
+          username: u.username || t('common.noName', 'Brak nazwy'),
+        })),
+      );
+    } catch (error: any) {
       console.error('Error fetching users:', error);
-      toast.error(t('instanceUsers.fetchError'));
+      toast.error(error.message || t('instanceUsers.fetchError'));
     } finally {
       setLoading(false);
     }
