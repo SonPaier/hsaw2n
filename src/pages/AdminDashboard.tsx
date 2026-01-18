@@ -2220,20 +2220,6 @@ const AdminDashboard = () => {
                       </span>}
                   </>}
               </Button>
-              <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('notifications'), 50); }} title="Powiadomienia">
-                <div className="relative">
-                  <Bell className="w-4 h-4 shrink-0" />
-                  {sidebarCollapsed && unreadNotificationsCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
-                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                    </span>}
-                </div>
-                {!sidebarCollapsed && <>
-                    <span className="flex-1 text-left">Powiadomienia</span>
-                    {unreadNotificationsCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
-                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                      </span>}
-                  </>}
-              </Button>
               <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('customers'), 50); }} title="Klienci">
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
@@ -2251,11 +2237,6 @@ const AdminDashboard = () => {
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>} */}
-              {/* Hide settings for employees */}
-              {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('settings'), 50); }} title="Ustawienia">
-                <Settings className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && "Ustawienia"}
-              </Button>}
               {/* Halls - visible when feature is enabled and user is admin */}
               {hasFeature('hall_view') && userRole !== 'employee' && <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('halls'), 50); }} title={t('navigation.halls')}>
                 <Building2 className="w-4 h-4 shrink-0" />
@@ -2265,6 +2246,26 @@ const AdminDashboard = () => {
               {hasFeature('vehicle_reception_protocol') && userRole !== 'employee' && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('protocols'), 50); }} title="Protokoły">
                 <ClipboardCheck className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Protokoły"}
+              </Button>}
+              {/* Notifications - second to last */}
+              <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('notifications'), 50); }} title="Powiadomienia">
+                <div className="relative">
+                  <Bell className="w-4 h-4 shrink-0" />
+                  {sidebarCollapsed && unreadNotificationsCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>}
+                </div>
+                {!sidebarCollapsed && <>
+                    <span className="flex-1 text-left">Powiadomienia</span>
+                    {unreadNotificationsCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                      </span>}
+                  </>}
+              </Button>
+              {/* Hide settings for employees - always last */}
+              {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('settings'), 50); }} title="Ustawienia">
+                <Settings className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Ustawienia"}
               </Button>}
             </nav>
 
