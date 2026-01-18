@@ -379,7 +379,7 @@ const CustomerEditDrawer = ({
             ) : (
               // View mode with tabs
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'visits' | 'reminders')}>
-                <AdminTabsList className="mb-4">
+                <AdminTabsList className="mb-4" columns={3}>
                   <AdminTabsTrigger value="info">{t('common.details')}</AdminTabsTrigger>
                   <AdminTabsTrigger value="visits">{t('customers.visitHistory')}</AdminTabsTrigger>
                   <AdminTabsTrigger value="reminders">{t('customers.reminders')}</AdminTabsTrigger>

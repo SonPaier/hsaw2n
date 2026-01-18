@@ -30,6 +30,7 @@
     "notes": "Notatki",
     "price": "Cena",
     "date": "Data",
+    "selectDate": "Wybierz datę",
     "time": "Godzina",
     "duration": "Czas trwania",
     "status": "Status",
@@ -429,6 +430,7 @@
     "scheduledDateRequired": "Wybierz datę przypomnienia",
     "serviceNameRequired": "Podaj nazwę usługi",
     "reminderDate": "Data przypomnienia",
+    "reminderTimeInfo": "SMS zostanie wysłany o godzinie 14:00",
     "reminderIsPaid": "Płatne"
   },
   "services": {
