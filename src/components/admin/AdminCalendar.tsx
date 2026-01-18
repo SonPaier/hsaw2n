@@ -1552,24 +1552,24 @@ const AdminCalendar = ({
                           {/* Line 2: Vehicle plate + customer name with ellipsis */}
                           {hallMode ? (
                             // Hall mode: show based on hallConfig and hallDataVisible
-                            <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
+                            <div className="flex items-center gap-1 text-xs md:text-sm min-w-0">
                               {/* Vehicle plate is always visible */}
                               <span className="font-semibold truncate max-w-[50%]">
                                 {reservation.vehicle_plate}
                               </span>
                               {/* Customer name based on config and visibility toggle */}
                               {hallConfig?.visible_fields?.customer_name && hallDataVisible && (
-                                <span className="truncate min-w-0 opacity-80">
+                                <span className="truncate min-w-0">
                                   {reservation.customer_name}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1 text-xs md:text-sm opacity-90 min-w-0">
+                            <div className="flex items-center gap-1 text-xs md:text-sm min-w-0">
                               <span className="font-semibold truncate max-w-[50%]">
                                 {reservation.vehicle_plate}
                               </span>
-                              <span className="truncate min-w-0 opacity-80">
+                              <span className="truncate min-w-0">
                                 {reservation.customer_name}
                               </span>
                             </div>
@@ -1586,7 +1586,7 @@ const AdminCalendar = ({
                             </div>}
                           {/* Offer number - above notes */}
                           {!hallMode && reservation.offer_number && (
-                            <div className="text-[10px] font-mono opacity-80 mt-0.5">
+                            <div className="text-[10px] font-mono mt-0.5">
                               #{reservation.offer_number}
                             </div>
                           )}
@@ -1600,7 +1600,7 @@ const AdminCalendar = ({
                               : (durationMinutes > 30 && notesToShow);
                             if (showNotes) {
                               return <div 
-                                className="text-[13px] opacity-70 mt-0.5 break-words overflow-hidden"
+                                className="text-[13px] mt-0.5 break-words overflow-hidden"
                                 style={{ 
                                   display: '-webkit-box',
                                   WebkitBoxOrient: 'vertical',
@@ -1884,12 +1884,12 @@ const AdminCalendar = ({
                                       <Phone className="w-4 h-4" />
                                     </a>}
                                 </div>
-                                {reservation.vehicle_plate && <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate opacity-90">
+                                {reservation.vehicle_plate && <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate">
                                     <Car className="w-2.5 h-2.5 shrink-0" />
                                     {reservation.vehicle_plate}
                                   </div>}
                                 {/* Hide time row in hallMode */}
-                                {!hallMode && <div className="text-[10px] truncate opacity-80 mt-0.5 pb-0.5 hidden md:block flex items-center gap-1">
+                                {!hallMode && <div className="text-[10px] truncate mt-0.5 pb-0.5 hidden md:block flex items-center gap-1">
                                     {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                                     {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot shrink-0" />}
                                     {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600 shrink-0" />}
@@ -2138,16 +2138,16 @@ const AdminCalendar = ({
                                   <Phone className="w-3 h-3" />
                                 </a>}
                             </div>
-                            {reservation.vehicle_plate && <div className="flex items-center gap-0.5 text-[8px] md:text-[9px] opacity-90 truncate">
+                            {reservation.vehicle_plate && <div className="flex items-center gap-0.5 text-[8px] md:text-[9px] truncate">
                                 <Car className="w-2 h-2 shrink-0" />
                                 <span className="truncate">{reservation.vehicle_plate}</span>
-                                {!hallMode && <span className="opacity-80 shrink-0 ml-0.5 flex items-center gap-0.5">
+                                {!hallMode && <span className="shrink-0 ml-0.5 flex items-center gap-0.5">
                                     {isMultiDay ? `${displayStart.slice(0, 5)}` : reservation.start_time.slice(0, 5)}
                                     {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot" />}
                                     {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600" />}
                                   </span>}
                               </div>}
-                            {reservation.service && <div className="text-[8px] md:text-[9px] opacity-70 truncate">
+                            {reservation.service && <div className="text-[8px] md:text-[9px] truncate">
                                 {reservation.service.shortcut || reservation.service.name}
                               </div>}
                           </div>
