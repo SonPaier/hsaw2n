@@ -56,19 +56,23 @@ const MobileBottomNav = ({
     onLogout?.();
   };
 
-  // Menu items in same order as desktop sidebar (excluding calendar/reservations which are on bottom bar)
+  // Menu items in EXACT same order as desktop sidebar
   const moreMenuItems = [
-    // 1. Klienci
+    // 1. Kalendarz
+    { id: 'calendar' as ViewType, icon: Calendar, label: 'Kalendarz' },
+    // 2. Rezerwacje
+    { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
+    // 3. Klienci
     { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
-    // 2. Oferty (when enabled)
+    // 4. Oferty (when enabled)
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    // 3. Hale (when enabled and admin)
+    // 5. Hale (when enabled and admin)
     ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-    // 4. Protokoły (when enabled and admin)
+    // 6. Protokoły (when enabled and admin)
     ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-    // 5. Powiadomienia (second to last)
+    // 7. Powiadomienia (second to last)
     { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
-    // 6. Ustawienia (always last, admin only)
+    // 8. Ustawienia (always last, admin only)
     ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
   ];
 
