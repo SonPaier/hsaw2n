@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
+import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
 
 interface InstanceUser {
   id: string;
@@ -68,7 +68,7 @@ const EditInstanceUserDialog = ({
   const [pendingRole, setPendingRole] = useState<'admin' | null>(null);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [loadingPermissions, setLoadingPermissions] = useState(false);
-  const { hasFeature } = useInstanceFeatures(instanceId);
+  const { hasFeature } = useCombinedFeatures(instanceId);
 
   useEffect(() => {
     if (user) {

@@ -8,7 +8,7 @@ import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
+import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import SendSmsDialog from './SendSmsDialog';
 import { toast } from 'sonner';
@@ -45,7 +45,7 @@ const ITEMS_PER_PAGE = 10;
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  const { hasFeature } = useInstanceFeatures(instanceId);
+  const { hasFeature } = useCombinedFeatures(instanceId);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vehicles, setVehicles] = useState<CustomerVehicle[]>([]);
   const [loading, setLoading] = useState(true);
