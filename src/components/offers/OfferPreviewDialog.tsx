@@ -23,6 +23,12 @@ interface OfferPreviewDialogProps {
   calculateTotalGross: () => number;
 }
 
+interface TrustTile {
+  icon: string;
+  title: string;
+  description: string;
+}
+
 interface Instance {
   name: string;
   logo_url?: string;
@@ -46,6 +52,9 @@ interface Instance {
   offer_bank_company_name?: string;
   offer_bank_account_number?: string;
   offer_bank_name?: string;
+  offer_trust_header_title?: string;
+  offer_trust_description?: string;
+  offer_trust_tiles?: TrustTile[];
 }
 
 interface ScopeData {
@@ -102,7 +111,10 @@ export const OfferPreviewDialog = ({
             contact_person,
             offer_bank_company_name,
             offer_bank_account_number,
-            offer_bank_name
+            offer_bank_name,
+            offer_trust_header_title,
+            offer_trust_description,
+            offer_trust_tiles
           `)
           .eq('id', instanceId)
           .single();
@@ -110,7 +122,12 @@ export const OfferPreviewDialog = ({
         console.log('[OfferPreviewDialog] Instance fetch result:', !!instanceData, instanceError);
         
         if (instanceData) {
-          setInstance(instanceData);
+          // Parse offer_trust_tiles from JSONB
+          const parsedInstance: Instance = {
+            ...instanceData,
+            offer_trust_tiles: instanceData.offer_trust_tiles as unknown as TrustTile[] | undefined,
+          };
+          setInstance(parsedInstance);
         }
 
         // Get unique scope IDs from offer options
