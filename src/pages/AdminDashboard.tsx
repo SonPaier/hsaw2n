@@ -17,7 +17,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { format, subMonths, addDays, parseISO, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
-import { useInstanceFeatures } from '@/hooks/useInstanceFeatures';
+import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
@@ -243,10 +243,8 @@ const AdminDashboard = () => {
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
   const [instanceData, setInstanceData] = useState<any>(null);
 
-  // Instance features
-  const {
-    hasFeature
-  } = useInstanceFeatures(instanceId);
+  // Combined feature check: checks both plan features and instance-level features
+  const { hasFeature } = useCombinedFeatures(instanceId);
 
   // Working hours for calendar
   const [workingHours, setWorkingHours] = useState<Record<string, {
