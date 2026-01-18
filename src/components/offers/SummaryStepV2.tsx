@@ -1047,7 +1047,7 @@ export const SummaryStepV2 = ({
                   onClick={() => setSuggestedDrawerOpen(service.scopeId)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Dodaj sugerowany produkt
+                  Dodaj rekomendowaną usługę
                 </Button>
               </div>
             )}
