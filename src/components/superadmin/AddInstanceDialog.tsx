@@ -412,7 +412,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
                     <SelectContent>
                       {plans.map((plan) => (
                         <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name} ({plan.base_price} zł + {plan.price_per_station} zł/stanowisko)
+                          {plan.name} ({plan.base_price} zł z 1 stanowiskiem, +{plan.price_per_station} zł/dodatkowe)
                         </SelectItem>
                       ))}
                     </SelectContent>
