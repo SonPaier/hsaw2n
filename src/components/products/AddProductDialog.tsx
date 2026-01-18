@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,6 +67,7 @@ export function AddProductDialog({
 }: AddProductDialogProps) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [brand, setBrand] = useState('');
@@ -167,6 +168,43 @@ export function AddProductDialog({
 
   const removeMetadataField = (index: number) => {
     setMetadataFields(metadataFields.filter((_, i) => i !== index));
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!name.trim()) {
+      toast.error('Wprowadź nazwę produktu aby wygenerować opis');
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const finalCategory = category === '__custom__' ? customCategory.trim() : (category === '__none__' ? null : category);
+      
+      const { data, error } = await supabase.functions.invoke('generate-product-description', {
+        body: { 
+          productName: name.trim(),
+          brand: brand.trim() || null,
+          category: finalCategory
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.description) {
+        setDescription(data.description);
+        toast.success('Opis wygenerowany');
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      toast.error('Błąd generowania opisu');
+    } finally {
+      setGeneratingDescription(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -342,7 +380,24 @@ export function AddProductDialog({
 
             {/* 6. Opis */}
             <div className="space-y-2">
-              <Label htmlFor="description">{t('productDialog.description')}</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">{t('productDialog.description')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !name.trim()}
+                  className="gap-1.5 text-xs"
+                >
+                  {generatingDescription ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  Stwórz opis z AI
+                </Button>
+              </div>
               <Textarea
                 id="description"
                 value={description}
