@@ -553,6 +553,16 @@ export const OfferGenerator = ({
             <span className="hidden sm:inline">{t('offers.preview')}</span>
           </Button>
 
+          {/* Copy link button - always visible */}
+          <Button
+            variant="outline"
+            onClick={handleCopyLink}
+            className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+          >
+            <Link2 className="w-5 h-5" />
+            <span className="hidden sm:inline">Skopiuj link</span>
+          </Button>
+
           {currentStep < 3 ? (
             <Button
               onClick={handleNext}
@@ -563,31 +573,18 @@ export const OfferGenerator = ({
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
-            <>
-              {/* Copy link button */}
-              <Button
-                variant="outline"
-                onClick={handleCopyLink}
-                className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
-              >
-                <Link2 className="w-5 h-5" />
-                <span className="hidden sm:inline">Skopiuj link</span>
-              </Button>
-              
-              {/* Send button */}
-              <Button
-                onClick={handleSend}
-                disabled={sending || !canProceed}
-                className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
-              >
-                {sending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-                <span className="hidden sm:inline">{t('offers.sendOffer')}</span>
-              </Button>
-            </>
+            <Button
+              onClick={handleSend}
+              disabled={sending || !canProceed}
+              className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+            >
+              {sending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline">{t('offers.sendOffer')}</span>
+            </Button>
           )}
         </div>
         </div>
