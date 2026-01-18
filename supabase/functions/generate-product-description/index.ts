@@ -29,23 +29,42 @@ serve(async (req) => {
       );
     }
 
+    // Category-specific hints for AI
+    const categoryHints: Record<string, string> = {
+      'Folia ochronna': 'Podkreśl ochronę przed odpryskami i zarysowaniami. Wspomnij o grubości w µm (np. 200µm) i technologii self-healing jako korzyści. Zaakcentuj trwałość i gwarancję.',
+      'Powłoki': 'Skup się na efekcie wizualnym (głęboki połysk) i łatwości mycia. Wspomnij o twardości (np. 9H) i hydrofobowości jako gwarancji trwałego efektu.',
+      'Powłoki lakieru': 'Opisz ochronę lakieru i intensywność połysku. Wspomnij o twardości ceramicznej i hydrofobowości. Podkreśl łatwość utrzymania czystości.',
+      'Powłoki szyby': 'Skup się na bezpieczeństwie jazdy i widoczności. Opisz efekt spływania wody i trwałość ochrony.',
+      'Powłoki opony': 'Opisz efekt wizualny (mat/połysk satin) i ochronę przed UV. Podkreśl trwałość i głębię czerni.',
+      'Korekta lakieru': 'Opisz efekt końcowy (lustrzany połysk, głębia koloru). Wspomnij o usunięciu zarysowań i hologramów. Podkreśl profesjonalny rezultat.',
+      'Detailing': 'Skup się na efekcie końcowym i odświeżeniu wyglądu. Opisz profesjonalne podejście i dbałość o detale.',
+      'Woski': 'Podkreśl głębię koloru i naturalny połysk. Wspomnij o ochronie lakieru i zawartości wosku carnaubskiego.',
+      'Felgi': 'Opisz ochronę przed brudem hamulcowym i łatwość czyszczenia. Wspomnij o odporności na temperaturę.',
+      'Szyby': 'Skup się na poprawie widoczności i bezpieczeństwie. Opisz efekt hydrofobowy i łatwość usuwania zabrudzeń.',
+    };
+
     // Build context for the AI
     const brandInfo = brand ? ` marki ${brand}` : '';
     const categoryInfo = category ? ` z kategorii ${category}` : '';
+    const hints = category ? categoryHints[category] : null;
     
     const systemPrompt = `Jesteś ekspertem od detailingu samochodowego, folii ochronnych PPF, powłok ceramicznych i produktów do pielęgnacji aut.
-Twoim zadaniem jest napisanie krótkiego, technicznego opisu produktu/usługi dla oferty handlowej.
+Twoim zadaniem jest napisanie profesjonalnego opisu produktu/usługi dla oferty handlowej.
 
 Zasady:
-- Napisz maksymalnie 2-3 krótkie zdania po polsku
-- PRIORYTET: podaj konkretne dane techniczne (grubość folii w mil/µm, twardość powłoki w H, trwałość w latach, współczynnik hydrofobowości, odporność na UV)
-- Jeśli to znany produkt (np. XPEL Ultimate Plus 8mil, STEK DYNOshield, Gyeon Q2 Mohs), podaj jego specyfikację techniczną
-- NIE używaj emoji, list punktowanych ani ogólników marketingowych
-- Bądź konkretny i zwięzły`;
+- Napisz 2-3 zdania po polsku w stylu oferty handlowej
+- Zacznij od korzyści dla klienta (ochrona, efekt wizualny, trwałość)
+- Wpleć 1-2 kluczowe dane techniczne naturalnie w tekst (grubość folii ZAWSZE w mikronach µm, twardość w H, trwałość w latach)
+- Używaj profesjonalnego ale przekonującego języka
+- NIE używaj emoji ani list punktowanych
+- Bądź konkretny ale nie przesadnie techniczny${hints ? `
 
-    const userPrompt = `Napisz krótki techniczny opis produktu: "${productName}"${brandInfo}${categoryInfo}.
+WSKAZÓWKI DLA TEJ KATEGORII:
+${hints}` : ''}`;
 
-Podaj konkretne parametry techniczne (grubość, twardość, trwałość, właściwości). Jeśli nie znasz dokładnych danych, podaj typowe wartości dla tej kategorii produktów.`;
+    const userPrompt = `Napisz profesjonalny opis produktu: "${productName}"${brandInfo}${categoryInfo}.
+
+Skup się na korzyściach dla klienta, wplatając naturalnie 1-2 kluczowe parametry techniczne. Jeśli to znana marka (XPEL, STEK, Gyeon, Sonax itp.), wykorzystaj swoją wiedzę o produkcie.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
