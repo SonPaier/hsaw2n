@@ -158,9 +158,10 @@ export function AddCustomerReminderDialog({
             </Select>
           </div>
 
-          {/* Scheduled Date */}
+          {/* Scheduled Date - Reminder will be sent at 14:00 on the scheduled date (configured in CRON) */}
           <div className="space-y-2">
             <Label>{t('customers.reminderDate')} *</Label>
+            <p className="text-xs text-muted-foreground">{t('customers.reminderTimeInfo')}</p>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
