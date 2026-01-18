@@ -503,7 +503,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
           {/* Version info */}
           {currentVersion && (
             <p className="text-xs text-muted-foreground mt-3 px-1">
-              {t('sidebar.adminPanel')} v{currentVersion}
+              Panel Admina v{currentVersion}
             </p>
           )}
         </div>
