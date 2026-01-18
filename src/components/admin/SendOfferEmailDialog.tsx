@@ -141,15 +141,15 @@ export function SendOfferEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-full max-h-[100vh] sm:max-h-[90vh]" style={{ zIndex: 1100 }}>
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-full max-h-[100vh] sm:max-h-[90vh] flex flex-col p-0" style={{ zIndex: 1100 }}>
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5" />
             {t('sendEmailDialog.title')}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-hidden px-6 space-y-3">
           {/* Recipient */}
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">{t('sendEmailDialog.to')}:</span>
@@ -157,19 +157,19 @@ export function SendOfferEmailDialog({
           </div>
 
           {/* Email body editor */}
-          <div className="space-y-2">
+          <div className="flex-1 flex flex-col space-y-2 min-h-0">
             <Label>{t('sendEmailDialog.editTemplate')}</Label>
-            <ScrollArea className="h-[350px] rounded-md border">
+            <ScrollArea className="flex-1 rounded-md border" style={{ height: 'calc(100vh - 280px)', maxHeight: '500px' }}>
               <Textarea
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
-                className="min-h-[340px] border-0 resize-none font-mono text-sm"
+                className="min-h-[450px] border-0 resize-none font-mono text-sm"
               />
             </ScrollArea>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="sticky bottom-0 bg-background border-t px-6 py-4 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending} className="bg-white">
             {t('sendEmailDialog.cancel')}
           </Button>
