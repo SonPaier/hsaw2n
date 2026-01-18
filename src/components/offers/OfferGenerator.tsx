@@ -420,7 +420,7 @@ export const OfferGenerator = ({
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-12rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)] -mb-6">
       <div className="flex-1 space-y-6 pb-6">
       {/* Steps Header */}
       <div className="flex items-center justify-center gap-2">
