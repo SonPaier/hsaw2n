@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
-import { Settings, Save, Loader2, FileText, Palette } from 'lucide-react';
+import { OfferTrustHeaderSettings, OfferTrustHeaderSettingsRef } from './OfferTrustHeaderSettings';
+import { Settings, Save, Loader2, FileText, Palette, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,6 +29,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const brandingRef = useRef<OfferBrandingSettingsRef>(null);
+  const trustHeaderRef = useRef<OfferTrustHeaderSettingsRef>(null);
 
   // Fetch settings on open
   useEffect(() => {
@@ -66,7 +68,10 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       // Save branding
       const brandingResult = await brandingRef.current?.saveAll();
 
-      if (brandingResult !== false) {
+      // Save trust header
+      const trustHeaderResult = await trustHeaderRef.current?.saveAll();
+
+      if (brandingResult !== false && trustHeaderResult !== false) {
         toast.success(t('offerSettings.saveSuccess'));
         setHasChanges(false);
       }
@@ -104,7 +109,7 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <AdminTabsList columns={2}>
+          <AdminTabsList columns={3}>
             <AdminTabsTrigger value="general">
               <FileText className="h-4 w-4" />
               {t('offerSettings.general')}
@@ -112,6 +117,10 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
             <AdminTabsTrigger value="branding">
               <Palette className="h-4 w-4" />
               {t('offerSettings.brandingTab')}
+            </AdminTabsTrigger>
+            <AdminTabsTrigger value="trustHeader">
+              <Award className="h-4 w-4" />
+              Nagłówek oferty
             </AdminTabsTrigger>
           </AdminTabsList>
 
@@ -147,6 +156,10 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
           <TabsContent value="branding" className="mt-6">
             <OfferBrandingSettings ref={brandingRef} instanceId={instanceId} onChange={handleChange} />
+          </TabsContent>
+
+          <TabsContent value="trustHeader" className="mt-6">
+            <OfferTrustHeaderSettings ref={trustHeaderRef} instanceId={instanceId} onChange={handleChange} />
           </TabsContent>
         </Tabs>
 

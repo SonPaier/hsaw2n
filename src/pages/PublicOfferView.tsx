@@ -48,6 +48,7 @@ const PublicOfferView = () => {
               )
             ),
             instances (
+              id,
               name,
               logo_url,
               phone,
@@ -69,7 +70,10 @@ const PublicOfferView = () => {
               contact_person,
               offer_bank_company_name,
               offer_bank_account_number,
-              offer_bank_name
+              offer_bank_name,
+              offer_trust_header_title,
+              offer_trust_description,
+              offer_trust_tiles
             )
           `)
           .eq('public_token', token)
