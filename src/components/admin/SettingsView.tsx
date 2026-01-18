@@ -18,6 +18,7 @@ import SmsMessageSettings from './SmsMessageSettings';
 import { ReservationConfirmSettings } from './ReservationConfirmSettings';
 import InstanceUsersTab from './InstanceUsersTab';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 
 interface SettingsViewProps {
   instanceId: string | null;
@@ -31,6 +32,7 @@ type SettingsTab = 'company' | 'pricelist' | 'stations' | 'hours' | 'app' | 'sms
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const { currentVersion } = useAppUpdate();
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -498,6 +500,12 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
               </button>
             ))}
           </div>
+          {/* Version info */}
+          {currentVersion && (
+            <p className="text-xs text-muted-foreground mt-3 px-1">
+              {t('sidebar.adminPanel')} v{currentVersion}
+            </p>
+          )}
         </div>
       )}
 
