@@ -48,9 +48,27 @@ export const CustomerDataStep = ({
 }: CustomerDataStepProps) => {
   const { t } = useTranslation();
   const [nipLoading, setNipLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [showManualCompany, setShowManualCompany] = useState(
     !!customerData.company || !!customerData.nip || !!customerData.companyAddress
   );
+
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true; // Empty is valid (will be caught by required validation)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    onCustomerChange({ email });
+    
+    if (email && !validateEmail(email)) {
+      setEmailError('Nieprawidłowy format adresu email');
+    } else {
+      setEmailError(null);
+    }
+  };
 
   const lookupNip = async () => {
     const nip = customerData.nip?.replace(/[^0-9]/g, '');
@@ -119,8 +137,12 @@ export const CustomerDataStep = ({
               id="customerEmail"
               type="email"
               value={customerData.email}
-              onChange={(e) => onCustomerChange({ email: e.target.value })}
+              onChange={handleEmailChange}
+              className={emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {emailError && (
+              <p className="text-sm text-red-500">{emailError}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="customerPhone">Telefon</Label>
