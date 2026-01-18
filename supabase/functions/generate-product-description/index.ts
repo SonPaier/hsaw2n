@@ -34,20 +34,18 @@ serve(async (req) => {
     const categoryInfo = category ? ` z kategorii ${category}` : '';
     
     const systemPrompt = `Jesteś ekspertem od detailingu samochodowego, folii ochronnych PPF, powłok ceramicznych i produktów do pielęgnacji aut.
-Twoim zadaniem jest napisanie profesjonalnego, marketingowego opisu produktu/usługi dla oferty handlowej.
+Twoim zadaniem jest napisanie krótkiego, technicznego opisu produktu/usługi dla oferty handlowej.
 
 Zasady:
-- Napisz 4-5 zdań po polsku
-- Skup się na korzyściach dla klienta
-- Używaj profesjonalnego, ale przystępnego języka
-- Podkreśl jakość, trwałość i ochronę
-- Jeśli to znany produkt (np. folia XPEL, STEK, Gyeon), uwzględnij jego unikalne cechy
-- NIE używaj emoji ani list punktowanych
-- Pisz w sposób przekonujący ale nie przesadny`;
+- Napisz maksymalnie 2-3 krótkie zdania po polsku
+- PRIORYTET: podaj konkretne dane techniczne (grubość folii w mil/µm, twardość powłoki w H, trwałość w latach, współczynnik hydrofobowości, odporność na UV)
+- Jeśli to znany produkt (np. XPEL Ultimate Plus 8mil, STEK DYNOshield, Gyeon Q2 Mohs), podaj jego specyfikację techniczną
+- NIE używaj emoji, list punktowanych ani ogólników marketingowych
+- Bądź konkretny i zwięzły`;
 
-    const userPrompt = `Napisz opis produktu/usługi: "${productName}"${brandInfo}${categoryInfo}.
+    const userPrompt = `Napisz krótki techniczny opis produktu: "${productName}"${brandInfo}${categoryInfo}.
 
-Jeśli to znany produkt detailingowy lub folia PPF/powłoka ceramiczna, wykorzystaj swoją wiedzę o jego właściwościach.`;
+Podaj konkretne parametry techniczne (grubość, twardość, trwałość, właściwości). Jeśli nie znasz dokładnych danych, podaj typowe wartości dla tej kategorii produktów.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
