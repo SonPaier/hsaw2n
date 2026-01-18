@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { ReservationHistoryDrawer } from './history/ReservationHistoryDrawer';
@@ -56,6 +57,7 @@ interface Reservation {
   source?: string | null;
   service_id?: string;
   service_ids?: string[];
+  offer_number?: string | null;
   service?: {
     name: string;
   };
@@ -190,6 +192,7 @@ const ReservationDetailsDrawer = ({
   const [price, setPrice] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [offerPublicToken, setOfferPublicToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (reservation) {
@@ -202,6 +205,21 @@ const ReservationDetailsDrawer = ({
       setPrice(reservation.price?.toString() || '');
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
+      
+      // Fetch offer public_token if offer_number exists
+      if (reservation.offer_number) {
+        supabase
+          .from('offers')
+          .select('public_token')
+          .eq('offer_number', reservation.offer_number)
+          .eq('instance_id', reservation.instance_id)
+          .maybeSingle()
+          .then(({ data }) => {
+            setOfferPublicToken(data?.public_token || null);
+          });
+      } else {
+        setOfferPublicToken(null);
+      }
     }
   }, [reservation]);
 
@@ -500,6 +518,25 @@ const ReservationDetailsDrawer = ({
                 </div>
               );
             })()}
+
+            {/* Offer link - show only if offer_number and public_token exist */}
+            {!isHallMode && reservation.offer_number && offerPublicToken && (
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <div className="text-xs text-muted-foreground">Oferta</div>
+                  <a 
+                    href={`/offers/${offerPublicToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary hover:underline flex items-center gap-1"
+                  >
+                    #{reservation.offer_number}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Customer Notes - hide in hall mode if notes not configured */}
             {(!isHallMode || visibleFields?.admin_notes) && customerNotes && (
