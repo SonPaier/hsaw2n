@@ -647,7 +647,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/offers/${offer.public_token}`, '_blank'); }}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/offers/${offer.public_token}?admin=true`, '_blank'); }}>
                             <Eye className="w-4 h-4 mr-2" />
                             {t('offers.preview')}
                           </DropdownMenuItem>

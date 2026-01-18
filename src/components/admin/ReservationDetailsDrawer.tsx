@@ -526,7 +526,7 @@ const ReservationDetailsDrawer = ({
                 <div className="flex-1">
                   <div className="text-xs text-muted-foreground">Oferta</div>
                   <a 
-                    href={`/offers/${offerPublicToken}`}
+                    href={`/offers/${offerPublicToken}?admin=true`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-primary hover:underline flex items-center gap-1"
