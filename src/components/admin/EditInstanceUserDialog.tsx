@@ -45,7 +45,7 @@ interface EditInstanceUserDialogProps {
   onOpenChange: (open: boolean) => void;
   instanceId: string;
   user: InstanceUser | null;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 const getEmployeeFeatures = (t: (key: string) => string) => [
@@ -208,8 +208,9 @@ const EditInstanceUserDialog = ({
       }
 
       toast.success(t('editUser.userUpdated'));
+      // First refresh the user list, then close the dialog
+      await onSuccess();
       onOpenChange(false);
-      onSuccess();
     } catch (error: any) {
       console.error('Error updating user:', error);
       toast.error(error.message || t('editUser.updateError'));
