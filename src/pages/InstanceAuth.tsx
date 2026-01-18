@@ -180,14 +180,15 @@ const InstanceAuth = ({
       }));
     }
   };
-
   const handleTestFrontendError = () => {
     throw new Error('This is your first error!');
   };
-
   const handleTestBackendError = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('test-sentry-error');
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('test-sentry-error');
       if (error) {
         toast.error('Backend test failed: ' + error.message);
         return;
@@ -199,7 +200,6 @@ const InstanceAuth = ({
       console.error('[Sentry Test] Backend error:', err);
     }
   };
-
   if (instanceLoading || authLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -232,7 +232,7 @@ const InstanceAuth = ({
               {/* Logo */}
               <div className="space-y-4 text-center">
                 {instance?.logo_url && <div className="flex justify-center mb-6">
-                    <img src={instance.logo_url} alt={instance.name} className="h-20 object-contain" />
+                    <img src={instance.logo_url} alt={instance.name} className="h-20 object-scale-down" />
                   </div>}
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                   Logowanie do panelu administracyjnego
