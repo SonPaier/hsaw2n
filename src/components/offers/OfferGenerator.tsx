@@ -420,7 +420,8 @@ export const OfferGenerator = ({
   }
 
   return (
-    <div className="space-y-6 pb-24 md:pb-6">
+    <div className="flex flex-col min-h-[calc(100vh-12rem)]">
+      <div className="flex-1 space-y-6 pb-6">
       {/* Steps Header */}
       <div className="flex items-center justify-center gap-2">
         {steps.map((step, index) => {
@@ -505,9 +506,11 @@ export const OfferGenerator = ({
           onShowPreview={handleShowPreview}
         />
       )}
+      </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
+      {/* Navigation - Sticky Footer */}
+      <div className="sticky bottom-0 bg-background border-t py-4 -mx-6 px-6 mt-auto">
+        <div className="flex items-center justify-between">
         <div>
           {currentStep > 1 ? (
             <Button
@@ -588,6 +591,7 @@ export const OfferGenerator = ({
               </Button>
             </>
           )}
+        </div>
         </div>
       </div>
 
