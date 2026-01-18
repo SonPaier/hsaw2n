@@ -543,6 +543,60 @@ export type Database = {
           },
         ]
       }
+      instance_subscriptions: {
+        Row: {
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          instance_id: string
+          monthly_price: number | null
+          plan_id: string
+          starts_at: string
+          station_limit: number
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          instance_id: string
+          monthly_price?: number | null
+          plan_id: string
+          starts_at?: string
+          station_limit?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          instance_id?: string
+          monthly_price?: number | null
+          plan_id?: string
+          starts_at?: string
+          station_limit?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instance_subscriptions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instance_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instances: {
         Row: {
           active: boolean | null
@@ -2443,6 +2497,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean | null
+          base_price: number
+          created_at: string | null
+          description: string | null
+          id: string
+          included_features: Json
+          name: string
+          price_per_station: number
+          slug: string
+          sms_limit: number
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          base_price: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          included_features?: Json
+          name: string
+          price_per_station?: number
+          slug: string
+          sms_limit?: number
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          base_price?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          included_features?: Json
+          name?: string
+          price_per_station?: number
+          slug?: string
+          sms_limit?: number
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       text_blocks_library: {
         Row: {
