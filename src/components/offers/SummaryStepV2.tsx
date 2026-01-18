@@ -601,14 +601,14 @@ export const SummaryStepV2 = ({
     <div className="space-y-6">
       {/* Customer & Vehicle Summary */}
       <Card>
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="pt-4 pb-4 space-y-3">
           {/* Customer Section */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center gap-2 font-semibold">
               <User className="w-4 h-4 text-primary" />
               Klient
             </div>
-            <div className="text-sm space-y-1 pl-6">
+            <div className="text-sm space-y-0.5 pl-6">
               <p className="font-medium">{offer.customerData.name || '—'}</p>
               <p className="text-muted-foreground">{offer.customerData.email || '—'}</p>
               {offer.customerData.phone && (
@@ -619,12 +619,12 @@ export const SummaryStepV2 = ({
           
           {/* Company Section */}
           {offer.customerData.company && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center gap-2 font-semibold">
                 <Building2 className="w-4 h-4 text-primary" />
                 Firma
               </div>
-              <div className="text-sm space-y-1 pl-6">
+              <div className="text-sm space-y-0.5 pl-6">
                 <p className="font-medium">{offer.customerData.company}</p>
                 {offer.customerData.nip && (
                   <p className="text-muted-foreground">NIP: {offer.customerData.nip}</p>
@@ -635,12 +635,12 @@ export const SummaryStepV2 = ({
 
           {/* Vehicle Section */}
           {offer.vehicleData.brandModel && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center gap-2 font-semibold">
                 <Car className="w-4 h-4 text-primary" />
                 Pojazd
               </div>
-              <div className="text-sm space-y-1 pl-6">
+              <div className="text-sm space-y-0.5 pl-6">
                 <p className="font-medium">{offer.vehicleData.brandModel}</p>
                 {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
                   <p className="text-muted-foreground">
