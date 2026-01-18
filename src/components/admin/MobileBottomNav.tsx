@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X } from 'lucide-react';
+import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -22,6 +22,7 @@ interface MobileBottomNavProps {
   offersEnabled?: boolean;
   followupEnabled?: boolean;
   hallViewEnabled?: boolean;
+  protocolsEnabled?: boolean;
   userRole?: 'admin' | 'employee' | null;
   currentVersion?: string;
 }
@@ -35,6 +36,7 @@ const MobileBottomNav = ({
   offersEnabled = true,
   followupEnabled = true,
   hallViewEnabled = false,
+  protocolsEnabled = false,
   userRole = 'admin',
   currentVersion,
 }: MobileBottomNavProps) => {
@@ -61,10 +63,12 @@ const MobileBottomNav = ({
     // Hidden on mobile: products and followup
     // { id: 'products' as ViewType, icon: Package, label: t('navigation.products') },
     // ...(followupEnabled ? [{ id: 'followup' as ViewType, icon: RefreshCw, label: t('navigation.followup') }] : []),
-    // Hide settings for employees
-    ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
+    // Protocols - visible when feature is enabled and user is admin
+    ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
     // Halls - visible when feature is enabled and user is admin
     ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
+    // Hide settings for employees
+    ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
   ];
 
   return (

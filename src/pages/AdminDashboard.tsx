@@ -2503,6 +2503,7 @@ const AdminDashboard = () => {
         offersEnabled={hasFeature('offers')}
         followupEnabled={hasFeature('followup')}
         hallViewEnabled={hasFeature('hall_view')}
+        protocolsEnabled={hasFeature('vehicle_reception_protocol')}
         userRole={userRole}
         currentVersion={currentVersion}
       />
