@@ -37,6 +37,7 @@ const SERVICE_TYPES = [
   { value: 'serwis', label: 'Serwis' },
   { value: 'kontrola', label: 'Kontrola' },
   { value: 'serwis_gwarancyjny', label: 'Serwis gwarancyjny' },
+  { value: 'odswiezenie', label: 'Odświeżenie' },
 ];
 
 const DEFAULT_SMS_TEMPLATE = '{short_name}: Przypominamy o {service_type} dla {vehicle_info}. {paid_info}. Zadzwon: {reservation_phone}';

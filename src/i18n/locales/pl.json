@@ -415,7 +415,21 @@
       "carWash": "Myjnia",
       "offers": "Oferty"
     },
-    "discountPercent": "Rabat (%)"
+    "discountPercent": "Rabat (%)",
+    "reminders": "Przypomnienia",
+    "noReminders": "Brak przypomnień dla tego klienta",
+    "addReminder": "Dodaj przypomnienie",
+    "customReminder": "Niestandardowe",
+    "reminderFromOffer": "Z oferty",
+    "reminderAdded": "Przypomnienie dodane",
+    "reminderDeleted": "Przypomnienie usunięte",
+    "addReminderError": "Błąd podczas dodawania przypomnienia",
+    "reminderServiceName": "Nazwa usługi",
+    "reminderServiceNamePlaceholder": "np. Odnowienie powłoki ceramicznej",
+    "scheduledDateRequired": "Wybierz datę przypomnienia",
+    "serviceNameRequired": "Podaj nazwę usługi",
+    "reminderDate": "Data przypomnienia",
+    "reminderIsPaid": "Płatne"
   },
   "services": {
     "title": "Usługi",
@@ -475,7 +489,8 @@
     "serviceTypes": {
       "serwis": "Serwis",
       "kontrola": "Kontrola",
-      "serwis_gwarancyjny": "Serwis gwarancyjny"
+      "serwis_gwarancyjny": "Serwis gwarancyjny",
+      "odswiezenie": "Odświeżenie"
     },
     "validUntil": "Ważna do",
     "totalNet": "Netto",
@@ -1906,7 +1921,8 @@
     "serviceTypes": {
       "serwis": "Serwis",
       "kontrola": "Kontrola",
-      "serwis_gwarancyjny": "Serwis gwarancyjny"
+      "serwis_gwarancyjny": "Serwis gwarancyjny",
+      "odswiezenie": "Odświeżenie"
     },
     "noTemplate": "Brak"
   },
