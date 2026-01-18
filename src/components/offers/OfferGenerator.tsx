@@ -15,7 +15,8 @@ import {
   FileCheck,
   Loader2,
   Download,
-  Eye
+  Eye,
+  Link2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
@@ -335,6 +336,29 @@ export const OfferGenerator = ({
     setShowPreview(true);
   };
 
+  const handleCopyLink = async () => {
+    try {
+      // Save first to get the offer ID and public_token
+      const savedId = await saveOffer(true);
+      if (savedId) {
+        const { data: savedOffer } = await supabase
+          .from('offers')
+          .select('public_token')
+          .eq('id', savedId)
+          .single();
+        
+        if (savedOffer?.public_token) {
+          const baseUrl = window.location.origin;
+          const offerUrl = `${baseUrl}/offers/${savedOffer.public_token}`;
+          await navigator.clipboard.writeText(offerUrl);
+          toast.success('Link skopiowany do schowka');
+        }
+      }
+    } catch (error) {
+      toast.error('Nie udało się skopiować linku');
+    }
+  };
+
   const handleDownloadPdf = async () => {
     if (!offer.id) {
       toast.error(t('offers.saveFirst'));
@@ -516,8 +540,8 @@ export const OfferGenerator = ({
             <span className="hidden sm:inline">{t('common.save')}</span>
           </Button>
 
-          {/* Preview button - show on step 3 and 4 */}
-          {currentStep >= 3 && (
+          {/* Preview button - show on step 3 */}
+          {currentStep === 3 && (
             <Button
               variant="outline"
               onClick={handleShowPreview}
@@ -528,7 +552,7 @@ export const OfferGenerator = ({
             </Button>
           )}
 
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed}
@@ -538,18 +562,31 @@ export const OfferGenerator = ({
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSend}
-              disabled={sending || !canProceed}
-              className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
-            >
-              {sending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-              <span className="hidden sm:inline">{t('offers.sendOffer')}</span>
-            </Button>
+            <>
+              {/* Copy link button */}
+              <Button
+                variant="outline"
+                onClick={handleCopyLink}
+                className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+              >
+                <Link2 className="w-5 h-5" />
+                <span className="hidden sm:inline">Skopiuj link</span>
+              </Button>
+              
+              {/* Send button */}
+              <Button
+                onClick={handleSend}
+                disabled={sending || !canProceed}
+                className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+              >
+                {sending ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+                <span className="hidden sm:inline">{t('offers.sendOffer')}</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
