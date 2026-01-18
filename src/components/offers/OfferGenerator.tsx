@@ -543,17 +543,15 @@ export const OfferGenerator = ({
             <span className="hidden sm:inline">{t('common.save')}</span>
           </Button>
 
-          {/* Preview button - show on step 3 */}
-          {currentStep === 3 && (
-            <Button
-              variant="outline"
-              onClick={handleShowPreview}
-              className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
-            >
-              <Eye className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('offers.preview')}</span>
-            </Button>
-          )}
+          {/* Preview button - always visible */}
+          <Button
+            variant="outline"
+            onClick={handleShowPreview}
+            className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+          >
+            <Eye className="w-5 h-5" />
+            <span className="hidden sm:inline">{t('offers.preview')}</span>
+          </Button>
 
           {currentStep < 3 ? (
             <Button
