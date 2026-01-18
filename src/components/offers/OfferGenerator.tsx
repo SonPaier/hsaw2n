@@ -509,7 +509,7 @@ export const OfferGenerator = ({
       </div>
 
       {/* Navigation - Sticky Footer */}
-      <div className="sticky bottom-0 bg-background border-t py-4 -mx-6 px-6 mt-auto">
+      <div className="sticky bottom-0 bg-background border-t py-4 -mx-6 px-6 mt-auto z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between">
         <div>
           {currentStep > 1 ? (
