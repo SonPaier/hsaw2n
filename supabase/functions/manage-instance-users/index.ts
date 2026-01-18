@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface ManageUserRequest {
-  action: 'create' | 'update' | 'delete' | 'block' | 'unblock' | 'reset-password';
+  action: 'list' | 'create' | 'update' | 'delete' | 'block' | 'unblock' | 'reset-password';
   instanceId: string;
   userId?: string; // Required for update, delete, block, unblock, reset-password
   username?: string;
@@ -79,6 +79,58 @@ Deno.serve(async (req) => {
 
     // Handle different actions
     switch (action) {
+      case 'list': {
+        // List users in instance (admin only) - use service role to bypass RLS safely
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, email, is_blocked, created_at')
+          .eq('instance_id', instanceId)
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          return new Response(
+            JSON.stringify({ error: 'Nie udało się pobrać listy użytkowników' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const userIds = profiles?.map((p: any) => p.id) || [];
+
+        const { data: roles, error: rolesError } = userIds.length
+          ? await supabase
+              .from('user_roles')
+              .select('user_id, role')
+              .eq('instance_id', instanceId)
+              .in('user_id', userIds)
+          : { data: [], error: null };
+
+        if (rolesError) {
+          console.error('Error fetching roles:', rolesError);
+          return new Response(
+            JSON.stringify({ error: 'Nie udało się pobrać ról użytkowników' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const users = (profiles || []).map((profile: any) => {
+          const userRoles = (roles || []).filter((r: any) => r.user_id === profile.id).map((r: any) => r.role);
+          return {
+            id: profile.id,
+            username: profile.username || '',
+            email: profile.email || '',
+            is_blocked: !!profile.is_blocked,
+            created_at: profile.created_at || new Date().toISOString(),
+            role: userRoles.includes('admin') ? 'admin' : 'employee',
+          };
+        });
+
+        return new Response(
+          JSON.stringify({ success: true, users }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create': {
         if (!username || !password || !role) {
           return new Response(
