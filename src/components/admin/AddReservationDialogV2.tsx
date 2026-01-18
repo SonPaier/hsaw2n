@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import ServiceSelectionDrawer from './ServiceSelectionDrawer';
+import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
 
 type CarSize = 'small' | 'medium' | 'large';
 type DialogMode = 'reservation' | 'yard' | 'ppf' | 'detailing';
@@ -133,6 +134,7 @@ interface EditingReservation {
   admin_notes?: string | null;
   price?: number | null;
   confirmation_code?: string;
+  offer_number?: string | null;
 }
 
 export interface YardVehicle {
@@ -484,8 +486,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setPpfEndTime(editingReservation.end_time?.substring(0, 5) || '17:00');
         
         // Use offer_number column directly (or fallback to parsing from admin_notes for legacy data)
-        if ((editingReservation as any).offer_number) {
-          setOfferNumber((editingReservation as any).offer_number);
+        if (editingReservation.offer_number) {
+          setOfferNumber(editingReservation.offer_number);
           setAdminNotes(editingReservation.admin_notes || '');
         } else if (editingReservation.admin_notes) {
           // Fallback for legacy data with offer in notes
@@ -549,6 +551,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setSelectedStationId(editingReservation.station_id);
         setAdminNotes(editingReservation.admin_notes || '');
         setFinalPrice(editingReservation.price?.toString() || '');
+        // Load offer_number for reservation edit mode
+        setOfferNumber(editingReservation.offer_number || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -1411,6 +1415,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
+          offer_number: offerNumber || null,
         };
 
         const { error: updateError } = await supabase
@@ -1448,6 +1453,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
+          offer_number: offerNumber || null,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
           status: 'confirmed' as const,
           confirmed_at: new Date().toISOString(),
@@ -2092,13 +2098,26 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="offerNumber">
+                  <Label>
                     {t('addReservation.offerNumber')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
                   </Label>
-                  <Input
-                    id="offerNumber"
+                  <OfferSearchAutocomplete
+                    instanceId={instanceId}
                     value={offerNumber}
-                    onChange={(e) => setOfferNumber(e.target.value)}
+                    onChange={setOfferNumber}
+                    onOfferSelect={(offer) => {
+                      setOfferNumber(offer.offer_number);
+                      // Optionally pre-fill customer data if not already filled
+                      if (!customerName && offer.customer_name) {
+                        setCustomerName(offer.customer_name);
+                      }
+                      if (!phone && offer.customer_phone) {
+                        setPhone(offer.customer_phone);
+                      }
+                      if (!carModel && offer.vehicle_model) {
+                        setCarModel(offer.vehicle_model);
+                      }
+                    }}
                     placeholder={t('addReservation.offerNumberPlaceholder')}
                   />
                 </div>
