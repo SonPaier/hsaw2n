@@ -1526,7 +1526,7 @@ const AdminCalendar = ({
                       e.stopPropagation();
                       onReservationClick?.(reservation);
                     }}>
-                        <div className="px-0.5">
+                        <div className="px-0.5 text-black">
                           {/* Line 1: Time range + action buttons */}
                           <div className="flex items-center justify-between gap-0.5">
                           {hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5 flex items-center gap-1">
@@ -1870,7 +1870,7 @@ const AdminCalendar = ({
                       onReservationClick?.(reservation);
                     }}>
                               {/* Drag handle - hidden in hallMode */}
-                              <div className={cn(!hallMode && "pl-3")}>
+                              <div className={cn("text-black", !hallMode && "pl-3")}>
                                 <div className="flex items-center justify-between gap-0.5">
                                   {/* In hallMode show time instead of name */}
                                   {hallMode ? <div className="text-[11px] md:text-[13px] font-bold truncate pb-0.5">
@@ -2126,7 +2126,7 @@ const AdminCalendar = ({
                   onReservationClick?.(reservation);
                 }}>
                           {/* Drag handle */}
-                          <div className={cn(!hallMode && !readOnly && "pl-2")}>
+                          <div className={cn("text-black", !hallMode && !readOnly && "pl-2")}>
                             <div className="flex items-center justify-between gap-0.5">
                               {hallMode ? <div className="text-[10px] md:text-[11px] font-bold truncate pb-0.5">
                                   {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
