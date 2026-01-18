@@ -2197,7 +2197,6 @@ const AdminDashboard = () => {
                 )}
                 {!sidebarCollapsed && <div className="text-left">
                     <h1 className="font-bold text-foreground">{instanceData?.name || 'Panel Admina'}</h1>
-                    <p className="text-xs text-muted-foreground">Panel Admina {currentVersion && `v${currentVersion}`}</p>
                   </div>}
               </button>
             </div>
