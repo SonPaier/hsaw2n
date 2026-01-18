@@ -26,7 +26,12 @@ import {
   Globe,
   ExternalLink,
   Copy,
-  CreditCard
+  CreditCard,
+  CheckCircle,
+  Zap,
+  Trophy,
+  ThumbsUp,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -84,7 +89,14 @@ interface SelectedState {
   isDefault?: boolean; // Marker indicating this is admin's pre-selection (not customer's choice)
 }
 
+interface TrustTile {
+  icon: string;
+  title: string;
+  description: string;
+}
+
 interface Instance {
+  id?: string;
   name: string;
   logo_url?: string;
   phone?: string;
@@ -107,6 +119,9 @@ interface Instance {
   offer_bank_company_name?: string;
   offer_bank_account_number?: string;
   offer_bank_name?: string;
+  offer_trust_header_title?: string;
+  offer_trust_description?: string;
+  offer_trust_tiles?: TrustTile[];
 }
 
 export interface PublicOfferData {
@@ -783,73 +798,91 @@ export const PublicOfferCustomerView = ({
           </Card>
         </div>
 
-        {/* Why Trust Us Section - moved below vehicle */}
-        <Card 
-          className="border"
-          style={{ 
-            backgroundColor: branding.offer_section_bg_color,
-            borderColor: `${branding.offer_primary_color}33`,
-          }}
-        >
-          <CardContent className="pt-6">
-            <div className="text-center mb-6">
-              <h2 
-                className="text-xl font-bold mb-2"
-                style={{ color: branding.offer_section_text_color }}
-              >
-                {t('publicOffer.whyTrustUs')}
-              </h2>
-            </div>
-
-            <p 
-              className="text-sm mb-6 opacity-80 text-center max-w-3xl mx-auto"
-              style={{ color: branding.offer_section_text_color }}
-            >
-              Sprawdzone studio z ponad 800 opiniami i średnią 5.0 w Google, setkami realizacji, oferujące gwarantowaną jakość, precyzyjne wykonanie w profesjonalnych warunkach oraz premium obsługę opartą na markowych materiałach i pełnej odpowiedzialności za każdy detal.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { icon: Star, title: 'Sprawdzone studio, któremu klienci ufają', desc: 'Ponad 800 opinii ze średnią 5.0 w Google – realne doświadczenie, realne realizacje. Setki kompleksowo zabezpieczonych pojazdów – od aut nowych i używanych, po najbardziej wymagające projekty klasy premium i supercars.' },
-                { icon: Shield, title: 'Gwarancja na każdą wykonaną usługę', desc: 'Odpowiadamy za jakość naszej pracy. Każda realizacja wykonywana z pełną odpowiedzialnością i dbałością o detale.' },
-                { icon: Sparkles, title: 'Profesjonalne warunki pracy', desc: 'Przystosowane, dedykowane stanowiska do foli PPF i powłok ceramicznych. Kontrolowane środowisko zapewniające najwyższą jakość aplikacji.' },
-                { icon: Award, title: 'Jakość zamiast masówki', desc: 'Skupiamy się na precyzji, nie ilości. Pracujemy na markowych materiałach i sprawdzonych technikach.' },
-                { icon: Heart, title: 'Obsługa na poziomie premium', desc: 'Doradztwo przed wyborem usługi. Jasne warunki, transparentna oferta, profesjonalne wydanie pojazdu.' },
-                { icon: Car, title: 'Kompleksowa ochrona pojazdu', desc: 'Od folii ochronnych PPF, przez powłoki ceramiczne, po profesjonalną korektę lakieru – wszystko w jednym miejscu.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx}
-                  className="rounded-lg p-4 border shadow-sm"
-                  style={{ 
-                    backgroundColor: branding.offer_section_bg_color,
-                    borderColor: `${branding.offer_primary_color}1a`,
-                  }}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${branding.offer_primary_color}1a` }}
-                    >
-                      <item.icon className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
-                    </div>
-                    <h3 
-                      className="font-semibold text-sm"
-                      style={{ color: branding.offer_section_text_color }}
-                    >
-                      {item.title}
-                    </h3>
-                  </div>
-                  <p 
-                    className="text-xs opacity-70"
+        {/* Why Trust Us Section - configurable from database */}
+        {instance.offer_trust_tiles && instance.offer_trust_tiles.length > 0 && (
+          <Card 
+            className="border"
+            style={{ 
+              backgroundColor: branding.offer_section_bg_color,
+              borderColor: `${branding.offer_primary_color}33`,
+            }}
+          >
+            <CardContent className="pt-6">
+              {instance.offer_trust_header_title && (
+                <div className="text-center mb-6">
+                  <h2 
+                    className="text-xl font-bold mb-2"
                     style={{ color: branding.offer_section_text_color }}
                   >
-                    {item.desc}
-                  </p>
+                    {instance.offer_trust_header_title}
+                  </h2>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              )}
+
+              {instance.offer_trust_description && (
+                <p 
+                  className="text-sm mb-6 opacity-80 text-center max-w-3xl mx-auto"
+                  style={{ color: branding.offer_section_text_color }}
+                >
+                  {instance.offer_trust_description}
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {instance.offer_trust_tiles.map((tile, idx) => {
+                  // Map icon string to component
+                  const iconMap: Record<string, typeof Star> = {
+                    star: Star,
+                    shield: Shield,
+                    sparkles: Sparkles,
+                    award: Award,
+                    heart: Heart,
+                    car: Car,
+                    clock: Clock,
+                    check: CheckCircle,
+                    zap: Zap,
+                    trophy: Trophy,
+                    thumbsup: ThumbsUp,
+                    eye: Eye,
+                  };
+                  const IconComponent = iconMap[tile.icon] || Star;
+                  
+                  return (
+                    <div 
+                      key={idx}
+                      className="rounded-lg p-4 border shadow-sm"
+                      style={{ 
+                        backgroundColor: branding.offer_section_bg_color,
+                        borderColor: `${branding.offer_primary_color}1a`,
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: `${branding.offer_primary_color}1a` }}
+                        >
+                          <IconComponent className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
+                        </div>
+                        <h3 
+                          className="font-semibold text-sm"
+                          style={{ color: branding.offer_section_text_color }}
+                        >
+                          {tile.title}
+                        </h3>
+                      </div>
+                      <p 
+                        className="text-xs opacity-70"
+                        style={{ color: branding.offer_section_text_color }}
+                      >
+                        {tile.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Service Sections */}
         {scopeSections.length === 0 ? (

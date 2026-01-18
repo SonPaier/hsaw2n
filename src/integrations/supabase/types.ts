@@ -638,6 +638,9 @@ export type Database = {
           offer_scope_header_text_color: string | null
           offer_section_bg_color: string | null
           offer_section_text_color: string | null
+          offer_trust_description: string | null
+          offer_trust_header_title: string | null
+          offer_trust_tiles: Json | null
           phone: string | null
           primary_color: string | null
           reservation_phone: string | null
@@ -689,6 +692,9 @@ export type Database = {
           offer_scope_header_text_color?: string | null
           offer_section_bg_color?: string | null
           offer_section_text_color?: string | null
+          offer_trust_description?: string | null
+          offer_trust_header_title?: string | null
+          offer_trust_tiles?: Json | null
           phone?: string | null
           primary_color?: string | null
           reservation_phone?: string | null
@@ -740,6 +746,9 @@ export type Database = {
           offer_scope_header_text_color?: string | null
           offer_section_bg_color?: string | null
           offer_section_text_color?: string | null
+          offer_trust_description?: string | null
+          offer_trust_header_title?: string | null
+          offer_trust_tiles?: Json | null
           phone?: string | null
           primary_color?: string | null
           reservation_phone?: string | null
