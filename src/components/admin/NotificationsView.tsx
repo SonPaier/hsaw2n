@@ -25,6 +25,7 @@ interface NotificationsViewProps {
   onNavigateToOffers: () => void;
   onNavigateToReservations: () => void;
   onReservationClick?: (reservation: any) => void;
+  onNotificationsChange?: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -34,7 +35,8 @@ export default function NotificationsView({
   onNavigateBack,
   onNavigateToOffers,
   onNavigateToReservations,
-  onReservationClick
+  onReservationClick,
+  onNotificationsChange
 }: NotificationsViewProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,7 @@ export default function NotificationsView({
       setNotifications(prev => 
         prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
       );
+      onNotificationsChange?.();
     }
 
     // Open drawer for reservation notifications
@@ -119,6 +122,7 @@ export default function NotificationsView({
       .eq('read', false);
     
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    onNotificationsChange?.();
   };
 
   const handleDeleteAll = async () => {
@@ -128,6 +132,7 @@ export default function NotificationsView({
       .eq('instance_id', instanceId);
     
     setNotifications([]);
+    onNotificationsChange?.();
   };
 
   const getNotificationIcon = (type: string) => {
