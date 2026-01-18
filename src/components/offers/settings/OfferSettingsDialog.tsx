@@ -6,6 +6,7 @@ import { AdminTabsList, AdminTabsTrigger } from '@/components/admin/AdminTabsLis
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
 import { OfferTrustHeaderSettings, OfferTrustHeaderSettingsRef } from './OfferTrustHeaderSettings';
 import { Settings, Save, Loader2, FileText, Palette, Award } from 'lucide-react';
@@ -24,8 +25,11 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  // General settings state - only default payment terms
+  // General settings state
   const [defaultPaymentTerms, setDefaultPaymentTerms] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankCompanyName, setBankCompanyName] = useState('');
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const brandingRef = useRef<OfferBrandingSettingsRef>(null);
@@ -39,12 +43,15 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
       
       const { data } = await supabase
         .from('instances')
-        .select('offer_default_payment_terms')
+        .select('offer_default_payment_terms, offer_bank_name, offer_bank_account_number, offer_bank_company_name')
         .eq('id', instanceId)
         .single();
       
       if (data) {
         setDefaultPaymentTerms(data.offer_default_payment_terms || '');
+        setBankName(data.offer_bank_name || '');
+        setBankAccountNumber(data.offer_bank_account_number || '');
+        setBankCompanyName(data.offer_bank_company_name || '');
       }
       setLoadingSettings(false);
     };
@@ -60,6 +67,9 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
         .from('instances')
         .update({ 
           offer_default_payment_terms: defaultPaymentTerms || null,
+          offer_bank_name: bankName || null,
+          offer_bank_account_number: bankAccountNumber || null,
+          offer_bank_company_name: bankCompanyName || null,
         })
         .eq('id', instanceId);
 
@@ -132,6 +142,45 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Bank payment details */}
+                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <h4 className="font-medium">Dane do płatności</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Te dane będą widoczne w sekcji płatności na ofercie.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label>Nazwa firmy na fakturę</Label>
+                    <Input
+                      value={bankCompanyName}
+                      onChange={(e) => { setBankCompanyName(e.target.value); handleChange(); }}
+                      disabled={saving}
+                      placeholder="ARM-INVEST Sp. z o.o."
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Nazwa banku</Label>
+                    <Input
+                      value={bankName}
+                      onChange={(e) => { setBankName(e.target.value); handleChange(); }}
+                      disabled={saving}
+                      placeholder="ING Bank Śląski S.A."
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Numer konta</Label>
+                    <Input
+                      value={bankAccountNumber}
+                      onChange={(e) => { setBankAccountNumber(e.target.value); handleChange(); }}
+                      disabled={saving}
+                      placeholder="44 1050 1764 1000 0090 8170 0214"
+                      className="font-mono"
+                    />
+                  </div>
+                </div>
+                
                 {/* Default payment terms */}
                 <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
                   <h4 className="font-medium">{t('offerSettings.defaultValues')}</h4>
