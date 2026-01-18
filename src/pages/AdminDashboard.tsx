@@ -2480,6 +2480,7 @@ const AdminDashboard = () => {
             service_id: (editingReservation as any).service_id,
             admin_notes: (editingReservation as any).admin_notes,
             price: editingReservation.price,
+            offer_number: (editingReservation as any).offer_number,
           } : null}
           currentUsername={username}
         />
