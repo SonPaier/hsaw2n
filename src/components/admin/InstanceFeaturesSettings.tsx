@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Building2, ClipboardCheck, FileText, Link2, TrendingUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useInstancePlan } from '@/hooks/useInstancePlan';
 
 interface InstanceFeature {
   feature_key: string;
@@ -71,6 +72,20 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
     icon: ClipboardCheck,
     isPaid: true,
   },
+  {
+    key: 'followup',
+    name: 'Wsparcie sprzedaży',
+    description: 'System follow-up i przypomnień dla klientów',
+    icon: TrendingUp,
+    isPaid: true,
+  },
+  {
+    key: 'reminders',
+    name: 'Automatyczne przypomnienia',
+    description: 'Automatyczne wysyłanie przypomnień SMS do klientów',
+    icon: FileText,
+    isPaid: true,
+  },
 ];
 
 export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSettingsProps) => {
@@ -78,6 +93,9 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [parameterInputs, setParameterInputs] = useState<Record<string, string>>({});
+  
+  // Get plan data to check which features are included
+  const { includedFeatures, loading: planLoading } = useInstancePlan(instanceId);
 
   useEffect(() => {
     fetchFeatures();
@@ -203,7 +221,11 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
     return features.find(f => f.feature_key === featureKey)?.parameters || null;
   };
 
-  if (loading) {
+  const isFeatureFromPlan = (featureKey: string) => {
+    return includedFeatures.includes(featureKey);
+  };
+
+  if (loading || planLoading) {
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -222,7 +244,8 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
       <CardContent className="space-y-4">
         {AVAILABLE_FEATURES.map((feature) => {
           const Icon = feature.icon;
-          const isEnabled = isFeatureEnabled(feature.key);
+          const isFromPlan = isFeatureFromPlan(feature.key);
+          const isEnabled = isFromPlan || isFeatureEnabled(feature.key);
           const isSaving = saving === feature.key;
 
           return (
@@ -236,11 +259,15 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
                     <Icon className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Label className="font-medium">{feature.name}</Label>
-                      {feature.isPaid && (
-                        <Badge variant="secondary" className="text-xs">Płatne</Badge>
-                      )}
+                      {isFromPlan ? (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          W planie
+                        </Badge>
+                      ) : feature.isPaid ? (
+                        <Badge variant="secondary" className="text-xs">Dodatkowe</Badge>
+                      ) : null}
                     </div>
                     <p className="text-sm text-muted-foreground">{feature.description}</p>
                   </div>
@@ -250,7 +277,7 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
                   <Switch
                     checked={isEnabled}
                     onCheckedChange={() => toggleFeature(feature.key, isEnabled)}
-                    disabled={isSaving}
+                    disabled={isSaving || isFromPlan}
                   />
                 </div>
               </div>
