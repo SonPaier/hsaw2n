@@ -235,7 +235,7 @@ const InstanceSettingsDialog = ({
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="ARM CAR AUTO SPA"
+                placeholder="np. Auto Spa Gdańsk"
               />
             </div>
 
@@ -245,7 +245,7 @@ const InstanceSettingsDialog = ({
                 id="slug"
                 value={formData.slug}
                 onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                placeholder="armcar-gdansk"
+                placeholder="np. auto-spa-gdansk"
               />
               <p className="text-xs text-muted-foreground">
                 {t('instanceSettings.slugDescription', { slug: formData.slug })}
@@ -258,7 +258,7 @@ const InstanceSettingsDialog = ({
                 id="invoice_company_name"
                 value={formData.invoice_company_name}
                 onChange={(e) => handleInputChange('invoice_company_name', e.target.value)}
-                placeholder="ARM CAR Sp. z o.o."
+                placeholder="np. Firma Sp. z o.o."
               />
             </div>
 

@@ -19,8 +19,8 @@ const Rezerwacje = ({ instanceSubdomain }: RezerwacjeProps) => {
   return (
     <>
       <Helmet>
-        <title>Rezerwacja online - ARM CAR AUTO SPA Gdańsk</title>
-        <meta name="description" content="Zarezerwuj wizytę w ARM CAR AUTO SPA Gdańsk. Mycie samochodowe, detailing, PPF - wybierz usługę i termin online." />
+        <title>Rezerwacja online</title>
+        <meta name="description" content="Zarezerwuj wizytę online. Mycie samochodowe, detailing, PPF - wybierz usługę i termin." />
       </Helmet>
 
       <ClientLayout hideHeader={hideHeader} hideFooter={hideFooter}>

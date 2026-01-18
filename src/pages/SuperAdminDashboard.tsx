@@ -85,8 +85,8 @@ const SuperAdminDashboard = () => {
       setInstances([
         {
           id: 'inst1',
-          name: 'ARM CAR AUTO SPA GDAŃSK',
-          slug: 'armcar-gdansk',
+          name: 'Demo Auto Spa',
+          slug: 'demo-spa',
           active: true,
           phone: '+48 123 456 789',
           address: 'ul. Przykładowa 123, 80-000 Gdańsk',
