@@ -420,7 +420,7 @@ export const OfferGenerator = ({
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)] -mb-6">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)] pb-24">
       <div className="flex-1 space-y-6 pb-6">
       {/* Steps Header */}
       <div className="flex items-center justify-center gap-2">
@@ -508,15 +508,15 @@ export const OfferGenerator = ({
       )}
       </div>
 
-      {/* Navigation - Sticky Footer */}
-      <div className="sticky bottom-0 bg-background border-t py-4 -mx-6 px-6 mt-auto z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      {/* Navigation - Fixed Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t py-4 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" style={{ zIndex: 1000, marginBottom: 0 }}>
         <div className="flex items-center justify-between">
         <div>
           {currentStep > 1 ? (
             <Button
               variant="outline"
               onClick={handlePrev}
-              className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+              className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
             >
               <ChevronLeft className="w-5 h-5" />
               <span className="hidden sm:inline">{t('common.back')}</span>
@@ -525,7 +525,7 @@ export const OfferGenerator = ({
             <Button
               variant="outline"
               onClick={handleClose}
-              className="h-12 w-12 sm:w-auto sm:px-4"
+              className="h-12 w-12 sm:w-auto sm:px-4 bg-white"
             >
               <span className="hidden sm:inline">{t('common.cancel')}</span>
               <ChevronLeft className="w-5 h-5 sm:hidden" />
@@ -537,7 +537,7 @@ export const OfferGenerator = ({
           <Button
             variant="outline"
             onClick={handleSave}
-            className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+            className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
           >
             <Save className="w-5 h-5" />
             <span className="hidden sm:inline">{t('common.save')}</span>
@@ -547,7 +547,7 @@ export const OfferGenerator = ({
           <Button
             variant="outline"
             onClick={handleShowPreview}
-            className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+            className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
           >
             <Eye className="w-5 h-5" />
             <span className="hidden sm:inline">{t('offers.preview')}</span>
@@ -557,7 +557,7 @@ export const OfferGenerator = ({
           <Button
             variant="outline"
             onClick={handleCopyLink}
-            className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+            className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
           >
             <Link2 className="w-5 h-5" />
             <span className="hidden sm:inline">Skopiuj link</span>

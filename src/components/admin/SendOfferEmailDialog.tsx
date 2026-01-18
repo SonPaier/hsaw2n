@@ -141,7 +141,7 @@ export function SendOfferEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-2xl h-full max-h-[100vh] sm:max-h-[90vh]" style={{ zIndex: 1100 }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5" />
@@ -170,7 +170,7 @@ export function SendOfferEmailDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending} className="bg-white">
             {t('sendEmailDialog.cancel')}
           </Button>
           <Button onClick={handleSend} disabled={sending || !customerEmail}>
