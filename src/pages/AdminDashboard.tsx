@@ -2383,6 +2383,7 @@ const AdminDashboard = () => {
               onNavigateToOffers={() => setCurrentView('offers')}
               onNavigateToReservations={() => setCurrentView('reservations')}
               onReservationClick={handleReservationClick}
+              onNotificationsChange={fetchUnreadNotificationsCount}
             />}
 
             {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
