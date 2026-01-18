@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -12,8 +12,10 @@ import { PublicOfferCustomerView, PublicOfferData } from '@/components/offers/Pu
 const PublicOfferView = () => {
   const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, hasRole, hasInstanceRole } = useAuth();
+  const isAdminPreview = searchParams.get('admin') === 'true';
   const [offer, setOffer] = useState<PublicOfferData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,8 +90,8 @@ const PublicOfferView = () => {
         const fetchedOffer = data as unknown as PublicOfferData;
         setOffer(fetchedOffer);
 
-        // Mark as viewed if not already
-        if (data.status === 'sent') {
+        // Mark as viewed if not already (skip for admin previews)
+        if (data.status === 'sent' && !isAdminPreview) {
           await supabase
             .from('offers')
             .update({ status: 'viewed', viewed_at: new Date().toISOString() })
@@ -111,7 +113,7 @@ const PublicOfferView = () => {
     };
 
     fetchOffer();
-  }, [token, t]);
+  }, [token, t, isAdminPreview]);
 
   // Check if user is admin for this offer's instance
   const isAdmin = user && offer && (
