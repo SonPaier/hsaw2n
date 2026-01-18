@@ -29,6 +29,8 @@ import { InstanceFeaturesSettings } from '@/components/admin/InstanceFeaturesSet
 import InstanceUsersTab from '@/components/admin/InstanceUsersTab';
 import { CarModelsManager } from '@/components/superadmin/CarModelsManager';
 import { InstancePlanSettings } from '@/components/superadmin/InstancePlanSettings';
+import { AddInstanceDialog, SuccessData } from '@/components/superadmin/AddInstanceDialog';
+import { InstanceCreatedSuccessDialog } from '@/components/superadmin/InstanceCreatedSuccessDialog';
 
 interface Instance {
   id: string;
@@ -58,6 +60,9 @@ const SuperAdminDashboard = () => {
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [addInstanceOpen, setAddInstanceOpen] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings'>('instances');
 
@@ -131,7 +136,13 @@ const SuperAdminDashboard = () => {
   };
 
   const handleCreateInstance = () => {
-    toast.info('Formularz tworzenia nowej instancji - w przygotowaniu');
+    setAddInstanceOpen(true);
+  };
+
+  const handleInstanceCreated = (data: SuccessData) => {
+    setSuccessData(data);
+    setSuccessDialogOpen(true);
+    fetchInstances(); // Refresh list
   };
 
   const handleOpenSettings = (instance: Instance) => {
@@ -480,9 +491,23 @@ const SuperAdminDashboard = () => {
               instanceId={selectedInstance.id} 
               instanceName={selectedInstance.name}
             />
-          </DialogContent>
+        </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Instance Dialog */}
+      <AddInstanceDialog
+        open={addInstanceOpen}
+        onOpenChange={setAddInstanceOpen}
+        onSuccess={handleInstanceCreated}
+      />
+
+      {/* Instance Created Success Dialog */}
+      <InstanceCreatedSuccessDialog
+        open={successDialogOpen}
+        onOpenChange={setSuccessDialogOpen}
+        data={successData}
+      />
     </>
   );
 };
