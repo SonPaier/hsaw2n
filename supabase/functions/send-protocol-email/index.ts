@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,50 +106,47 @@ serve(async (req) => {
       </html>
     `;
 
-    // Send email via SMTP
-    const smtpHost = Deno.env.get("SMTP_HOST") ?? "";
-    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") ?? "587");
-    const smtpUser = "protocols@n2wash.com";
-    const smtpPass = Deno.env.get("PROTOCOL_SMTP_PASS") ?? "";
+    // Get SMTP config from secrets
+    const smtpHost = Deno.env.get("SMTP_HOST");
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
 
-    // Use Resend-like API or direct SMTP
-    // Since we're using the same SMTP server, we'll use nodemailer-like approach via fetch
-    const response = await fetch(`https://${smtpHost}/api/emails`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${smtpPass}`,
-        "Content-Type": "application/json",
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      console.error("Missing SMTP configuration");
+      throw new Error("SMTP not configured");
+    }
+
+    console.log("Connecting to SMTP:", smtpHost, smtpPort);
+
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: smtpPort,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
       },
-      body: JSON.stringify({
-        from: `${instance.name} <protocols@n2wash.com>`,
-        to: [recipientEmail],
-        subject: subject,
-        html: htmlContent,
-      }),
     });
 
-    if (!response.ok) {
-      // Fallback: try Resend API directly if configured
-      const resendResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${smtpPass}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: `${instance.name} <protocols@n2wash.com>`,
-          to: [recipientEmail],
-          subject: subject,
-          html: htmlContent,
-        }),
-      });
+    const replyTo = instance.email || smtpUser;
+    const fromName = instance.name || "Protokoły";
 
-      if (!resendResponse.ok) {
-        const errorText = await resendResponse.text();
-        console.error("Email send error:", errorText);
-        throw new Error(`Failed to send email: ${errorText}`);
-      }
-    }
+    console.log("Sending email from:", fromName, smtpUser, "to:", recipientEmail);
+
+    await client.send({
+      from: `${fromName} <${smtpUser}>`,
+      to: recipientEmail,
+      replyTo: replyTo,
+      subject: subject,
+      html: htmlContent,
+    });
+
+    await client.close();
+
+    console.log("Email sent successfully, updating protocol");
 
     // Update protocol with sent timestamp
     await supabaseClient
