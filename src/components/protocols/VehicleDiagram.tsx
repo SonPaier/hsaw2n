@@ -20,10 +20,11 @@ export interface DamagePoint {
 interface VehicleDiagramProps {
   bodyType: BodyType;
   damagePoints: DamagePoint[];
-  onAddPoint: (view: VehicleView, xPercent: number, yPercent: number) => void;
+  onAddPoint?: (view: VehicleView, xPercent: number, yPercent: number) => void;
   onSelectPoint?: (point: DamagePoint) => void;
   onUpdatePointPosition?: (pointId: string, xPercent: number, yPercent: number) => void;
   selectedPointId?: string | null;
+  readOnly?: boolean;
 }
 
 const VIEW_LABELS: Record<VehicleView, string> = {
@@ -48,6 +49,7 @@ export const VehicleDiagram = ({
   onSelectPoint,
   onUpdatePointPosition,
   selectedPointId,
+  readOnly = false,
 }: VehicleDiagramProps) => {
   const [hoveredView, setHoveredView] = useState<VehicleView | null>(null);
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
@@ -59,7 +61,8 @@ export const VehicleDiagram = ({
   });
 
   const handleClick = (view: VehicleView, e: React.MouseEvent<HTMLDivElement>) => {
-    if (draggingPointId) return;
+    if (readOnly || draggingPointId) return;
+    if (!onAddPoint) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -83,9 +86,9 @@ export const VehicleDiagram = ({
     onUpdatePointPosition?.(draggingPointId, clampedX, clampedY);
   }, [draggingPointId, onUpdatePointPosition]);
 
-  // Global mouse/touch move handlers for smooth dragging
+  // Global mouse/touch move handlers for smooth dragging (disabled in readOnly mode)
   useEffect(() => {
-    if (!draggingPointId) return;
+    if (!draggingPointId || readOnly) return;
 
     const point = damagePoints.find(p => p.id === draggingPointId);
     if (!point) return;
@@ -112,9 +115,10 @@ export const VehicleDiagram = ({
       window.removeEventListener('touchmove', handleGlobalMove);
       window.removeEventListener('touchend', handleGlobalEnd);
     };
-  }, [draggingPointId, damagePoints, updatePosition]);
+  }, [draggingPointId, damagePoints, updatePosition, readOnly]);
 
   const handlePointMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, point: DamagePoint) => {
+    if (readOnly) return; // Disable dragging in readOnly mode
     e.stopPropagation();
     e.preventDefault();
     setDraggingPointId(point.id);
@@ -146,10 +150,13 @@ export const VehicleDiagram = ({
     return (
       <div
         key={view}
-        className="relative bg-white rounded-lg border p-2 cursor-crosshair touch-none"
+        className={cn(
+          "relative bg-white rounded-lg border p-2 touch-none",
+          readOnly ? "cursor-default" : "cursor-crosshair"
+        )}
         ref={(el) => { containerRefs.current[view] = el; }}
-        onMouseEnter={() => setHoveredView(view)}
-        onMouseLeave={() => setHoveredView(null)}
+        onMouseEnter={() => !readOnly && setHoveredView(view)}
+        onMouseLeave={() => !readOnly && setHoveredView(null)}
         onClick={(e) => handleClick(view, e)}
       >
         <div className="aspect-square relative overflow-hidden">
@@ -168,19 +175,20 @@ export const VehicleDiagram = ({
             <div
               key={point.id}
               className={cn(
-                "absolute w-6 h-6 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all cursor-grab active:cursor-grabbing",
+                "absolute w-6 h-6 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
+                readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
                 point.isNew && !point.damage_type 
                   ? 'bg-gray-400 animate-pulse' 
                   : (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500'),
                 selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125",
-                draggingPointId === point.id && "scale-150 z-50"
+                !readOnly && draggingPointId === point.id && "scale-150 z-50"
               )}
               style={{
                 left: `${point.x_percent}%`,
                 top: `${point.y_percent}%`,
               }}
-              onMouseDown={(e) => handlePointMouseDown(e, point)}
-              onTouchStart={(e) => handlePointMouseDown(e, point)}
+              onMouseDown={(e) => !readOnly && handlePointMouseDown(e, point)}
+              onTouchStart={(e) => !readOnly && handlePointMouseDown(e, point)}
               onClick={(e) => handlePointClick(e, point)}
             />
           ))}
@@ -191,8 +199,8 @@ export const VehicleDiagram = ({
           {VIEW_LABELS[view]}
         </div>
         
-        {/* Hint on hover */}
-        {hoveredView === view && points.length === 0 && (
+        {/* Hint on hover (only in edit mode) */}
+        {!readOnly && hoveredView === view && points.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg pointer-events-none">
             <span className="text-xs text-muted-foreground bg-white/90 px-2 py-1 rounded">
               Kliknij, aby dodać punkt

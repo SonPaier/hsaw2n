@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
 import PublicOfferView from "./pages/PublicOfferView";
+import PublicProtocolView from "./pages/PublicProtocolView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -100,6 +101,7 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
     <Route path="/res" element={<MojaRezerwacja />} />
     <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/offers/:token" element={<PublicOfferView />} />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -139,6 +141,9 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
     {/* Public offer view - works on admin subdomain too */}
     <Route path="/offers/:token" element={<PublicOfferView />} />
     
+    {/* Public protocol view - works on admin subdomain too */}
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
+    
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
@@ -151,6 +156,7 @@ const DevRoutes = () => (
     <Route path="/res" element={<MojaRezerwacja />} />
     <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/offers/:token" element={<PublicOfferView />} />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     {/* Instance-specific login route */}
     <Route path="/:slug/login" element={<InstanceAuth />} />
     {/* Default login without slug - use demo instance for dev */}

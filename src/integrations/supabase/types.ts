@@ -1839,6 +1839,7 @@ export type Database = {
           damage_type: string | null
           id: string
           photo_url: string | null
+          photo_urls: string[] | null
           protocol_id: string
           view: string
           x_percent: number
@@ -1850,6 +1851,7 @@ export type Database = {
           damage_type?: string | null
           id?: string
           photo_url?: string | null
+          photo_urls?: string[] | null
           protocol_id: string
           view: string
           x_percent: number
@@ -1861,6 +1863,7 @@ export type Database = {
           damage_type?: string | null
           id?: string
           photo_url?: string | null
+          photo_urls?: string[] | null
           protocol_id?: string
           view?: string
           x_percent?: number
@@ -2635,6 +2638,7 @@ export type Database = {
         Row: {
           body_type: string
           created_at: string
+          customer_email: string | null
           customer_name: string
           customer_signature: string | null
           fuel_level: number | null
@@ -2647,6 +2651,7 @@ export type Database = {
           phone: string | null
           protocol_date: string
           protocol_time: string | null
+          public_token: string
           received_by: string | null
           registration_number: string | null
           status: string
@@ -2656,6 +2661,7 @@ export type Database = {
         Insert: {
           body_type?: string
           created_at?: string
+          customer_email?: string | null
           customer_name: string
           customer_signature?: string | null
           fuel_level?: number | null
@@ -2668,6 +2674,7 @@ export type Database = {
           phone?: string | null
           protocol_date?: string
           protocol_time?: string | null
+          public_token: string
           received_by?: string | null
           registration_number?: string | null
           status?: string
@@ -2677,6 +2684,7 @@ export type Database = {
         Update: {
           body_type?: string
           created_at?: string
+          customer_email?: string | null
           customer_name?: string
           customer_signature?: string | null
           fuel_level?: number | null
@@ -2689,6 +2697,7 @@ export type Database = {
           phone?: string | null
           protocol_date?: string
           protocol_time?: string | null
+          public_token?: string
           received_by?: string | null
           registration_number?: string | null
           status?: string
@@ -2787,6 +2796,7 @@ export type Database = {
         Returns: number
       }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }
+      generate_protocol_token: { Args: never; Returns: string }
       generate_short_token: { Args: never; Returns: string }
       get_availability_blocks: {
         Args: { _from: string; _instance_id: string; _to: string }
