@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
+import { ProtocolsView } from '@/components/protocols/ProtocolsView';
+import { useInstancePlan } from '@/hooks/useInstancePlan';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -69,6 +71,11 @@ const HallView = () => {
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
   const [hallDataVisible, setHallDataVisible] = useState(true); // Toggle for sensitive data visibility
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [showProtocolsList, setShowProtocolsList] = useState(false);
+
+  // Check subscription plan for protocols access
+  const { hasFeature, planSlug } = useInstancePlan(instanceId);
+  const canAccessProtocols = hasFeature('vehicle_reception_protocol') || planSlug === 'detailing';
 
   // Prevent navigation away - capture back button and history manipulation
   useEffect(() => {
@@ -506,6 +513,22 @@ const HallView = () => {
     allowed_actions: hall.allowed_actions,
   } : undefined;
 
+  // Show protocols list in kiosk mode
+  if (showProtocolsList && instanceId) {
+    return (
+      <>
+        <Helmet>
+          <title>Protokoły | {hall?.name || t('hall.title')}</title>
+        </Helmet>
+        <ProtocolsView 
+          instanceId={instanceId} 
+          kioskMode={true}
+          onBack={() => setShowProtocolsList(false)}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -529,6 +552,8 @@ const HallView = () => {
           onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
           instanceId={instanceId || undefined}
           yardVehicleCount={yardVehicleCount}
+          showProtocolsButton={canAccessProtocols}
+          onProtocolsClick={() => setShowProtocolsList(true)}
         />
       </div>
 
