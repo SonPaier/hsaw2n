@@ -189,7 +189,7 @@ export const PublicProtocolCustomerView = ({
           {generatedNotes && (
             <div className="space-y-2">
               <Label className="text-muted-foreground text-sm">Uwagi</Label>
-              <div className="p-3 bg-white border rounded-lg whitespace-pre-line text-sm">
+              <div className="whitespace-pre-line text-sm">
                 {generatedNotes}
               </div>
             </div>

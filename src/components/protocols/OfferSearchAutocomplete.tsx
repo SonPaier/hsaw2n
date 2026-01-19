@@ -9,6 +9,7 @@ interface OfferData {
   offer_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_email?: string;
   customer_nip?: string;
   vehicle_model?: string;
 }
@@ -70,6 +71,7 @@ export const OfferSearchAutocomplete = ({
             offer_number: offer.offer_number,
             customer_name: (customerData.name as string) || '',
             customer_phone: (customerData.phone as string) || '',
+            customer_email: (customerData.email as string) || undefined,
             customer_nip: (customerData.nip as string) || undefined,
             vehicle_model: (vehicleData.brandModel as string) || (vehicleData.model as string) || undefined,
           };

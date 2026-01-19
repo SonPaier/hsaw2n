@@ -178,10 +178,10 @@ export const VehicleDiagram = ({
               key={point.id}
               className={cn(
                 "absolute w-6 h-6 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
-                readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
-                point.isNew && !point.damage_type 
+                readOnly ? "cursor-pointer bg-blue-500" : "cursor-grab active:cursor-grabbing",
+                !readOnly && point.isNew && !point.damage_type 
                   ? 'bg-gray-400 animate-pulse' 
-                  : (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500'),
+                  : (!readOnly && (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500')),
                 selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125",
                 !readOnly && draggingPointId === point.id && "scale-150 z-50"
               )}
@@ -227,21 +227,23 @@ export const VehicleDiagram = ({
         {viewsToRender.map(renderView)}
       </div>
       
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 justify-center text-xs">
-        {[
-          { color: 'bg-yellow-500', label: 'Rysa' },
-          { color: 'bg-orange-500', label: 'Wgniecenie' },
-          { color: 'bg-red-500', label: 'Uszkodzenie' },
-          { color: 'bg-blue-500', label: 'Odprysek' },
-          { color: 'bg-purple-500', label: 'Inne' },
-        ].map(item => (
-          <div key={item.label} className="flex items-center gap-1.5">
-            <span className={cn("w-3 h-3 rounded-full", item.color)} />
-            <span className="text-muted-foreground">{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {/* Legend - only show in edit mode */}
+      {!readOnly && (
+        <div className="flex flex-wrap gap-3 justify-center text-xs">
+          {[
+            { color: 'bg-yellow-500', label: 'Rysa' },
+            { color: 'bg-orange-500', label: 'Wgniecenie' },
+            { color: 'bg-red-500', label: 'Uszkodzenie' },
+            { color: 'bg-blue-500', label: 'Odprysek' },
+            { color: 'bg-purple-500', label: 'Inne' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <span className={cn("w-3 h-3 rounded-full", item.color)} />
+              <span className="text-muted-foreground">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -194,6 +194,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     offer_number: string;
     customer_name: string;
     customer_phone: string;
+    customer_email?: string;
     customer_nip?: string;
     vehicle_model?: string;
   }) => {
@@ -201,6 +202,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     setOfferNumber(offer.offer_number);
     setCustomerName(offer.customer_name);
     setPhone(offer.customer_phone);
+    if (offer.customer_email) setCustomerEmail(offer.customer_email);
     if (offer.customer_nip) setNip(offer.customer_nip);
     if (offer.vehicle_model) setVehicleModel(offer.vehicle_model);
   };
