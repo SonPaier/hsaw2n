@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Camera, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { VoiceNoteInput } from './VoiceNoteInput';
 
 const DAMAGE_TYPES = [
   { value: 'scratch', label: 'Rysa', color: 'bg-yellow-500' },
@@ -53,25 +54,28 @@ export const DamagePointDrawer = ({
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Initialize state when point changes
+  // Initialize state when drawer opens with existing point
   useEffect(() => {
-    if (existingPoint) {
-      setDamageType(existingPoint.damage_type || 'scratch');
-      setCustomNote(existingPoint.custom_note || '');
-      // Support both old single photo and new multiple photos
-      const urls: string[] = [];
-      if (existingPoint.photo_urls && existingPoint.photo_urls.length > 0) {
-        urls.push(...existingPoint.photo_urls);
-      } else if (existingPoint.photo_url) {
-        urls.push(existingPoint.photo_url);
+    if (open) {
+      if (existingPoint) {
+        setDamageType(existingPoint.damage_type || 'scratch');
+        setCustomNote(existingPoint.custom_note || '');
+        // Support both old single photo and new multiple photos
+        const urls: string[] = [];
+        if (existingPoint.photo_urls && existingPoint.photo_urls.length > 0) {
+          urls.push(...existingPoint.photo_urls);
+        } else if (existingPoint.photo_url) {
+          urls.push(existingPoint.photo_url);
+        }
+        setPhotoUrls(urls);
+      } else {
+        // Reset for new point
+        setDamageType('scratch');
+        setCustomNote('');
+        setPhotoUrls([]);
       }
-      setPhotoUrls(urls);
-    } else {
-      setDamageType('scratch');
-      setCustomNote('');
-      setPhotoUrls([]);
     }
-  }, [existingPoint, open]);
+  }, [open, existingPoint?.id]); // Only re-run when drawer opens or point ID changes
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -115,6 +119,10 @@ export const DamagePointDrawer = ({
 
   const handleRemovePhoto = (index: number) => {
     setPhotoUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    setCustomNote(prev => prev ? `${prev} ${text}` : text);
   };
 
   const handleSave = () => {
@@ -175,13 +183,18 @@ export const DamagePointDrawer = ({
               </RadioGroup>
             </div>
 
-            {/* Custom note */}
+            {/* Custom note with voice input */}
             <div className="space-y-2">
-              <Label>Notatka (opcjonalna)</Label>
-              <Input
+              <div className="flex items-center justify-between">
+                <Label>Notatka (opcjonalna)</Label>
+                <VoiceNoteInput onTranscript={handleVoiceTranscript} />
+              </div>
+              <Textarea
                 value={customNote}
                 onChange={(e) => setCustomNote(e.target.value)}
                 placeholder="Dodatkowy opis uszkodzenia..."
+                rows={8}
+                className="resize-none"
               />
             </div>
           </div>
@@ -193,11 +206,11 @@ export const DamagePointDrawer = ({
             {/* Photo carousel */}
             {photoUrls.length > 0 && (
               <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                <div className="flex gap-2 pb-2">
+                <div className="flex gap-3 pb-2 pr-2">
                   {photoUrls.map((url, index) => (
                     <div 
                       key={index} 
-                      className="relative shrink-0 w-[calc(20%-8px)] min-w-[80px] aspect-square"
+                      className="relative shrink-0 w-[calc(20%-10px)] min-w-[100px] aspect-square"
                     >
                       <img 
                         src={url} 
@@ -207,7 +220,7 @@ export const DamagePointDrawer = ({
                       <Button
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
                         onClick={() => handleRemovePhoto(index)}
                       >
                         <X className="h-3 w-3" />
