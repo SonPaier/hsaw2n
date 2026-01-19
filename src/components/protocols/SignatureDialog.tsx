@@ -23,34 +23,38 @@ export const SignatureDialog = ({
 
   // Resize canvas to fit container
   useEffect(() => {
-    if (open && containerRef.current) {
-      const updateSize = () => {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          setCanvasSize({
-            width: rect.width,
-            height: rect.height,
-          });
-        }
-      };
-
-      // Small delay to ensure dialog is rendered
-      setTimeout(updateSize, 100);
-      window.addEventListener('resize', updateSize);
-      return () => window.removeEventListener('resize', updateSize);
-    }
-  }, [open]);
-
-  // Load initial signature if exists
-  useEffect(() => {
-    if (open && initialSignature && sigCanvas.current) {
-      setTimeout(() => {
-        if (sigCanvas.current) {
+    if (!open) return;
+    
+    const updateSize = () => {
+      if (containerRef.current && sigCanvas.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const canvas = sigCanvas.current.getCanvas();
+        
+        // Set actual canvas pixel dimensions
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        
+        // Clear and redraw if there was initial signature
+        if (initialSignature) {
           sigCanvas.current.fromDataURL(initialSignature);
         }
-      }, 150);
-    }
-  }, [open, initialSignature, canvasSize]);
+        
+        setCanvasSize({
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    // Delay to ensure dialog is fully rendered
+    const timer = setTimeout(updateSize, 50);
+    window.addEventListener('resize', updateSize);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [open, initialSignature]);
 
   const handleClear = () => {
     sigCanvas.current?.clear();
@@ -95,13 +99,13 @@ export const SignatureDialog = ({
           <SignatureCanvas
             ref={sigCanvas}
             canvasProps={{
-              width: canvasSize.width,
-              height: canvasSize.height,
-              className: 'signature-canvas w-full h-full',
+              className: 'signature-canvas',
               style: { 
                 touchAction: 'none',
                 backgroundColor: '#f5f5f5',
                 display: 'block',
+                width: '100%',
+                height: '100%',
               },
             }}
             penColor="black"
