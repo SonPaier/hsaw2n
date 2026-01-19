@@ -1516,7 +1516,7 @@ const AdminCalendar = ({
                         zIndex: 10000,
                       }}
                     >
-                      <div className="h-full w-full px-3 py-2 flex flex-col justify-center items-center gap-1">
+                      <div className="h-full w-full px-3 py-2 flex flex-col justify-center items-center gap-1 select-none">
                         <span className="text-base font-bold text-primary">
                           Przenieś na {dragPreviewStyle.startTime ?? dragPreviewStyle.time}
                         </span>
@@ -1530,11 +1530,6 @@ const AdminCalendar = ({
                         {draggedReservation.vehicle_plate && (
                           <span className="text-base font-bold text-black">
                             {draggedReservation.vehicle_plate}
-                          </span>
-                        )}
-                        {draggedReservation.service && (
-                          <span className="text-base font-bold text-black">
-                            {draggedReservation.service.shortcut || draggedReservation.service.name}
                           </span>
                         )}
                       </div>
