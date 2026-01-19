@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Plus, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail } from 'lucide-react';
+import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CreateProtocolForm } from './CreateProtocolForm';
@@ -144,11 +144,10 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5" />
-          Protokoły przyjęcia
+          Protokoły
         </h2>
         <Button onClick={() => setShowCreateForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nowy protokół
+          Dodaj protokół
         </Button>
       </div>
 
@@ -180,8 +179,7 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
             </p>
             {!searchQuery && (
               <Button onClick={() => setShowCreateForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nowy protokół
+                Dodaj protokół
               </Button>
             )}
           </CardContent>
@@ -195,20 +193,24 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                 className="hover:shadow-md transition-shadow"
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-2 sm:gap-4">
                     <div 
                       className="flex-1 min-w-0 space-y-1 cursor-pointer"
                       onClick={() => setEditingProtocolId(protocol.id)}
                     >
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      {/* Line 1: Customer name + Status (mobile) */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <User className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
                         <span className="font-medium truncate">{protocol.customer_name}</span>
-                        {protocol.offer_number && (
-                          <Badge variant="secondary" className="text-xs">
-                            #{protocol.offer_number}
-                          </Badge>
-                        )}
+                        <Badge 
+                          variant={protocol.status === 'completed' ? 'default' : 'secondary'}
+                          className="sm:hidden text-xs"
+                        >
+                          {protocol.status === 'completed' ? 'Zakończony' : 'Szkic'}
+                        </Badge>
                       </div>
+                      
+                      {/* Line 2: Car */}
                       {(protocol.vehicle_model || protocol.registration_number) && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Car className="h-4 w-4 flex-shrink-0" />
@@ -217,15 +219,36 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                           </span>
                         </div>
                       )}
+                      
+                      {/* Line 3: Date */}
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4 flex-shrink-0" />
                         <span>
                           {format(new Date(protocol.protocol_date), 'PPP', { locale: pl })}
                         </span>
                       </div>
+                      
+                      {/* Line 4: Offer number (mobile only) */}
+                      {protocol.offer_number && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground sm:hidden">
+                          <FileText className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">#{protocol.offer_number}</span>
+                        </div>
+                      )}
+                      
+                      {/* Offer badge - desktop only */}
+                      {protocol.offer_number && (
+                        <Badge variant="secondary" className="text-xs hidden sm:inline-flex mt-1">
+                          #{protocol.offer_number}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={protocol.status === 'completed' ? 'default' : 'secondary'}>
+                      {/* Status badge - desktop only */}
+                      <Badge 
+                        variant={protocol.status === 'completed' ? 'default' : 'secondary'}
+                        className="hidden sm:inline-flex"
+                      >
                         {protocol.status === 'completed' ? 'Zakończony' : 'Szkic'}
                       </Badge>
                       <DropdownMenu>
