@@ -1505,11 +1505,7 @@ const AdminCalendar = ({
                   {/* Drag preview ghost - full card */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
                     <div
-                      className={cn(
-                        "absolute left-1 right-1 rounded-lg border-2 border-primary border-dashed pointer-events-none overflow-hidden shadow-xl",
-                        getStatusColor(draggedReservation.status, station.type),
-                        "opacity-60"
-                      )}
+                      className="absolute left-1 right-1 rounded-lg border-2 border-primary border-dashed pointer-events-none overflow-hidden shadow-xl bg-white"
                       style={{
                         top: dragPreviewStyle.top,
                         height: dragPreviewStyle.height,
