@@ -42,7 +42,7 @@ export const DamageViewDrawer = ({
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
+        <DrawerContent className="max-h-[85vh] mx-auto" style={{ maxWidth: '768px' }}>
           <DrawerHeader className="flex items-center justify-between pb-2">
             <DrawerTitle>Szczegóły uszkodzenia</DrawerTitle>
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>

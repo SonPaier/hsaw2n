@@ -2651,6 +2651,7 @@ export type Database = {
           phone: string | null
           protocol_date: string
           protocol_time: string | null
+          protocol_type: string
           public_token: string
           received_by: string | null
           registration_number: string | null
@@ -2674,6 +2675,7 @@ export type Database = {
           phone?: string | null
           protocol_date?: string
           protocol_time?: string | null
+          protocol_type?: string
           public_token: string
           received_by?: string | null
           registration_number?: string | null
@@ -2697,6 +2699,7 @@ export type Database = {
           phone?: string | null
           protocol_date?: string
           protocol_time?: string | null
+          protocol_type?: string
           public_token?: string
           received_by?: string | null
           registration_number?: string | null

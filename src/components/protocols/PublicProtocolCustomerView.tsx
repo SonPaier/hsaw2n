@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { ProtocolHeader } from './ProtocolHeader';
-import { VehicleDiagram, type BodyType, type DamagePoint } from './VehicleDiagram';
+import { VehicleDiagram, type BodyType, type DamagePoint, type VehicleView } from './VehicleDiagram';
 import { DamageViewDrawer } from './DamageViewDrawer';
+
+export type ProtocolType = 'reception' | 'pickup';
+
+const PROTOCOL_TYPE_LABELS: Record<ProtocolType, string> = {
+  reception: 'przyjęcia',
+  pickup: 'odbioru',
+};
 
 interface Instance {
   id: string;
@@ -33,6 +40,7 @@ interface Protocol {
   received_by: string | null;
   status: string;
   customer_signature: string | null;
+  protocol_type?: ProtocolType;
 }
 
 interface PublicProtocolCustomerViewProps {
@@ -69,6 +77,12 @@ export const PublicProtocolCustomerView = ({
     setViewerOpen(true);
   };
 
+  // Filter views that have damage points
+  const viewsWithDamage = useMemo(() => {
+    const views: VehicleView[] = ['front', 'rear', 'left', 'right'];
+    return views.filter(view => damagePoints.some(p => p.view === view));
+  }, [damagePoints]);
+
   // Generate notes from damage points
   const generatedNotes = damagePoints.length > 0 
     ? damagePoints.map(point => {
@@ -79,24 +93,30 @@ export const PublicProtocolCustomerView = ({
       }).join('\n')
     : null;
 
+  // Protocol type label
+  const protocolTypeLabel = PROTOCOL_TYPE_LABELS[protocol.protocol_type || 'reception'];
+  const protocolTitle = `Protokół ${protocolTypeLabel} pojazdu${protocol.vehicle_model ? ` ${protocol.vehicle_model}` : ''}`;
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-muted/30 flex flex-col">
       {/* Sticky header */}
-      <ProtocolHeader 
-        instance={instance} 
-        protocolNumber={protocol.offer_number || undefined}
-      />
+      <div className="w-full max-w-3xl mx-auto bg-white">
+        <ProtocolHeader 
+          instance={instance} 
+          protocolNumber={protocol.offer_number || undefined}
+        />
+      </div>
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-8">
-        <div className="w-full px-4 py-6 space-y-6">
-          {/* Offer number */}
-          {protocol.offer_number && (
-            <div className="space-y-1">
-              <Label className="text-muted-foreground text-sm">Numer oferty</Label>
-              <p className="text-base font-medium">{protocol.offer_number}</p>
-            </div>
-          )}
+        <div className="w-full max-w-3xl mx-auto px-4 py-6 space-y-6 bg-white min-h-full">
+          {/* Protocol title */}
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold">{protocolTitle}</h1>
+            {protocol.offer_number && (
+              <p className="text-muted-foreground text-sm">Oferta {protocol.offer_number}</p>
+            )}
+          </div>
 
           {/* Customer data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -151,22 +171,25 @@ export const PublicProtocolCustomerView = ({
             )}
           </div>
 
-          {/* Vehicle diagram */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-sm">Stan pojazdu</Label>
-            <VehicleDiagram
-              bodyType={protocol.body_type}
-              damagePoints={damagePoints}
-              readOnly
-              onSelectPoint={handleSelectPoint}
-            />
-          </div>
+          {/* Vehicle diagram - only views with damage */}
+          {viewsWithDamage.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-sm">Stan pojazdu</Label>
+              <VehicleDiagram
+                bodyType={protocol.body_type}
+                damagePoints={damagePoints}
+                readOnly
+                onSelectPoint={handleSelectPoint}
+                visibleViews={viewsWithDamage}
+              />
+            </div>
+          )}
 
           {/* Notes */}
           {generatedNotes && (
             <div className="space-y-2">
               <Label className="text-muted-foreground text-sm">Uwagi</Label>
-              <div className="p-3 bg-muted/30 rounded-lg whitespace-pre-line text-sm">
+              <div className="p-3 bg-white border rounded-lg whitespace-pre-line text-sm">
                 {generatedNotes}
               </div>
             </div>
@@ -175,7 +198,7 @@ export const PublicProtocolCustomerView = ({
           {/* Protocol metadata */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-muted-foreground text-sm">Data protokołu</Label>
+              <Label className="text-muted-foreground text-sm">Data sporządzenia protokołu</Label>
               <p className="text-base">
                 {format(new Date(protocol.protocol_date), 'PPP', { locale: pl })}
                 {protocol.protocol_time && `, ${protocol.protocol_time.slice(0, 5)}`}
@@ -211,10 +234,15 @@ export const PublicProtocolCustomerView = ({
             {instance.phone && <p>Tel: {instance.phone}</p>}
             {instance.email && <p>Email: {instance.email}</p>}
           </div>
+
+          {/* App footer */}
+          <div className="text-center text-xs text-muted-foreground pt-4">
+            Protokół sporządzono przy użyciu aplikacji n2wash.com
+          </div>
         </div>
       </main>
 
-      {/* Damage view drawer for read-only */}
+      {/* Damage view drawer for read-only - constrained width */}
       <DamageViewDrawer
         open={viewerOpen}
         onOpenChange={setViewerOpen}

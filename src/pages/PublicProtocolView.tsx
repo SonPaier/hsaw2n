@@ -16,6 +16,8 @@ interface Instance {
   address: string | null;
 }
 
+type ProtocolType = 'reception' | 'pickup';
+
 interface Protocol {
   id: string;
   public_token: string;
@@ -35,6 +37,7 @@ interface Protocol {
   status: string;
   customer_signature: string | null;
   instance_id: string;
+  protocol_type?: ProtocolType;
 }
 
 export default function PublicProtocolView() {
