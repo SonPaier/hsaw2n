@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Loader2, PenLine } from 'lucide-react';
+import { CalendarIcon, Loader2, PenLine, Mail, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -17,8 +17,11 @@ import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } fro
 import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
 import { SignatureDialog } from './SignatureDialog';
+import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
 import ClientSearchAutocomplete, { type ClientSearchValue } from '@/components/ui/client-search-autocomplete';
 import { CarSearchAutocomplete, type CarSearchValue } from '@/components/ui/car-search-autocomplete';
+
+type ProtocolType = 'reception' | 'pickup';
 
 interface Instance {
   id: string;
@@ -32,6 +35,7 @@ interface CreateProtocolFormProps {
   instanceId: string;
   protocolId?: string | null;
   onBack: () => void;
+  onOpenSettings?: () => void;
 }
 
 const BODY_TYPES: { value: BodyType; label: string }[] = [
@@ -59,16 +63,18 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
   custom: 'inne',
 };
 
-export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreateProtocolFormProps) => {
+export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSettings }: CreateProtocolFormProps) => {
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAndSending, setSavingAndSending] = useState(false);
   const isEditMode = !!protocolId;
 
   // Form state
   const [offerNumber, setOfferNumber] = useState('');
   const [offerId, setOfferId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [nip, setNip] = useState('');
   const [phone, setPhone] = useState('');
@@ -80,6 +86,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
   const [protocolDate, setProtocolDate] = useState<Date>(new Date());
   const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
+  const [protocolType, setProtocolType] = useState<ProtocolType>('reception');
 
   // Damage points
   const [damagePoints, setDamagePoints] = useState<DamagePoint[]>([]);
@@ -90,6 +97,10 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
   // Signature
   const [customerSignature, setCustomerSignature] = useState<string | null>(null);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+
+  // Email dialog
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [savedProtocolIdForEmail, setSavedProtocolIdForEmail] = useState<string | null>(null);
 
   // Generate notes from damage points
   const generatedNotes = useMemo(() => {
@@ -134,10 +145,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
           setOfferNumber(protocolData.offer_number || '');
           setOfferId(protocolData.offer_id || null);
           setCustomerName(protocolData.customer_name || '');
+          setCustomerEmail(protocolData.customer_email || '');
           setVehicleModel(protocolData.vehicle_model || '');
           setNip(protocolData.nip || '');
           setPhone(protocolData.phone || '');
           setRegistrationNumber(protocolData.registration_number || '');
+          setProtocolType((protocolData.protocol_type as ProtocolType) || 'reception');
+          setCustomerSignature(protocolData.customer_signature || null);
           setFuelLevel(protocolData.fuel_level?.toString() || '');
           setOdometerReading(protocolData.odometer_reading?.toString() || '');
           setBodyType((protocolData.body_type as BodyType) || 'sedan');
@@ -257,19 +271,25 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
     setSelectedPoint(null);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (openEmailAfter = false) => {
     if (!customerName.trim()) {
       toast.error('Podaj imię i nazwisko klienta');
-      return;
+      return null;
     }
 
-    setSaving(true);
+    if (openEmailAfter) {
+      setSavingAndSending(true);
+    } else {
+      setSaving(true);
+    }
+
     try {
       const protocolPayload = {
         instance_id: instanceId,
         offer_id: offerId,
         offer_number: offerNumber || null,
         customer_name: customerName,
+        customer_email: customerEmail || null,
         vehicle_model: vehicleModel || null,
         nip: nip || null,
         phone: phone || null,
@@ -280,6 +300,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
         protocol_date: format(protocolDate, 'yyyy-MM-dd'),
         received_by: receivedBy || null,
         status: 'completed',
+        protocol_type: protocolType,
+        customer_signature: customerSignature,
       };
 
       let savedProtocolId = protocolId;
@@ -336,14 +358,28 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
         if (pointsError) throw pointsError;
       }
 
-      toast.success(isEditMode ? 'Protokół zaktualizowany' : 'Protokół zapisany');
-      onBack();
+      if (openEmailAfter && savedProtocolId) {
+        toast.success('Protokół zapisany');
+        setSavedProtocolIdForEmail(savedProtocolId);
+        setEmailDialogOpen(true);
+        return savedProtocolId;
+      } else {
+        toast.success(isEditMode ? 'Protokół zaktualizowany' : 'Protokół zapisany');
+        onBack();
+        return savedProtocolId;
+      }
     } catch (error) {
       console.error('Error saving protocol:', error);
       toast.error('Błąd podczas zapisywania protokołu');
+      return null;
     } finally {
       setSaving(false);
+      setSavingAndSending(false);
     }
+  };
+
+  const handleSaveAndSendEmail = () => {
+    handleSave(true);
   };
 
   if (loading) {
@@ -362,15 +398,29 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="w-full px-4 py-6 space-y-6">
-          {/* Offer search */}
-          <div className="space-y-2">
-            <Label>Numer oferty</Label>
-            <OfferSearchAutocomplete
-              instanceId={instanceId}
-              value={offerNumber}
-              onChange={setOfferNumber}
-              onOfferSelect={handleOfferSelect}
-            />
+          {/* Protocol type selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Typ protokołu</Label>
+              <Select value={protocolType} onValueChange={(v) => setProtocolType(v as ProtocolType)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reception">Protokół przyjęcia</SelectItem>
+                  <SelectItem value="pickup">Protokół odbioru</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Numer oferty</Label>
+              <OfferSearchAutocomplete
+                instanceId={instanceId}
+                value={offerNumber}
+                onChange={setOfferNumber}
+                onOfferSelect={handleOfferSelect}
+              />
+            </div>
           </div>
 
           {/* Customer data */}
@@ -399,6 +449,15 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
                 onClear={handleCustomerClear}
                 placeholder="Wyszukaj po numerze telefonu"
                 className="bg-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email klienta</Label>
+              <Input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="klient@email.com"
               />
             </div>
             <div className="space-y-2">
@@ -557,14 +616,30 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
       </main>
 
       {/* Fixed footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between z-50">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
         <Button variant="outline" onClick={onBack}>
           Anuluj
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Zapisz
-        </Button>
+        <div className="flex gap-2">
+          {onOpenSettings && (
+            <Button variant="outline" size="icon" onClick={onOpenSettings}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={handleSaveAndSendEmail} 
+            disabled={saving || savingAndSending}
+          >
+            {savingAndSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Mail className="h-4 w-4 mr-2" />
+            Zapisz i wyślij
+          </Button>
+          <Button onClick={() => handleSave(false)} disabled={saving || savingAndSending}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Zapisz
+          </Button>
+        </div>
       </footer>
 
       <DamagePointDrawer
@@ -582,6 +657,21 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
         onOpenChange={setSignatureDialogOpen}
         onSave={setCustomerSignature}
         initialSignature={customerSignature}
+      />
+
+      <SendProtocolEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={(open) => {
+          setEmailDialogOpen(open);
+          if (!open) {
+            onBack(); // Return to list after closing email dialog
+          }
+        }}
+        protocolId={savedProtocolIdForEmail || protocolId || ''}
+        customerName={customerName}
+        customerEmail={customerEmail}
+        vehicleInfo={[vehicleModel, registrationNumber].filter(Boolean).join(' ')}
+        protocolType={protocolType}
       />
     </div>
   );
