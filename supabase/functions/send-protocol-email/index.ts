@@ -35,7 +35,10 @@ serve(async (req) => {
           name,
           slug,
           email,
-          phone
+          phone,
+          address,
+          website,
+          contact_person
         )
       `)
       .eq("id", protocolId)
@@ -48,17 +51,16 @@ serve(async (req) => {
     const instance = protocol.instances;
     const publicUrl = `https://${instance.slug}.n2wash.com/protocols/${protocol.public_token}`;
 
-    // Build email HTML
+    // Build email HTML with company footer matching offer emails
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .content { margin-bottom: 30px; }
+          .content { padding: 20px 0; }
           .button { 
             display: inline-block; 
             background-color: #000; 
@@ -71,30 +73,32 @@ serve(async (req) => {
           .footer { 
             margin-top: 30px; 
             padding-top: 20px; 
-            border-top: 1px solid #eee; 
-            font-size: 12px; 
+            border-top: 1px solid #e5e5e5; 
+            font-size: 13px; 
             color: #666; 
           }
+          .footer-row { margin-bottom: 8px; }
+          a { color: #2563eb; text-decoration: none; }
+          a:hover { text-decoration: underline; }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <h2>${instance.name}</h2>
-          </div>
           <div class="content">
-            <p>${message.replace(/\n/g, '<br>')}</p>
+            <p>${message.replace(/\n/g, '<br>').replace('[Link do protokołu zostanie automatycznie dołączony]', '')}</p>
             <p style="text-align: center;">
               <a href="${publicUrl}" class="button">Zobacz protokół</a>
             </p>
-            <p style="font-size: 12px; color: #666;">
-              Lub skopiuj link: ${publicUrl}
+            <p style="font-size: 12px; color: #666; text-align: center;">
+              Lub skopiuj link: <a href="${publicUrl}">${publicUrl}</a>
             </p>
           </div>
           <div class="footer">
-            <p>${instance.name}</p>
-            ${instance.phone ? `<p>Tel: ${instance.phone}</p>` : ''}
-            ${instance.email ? `<p>Email: ${instance.email}</p>` : ''}
+            <p style="margin-bottom: 15px;">Pozdrawiamy serdecznie,<br><strong>${instance.name}</strong>${instance.contact_person ? `<br>${instance.contact_person}` : ''}</p>
+            ${instance.phone ? `<div class="footer-row">📞 ${instance.phone}</div>` : ''}
+            ${instance.address ? `<div class="footer-row">📍 ${instance.address}</div>` : ''}
+            ${instance.website ? `<div class="footer-row">🌐 <a href="${instance.website}">${instance.website}</a></div>` : ''}
+            ${instance.email ? `<div class="footer-row">📧 ${instance.email}</div>` : ''}
           </div>
         </div>
       </body>

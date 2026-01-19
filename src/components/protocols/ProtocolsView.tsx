@@ -22,9 +22,11 @@ interface Protocol {
   id: string;
   offer_number: string | null;
   customer_name: string;
+  customer_email: string | null;
   vehicle_model: string | null;
   registration_number: string | null;
   protocol_date: string;
+  protocol_type: 'reception' | 'pickup' | null;
   status: string;
   created_at: string;
   public_token: string;
@@ -64,12 +66,12 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
     try {
       const { data, error } = await supabase
         .from('vehicle_protocols')
-        .select('id, offer_number, customer_name, vehicle_model, registration_number, protocol_date, status, created_at, public_token')
+        .select('id, offer_number, customer_name, customer_email, vehicle_model, registration_number, protocol_date, protocol_type, status, created_at, public_token')
         .eq('instance_id', instanceId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProtocols(data || []);
+      setProtocols((data || []) as Protocol[]);
     } catch (error) {
       console.error('Error fetching protocols:', error);
     } finally {
@@ -291,7 +293,9 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
             onOpenChange={setEmailDialogOpen}
             protocolId={protocolToEmail?.id || ''}
             customerName={protocolToEmail?.customer_name || ''}
+            customerEmail={protocolToEmail?.customer_email || undefined}
             vehicleInfo={[protocolToEmail?.vehicle_model, protocolToEmail?.registration_number].filter(Boolean).join(' ')}
+            protocolType={protocolToEmail?.protocol_type || 'reception'}
           />
         </>
       )}
