@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Loader2, Save, ArrowLeft, PenLine } from 'lucide-react';
+import { CalendarIcon, Loader2, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -26,6 +24,8 @@ interface Instance {
   id: string;
   name: string;
   logo_url: string | null;
+  phone: string | null;
+  email: string | null;
 }
 
 interface CreateProtocolFormProps {
@@ -60,7 +60,6 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
 };
 
 export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreateProtocolFormProps) => {
-  const navigate = useNavigate();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -111,10 +110,10 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch instance
+        // Fetch instance with contact info
         const { data: instanceData, error: instanceError } = await supabase
           .from('instances')
-          .select('id, name, logo_url')
+          .select('id, name, logo_url, phone, email')
           .eq('id', instanceId)
           .single();
 
@@ -335,242 +334,226 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <ProtocolHeader instance={instance} />
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Sticky header */}
+      <ProtocolHeader instance={instance} onClose={onBack} />
 
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <div className="flex items-center justify-between mb-2">
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Powrót do listy
-          </Button>
-          <h2 className="text-lg font-semibold">
-            {isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}
-          </h2>
-        </div>
+      {/* Scrollable content */}
+      <main className="flex-1 overflow-y-auto pb-24">
+        <div className="w-full px-4 py-6 space-y-6">
+          {/* Offer search */}
+          <div className="space-y-2">
+            <Label>Numer oferty</Label>
+            <OfferSearchAutocomplete
+              instanceId={instanceId}
+              value={offerNumber}
+              onChange={setOfferNumber}
+              onOfferSelect={handleOfferSelect}
+            />
+          </div>
 
-        <Card>
-          <CardContent className="p-6 space-y-6">
-            {/* Offer search */}
+          {/* Customer data */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Numer oferty</Label>
-              <OfferSearchAutocomplete
+              <Label>Imię i nazwisko *</Label>
+              <ClientSearchAutocomplete
                 instanceId={instanceId}
-                value={offerNumber}
-                onChange={setOfferNumber}
-                onOfferSelect={handleOfferSelect}
+                value={customerName}
+                onChange={setCustomerName}
+                onSelect={handleCustomerSelect}
+                onClear={handleCustomerClear}
+                placeholder="Wyszukaj klienta lub wpisz nowe dane"
+                className="bg-white"
               />
             </div>
-
-            {/* Customer data */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Imię i nazwisko *</Label>
-                <ClientSearchAutocomplete
-                  instanceId={instanceId}
-                  value={customerName}
-                  onChange={setCustomerName}
-                  onSelect={handleCustomerSelect}
-                  onClear={handleCustomerClear}
-                  placeholder="Wyszukaj klienta lub wpisz nowe dane"
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
-                <ClientSearchAutocomplete
-                  instanceId={instanceId}
-                  value={phone}
-                  onChange={setPhone}
-                  onSelect={handleCustomerSelect}
-                  onClear={handleCustomerClear}
-                  placeholder="Wyszukaj po numerze telefonu"
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Model samochodu</Label>
-                <CarSearchAutocomplete
-                  value={vehicleModel}
-                  onChange={(val: CarSearchValue) => {
-                    if (val && 'label' in val) {
-                      setVehicleModel(val.label);
-                    } else {
-                      setVehicleModel('');
-                    }
-                  }}
-                  onClear={() => setVehicleModel('')}
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>NIP firmy</Label>
-                <Input
-                  value={nip}
-                  onChange={(e) => setNip(e.target.value)}
-                  placeholder="1234567890"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Numer rejestracyjny</Label>
-                <Input
-                  value={registrationNumber}
-                  onChange={(e) => setRegistrationNumber(e.target.value)}
-                  placeholder="WA 12345"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Stan paliwa (%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={fuelLevel}
-                  onChange={(e) => setFuelLevel(e.target.value)}
-                  placeholder="50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Stan licznika (km)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={odometerReading}
-                  onChange={(e) => setOdometerReading(e.target.value)}
-                  placeholder="100000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Typ nadwozia</Label>
-                <Select value={bodyType} onValueChange={(v) => setBodyType(v as BodyType)}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BODY_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Vehicle diagram */}
             <div className="space-y-2">
-              <Label>Diagram pojazdu</Label>
-              <VehicleDiagram
-                bodyType={bodyType}
-                damagePoints={damagePoints}
-                onAddPoint={handleAddPoint}
-                onSelectPoint={handleSelectPoint}
-                selectedPointId={selectedPoint?.id}
+              <Label>Telefon</Label>
+              <ClientSearchAutocomplete
+                instanceId={instanceId}
+                value={phone}
+                onChange={setPhone}
+                onSelect={handleCustomerSelect}
+                onClear={handleCustomerClear}
+                placeholder="Wyszukaj po numerze telefonu"
+                className="bg-white"
               />
             </div>
-
-            {/* Notes - auto-filled with damage points */}
             <div className="space-y-2">
-              <Label>Uwagi</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Uwagi dotyczące stanu pojazdu..."
-                rows={3}
-                className="resize-none"
+              <Label>Model samochodu</Label>
+              <CarSearchAutocomplete
+                value={vehicleModel}
+                onChange={(val: CarSearchValue) => {
+                  if (val && 'label' in val) {
+                    setVehicleModel(val.label);
+                  } else {
+                    setVehicleModel('');
+                  }
+                }}
+                onClear={() => setVehicleModel('')}
+                className="bg-white"
               />
-              {damagePoints.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Uwagi są automatycznie uzupełniane na podstawie zaznaczonych usterek
-                </p>
-              )}
             </div>
-
-            {/* Protocol metadata */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data protokołu</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal bg-white",
-                        !protocolDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {protocolDate ? format(protocolDate, 'PPP', { locale: pl }) : 'Wybierz datę'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={protocolDate}
-                      onSelect={(date) => date && setProtocolDate(date)}
-                      locale={pl}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label>Przyjął</Label>
-                <Input
-                  value={receivedBy}
-                  onChange={(e) => setReceivedBy(e.target.value)}
-                  placeholder="Imię i nazwisko pracownika"
-                />
-              </div>
-            </div>
-
-            {/* Customer signature */}
             <div className="space-y-2">
-              <Label>Podpis klienta</Label>
-              {customerSignature ? (
-                <div 
-                  className="h-24 border rounded-lg bg-white flex items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => setSignatureDialogOpen(true)}
-                >
-                  <img 
-                    src={customerSignature} 
-                    alt="Podpis klienta" 
-                    className="max-h-20 max-w-full object-contain"
+              <Label>NIP firmy</Label>
+              <Input
+                value={nip}
+                onChange={(e) => setNip(e.target.value)}
+                placeholder="1234567890"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Numer rejestracyjny</Label>
+              <Input
+                value={registrationNumber}
+                onChange={(e) => setRegistrationNumber(e.target.value)}
+                placeholder="WA 12345"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Stan paliwa (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={fuelLevel}
+                onChange={(e) => setFuelLevel(e.target.value)}
+                placeholder="50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Stan licznika (km)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={odometerReading}
+                onChange={(e) => setOdometerReading(e.target.value)}
+                placeholder="100000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Typ nadwozia</Label>
+              <Select value={bodyType} onValueChange={(v) => setBodyType(v as BodyType)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BODY_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Vehicle diagram */}
+          <div className="space-y-2">
+            <Label>Diagram pojazdu</Label>
+            <VehicleDiagram
+              bodyType={bodyType}
+              damagePoints={damagePoints}
+              onAddPoint={handleAddPoint}
+              onSelectPoint={handleSelectPoint}
+              selectedPointId={selectedPoint?.id}
+            />
+          </div>
+
+          {/* Notes - auto-filled with damage points */}
+          <div className="space-y-2">
+            <Label>Uwagi</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Uwagi dotyczące stanu pojazdu..."
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Protocol metadata */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data protokołu</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-white",
+                      !protocolDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {protocolDate ? format(protocolDate, 'PPP', { locale: pl }) : 'Wybierz datę'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={protocolDate}
+                    onSelect={(date) => date && setProtocolDate(date)}
+                    locale={pl}
                   />
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-24 border-2 border-dashed"
-                  onClick={() => setSignatureDialogOpen(true)}
-                >
-                  <PenLine className="h-5 w-5 mr-2" />
-                  Kliknij, aby złożyć podpis
-                </Button>
-              )}
+                </PopoverContent>
+              </Popover>
             </div>
+            <div className="space-y-2">
+              <Label>Przyjął</Label>
+              <Input
+                value={receivedBy}
+                onChange={(e) => setReceivedBy(e.target.value)}
+                placeholder="Imię i nazwisko pracownika"
+              />
+            </div>
+          </div>
 
-            {/* Save button */}
-            <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} disabled={saving} size="lg">
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Zapisz protokół
+          {/* Customer signature */}
+          <div className="space-y-2">
+            <Label>Podpis klienta</Label>
+            {customerSignature ? (
+              <div 
+                className="h-24 border rounded-lg bg-white flex items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => setSignatureDialogOpen(true)}
+              >
+                <img 
+                  src={customerSignature} 
+                  alt="Podpis klienta" 
+                  className="max-h-20 max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-24 border-2 border-dashed"
+                onClick={() => setSignatureDialogOpen(true)}
+              >
+                <PenLine className="h-5 w-5 mr-2" />
+                Kliknij, aby złożyć podpis
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Fixed footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between z-50">
+        <Button variant="outline" onClick={onBack}>
+          Anuluj
+        </Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Zapisz
+        </Button>
+      </footer>
 
       <DamagePointDrawer
         open={drawerOpen}
