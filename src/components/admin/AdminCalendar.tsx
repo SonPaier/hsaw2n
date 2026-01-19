@@ -872,13 +872,25 @@ const AdminCalendar = ({
     onAddBreak?.(stationId, targetDate, time);
   };
 
-  // Drag and drop handlers
+// Drag and drop handlers
   const handleDragStart = (e: DragEvent<HTMLDivElement>, reservation: Reservation) => {
     // Disable drag on mobile and in read-only mode
     if (readOnly || isMobile) {
       e.preventDefault();
       return;
     }
+    
+    // Create a minimal transparent drag image to avoid visual glitches
+    // when the original card becomes invisible
+    const dragImg = document.createElement('div');
+    dragImg.style.width = '1px';
+    dragImg.style.height = '1px';
+    dragImg.style.opacity = '0';
+    document.body.appendChild(dragImg);
+    e.dataTransfer.setDragImage(dragImg, 0, 0);
+    // Clean up the temporary element after a short delay
+    setTimeout(() => document.body.removeChild(dragImg), 0);
+    
     setDraggedReservation(reservation);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', reservation.id);
