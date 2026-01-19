@@ -442,8 +442,8 @@ export const OfferGenerator = ({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",
                   isActive && "bg-primary text-primary-foreground",
-                  isCompleted && !isActive && "bg-primary/10 text-primary",
-                  !isActive && !isCompleted && "text-muted-foreground hover:bg-muted"
+                  isCompleted && !isActive && "bg-primary/10 text-primary hover:bg-primary hover:text-white",
+                  !isActive && !isCompleted && "text-muted-foreground hover:bg-primary hover:text-white"
                 )}
               >
                 <Icon className="w-4 h-4" />
