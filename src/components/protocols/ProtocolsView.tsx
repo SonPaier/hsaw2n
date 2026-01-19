@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText } from 'lucide-react';
+import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CreateProtocolForm } from './CreateProtocolForm';
@@ -17,6 +17,13 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 
 interface Protocol {
   id: string;
@@ -36,6 +43,8 @@ interface ProtocolsViewProps {
   instanceId: string;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +56,17 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   const [editingProtocolId, setEditingProtocolId] = useState<string | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [protocolToEmail, setProtocolToEmail] = useState<Protocol | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchProtocols();
     fetchInstanceSlug();
   }, [instanceId]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const fetchInstanceSlug = async () => {
     const { data } = await supabase
@@ -79,15 +94,60 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
     }
   };
 
-  const filteredProtocols = protocols.filter(p => {
-    const query = searchQuery.toLowerCase();
-    return (
-      p.customer_name.toLowerCase().includes(query) ||
-      p.offer_number?.toLowerCase().includes(query) ||
-      p.vehicle_model?.toLowerCase().includes(query) ||
-      p.registration_number?.toLowerCase().includes(query)
-    );
-  });
+  const filteredProtocols = useMemo(() => {
+    return protocols.filter(p => {
+      const query = searchQuery.toLowerCase();
+      return (
+        p.customer_name.toLowerCase().includes(query) ||
+        p.offer_number?.toLowerCase().includes(query) ||
+        p.vehicle_model?.toLowerCase().includes(query) ||
+        p.registration_number?.toLowerCase().includes(query)
+      );
+    });
+  }, [protocols, searchQuery]);
+
+  const totalPages = Math.ceil(filteredProtocols.length / ITEMS_PER_PAGE);
+  
+  const paginatedProtocols = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProtocols.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredProtocols, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('ellipsis');
+      }
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('ellipsis');
+      }
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
 
   const handleCopyLink = (protocol: Protocol) => {
     const baseUrl = window.location.origin;
@@ -186,8 +246,13 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
         </Card>
       ) : (
         <>
+          {/* Results count */}
+          <p className="text-sm text-muted-foreground">
+            Wyświetlanie {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredProtocols.length)} z {filteredProtocols.length}
+          </p>
+
           <div className="grid gap-3">
-            {filteredProtocols.map((protocol) => (
+            {paginatedProtocols.map((protocol) => (
               <Card 
                 key={protocol.id} 
                 className="hover:shadow-md transition-shadow"
@@ -300,6 +365,47 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
               </Card>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Pagination className="mt-6">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </PaginationLink>
+                </PaginationItem>
+                
+                {getPageNumbers().map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === 'ellipsis' ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        isActive={currentPage === page}
+                        onClick={() => handlePageChange(page)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </PaginationLink>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
           
           <ConfirmDialog
             open={deleteDialogOpen}
