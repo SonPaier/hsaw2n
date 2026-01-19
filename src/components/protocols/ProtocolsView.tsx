@@ -258,7 +258,7 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
       ) : (
         <>
           {/* Results count */}
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground py-3">
             Wyświetlanie {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredProtocols.length)} z {filteredProtocols.length}
           </p>
 
