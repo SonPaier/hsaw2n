@@ -258,31 +258,6 @@ const AdminCalendar = ({
   const [closeDayDialogOpen, setCloseDayDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const resetDragState = useCallback(() => {
-    setDraggedReservation(null);
-    setDragOverStation(null);
-    setDragOverDate(null);
-    setDragOverSlot(null);
-  }, []);
-
-  // Safety net: always clear drag state (e.g. when dropping outside the calendar)
-  useEffect(() => {
-    if (!draggedReservation) return;
-
-    const onGlobalDragEnd = () => resetDragState();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') resetDragState();
-    };
-
-    window.addEventListener('dragend', onGlobalDragEnd, true);
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.removeEventListener('dragend', onGlobalDragEnd, true);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [draggedReservation, resetDragState]);
-
   // Notify parent when currentDate changes
   useEffect(() => {
     onDateChange?.(currentDate);
@@ -897,35 +872,22 @@ const AdminCalendar = ({
     onAddBreak?.(stationId, targetDate, time);
   };
 
-// Drag and drop handlers
+  // Drag and drop handlers
   const handleDragStart = (e: DragEvent<HTMLDivElement>, reservation: Reservation) => {
     // Disable drag on mobile and in read-only mode
     if (readOnly || isMobile) {
       e.preventDefault();
       return;
     }
-
-    // Create a minimal transparent drag image so we only rely on our custom preview
-    const dragImg = document.createElement('div');
-    dragImg.style.width = '1px';
-    dragImg.style.height = '1px';
-    dragImg.style.opacity = '0.01';
-    dragImg.style.position = 'absolute';
-    dragImg.style.top = '-9999px';
-    document.body.appendChild(dragImg);
-    e.dataTransfer.setDragImage(dragImg, 0, 0);
-    requestAnimationFrame(() => {
-      if (dragImg.parentNode) {
-        document.body.removeChild(dragImg);
-      }
-    });
-
     setDraggedReservation(reservation);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', reservation.id);
   };
   const handleDragEnd = () => {
-    resetDragState();
+    setDraggedReservation(null);
+    setDragOverStation(null);
+    setDragOverDate(null);
+    setDragOverSlot(null);
   };
   const handleDragOver = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr?: string) => {
     e.preventDefault();
@@ -1041,7 +1003,7 @@ const AdminCalendar = ({
         // Check if start time is before opening
         if (newStartNum < dayStartNum) {
           console.warn('Cannot drop reservation before opening time');
-          resetDragState();
+          setDraggedReservation(null);
           return;
         }
 
@@ -1053,7 +1015,7 @@ const AdminCalendar = ({
         const closeNum = parseTime(dayCloseTime);
         if (newEndNum > closeNum) {
           console.warn('Reservation would end after closing time');
-          resetDragState();
+          setDraggedReservation(null);
           return;
         }
 
@@ -1074,41 +1036,22 @@ const AdminCalendar = ({
         onReservationMove?.(draggedReservation.id, stationId, dateStr, newTime);
       }
     }
-    resetDragState();
+    setDraggedReservation(null);
   };
 
   // Calculate drag preview position (relative to displayStartTime)
   const getDragPreviewStyle = () => {
     if (!draggedReservation || !dragOverSlot) return null;
-
     const start = parseTime(draggedReservation.start_time);
     const end = parseTime(draggedReservation.end_time);
     const duration = end - start;
-
-    const newStartTime = dragOverSlot.hour + (dragOverSlot.slotIndex * SLOT_MINUTES) / 60;
-    const newEndTime = newStartTime + duration;
-
-    const formatDecimalTime = (t: number) => {
-      let hours = Math.floor(t);
-      let minutes = Math.round((t - hours) * 60);
-      if (minutes === 60) {
-        hours += 1;
-        minutes = 0;
-      }
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    };
-
+    const newStartTime = dragOverSlot.hour + dragOverSlot.slotIndex * SLOT_MINUTES / 60;
     const top = (newStartTime - DISPLAY_START_TIME) * HOUR_HEIGHT;
     const height = duration * HOUR_HEIGHT;
-
-    const startTime = formatTimeSlot(dragOverSlot.hour, dragOverSlot.slotIndex);
-
     return {
       top: `${top}px`,
       height: `${Math.max(height, 30)}px`,
-      time: startTime, // backwards compatible
-      startTime,
-      endTime: formatDecimalTime(newEndTime),
+      time: formatTimeSlot(dragOverSlot.hour, dragOverSlot.slotIndex)
     };
   };
   const dragPreviewStyle = getDragPreviewStyle();
@@ -1524,38 +1467,16 @@ const AdminCalendar = ({
                       </div>;
                 })}
 
-                  {/* Drag preview ghost - full card */}
-                  {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
-                    <div
-                      className={cn(
-                        "absolute left-1 right-1 rounded-lg border-2 border-primary border-dashed pointer-events-none overflow-hidden shadow-xl",
-                        getStatusColor(draggedReservation.status, station.type)
-                      )}
-                      style={{
-                        top: dragPreviewStyle.top,
-                        height: dragPreviewStyle.height,
-                        zIndex: 10000,
-                      }}
-                    >
-                      <div className="h-full w-full px-3 py-2 flex flex-col justify-center items-center gap-1 select-none">
-                        <span className="text-base font-bold text-primary">
-                          Przenieś na {dragPreviewStyle.startTime ?? dragPreviewStyle.time}
-                        </span>
-                        <span className="text-base font-bold text-black">
-                          {dragPreviewStyle.startTime ?? dragPreviewStyle.time}{
-                            dragPreviewStyle.endTime
-                              ? ` - ${dragPreviewStyle.endTime}`
-                              : ""
-                          }
-                        </span>
-                        {draggedReservation.vehicle_plate && (
-                          <span className="text-base font-bold text-black">
-                            {draggedReservation.vehicle_plate}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* Drag preview ghost - enhanced visibility */}
+                  {draggedReservation && dragOverStation === station.id && dragPreviewStyle && <div className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none flex items-center justify-center" style={{
+                  top: dragPreviewStyle.top,
+                  height: dragPreviewStyle.height,
+                  zIndex: 10000
+                }}>
+                      <span className="text-sm font-bold text-foreground bg-background px-3 py-1.5 rounded-md shadow-lg border border-border">
+                        Przenieś na {dragPreviewStyle.time}
+                      </span>
+                    </div>}
 
                   {/* Slot Preview Highlight */}
                   {slotPreview && 
@@ -1596,7 +1517,7 @@ const AdminCalendar = ({
                     const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
                     // rightOffset decreases with index (later cards extend further to the right edge)
                     const rightOffset = overlapInfo.hasOverlap ? (overlapInfo.total - 1 - overlapInfo.index) * OVERLAP_OFFSET_PERCENT : 0;
-                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-70 ring-2 ring-primary pointer-events-none", !isDragging && draggedReservation && "pointer-events-none", isSelected && "border-4 shadow-lg z-30")} style={{
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", !isDragging && draggedReservation && "pointer-events-none", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
                       left: `calc(${leftOffset}% + 2px)`,
                       right: `calc(${rightOffset}% + 2px)`,
@@ -1944,7 +1865,7 @@ const AdminCalendar = ({
                     const style = getReservationStyle(displayStart, displayEnd, dayHours.displayStartTime);
                     const isDragging = draggedReservation?.id === reservation.id;
                     const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
-                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-70 ring-2 ring-primary pointer-events-none")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
+                    return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border px-1 py-0.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-50 scale-95 pointer-events-none")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
                     }}>
@@ -2200,7 +2121,7 @@ const AdminCalendar = ({
                 const isDragging = draggedReservation?.id === reservation.id;
                 const isMultiDay = reservation.end_date && reservation.end_date !== reservation.reservation_date;
                 const selectedStation = stations.find(s => s.id === selectedStationId);
-                return <div key={reservation.id} draggable={!hallMode && !readOnly && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-70 ring-2 ring-primary pointer-events-none", !isDragging && draggedReservation && "pointer-events-none")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
+                return <div key={reservation.id} draggable={!hallMode && !readOnly && !isMobile} onDragStart={e => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute left-0.5 right-0.5 rounded-lg border-l-4 px-1 md:px-2 py-0.5 md:py-1", !hallMode && !readOnly && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, selectedStation?.type), isDragging && "opacity-50 scale-95", !isDragging && draggedReservation && "pointer-events-none")} style={{...style, zIndex: getTimeBasedZIndex(displayStart)}} onClick={e => {
                   e.stopPropagation();
                   onReservationClick?.(reservation);
                 }}>
