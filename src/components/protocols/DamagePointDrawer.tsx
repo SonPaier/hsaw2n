@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Camera, Loader2, X } from 'lucide-react';
+import { Camera, Loader2, X, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
@@ -53,6 +53,7 @@ export const DamagePointDrawer = ({
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // Initialize state when drawer opens with existing point
   useEffect(() => {
@@ -76,6 +77,43 @@ export const DamagePointDrawer = ({
       }
     }
   }, [open, existingPoint?.id]); // Only re-run when drawer opens or point ID changes
+
+  const analyzeImageWithAI = async (imageUrl: string) => {
+    setAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-damage', {
+        body: { type: 'analyze_image', imageUrl }
+      });
+
+      if (error) {
+        console.error('AI analysis error:', error);
+        toast.error('Błąd analizy AI');
+        return;
+      }
+
+      if (data?.result) {
+        // Append AI analysis to custom note
+        setCustomNote(prev => {
+          if (prev) {
+            return `${prev}\n\n🤖 AI: ${data.result}`;
+          }
+          return `🤖 AI: ${data.result}`;
+        });
+
+        // Set suggested damage type if available
+        if (data.suggestedType && DAMAGE_TYPES.some(t => t.value === data.suggestedType)) {
+          setDamageType(data.suggestedType);
+        }
+
+        toast.success('Zdjęcie przeanalizowane przez AI');
+      }
+    } catch (err) {
+      console.error('AI analysis error:', err);
+      toast.error('Błąd analizy AI');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -107,6 +145,11 @@ export const DamagePointDrawer = ({
 
       setPhotoUrls(prev => [...prev, ...uploadedUrls]);
       toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
+
+      // Auto-analyze first uploaded image with AI
+      if (uploadedUrls.length > 0 && !customNote) {
+        analyzeImageWithAI(uploadedUrls[0]);
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Błąd podczas przesyłania zdjęcia');
@@ -119,6 +162,10 @@ export const DamagePointDrawer = ({
 
   const handleRemovePhoto = (index: number) => {
     setPhotoUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAnalyzePhoto = (url: string) => {
+    analyzeImageWithAI(url);
   };
 
   const handleVoiceTranscript = (text: string) => {
@@ -210,21 +257,37 @@ export const DamagePointDrawer = ({
                   {photoUrls.map((url, index) => (
                     <div 
                       key={index} 
-                      className="relative shrink-0 w-[calc(20%-10px)] min-w-[100px] aspect-square"
+                      className="relative shrink-0 w-[calc(20%-10px)] min-w-[100px] aspect-square group"
                     >
                       <img 
                         src={url} 
                         alt={`Zdjęcie ${index + 1}`} 
                         className="w-full h-full object-cover rounded-lg border"
                       />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                        onClick={() => handleRemovePhoto(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleAnalyzePhoto(url)}
+                          disabled={analyzing}
+                          title="Analizuj AI"
+                        >
+                          {analyzing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-6 w-6 rounded-full"
+                          onClick={() => handleRemovePhoto(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -248,7 +311,7 @@ export const DamagePointDrawer = ({
                 <>
                   <Camera className="h-6 w-6 text-muted-foreground mb-1" />
                   <span className="text-sm text-muted-foreground">
-                    Kliknij, aby dodać zdjęcie
+                    Kliknij, aby dodać zdjęcie (AI przeanalizuje automatycznie)
                   </span>
                 </>
               )}

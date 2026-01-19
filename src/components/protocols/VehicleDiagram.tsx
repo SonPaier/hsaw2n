@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
-export type VehicleView = 'front' | 'rear' | 'left' | 'right';
+export type VehicleView = 'full';
 
 export type BodyType = 'sedan' | 'suv' | 'coupe' | 'cabrio' | 'van' | 'kombi' | 'hatchback';
 
@@ -25,15 +25,7 @@ interface VehicleDiagramProps {
   onUpdatePointPosition?: (pointId: string, xPercent: number, yPercent: number) => void;
   selectedPointId?: string | null;
   readOnly?: boolean;
-  visibleViews?: VehicleView[]; // Optional: only render these views
 }
-
-const VIEW_LABELS: Record<VehicleView, string> = {
-  front: 'Przód',
-  rear: 'Tył',
-  left: 'Lewa strona',
-  right: 'Prawa strona',
-};
 
 const DAMAGE_TYPE_COLORS: Record<string, string> = {
   scratch: 'bg-yellow-500',
@@ -51,31 +43,24 @@ export const VehicleDiagram = ({
   onUpdatePointPosition,
   selectedPointId,
   readOnly = false,
-  visibleViews,
 }: VehicleDiagramProps) => {
-  const [hoveredView, setHoveredView] = useState<VehicleView | null>(null);
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
-  const containerRefs = useRef<Record<VehicleView, HTMLDivElement | null>>({
-    front: null,
-    rear: null,
-    left: null,
-    right: null,
-  });
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const handleClick = (view: VehicleView, e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || draggingPointId) return;
     if (!onAddPoint) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onAddPoint(view, x, y);
+    onAddPoint('full', x, y);
   };
 
-  const updatePosition = useCallback((clientX: number, clientY: number, view: VehicleView) => {
+  const updatePosition = useCallback((clientX: number, clientY: number) => {
     if (!draggingPointId) return;
     
-    const container = containerRefs.current[view];
+    const container = containerRef.current;
     if (!container) return;
     
     const rect = container.getBoundingClientRect();
@@ -92,14 +77,11 @@ export const VehicleDiagram = ({
   useEffect(() => {
     if (!draggingPointId || readOnly) return;
 
-    const point = damagePoints.find(p => p.id === draggingPointId);
-    if (!point) return;
-
     const handleGlobalMove = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      updatePosition(clientX, clientY, point.view);
+      updatePosition(clientX, clientY);
     };
 
     const handleGlobalEnd = () => {
@@ -117,14 +99,14 @@ export const VehicleDiagram = ({
       window.removeEventListener('touchmove', handleGlobalMove);
       window.removeEventListener('touchend', handleGlobalEnd);
     };
-  }, [draggingPointId, damagePoints, updatePosition, readOnly]);
+  }, [draggingPointId, updatePosition, readOnly]);
 
   const handlePointMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, point: DamagePoint) => {
     if (readOnly) return; // Disable dragging in readOnly mode
     e.stopPropagation();
     e.preventDefault();
     setDraggingPointId(point.id);
-  }, []);
+  }, [readOnly]);
 
   const handlePointClick = useCallback((e: React.MouseEvent, point: DamagePoint) => {
     e.stopPropagation();
@@ -133,47 +115,28 @@ export const VehicleDiagram = ({
     }
   }, [draggingPointId, onSelectPoint]);
 
-  const getViewPoints = (view: VehicleView) => {
-    return damagePoints.filter(p => p.view === view);
-  };
+  const imagePath = `/assets/vehicles/${bodyType}/full.png`;
 
-  const renderView = (view: VehicleView) => {
-    const points = getViewPoints(view);
-    const imagePath = `/assets/vehicles/${bodyType}/full.png`;
-
-    // Rotation for each view
-    const rotationClass = {
-      front: '',
-      rear: 'rotate-180',
-      left: '-rotate-90',
-      right: 'rotate-90',
-    }[view];
-
-    return (
+  return (
+    <div className="space-y-4">
       <div
-        key={view}
         className={cn(
-          "relative bg-white rounded-lg border p-2 touch-none",
-          readOnly ? "cursor-default" : "cursor-crosshair"
+          "relative bg-white rounded-lg border p-4 touch-none w-full",
+          readOnly ? "cursor-default max-w-[600px] mx-auto" : "cursor-crosshair"
         )}
-        ref={(el) => { containerRefs.current[view] = el; }}
-        onMouseEnter={() => !readOnly && setHoveredView(view)}
-        onMouseLeave={() => !readOnly && setHoveredView(null)}
-        onClick={(e) => handleClick(view, e)}
+        ref={containerRef}
+        onClick={handleClick}
       >
-        <div className="aspect-square relative overflow-hidden">
+        <div className="relative w-full" style={{ paddingBottom: '60%' }}>
           <img
             src={imagePath}
-            alt={VIEW_LABELS[view]}
-            className={cn(
-              "w-full h-full object-contain pointer-events-none select-none",
-              rotationClass
-            )}
+            alt="Diagram pojazdu"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
             draggable={false}
           />
           
           {/* Damage points */}
-          {points.map((point) => (
+          {damagePoints.map((point) => (
             <div
               key={point.id}
               className={cn(
@@ -197,46 +160,12 @@ export const VehicleDiagram = ({
             />
           ))}
         </div>
-        
-        {/* Label */}
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {VIEW_LABELS[view]}
-        </div>
-        
-        {/* Hint on hover (only in edit mode) */}
-        {!readOnly && hoveredView === view && points.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg pointer-events-none">
-            <span className="text-xs text-muted-foreground bg-white/90 px-2 py-1 rounded">
-              Kliknij, aby dodać punkt
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Determine which views to render
-  const viewsToRender = visibleViews || (['front', 'rear', 'left', 'right'] as VehicleView[]);
-
-  return (
-    <div className="space-y-4">
-      <div className={cn(
-        "grid gap-3",
-        readOnly 
-          ? (viewsToRender.length === 1 ? "grid-cols-1 max-w-[300px] mx-auto" :
-             viewsToRender.length === 2 ? "grid-cols-2 max-w-[600px] mx-auto" :
-             "grid-cols-2 max-w-[600px] mx-auto")
-          : (viewsToRender.length === 1 ? "grid-cols-1 max-w-[200px] mx-auto" :
-             viewsToRender.length === 2 ? "grid-cols-2 max-w-[400px] mx-auto" :
-             "grid-cols-2")
-      )}>
-        {viewsToRender.map(renderView)}
       </div>
       
       {/* Legend - only show in edit mode */}
       {!readOnly && (
         <div className="flex flex-wrap gap-3 justify-center text-xs">
-        {[
+          {[
             { color: 'bg-yellow-500', label: 'Rysa' },
             { color: 'bg-orange-500', label: 'Wgniecenie' },
             { color: 'bg-red-500', label: 'Uszkodzenie' },

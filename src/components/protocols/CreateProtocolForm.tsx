@@ -49,10 +49,7 @@ const BODY_TYPES: { value: BodyType; label: string }[] = [
 ];
 
 const VIEW_LABELS: Record<VehicleView, string> = {
-  front: 'Przód pojazdu',
-  rear: 'Tył pojazdu',
-  left: 'Lewa strona pojazdu',
-  right: 'Prawa strona pojazdu',
+  full: 'Diagram pojazdu',
 };
 
 const DAMAGE_TYPE_LABELS: Record<string, string> = {

@@ -9,7 +9,7 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
   scratch: 'Rysa',
   dent: 'Wgniecenie',
   damage: 'Uszkodzenie',
-  chip: 'Odprysek',
+  chip: 'Odprysk',
   custom: 'Inne',
 };
 
