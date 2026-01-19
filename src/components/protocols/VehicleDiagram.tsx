@@ -178,7 +178,7 @@ export const VehicleDiagram = ({
               key={point.id}
               className={cn(
                 "absolute rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
-                readOnly ? "w-9 h-9 cursor-pointer bg-blue-500" : "w-6 h-6 cursor-grab active:cursor-grabbing",
+                readOnly ? "cursor-pointer bg-blue-500" : "w-6 h-6 cursor-grab active:cursor-grabbing",
                 !readOnly && point.isNew && !point.damage_type 
                   ? 'bg-gray-400 animate-pulse' 
                   : (!readOnly && (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500')),
@@ -188,6 +188,7 @@ export const VehicleDiagram = ({
               style={{
                 left: `${point.x_percent}%`,
                 top: `${point.y_percent}%`,
+                ...(readOnly ? { width: '0.75rem', height: '0.75rem' } : {}),
               }}
               onMouseDown={(e) => !readOnly && handlePointMouseDown(e, point)}
               onTouchStart={(e) => !readOnly && handlePointMouseDown(e, point)}
