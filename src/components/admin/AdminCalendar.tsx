@@ -1505,34 +1505,24 @@ const AdminCalendar = ({
                   {/* Drag preview ghost - full card */}
                   {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
                     <div
-                      className={cn(
-                        "absolute left-1 right-1 rounded-lg border-2 border-dashed pointer-events-none overflow-hidden shadow-lg",
-                        getStatusColor(draggedReservation.status, station.type),
-                        "opacity-90"
-                      )}
+                      className="absolute left-1 right-1 rounded-lg border-2 border-primary border-dashed pointer-events-none overflow-hidden shadow-xl bg-white"
                       style={{
                         top: dragPreviewStyle.top,
                         height: dragPreviewStyle.height,
                         zIndex: 10000,
                       }}
                     >
-                      <div className="h-full w-full px-2 py-1 text-black flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold">
-                            {dragPreviewStyle.startTime ?? dragPreviewStyle.time}{
-                              dragPreviewStyle.endTime
-                                ? ` - ${dragPreviewStyle.endTime}`
-                                : ""
-                            }
-                          </span>
-                          <span className="text-xs font-semibold">
-                            Przenieś na {dragPreviewStyle.startTime ?? dragPreviewStyle.time}
-                          </span>
-                        </div>
-                        <div className="text-xs font-medium truncate">
-                          {draggedReservation.customer_name}
-                          {draggedReservation.vehicle_plate ? ` • ${draggedReservation.vehicle_plate}` : ""}
-                        </div>
+                      <div className="h-full w-full px-3 py-2 flex flex-col justify-center items-center gap-1">
+                        <span className="text-base font-bold text-primary">
+                          Przenieś na {dragPreviewStyle.startTime ?? dragPreviewStyle.time}
+                        </span>
+                        <span className="text-base font-bold text-black">
+                          {dragPreviewStyle.startTime ?? dragPreviewStyle.time}{
+                            dragPreviewStyle.endTime
+                              ? ` - ${dragPreviewStyle.endTime}`
+                              : ""
+                          }
+                        </span>
                       </div>
                     </div>
                   )}
