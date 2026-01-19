@@ -1523,6 +1523,16 @@ const AdminCalendar = ({
                               : ""
                           }
                         </span>
+                        {draggedReservation.vehicle_plate && (
+                          <span className="text-base font-bold text-black">
+                            {draggedReservation.vehicle_plate}
+                          </span>
+                        )}
+                        {draggedReservation.service && (
+                          <span className="text-base font-bold text-black">
+                            {draggedReservation.service.shortcut || draggedReservation.service.name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
