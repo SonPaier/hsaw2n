@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 export type VehicleView = 'front' | 'rear' | 'left' | 'right';
@@ -14,6 +14,7 @@ export interface DamagePoint {
   custom_note?: string;
   photo_url?: string;
   photo_urls?: string[]; // Support multiple photos
+  isNew?: boolean; // Flag for newly created, unsaved points
 }
 
 interface VehicleDiagramProps {
@@ -21,6 +22,7 @@ interface VehicleDiagramProps {
   damagePoints: DamagePoint[];
   onAddPoint: (view: VehicleView, xPercent: number, yPercent: number) => void;
   onSelectPoint?: (point: DamagePoint) => void;
+  onUpdatePointPosition?: (pointId: string, xPercent: number, yPercent: number) => void;
   selectedPointId?: string | null;
 }
 
@@ -44,16 +46,83 @@ export const VehicleDiagram = ({
   damagePoints,
   onAddPoint,
   onSelectPoint,
+  onUpdatePointPosition,
   selectedPointId,
 }: VehicleDiagramProps) => {
   const [hoveredView, setHoveredView] = useState<VehicleView | null>(null);
+  const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; pointX: number; pointY: number } | null>(null);
+  const containerRefs = useRef<Record<VehicleView, HTMLDivElement | null>>({
+    front: null,
+    rear: null,
+    left: null,
+    right: null,
+  });
 
   const handleClick = (view: VehicleView, e: React.MouseEvent<HTMLDivElement>) => {
+    // Don't add new point if we just finished dragging
+    if (draggingPointId) return;
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     onAddPoint(view, x, y);
   };
+
+  const handlePointMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, point: DamagePoint) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    setDraggingPointId(point.id);
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      pointX: point.x_percent,
+      pointY: point.y_percent,
+    };
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent | React.TouchEvent, view: VehicleView) => {
+    if (!draggingPointId || !dragStartRef.current) return;
+    
+    const container = containerRefs.current[view];
+    if (!container) return;
+    
+    const point = damagePoints.find(p => p.id === draggingPointId);
+    if (!point || point.view !== view) return;
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    const rect = container.getBoundingClientRect();
+    const newX = ((clientX - rect.left) / rect.width) * 100;
+    const newY = ((clientY - rect.top) / rect.height) * 100;
+    
+    // Clamp to bounds
+    const clampedX = Math.max(0, Math.min(100, newX));
+    const clampedY = Math.max(0, Math.min(100, newY));
+    
+    onUpdatePointPosition?.(draggingPointId, clampedX, clampedY);
+  }, [draggingPointId, damagePoints, onUpdatePointPosition]);
+
+  const handleMouseUp = useCallback(() => {
+    // Small delay to prevent click event from firing
+    setTimeout(() => {
+      setDraggingPointId(null);
+      dragStartRef.current = null;
+    }, 50);
+  }, []);
+
+  const handlePointClick = useCallback((e: React.MouseEvent, point: DamagePoint) => {
+    e.stopPropagation();
+    // Only open drawer if not dragging
+    if (!draggingPointId) {
+      onSelectPoint?.(point);
+    }
+  }, [draggingPointId, onSelectPoint]);
 
   const getViewPoints = (view: VehicleView) => {
     return damagePoints.filter(p => p.view === view);
@@ -74,10 +143,18 @@ export const VehicleDiagram = ({
     return (
       <div
         key={view}
-        className="relative bg-white rounded-lg border p-2 cursor-crosshair"
+        className="relative bg-white rounded-lg border p-2 cursor-crosshair touch-none"
+        ref={(el) => { containerRefs.current[view] = el; }}
         onMouseEnter={() => setHoveredView(view)}
-        onMouseLeave={() => setHoveredView(null)}
+        onMouseLeave={() => {
+          setHoveredView(null);
+          if (draggingPointId) handleMouseUp();
+        }}
         onClick={(e) => handleClick(view, e)}
+        onMouseMove={(e) => handleMouseMove(e, view)}
+        onMouseUp={handleMouseUp}
+        onTouchMove={(e) => handleMouseMove(e, view)}
+        onTouchEnd={handleMouseUp}
       >
         <div className="aspect-square relative overflow-hidden">
           <img
@@ -92,22 +169,23 @@ export const VehicleDiagram = ({
           
           {/* Damage points */}
           {points.map((point) => (
-            <button
+            <div
               key={point.id}
-              type="button"
               className={cn(
-                "absolute w-5 h-5 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-transform",
-                DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500',
-                selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125"
+                "absolute w-6 h-6 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all cursor-grab active:cursor-grabbing",
+                point.isNew && !point.damage_type 
+                  ? 'bg-gray-400 animate-pulse' 
+                  : (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500'),
+                selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125",
+                draggingPointId === point.id && "scale-150 z-50"
               )}
               style={{
                 left: `${point.x_percent}%`,
                 top: `${point.y_percent}%`,
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectPoint?.(point);
-              }}
+              onMouseDown={(e) => handlePointMouseDown(e, point)}
+              onTouchStart={(e) => handlePointMouseDown(e, point)}
+              onClick={(e) => handlePointClick(e, point)}
             />
           ))}
         </div>

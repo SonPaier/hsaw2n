@@ -203,9 +203,15 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
   };
 
   const handleAddPoint = (view: VehicleView, xPercent: number, yPercent: number) => {
-    setPendingPoint({ view, x_percent: xPercent, y_percent: yPercent });
-    setSelectedPoint(null);
-    setDrawerOpen(true);
+    // Create a new unsaved point immediately (no drawer yet)
+    const newPoint: DamagePoint = {
+      id: `temp-${Date.now()}`,
+      view: view,
+      x_percent: xPercent,
+      y_percent: yPercent,
+      isNew: true, // Mark as new/unsaved
+    };
+    setDamagePoints(prev => [...prev, newPoint]);
   };
 
   const handleSelectPoint = (point: DamagePoint) => {
@@ -214,14 +220,20 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
     setDrawerOpen(true);
   };
 
+  const handleUpdatePointPosition = (pointId: string, xPercent: number, yPercent: number) => {
+    setDamagePoints(prev => 
+      prev.map(p => p.id === pointId ? { ...p, x_percent: xPercent, y_percent: yPercent } : p)
+    );
+  };
+
   const handleSavePoint = (data: { damage_type: string; custom_note: string; photo_url: string | null; photo_urls: string[] }) => {
     if (selectedPoint) {
-      // Update existing point
+      // Update existing point - remove isNew flag
       setDamagePoints(prev => 
-        prev.map(p => p.id === selectedPoint.id ? { ...p, ...data } : p)
+        prev.map(p => p.id === selectedPoint.id ? { ...p, ...data, isNew: false } : p)
       );
     } else if (pendingPoint) {
-      // Add new point
+      // Add new point (legacy path)
       const newPoint: DamagePoint = {
         id: `temp-${Date.now()}`,
         view: pendingPoint.view,
@@ -464,6 +476,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               damagePoints={damagePoints}
               onAddPoint={handleAddPoint}
               onSelectPoint={handleSelectPoint}
+              onUpdatePointPosition={handleUpdatePointPosition}
               selectedPointId={selectedPoint?.id}
             />
           </div>
