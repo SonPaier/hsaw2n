@@ -152,7 +152,6 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
           </p>
         </div>
         <Button onClick={handleAddNew}>
-          <Plus className="w-4 h-4 mr-2" />
           {t('halls.add')}
         </Button>
       </div>
@@ -165,7 +164,6 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
             {t('halls.noHallsDescription')}
           </p>
           <Button onClick={handleAddNew} className="mt-4">
-            <Plus className="w-4 h-4 mr-2" />
             {t('halls.addFirst')}
           </Button>
         </div>
