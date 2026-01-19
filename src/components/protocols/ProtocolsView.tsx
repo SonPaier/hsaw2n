@@ -205,7 +205,7 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
 
   const wrapperClassName = kioskMode 
     ? "min-h-screen bg-background p-4 pb-24" 
-    : "space-y-4 max-w-3xl mx-auto";
+    : "space-y-4";
 
   return (
     <div className={wrapperClassName}>

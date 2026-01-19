@@ -520,7 +520,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
-        <div className="w-full px-4 py-6 space-y-6">
+        <div className="w-full max-w-3xl mx-auto px-4 py-6 space-y-6">
           {/* Protocol type selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
