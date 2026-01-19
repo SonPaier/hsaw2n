@@ -3,21 +3,12 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Camera, Loader2, X, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { VoiceNoteInput } from './VoiceNoteInput';
-
-const DAMAGE_TYPES = [
-  { value: 'scratch', label: 'Rysa', color: 'bg-yellow-500' },
-  { value: 'dent', label: 'Wgniecenie', color: 'bg-orange-500' },
-  { value: 'damage', label: 'Uszkodzenie', color: 'bg-red-500' },
-  { value: 'chip', label: 'Odprysk', color: 'bg-blue-500' },
-  { value: 'custom', label: 'Inne', color: 'bg-purple-500' },
-];
 
 interface DamagePointDrawerProps {
   open: boolean;
@@ -49,19 +40,15 @@ export const DamagePointDrawer = ({
 }: DamagePointDrawerProps) => {
   const existingPoint = point && 'id' in point ? point : null;
   
-  const [damageType, setDamageType] = useState('scratch');
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
-  // Initialize state when drawer opens with existing point
   useEffect(() => {
     if (open) {
       if (existingPoint) {
-        setDamageType(existingPoint.damage_type || 'scratch');
         setCustomNote(existingPoint.custom_note || '');
-        // Support both old single photo and new multiple photos
         const urls: string[] = [];
         if (existingPoint.photo_urls && existingPoint.photo_urls.length > 0) {
           urls.push(...existingPoint.photo_urls);
@@ -70,13 +57,11 @@ export const DamagePointDrawer = ({
         }
         setPhotoUrls(urls);
       } else {
-        // Reset for new point
-        setDamageType('scratch');
         setCustomNote('');
         setPhotoUrls([]);
       }
     }
-  }, [open, existingPoint?.id]); // Only re-run when drawer opens or point ID changes
+  }, [open, existingPoint?.id]);
 
   const analyzeImageWithAI = async (imageUrl: string) => {
     setAnalyzing(true);
@@ -92,14 +77,7 @@ export const DamagePointDrawer = ({
       }
 
       if (data?.result && data.result !== 'Brak widocznych uszkodzeń') {
-        // Set AI analysis as the note (replace, don't append)
         setCustomNote(data.result);
-
-        // Set suggested damage type if available
-        if (data.suggestedType && DAMAGE_TYPES.some(t => t.value === data.suggestedType)) {
-          setDamageType(data.suggestedType);
-        }
-
         toast.success('AI rozpoznało uszkodzenie');
       } else {
         toast.info('Nie wykryto widocznych uszkodzeń');
@@ -152,7 +130,6 @@ export const DamagePointDrawer = ({
       toast.error('Błąd podczas przesyłania zdjęcia');
     } finally {
       setUploading(false);
-      // Reset input
       e.target.value = '';
     }
   };
@@ -171,19 +148,16 @@ export const DamagePointDrawer = ({
 
   const handleSave = () => {
     onSave({
-      damage_type: damageType,
+      damage_type: 'damage', // Default type, not used visually
       custom_note: customNote,
-      photo_url: photoUrls[0] || null, // Keep backward compatibility
+      photo_url: photoUrls[0] || null,
       photo_urls: photoUrls,
     });
-    // Reset form
-    setDamageType('scratch');
     setCustomNote('');
     setPhotoUrls([]);
   };
 
   const handleClose = () => {
-    setDamageType('scratch');
     setCustomNote('');
     setPhotoUrls([]);
     onOpenChange(false);
@@ -202,11 +176,10 @@ export const DamagePointDrawer = ({
         </DrawerHeader>
 
         <div className="px-4 space-y-4 pb-4 overflow-y-auto">
-          {/* Row 1: Photos at the top */}
+          {/* Photos at the top */}
           <div className="space-y-2">
             <Label>Zdjęcia (AI rozpozna uszkodzenie)</Label>
             
-            {/* Add photo button */}
             <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-muted/30 transition-colors">
               <input
                 type="file"
@@ -234,7 +207,6 @@ export const DamagePointDrawer = ({
               )}
             </label>
 
-            {/* Photo carousel */}
             {photoUrls.length > 0 && (
               <ScrollArea className="w-full whitespace-nowrap rounded-lg">
                 <div className="flex gap-3 pb-2 pr-2">
@@ -280,45 +252,19 @@ export const DamagePointDrawer = ({
             )}
           </div>
 
-          {/* Row 2: Damage type (left) + Note (right) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Damage type selection */}
-            <div className="space-y-2">
-              <Label>Typ uszkodzenia</Label>
-              <RadioGroup value={damageType} onValueChange={setDamageType}>
-                <div className="flex flex-col gap-1.5">
-                  {DAMAGE_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all bg-white ${
-                        damageType === type.value 
-                          ? 'border-primary ring-1 ring-primary' 
-                          : 'hover:bg-muted/30'
-                      }`}
-                    >
-                      <RadioGroupItem value={type.value} />
-                      <span className={`w-3 h-3 rounded-full ${type.color}`} />
-                      <span className="text-sm font-medium">{type.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </RadioGroup>
+          {/* Note with voice input */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Notatka</Label>
+              <VoiceNoteInput onTranscript={handleVoiceTranscript} />
             </div>
-
-            {/* Custom note with voice input */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Notatka</Label>
-                <VoiceNoteInput onTranscript={handleVoiceTranscript} />
-              </div>
-              <Textarea
-                value={customNote}
-                onChange={(e) => setCustomNote(e.target.value)}
-                placeholder="Opis uszkodzenia..."
-                rows={8}
-                className="resize-none"
-              />
-            </div>
+            <Textarea
+              value={customNote}
+              onChange={(e) => setCustomNote(e.target.value)}
+              placeholder="Opis uszkodzenia..."
+              rows={4}
+              className="resize-none"
+            />
           </div>
         </div>
 
