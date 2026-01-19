@@ -27,6 +27,7 @@ interface DamagePointDrawerProps {
   onDelete?: () => void;
   isEditing?: boolean;
   offerNumber?: string;
+  onPhotoUploaded?: (url: string) => void;
 }
 
 // Compress image before upload - max 1200px, 75% quality (~100-200KB)
@@ -89,6 +90,7 @@ export const DamagePointDrawer = ({
   onDelete,
   isEditing = false,
   offerNumber,
+  onPhotoUploaded,
 }: DamagePointDrawerProps) => {
   const existingPoint = point && 'id' in point ? point : null;
   
@@ -178,6 +180,9 @@ export const DamagePointDrawer = ({
           .getPublicUrl(data.path);
 
         uploadedUrls.push(urlData.publicUrl);
+        
+        // Notify parent about uploaded photo for orphan tracking
+        onPhotoUploaded?.(urlData.publicUrl);
       }
 
       setPhotoUrls(prev => [...prev, ...uploadedUrls]);
