@@ -2335,9 +2335,9 @@ const AdminDashboard = () => {
             "flex-1 space-y-6 overflow-auto pb-20 lg:pb-8",
             currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4"
           )}>
-            {/* Header - only shown for non-calendar views that need it */}
-            {['reservations', 'customers', 'settings'].includes(currentView) && <h1 className="text-2xl font-bold text-foreground">
-                {currentView === 'reservations' ? t('reservations.title') : currentView === 'customers' ? t('customers.title') : t('settings.title')}
+            {/* Header - only shown for settings view */}
+            {currentView === 'settings' && <h1 className="text-2xl font-bold text-foreground">
+                {t('settings.title')}
               </h1>}
 
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
