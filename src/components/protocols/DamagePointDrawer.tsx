@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Loader2, X, Sparkles } from 'lucide-react';
+import { Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
@@ -29,6 +29,58 @@ interface DamagePointDrawerProps {
   offerNumber?: string;
 }
 
+// Compress image before upload - max 1200px, 75% quality (~100-200KB)
+const compressImage = (file: File, maxSize = 1200, quality = 0.75): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Could not get canvas context'));
+      return;
+    }
+    
+    const img = new Image();
+    
+    img.onload = () => {
+      let { width, height } = img;
+      
+      // Scale to max 1200px on longest edge
+      if (width > height && width > maxSize) {
+        height = (height / width) * maxSize;
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = (width / height) * maxSize;
+        height = maxSize;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to compress image'));
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+      
+      URL.revokeObjectURL(img.src);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 export const DamagePointDrawer = ({
   open,
   onOpenChange,
@@ -43,7 +95,10 @@ export const DamagePointDrawer = ({
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  
+  // Ref to track current note value for AI cancel check
+  const customNoteRef = useRef(customNote);
+  customNoteRef.current = customNote;
 
   useEffect(() => {
     if (open) {
@@ -63,30 +118,33 @@ export const DamagePointDrawer = ({
     }
   }, [open, existingPoint?.id]);
 
+  // Silent AI analysis with 3s timeout, cancelled if user is typing
   const analyzeImageWithAI = async (imageUrl: string) => {
-    setAnalyzing(true);
+    // If user already typed something - don't analyze
+    if (customNoteRef.current.length >= 1) return;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
     try {
       const { data, error } = await supabase.functions.invoke('analyze-damage', {
         body: { type: 'analyze_image', imageUrl }
       });
-
+      
+      clearTimeout(timeoutId);
+      
       if (error) {
         console.error('AI analysis error:', error);
-        toast.error('Błąd analizy AI');
         return;
       }
-
-      if (data?.result && data.result !== 'Brak widocznych uszkodzeń') {
+      
+      // Check again before setting - user might have started typing
+      if (customNoteRef.current.length === 0 && data?.result && data.result !== 'Brak widocznych uszkodzeń') {
         setCustomNote(data.result);
-        toast.success('AI rozpoznało uszkodzenie');
-      } else {
-        toast.info('Nie wykryto widocznych uszkodzeń');
       }
-    } catch (err) {
-      console.error('AI analysis error:', err);
-      toast.error('Błąd analizy AI');
-    } finally {
-      setAnalyzing(false);
+    } catch {
+      // Silently ignore - timeout or error
+      clearTimeout(timeoutId);
     }
   };
 
@@ -99,15 +157,19 @@ export const DamagePointDrawer = ({
       const uploadedUrls: string[] = [];
       
       for (const file of Array.from(files)) {
+        // Compress image before upload
+        const compressedBlob = await compressImage(file);
+        
         const timestamp = Date.now();
-        const ext = file.name.split('.').pop();
         const fileName = offerNumber 
-          ? `${offerNumber}_${timestamp}_${Math.random().toString(36).slice(2, 8)}.${ext}`
-          : `protocol_${timestamp}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          ? `${offerNumber}_${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`
+          : `protocol_${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`;
 
         const { data, error } = await supabase.storage
           .from('protocol-photos')
-          .upload(fileName, file);
+          .upload(fileName, compressedBlob, {
+            contentType: 'image/jpeg'
+          });
 
         if (error) throw error;
 
@@ -121,8 +183,8 @@ export const DamagePointDrawer = ({
       setPhotoUrls(prev => [...prev, ...uploadedUrls]);
       toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
 
-      // Auto-analyze first uploaded image with AI
-      if (uploadedUrls.length > 0 && !customNote) {
+      // Auto-analyze first uploaded image with AI (silently)
+      if (uploadedUrls.length > 0 && customNoteRef.current.length === 0) {
         analyzeImageWithAI(uploadedUrls[0]);
       }
     } catch (error) {
@@ -136,10 +198,6 @@ export const DamagePointDrawer = ({
 
   const handleRemovePhoto = (index: number) => {
     setPhotoUrls(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAnalyzePhoto = (url: string) => {
-    analyzeImageWithAI(url);
   };
 
   const handleVoiceTranscript = (text: string) => {
@@ -178,7 +236,7 @@ export const DamagePointDrawer = ({
         <div className="px-4 space-y-4 pb-4 overflow-y-auto">
           {/* Photos at the top */}
           <div className="space-y-2">
-            <Label>Zdjęcia (AI rozpozna uszkodzenie)</Label>
+            <Label>Zdjęcia</Label>
             
             <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-muted/30 transition-colors">
               <input
@@ -188,15 +246,10 @@ export const DamagePointDrawer = ({
                 multiple
                 className="hidden"
                 onChange={handlePhotoUpload}
-                disabled={uploading || analyzing}
+                disabled={uploading}
               />
               {uploading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : analyzing ? (
-                <>
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-1" />
-                  <span className="text-sm text-primary font-medium">AI analizuje zdjęcie...</span>
-                </>
               ) : (
                 <>
                   <Camera className="h-8 w-8 text-muted-foreground mb-1" />
@@ -220,30 +273,14 @@ export const DamagePointDrawer = ({
                         alt={`Zdjęcie ${index + 1}`} 
                         className="w-full h-full object-cover rounded-lg border"
                       />
-                      <div className="absolute top-1 right-1 flex gap-1">
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleAnalyzePhoto(url)}
-                          disabled={analyzing}
-                          title="Analizuj AI"
-                        >
-                          {analyzing ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-6 w-6 rounded-full"
-                          onClick={() => handleRemovePhoto(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                        onClick={() => handleRemovePhoto(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
