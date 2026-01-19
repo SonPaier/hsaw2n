@@ -216,9 +216,9 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
             <span className="hidden sm:inline">Wróć</span>
           </Button>
         )}
-        <h2 className="text-xl font-semibold flex-1">
+        <h1 className="text-2xl font-bold flex-1">
           Protokoły
-        </h2>
+        </h1>
         <div className="flex items-center gap-2">
           {!kioskMode && (
             <Button variant="outline" size="icon" onClick={() => setSettingsDialogOpen(true)}>
