@@ -395,7 +395,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
       <ProtocolHeader instance={instance} onClose={onBack} />
 
       {/* Scrollable content */}
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
         <div className="w-full px-4 py-6 space-y-6">
           {/* Protocol type selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -615,7 +615,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
       </main>
 
       {/* Fixed footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
+      <footer className="fixed bottom-16 sm:bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
         <Button variant="outline" onClick={onBack}>
           Anuluj
         </Button>
