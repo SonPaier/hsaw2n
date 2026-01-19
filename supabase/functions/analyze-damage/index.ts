@@ -92,15 +92,17 @@ Jeśli nie ma żadnych informacji o uszkodzeniu, zwróć pusty string.`;
 
 Przeanalizuj zdjęcie i zidentyfikuj widoczne uszkodzenia.
 
-Dla każdego uszkodzenia określ:
-1. Typ: rysa, wgniecenie, odprysk, pęknięcie, zarysowanie, uszkodzenie lakieru, korozja, inne
-2. Lokalizacja na elemencie (góra, dół, środek, lewa strona, prawa strona)
-3. Przybliżony rozmiar (mały <5cm, średni 5-15cm, duży >15cm)
-4. Intensywność (lekkie, średnie, głębokie)
+Zwróć TYLKO JEDNO ZDANIE - krótki, profesjonalny opis uszkodzenia w stylu protokołu rzeczoznawcy.
+Użyj precyzyjnego, technicznego języka. Opisz typ uszkodzenia i jego lokalizację.
 
-Zwróć krótki, profesjonalny opis uszkodzenia w języku polskim.
-Jeśli nie widzisz żadnych uszkodzeń, napisz "Brak widocznych uszkodzeń".
-Nie dodawaj żadnych wstępów ani podsumowań.`;
+Przykłady poprawnych odpowiedzi:
+- "Stwierdzono głębokie zarysowanie powłoki lakierniczej przedniego prawego błotnika."
+- "Widoczne wgniecenie blachy drzwi przednich lewych z uszkodzeniem lakieru."
+- "Odprysk lakieru na masce o średnicy około 3 cm z widocznym podkładem."
+- "Rozległe odkształcenie struktury blacharskiej zderzaka tylnego."
+
+Jeśli nie widzisz żadnych uszkodzeń, napisz TYLKO: "Brak widocznych uszkodzeń".
+Nie dodawaj żadnych wstępów, numeracji ani dodatkowych komentarzy.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

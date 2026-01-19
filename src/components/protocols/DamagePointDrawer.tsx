@@ -91,21 +91,18 @@ export const DamagePointDrawer = ({
         return;
       }
 
-      if (data?.result) {
-        // Append AI analysis to custom note
-        setCustomNote(prev => {
-          if (prev) {
-            return `${prev}\n\n🤖 AI: ${data.result}`;
-          }
-          return `🤖 AI: ${data.result}`;
-        });
+      if (data?.result && data.result !== 'Brak widocznych uszkodzeń') {
+        // Set AI analysis as the note (replace, don't append)
+        setCustomNote(data.result);
 
         // Set suggested damage type if available
         if (data.suggestedType && DAMAGE_TYPES.some(t => t.value === data.suggestedType)) {
           setDamageType(data.suggestedType);
         }
 
-        toast.success('Zdjęcie przeanalizowane przez AI');
+        toast.success('AI rozpoznało uszkodzenie');
+      } else {
+        toast.info('Nie wykryto widocznych uszkodzeń');
       }
     } catch (err) {
       console.error('AI analysis error:', err);
@@ -205,51 +202,38 @@ export const DamagePointDrawer = ({
         </DrawerHeader>
 
         <div className="px-4 space-y-4 pb-4 overflow-y-auto">
-          {/* Row 1: Damage type (left) + Note (right) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Damage type selection */}
-            <div className="space-y-2">
-              <Label>Typ uszkodzenia</Label>
-              <RadioGroup value={damageType} onValueChange={setDamageType}>
-                <div className="flex flex-col gap-1.5">
-                  {DAMAGE_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all bg-white ${
-                        damageType === type.value 
-                          ? 'border-primary ring-1 ring-primary' 
-                          : 'hover:bg-muted/30'
-                      }`}
-                    >
-                      <RadioGroupItem value={type.value} />
-                      <span className={`w-3 h-3 rounded-full ${type.color}`} />
-                      <span className="text-sm font-medium">{type.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Custom note with voice input */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Notatka (opcjonalna)</Label>
-                <VoiceNoteInput onTranscript={handleVoiceTranscript} />
-              </div>
-              <Textarea
-                value={customNote}
-                onChange={(e) => setCustomNote(e.target.value)}
-                placeholder="Dodatkowy opis uszkodzenia..."
-                rows={8}
-                className="resize-none"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Photos */}
+          {/* Row 1: Photos at the top */}
           <div className="space-y-2">
-            <Label>Zdjęcia</Label>
+            <Label>Zdjęcia (AI rozpozna uszkodzenie)</Label>
             
+            {/* Add photo button */}
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-muted/30 transition-colors">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={uploading || analyzing}
+              />
+              {uploading ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : analyzing ? (
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-1" />
+                  <span className="text-sm text-primary font-medium">AI analizuje zdjęcie...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="h-8 w-8 text-muted-foreground mb-1" />
+                  <span className="text-sm text-muted-foreground font-medium">
+                    Zrób zdjęcie lub wybierz z galerii
+                  </span>
+                </>
+              )}
+            </label>
+
             {/* Photo carousel */}
             {photoUrls.length > 0 && (
               <ScrollArea className="w-full whitespace-nowrap rounded-lg">
@@ -257,7 +241,7 @@ export const DamagePointDrawer = ({
                   {photoUrls.map((url, index) => (
                     <div 
                       key={index} 
-                      className="relative shrink-0 w-[calc(20%-10px)] min-w-[100px] aspect-square group"
+                      className="relative shrink-0 w-[calc(25%-10px)] min-w-[80px] aspect-square group"
                     >
                       <img 
                         src={url} 
@@ -294,28 +278,47 @@ export const DamagePointDrawer = ({
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             )}
+          </div>
 
-            {/* Add photo button */}
-            <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-muted/30 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={uploading}
+          {/* Row 2: Damage type (left) + Note (right) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Damage type selection */}
+            <div className="space-y-2">
+              <Label>Typ uszkodzenia</Label>
+              <RadioGroup value={damageType} onValueChange={setDamageType}>
+                <div className="flex flex-col gap-1.5">
+                  {DAMAGE_TYPES.map((type) => (
+                    <label
+                      key={type.value}
+                      className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all bg-white ${
+                        damageType === type.value 
+                          ? 'border-primary ring-1 ring-primary' 
+                          : 'hover:bg-muted/30'
+                      }`}
+                    >
+                      <RadioGroupItem value={type.value} />
+                      <span className={`w-3 h-3 rounded-full ${type.color}`} />
+                      <span className="text-sm font-medium">{type.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Custom note with voice input */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Notatka</Label>
+                <VoiceNoteInput onTranscript={handleVoiceTranscript} />
+              </div>
+              <Textarea
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                placeholder="Opis uszkodzenia..."
+                rows={8}
+                className="resize-none"
               />
-              {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <Camera className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-sm text-muted-foreground">
-                    Kliknij, aby dodać zdjęcie (AI przeanalizuje automatycznie)
-                  </span>
-                </>
-              )}
-            </label>
+            </div>
           </div>
         </div>
 
