@@ -262,16 +262,10 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                       className="flex-1 min-w-0 space-y-1 cursor-pointer"
                       onClick={() => setEditingProtocolId(protocol.id)}
                     >
-                      {/* Line 1: Customer name + Status (mobile) */}
+                      {/* Line 1: Customer name */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <User className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
                         <span className="font-medium truncate">{protocol.customer_name}</span>
-                        <Badge 
-                          variant={protocol.status === 'completed' ? 'default' : 'secondary'}
-                          className="sm:hidden text-xs"
-                        >
-                          {protocol.status === 'completed' ? 'Zakończony' : 'Szkic'}
-                        </Badge>
                       </div>
                       
                       {/* Line 2: Car */}
@@ -292,29 +286,36 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                         </span>
                       </div>
                       
-                      {/* Line 4: Offer number (mobile only) */}
-                      {protocol.offer_number && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground sm:hidden">
-                          <FileText className="h-4 w-4 flex-shrink-0" />
+                      {/* Line 4: Offer number + Protocol type (mobile) */}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground sm:hidden">
+                        <FileText className="h-4 w-4 flex-shrink-0" />
+                        {protocol.offer_number && (
                           <span className="truncate">#{protocol.offer_number}</span>
-                        </div>
-                      )}
-                      
-                      {/* Offer badge - desktop only */}
-                      {protocol.offer_number && (
-                        <Badge variant="secondary" className="text-xs hidden sm:inline-flex mt-1">
-                          #{protocol.offer_number}
+                        )}
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                        >
+                          {protocol.protocol_type === 'pickup' ? 'Wydanie' : 'Przyjęcie'}
                         </Badge>
-                      )}
+                      </div>
+                      
+                      {/* Offer badge + Protocol type - desktop only */}
+                      <div className="hidden sm:flex items-center gap-2 mt-1">
+                        {protocol.offer_number && (
+                          <Badge variant="secondary" className="text-xs">
+                            #{protocol.offer_number}
+                          </Badge>
+                        )}
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                        >
+                          {protocol.protocol_type === 'pickup' ? 'Wydanie' : 'Przyjęcie'}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Status badge - desktop only */}
-                      <Badge 
-                        variant={protocol.status === 'completed' ? 'default' : 'secondary'}
-                        className="hidden sm:inline-flex"
-                      >
-                        {protocol.status === 'completed' ? 'Zakończony' : 'Szkic'}
-                      </Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
