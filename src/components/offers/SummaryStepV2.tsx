@@ -521,6 +521,15 @@ export const SummaryStepV2 = ({
   useEffect(() => {
     if (loading || services.length === 0) return;
     
+    // Generate stable option IDs based on scopeId (use same ID for each scope)
+    // This ensures consistency between save and load
+    const optionIdMap = new Map<string, string>();
+    services.forEach(service => {
+      // Check if we already have an option with this scopeId in current offer
+      const existingOption = offer.options.find(o => o.scopeId === service.scopeId);
+      optionIdMap.set(service.scopeId, existingOption?.id || crypto.randomUUID());
+    });
+    
     // Convert services to offer options format
     // Include both selected (preselected) and suggested (not preselected) products
     const newOptions: OfferOption[] = services.map((service, idx) => {
@@ -529,8 +538,10 @@ export const SummaryStepV2 = ({
         ...service.suggestedProducts.map(p => ({ ...p, isPreselected: false }))
       ];
       
+      const optionId = optionIdMap.get(service.scopeId)!;
+      
       return {
-        id: service.scopeId, // Use scopeId as option id for stability
+        id: optionId, // Use stable generated ID
         name: service.name,
         description: '',
         items: allProducts.map(p => ({
@@ -561,6 +572,8 @@ export const SummaryStepV2 = ({
     const selectedItemInOption: Record<string, string> = {};
     
     services.forEach(service => {
+      const optionId = optionIdMap.get(service.scopeId)!;
+      
       if (service.isExtrasScope) {
         // For extras: mark all products in selectedProducts (these are preselected)
         service.selectedProducts.forEach(p => {
@@ -568,9 +581,10 @@ export const SummaryStepV2 = ({
         });
       } else {
         // For regular services: set the first item as selected
+        // Use optionId (not scopeId) as key - this matches how PublicOfferCustomerView reads it
         const firstItem = service.selectedProducts[0];
         if (firstItem) {
-          selectedItemInOption[service.scopeId] = firstItem.id;
+          selectedItemInOption[optionId] = firstItem.id;
         }
       }
     });
