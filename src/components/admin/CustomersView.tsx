@@ -343,26 +343,25 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   if (!hasOffers) {
     return (
       <div className="space-y-4 max-w-3xl mx-auto">
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
+        {/* Header with title and add button */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
+          <Button onClick={handleAddCustomer}>
+            {t('common.add')}
+          </Button>
+        </div>
         
         {/* Sticky header on mobile */}
         <div className="sm:static sticky top-0 z-20 bg-background pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {/* Header with search and add button */}
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t('customers.searchPlaceholder')}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('common.add')}</span>
-            </Button>
+          {/* Search bar - full width */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={t('customers.searchPlaceholder')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
 
@@ -392,26 +391,25 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
-      {/* Title */}
-      <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
+      {/* Header with title and add button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
+        <Button onClick={handleAddCustomer}>
+          {t('common.add')}
+        </Button>
+      </div>
       
       {/* Sticky header on mobile */}
       <div className="sm:static sticky top-0 z-20 bg-background pb-4 space-y-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-        {/* Header with search and add button */}
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t('customers.searchPlaceholder')}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button onClick={handleAddCustomer} className="gap-2 shrink-0">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('common.add')}</span>
-          </Button>
+        {/* Search bar - full width */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={t('customers.searchPlaceholder')}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
 
         {/* Tabs */}

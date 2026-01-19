@@ -477,8 +477,7 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">{t('offers.settings')}</span>
             </Button>
-            <Button onClick={() => setShowGenerator(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
+            <Button onClick={() => setShowGenerator(true)}>
               {t('offers.newOffer')}
             </Button>
           </div>
