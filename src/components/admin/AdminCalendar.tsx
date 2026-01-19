@@ -879,18 +879,7 @@ const AdminCalendar = ({
       e.preventDefault();
       return;
     }
-    
-    // Create a minimal transparent drag image to avoid visual glitches
-    // when the original card becomes invisible
-    const dragImg = document.createElement('div');
-    dragImg.style.width = '1px';
-    dragImg.style.height = '1px';
-    dragImg.style.opacity = '0';
-    document.body.appendChild(dragImg);
-    e.dataTransfer.setDragImage(dragImg, 0, 0);
-    // Clean up the temporary element after a short delay
-    setTimeout(() => document.body.removeChild(dragImg), 0);
-    
+
     setDraggedReservation(reservation);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', reservation.id);
@@ -1054,16 +1043,35 @@ const AdminCalendar = ({
   // Calculate drag preview position (relative to displayStartTime)
   const getDragPreviewStyle = () => {
     if (!draggedReservation || !dragOverSlot) return null;
+
     const start = parseTime(draggedReservation.start_time);
     const end = parseTime(draggedReservation.end_time);
     const duration = end - start;
-    const newStartTime = dragOverSlot.hour + dragOverSlot.slotIndex * SLOT_MINUTES / 60;
+
+    const newStartTime = dragOverSlot.hour + (dragOverSlot.slotIndex * SLOT_MINUTES) / 60;
+    const newEndTime = newStartTime + duration;
+
+    const formatDecimalTime = (t: number) => {
+      let hours = Math.floor(t);
+      let minutes = Math.round((t - hours) * 60);
+      if (minutes === 60) {
+        hours += 1;
+        minutes = 0;
+      }
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
+
     const top = (newStartTime - DISPLAY_START_TIME) * HOUR_HEIGHT;
     const height = duration * HOUR_HEIGHT;
+
+    const startTime = formatTimeSlot(dragOverSlot.hour, dragOverSlot.slotIndex);
+
     return {
       top: `${top}px`,
       height: `${Math.max(height, 30)}px`,
-      time: formatTimeSlot(dragOverSlot.hour, dragOverSlot.slotIndex)
+      time: startTime, // backwards compatible
+      startTime,
+      endTime: formatDecimalTime(newEndTime),
     };
   };
   const dragPreviewStyle = getDragPreviewStyle();
@@ -1479,16 +1487,40 @@ const AdminCalendar = ({
                       </div>;
                 })}
 
-                  {/* Drag preview ghost - enhanced visibility */}
-                  {draggedReservation && dragOverStation === station.id && dragPreviewStyle && <div className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-primary bg-primary/20 pointer-events-none flex items-center justify-center" style={{
-                  top: dragPreviewStyle.top,
-                  height: dragPreviewStyle.height,
-                  zIndex: 10000
-                }}>
-                      <span className="text-sm font-bold text-foreground bg-background px-3 py-1.5 rounded-md shadow-lg border border-border">
-                        Przenieś na {dragPreviewStyle.time}
-                      </span>
-                    </div>}
+                  {/* Drag preview ghost - full card */}
+                  {draggedReservation && dragOverStation === station.id && dragPreviewStyle && (
+                    <div
+                      className={cn(
+                        "absolute left-1 right-1 rounded-lg border-2 border-dashed pointer-events-none overflow-hidden shadow-lg",
+                        getStatusColor(draggedReservation.status, station.type),
+                        "opacity-90"
+                      )}
+                      style={{
+                        top: dragPreviewStyle.top,
+                        height: dragPreviewStyle.height,
+                        zIndex: 10000,
+                      }}
+                    >
+                      <div className="h-full w-full px-2 py-1 text-black flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold">
+                            {dragPreviewStyle.startTime ?? dragPreviewStyle.time}{
+                              dragPreviewStyle.endTime
+                                ? ` - ${dragPreviewStyle.endTime}`
+                                : ""
+                            }
+                          </span>
+                          <span className="text-xs font-semibold">
+                            Przenieś na {dragPreviewStyle.startTime ?? dragPreviewStyle.time}
+                          </span>
+                        </div>
+                        <div className="text-xs font-medium truncate">
+                          {draggedReservation.customer_name}
+                          {draggedReservation.vehicle_plate ? ` • ${draggedReservation.vehicle_plate}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Slot Preview Highlight */}
                   {slotPreview && 
