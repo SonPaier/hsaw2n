@@ -13,6 +13,7 @@ export interface DamagePoint {
   damage_type?: string;
   custom_note?: string;
   photo_url?: string;
+  photo_urls?: string[]; // Support multiple photos
 }
 
 interface VehicleDiagramProps {
@@ -51,98 +52,103 @@ export const VehicleDiagram = ({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onAddPoint(view, Math.round(x * 100) / 100, Math.round(y * 100) / 100);
+    onAddPoint(view, x, y);
   };
 
-  const getImagePath = (view: VehicleView) => {
-    // We use the full image for now since splitting requires external tools
-    // The full image contains all views in a grid layout
-    return `/assets/vehicles/${bodyType}/full.png`;
+  const getViewPoints = (view: VehicleView) => {
+    return damagePoints.filter(p => p.view === view);
   };
 
-  const renderViewPanel = (view: VehicleView) => {
-    const viewPoints = damagePoints.filter(p => p.view === view);
-    const isHovered = hoveredView === view;
+  const renderView = (view: VehicleView) => {
+    const points = getViewPoints(view);
+    const imagePath = `/assets/vehicles/${bodyType}/full.png`;
 
-    // Calculate clip path based on view position in the combined image
-    // Image layout: top row (right side view), middle row (front, rear), bottom row (left side view)
-    const getClipStyle = (): React.CSSProperties => {
-      switch (view) {
-        case 'right':
-          return { objectPosition: 'center 0%', objectFit: 'cover' as const };
-        case 'front':
-          return { objectPosition: '0% 50%', objectFit: 'cover' as const };
-        case 'rear':
-          return { objectPosition: '100% 50%', objectFit: 'cover' as const };
-        case 'left':
-          return { objectPosition: 'center 100%', objectFit: 'cover' as const };
-        default:
-          return {};
-      }
-    };
+    // Rotation for each view
+    const rotationClass = {
+      front: '',
+      rear: 'rotate-180',
+      left: '-rotate-90',
+      right: 'rotate-90',
+    }[view];
 
     return (
-      <div 
+      <div
         key={view}
-        className={cn(
-          "relative border rounded-lg overflow-hidden cursor-crosshair transition-all",
-          isHovered && "ring-2 ring-primary",
-          "bg-muted/30"
-        )}
+        className="relative bg-white rounded-lg border p-2 cursor-crosshair"
         onMouseEnter={() => setHoveredView(view)}
         onMouseLeave={() => setHoveredView(null)}
         onClick={(e) => handleClick(view, e)}
       >
-        {/* View label */}
-        <div className="absolute top-2 left-2 z-10 bg-background/80 px-2 py-1 rounded text-xs font-medium">
-          {VIEW_LABELS[view]}
-        </div>
-
-        {/* Vehicle image container */}
-        <div className="aspect-[4/3] relative flex items-center justify-center p-4">
+        <div className="aspect-square relative overflow-hidden">
           <img
-            src={getImagePath(view)}
-            alt={`${bodyType} - ${view}`}
-            className="max-h-full max-w-full object-contain pointer-events-none select-none"
+            src={imagePath}
+            alt={VIEW_LABELS[view]}
+            className={cn(
+              "w-full h-full object-contain pointer-events-none select-none",
+              rotationClass
+            )}
             draggable={false}
           />
+          
+          {/* Damage points */}
+          {points.map((point) => (
+            <button
+              key={point.id}
+              type="button"
+              className={cn(
+                "absolute w-5 h-5 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-transform",
+                DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500',
+                selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125"
+              )}
+              style={{
+                left: `${point.x_percent}%`,
+                top: `${point.y_percent}%`,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPoint?.(point);
+              }}
+            />
+          ))}
         </div>
-
-        {/* Damage point markers */}
-        {viewPoints.map((point) => (
-          <button
-            key={point.id}
-            className={cn(
-              "absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold transition-transform hover:scale-110 z-20",
-              point.damage_type ? DAMAGE_TYPE_COLORS[point.damage_type] : 'bg-red-500',
-              selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-110"
-            )}
-            style={{
-              left: `${point.x_percent}%`,
-              top: `${point.y_percent}%`,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectPoint?.(point);
-            }}
-          >
-            •
-          </button>
-        ))}
+        
+        {/* Label */}
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+          {VIEW_LABELS[view]}
+        </div>
+        
+        {/* Hint on hover */}
+        {hoveredView === view && points.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg pointer-events-none">
+            <span className="text-xs text-muted-foreground bg-white/90 px-2 py-1 rounded">
+              Kliknij, aby dodać punkt
+            </span>
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-muted-foreground">
-        Kliknij na diagram, aby zaznaczyć uszkodzenie
-      </p>
+    <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        {renderViewPanel('front')}
-        {renderViewPanel('rear')}
-      {renderViewPanel('left')}
-        {renderViewPanel('right')}
+        {(['front', 'rear', 'left', 'right'] as VehicleView[]).map(renderView)}
+      </div>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 justify-center text-xs">
+        {[
+          { color: 'bg-yellow-500', label: 'Rysa' },
+          { color: 'bg-orange-500', label: 'Wgniecenie' },
+          { color: 'bg-red-500', label: 'Uszkodzenie' },
+          { color: 'bg-blue-500', label: 'Odprysek' },
+          { color: 'bg-purple-500', label: 'Inne' },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <span className={cn("w-3 h-3 rounded-full", item.color)} />
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
