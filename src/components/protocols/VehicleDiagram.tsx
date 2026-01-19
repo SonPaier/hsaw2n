@@ -177,8 +177,8 @@ export const VehicleDiagram = ({
             <div
               key={point.id}
               className={cn(
-                "absolute w-6 h-6 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
-                readOnly ? "cursor-pointer bg-blue-500" : "cursor-grab active:cursor-grabbing",
+                "absolute rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
+                readOnly ? "w-9 h-9 cursor-pointer bg-blue-500" : "w-6 h-6 cursor-grab active:cursor-grabbing",
                 !readOnly && point.isNew && !point.damage_type 
                   ? 'bg-gray-400 animate-pulse' 
                   : (!readOnly && (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500')),

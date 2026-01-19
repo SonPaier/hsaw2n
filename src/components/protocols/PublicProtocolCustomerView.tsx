@@ -216,7 +216,7 @@ export const PublicProtocolCustomerView = ({
           {/* Customer signature */}
           {protocol.customer_signature && (
             <div className="space-y-2">
-              <Label className="text-muted-foreground text-sm">Podpis klienta</Label>
+              <Label className="text-muted-foreground text-sm">Twój podpis</Label>
               <div className="h-24 border rounded-lg bg-white flex items-center justify-center">
                 <img 
                   src={protocol.customer_signature} 
