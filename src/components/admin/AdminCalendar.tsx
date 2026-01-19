@@ -880,6 +880,21 @@ const AdminCalendar = ({
       return;
     }
 
+    // Create a minimal transparent drag image so we only rely on our custom preview
+    const dragImg = document.createElement('div');
+    dragImg.style.width = '1px';
+    dragImg.style.height = '1px';
+    dragImg.style.opacity = '0.01';
+    dragImg.style.position = 'absolute';
+    dragImg.style.top = '-9999px';
+    document.body.appendChild(dragImg);
+    e.dataTransfer.setDragImage(dragImg, 0, 0);
+    requestAnimationFrame(() => {
+      if (dragImg.parentNode) {
+        document.body.removeChild(dragImg);
+      }
+    });
+
     setDraggedReservation(reservation);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', reservation.id);
