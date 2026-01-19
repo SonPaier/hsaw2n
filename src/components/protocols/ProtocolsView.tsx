@@ -202,8 +202,7 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <ClipboardCheck className="h-5 w-5" />
+        <h2 className="text-xl font-semibold">
           Protokoły
         </h2>
         <Button onClick={() => setShowCreateForm(true)}>
