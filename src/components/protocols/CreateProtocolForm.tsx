@@ -371,6 +371,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
                 onClear={handleCustomerClear}
                 placeholder="Wyszukaj klienta lub wpisz nowe dane"
                 className="bg-white"
+                suppressAutoSearch={isEditMode}
               />
             </div>
             <div className="space-y-2">
@@ -378,6 +379,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               <ClientSearchAutocomplete
                 instanceId={instanceId}
                 value={phone}
+                suppressAutoSearch={isEditMode}
                 onChange={setPhone}
                 onSelect={handleCustomerSelect}
                 onClear={handleCustomerClear}

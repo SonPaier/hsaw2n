@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, Eraser, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface SignatureDialogProps {
   open: boolean;
@@ -19,7 +19,7 @@ export const SignatureDialog = ({
 }: SignatureDialogProps) => {
   const sigCanvas = useRef<SignatureCanvas | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 400, height: 200 });
+  const [canvasSize, setCanvasSize] = useState({ width: 400, height: 300 });
 
   // Resize canvas to fit container
   useEffect(() => {
@@ -28,8 +28,8 @@ export const SignatureDialog = ({
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           setCanvasSize({
-            width: rect.width - 32, // padding
-            height: Math.min(rect.height - 120, 300), // leave space for buttons
+            width: rect.width,
+            height: rect.height,
           });
         }
       };
@@ -71,63 +71,59 @@ export const SignatureDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-full w-full h-full max-h-full m-0 p-0 rounded-none flex flex-col"
-        style={{ width: '100vw', height: '100vh' }}
+        className="max-w-full w-full h-full max-h-full m-0 p-0 rounded-none flex flex-col [&>button]:hidden"
+        style={{ width: '100vw', height: '100dvh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-background">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-white shrink-0">
           <h2 className="text-lg font-semibold">Podpis klienta</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
+            className="h-9 w-9"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Canvas container */}
+        {/* Canvas container - takes all available space */}
         <div 
           ref={containerRef}
-          className="flex-1 flex items-center justify-center p-4 bg-muted/30"
+          className="flex-1 bg-muted/40 overflow-hidden"
         >
-          <div className="bg-white rounded-lg border-2 border-dashed border-muted-foreground/30 p-4">
-            <SignatureCanvas
-              ref={sigCanvas}
-              canvasProps={{
-                width: canvasSize.width,
-                height: canvasSize.height,
-                className: 'signature-canvas rounded',
-                style: { 
-                  touchAction: 'none',
-                  backgroundColor: 'white',
-                },
-              }}
-              penColor="black"
-              minWidth={1}
-              maxWidth={3}
-            />
-            <p className="text-center text-sm text-muted-foreground mt-2">
-              Podpisz palcem lub myszką
-            </p>
-          </div>
+          <SignatureCanvas
+            ref={sigCanvas}
+            canvasProps={{
+              width: canvasSize.width,
+              height: canvasSize.height,
+              className: 'signature-canvas w-full h-full',
+              style: { 
+                touchAction: 'none',
+                backgroundColor: '#f5f5f5',
+                display: 'block',
+              },
+            }}
+            penColor="black"
+            minWidth={1.5}
+            maxWidth={3.5}
+          />
         </div>
 
         {/* Footer with buttons */}
-        <div className="flex items-center justify-between p-4 border-t bg-background gap-4">
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-white shrink-0 gap-3">
           <Button
             variant="outline"
             onClick={handleClear}
-            className="flex-1"
+            size="sm"
+            className="bg-white"
           >
-            <Eraser className="h-4 w-4 mr-2" />
             Wyczyść
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1"
+            size="sm"
           >
-            <Check className="h-4 w-4 mr-2" />
             Zapisz
           </Button>
         </div>
