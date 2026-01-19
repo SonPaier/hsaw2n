@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -29,9 +29,17 @@ interface SendProtocolEmailDialogProps {
   customerEmail?: string;
   vehicleInfo?: string;
   protocolType?: ProtocolType;
+  instanceId?: string;
 }
 
-const getDefaultMessage = (customerName: string, vehicleInfo: string | undefined, protocolType: ProtocolType) => {
+const getDefaultMessage = (customerName: string, vehicleInfo: string | undefined, protocolType: ProtocolType, template?: string | null) => {
+  if (template) {
+    const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
+    return template
+      .replace(/{imie}/g, customerName)
+      .replace(/{pojazd}/g, vehicleInfo || '')
+      .replace(/{typ_protokolu}/g, typeLabel);
+  }
   const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
   return `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\n[Link do protokołu zostanie automatycznie dołączony]\n\nPozdrawiamy`;
 };
@@ -49,11 +57,37 @@ export const SendProtocolEmailDialog = ({
   customerEmail,
   vehicleInfo,
   protocolType = 'reception',
+  instanceId,
 }: SendProtocolEmailDialogProps) => {
-  const [email, setEmail] = useState(customerEmail || '');
-  const [subject, setSubject] = useState(getDefaultSubject(vehicleInfo, protocolType));
-  const [message, setMessage] = useState(getDefaultMessage(customerName, vehicleInfo, protocolType));
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [emailTemplate, setEmailTemplate] = useState<string | null>(null);
+
+  // Reset form when dialog opens or props change
+  useEffect(() => {
+    if (open) {
+      setEmail(customerEmail || '');
+      setSubject(getDefaultSubject(vehicleInfo, protocolType));
+      
+      // Fetch email template if instanceId is provided
+      if (instanceId) {
+        supabase
+          .from('instances')
+          .select('protocol_email_template')
+          .eq('id', instanceId)
+          .single()
+          .then(({ data }) => {
+            const template = data?.protocol_email_template || null;
+            setEmailTemplate(template);
+            setMessage(getDefaultMessage(customerName, vehicleInfo, protocolType, template));
+          });
+      } else {
+        setMessage(getDefaultMessage(customerName, vehicleInfo, protocolType));
+      }
+    }
+  }, [open, customerEmail, customerName, vehicleInfo, protocolType, instanceId]);
 
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
