@@ -419,7 +419,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               <Input
                 value={nip}
                 onChange={(e) => setNip(e.target.value)}
-                placeholder="1234567890"
               />
             </div>
             <div className="space-y-2">
@@ -427,7 +426,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               <Input
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value)}
-                placeholder="WA 12345"
               />
             </div>
             <div className="space-y-2">
@@ -438,7 +436,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
                 max="100"
                 value={fuelLevel}
                 onChange={(e) => setFuelLevel(e.target.value)}
-                placeholder="50"
               />
             </div>
             <div className="space-y-2">
@@ -448,7 +445,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
                 min="0"
                 value={odometerReading}
                 onChange={(e) => setOdometerReading(e.target.value)}
-                placeholder="100000"
               />
             </div>
             <div className="space-y-2">
@@ -525,7 +521,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               <Input
                 value={receivedBy}
                 onChange={(e) => setReceivedBy(e.target.value)}
-                placeholder="Imię i nazwisko pracownika"
               />
             </div>
           </div>
