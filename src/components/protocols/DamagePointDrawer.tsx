@@ -228,7 +228,7 @@ export const DamagePointDrawer = ({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh]">
+      <DrawerContent className="max-h-[90vh] mx-auto max-w-[768px]">
         <DrawerHeader className="flex items-center justify-between pb-2">
           <DrawerTitle>
             {isEditing ? 'Edytuj uszkodzenie' : 'Dodaj uszkodzenie'}
