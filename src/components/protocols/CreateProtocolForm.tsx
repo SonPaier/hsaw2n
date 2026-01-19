@@ -30,6 +30,7 @@ interface Instance {
 
 interface CreateProtocolFormProps {
   instanceId: string;
+  protocolId?: string | null;
   onBack: () => void;
 }
 
@@ -58,11 +59,12 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
   custom: 'inne',
 };
 
-export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormProps) => {
+export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreateProtocolFormProps) => {
   const navigate = useNavigate();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const isEditMode = !!protocolId;
 
   // Form state
   const [offerNumber, setOfferNumber] = useState('');
@@ -107,25 +109,71 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
   }, [generatedNotes]);
 
   useEffect(() => {
-    const fetchInstance = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch instance
+        const { data: instanceData, error: instanceError } = await supabase
           .from('instances')
           .select('id, name, logo_url')
           .eq('id', instanceId)
           .single();
 
-        if (error) throw error;
-        setInstance(data);
+        if (instanceError) throw instanceError;
+        setInstance(instanceData);
+
+        // If editing, fetch protocol data
+        if (protocolId) {
+          const { data: protocolData, error: protocolError } = await supabase
+            .from('vehicle_protocols')
+            .select('*')
+            .eq('id', protocolId)
+            .single();
+
+          if (protocolError) throw protocolError;
+
+          // Set form values
+          setOfferNumber(protocolData.offer_number || '');
+          setOfferId(protocolData.offer_id || null);
+          setCustomerName(protocolData.customer_name || '');
+          setVehicleModel(protocolData.vehicle_model || '');
+          setNip(protocolData.nip || '');
+          setPhone(protocolData.phone || '');
+          setRegistrationNumber(protocolData.registration_number || '');
+          setFuelLevel(protocolData.fuel_level?.toString() || '');
+          setOdometerReading(protocolData.odometer_reading?.toString() || '');
+          setBodyType((protocolData.body_type as BodyType) || 'sedan');
+          setProtocolDate(new Date(protocolData.protocol_date));
+          setReceivedBy(protocolData.received_by || '');
+
+          // Fetch damage points
+          const { data: pointsData, error: pointsError } = await supabase
+            .from('protocol_damage_points')
+            .select('*')
+            .eq('protocol_id', protocolId);
+
+          if (pointsError) throw pointsError;
+
+          if (pointsData) {
+            setDamagePoints(pointsData.map(p => ({
+              id: p.id,
+              view: p.view as VehicleView,
+              x_percent: p.x_percent,
+              y_percent: p.y_percent,
+              damage_type: p.damage_type || undefined,
+              custom_note: p.custom_note || undefined,
+              photo_url: p.photo_url || undefined,
+            })));
+          }
+        }
       } catch (error) {
-        console.error('Error fetching instance:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInstance();
-  }, [instanceId]);
+    fetchData();
+  }, [instanceId, protocolId]);
 
   const handleOfferSelect = (offer: {
     id: string;
@@ -205,38 +253,61 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
 
     setSaving(true);
     try {
-      // Create protocol with current time
-      const now = new Date();
-      const currentTime = format(now, 'HH:mm:ss');
+      const protocolPayload = {
+        instance_id: instanceId,
+        offer_id: offerId,
+        offer_number: offerNumber || null,
+        customer_name: customerName,
+        vehicle_model: vehicleModel || null,
+        nip: nip || null,
+        phone: phone || null,
+        registration_number: registrationNumber || null,
+        fuel_level: fuelLevel ? parseInt(fuelLevel) : null,
+        odometer_reading: odometerReading ? parseInt(odometerReading) : null,
+        body_type: bodyType,
+        protocol_date: format(protocolDate, 'yyyy-MM-dd'),
+        received_by: receivedBy || null,
+        status: 'completed',
+      };
 
-      const { data: protocol, error: protocolError } = await supabase
-        .from('vehicle_protocols')
-        .insert({
-          instance_id: instanceId,
-          offer_id: offerId,
-          offer_number: offerNumber || null,
-          customer_name: customerName,
-          vehicle_model: vehicleModel || null,
-          nip: nip || null,
-          phone: phone || null,
-          registration_number: registrationNumber || null,
-          fuel_level: fuelLevel ? parseInt(fuelLevel) : null,
-          odometer_reading: odometerReading ? parseInt(odometerReading) : null,
-          body_type: bodyType,
-          protocol_date: format(protocolDate, 'yyyy-MM-dd'),
-          protocol_time: currentTime,
-          received_by: receivedBy || null,
-          status: 'completed',
-        })
-        .select('id')
-        .single();
+      let savedProtocolId = protocolId;
 
-      if (protocolError) throw protocolError;
+      if (isEditMode && protocolId) {
+        // Update existing protocol
+        const { error: protocolError } = await supabase
+          .from('vehicle_protocols')
+          .update(protocolPayload)
+          .eq('id', protocolId);
+
+        if (protocolError) throw protocolError;
+
+        // Delete old damage points and re-insert
+        await supabase
+          .from('protocol_damage_points')
+          .delete()
+          .eq('protocol_id', protocolId);
+      } else {
+        // Create new protocol with current time
+        const now = new Date();
+        const currentTime = format(now, 'HH:mm:ss');
+
+        const { data: protocol, error: protocolError } = await supabase
+          .from('vehicle_protocols')
+          .insert({
+            ...protocolPayload,
+            protocol_time: currentTime,
+          })
+          .select('id')
+          .single();
+
+        if (protocolError) throw protocolError;
+        savedProtocolId = protocol.id;
+      }
 
       // Save damage points
-      if (damagePoints.length > 0 && protocol) {
+      if (damagePoints.length > 0 && savedProtocolId) {
         const pointsToInsert = damagePoints.map(p => ({
-          protocol_id: protocol.id,
+          protocol_id: savedProtocolId,
           view: p.view,
           x_percent: p.x_percent,
           y_percent: p.y_percent,
@@ -252,7 +323,7 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
         if (pointsError) throw pointsError;
       }
 
-      toast.success('Protokół zapisany');
+      toast.success(isEditMode ? 'Protokół zaktualizowany' : 'Protokół zapisany');
       onBack();
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -275,10 +346,15 @@ export const CreateProtocolForm = ({ instanceId, onBack }: CreateProtocolFormPro
       <ProtocolHeader instance={instance} />
 
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <Button variant="ghost" onClick={onBack} className="mb-2">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Powrót do listy
-        </Button>
+        <div className="flex items-center justify-between mb-2">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Powrót do listy
+          </Button>
+          <h2 className="text-lg font-semibold">
+            {isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}
+          </h2>
+        </div>
 
         <Card>
           <CardContent className="p-6 space-y-6">

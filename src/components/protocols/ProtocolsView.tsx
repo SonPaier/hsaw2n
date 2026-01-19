@@ -29,6 +29,7 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingProtocolId, setEditingProtocolId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProtocols();
@@ -61,12 +62,14 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
     );
   });
 
-  if (showCreateForm) {
+  if (showCreateForm || editingProtocolId) {
     return (
       <CreateProtocolForm
         instanceId={instanceId}
+        protocolId={editingProtocolId}
         onBack={() => {
           setShowCreateForm(false);
+          setEditingProtocolId(null);
           fetchProtocols();
         }}
       />
@@ -123,7 +126,11 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
       ) : (
         <div className="grid gap-3">
           {filteredProtocols.map((protocol) => (
-            <Card key={protocol.id} className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card 
+              key={protocol.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setEditingProtocolId(protocol.id)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-1">
