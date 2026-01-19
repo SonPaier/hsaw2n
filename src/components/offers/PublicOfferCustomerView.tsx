@@ -213,6 +213,10 @@ export const PublicOfferCustomerView = ({
   useEffect(() => {
     const savedState = offer.selected_state;
     
+    // Identify non-extras options and their items
+    const nonExtrasOptions = offer.offer_options.filter(opt => !opt.scope?.is_extras_scope);
+    const hasSingleNonExtrasOption = nonExtrasOptions.length === 1;
+    
     if (savedState) {
       // Check if this is a customer's confirmed choice (not just admin's default)
       const isCustomerChoice = !savedState.isDefault;
@@ -243,11 +247,14 @@ export const PublicOfferCustomerView = ({
       offer.offer_options.forEach((opt) => {
         if (!opt.is_upsell && !opt.scope?.is_extras_scope) {
           const nonOptionalItems = opt.offer_option_items?.filter(i => !i.is_optional) || [];
-          if (nonOptionalItems.length > 1 && !mergedItemInOption[opt.id]) {
-            // Only auto-select first item if there's no saved state at all
-            if (!savedState.isDefault) {
-              mergedItemInOption[opt.id] = nonOptionalItems[0].id;
-            }
+          // Auto-select first item if:
+          // 1. No saved state at all OR
+          // 2. It's admin's default AND there's only one option with one non-optional item (single product offer)
+          const shouldAutoSelect = !savedState.isDefault || 
+            (hasSingleNonExtrasOption && nonOptionalItems.length === 1);
+          
+          if (!mergedItemInOption[opt.id] && nonOptionalItems.length >= 1 && shouldAutoSelect) {
+            mergedItemInOption[opt.id] = nonOptionalItems[0].id;
           }
         }
       });
