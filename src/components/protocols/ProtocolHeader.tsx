@@ -18,7 +18,7 @@ interface ProtocolHeaderProps {
 export const ProtocolHeader = ({ instance, protocolNumber, onClose }: ProtocolHeaderProps) => {
   return (
     <header className="bg-white border-b sticky top-0 z-50">
-      <div className="w-full px-4 py-2 sm:py-4">
+      <div className="w-full max-w-3xl mx-auto px-4 py-2 sm:py-4">
         <div className="flex items-center justify-between">
           {/* Mobile: Just title */}
           <div className="flex sm:hidden items-center">
