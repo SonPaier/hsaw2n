@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Plus, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Plus, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CreateProtocolForm } from './CreateProtocolForm';
@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
+import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
+
 interface Protocol {
   id: string;
   offer_number: string | null;
@@ -41,6 +43,8 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   const [protocolToDelete, setProtocolToDelete] = useState<Protocol | null>(null);
   const [instanceSlug, setInstanceSlug] = useState<string>('');
   const [editingProtocolId, setEditingProtocolId] = useState<string | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [protocolToEmail, setProtocolToEmail] = useState<Protocol | null>(null);
 
   useEffect(() => {
     fetchProtocols();
@@ -245,6 +249,16 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => {
+                              setProtocolToEmail(protocol);
+                              setEmailDialogOpen(true);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Wyślij emailem
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
                               setProtocolToDelete(protocol);
                               setDeleteDialogOpen(true);
                             }}
@@ -270,6 +284,14 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
             confirmLabel="Usuń"
             onConfirm={handleDeleteProtocol}
             variant="destructive"
+          />
+
+          <SendProtocolEmailDialog
+            open={emailDialogOpen}
+            onOpenChange={setEmailDialogOpen}
+            protocolId={protocolToEmail?.id || ''}
+            customerName={protocolToEmail?.customer_name || ''}
+            vehicleInfo={[protocolToEmail?.vehicle_model, protocolToEmail?.registration_number].filter(Boolean).join(' ')}
           />
         </>
       )}
