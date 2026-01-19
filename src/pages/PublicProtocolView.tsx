@@ -47,6 +47,7 @@ export default function PublicProtocolView() {
   const [protocol, setProtocol] = useState<Protocol | null>(null);
   const [instance, setInstance] = useState<Instance | null>(null);
   const [damagePoints, setDamagePoints] = useState<DamagePoint[]>([]);
+  const [offerPublicToken, setOfferPublicToken] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProtocol = async () => {
@@ -106,6 +107,20 @@ export default function PublicProtocolView() {
             photo_urls: p.photo_urls || undefined,
           })));
         }
+
+        // Fetch offer public_token if offer_number exists
+        if (protocolData.offer_number) {
+          const { data: offerData } = await supabase
+            .from('offers')
+            .select('public_token')
+            .eq('instance_id', protocolData.instance_id)
+            .eq('offer_number', protocolData.offer_number)
+            .single();
+
+          if (offerData) {
+            setOfferPublicToken(offerData.public_token);
+          }
+        }
       } catch (err) {
         console.error('Error fetching protocol:', err);
         setError('Wystąpił błąd podczas ładowania protokołu');
@@ -154,6 +169,7 @@ export default function PublicProtocolView() {
         protocol={protocol}
         instance={instance}
         damagePoints={damagePoints}
+        offerPublicToken={offerPublicToken}
       />
     </>
   );

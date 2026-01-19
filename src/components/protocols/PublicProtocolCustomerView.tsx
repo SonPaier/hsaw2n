@@ -47,6 +47,7 @@ interface PublicProtocolCustomerViewProps {
   protocol: Protocol;
   instance: Instance;
   damagePoints: DamagePoint[];
+  offerPublicToken?: string | null;
 }
 
 const DAMAGE_TYPE_LABELS: Record<string, string> = {
@@ -68,6 +69,7 @@ export const PublicProtocolCustomerView = ({
   protocol,
   instance,
   damagePoints,
+  offerPublicToken,
 }: PublicProtocolCustomerViewProps) => {
   const [selectedPoint, setSelectedPoint] = useState<DamagePoint | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -114,7 +116,21 @@ export const PublicProtocolCustomerView = ({
           <div className="space-y-1">
             <h1 className="text-xl font-semibold">{protocolTitle}</h1>
             {protocol.offer_number && (
-              <p className="text-muted-foreground text-sm">Oferta {protocol.offer_number}</p>
+              <p className="text-muted-foreground text-sm">
+                Oferta{' '}
+                {offerPublicToken ? (
+                  <a 
+                    href={`/offers/${offerPublicToken}`}
+                    className="text-primary hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {protocol.offer_number}
+                  </a>
+                ) : (
+                  protocol.offer_number
+                )}
+              </p>
             )}
           </div>
 
