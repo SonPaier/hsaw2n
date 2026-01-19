@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CreateProtocolForm } from './CreateProtocolForm';
@@ -41,11 +41,13 @@ interface Protocol {
 
 interface ProtocolsViewProps {
   instanceId: string;
+  kioskMode?: boolean;
+  onBack?: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
+export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: ProtocolsViewProps) => {
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -199,10 +201,20 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
     );
   }
 
+  const wrapperClassName = kioskMode 
+    ? "min-h-screen bg-background p-4 pb-24" 
+    : "space-y-4";
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">
+    <div className={wrapperClassName}>
+      <div className="flex items-center justify-between gap-2">
+        {kioskMode && onBack && (
+          <Button variant="ghost" onClick={onBack} className="gap-1">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Wróć</span>
+          </Button>
+        )}
+        <h2 className="text-xl font-semibold flex-1">
           Protokoły
         </h2>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -210,7 +222,7 @@ export const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
         </Button>
       </div>
 
-      <div className="relative">
+      <div className="relative mt-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={searchQuery}

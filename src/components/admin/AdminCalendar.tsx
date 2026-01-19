@@ -2,7 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2, ClipboardCheck } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
@@ -120,6 +120,10 @@ interface AdminCalendarProps {
   } | null;
   /** Whether more reservations are being loaded */
   isLoadingMore?: boolean;
+  /** Show protocols button in hall mode */
+  showProtocolsButton?: boolean;
+  /** Callback when protocols button is clicked */
+  onProtocolsClick?: () => void;
 }
 
 // Default hours from 9:00 to 19:00
@@ -219,7 +223,9 @@ const AdminCalendar = ({
   yardVehicleCount = 0,
   selectedReservationId,
   slotPreview,
-  isLoadingMore = false
+  isLoadingMore = false,
+  showProtocolsButton = false,
+  onProtocolsClick
 }: AdminCalendarProps) => {
   const {
     t
@@ -1215,6 +1221,14 @@ const AdminCalendar = ({
                   {yardVehicleCount > 99 ? '99+' : yardVehicleCount}
                 </span>}
             </Button>
+            
+            {/* Protocols button - only in hall mode when enabled */}
+            {showProtocolsButton && onProtocolsClick && (
+              <Button variant="outline" size="sm" onClick={onProtocolsClick} className="gap-1">
+                <ClipboardCheck className="w-4 h-4" />
+                <span className="hidden md:inline">Protokół</span>
+              </Button>
+            )}
           </div>
         </div>
         
