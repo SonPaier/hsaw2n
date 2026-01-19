@@ -214,7 +214,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
     setDrawerOpen(true);
   };
 
-  const handleSavePoint = (data: { damage_type: string; custom_note: string; photo_url: string | null }) => {
+  const handleSavePoint = (data: { damage_type: string; custom_note: string; photo_url: string | null; photo_urls: string[] }) => {
     if (selectedPoint) {
       // Update existing point
       setDamagePoints(prev => 
