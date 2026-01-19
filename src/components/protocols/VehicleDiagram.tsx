@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 export type VehicleView = 'front' | 'rear' | 'left' | 'right';
@@ -51,7 +51,6 @@ export const VehicleDiagram = ({
 }: VehicleDiagramProps) => {
   const [hoveredView, setHoveredView] = useState<VehicleView | null>(null);
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
-  const dragStartRef = useRef<{ x: number; y: number; pointX: number; pointY: number } | null>(null);
   const containerRefs = useRef<Record<VehicleView, HTMLDivElement | null>>({
     front: null,
     rear: null,
@@ -60,7 +59,6 @@ export const VehicleDiagram = ({
   });
 
   const handleClick = (view: VehicleView, e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't add new point if we just finished dragging
     if (draggingPointId) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
@@ -69,56 +67,61 @@ export const VehicleDiagram = ({
     onAddPoint(view, x, y);
   };
 
-  const handlePointMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, point: DamagePoint) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    setDraggingPointId(point.id);
-    dragStartRef.current = {
-      x: clientX,
-      y: clientY,
-      pointX: point.x_percent,
-      pointY: point.y_percent,
-    };
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent | React.TouchEvent, view: VehicleView) => {
-    if (!draggingPointId || !dragStartRef.current) return;
+  const updatePosition = useCallback((clientX: number, clientY: number, view: VehicleView) => {
+    if (!draggingPointId) return;
     
     const container = containerRefs.current[view];
     if (!container) return;
-    
-    const point = damagePoints.find(p => p.id === draggingPointId);
-    if (!point || point.view !== view) return;
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
     const rect = container.getBoundingClientRect();
     const newX = ((clientX - rect.left) / rect.width) * 100;
     const newY = ((clientY - rect.top) / rect.height) * 100;
     
-    // Clamp to bounds
     const clampedX = Math.max(0, Math.min(100, newX));
     const clampedY = Math.max(0, Math.min(100, newY));
     
     onUpdatePointPosition?.(draggingPointId, clampedX, clampedY);
-  }, [draggingPointId, damagePoints, onUpdatePointPosition]);
+  }, [draggingPointId, onUpdatePointPosition]);
 
-  const handleMouseUp = useCallback(() => {
-    // Small delay to prevent click event from firing
-    setTimeout(() => {
+  // Global mouse/touch move handlers for smooth dragging
+  useEffect(() => {
+    if (!draggingPointId) return;
+
+    const point = damagePoints.find(p => p.id === draggingPointId);
+    if (!point) return;
+
+    const handleGlobalMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      updatePosition(clientX, clientY, point.view);
+    };
+
+    const handleGlobalEnd = () => {
       setDraggingPointId(null);
-      dragStartRef.current = null;
-    }, 50);
+    };
+
+    window.addEventListener('mousemove', handleGlobalMove, { passive: false });
+    window.addEventListener('mouseup', handleGlobalEnd);
+    window.addEventListener('touchmove', handleGlobalMove, { passive: false });
+    window.addEventListener('touchend', handleGlobalEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMove);
+      window.removeEventListener('mouseup', handleGlobalEnd);
+      window.removeEventListener('touchmove', handleGlobalMove);
+      window.removeEventListener('touchend', handleGlobalEnd);
+    };
+  }, [draggingPointId, damagePoints, updatePosition]);
+
+  const handlePointMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, point: DamagePoint) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingPointId(point.id);
   }, []);
 
   const handlePointClick = useCallback((e: React.MouseEvent, point: DamagePoint) => {
     e.stopPropagation();
-    // Only open drawer if not dragging
     if (!draggingPointId) {
       onSelectPoint?.(point);
     }
@@ -146,15 +149,8 @@ export const VehicleDiagram = ({
         className="relative bg-white rounded-lg border p-2 cursor-crosshair touch-none"
         ref={(el) => { containerRefs.current[view] = el; }}
         onMouseEnter={() => setHoveredView(view)}
-        onMouseLeave={() => {
-          setHoveredView(null);
-          if (draggingPointId) handleMouseUp();
-        }}
+        onMouseLeave={() => setHoveredView(null)}
         onClick={(e) => handleClick(view, e)}
-        onMouseMove={(e) => handleMouseMove(e, view)}
-        onMouseUp={handleMouseUp}
-        onTouchMove={(e) => handleMouseMove(e, view)}
-        onTouchEnd={handleMouseUp}
       >
         <div className="aspect-square relative overflow-hidden">
           <img
