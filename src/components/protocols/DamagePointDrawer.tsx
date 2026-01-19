@@ -97,6 +97,7 @@ export const DamagePointDrawer = ({
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   
   // Ref to track current note value for AI cancel check
   const customNoteRef = useRef(customNote);
@@ -120,13 +121,14 @@ export const DamagePointDrawer = ({
     }
   }, [open, existingPoint?.id]);
 
-  // Silent AI analysis with 3s timeout, cancelled if user is typing
+  // Silent AI analysis with 10s timeout, cancelled if user is typing
   const analyzeImageWithAI = async (imageUrl: string) => {
     // If user already typed something - don't analyze
     if (customNoteRef.current.length >= 1) return;
     
+    setAnalyzing(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     try {
       const { data, error } = await supabase.functions.invoke('analyze-damage', {
@@ -147,6 +149,8 @@ export const DamagePointDrawer = ({
     } catch {
       // Silently ignore - timeout or error
       clearTimeout(timeoutId);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -297,7 +301,15 @@ export const DamagePointDrawer = ({
           {/* Note with voice input */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Notatka</Label>
+              <div className="flex items-center gap-2">
+                <Label>Notatka</Label>
+                {analyzing && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Analizuję...</span>
+                  </div>
+                )}
+              </div>
               <VoiceNoteInput onTranscript={handleVoiceTranscript} />
             </div>
             <Textarea
