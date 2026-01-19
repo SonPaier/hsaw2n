@@ -221,9 +221,13 @@ export const VehicleDiagram = ({
     <div className="space-y-4">
       <div className={cn(
         "grid gap-3",
-        viewsToRender.length === 1 ? "grid-cols-1 max-w-[200px] mx-auto" :
-        viewsToRender.length === 2 ? "grid-cols-2 max-w-[400px] mx-auto" :
-        "grid-cols-2"
+        readOnly 
+          ? (viewsToRender.length === 1 ? "grid-cols-1 max-w-[300px] mx-auto" :
+             viewsToRender.length === 2 ? "grid-cols-2 max-w-[600px] mx-auto" :
+             "grid-cols-2 max-w-[600px] mx-auto")
+          : (viewsToRender.length === 1 ? "grid-cols-1 max-w-[200px] mx-auto" :
+             viewsToRender.length === 2 ? "grid-cols-2 max-w-[400px] mx-auto" :
+             "grid-cols-2")
       )}>
         {viewsToRender.map(renderView)}
       </div>
