@@ -15,7 +15,7 @@ const DAMAGE_TYPES = [
   { value: 'scratch', label: 'Rysa', color: 'bg-yellow-500' },
   { value: 'dent', label: 'Wgniecenie', color: 'bg-orange-500' },
   { value: 'damage', label: 'Uszkodzenie', color: 'bg-red-500' },
-  { value: 'chip', label: 'Odprysek', color: 'bg-blue-500' },
+  { value: 'chip', label: 'Odprysk', color: 'bg-blue-500' },
   { value: 'custom', label: 'Inne', color: 'bg-purple-500' },
 ];
 

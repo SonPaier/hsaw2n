@@ -178,7 +178,7 @@ export const VehicleDiagram = ({
               key={point.id}
               className={cn(
                 "absolute rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all",
-                readOnly ? "cursor-pointer bg-blue-500" : "w-6 h-6 cursor-grab active:cursor-grabbing",
+                readOnly ? "cursor-pointer bg-blue-500" : "cursor-grab active:cursor-grabbing",
                 !readOnly && point.isNew && !point.damage_type 
                   ? 'bg-gray-400 animate-pulse' 
                   : (!readOnly && (DAMAGE_TYPE_COLORS[point.damage_type || 'custom'] || 'bg-gray-500')),
@@ -188,7 +188,8 @@ export const VehicleDiagram = ({
               style={{
                 left: `${point.x_percent}%`,
                 top: `${point.y_percent}%`,
-                ...(readOnly ? { width: '0.75rem', height: '0.75rem' } : {}),
+                width: '0.75rem',
+                height: '0.75rem',
               }}
               onMouseDown={(e) => !readOnly && handlePointMouseDown(e, point)}
               onTouchStart={(e) => !readOnly && handlePointMouseDown(e, point)}
@@ -235,11 +236,11 @@ export const VehicleDiagram = ({
       {/* Legend - only show in edit mode */}
       {!readOnly && (
         <div className="flex flex-wrap gap-3 justify-center text-xs">
-          {[
+        {[
             { color: 'bg-yellow-500', label: 'Rysa' },
             { color: 'bg-orange-500', label: 'Wgniecenie' },
             { color: 'bg-red-500', label: 'Uszkodzenie' },
-            { color: 'bg-blue-500', label: 'Odprysek' },
+            { color: 'bg-blue-500', label: 'Odprysk' },
             { color: 'bg-purple-500', label: 'Inne' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
