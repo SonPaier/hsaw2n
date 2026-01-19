@@ -25,6 +25,7 @@ interface VehicleDiagramProps {
   onUpdatePointPosition?: (pointId: string, xPercent: number, yPercent: number) => void;
   selectedPointId?: string | null;
   readOnly?: boolean;
+  visibleViews?: VehicleView[]; // Optional: only render these views
 }
 
 const VIEW_LABELS: Record<VehicleView, string> = {
@@ -50,6 +51,7 @@ export const VehicleDiagram = ({
   onUpdatePointPosition,
   selectedPointId,
   readOnly = false,
+  visibleViews,
 }: VehicleDiagramProps) => {
   const [hoveredView, setHoveredView] = useState<VehicleView | null>(null);
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
@@ -211,10 +213,18 @@ export const VehicleDiagram = ({
     );
   };
 
+  // Determine which views to render
+  const viewsToRender = visibleViews || (['front', 'rear', 'left', 'right'] as VehicleView[]);
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        {(['front', 'rear', 'left', 'right'] as VehicleView[]).map(renderView)}
+      <div className={cn(
+        "grid gap-3",
+        viewsToRender.length === 1 ? "grid-cols-1 max-w-[200px] mx-auto" :
+        viewsToRender.length === 2 ? "grid-cols-2 max-w-[400px] mx-auto" :
+        "grid-cols-2"
+      )}>
+        {viewsToRender.map(renderView)}
       </div>
       
       {/* Legend */}
