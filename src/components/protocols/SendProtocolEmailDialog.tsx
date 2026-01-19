@@ -33,7 +33,7 @@ interface SendProtocolEmailDialogProps {
 
 const getDefaultMessage = (customerName: string, vehicleInfo: string | undefined, protocolType: ProtocolType) => {
   const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
-  return `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\nPozdrawiamy`;
+  return `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\n[Link do protokołu zostanie automatycznie dołączony]\n\nPozdrawiamy`;
 };
 
 const getDefaultSubject = (vehicleInfo: string | undefined, protocolType: ProtocolType) => {
