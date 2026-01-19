@@ -258,6 +258,31 @@ const AdminCalendar = ({
   const [closeDayDialogOpen, setCloseDayDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  const resetDragState = useCallback(() => {
+    setDraggedReservation(null);
+    setDragOverStation(null);
+    setDragOverDate(null);
+    setDragOverSlot(null);
+  }, []);
+
+  // Safety net: always clear drag state (e.g. when dropping outside the calendar)
+  useEffect(() => {
+    if (!draggedReservation) return;
+
+    const onGlobalDragEnd = () => resetDragState();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') resetDragState();
+    };
+
+    window.addEventListener('dragend', onGlobalDragEnd, true);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('dragend', onGlobalDragEnd, true);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [draggedReservation, resetDragState]);
+
   // Notify parent when currentDate changes
   useEffect(() => {
     onDateChange?.(currentDate);
@@ -900,10 +925,7 @@ const AdminCalendar = ({
     e.dataTransfer.setData('text/plain', reservation.id);
   };
   const handleDragEnd = () => {
-    setDraggedReservation(null);
-    setDragOverStation(null);
-    setDragOverDate(null);
-    setDragOverSlot(null);
+    resetDragState();
   };
   const handleDragOver = (e: DragEvent<HTMLDivElement>, stationId: string, dateStr?: string) => {
     e.preventDefault();
@@ -1019,7 +1041,7 @@ const AdminCalendar = ({
         // Check if start time is before opening
         if (newStartNum < dayStartNum) {
           console.warn('Cannot drop reservation before opening time');
-          setDraggedReservation(null);
+          resetDragState();
           return;
         }
 
@@ -1031,7 +1053,7 @@ const AdminCalendar = ({
         const closeNum = parseTime(dayCloseTime);
         if (newEndNum > closeNum) {
           console.warn('Reservation would end after closing time');
-          setDraggedReservation(null);
+          resetDragState();
           return;
         }
 
@@ -1052,7 +1074,7 @@ const AdminCalendar = ({
         onReservationMove?.(draggedReservation.id, stationId, dateStr, newTime);
       }
     }
-    setDraggedReservation(null);
+    resetDragState();
   };
 
   // Calculate drag preview position (relative to displayStartTime)
