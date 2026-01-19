@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,16 @@ import { SignatureDialog } from './SignatureDialog';
 import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
 import ClientSearchAutocomplete, { type ClientSearchValue } from '@/components/ui/client-search-autocomplete';
 import { CarSearchAutocomplete, type CarSearchValue } from '@/components/ui/car-search-autocomplete';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type ProtocolType = 'reception' | 'pickup';
 
@@ -99,6 +109,27 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [savedProtocolIdForEmail, setSavedProtocolIdForEmail] = useState<string | null>(null);
 
+  // Unsaved changes dialog
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'back' | 'cancel' | null>(null);
+
+  // Track photos uploaded during this session (for orphan cleanup)
+  const [uploadedPhotosInSession, setUploadedPhotosInSession] = useState<string[]>([]);
+
+  // Initial state snapshot for dirty checking
+  const initialStateRef = useRef<{
+    customerName: string;
+    customerEmail: string;
+    vehicleModel: string;
+    registrationNumber: string;
+    damagePointsCount: number;
+    customerSignature: string | null;
+    notes: string;
+  } | null>(null);
+
+  // Track if form has been saved at least once
+  const hasBeenSavedRef = useRef(false);
+
   // Generate notes from damage points
   const generatedNotes = useMemo(() => {
     if (damagePoints.length === 0) return '';
@@ -110,10 +141,80 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     }).join('\n');
   }, [damagePoints]);
 
+  // Check if form is dirty (has unsaved changes)
+  const isDirty = useMemo(() => {
+    if (!initialStateRef.current) return false;
+    const initial = initialStateRef.current;
+    return (
+      customerName !== initial.customerName ||
+      customerEmail !== initial.customerEmail ||
+      vehicleModel !== initial.vehicleModel ||
+      registrationNumber !== initial.registrationNumber ||
+      damagePoints.length !== initial.damagePointsCount ||
+      customerSignature !== initial.customerSignature ||
+      notes !== initial.notes ||
+      uploadedPhotosInSession.length > 0
+    );
+  }, [customerName, customerEmail, vehicleModel, registrationNumber, damagePoints.length, customerSignature, notes, uploadedPhotosInSession.length]);
+
   // Update notes when damage points change
   useEffect(() => {
     setNotes(generatedNotes);
   }, [generatedNotes]);
+
+  // Cleanup orphaned photos from storage
+  const cleanupOrphanedPhotos = useCallback(async () => {
+    if (uploadedPhotosInSession.length === 0) return;
+    
+    try {
+      for (const url of uploadedPhotosInSession) {
+        // Extract file name from URL
+        const urlParts = url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        if (fileName) {
+          await supabase.storage.from('protocol-photos').remove([fileName]);
+        }
+      }
+      console.log(`Cleaned up ${uploadedPhotosInSession.length} orphaned photos`);
+    } catch (error) {
+      console.error('Error cleaning up orphaned photos:', error);
+    }
+  }, [uploadedPhotosInSession]);
+
+  // Handle photo uploaded callback from DamagePointDrawer
+  const handlePhotoUploaded = useCallback((url: string) => {
+    setUploadedPhotosInSession(prev => [...prev, url]);
+  }, []);
+
+  // Browser beforeunload guard
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !hasBeenSavedRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Safe navigation handler
+  const handleNavigateBack = useCallback(() => {
+    if (isDirty && !hasBeenSavedRef.current) {
+      setPendingAction('back');
+      setShowUnsavedDialog(true);
+    } else {
+      onBack();
+    }
+  }, [isDirty, onBack]);
+
+  // Handle discard changes
+  const handleDiscardChanges = useCallback(async () => {
+    await cleanupOrphanedPhotos();
+    setShowUnsavedDialog(false);
+    onBack();
+  }, [cleanupOrphanedPhotos, onBack]);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -176,6 +277,19 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             })));
           }
         }
+        
+        // Set initial state for dirty checking (after data is loaded)
+        setTimeout(() => {
+          initialStateRef.current = {
+            customerName: protocolId ? (customerName || '') : '',
+            customerEmail: protocolId ? (customerEmail || '') : '',
+            vehicleModel: protocolId ? (vehicleModel || '') : '',
+            registrationNumber: protocolId ? (registrationNumber || '') : '',
+            damagePointsCount: protocolId ? damagePoints.length : 0,
+            customerSignature: protocolId ? customerSignature : null,
+            notes: protocolId ? notes : '',
+          };
+        }, 100);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -361,9 +475,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         toast.success('Protokół zapisany');
         setSavedProtocolIdForEmail(savedProtocolId);
         setEmailDialogOpen(true);
+        hasBeenSavedRef.current = true;
+        setUploadedPhotosInSession([]); // Clear tracked photos after save
         return savedProtocolId;
       } else {
         toast.success(isEditMode ? 'Protokół zaktualizowany' : 'Protokół zapisany');
+        hasBeenSavedRef.current = true;
+        setUploadedPhotosInSession([]); // Clear tracked photos after save
         onBack();
         return savedProtocolId;
       }
@@ -375,6 +493,12 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
       setSaving(false);
       setSavingAndSending(false);
     }
+  };
+
+  // Handle save and exit (for dialog)
+  const handleSaveAndExit = async () => {
+    setShowUnsavedDialog(false);
+    await handleSave(false);
   };
 
   const handleSaveAndSendEmail = () => {
@@ -392,7 +516,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Sticky header */}
-      <ProtocolHeader instance={instance} onClose={onBack} />
+      <ProtocolHeader instance={instance} onClose={handleNavigateBack} />
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
@@ -616,7 +740,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
 
       {/* Fixed footer */}
       <footer className="fixed bottom-16 sm:bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={handleNavigateBack}>
           Anuluj
         </Button>
         <div className="flex gap-2">
@@ -649,6 +773,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         onDelete={selectedPoint ? handleDeletePoint : undefined}
         isEditing={!!selectedPoint}
         offerNumber={offerNumber}
+        onPhotoUploaded={handlePhotoUploaded}
       />
 
       <SignatureDialog
@@ -672,6 +797,33 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         vehicleInfo={[vehicleModel, registrationNumber].filter(Boolean).join(' ')}
         protocolType={protocolType}
       />
+
+      {/* Unsaved changes dialog */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Niezapisane zmiany</AlertDialogTitle>
+            <AlertDialogDescription>
+              Masz niezapisane zmiany w protokole. Czy chcesz je zapisać przed wyjściem?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setShowUnsavedDialog(false)}>
+              Anuluj
+            </AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={handleDiscardChanges}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              Nie zapisuj
+            </Button>
+            <AlertDialogAction onClick={handleSaveAndExit}>
+              Zapisz
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
