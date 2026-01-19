@@ -59,10 +59,7 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
 };
 
 const VIEW_LABELS: Record<string, string> = {
-  front: 'Przód pojazdu',
-  rear: 'Tył pojazdu',
-  left: 'Lewa strona pojazdu',
-  right: 'Prawa strona pojazdu',
+  full: 'Diagram pojazdu',
 };
 
 export const PublicProtocolCustomerView = ({
@@ -79,11 +76,8 @@ export const PublicProtocolCustomerView = ({
     setViewerOpen(true);
   };
 
-  // Filter views that have damage points
-  const viewsWithDamage = useMemo(() => {
-    const views: VehicleView[] = ['front', 'rear', 'left', 'right'];
-    return views.filter(view => damagePoints.some(p => p.view === view));
-  }, [damagePoints]);
+  // Check if there are any damage points
+  const hasDamagePoints = damagePoints.length > 0;
 
   // Generate notes from damage points
   const generatedNotes = damagePoints.length > 0 
@@ -187,8 +181,8 @@ export const PublicProtocolCustomerView = ({
             )}
           </div>
 
-          {/* Vehicle diagram - only views with damage */}
-          {viewsWithDamage.length > 0 && (
+          {/* Vehicle diagram - show if there are damage points */}
+          {hasDamagePoints && (
             <div className="space-y-2">
               <Label className="text-muted-foreground text-sm">Stan pojazdu</Label>
               <VehicleDiagram
@@ -196,7 +190,6 @@ export const PublicProtocolCustomerView = ({
                 damagePoints={damagePoints}
                 readOnly
                 onSelectPoint={handleSelectPoint}
-                visibleViews={viewsWithDamage}
               />
             </div>
           )}
