@@ -153,7 +153,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
           if (pointsError) throw pointsError;
 
           if (pointsData) {
-            setDamagePoints(pointsData.map(p => ({
+            setDamagePoints(pointsData.map((p: any) => ({
               id: p.id,
               view: p.view as VehicleView,
               x_percent: p.x_percent,
@@ -161,6 +161,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
               damage_type: p.damage_type || undefined,
               custom_note: p.custom_note || undefined,
               photo_url: p.photo_url || undefined,
+              photo_urls: p.photo_urls || undefined,
             })));
           }
         }
@@ -307,7 +308,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
           .insert({
             ...protocolPayload,
             protocol_time: currentTime,
-          })
+          } as any)
           .select('id')
           .single();
 
@@ -325,11 +326,12 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack }: CreatePro
           damage_type: p.damage_type || null,
           custom_note: p.custom_note || null,
           photo_url: p.photo_url || null,
+          photo_urls: p.photo_urls || null,
         }));
 
         const { error: pointsError } = await supabase
           .from('protocol_damage_points')
-          .insert(pointsToInsert);
+          .insert(pointsToInsert as any);
 
         if (pointsError) throw pointsError;
       }
