@@ -14,6 +14,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Send } from 'lucide-react';
 
+type ProtocolType = 'reception' | 'pickup';
+
+const PROTOCOL_TYPE_LABELS: Record<ProtocolType, string> = {
+  reception: 'przyjęcia',
+  pickup: 'odbioru',
+};
+
 interface SendProtocolEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,7 +28,18 @@ interface SendProtocolEmailDialogProps {
   customerName: string;
   customerEmail?: string;
   vehicleInfo?: string;
+  protocolType?: ProtocolType;
 }
+
+const getDefaultMessage = (customerName: string, vehicleInfo: string | undefined, protocolType: ProtocolType) => {
+  const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
+  return `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\nPozdrawiamy`;
+};
+
+const getDefaultSubject = (vehicleInfo: string | undefined, protocolType: ProtocolType) => {
+  const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
+  return `Protokół ${typeLabel} pojazdu${vehicleInfo ? ` - ${vehicleInfo}` : ''}`;
+};
 
 export const SendProtocolEmailDialog = ({
   open,
@@ -30,12 +48,11 @@ export const SendProtocolEmailDialog = ({
   customerName,
   customerEmail,
   vehicleInfo,
+  protocolType = 'reception',
 }: SendProtocolEmailDialogProps) => {
   const [email, setEmail] = useState(customerEmail || '');
-  const [subject, setSubject] = useState(`Protokół przyjęcia pojazdu${vehicleInfo ? ` - ${vehicleInfo}` : ''}`);
-  const [message, setMessage] = useState(
-    `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół przyjęcia pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\nPozdrawiamy`
-  );
+  const [subject, setSubject] = useState(getDefaultSubject(vehicleInfo, protocolType));
+  const [message, setMessage] = useState(getDefaultMessage(customerName, vehicleInfo, protocolType));
   const [sending, setSending] = useState(false);
 
   const isValidEmail = (email: string) => {
