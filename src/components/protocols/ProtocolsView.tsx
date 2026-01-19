@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ClipboardCheck, Search, Loader2, Calendar, User, Car, MoreVertical, Pencil, Link2, Trash2, Mail, FileText, ChevronLeft, ChevronRight, ArrowLeft, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CreateProtocolForm } from './CreateProtocolForm';
@@ -17,6 +17,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
+import { ProtocolSettingsDialog } from './ProtocolSettingsDialog';
 import {
   Pagination,
   PaginationContent,
@@ -59,6 +60,7 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [protocolToEmail, setProtocolToEmail] = useState<Protocol | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchProtocols();
@@ -217,9 +219,16 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
         <h2 className="text-xl font-semibold flex-1">
           Protokoły
         </h2>
-        <Button onClick={() => setShowCreateForm(true)}>
-          Dodaj protokół
-        </Button>
+        <div className="flex items-center gap-2">
+          {!kioskMode && (
+            <Button variant="outline" size="icon" onClick={() => setSettingsDialogOpen(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+          <Button onClick={() => setShowCreateForm(true)}>
+            Dodaj protokół
+          </Button>
+        </div>
       </div>
 
       <div className="relative mt-4">
@@ -437,6 +446,13 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
             customerEmail={protocolToEmail?.customer_email || undefined}
             vehicleInfo={[protocolToEmail?.vehicle_model, protocolToEmail?.registration_number].filter(Boolean).join(' ')}
             protocolType={protocolToEmail?.protocol_type || 'reception'}
+            instanceId={instanceId}
+          />
+
+          <ProtocolSettingsDialog
+            open={settingsDialogOpen}
+            onOpenChange={setSettingsDialogOpen}
+            instanceId={instanceId}
           />
         </>
       )}

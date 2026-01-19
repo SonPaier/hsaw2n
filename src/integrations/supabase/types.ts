@@ -643,6 +643,7 @@ export type Database = {
           offer_trust_tiles: Json | null
           phone: string | null
           primary_color: string | null
+          protocol_email_template: string | null
           reservation_phone: string | null
           secondary_color: string | null
           short_name: string | null
@@ -697,6 +698,7 @@ export type Database = {
           offer_trust_tiles?: Json | null
           phone?: string | null
           primary_color?: string | null
+          protocol_email_template?: string | null
           reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
@@ -751,6 +753,7 @@ export type Database = {
           offer_trust_tiles?: Json | null
           phone?: string | null
           primary_color?: string | null
+          protocol_email_template?: string | null
           reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
