@@ -1233,7 +1233,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               .from('customers')
               .insert({
                 instance_id: instanceId,
-                phone,
+                phone: normalizePhoneForStorage(phone),
                 name: customerName,
               })
               .select('id')
@@ -1368,7 +1368,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             .from('customers')
             .insert({
               instance_id: instanceId,
-              phone,
+              phone: normalizePhoneForStorage(phone),
               name: customerName,
             })
             .select('id')

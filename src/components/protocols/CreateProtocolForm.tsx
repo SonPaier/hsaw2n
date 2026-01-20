@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { normalizePhone } from '@/lib/phoneUtils';
 import { ProtocolHeader } from './ProtocolHeader';
 import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } from './VehicleDiagram';
 import { DamagePointDrawer } from './DamagePointDrawer';
@@ -405,7 +406,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         customer_email: customerEmail || null,
         vehicle_model: vehicleModel || null,
         nip: nip || null,
-        phone: phone || null,
+        phone: normalizePhone(phone) || null,
         registration_number: registrationNumber || null,
         fuel_level: fuelLevel ? parseInt(fuelLevel) : null,
         odometer_reading: odometerReading ? parseInt(odometerReading) : null,

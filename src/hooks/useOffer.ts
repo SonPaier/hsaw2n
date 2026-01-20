@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { addMonths, format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { normalizePhone } from '@/lib/phoneUtils';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface CustomerData {
@@ -770,7 +771,7 @@ export const useOffer = (instanceId: string) => {
               .update({
                 name: offer.customerData.name || offer.customerData.company || 'Nieznany',
                 email: offer.customerData.email || null,
-                phone: offer.customerData.phone || '',
+                phone: normalizePhone(offer.customerData.phone) || '',
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,
                 address: fullAddress,
@@ -785,7 +786,7 @@ export const useOffer = (instanceId: string) => {
               .insert({
                 instance_id: instanceId,
                 name: offer.customerData.name || offer.customerData.company || 'Nieznany',
-                phone: offer.customerData.phone || '',
+                phone: normalizePhone(offer.customerData.phone) || '',
                 email: offer.customerData.email || null,
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,

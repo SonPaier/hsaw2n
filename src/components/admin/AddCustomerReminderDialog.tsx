@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePhone } from '@/lib/phoneUtils';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -98,7 +99,7 @@ export function AddCustomerReminderDialog({
           instance_id: instanceId,
           offer_id: null, // Custom reminder - not linked to offer
           customer_name: customerName,
-          customer_phone: customerPhone,
+          customer_phone: normalizePhone(customerPhone),
           service_name: serviceName.trim(),
           service_type: serviceType,
           scheduled_date: format(scheduledDate, 'yyyy-MM-dd'),
