@@ -8,6 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Backoff time in minutes - prevents retry spam
+const BACKOFF_MINUTES = 15;
+
 interface Reservation {
   id: string;
   customer_phone: string;
@@ -19,6 +22,8 @@ interface Reservation {
   confirmation_code: string;
   reminder_1day_sent: boolean | null;
   reminder_1hour_sent: boolean | null;
+  reminder_1day_last_attempt_at: string | null;
+  reminder_1hour_last_attempt_at: string | null;
 }
 
 interface Service {
@@ -66,6 +71,52 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
     return normalizedPhone === normalizedAllowed;
   });
 };
+
+// Atomic claim: attempt to "claim" a reservation for sending reminder
+// Returns the reservation ID if claimed successfully, null otherwise
+async function claimReservationFor1HourReminder(supabase: any, reservationId: string, backoffMinutes: number): Promise<boolean> {
+  const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
+  
+  // Atomic update: only claim if not already sent AND last attempt was > backoffMinutes ago (or never)
+  const { data, error } = await supabase
+    .from("reservations")
+    .update({ reminder_1hour_last_attempt_at: new Date().toISOString() })
+    .eq("id", reservationId)
+    .is("reminder_1hour_sent", null)
+    .or(`reminder_1hour_last_attempt_at.is.null,reminder_1hour_last_attempt_at.lt.${backoffThreshold}`)
+    .select("id")
+    .maybeSingle();
+  
+  if (error) {
+    console.error(`Error claiming 1-hour reminder for ${reservationId}:`, error);
+    return false;
+  }
+  
+  // If data is returned, we successfully claimed the reservation
+  return !!data;
+}
+
+async function claimReservationFor1DayReminder(supabase: any, reservationId: string, backoffMinutes: number): Promise<boolean> {
+  const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
+  
+  // Atomic update: only claim if not already sent AND last attempt was > backoffMinutes ago (or never)
+  const { data, error } = await supabase
+    .from("reservations")
+    .update({ reminder_1day_last_attempt_at: new Date().toISOString() })
+    .eq("id", reservationId)
+    .is("reminder_1day_sent", null)
+    .or(`reminder_1day_last_attempt_at.is.null,reminder_1day_last_attempt_at.lt.${backoffThreshold}`)
+    .select("id")
+    .maybeSingle();
+  
+  if (error) {
+    console.error(`Error claiming 1-day reminder for ${reservationId}:`, error);
+    return false;
+  }
+  
+  // If data is returned, we successfully claimed the reservation
+  return !!data;
+}
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -121,7 +172,7 @@ serve(async (req: Request): Promise<Response> => {
     // First, get candidate reservations without claiming them yet
     const { data: candidateDayReminders, error: fetchDayError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_last_attempt_at")
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
       .eq("reservation_date", tomorrowDate);
@@ -147,7 +198,7 @@ serve(async (req: Request): Promise<Response> => {
     // Get reservations that need 1-hour reminder
     const { data: candidateHourReminders, error: fetchHourError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_last_attempt_at")
       .eq("status", "confirmed")
       .is("reminder_1hour_sent", null)
       .eq("reservation_date", now.toISOString().split("T")[0]);
@@ -196,7 +247,9 @@ serve(async (req: Request): Promise<Response> => {
     };
 
     let sentCount = 0;
-    const results: { type: string; reservationId: string; success: boolean }[] = [];
+    let skippedBackoff = 0;
+    let skippedClaimed = 0;
+    const results: { type: string; reservationId: string; success: boolean; skipped?: string }[] = [];
 
     // Process 1-day reminders (already filtered for enabled instances)
     for (const reservation of dayReminders) {
@@ -216,6 +269,15 @@ serve(async (req: Request): Promise<Response> => {
       
       // Only send if we're within a 5-minute window of the configured time
       if (Math.abs(currentTotalMinutes - sendTotalMinutes) > 5) {
+        continue;
+      }
+
+      // ATOMIC CLAIM: Try to claim this reservation for sending
+      const claimed = await claimReservationFor1DayReminder(supabase, reservation.id, BACKOFF_MINUTES);
+      if (!claimed) {
+        console.log(`1-day reminder for ${reservation.id}: skipped (already claimed or in backoff)`);
+        skippedClaimed++;
+        results.push({ type: "1day", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
         continue;
       }
 
@@ -242,15 +304,18 @@ serve(async (req: Request): Promise<Response> => {
       const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
       
       if (success) {
+        // Only mark as sent on SUCCESS
         await supabase
           .from("reservations")
           .update({ reminder_1day_sent: true })
           .eq("id", reservation.id);
         sentCount++;
       }
+      // If failed, reminder_1day_sent stays null, but last_attempt_at is set
+      // So next retry will be after BACKOFF_MINUTES
 
       results.push({ type: "1day", reservationId: reservation.id, success });
-      console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed"}`);
+      console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
     }
 
     // Process 1-hour reminders (already filtered for enabled instances)
@@ -262,6 +327,15 @@ serve(async (req: Request): Promise<Response> => {
 
       // Send if between 55 and 65 minutes before
       if (minutesDiff >= 55 && minutesDiff <= 65) {
+        // ATOMIC CLAIM: Try to claim this reservation for sending
+        const claimed = await claimReservationFor1HourReminder(supabase, reservation.id, BACKOFF_MINUTES);
+        if (!claimed) {
+          console.log(`1-hour reminder for ${reservation.id}: skipped (already claimed or in backoff)`);
+          skippedClaimed++;
+          results.push({ type: "1hour", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
+          continue;
+        }
+
         // Get instance info dynamically
         const instanceInfo = await getInstanceInfo(reservation.instance_id);
         
@@ -273,20 +347,25 @@ serve(async (req: Request): Promise<Response> => {
         const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
         
         if (success) {
+          // Only mark as sent on SUCCESS
           await supabase
             .from("reservations")
             .update({ reminder_1hour_sent: true })
             .eq("id", reservation.id);
           sentCount++;
         }
+        // If failed, reminder_1hour_sent stays null, but last_attempt_at is set
+        // So next retry will be after BACKOFF_MINUTES
 
         results.push({ type: "1hour", reservationId: reservation.id, success });
-        console.log(`1-hour reminder for ${reservation.id}: ${success ? "sent" : "failed"}`);
+        console.log(`1-hour reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
       }
     }
 
+    console.log(`Summary: sent=${sentCount}, skippedClaimed=${skippedClaimed}`);
+
     return new Response(
-      JSON.stringify({ success: true, sentCount, results }),
+      JSON.stringify({ success: true, sentCount, skippedClaimed, results }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 

@@ -2089,7 +2089,9 @@ export type Database = {
           pickup_sms_sent_at: string | null
           price: number | null
           released_at: string | null
+          reminder_1day_last_attempt_at: string | null
           reminder_1day_sent: boolean | null
+          reminder_1hour_last_attempt_at: string | null
           reminder_1hour_sent: boolean | null
           reservation_date: string
           service_id: string | null
@@ -2130,7 +2132,9 @@ export type Database = {
           pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
+          reminder_1day_last_attempt_at?: string | null
           reminder_1day_sent?: boolean | null
+          reminder_1hour_last_attempt_at?: string | null
           reminder_1hour_sent?: boolean | null
           reservation_date: string
           service_id?: string | null
@@ -2171,7 +2175,9 @@ export type Database = {
           pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
+          reminder_1day_last_attempt_at?: string | null
           reminder_1day_sent?: boolean | null
+          reminder_1hour_last_attempt_at?: string | null
           reminder_1hour_sent?: boolean | null
           reservation_date?: string
           service_id?: string | null
