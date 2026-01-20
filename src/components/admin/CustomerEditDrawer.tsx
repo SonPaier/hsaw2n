@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { normalizePhone } from '@/lib/phoneUtils';
 import SendSmsDialog from './SendSmsDialog';
 import { CustomerRemindersTab } from './CustomerRemindersTab';
 
@@ -171,7 +172,7 @@ const CustomerEditDrawer = ({
           .insert({
             instance_id: instanceId,
             name: editName.trim(),
-            phone: editPhone.trim(),
+            phone: normalizePhone(editPhone.trim()),
             email: editEmail.trim() || null,
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
@@ -188,7 +189,7 @@ const CustomerEditDrawer = ({
           .from('customers')
           .update({
             name: editName.trim(),
-            phone: editPhone.trim(),
+            phone: normalizePhone(editPhone.trim()),
             email: editEmail.trim() || null,
             notes: editNotes.trim() || null,
             company: editCompany.trim() || null,
