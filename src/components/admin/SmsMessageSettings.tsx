@@ -319,7 +319,7 @@ const SmsMessageSettings = ({ instanceId, instanceName }: SmsMessageSettingsProp
       </div>
 
       {/* Save Button */}
-      <Button onClick={handleSave} disabled={saving} className="w-full">
+      <Button onClick={handleSave} disabled={saving || loading || settings.length === 0} className="w-full">
         {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
         {t('common.save')}
       </Button>
