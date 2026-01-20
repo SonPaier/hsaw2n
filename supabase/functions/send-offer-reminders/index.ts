@@ -20,13 +20,10 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch due reminders
+    // Fetch due reminders (instance_id is directly on reminder, no need to join offers)
     const { data: reminders, error: fetchError } = await supabase
       .from("offer_reminders")
-      .select(`
-        *,
-        offers!inner(instance_id)
-      `)
+      .select("*")
       .lte("scheduled_date", today)
       .eq("status", "scheduled");
 
