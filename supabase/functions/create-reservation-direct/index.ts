@@ -65,17 +65,37 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
     return true;
   }
   
-  // Normalize phone for comparison
+  // Normalize phone for comparison - handle various prefix formats
   let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+  normalizedPhone = normalizedPhone.replace(/\++/g, "+");
+  
   if (!normalizedPhone.startsWith("+")) {
-    normalizedPhone = "+48" + normalizedPhone;
+    if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
+      normalizedPhone = "+" + normalizedPhone;
+    } else if (normalizedPhone.startsWith("0048")) {
+      normalizedPhone = "+48" + normalizedPhone.slice(4);
+    } else {
+      normalizedPhone = "+48" + normalizedPhone;
+    }
+  } else if (normalizedPhone.startsWith("+0048")) {
+    normalizedPhone = "+48" + normalizedPhone.slice(5);
   }
   
   // Check if phone is in allowed list
   return params.phones.some(p => {
     let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+    normalizedAllowed = normalizedAllowed.replace(/\++/g, "+");
+    
     if (!normalizedAllowed.startsWith("+")) {
-      normalizedAllowed = "+48" + normalizedAllowed;
+      if (normalizedAllowed.startsWith("48") && normalizedAllowed.length >= 11) {
+        normalizedAllowed = "+" + normalizedAllowed;
+      } else if (normalizedAllowed.startsWith("0048")) {
+        normalizedAllowed = "+48" + normalizedAllowed.slice(4);
+      } else {
+        normalizedAllowed = "+48" + normalizedAllowed;
+      }
+    } else if (normalizedAllowed.startsWith("+0048")) {
+      normalizedAllowed = "+48" + normalizedAllowed.slice(5);
     }
     return normalizedPhone === normalizedAllowed;
   });
@@ -96,10 +116,20 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Normalize phone
+    // Normalize phone - handle various prefix formats to avoid duplicates like +4848...
     let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
+    normalizedPhone = normalizedPhone.replace(/\++/g, "+");
+    
     if (!normalizedPhone.startsWith("+")) {
-      normalizedPhone = "+48" + normalizedPhone;
+      if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
+        normalizedPhone = "+" + normalizedPhone;
+      } else if (normalizedPhone.startsWith("0048")) {
+        normalizedPhone = "+48" + normalizedPhone.slice(4);
+      } else {
+        normalizedPhone = "+48" + normalizedPhone;
+      }
+    } else if (normalizedPhone.startsWith("+0048")) {
+      normalizedPhone = "+48" + normalizedPhone.slice(5);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
