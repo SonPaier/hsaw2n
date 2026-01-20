@@ -131,7 +131,7 @@ const SortableServiceItem = ({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "p-4 border border-border/50 rounded-lg bg-background",
+          "p-4 border border-border/50 rounded-lg bg-white",
           !service.active && "opacity-50"
         )}
       >
@@ -202,7 +202,7 @@ const SortableServiceItem = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 p-4 border border-border/50 rounded-lg bg-background",
+        "flex items-center gap-2 p-4 border border-border/50 rounded-lg bg-white",
         !service.active && "opacity-50"
       )}
     >
