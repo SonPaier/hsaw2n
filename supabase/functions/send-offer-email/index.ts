@@ -79,7 +79,11 @@ serve(async (req) => {
       );
     }
 
-    const customerEmail = offer.customer_data?.email;
+    let customerEmail = offer.customer_data?.email;
+    if (customerEmail) {
+      // Sanitize: remove mailto: prefix and trim whitespace
+      customerEmail = customerEmail.replace(/^mailto:/i, '').trim();
+    }
     if (!customerEmail) {
       return new Response(
         JSON.stringify({ error: "No customer email" }),
