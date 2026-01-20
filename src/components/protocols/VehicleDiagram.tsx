@@ -111,7 +111,7 @@ export const VehicleDiagram = ({
   return (
     <div
       className={cn(
-        "relative bg-white rounded-lg border p-4 touch-none w-full",
+        "relative bg-white rounded-lg border touch-none w-full",
         readOnly ? "cursor-default max-w-[600px] mx-auto" : "cursor-crosshair"
       )}
       ref={containerRef}
