@@ -59,34 +59,53 @@ export function useAppUpdate() {
 
   const applyUpdate = useCallback(async () => {
     setIsUpdating(true);
+    console.log('[Update] Starting update process...');
     
     try {
       // Update stored version with the latest from server
       if (latestVersion) {
         localStorage.setItem(VERSION_STORAGE_KEY, latestVersion);
+        console.log('[Update] Version saved:', latestVersion);
       }
       
       // If service worker is available, tell it to skip waiting
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            console.log('[Update] SW skip waiting sent');
+          }
+        } catch (swError) {
+          console.warn('[Update] SW error (continuing):', swError);
         }
       }
 
-      // Clear caches if possible
+      // Clear caches with timeout (max 3 seconds)
       if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        try {
+          const cachePromise = (async () => {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log('[Update] Caches cleared:', cacheNames.length);
+          })();
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Cache clear timeout')), 3000)
+          );
+          
+          await Promise.race([cachePromise, timeoutPromise]);
+        } catch (cacheError) {
+          console.warn('[Update] Cache clear skipped:', cacheError);
+        }
       }
-
-      // Force reload from server
-      window.location.reload();
     } catch (error) {
-      console.error('Error applying update:', error);
-      // Fallback - just reload
-      window.location.reload();
+      console.error('[Update] Error during update:', error);
     }
+    
+    // Always reload, regardless of any errors above
+    console.log('[Update] Reloading...');
+    window.location.reload();
   }, [latestVersion]);
 
   return {
