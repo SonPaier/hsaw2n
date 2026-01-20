@@ -59,6 +59,11 @@ export const CustomerDataStep = ({
     return emailRegex.test(email);
   };
 
+  const sanitizeEmail = (email: string): string => {
+    // Remove mailto: prefix (case-insensitive) and trim whitespace
+    return email.replace(/^mailto:/i, '').trim();
+  };
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     onCustomerChange({ email });
@@ -67,6 +72,24 @@ export const CustomerDataStep = ({
       setEmailError('Nieprawidłowy format adresu email');
     } else {
       setEmailError(null);
+    }
+  };
+
+  const handleEmailPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    
+    // Check if pasted text contains mailto:
+    if (pastedText.toLowerCase().startsWith('mailto:')) {
+      e.preventDefault(); // Prevent default paste
+      const cleanEmail = sanitizeEmail(pastedText);
+      onCustomerChange({ email: cleanEmail });
+      
+      // Also validate the cleaned email
+      if (cleanEmail && !validateEmail(cleanEmail)) {
+        setEmailError('Nieprawidłowy format adresu email');
+      } else {
+        setEmailError(null);
+      }
     }
   };
 
@@ -138,6 +161,7 @@ export const CustomerDataStep = ({
               type="email"
               value={customerData.email}
               onChange={handleEmailChange}
+              onPaste={handleEmailPaste}
               className={emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
             {emailError && (
