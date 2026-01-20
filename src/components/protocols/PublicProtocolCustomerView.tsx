@@ -195,14 +195,12 @@ export const PublicProtocolCustomerView = ({
           )}
 
           {/* Notes */}
-          {generatedNotes && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-sm">Uwagi</Label>
-              <div className="whitespace-pre-line text-sm">
-                {generatedNotes}
-              </div>
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-sm">Uwagi</Label>
+            <div className="whitespace-pre-line text-sm">
+              {generatedNotes || '--- brak uwag ---'}
             </div>
-          )}
+          </div>
 
           {/* Protocol metadata */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -671,7 +671,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Uwagi dotyczące stanu pojazdu..."
-              rows={3}
+              rows={6}
               className="resize-none"
             />
           </div>
