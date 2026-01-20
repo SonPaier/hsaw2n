@@ -55,11 +55,24 @@ serve(async (req) => {
     // Remove duplicate + signs
     normalizedPhone = normalizedPhone.replace(/\++/g, "+");
     
+    // Handle various prefix formats to avoid duplicates like +4848...
     if (!normalizedPhone.startsWith("+")) {
-      if (normalizedPhone.startsWith("48")) {
+      // If starts with 48, just add +
+      if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
         normalizedPhone = "+" + normalizedPhone;
-      } else {
+      } 
+      // If starts with 0048, replace with +48
+      else if (normalizedPhone.startsWith("0048")) {
+        normalizedPhone = "+48" + normalizedPhone.slice(4);
+      }
+      // Otherwise add +48 prefix
+      else {
         normalizedPhone = "+48" + normalizedPhone;
+      }
+    } else {
+      // Already starts with +, check for +0048 format
+      if (normalizedPhone.startsWith("+0048")) {
+        normalizedPhone = "+48" + normalizedPhone.slice(5);
       }
     }
     
