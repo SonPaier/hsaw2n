@@ -114,7 +114,7 @@ const AdminDashboard = () => {
     user,
     signOut
   } = useAuth();
-  const { currentVersion } = useAppUpdate();
+  const { updateAvailable, isUpdating, applyUpdate, currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -2164,8 +2164,6 @@ const AdminDashboard = () => {
 
   const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
   
-  // Get update status for PWA update banner
-  const { updateAvailable, isUpdating, applyUpdate } = useAppUpdate();
   
   return <>
       <Helmet>
@@ -2176,14 +2174,19 @@ const AdminDashboard = () => {
       {/* PWA Update Banner */}
       {updateAvailable && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-primary text-primary-foreground p-3 flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col">
             <span className="text-sm font-medium">
               Dostępna nowa wersja aplikacji
             </span>
+            {currentVersion && (
+              <span className="text-xs opacity-80">
+                Wersja {currentVersion}
+              </span>
+            )}
           </div>
           <Button
             size="sm"
-            variant="secondary"
+            className="bg-white text-black hover:bg-white/90"
             onClick={applyUpdate}
             disabled={isUpdating}
           >
