@@ -126,6 +126,16 @@ export function normalizePhoneOrFallback(
   // Remove trunk zero after country code
   fallback = fallback.replace(/^(\+\d{1,3})0(\d)/, "$1$2");
   
+  // FIX: Detect and fix double prefix patterns like +4848, 4848, 004848
+  // Pattern: starts with +48 followed by 48 again
+  if (fallback.startsWith("+4848")) {
+    fallback = "+48" + fallback.slice(5);
+  }
+  // Pattern: starts with 4848 (without +)
+  else if (fallback.startsWith("4848") && !fallback.startsWith("+")) {
+    fallback = "+48" + fallback.slice(4);
+  }
+  
   if (!fallback.startsWith("+")) {
     // Get default country calling code
     const countryCallingCodes: Record<string, string> = {
@@ -150,6 +160,10 @@ export function normalizePhoneOrFallback(
     // If exactly 9 digits - add default country prefix
     if (/^\d{9}$/.test(fallback)) {
       fallback = "+" + defaultCallingCode + fallback;
+    }
+    // If 11 digits starting with 48 - it's already a Polish number, just add +
+    else if (fallback.length === 11 && fallback.startsWith("48")) {
+      fallback = "+" + fallback;
     }
     // If 11+ digits and starts with a known country code - add +
     else if (fallback.length >= 11 && /^(48|49|44|380|420|421|43|41|33|39|34|31|32|1)/.test(fallback)) {

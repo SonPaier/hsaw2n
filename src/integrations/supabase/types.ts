@@ -2093,6 +2093,9 @@ export type Database = {
           reminder_1day_sent: boolean | null
           reminder_1hour_last_attempt_at: string | null
           reminder_1hour_sent: boolean | null
+          reminder_failure_count: number | null
+          reminder_failure_reason: string | null
+          reminder_permanent_failure: boolean | null
           reservation_date: string
           service_id: string | null
           service_ids: Json | null
@@ -2136,6 +2139,9 @@ export type Database = {
           reminder_1day_sent?: boolean | null
           reminder_1hour_last_attempt_at?: string | null
           reminder_1hour_sent?: boolean | null
+          reminder_failure_count?: number | null
+          reminder_failure_reason?: string | null
+          reminder_permanent_failure?: boolean | null
           reservation_date: string
           service_id?: string | null
           service_ids?: Json | null
@@ -2179,6 +2185,9 @@ export type Database = {
           reminder_1day_sent?: boolean | null
           reminder_1hour_last_attempt_at?: string | null
           reminder_1hour_sent?: boolean | null
+          reminder_failure_count?: number | null
+          reminder_failure_reason?: string | null
+          reminder_permanent_failure?: boolean | null
           reservation_date?: string
           service_id?: string | null
           service_ids?: Json | null
