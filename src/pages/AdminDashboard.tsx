@@ -2163,13 +2163,36 @@ const AdminDashboard = () => {
   };
 
   const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
+  
+  // Get update status for PWA update banner
+  const { updateAvailable, isUpdating, applyUpdate } = useAppUpdate();
+  
   return <>
       <Helmet>
         <title>Panel Admina - {instanceData?.name || 'N2Wash'}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-screen h-screen bg-background flex overflow-hidden">
+      {/* PWA Update Banner */}
+      {updateAvailable && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-primary text-primary-foreground p-3 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">
+              Dostępna nowa wersja aplikacji
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={applyUpdate}
+            disabled={isUpdating}
+          >
+            {isUpdating ? 'Aktualizuję...' : 'Aktualizuj'}
+          </Button>
+        </div>
+      )}
+
+      <div className={cn("min-h-screen h-screen bg-background flex overflow-hidden", updateAvailable && "pt-14")}>
         {/* Sidebar - Mobile Overlay */}
         {sidebarOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 

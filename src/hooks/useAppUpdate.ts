@@ -31,7 +31,11 @@ export function useAppUpdate() {
       }
     };
 
+    // Check on mount
     checkServerVersion();
+
+    // Check every 12 hours (2x per day) for updates
+    const interval = setInterval(checkServerVersion, 12 * 60 * 60 * 1000);
 
     // Also listen for service worker updates
     if ('serviceWorker' in navigator) {
@@ -49,6 +53,8 @@ export function useAppUpdate() {
         });
       });
     }
+
+    return () => clearInterval(interval);
   }, []);
 
   const applyUpdate = useCallback(async () => {
