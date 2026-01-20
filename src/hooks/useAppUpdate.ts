@@ -6,36 +6,42 @@ export function useAppUpdate() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
 
-  const checkForUpdate = useCallback(async () => {
+  const fetchServerVersion = useCallback(async (): Promise<string | null> => {
     try {
       // Cache-busting query param to always get fresh version
       const res = await fetch(`/version.json?t=${Date.now()}`);
       if (!res.ok) throw new Error('Failed to fetch version');
       
       const data = await res.json();
-      const serverVersion = data.version;
-      setLatestVersion(serverVersion);
-      
-      const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
-      
-      if (storedVersion && storedVersion !== serverVersion) {
-        // New version available
-        setUpdateAvailable(true);
-      } else if (!storedVersion) {
-        // First time - store current version
-        localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
-      }
+      return data.version ?? null;
     } catch (error) {
       console.error('Failed to check version:', error);
+      return null;
     }
   }, []);
+
+  const checkForUpdate = useCallback(async (): Promise<string | null> => {
+    const serverVersion = await fetchServerVersion();
+    if (!serverVersion) return null;
+
+    setLatestVersion(serverVersion);
+
+    const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
+
+    if (storedVersion && storedVersion !== serverVersion) {
+      // New version available
+      setUpdateAvailable(true);
+    } else if (!storedVersion) {
+      // First time - store current version
+      localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+    }
+
+    return serverVersion;
+  }, [fetchServerVersion]);
 
   useEffect(() => {
     // Check on mount
     checkForUpdate();
-
-    // Check every 1 hour for updates
-    const interval = setInterval(checkForUpdate, 60 * 60 * 1000);
 
     // Also listen for service worker updates
     if ('serviceWorker' in navigator) {
@@ -54,7 +60,6 @@ export function useAppUpdate() {
       });
     }
 
-    return () => clearInterval(interval);
   }, [checkForUpdate]);
 
   const applyUpdate = useCallback(async () => {
@@ -62,10 +67,11 @@ export function useAppUpdate() {
     console.log('[Update] Starting update process...');
     
     try {
-      // Update stored version with the latest from server
-      if (latestVersion) {
-        localStorage.setItem(VERSION_STORAGE_KEY, latestVersion);
-        console.log('[Update] Version saved:', latestVersion);
+      // Ensure we save the *current* server version even if state hasn't updated yet
+      const serverVersion = (await checkForUpdate()) ?? latestVersion;
+      if (serverVersion) {
+        localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+        console.log('[Update] Version saved:', serverVersion);
       }
       
       // If service worker is available, tell it to skip waiting
@@ -106,7 +112,7 @@ export function useAppUpdate() {
     // Always reload, regardless of any errors above
     console.log('[Update] Reloading...');
     window.location.reload();
-  }, [latestVersion]);
+  }, [checkForUpdate, latestVersion]);
 
   return {
     updateAvailable,
