@@ -41,14 +41,19 @@ export function useAppUpdate() {
     // Keep UI in sync with what's stored locally
     setInstalledVersion(storedVersion);
 
+    console.log('[Update] Check: stored=', storedVersion, 'server=', serverVersion);
+
     if (storedVersion && storedVersion !== serverVersion) {
       // New version available
+      console.log('[Update] Update available:', storedVersion, '->', serverVersion);
       setUpdateAvailable(true);
     } else if (storedVersion && storedVersion === serverVersion) {
       // Already up-to-date
+      console.log('[Update] Already up-to-date');
       setUpdateAvailable(false);
     } else if (!storedVersion) {
       // First time - store current version
+      console.log('[Update] First time, storing:', serverVersion);
       localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
       setInstalledVersion(serverVersion);
       setUpdateAvailable(false);
@@ -61,16 +66,17 @@ export function useAppUpdate() {
     // Check on mount
     checkForUpdate();
 
-    // Also listen for service worker updates
+    // Also listen for service worker updates - but re-verify version before showing banner
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
+            newWorker.addEventListener('statechange', async () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New service worker installed, update available
-                setUpdateAvailable(true);
+                // New service worker installed - re-check version to confirm update is needed
+                console.log('[Update] SW update detected, verifying version...');
+                await checkForUpdate();
               }
             });
           }
