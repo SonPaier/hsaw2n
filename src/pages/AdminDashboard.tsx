@@ -114,7 +114,7 @@ const AdminDashboard = () => {
     user,
     signOut
   } = useAuth();
-  const { updateAvailable, isUpdating, applyUpdate, currentVersion } = useAppUpdate();
+  const { updateAvailable, isUpdating, applyUpdate, checkForUpdate, currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -127,6 +127,11 @@ const AdminDashboard = () => {
   // Derive currentView from URL param
   const currentView: ViewType =
     view && validViews.includes(view as ViewType) ? (view as ViewType) : 'calendar';
+
+  // Check for updates when view changes
+  useEffect(() => {
+    checkForUpdate();
+  }, [currentView, checkForUpdate]);
 
   // Support both route bases:
   // - dev/staging: /admin/:view
