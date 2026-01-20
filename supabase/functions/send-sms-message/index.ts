@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,38 +50,14 @@ serve(async (req) => {
       }
     }
 
-    // Normalize phone number
-    let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+    // Normalize phone number using libphonenumber-js
+    const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
+    console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
     
-    // Remove duplicate + signs
-    normalizedPhone = normalizedPhone.replace(/\++/g, "+");
-    
-    // Handle various prefix formats to avoid duplicates like +4848...
-    if (!normalizedPhone.startsWith("+")) {
-      // If starts with 48, just add +
-      if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
-        normalizedPhone = "+" + normalizedPhone;
-      } 
-      // If starts with 0048, replace with +48
-      else if (normalizedPhone.startsWith("0048")) {
-        normalizedPhone = "+48" + normalizedPhone.slice(4);
-      }
-      // Otherwise add +48 prefix
-      else {
-        normalizedPhone = "+48" + normalizedPhone;
-      }
-    } else {
-      // Already starts with +, check for +0048 format
-      if (normalizedPhone.startsWith("+0048")) {
-        normalizedPhone = "+48" + normalizedPhone.slice(5);
-      }
-    }
-    
-    // Validate phone number format (Polish: 9 digits + country code 48 = 11 digits minimum)
+    // Validate phone number format (should be 11-15 digits including country code)
     const digitsOnly = normalizedPhone.replace(/\D/g, "");
-    console.log(`Sending SMS to: ${normalizedPhone} (digits: ${digitsOnly.length})`);
     
-    if (digitsOnly.length < 11 || digitsOnly.length > 14) {
+    if (digitsOnly.length < 11 || digitsOnly.length > 15) {
       console.error(`Invalid phone number length: ${normalizedPhone} (${digitsOnly.length} digits)`);
       return new Response(
         JSON.stringify({ error: "Invalid phone number format", phone: normalizedPhone, digits: digitsOnly.length }),

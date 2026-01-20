@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { captureException } from "../_shared/sentry.ts";
+import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,18 +55,12 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
     return true;
   }
   
-  // Normalize phone for comparison
-  let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-  if (!normalizedPhone.startsWith("+")) {
-    normalizedPhone = "+48" + normalizedPhone;
-  }
+  // Normalize phone for comparison using libphonenumber-js
+  const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
   
   // Check if phone is in allowed list
   return params.phones.some(p => {
-    let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-    if (!normalizedAllowed.startsWith("+")) {
-      normalizedAllowed = "+48" + normalizedAllowed;
-    }
+    const normalizedAllowed = normalizePhoneOrFallback(p, "PL");
     return normalizedPhone === normalizedAllowed;
   });
 };
@@ -85,11 +80,9 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Normalize phone
-    let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-    if (!normalizedPhone.startsWith("+")) {
-      normalizedPhone = "+48" + normalizedPhone;
-    }
+    // Normalize phone using libphonenumber-js
+    const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
+    console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

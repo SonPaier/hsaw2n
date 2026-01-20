@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,14 +68,14 @@ Deno.serve(async (req) => {
         message = message.replace("{paid_info}", reminder.is_paid ? "Serwis platny" : "Bezplatna kontrola");
         message = message.replace("{reservation_phone}", (instance.reservation_phone || "").replace(/\s/g, ""));
 
-        // Normalize phone number
-        let phone = reminder.customer_phone.replace(/\D/g, "");
-        if (phone.startsWith("0048")) phone = phone.substring(4);
-        if (phone.startsWith("48") && phone.length > 9) phone = phone.substring(2);
-        if (phone.length === 9) phone = "48" + phone;
+        // Normalize phone number using libphonenumber-js
+        const normalizedPhone = normalizePhoneOrFallback(reminder.customer_phone, "PL");
+        console.log(`Normalized phone: ${reminder.customer_phone} -> ${normalizedPhone}`);
 
-        if (phone.length < 11) {
-          console.error(`Invalid phone for reminder ${reminder.id}: ${phone}`);
+        // Validate phone number length
+        const digitsOnly = normalizedPhone.replace(/\D/g, "");
+        if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+          console.error(`Invalid phone for reminder ${reminder.id}: ${normalizedPhone} (${digitsOnly.length} digits)`);
           await supabase
             .from("offer_reminders")
             .update({ status: "failed" })
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
               "Content-Type": "application/x-www-form-urlencoded",
             },
             body: new URLSearchParams({
-              to: phone,
+              to: normalizedPhone.replace("+", ""),
               message: message,
               from: "Info",
               format: "json",
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
             continue;
           }
         } else {
-          console.log(`[DEV] Would send SMS to ${phone}: ${message}`);
+          console.log(`[DEV] Would send SMS to ${normalizedPhone}: ${message}`);
         }
 
         // Update reminder status
@@ -119,14 +120,14 @@ Deno.serve(async (req) => {
         // Log SMS
         await supabase.from("sms_logs").insert({
           instance_id: reminder.instance_id,
-          phone: phone,
+          phone: normalizedPhone,
           message: message,
           status: "sent",
           type: "offer_reminder",
         });
 
         sentCount++;
-        console.log(`Sent reminder ${reminder.id} to ${phone}`);
+        console.log(`Sent reminder ${reminder.id} to ${normalizedPhone}`);
       } catch (err) {
         console.error(`Error processing reminder ${reminder.id}:`, err);
         await supabase

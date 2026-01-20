@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { captureException } from "../_shared/sentry.ts";
+import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,11 +42,9 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Normalize phone number
-    let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-    if (!normalizedPhone.startsWith("+")) {
-      normalizedPhone = "+48" + normalizedPhone;
-    }
+    // Normalize phone number using libphonenumber-js
+    const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
+    console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
 
     const code = generateCode();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
