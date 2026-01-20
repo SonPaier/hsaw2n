@@ -182,7 +182,7 @@ export const SummaryStepV2 = ({
         // Check if we have saved options for this scope - restore them
         const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
 
-        // Helper: build defaults
+        // Helper: build defaults (only is_default products)
         const buildDefaultSelected = (): SelectedProduct[] => {
           return scopeProducts
             .filter(p => p.is_default && p.product)
@@ -207,8 +207,12 @@ export const SummaryStepV2 = ({
         // Get customer selections from saved state (when customer accepted offer)
         const customerSelectedOptionalItems = offer.defaultSelectedState?.selectedOptionalItems || {};
 
-        if (existingOption && existingOption.items.length > 0) {
-          // Always restore from saved option items - no legacy checks
+        // Check if this is a truly saved offer (has ID and has real saved items)
+        // vs an offer that just got auto-generated options from generateOptionsFromScopes
+        const hasSavedItems = existingOption && existingOption.items.length > 0 && offer.id;
+
+        if (hasSavedItems) {
+          // Restore from saved offer - use all saved items
           const allRestored = existingOption.items.map(item => {
             // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
             const nameParts = (item.customName || '').split('\n');
@@ -245,7 +249,7 @@ export const SummaryStepV2 = ({
             selectedProducts = allRestored;
           }
         } else {
-          // Initialize with default products
+          // New offer or auto-generated options - use only default products
           selectedProducts = buildDefaultSelected();
         }
 
