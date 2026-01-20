@@ -1,5 +1,4 @@
 import { X, Phone, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface Instance {
   id: string;
@@ -70,14 +69,13 @@ export const ProtocolHeader = ({ instance, protocolNumber, onClose }: ProtocolHe
 
             {/* Close button */}
             {onClose && (
-              <Button 
-                variant="ghost" 
-                size="icon"
+              <button 
+                type="button"
                 onClick={onClose}
-                className="h-8 w-8 sm:h-10 sm:w-10"
+                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
               >
-                <X className="h-5 w-5" />
-              </Button>
+                <X className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
