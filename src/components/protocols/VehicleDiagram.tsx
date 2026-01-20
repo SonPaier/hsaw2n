@@ -117,11 +117,11 @@ export const VehicleDiagram = ({
       ref={containerRef}
       onClick={handleClick}
     >
-      <div className="relative w-full" style={{ paddingBottom: '60%' }}>
+      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
         <img
           src={imagePath}
           alt="Diagram pojazdu"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           draggable={false}
         />
         
