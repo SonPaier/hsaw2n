@@ -35,6 +35,7 @@ import SettingsView from '@/components/admin/SettingsView';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
+import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
 interface Station {
   id: string;
   name: string;
@@ -2136,7 +2137,7 @@ const AdminDashboard = () => {
         start_time: time,
         end_time: endTime,
         customer_name: vehicle.customer_name,
-        customer_phone: vehicle.customer_phone,
+        customer_phone: normalizePhoneForStorage(vehicle.customer_phone) || '',
         vehicle_plate: vehicle.vehicle_plate,
         car_size: vehicle.car_size,
         service_id: primaryServiceId,

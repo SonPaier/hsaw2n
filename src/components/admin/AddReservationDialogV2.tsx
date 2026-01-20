@@ -50,6 +50,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
+import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
 import ServiceSelectionDrawer from './ServiceSelectionDrawer';
 import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
 
@@ -1151,7 +1152,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         const vehicleData = {
           instance_id: instanceId,
           customer_name: customerName.trim() || 'Klient',
-          customer_phone: phone.trim() || '',
+          customer_phone: normalizePhoneForStorage(phone.trim()) || '',
           vehicle_plate: carModel.trim(),
           car_size: carSize || null,
           service_ids: selectedServices,
@@ -1251,7 +1252,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           start_time: ppfStartTime,
           end_time: ppfEndTime,
           customer_name: customerName.trim() || phone || 'Klient',
-          customer_phone: phone || '',
+          customer_phone: normalizePhoneForStorage(phone) || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           admin_notes: adminNotes || null,
@@ -1408,7 +1409,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           start_time: finalStartTime,
           end_time: finalEndTime,
           customer_name: customerName.trim() || phone || 'Klient',
-          customer_phone: phone || '',
+          customer_phone: normalizePhoneForStorage(phone) || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           admin_notes: adminNotes.trim() || null,
@@ -1446,7 +1447,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           start_time: finalStartTime,
           end_time: finalEndTime,
           customer_name: customerName.trim() || phone || 'Klient',
-          customer_phone: phone || '',
+          customer_phone: normalizePhoneForStorage(phone) || '',
           vehicle_plate: carModel || '',
           car_size: carSize || null,
           admin_notes: adminNotes.trim() || null,
