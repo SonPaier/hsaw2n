@@ -182,23 +182,35 @@ export const SummaryStepV2 = ({
         // Check if we have saved options for this scope - restore them
         const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
 
+        // Helper: convert scope product to SelectedProduct
+        const toSelectedProduct = (p: ScopeProduct, isPreselected: boolean): SelectedProduct => ({
+          id: p.id, // Use stable ID
+          scopeProductId: p.id,
+          productId: p.product_id,
+          variantName: p.variant_name,
+          productName: p.product!.name,
+          productShortName: p.product!.short_name,
+          price: p.product!.default_price,
+          isDefault: p.is_default,
+          isPreselected,
+        });
+
         // Helper: build defaults (only is_default products)
         const buildDefaultSelected = (): SelectedProduct[] => {
+          const defaults = scopeProducts.filter(p => p.is_default && p.product);
+          return defaults.map((p, idx) => toSelectedProduct(
+            p,
+            // For non-extras: auto-preselect first item only
+            // For extras: all default products are preselected
+            scope.is_extras_scope ? true : idx === 0
+          ));
+        };
+
+        // Helper: build suggested (only NOT is_default products, for extras)
+        const buildSuggested = (): SelectedProduct[] => {
           return scopeProducts
-            .filter(p => p.is_default && p.product)
-            .map((p, idx) => ({
-              id: p.id, // Use stable ID
-              scopeProductId: p.id,
-              productId: p.product_id,
-              variantName: p.variant_name,
-              productName: p.product!.name,
-              productShortName: p.product!.short_name,
-              price: p.product!.default_price,
-              isDefault: p.is_default,
-              // For non-extras: auto-preselect first item only
-              // For extras: all selected products are preselected
-              isPreselected: scope.is_extras_scope ? true : idx === 0,
-            }));
+            .filter(p => !p.is_default && p.product)
+            .map(p => toSelectedProduct(p, false));
         };
 
         let selectedProducts: SelectedProduct[] = [];
@@ -251,6 +263,11 @@ export const SummaryStepV2 = ({
         } else {
           // New offer or auto-generated options - use only default products
           selectedProducts = buildDefaultSelected();
+          
+          // For extras scopes: also populate suggested with non-default products
+          if (scope.is_extras_scope) {
+            suggestedProducts = buildSuggested();
+          }
         }
 
         const totalPrice = selectedProducts.reduce((sum, p) => sum + p.price, 0);
