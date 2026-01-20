@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { captureException } from "../_shared/sentry.ts";
+import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,38 +57,12 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
     return true;
   }
   
-  // Normalize phone for comparison - handle various prefix formats
-  let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-  normalizedPhone = normalizedPhone.replace(/\++/g, "+");
-  
-  if (!normalizedPhone.startsWith("+")) {
-    if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
-      normalizedPhone = "+" + normalizedPhone;
-    } else if (normalizedPhone.startsWith("0048")) {
-      normalizedPhone = "+48" + normalizedPhone.slice(4);
-    } else {
-      normalizedPhone = "+48" + normalizedPhone;
-    }
-  } else if (normalizedPhone.startsWith("+0048")) {
-    normalizedPhone = "+48" + normalizedPhone.slice(5);
-  }
+  // Normalize phone for comparison using libphonenumber-js
+  const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
   
   // Check if phone is in allowed list
   return params.phones.some(p => {
-    let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-    normalizedAllowed = normalizedAllowed.replace(/\++/g, "+");
-    
-    if (!normalizedAllowed.startsWith("+")) {
-      if (normalizedAllowed.startsWith("48") && normalizedAllowed.length >= 11) {
-        normalizedAllowed = "+" + normalizedAllowed;
-      } else if (normalizedAllowed.startsWith("0048")) {
-        normalizedAllowed = "+48" + normalizedAllowed.slice(4);
-      } else {
-        normalizedAllowed = "+48" + normalizedAllowed;
-      }
-    } else if (normalizedAllowed.startsWith("+0048")) {
-      normalizedAllowed = "+48" + normalizedAllowed.slice(5);
-    }
+    const normalizedAllowed = normalizePhoneOrFallback(p, "PL");
     return normalizedPhone === normalizedAllowed;
   });
 };
@@ -340,31 +315,9 @@ async function sendSms(
   messageType: 'reminder_1day' | 'reminder_1hour'
 ): Promise<boolean> {
   try {
-    let normalizedPhone = phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
-    
-    // Remove duplicate + signs
-    normalizedPhone = normalizedPhone.replace(/\++/g, "+");
-    
-    // Handle various prefix formats to avoid duplicates like +4848...
-    if (!normalizedPhone.startsWith("+")) {
-      // If starts with 48, just add +
-      if (normalizedPhone.startsWith("48") && normalizedPhone.length >= 11) {
-        normalizedPhone = "+" + normalizedPhone;
-      } 
-      // If starts with 0048, replace with +48
-      else if (normalizedPhone.startsWith("0048")) {
-        normalizedPhone = "+48" + normalizedPhone.slice(4);
-      }
-      // Otherwise add +48 prefix
-      else {
-        normalizedPhone = "+48" + normalizedPhone;
-      }
-    } else {
-      // Already starts with +, check for +0048 format
-      if (normalizedPhone.startsWith("+0048")) {
-        normalizedPhone = "+48" + normalizedPhone.slice(5);
-      }
-    }
+    // Normalize phone using libphonenumber-js
+    const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
+    console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
 
     const response = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
