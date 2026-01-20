@@ -4,7 +4,17 @@ import { VERSION_STORAGE_KEY } from '@/lib/version';
 export function useAppUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  // "latest" = version currently deployed on the server (from /version.json)
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
+
+  // "current" = version this browser considers installed/accepted (stored locally)
+  const [installedVersion, setInstalledVersion] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(VERSION_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
 
   const fetchServerVersion = useCallback(async (): Promise<string | null> => {
     try {
@@ -28,12 +38,20 @@ export function useAppUpdate() {
 
     const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
 
+    // Keep UI in sync with what's stored locally
+    setInstalledVersion(storedVersion);
+
     if (storedVersion && storedVersion !== serverVersion) {
       // New version available
       setUpdateAvailable(true);
+    } else if (storedVersion && storedVersion === serverVersion) {
+      // Already up-to-date
+      setUpdateAvailable(false);
     } else if (!storedVersion) {
       // First time - store current version
       localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+      setInstalledVersion(serverVersion);
+      setUpdateAvailable(false);
     }
 
     return serverVersion;
@@ -71,6 +89,8 @@ export function useAppUpdate() {
       const serverVersion = (await checkForUpdate()) ?? latestVersion;
       if (serverVersion) {
         localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+        setInstalledVersion(serverVersion);
+        setUpdateAvailable(false);
         console.log('[Update] Version saved:', serverVersion);
       }
       
@@ -119,6 +139,7 @@ export function useAppUpdate() {
     isUpdating,
     applyUpdate,
     checkForUpdate,
-    currentVersion: latestVersion
+    currentVersion: installedVersion,
+    latestVersion,
   };
 }
