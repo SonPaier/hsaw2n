@@ -36,7 +36,28 @@ export function useAppUpdate() {
 
     setLatestVersion(serverVersion);
 
-    const storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
+    let storedVersion: string | null = null;
+    try {
+      storedVersion = localStorage.getItem(VERSION_STORAGE_KEY);
+    } catch (e) {
+      console.warn('[Update] Cannot read localStorage:', e);
+      storedVersion = null;
+    }
+
+    // Auto-migrate legacy stored versions (e.g. "1.0.1") to the new format ("01.20.4")
+    // so users don't get stuck with a permanent update banner.
+    const isLegacyStoredVersion =
+      !!storedVersion && !/^\d{2}\.\d{2}\.\d{1,3}$/.test(storedVersion);
+
+    if (isLegacyStoredVersion) {
+      console.log('[Update] Legacy stored version detected, migrating:', storedVersion, '->', serverVersion);
+      try {
+        localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+      } catch (e) {
+        console.error('[Update] Cannot migrate localStorage version:', e);
+      }
+      storedVersion = serverVersion;
+    }
 
     // Keep UI in sync with what's stored locally
     setInstalledVersion(storedVersion);
@@ -94,10 +115,19 @@ export function useAppUpdate() {
       // Ensure we save the *current* server version even if state hasn't updated yet
       const serverVersion = (await checkForUpdate()) ?? latestVersion;
       if (serverVersion) {
-        localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+        try {
+          localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
+          const confirm = localStorage.getItem(VERSION_STORAGE_KEY);
+          console.log('[Update] Version saved:', serverVersion, 'confirm:', confirm);
+        } catch (e) {
+          console.error('[Update] Cannot write localStorage:', e);
+        }
+
         setInstalledVersion(serverVersion);
         setUpdateAvailable(false);
-        console.log('[Update] Version saved:', serverVersion);
+
+        // Small delay before reload to avoid edge cases where storage write isn't persisted yet
+        await new Promise((r) => setTimeout(r, 150));
       }
       
       // If service worker is available, tell it to skip waiting
