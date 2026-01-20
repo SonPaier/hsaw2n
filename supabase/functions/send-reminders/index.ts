@@ -11,6 +11,9 @@ const corsHeaders = {
 // Backoff time in minutes - prevents retry spam
 const BACKOFF_MINUTES = 15;
 
+// Max failures before marking as permanent
+const MAX_FAILURE_COUNT = 3;
+
 interface Reservation {
   id: string;
   customer_phone: string;
@@ -24,6 +27,9 @@ interface Reservation {
   reminder_1hour_sent: boolean | null;
   reminder_1day_last_attempt_at: string | null;
   reminder_1hour_last_attempt_at: string | null;
+  reminder_failure_count: number;
+  reminder_permanent_failure: boolean;
+  reminder_failure_reason: string | null;
 }
 
 interface Service {
@@ -170,12 +176,14 @@ serve(async (req: Request): Promise<Response> => {
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
     
     // First, get candidate reservations without claiming them yet
+    // Exclude permanently failed reservations
     const { data: candidateDayReminders, error: fetchDayError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_last_attempt_at")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
-      .eq("reservation_date", tomorrowDate);
+      .eq("reservation_date", tomorrowDate)
+      .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false");
 
     if (fetchDayError) {
       console.error("Error fetching day reminders:", fetchDayError);
@@ -196,11 +204,13 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Get reservations that need 1-hour reminder
+    // Exclude permanently failed reservations
     const { data: candidateHourReminders, error: fetchHourError } = await supabase
       .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_last_attempt_at")
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
       .eq("status", "confirmed")
       .is("reminder_1hour_sent", null)
+      .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false")
       .eq("reservation_date", now.toISOString().split("T")[0]);
 
     if (fetchHourError) {
@@ -301,18 +311,37 @@ serve(async (req: Request): Promise<Response> => {
 
       const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizytę.${editLinkPart}`;
 
-      const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
+      const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
       
       if (success) {
-        // Only mark as sent on SUCCESS
+        // Only mark as sent on SUCCESS, reset failure count
         await supabase
           .from("reservations")
-          .update({ reminder_1day_sent: true })
+          .update({ 
+            reminder_1day_sent: true,
+            reminder_failure_count: 0,
+            reminder_failure_reason: null
+          })
           .eq("id", reservation.id);
         sentCount++;
+      } else {
+        // Increment failure count
+        const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
+        const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+        
+        await supabase
+          .from("reservations")
+          .update({ 
+            reminder_failure_count: newFailureCount,
+            reminder_permanent_failure: isPermanentFailure,
+            reminder_failure_reason: errorReason || 'unknown_error'
+          })
+          .eq("id", reservation.id);
+        
+        if (isPermanentFailure) {
+          console.log(`1-day reminder for ${reservation.id}: marked as PERMANENT FAILURE after ${newFailureCount} attempts`);
+        }
       }
-      // If failed, reminder_1day_sent stays null, but last_attempt_at is set
-      // So next retry will be after BACKOFF_MINUTES
 
       results.push({ type: "1day", reservationId: reservation.id, success });
       console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
@@ -344,18 +373,37 @@ serve(async (req: Request): Promise<Response> => {
 
         const message = `${instanceInfo.name}: Za godzine o ${formattedTime} masz wizyte.${phonePart} Do zobaczenia!`;
 
-        const success = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
+        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
         
         if (success) {
-          // Only mark as sent on SUCCESS
+          // Only mark as sent on SUCCESS, reset failure count
           await supabase
             .from("reservations")
-            .update({ reminder_1hour_sent: true })
+            .update({ 
+              reminder_1hour_sent: true,
+              reminder_failure_count: 0,
+              reminder_failure_reason: null
+            })
             .eq("id", reservation.id);
           sentCount++;
+        } else {
+          // Increment failure count
+          const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
+          const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+          
+          await supabase
+            .from("reservations")
+            .update({ 
+              reminder_failure_count: newFailureCount,
+              reminder_permanent_failure: isPermanentFailure,
+              reminder_failure_reason: errorReason || 'unknown_error'
+            })
+            .eq("id", reservation.id);
+          
+          if (isPermanentFailure) {
+            console.log(`1-hour reminder for ${reservation.id}: marked as PERMANENT FAILURE after ${newFailureCount} attempts`);
+          }
         }
-        // If failed, reminder_1hour_sent stays null, but last_attempt_at is set
-        // So next retry will be after BACKOFF_MINUTES
 
         results.push({ type: "1hour", reservationId: reservation.id, success });
         console.log(`1-hour reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
@@ -384,6 +432,11 @@ serve(async (req: Request): Promise<Response> => {
   }
 });
 
+interface SmsResult {
+  success: boolean;
+  errorReason?: string;
+}
+
 async function sendSms(
   phone: string, 
   message: string, 
@@ -392,11 +445,29 @@ async function sendSms(
   instanceId: string,
   reservationId: string,
   messageType: 'reminder_1day' | 'reminder_1hour'
-): Promise<boolean> {
+): Promise<SmsResult> {
   try {
     // Normalize phone using libphonenumber-js
     const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
     console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
+
+    // Validate phone length (should be 11-15 digits for E.164)
+    const digitsOnly = normalizedPhone.replace(/\D/g, "");
+    if (digitsOnly.length < 9 || digitsOnly.length > 15) {
+      console.error(`Invalid phone number length: ${normalizedPhone} (${digitsOnly.length} digits)`);
+      
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: message,
+        message_type: messageType,
+        reservation_id: reservationId,
+        status: 'failed',
+        error_message: `Invalid phone number length: ${digitsOnly.length} digits`,
+      });
+      
+      return { success: false, errorReason: 'invalid_phone_length' };
+    }
 
     const response = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
@@ -416,6 +487,9 @@ async function sendSms(
     if (result.error) {
       console.error("SMSAPI error:", result);
       
+      // Determine error reason from SMSAPI response
+      const errorCode = result.error?.toString() || 'api_error';
+      
       // Log failed SMS
       await supabase.from('sms_logs').insert({
         instance_id: instanceId,
@@ -428,7 +502,7 @@ async function sendSms(
         smsapi_response: result,
       });
       
-      return false;
+      return { success: false, errorReason: errorCode };
     }
 
     // Log successful SMS
@@ -442,9 +516,9 @@ async function sendSms(
       smsapi_response: result,
     });
 
-    return true;
+    return { success: true };
   } catch (error) {
     console.error("SMS send error:", error);
-    return false;
+    return { success: false, errorReason: 'network_error' };
   }
 }
