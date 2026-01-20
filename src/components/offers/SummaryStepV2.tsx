@@ -264,10 +264,8 @@ export const SummaryStepV2 = ({
           // New offer or auto-generated options - use only default products
           selectedProducts = buildDefaultSelected();
           
-          // For extras scopes: also populate suggested with non-default products
-          if (scope.is_extras_scope) {
-            suggestedProducts = buildSuggested();
-          }
+          // For extras scopes: start with empty suggested list (admin adds manually)
+          // suggestedProducts remains empty []
         }
 
         const totalPrice = selectedProducts.reduce((sum, p) => sum + p.price, 0);
