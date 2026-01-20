@@ -44,20 +44,9 @@ export function useAppUpdate() {
       storedVersion = null;
     }
 
-    // Auto-migrate legacy stored versions (e.g. "1.0.1") to the new format ("01.20.4")
-    // so users don't get stuck with a permanent update banner.
-    const isLegacyStoredVersion =
-      !!storedVersion && !/^\d{2}\.\d{2}\.\d{1,3}$/.test(storedVersion);
-
-    if (isLegacyStoredVersion) {
-      console.log('[Update] Legacy stored version detected, migrating:', storedVersion, '->', serverVersion);
-      try {
-        localStorage.setItem(VERSION_STORAGE_KEY, serverVersion);
-      } catch (e) {
-        console.error('[Update] Cannot migrate localStorage version:', e);
-      }
-      storedVersion = serverVersion;
-    }
+    // Note: Legacy versions (e.g. "1.0.1") will naturally trigger update banner
+    // because they won't match the new format ("01.20.x"). User must click "Update"
+    // to get the new version saved to localStorage.
 
     // Keep UI in sync with what's stored locally
     setInstalledVersion(storedVersion);
