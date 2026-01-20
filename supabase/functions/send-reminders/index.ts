@@ -121,39 +121,59 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Get reservations that need 1-day reminder (for tomorrow)
-    // Use atomic update to prevent duplicate sends from concurrent function invocations
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
     
-    // First, atomically claim reservations by setting reminder_1day_sent to false (processing)
-    const { data: claimedDayReminders, error: claimDayError } = await supabase
+    // First, get candidate reservations without claiming them yet
+    const { data: candidateDayReminders, error: fetchDayError } = await supabase
       .from("reservations")
-      .update({ reminder_1day_sent: false })
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code")
       .eq("status", "confirmed")
       .is("reminder_1day_sent", null)
-      .eq("reservation_date", tomorrowDate)
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code");
+      .eq("reservation_date", tomorrowDate);
 
-    if (claimDayError) {
-      console.error("Error claiming day reminders:", claimDayError);
+    if (fetchDayError) {
+      console.error("Error fetching day reminders:", fetchDayError);
     }
     
-    const dayReminders = claimedDayReminders || [];
+    // Filter out reservations from instances with disabled reminders BEFORE claiming
+    const dayReminders: Reservation[] = [];
+    for (const reservation of (candidateDayReminders || []) as Reservation[]) {
+      const instanceSetting = instanceSettings.get(reservation.instance_id);
+      const reminder1daySetting = instanceSetting?.reminder1day;
+      
+      // Skip if 1-day reminder is disabled for this instance
+      if (reminder1daySetting && reminder1daySetting.enabled === false) {
+        console.log(`1-day reminder disabled for instance ${reservation.instance_id}, skipping reservation ${reservation.id}`);
+        continue;
+      }
+      dayReminders.push(reservation);
+    }
 
     // Get reservations that need 1-hour reminder
-    // Use atomic update to prevent duplicate sends from concurrent function invocations
-    const { data: claimedHourReminders, error: claimHourError } = await supabase
+    const { data: candidateHourReminders, error: fetchHourError } = await supabase
       .from("reservations")
-      .update({ reminder_1hour_sent: false })
+      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code")
       .eq("status", "confirmed")
       .is("reminder_1hour_sent", null)
-      .eq("reservation_date", now.toISOString().split("T")[0])
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code");
+      .eq("reservation_date", now.toISOString().split("T")[0]);
 
-    if (claimHourError) {
-      console.error("Error claiming hour reminders:", claimHourError);
+    if (fetchHourError) {
+      console.error("Error fetching hour reminders:", fetchHourError);
     }
     
-    const hourReminders = claimedHourReminders || [];
+    // Filter out reservations from instances with disabled reminders BEFORE claiming
+    const hourReminders: Reservation[] = [];
+    for (const reservation of (candidateHourReminders || []) as Reservation[]) {
+      const instanceSetting = instanceSettings.get(reservation.instance_id);
+      const reminder1hourSetting = instanceSetting?.reminder1hour;
+      
+      // Skip if 1-hour reminder is disabled for this instance
+      if (reminder1hourSetting && reminder1hourSetting.enabled === false) {
+        console.log(`1-hour reminder disabled for instance ${reservation.instance_id}, skipping reservation ${reservation.id}`);
+        continue;
+      }
+      hourReminders.push(reservation);
+    }
 
     // Cache instance info to avoid multiple queries
     const instanceCache: Record<string, { name: string; slug: string; reservationPhone: string }> = {};
@@ -183,16 +203,10 @@ serve(async (req: Request): Promise<Response> => {
     let sentCount = 0;
     const results: { type: string; reservationId: string; success: boolean }[] = [];
 
-    // Process 1-day reminders
-    for (const reservation of (dayReminders || []) as Reservation[]) {
+    // Process 1-day reminders (already filtered for enabled instances)
+    for (const reservation of dayReminders) {
       const instanceSetting = instanceSettings.get(reservation.instance_id);
       const reminder1daySetting = instanceSetting?.reminder1day;
-      
-      // Check if 1-day reminder is enabled for this instance
-      if (reminder1daySetting && reminder1daySetting.enabled === false) {
-        console.log(`1-day reminder disabled for instance ${reservation.instance_id}`);
-        continue;
-      }
 
       // Get the configured send time (default to 19:00 if not set)
       const sendAtTime = reminder1daySetting?.send_at_time || "19:00:00";
@@ -244,16 +258,8 @@ serve(async (req: Request): Promise<Response> => {
       console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed"}`);
     }
 
-    // Process 1-hour reminders
-    for (const reservation of (hourReminders || []) as Reservation[]) {
-      const instanceSetting = instanceSettings.get(reservation.instance_id);
-      const reminder1hourSetting = instanceSetting?.reminder1hour;
-      
-      // Check if 1-hour reminder is enabled for this instance
-      if (reminder1hourSetting && reminder1hourSetting.enabled === false) {
-        console.log(`1-hour reminder disabled for instance ${reservation.instance_id}`);
-        continue;
-      }
+    // Process 1-hour reminders (already filtered for enabled instances)
+    for (const reservation of hourReminders) {
 
       const reservationDateTime = new Date(`${reservation.reservation_date}T${reservation.start_time}`);
       const timeDiff = reservationDateTime.getTime() - now.getTime();
