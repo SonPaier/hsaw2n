@@ -983,6 +983,7 @@
     "amount": "Kwota",
     "seeDetails": "Zobacz szczegóły",
     "selectServices": "Wybierz usługi...",
+    "addServices": "Dodaj usługi",
     "servicesSelected": "Wybrano: {{count}}",
     "searchServicePlaceholder": "Wpisz skrót lub nazwę usługi...",
     "timeRange": "Godziny",
