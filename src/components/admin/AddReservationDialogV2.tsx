@@ -734,8 +734,82 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       wasOpenRef.current = false;
       isUserEditingRef.current = false;
       lastEditingReservationIdRef.current = null;
+      setServicesWithCategory([]); // Reset services list for next open
     }
   }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
+
+  // NEW: Re-map servicesWithCategory when services are loaded (for edit mode)
+  // This fixes race condition where services[] is empty on first dialog open
+  useEffect(() => {
+    if (!open || services.length === 0) return;
+    
+    // Skip if servicesWithCategory is already populated (user already editing)
+    if (servicesWithCategory.length > 0) return;
+    
+    // Handle reservation edit mode
+    if (editingReservation) {
+      const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
+        ? editingReservation.service_ids 
+        : (editingReservation.service_id ? [editingReservation.service_id] : []);
+      
+      if (serviceIds.length === 0) return;
+      
+      const loadedServicesWithCategory: ServiceWithCategory[] = [];
+      serviceIds.forEach(id => {
+        const service = services.find(s => s.id === id);
+        if (service) {
+          loadedServicesWithCategory.push({
+            id: service.id,
+            name: service.name,
+            shortcut: service.shortcut,
+            category_id: service.category_id,
+            duration_minutes: service.duration_minutes,
+            duration_small: service.duration_small,
+            duration_medium: service.duration_medium,
+            duration_large: service.duration_large,
+            price_from: service.price_from,
+            price_small: service.price_small,
+            price_medium: service.price_medium,
+            price_large: service.price_large,
+            category_prices_are_net: false,
+          });
+        }
+      });
+      
+      if (loadedServicesWithCategory.length > 0) {
+        setServicesWithCategory(loadedServicesWithCategory);
+      }
+    }
+    
+    // Handle PPF/Detailing edit mode
+    if (isPPFOrDetailingMode && editingYardVehicle?.service_ids) {
+      const loadedServicesWithCategory: ServiceWithCategory[] = [];
+      editingYardVehicle.service_ids.forEach(id => {
+        const service = services.find(s => s.id === id);
+        if (service) {
+          loadedServicesWithCategory.push({
+            id: service.id,
+            name: service.name,
+            shortcut: service.shortcut,
+            category_id: service.category_id,
+            duration_minutes: service.duration_minutes,
+            duration_small: service.duration_small,
+            duration_medium: service.duration_medium,
+            duration_large: service.duration_large,
+            price_from: service.price_from,
+            price_small: service.price_small,
+            price_medium: service.price_medium,
+            price_large: service.price_large,
+            category_prices_are_net: false,
+          });
+        }
+      });
+      
+      if (loadedServicesWithCategory.length > 0) {
+        setServicesWithCategory(loadedServicesWithCategory);
+      }
+    }
+  }, [open, services, editingReservation, isPPFOrDetailingMode, editingYardVehicle, servicesWithCategory.length]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
