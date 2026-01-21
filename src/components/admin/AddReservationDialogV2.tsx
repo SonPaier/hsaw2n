@@ -51,7 +51,8 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
-import ServiceSelectionDrawer from './ServiceSelectionDrawer';
+import ServiceSelectionDrawer, { ServiceWithCategory } from './ServiceSelectionDrawer';
+import SelectedServicesList, { ServiceItem } from './SelectedServicesList';
 import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
 
 type CarSize = 'small' | 'medium' | 'large';
@@ -234,6 +235,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [carModel, setCarModel] = useState('');
   const [carSize, setCarSize] = useState<CarSize>('medium');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
+  const [servicesWithCategory, setServicesWithCategory] = useState<ServiceWithCategory[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
@@ -1416,6 +1419,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
+          service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
           offer_number: offerNumber || null,
         };
 
@@ -1454,7 +1458,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: selectedServices[0],
           service_ids: selectedServices,
-          offer_number: offerNumber || null,
+          service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
           status: 'confirmed' as const,
           confirmed_at: new Date().toISOString(),
@@ -1808,13 +1812,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               )}
             </div>
 
-            {/* Services selection - shortcuts + drawer (NOT for PPF mode, only for Detailing/Reservation/Yard) */}
+            {/* Services selection - NEW LIST VIEW for Reservation mode, chips for Yard/Detailing */}
             {!isPPFMode && (
               <div className="space-y-2">
                 <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
                 
-                {/* Popular service shortcuts - only show unselected ones */}
-                {services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+                {/* Popular service shortcuts - only show unselected ones (for yard/detailing modes) */}
+                {(isYardMode || isDetailingMode) && services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {services
                       .filter(s => s.is_popular && !selectedServices.includes(s.id))
@@ -1825,12 +1829,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           onClick={() => {
                             markUserEditing();
                             setSelectedServices(prev => [...prev, service.id]);
-                            if (isReservationMode) {
-                              setSelectedTime(null);
-                              setSelectedStationId(null);
-                            }
                           }}
-                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-slate-50 hover:bg-slate-100 text-foreground border border-slate-200"
+                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
                         >
                           {service.shortcut || service.name}
                         </button>
@@ -1838,72 +1838,101 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   </div>
                 )}
                 
-                {/* Selected services with X to remove */}
-                <div 
-                  className={cn(
-                    "rounded-lg border-2 border-dashed p-3 transition-colors",
-                    selectedServices.length > 0
-                      ? "border-primary/50 bg-primary/5"
-                      : "border-muted-foreground/30"
-                  )}
-                >
-                  {selectedServices.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        {selectedServiceNames.map((name, i) => (
-                          <span 
-                            key={i}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
-                          >
-                            {name}
-                              <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markUserEditing();
-                                const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
-                                if (serviceToRemove) {
-                                  setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
-                                  if (isReservationMode) {
-                                    setSelectedTime(null);
-                                    setSelectedStationId(null);
-                                  }
-                                }
-                              }}
-                              className="hover:bg-primary/20 rounded-full p-0.5"
+                {/* RESERVATION MODE - New list view with inline price edit */}
+                {isReservationMode && (
+                  <SelectedServicesList
+                    services={servicesWithCategory}
+                    selectedServiceIds={selectedServices}
+                    serviceItems={serviceItems}
+                    carSize={carSize}
+                    onRemoveService={(serviceId) => {
+                      markUserEditing();
+                      setSelectedServices(prev => prev.filter(id => id !== serviceId));
+                      setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
+                      setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                      setSelectedTime(null);
+                      setSelectedStationId(null);
+                    }}
+                    onPriceChange={(serviceId, price) => {
+                      markUserEditing();
+                      setServiceItems(prev => {
+                        const existing = prev.find(si => si.service_id === serviceId);
+                        if (existing) {
+                          return prev.map(si => 
+                            si.service_id === serviceId 
+                              ? { ...si, custom_price: price }
+                              : si
+                          );
+                        }
+                        return [...prev, { service_id: serviceId, custom_price: price }];
+                      });
+                    }}
+                    onAddMore={() => setServiceDrawerOpen(true)}
+                  />
+                )}
+
+                {/* YARD/DETAILING MODE - Chips view (old behavior) */}
+                {(isYardMode || isDetailingMode) && (
+                  <div 
+                    className={cn(
+                      "rounded-lg border-2 border-dashed p-3 transition-colors",
+                      selectedServices.length > 0
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-muted-foreground/30"
+                    )}
+                  >
+                    {selectedServices.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {selectedServiceNames.map((name, i) => (
+                            <span 
+                              key={i}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
                             >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                        {/* Add button to open drawer */}
-                        <button
-                          type="button"
-                          onClick={() => setServiceDrawerOpen(true)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          <Plus className="w-3 h-3" />
-                          {t('common.add')}
-                        </button>
-                      </div>
-                      {(isReservationMode || isYardMode) && selectedServices.length > 0 && (
+                              {name}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markUserEditing();
+                                  const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
+                                  if (serviceToRemove) {
+                                    setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
+                                  }
+                                }}
+                                className="hover:bg-primary/20 rounded-full p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                          {/* Add button to open drawer */}
+                          <button
+                            type="button"
+                            onClick={() => setServiceDrawerOpen(true)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          >
+                            <Plus className="w-3 h-3" />
+                            {t('common.add')}
+                          </button>
+                        </div>
                         <p className="text-base font-bold mt-1">
                           {t('addReservation.totalDuration')}: {totalDurationMinutes >= 60 
                             ? `${Math.floor(totalDurationMinutes / 60)}h${totalDurationMinutes % 60 > 0 ? ` ${totalDurationMinutes % 60}min` : ''}`
                             : `${totalDurationMinutes}min`}
                         </p>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setServiceDrawerOpen(true)}
-                      className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {t('addReservation.selectServices')}
-                    </button>
-                  )}
-                </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setServiceDrawerOpen(true)}
+                        className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {t('addReservation.selectServices')}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1916,9 +1945,32 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 carSize={carSize}
                 selectedServiceIds={selectedServices}
                 stationType={getStationType()}
-                onConfirm={(serviceIds, duration) => {
+                onConfirm={(serviceIds, duration, servicesData) => {
                   markUserEditing();
                   setSelectedServices(serviceIds);
+                  
+                  // Merge new services with existing ones, preserving custom prices
+                  const newServicesWithCategory = servicesData.filter(
+                    s => !servicesWithCategory.some(existing => existing.id === s.id)
+                  );
+                  setServicesWithCategory(prev => {
+                    // Keep existing services that are still selected
+                    const kept = prev.filter(s => serviceIds.includes(s.id));
+                    return [...kept, ...newServicesWithCategory];
+                  });
+                  
+                  // Initialize serviceItems for new services (with base price considering net/brutto)
+                  const existingItemIds = serviceItems.map(si => si.service_id);
+                  const newItems = serviceIds
+                    .filter(id => !existingItemIds.includes(id))
+                    .map(id => ({ service_id: id, custom_price: null }));
+                  
+                  setServiceItems(prev => {
+                    // Keep only items for selected services
+                    const kept = prev.filter(si => serviceIds.includes(si.service_id));
+                    return [...kept, ...newItems];
+                  });
+                  
                   // Reset time selection when services change (reservation mode only)
                   if (isReservationMode) {
                     setSelectedTime(null);
