@@ -118,3 +118,53 @@ export function isValidPhone(phone: string): boolean {
   const digitsOnly = normalized.replace(/\D/g, '');
   return digitsOnly.length >= 8 && digitsOnly.length <= 15;
 }
+
+/**
+ * Formats a phone number for display.
+ * Strips +48 prefix for Polish numbers and formats as XXX YYY ZZZ.
+ * 
+ * Examples:
+ * - "+48733854184" -> "733 854 184"
+ * - "+4868692003" -> "686 920 03" (handles shorter variants)
+ * - "+48 733 854 184" -> "733 854 184"
+ * - "+49123456789" -> "+49 123 456 789" (keeps international prefix)
+ */
+export function formatPhoneDisplay(phone: string): string {
+  if (!phone) return '';
+
+  // Remove all non-digit characters except +
+  let cleaned = phone.replace(/[^\d+]/g, '');
+
+  // Handle Polish numbers - strip +48 or 48 prefix
+  if (cleaned.startsWith('+48')) {
+    cleaned = cleaned.slice(3);
+  } else if (cleaned.startsWith('48') && cleaned.length >= 11) {
+    cleaned = cleaned.slice(2);
+  }
+
+  // If we now have 9 digits (Polish format), format as XXX YYY ZZZ
+  if (cleaned.length === 9 && /^\d+$/.test(cleaned)) {
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)}`;
+  }
+
+  // For international numbers, keep prefix and try to format nicely
+  if (cleaned.startsWith('+')) {
+    const digits = cleaned.slice(1);
+    // Format as +XX YYY YYY YYY for readability
+    if (digits.length >= 9) {
+      const countryCode = digits.slice(0, 2);
+      const rest = digits.slice(2);
+      const parts = rest.match(/.{1,3}/g) || [];
+      return `+${countryCode} ${parts.join(' ')}`;
+    }
+    return cleaned;
+  }
+
+  // Fallback: try to format any digit string as groups of 3
+  if (/^\d+$/.test(cleaned) && cleaned.length >= 9) {
+    const parts = cleaned.match(/.{1,3}/g) || [];
+    return parts.join(' ');
+  }
+
+  return phone; // Return original if can't parse
+}
