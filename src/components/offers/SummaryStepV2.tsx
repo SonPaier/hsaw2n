@@ -52,6 +52,7 @@ interface ScopeProduct {
     name: string;
     short_name: string | null;
     default_price: number;
+    category: string | null;
   } | null;
 }
 
@@ -115,6 +116,7 @@ export const SummaryStepV2 = ({
   const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string; isSuggested?: boolean } | null>(null);
   const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; short_name: string | null; brand: string | null; description: string | null; category: string | null; unit: string; default_price: number; metadata: Record<string, unknown> | null; source: string; instance_id: string | null; reminder_template_id?: string | null } | null>(null);
   const [productCategories, setProductCategories] = useState<string[]>([]);
+  const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
 
   // Load scope data and products for selected scopes + always include extras scopes
   useEffect(() => {
@@ -162,10 +164,25 @@ export const SummaryStepV2 = ({
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, short_name, default_price)
+          product:products_library(id, name, short_name, default_price, category)
         `)
         .in('scope_id', allScopeIds)
         .order('sort_order');
+
+      // Fetch category order for sorting products
+      const { data: categoryOrderData } = await supabase
+        .from('offer_product_categories')
+        .select('name, sort_order')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+
+      const categoryOrderMap: Record<string, number> = {};
+      if (categoryOrderData) {
+        categoryOrderData.forEach(cat => {
+          categoryOrderMap[cat.name] = cat.sort_order;
+        });
+      }
+      setCategoryOrder(categoryOrderMap);
 
       // Build services state
       const newServices: ServiceState[] = scopesData.map(scope => {
@@ -176,7 +193,7 @@ export const SummaryStepV2 = ({
             product_id: p.product_id,
             variant_name: p.variant_name,
             is_default: p.is_default,
-            product: p.product as { id: string; name: string; short_name: string | null; default_price: number } | null
+            product: p.product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
           }));
 
         // Check if we have saved options for this scope - restore them
@@ -801,9 +818,11 @@ export const SummaryStepV2 = ({
                 productName: p.product?.name || '',
                 productShortName: p.product?.short_name || null,
                 variantName: p.variant_name,
-                price: p.product?.default_price || 0
+                price: p.product?.default_price || 0,
+                category: p.product?.category || null
               }))}
             alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
+            categoryOrder={categoryOrder}
             onConfirm={(products) => {
               setServices(prev => prev.map(s => {
                 if (s.scopeId !== service.scopeId) return s;
@@ -955,10 +974,12 @@ export const SummaryStepV2 = ({
                   productName: p.product?.name || '',
                   productShortName: p.product?.short_name || null,
                   variantName: p.variant_name,
-                  price: p.product?.default_price || 0
+                  price: p.product?.default_price || 0,
+                  category: p.product?.category || null
                 }))}
               alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
               disabledIds={service.suggestedProducts.map(p => p.scopeProductId)}
+              categoryOrder={categoryOrder}
               onConfirm={(products) => {
                 setServices(prev => prev.map(s => {
                   if (s.scopeId !== service.scopeId) return s;
@@ -1099,10 +1120,12 @@ export const SummaryStepV2 = ({
                   productName: p.product?.name || '',
                   productShortName: p.product?.short_name || null,
                   variantName: p.variant_name,
-                  price: p.product?.default_price || 0
+                  price: p.product?.default_price || 0,
+                  category: p.product?.category || null
                 }))}
               alreadySelectedIds={service.suggestedProducts.map(p => p.scopeProductId)}
               disabledIds={service.selectedProducts.map(p => p.scopeProductId)}
+              categoryOrder={categoryOrder}
               onConfirm={(products) => {
                 setServices(prev => prev.map(s => {
                   if (s.scopeId !== service.scopeId) return s;

@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { sortProductsByCategoryAndPrice } from '@/lib/productSortUtils';
 import {
   Sheet,
   SheetContent,
@@ -17,6 +18,7 @@ interface ScopeProduct {
   productShortName: string | null;
   variantName: string | null;
   price: number;
+  category?: string | null;
 }
 
 interface ScopeProductSelectionDrawerProps {
@@ -25,6 +27,7 @@ interface ScopeProductSelectionDrawerProps {
   availableProducts: ScopeProduct[];
   alreadySelectedIds: string[]; // IDs to initialize as selected when drawer opens
   disabledIds?: string[]; // IDs that are already in another section (can't be selected)
+  categoryOrder?: Record<string, number>; // For sorting by category
   onConfirm: (products: ScopeProduct[]) => void;
 }
 
@@ -34,6 +37,7 @@ export function ScopeProductSelectionDrawer({
   availableProducts,
   alreadySelectedIds,
   disabledIds = [],
+  categoryOrder = {},
   onConfirm,
 }: ScopeProductSelectionDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,10 +57,13 @@ export function ScopeProductSelectionDrawer({
     }
   }, [open, alreadySelectedIds]);
 
-  // Filter products based on search and exclude disabled ones from view
+  // Sort and filter products based on search and exclude disabled ones from view
   const filteredProducts = useMemo(() => {
     const disabledSet = new Set(disabledIds);
     let products = availableProducts.filter(p => !disabledSet.has(p.id));
+    
+    // Sort by category order, then by price ascending
+    products = sortProductsByCategoryAndPrice(products, categoryOrder);
     
     if (!searchQuery.trim()) return products;
     
@@ -65,7 +72,7 @@ export function ScopeProductSelectionDrawer({
       p.productName.toLowerCase().includes(query) ||
       (p.variantName && p.variantName.toLowerCase().includes(query))
     );
-  }, [availableProducts, searchQuery, disabledIds]);
+  }, [availableProducts, searchQuery, disabledIds, categoryOrder]);
 
   // Get selected products details
   const selectedProducts = useMemo(() => {
