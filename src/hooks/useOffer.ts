@@ -771,7 +771,7 @@ export const useOffer = (instanceId: string) => {
               .update({
                 name: offer.customerData.name || offer.customerData.company || 'Nieznany',
                 email: offer.customerData.email || null,
-                phone: normalizePhone(offer.customerData.phone) || '',
+                phone: offer.customerData.phone?.trim() ? normalizePhone(offer.customerData.phone) : null,
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,
                 address: fullAddress,
@@ -786,7 +786,7 @@ export const useOffer = (instanceId: string) => {
               .insert({
                 instance_id: instanceId,
                 name: offer.customerData.name || offer.customerData.company || 'Nieznany',
-                phone: normalizePhone(offer.customerData.phone) || '',
+                phone: offer.customerData.phone?.trim() ? normalizePhone(offer.customerData.phone) : null,
                 email: offer.customerData.email || null,
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,
