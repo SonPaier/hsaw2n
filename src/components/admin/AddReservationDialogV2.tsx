@@ -62,6 +62,7 @@ interface Service {
   id: string;
   name: string;
   shortcut?: string | null;
+  category_id?: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
   duration_medium: number | null;
@@ -132,6 +133,7 @@ interface EditingReservation {
   station_id: string | null;
   service_ids?: string[];
   service_id?: string;
+  service_items?: ServiceItem[] | null;
   customer_notes?: string | null;
   admin_notes?: string | null;
   price?: number | null;
@@ -322,7 +324,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       // For reservation mode, filter by station_type='washing'
       let servicesQuery = supabase
         .from('services')
-        .select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
+        .select('id, name, shortcut, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
         .eq('active', true);
       
@@ -550,6 +552,41 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           ? editingReservation.service_ids 
           : (editingReservation.service_id ? [editingReservation.service_id] : []);
         setSelectedServices(serviceIds);
+        
+        // Load servicesWithCategory from services list for backwards compatibility
+        if (services.length > 0 && serviceIds.length > 0) {
+          const loadedServicesWithCategory: ServiceWithCategory[] = [];
+          serviceIds.forEach(id => {
+            const service = services.find(s => s.id === id);
+            if (service) {
+              loadedServicesWithCategory.push({
+                id: service.id,
+                name: service.name,
+                shortcut: service.shortcut,
+                category_id: service.category_id,
+                duration_minutes: service.duration_minutes,
+                duration_small: service.duration_small,
+                duration_medium: service.duration_medium,
+                duration_large: service.duration_large,
+                price_from: service.price_from,
+                price_small: service.price_small,
+                price_medium: service.price_medium,
+                price_large: service.price_large,
+                category_prices_are_net: false,
+              });
+            }
+          });
+          setServicesWithCategory(loadedServicesWithCategory);
+        }
+        
+        // Load serviceItems from reservation's service_items column if available
+        const reservationServiceItems = editingReservation.service_items as ServiceItem[] | null;
+        if (reservationServiceItems && Array.isArray(reservationServiceItems) && reservationServiceItems.length > 0) {
+          setServiceItems(reservationServiceItems);
+        } else {
+          // Initialize serviceItems for legacy reservations without service_items
+          setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
+        }
         setSelectedDate(new Date(editingReservation.reservation_date));
         setSelectedTime(null); // Reset - will use editingReservation values in display
         setSelectedStationId(editingReservation.station_id);
