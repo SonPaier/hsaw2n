@@ -392,7 +392,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
                 </div>
               ) : isMobile ? (
                 // Mobile: Card layout
-                <div className="space-y-3">
+                <div className="space-y-3 pb-24">
                   {paginatedProducts.map((product) => (
                     <div 
                       key={product.id} 
