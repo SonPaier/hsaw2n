@@ -446,6 +446,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       
       // Reset user editing flags for new dialog session
       setUserModifiedEndTime(false);
+      setValidationErrors({});
       
       if (isYardMode && editingYardVehicle) {
         // Yard edit mode
