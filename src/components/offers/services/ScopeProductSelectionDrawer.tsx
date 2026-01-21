@@ -74,6 +74,22 @@ export function ScopeProductSelectionDrawer({
     );
   }, [availableProducts, searchQuery, disabledIds, categoryOrder]);
 
+  // Group products by category for rendering
+  const groupedProducts = useMemo(() => {
+    const groups: { category: string | null; products: ScopeProduct[] }[] = [];
+    let currentCategory: string | null | undefined = undefined;
+    
+    filteredProducts.forEach(product => {
+      if (product.category !== currentCategory) {
+        currentCategory = product.category;
+        groups.push({ category: currentCategory ?? null, products: [] });
+      }
+      groups[groups.length - 1].products.push(product);
+    });
+    
+    return groups;
+  }, [filteredProducts]);
+
   // Get selected products details
   const selectedProducts = useMemo(() => {
     return selectedIds
@@ -134,7 +150,7 @@ export function ScopeProductSelectionDrawer({
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
             <ArrowLeft className="w-5 h-5" />
-            Dodaj produkty
+            Dodaj usługi
           </SheetTitle>
         </SheetHeader>
 
@@ -147,7 +163,7 @@ export function ScopeProductSelectionDrawer({
               inputMode="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Szukaj produktu..."
+              placeholder="Szukaj usługi..."
               className="pl-9 pr-9 h-11"
             />
             {searchQuery && (
@@ -170,48 +186,60 @@ export function ScopeProductSelectionDrawer({
           <div className="pb-4">
             {filteredProducts.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
-                {searchQuery ? 'Nie znaleziono produktów' : 'Brak dostępnych produktów'}
+                {searchQuery ? 'Nie znaleziono usług' : 'Brak dostępnych usług'}
               </div>
             ) : (
-              filteredProducts.map((product) => {
-                const isSelected = selectedIds.includes(product.id);
-                
-                return (
-                  <button
-                    key={product.id}
-                    type="button"
-                    onClick={() => toggleProduct(product.id)}
-                    className={cn(
-                      "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                      isSelected 
-                        ? "bg-primary/5" 
-                        : "hover:bg-muted/30"
-                    )}
-                  >
-                    {/* Product name only */}
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-foreground">
-                        {getDisplayName(product)}
-                      </p>
+              groupedProducts.map((group, groupIndex) => (
+                <div key={group.category || `uncategorized-${groupIndex}`}>
+                  {/* Category Header */}
+                  {group.category && (
+                    <div className="bg-white text-foreground text-center py-2 text-sm font-medium border-b">
+                      {group.category}
                     </div>
+                  )}
+                  
+                  {/* Products in category */}
+                  {group.products.map((product) => {
+                    const isSelected = selectedIds.includes(product.id);
                     
-                    {/* Price */}
-                    <div className="text-right mr-4 sm:mr-4 ml-4">
-                      <p className="font-semibold text-primary">{formatPrice(product.price)}</p>
-                    </div>
-                    
-                    {/* Checkmark */}
-                    <div className={cn(
-                      "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                      isSelected
-                        ? "bg-primary border-primary" 
-                        : "border-muted-foreground/40"
-                    )}>
-                      {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
-                    </div>
-                  </button>
-                );
-              })
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => toggleProduct(product.id)}
+                        className={cn(
+                          "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
+                          isSelected 
+                            ? "bg-primary/5" 
+                            : "hover:bg-muted/30"
+                        )}
+                      >
+                        {/* Product name only */}
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-foreground">
+                            {getDisplayName(product)}
+                          </p>
+                        </div>
+                        
+                        {/* Price */}
+                        <div className="text-right mr-4 sm:mr-4 ml-4">
+                          <p className="font-semibold text-primary">{formatPrice(product.price)}</p>
+                        </div>
+                        
+                        {/* Checkmark */}
+                        <div className={cn(
+                          "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                          isSelected
+                            ? "bg-primary border-primary" 
+                            : "border-muted-foreground/40"
+                        )}>
+                          {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
             )}
           </div>
         </div>
