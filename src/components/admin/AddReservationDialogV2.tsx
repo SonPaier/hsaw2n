@@ -1815,7 +1815,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             {/* Services selection - NEW LIST VIEW for Reservation mode, chips for Yard/Detailing */}
             {!isPPFMode && (
               <div className="space-y-2">
-                <Label className="text-base font-semibold">{t('addReservation.selectServiceFirst')}</Label>
+                {/* Label only shown when services are selected */}
+                {selectedServices.length > 0 && (
+                  <Label className="text-base font-semibold">{t('navigation.products')}</Label>
+                )}
                 
                 {/* Popular service shortcuts - only show unselected ones (for yard/detailing modes) */}
                 {(isYardMode || isDetailingMode) && services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
@@ -2061,7 +2064,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     <SelectTrigger>
                       <SelectValue placeholder="--:--" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover max-h-60">
+                    <SelectContent className="bg-white max-h-60">
                       <SelectItem value="none">{t('common.noResults')}</SelectItem>
                       {yardTimeOptions.map((time) => (
                         <SelectItem key={time} value={time}>
