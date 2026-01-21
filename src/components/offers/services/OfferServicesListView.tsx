@@ -269,7 +269,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={scopes.map(s => s.id)} strategy={rectSortingStrategy}>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-24">
                 {scopes.map((scope) => (
                   <SortableScopeCard
                     key={scope.id}
