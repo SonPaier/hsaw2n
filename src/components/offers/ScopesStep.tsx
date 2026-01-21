@@ -99,8 +99,8 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold truncate">{scope.name}</h3>
+                    <div className="flex items-start gap-2 mb-2 flex-wrap">
+                      <h3 className="font-semibold break-words">{scope.name}</h3>
                       {scope.has_coating_upsell && (
                         <Badge variant="secondary" className="gap-1 shrink-0">
                           <Sparkles className="h-3 w-3" />
