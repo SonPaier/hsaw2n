@@ -483,6 +483,44 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           : (editingReservation.service_id ? [editingReservation.service_id] : []);
         setSelectedServices(serviceIds);
         
+        // Load servicesWithCategory from services list for backwards compatibility
+        if (services.length > 0 && serviceIds.length > 0) {
+          const loadedServicesWithCategory: ServiceWithCategory[] = [];
+          serviceIds.forEach(id => {
+            const service = services.find(s => s.id === id);
+            if (service) {
+              loadedServicesWithCategory.push({
+                id: service.id,
+                name: service.name,
+                shortcut: service.shortcut,
+                category_id: service.category_id,
+                duration_minutes: service.duration_minutes,
+                duration_small: service.duration_small,
+                duration_medium: service.duration_medium,
+                duration_large: service.duration_large,
+                price_from: service.price_from,
+                price_small: service.price_small,
+                price_medium: service.price_medium,
+                price_large: service.price_large,
+                category_prices_are_net: false,
+              });
+            }
+          });
+          setServicesWithCategory(loadedServicesWithCategory);
+        }
+        
+        // Load serviceItems from reservation's service_items column if available
+        const reservationServiceItems = editingReservation.service_items as ServiceItem[] | null;
+        if (reservationServiceItems && Array.isArray(reservationServiceItems) && reservationServiceItems.length > 0) {
+          setServiceItems(reservationServiceItems);
+        } else {
+          // Initialize serviceItems for legacy reservations without service_items
+          setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
+        }
+        
+        // Set final price for PPF/Detailing mode
+        setFinalPrice(editingReservation.price?.toString() || '');
+        
         // Date range
         const fromDate = new Date(editingReservation.reservation_date);
         const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
