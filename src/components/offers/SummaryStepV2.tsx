@@ -220,9 +220,11 @@ export const SummaryStepV2 = ({
         // Get customer selections from saved state (when customer accepted offer)
         const customerSelectedOptionalItems = offer.defaultSelectedState?.selectedOptionalItems || {};
 
-        // Check if this is a truly saved offer (has ID and has real saved items)
-        // vs an offer that just got auto-generated options from generateOptionsFromScopes
-        const hasSavedItems = existingOption && existingOption.items.length > 0 && offer.id;
+        // CRITICAL: For new offers (!offer.id), ALWAYS use only default products
+        // regardless of what generateOptionsFromScopes pre-populated in offer.options.
+        // Only trust saved items when we have a real offer.id from the database.
+        const isExistingOffer = Boolean(offer.id);
+        const hasSavedItems = isExistingOffer && existingOption && existingOption.items.length > 0;
 
         if (hasSavedItems) {
           // Restore from saved offer - use all saved items
