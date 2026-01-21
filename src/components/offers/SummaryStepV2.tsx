@@ -184,7 +184,8 @@ export const SummaryStepV2 = ({
 
         // Helper: convert scope product to SelectedProduct
         const toSelectedProduct = (p: ScopeProduct, isPreselected: boolean): SelectedProduct => ({
-          id: p.id, // Use stable ID
+          // IMPORTANT: must be unique per offer item (cannot reuse offer_scope_products.id)
+          id: crypto.randomUUID(),
           scopeProductId: p.id,
           productId: p.product_id,
           variantName: p.variant_name,
