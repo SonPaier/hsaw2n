@@ -2487,8 +2487,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               />
             </div>
 
-            {/* Final Price - always visible in reservation mode */}
-            {isReservationMode && (
+            {/* Final Price - visible in reservation, detailing, and PPF modes */}
+            {(isReservationMode || isPPFOrDetailingMode) && (
               <div className="space-y-2">
                 <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
                   {t('addReservation.amount')}
