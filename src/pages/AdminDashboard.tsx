@@ -65,6 +65,7 @@ interface Reservation {
   };
   // Array of all services (if multi-service reservation)
   services_data?: Array<{
+    id?: string;
     name: string;
     shortcut?: string | null;
     price_small?: number | null;
@@ -521,12 +522,13 @@ const AdminDashboard = () => {
   // Map raw reservation data to Reservation type
   const mapReservationData = useCallback((
     data: any[],
-    servicesMap: Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
+    servicesMap: Map<string, { id: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
     originalReservationsMap: Map<string, any>
   ): Reservation[] => {
     return data.map(r => {
       const serviceIds = (r as any).service_ids as string[] | null;
       const servicesDataMapped: Array<{
+        id?: string;
         name: string;
         shortcut?: string | null;
         price_small?: number | null;
@@ -578,7 +580,7 @@ const AdminDashboard = () => {
   }, []);
 
   // Reference to services map for realtime updates
-  const servicesMapRef = useRef<Map<string, { name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>>(new Map());
+  const servicesMapRef = useRef<Map<string, { id: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>>(new Map());
 
   // Fetch reservations from database with date range filter
   // Initial load: 2 months back + all future reservations
@@ -594,6 +596,7 @@ const AdminDashboard = () => {
       data: servicesData
     } = await supabase.from('services').select('id, name, shortcut, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId);
     const servicesMap = new Map<string, {
+      id: string;
       name: string;
       shortcut?: string | null;
       price_small?: number | null;
@@ -603,6 +606,7 @@ const AdminDashboard = () => {
     }>();
     if (servicesData) {
       servicesData.forEach(s => servicesMap.set(s.id, {
+        id: s.id,
         name: s.name,
         shortcut: s.shortcut,
         price_small: s.price_small,
@@ -968,11 +972,11 @@ const AdminDashboard = () => {
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
                 const serviceIds = (data as any).service_ids as string[] | null;
-                const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+                const servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
                 if (serviceIds && serviceIds.length > 0) {
                   serviceIds.forEach(id => {
                     const svc = servicesMapRef.current.get(id);
-                    if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                    if (svc) servicesDataMapped.push(svc);
                   });
                 }
 
@@ -1042,11 +1046,11 @@ const AdminDashboard = () => {
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
                 const serviceIds = (data as any).service_ids as string[] | null;
-                const servicesDataMapped: Array<{ name: string; shortcut?: string | null }> = [];
+                const servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
                 if (serviceIds && serviceIds.length > 0) {
                   serviceIds.forEach(id => {
                     const svc = servicesMapRef.current.get(id);
-                    if (svc) servicesDataMapped.push({ name: svc.name, shortcut: svc.shortcut });
+                    if (svc) servicesDataMapped.push(svc);
                   });
                 }
 

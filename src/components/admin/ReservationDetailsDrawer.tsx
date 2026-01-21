@@ -58,11 +58,13 @@ interface Reservation {
   source?: string | null;
   service_id?: string;
   service_ids?: string[];
+  service_items?: Array<{ service_id: string; custom_price: number | null }> | null;
   offer_number?: string | null;
   service?: {
     name: string;
   };
   services_data?: Array<{
+    id?: string;
     name: string;
     shortcut?: string | null;
     price_small?: number | null;
@@ -464,8 +466,20 @@ const ReservationDetailsDrawer = ({
 
             {/* Kwota (Price) section with expandable receipt */}
             {(() => {
-              // Calculate total from services based on car size
-              const getServicePrice = (svc: { price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }) => {
+              // Get custom price from service_items if available
+              const getCustomPrice = (serviceId: string | undefined): number | null => {
+                if (!serviceId || !reservation.service_items) return null;
+                const item = reservation.service_items.find(si => si.service_id === serviceId);
+                return item?.custom_price ?? null;
+              };
+
+              // Calculate base price for a service based on car size
+              const getServicePrice = (svc: { id?: string; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }) => {
+                // First check if there's a custom price
+                const customPrice = getCustomPrice(svc.id);
+                if (customPrice !== null) return customPrice;
+                
+                // Otherwise use base price by car size
                 if (carSize === 'small' && svc.price_small) return svc.price_small;
                 if (carSize === 'medium' && svc.price_medium) return svc.price_medium;
                 if (carSize === 'large' && svc.price_large) return svc.price_large;
