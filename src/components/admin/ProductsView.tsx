@@ -95,6 +95,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
   const [searchParams, setSearchParams] = useSearchParams();
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -133,18 +134,34 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     const { data: productsData } = await supabase
       .from('products_library')
       .select('*')
-      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
-      .order('category', { ascending: true })
-      .order('name', { ascending: true });
+      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`);
 
     setProducts((productsData as Product[]) || []);
+  };
+
+  const fetchCategoryOrder = async () => {
+    if (!instanceId) return;
+    
+    const { data } = await supabase
+      .from('offer_product_categories')
+      .select('name, sort_order')
+      .eq('instance_id', instanceId)
+      .eq('active', true);
+
+    if (data) {
+      const orderMap: Record<string, number> = {};
+      data.forEach(cat => {
+        orderMap[cat.name] = cat.sort_order;
+      });
+      setCategoryOrder(orderMap);
+    }
   };
 
   const fetchData = async () => {
     if (!instanceId) return;
     
     setLoading(true);
-    await Promise.all([fetchPriceLists(), fetchProducts()]);
+    await Promise.all([fetchPriceLists(), fetchProducts(), fetchCategoryOrder()]);
     setLoading(false);
   };
 
@@ -171,10 +188,26 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     return counts;
   }, [products]);
 
+  // Sort and filter products
+  const sortedProducts = useMemo(() => {
+    // Sort by category order first, then by price (ascending)
+    return [...products].sort((a, b) => {
+      const catOrderA = a.category ? (categoryOrder[a.category] ?? 999) : 999;
+      const catOrderB = b.category ? (categoryOrder[b.category] ?? 999) : 999;
+      
+      if (catOrderA !== catOrderB) {
+        return catOrderA - catOrderB;
+      }
+      
+      // Within same category, sort by price ascending
+      return a.default_price - b.default_price;
+    });
+  }, [products, categoryOrder]);
+
   // Filter products
   const filteredProducts = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    return products.filter(p => {
+    return sortedProducts.filter(p => {
       const matchesSearch = query === '' || 
         p.name.toLowerCase().includes(query) ||
         (p.brand && p.brand.toLowerCase().includes(query)) ||
@@ -185,7 +218,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
       
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, categoryFilter]);
+  }, [sortedProducts, searchQuery, categoryFilter]);
 
   // Pagination for products
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -697,7 +730,10 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
           onOpenChange={setShowCategoriesDialog}
           instanceId={instanceId}
           productCounts={productCounts}
-          onCategoriesChanged={fetchProducts}
+          onCategoriesChanged={() => {
+            fetchProducts();
+            fetchCategoryOrder();
+          }}
         />
       )}
 
