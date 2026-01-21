@@ -102,14 +102,17 @@ function SortableScopeCard({ scope, onEdit, onDelete }: SortableScopeCardProps) 
               <Pencil className="w-4 h-4" />
               Edytuj
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              onClick={() => onDelete(scope)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            {/* Cannot delete extras scope */}
+            {!scope.is_extras_scope && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => onDelete(scope)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
