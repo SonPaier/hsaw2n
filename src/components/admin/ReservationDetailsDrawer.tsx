@@ -266,7 +266,7 @@ const ReservationDetailsDrawer = ({
   const handleEdit = () => {
     if (!reservation || !onEdit) return;
     onEdit(reservation);
-    onClose();
+    // Don't close here - let AdminDashboard handle closing both drawers after save
   };
 
   const handleDelete = async () => {

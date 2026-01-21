@@ -1342,7 +1342,7 @@ const AdminDashboard = () => {
     setAddReservationOpen(true);
   };
 
-  // Open edit reservation dialog
+  // Open edit reservation dialog (keeps details drawer open, edit drawer goes on top)
   const handleEditReservation = (reservation: Reservation) => {
     const station = stations.find(s => s.id === reservation.station_id);
     setEditingReservation(reservation);
@@ -1352,7 +1352,7 @@ const AdminDashboard = () => {
       time: reservation.start_time?.substring(0, 5) || '',
       stationType: station?.type || ''
     });
-    setSelectedReservation(null); // Close details dialog
+    // Don't close details drawer here - we close both after save/close
     setAddReservationOpen(true);
   };
 
@@ -2505,6 +2505,8 @@ const AdminDashboard = () => {
             setAddReservationV2Open(false);
             setEditingReservation(null);
             setSlotPreview(null);
+            // Close details drawer too when edit drawer closes (after save or cancel)
+            setSelectedReservation(null);
           }}
           onSlotPreviewChange={handleSlotPreviewChange}
           instanceId={instanceId}
