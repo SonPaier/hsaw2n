@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   ArrowLeft,
   Bell,
+  FolderOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,7 @@ import { PriceListUploadDialog } from '@/components/products/PriceListUploadDial
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
+import { ProductCategoriesDialog } from '@/components/products/ProductCategoriesDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -104,6 +106,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
   const [deleteProductDialog, setDeleteProductDialog] = useState<{ open: boolean; product: Product | null }>({ open: false, product: null });
   const [checkingProductUsage, setCheckingProductUsage] = useState(false);
   const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
+  const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
   
   // Read initial pagination from URL
   const initialPage = parseInt(searchParams.get('page') || '1', 10);
@@ -151,10 +154,21 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     fetchData();
   }, [instanceId]);
 
-  // Get unique categories
+  // Get unique categories and counts
   const categories = useMemo(() => {
     const cats = new Set(products.filter(p => p.category).map(p => p.category!));
     return Array.from(cats).sort();
+  }, [products]);
+
+  // Product counts per category (for categories dialog)
+  const productCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach(p => {
+      if (p.category) {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      }
+    });
+    return counts;
   }, [products]);
 
   // Filter products
@@ -306,6 +320,10 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t('products.title')}</h1>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowCategoriesDialog(true)} className="gap-2 px-2 sm:px-4">
+              <FolderOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Kategorie usług</span>
+            </Button>
             <Button variant="outline" onClick={() => setShowTemplatesDialog(true)} className="gap-2 px-2 sm:px-4">
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">{t('reminderTemplates.title')}</span>
@@ -669,6 +687,17 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
           open={showTemplatesDialog}
           onOpenChange={setShowTemplatesDialog}
           instanceId={instanceId}
+        />
+      )}
+
+      {/* Product Categories Dialog */}
+      {instanceId && (
+        <ProductCategoriesDialog
+          open={showCategoriesDialog}
+          onOpenChange={setShowCategoriesDialog}
+          instanceId={instanceId}
+          productCounts={productCounts}
+          onCategoriesChanged={fetchProducts}
         />
       )}
 

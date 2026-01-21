@@ -996,6 +996,44 @@ export type Database = {
           },
         ]
       }
+      offer_product_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_product_categories_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_reminders: {
         Row: {
           cancelled_at: string | null
