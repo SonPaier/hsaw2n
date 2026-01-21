@@ -154,7 +154,8 @@ export const SummaryStepV2 = ({
         return;
       }
 
-      // Fetch products for all scopes (selected + extras)
+      // Fetch products for non-extras scopes (regular offer_scope_products)
+      const nonExtrasScopeIds = scopesData.filter(s => !s.is_extras_scope).map(s => s.id);
       const { data: scopeProductsData } = await supabase
         .from('offer_scope_products')
         .select(`
@@ -166,8 +167,17 @@ export const SummaryStepV2 = ({
           sort_order,
           product:products_library(id, name, short_name, default_price, category)
         `)
-        .in('scope_id', allScopeIds)
+        .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
+
+      // For extras scopes - fetch ALL products from products_library
+      // This ensures new products are automatically available without manual sync
+      const { data: allProductsData } = await supabase
+        .from('products_library')
+        .select('id, name, short_name, default_price, category')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('name');
 
       // Fetch category order for sorting products
       const { data: categoryOrderData } = await supabase
@@ -186,15 +196,36 @@ export const SummaryStepV2 = ({
 
       // Build services state
       const newServices: ServiceState[] = scopesData.map(scope => {
-        const scopeProducts = (scopeProductsData || [])
-          .filter(p => p.scope_id === scope.id)
-          .map(p => ({
-            id: p.id,
-            product_id: p.product_id,
-            variant_name: p.variant_name,
-            is_default: p.is_default,
-            product: p.product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
+        // For extras scopes: use ALL products from products_library (dynamic, always up-to-date)
+        // For regular scopes: use configured offer_scope_products
+        let scopeProducts: ScopeProduct[];
+        
+        if (scope.is_extras_scope) {
+          // All products available as extras - no need to manually add them to offer_scope_products
+          scopeProducts = (allProductsData || []).map(product => ({
+            id: `extras-${product.id}`, // Virtual ID since not from offer_scope_products
+            product_id: product.id,
+            variant_name: null,
+            is_default: false, // Extras are never default - admin/customer selects
+            product: {
+              id: product.id,
+              name: product.name,
+              short_name: product.short_name,
+              default_price: product.default_price,
+              category: product.category
+            }
           }));
+        } else {
+          scopeProducts = (scopeProductsData || [])
+            .filter(p => p.scope_id === scope.id)
+            .map(p => ({
+              id: p.id,
+              product_id: p.product_id,
+              variant_name: p.variant_name,
+              is_default: p.is_default,
+              product: p.product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
+            }));
+        }
 
         // Check if we have saved options for this scope - restore them
         const existingOption = offer.options.find(opt => opt.scopeId === scope.id);
