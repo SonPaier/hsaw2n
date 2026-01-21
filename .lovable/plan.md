@@ -1,92 +1,184 @@
 
-# Plan naprawy: Lista usług nie wyświetla się przy pierwszym otwarciu edycji
+# Plan: Walidacja formularza z komunikatami błędów i scrollem
 
-## Problem
-Race condition między useEffect pobierającym usługi a useEffect inicjalizującym formularz edycji. Przy pierwszym otwarciu `services[]` jest puste, więc lista usług nie może się załadować.
+## Cel
+Zmienić zachowanie przycisku "Dalej" w pierwszym kroku kreatora ofert:
+- Przycisk zawsze aktywny (bez `disabled`)
+- Na klik walidacja wszystkich wymaganych pól
+- Wyświetlenie błędów pod polami z gwiazdką
+- Automatyczny scroll do pierwszego pola z błędem
 
-## Rozwiązanie
+## Wymagane pola w kroku 1
+Na podstawie kodu `CustomerDataStep.tsx` i walidacji w `OfferGenerator.tsx`:
+- Imię i nazwisko (`customerData.name`) - oznaczone gwiazdką
+- Email (`customerData.email`) - oznaczone gwiazdką
+- Marka i model (`vehicleData.brandModel`) - oznaczone gwiazdką
 
-### Zmiana 1: Dodaj dedykowany useEffect do mapowania usług
+---
 
-Dodaj NOWY useEffect, który uruchomi się po załadowaniu `services`, gdy dialog jest w trybie edycji:
+## Zmiany techniczne
 
+### 1. CustomerDataStep.tsx - dodanie obsługi błędów walidacji
+
+Rozszerzenie interfejsu propsów:
 ```typescript
-// NEW: Re-map servicesWithCategory when services are loaded (for edit mode)
-useEffect(() => {
-  if (!open || !editingReservation || services.length === 0) return;
-  
-  // Skip if servicesWithCategory is already populated
-  if (servicesWithCategory.length > 0) return;
-  
-  const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
-    ? editingReservation.service_ids 
-    : (editingReservation.service_id ? [editingReservation.service_id] : []);
-  
-  if (serviceIds.length === 0) return;
-  
-  const loadedServicesWithCategory: ServiceWithCategory[] = [];
-  serviceIds.forEach(id => {
-    const service = services.find(s => s.id === id);
-    if (service) {
-      loadedServicesWithCategory.push({
-        id: service.id,
-        name: service.name,
-        shortcut: service.shortcut,
-        category_id: service.category_id,
-        duration_minutes: service.duration_minutes,
-        duration_small: service.duration_small,
-        duration_medium: service.duration_medium,
-        duration_large: service.duration_large,
-        price_from: service.price_from,
-        price_small: service.price_small,
-        price_medium: service.price_medium,
-        price_large: service.price_large,
-        category_prices_are_net: false,
-      });
-    }
-  });
-  
-  if (loadedServicesWithCategory.length > 0) {
-    setServicesWithCategory(loadedServicesWithCategory);
-  }
-}, [open, services, editingReservation]);
-```
-
-**Lokalizacja**: Dodaj po linii ~738 (po głównym useEffect resetującym formularz)
-
-### Zmiana 2: Analogiczna zmiana dla trybu PPF/Detailing
-
-Ten sam useEffect powinien obsługiwać też tryb `isPPFOrDetailingMode`, ponieważ tam jest identyczny problem.
-
-### Zmiana 3: Reset servicesWithCategory przy zamknięciu
-
-Upewnij się, że `servicesWithCategory` jest czyszczone przy zamknięciu dialogu (w else bloku przy `open = false`):
-
-```typescript
-} else {
-  // Dialog closed - reset tracking refs
-  wasOpenRef.current = false;
-  isUserEditingRef.current = false;
-  lastEditingReservationIdRef.current = null;
-  setServicesWithCategory([]); // <-- DODAJ
+interface CustomerDataStepProps {
+  customerData: CustomerData;
+  vehicleData: VehicleData;
+  onCustomerChange: (data: Partial<CustomerData>) => void;
+  onVehicleChange: (data: Partial<VehicleData>) => void;
+  validationErrors?: {
+    name?: string;
+    email?: string;
+    brandModel?: string;
+  };
 }
 ```
 
-## Edytowane pliki
+Dodanie refów do pól do obsługi scrollowania:
+```typescript
+const nameInputRef = useRef<HTMLInputElement>(null);
+const emailInputRef = useRef<HTMLInputElement>(null);
+const brandModelRef = useRef<HTMLDivElement>(null);
+```
 
-| Plik | Zmiana |
+Wyświetlanie błędów pod polami:
+- Pole "Imię i nazwisko": czerwona ramka + tekst błędu "Imię i nazwisko jest wymagane"
+- Pole "Email": czerwona ramka + tekst błędu "Email jest wymagany"
+- Pole "Marka i model": czerwona ramka + tekst błędu "Marka i model jest wymagany"
+
+### 2. OfferGenerator.tsx - logika walidacji i scrollowania
+
+Dodanie stanu błędów walidacji:
+```typescript
+const [validationErrors, setValidationErrors] = useState<{
+  name?: string;
+  email?: string;
+  brandModel?: string;
+}>({});
+```
+
+Dodanie refa do komponentu CustomerDataStep:
+```typescript
+const customerStepRef = useRef<CustomerDataStepHandle>(null);
+```
+
+Zmiana funkcji `handleNext`:
+```typescript
+const handleNext = () => {
+  if (currentStep === 1) {
+    const errors: typeof validationErrors = {};
+    
+    if (!offer.customerData.name?.trim()) {
+      errors.name = 'Imię i nazwisko jest wymagane';
+    }
+    if (!offer.customerData.email?.trim()) {
+      errors.email = 'Email jest wymagany';
+    }
+    if (!offer.vehicleData.brandModel?.trim()) {
+      errors.brandModel = 'Marka i model jest wymagany';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      // Scroll do pierwszego pola z błędem
+      customerStepRef.current?.scrollToFirstError(errors);
+      return;
+    }
+    
+    setValidationErrors({});
+  }
+  
+  // Kontynuacja do następnego kroku
+  setCurrentStep(prev => prev + 1);
+  saveOffer(true).catch(console.error);
+};
+```
+
+Usunięcie `disabled={!canProceed}` z przycisku "Dalej" na kroku 1:
+```tsx
+<Button
+  onClick={handleNext}
+  // disabled tylko na kroku 2 (wybór szablonów)
+  disabled={currentStep === 2 && !canProceed}
+  className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
+>
+```
+
+### 3. CustomerDataStep.tsx - implementacja scrollToFirstError
+
+Dodanie `forwardRef` i `useImperativeHandle`:
+```typescript
+export interface CustomerDataStepHandle {
+  scrollToFirstError: (errors: { name?: string; email?: string; brandModel?: string }) => void;
+}
+
+export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataStepProps>(
+  ({ customerData, vehicleData, onCustomerChange, onVehicleChange, validationErrors }, ref) => {
+    const nameInputRef = useRef<HTMLInputElement>(null);
+    const emailInputRef = useRef<HTMLInputElement>(null);
+    const brandModelRef = useRef<HTMLDivElement>(null);
+    
+    useImperativeHandle(ref, () => ({
+      scrollToFirstError: (errors) => {
+        if (errors.name && nameInputRef.current) {
+          nameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          nameInputRef.current.focus();
+        } else if (errors.email && emailInputRef.current) {
+          emailInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          emailInputRef.current.focus();
+        } else if (errors.brandModel && brandModelRef.current) {
+          brandModelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }));
+    
+    // ...rest of component
+  }
+);
+```
+
+### 4. Czyszczenie błędów przy edycji pola
+
+W `OfferGenerator.tsx` - przekazanie funkcji czyszczącej błędy:
+```typescript
+const handleCustomerChange = (data: Partial<CustomerData>) => {
+  updateCustomerData(data);
+  // Czyść błąd dla zmienionego pola
+  if (data.name !== undefined && validationErrors.name) {
+    setValidationErrors(prev => ({ ...prev, name: undefined }));
+  }
+  if (data.email !== undefined && validationErrors.email) {
+    setValidationErrors(prev => ({ ...prev, email: undefined }));
+  }
+};
+
+const handleVehicleChange = (data: Partial<VehicleData>) => {
+  updateVehicleData(data);
+  if (data.brandModel !== undefined && validationErrors.brandModel) {
+    setValidationErrors(prev => ({ ...prev, brandModel: undefined }));
+  }
+};
+```
+
+---
+
+## Pliki do zmodyfikowania
+
+| Plik | Zmiany |
 |------|--------|
-| `src/components/admin/AddReservationDialogV2.tsx` | Nowy useEffect do mapowania usług po załadowaniu services + reset przy zamknięciu |
+| `src/components/offers/CustomerDataStep.tsx` | Dodanie propsów `validationErrors`, refów do inputów, wyświetlanie błędów, `forwardRef` + `useImperativeHandle` |
+| `src/components/offers/OfferGenerator.tsx` | Stan `validationErrors`, logika walidacji w `handleNext`, usunięcie `disabled` z przycisku, przekazanie propsów do CustomerDataStep |
 
-## Dlaczego to zadziała
+---
 
-1. Przy pierwszym otwarciu: główny useEffect wykonuje się z pustym `services[]`
-2. Fetch usług kończy się → `services` zostaje wypełnione
-3. NOWY useEffect reaguje na zmianę `services` i mapuje usługi do `servicesWithCategory`
-4. Lista usług wyświetla się poprawnie
-5. Przy zamknięciu `servicesWithCategory` jest resetowane, więc warunek `servicesWithCategory.length > 0` nie blokuje ponownego mapowania przy następnym otwarciu
+## UX Flow
 
-## Dodatkowe uwagi
-
-- Warunek `if (servicesWithCategory.length > 0) return;` zapobiega nadpisaniu danych, jeśli użytkownik już ręcznie edytował usługi
-- To rozwiązanie jest kompatybilne wstecz i nie wpływa na tryb tworzenia nowej rezerwacji
+1. Użytkownik wchodzi na krok 1 (puste pola)
+2. Klika "Dalej"
+3. System waliduje pola oznaczone gwiazdką
+4. Pod pustymi polami pojawiają się czerwone komunikaty
+5. Strona automatycznie scrolluje do pierwszego pola z błędem
+6. Użytkownik wypełnia pole
+7. Błąd znika natychmiast po wpisaniu tekstu
+8. Po wypełnieniu wszystkich wymaganych pól klik "Dalej" przechodzi do kroku 2
