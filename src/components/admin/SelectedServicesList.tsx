@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ const SelectedServicesList = ({
   onAddMore,
 }: SelectedServicesListProps) => {
   const { t } = useTranslation();
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
 
   // Get base price for a service based on car size
   const getBasePrice = (service: ServiceWithCategory): number => {
@@ -125,24 +127,29 @@ const SelectedServicesList = ({
 
   if (selectedServices.length === 0) {
     return (
-      <button
+      <Button
         type="button"
         onClick={onAddMore}
-        className="w-full text-left text-muted-foreground hover:text-foreground transition-colors rounded-lg border-2 border-dashed border-muted-foreground/30 p-3"
+        className="w-full"
       >
+        <Plus className="w-4 h-4 mr-2" />
         {t('addReservation.addServices')}
-      </button>
+      </Button>
     );
   }
 
   return (
     <div className="space-y-2">
+      {/* Header */}
+      <p className="text-sm font-medium text-muted-foreground">{t('navigation.products')}</p>
+
       {/* Service items list */}
       <div className="flex flex-col gap-1 rounded-lg overflow-hidden">
         {selectedServices.map((service) => {
           const displayedPrice = getDisplayedPrice(service.id, service);
           const hasCustomPrice = serviceItems.find(si => si.service_id === service.id)?.custom_price !== null;
           const duration = getDuration(service);
+          const isEditing = editingPriceId === service.id;
 
           return (
             <div key={service.id} className="bg-white rounded-lg border border-border">
@@ -164,22 +171,40 @@ const SelectedServicesList = ({
                   </p>
                 </div>
 
-                {/* Price input - inline */}
+                {/* Price - click to edit */}
                 <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={displayedPrice || ''}
-                    onChange={(e) => {
-                      const value = e.target.value ? parseFloat(e.target.value) : null;
-                      onPriceChange(service.id, value);
-                    }}
-                    className={cn(
-                      "w-20 h-8 text-right text-sm font-semibold bg-white",
-                      hasCustomPrice && "bg-accent border-primary/30"
-                    )}
-                    min={0}
-                    step={5}
-                  />
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={displayedPrice || ''}
+                      onChange={(e) => {
+                        const value = e.target.value ? parseFloat(e.target.value) : null;
+                        onPriceChange(service.id, value);
+                      }}
+                      onBlur={() => setEditingPriceId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setEditingPriceId(null);
+                      }}
+                      className={cn(
+                        "w-20 h-8 text-right text-sm font-semibold bg-white",
+                        hasCustomPrice && "bg-accent border-primary/30"
+                      )}
+                      min={0}
+                      step={5}
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditingPriceId(service.id)}
+                      className={cn(
+                        "px-2 py-1 rounded text-sm font-semibold text-right min-w-[60px] hover:bg-muted transition-colors",
+                        hasCustomPrice && "text-primary"
+                      )}
+                    >
+                      {displayedPrice}
+                    </button>
+                  )}
                   <span className="text-sm text-muted-foreground">zł</span>
                 </div>
 
@@ -201,12 +226,11 @@ const SelectedServicesList = ({
       <div className="flex items-center justify-between gap-2">
         <Button
           type="button"
-          variant="outline"
           size="sm"
           onClick={onAddMore}
-          className="text-primary"
         >
-          + {t('common.add')}
+          <Plus className="w-4 h-4 mr-1" />
+          {t('common.add')}
         </Button>
 
         <div className="text-right">
