@@ -465,17 +465,17 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowServicesView(true)} className="gap-2 px-2 sm:px-4">
+            <Button variant="outline" size="icon" onClick={() => setShowServicesView(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Layers className="w-4 h-4" />
-              <span className="hidden sm:inline">Twoje Szablony</span>
+              <span className="hidden sm:inline ml-2">Twoje Szablony</span>
             </Button>
-            <Button variant="outline" onClick={onNavigateToProducts} className="gap-2 px-2 sm:px-4">
+            <Button variant="outline" size="icon" onClick={onNavigateToProducts} className="sm:w-auto sm:px-4 w-10 h-10">
               <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('offers.products')}</span>
+              <span className="hidden sm:inline ml-2">{t('offers.products')}</span>
             </Button>
-            <Button variant="outline" onClick={() => setShowScopesSettings(true)} className="gap-2 px-2 sm:px-4">
+            <Button variant="outline" size="icon" onClick={() => setShowScopesSettings(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('offers.settings')}</span>
+              <span className="hidden sm:inline ml-2">{t('offers.settings')}</span>
             </Button>
             <Button onClick={() => setShowGenerator(true)}>
               {t('offers.newOffer')}
