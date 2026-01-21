@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
-import { CustomerDataStep } from './CustomerDataStep';
+import { CustomerDataStep, CustomerDataStepHandle, ValidationErrors } from './CustomerDataStep';
 import { ScopesStep } from './ScopesStep';
 import { OptionsStep } from './OptionsStep';
 import { SummaryStep } from './SummaryStep';
@@ -66,6 +66,7 @@ export const OfferGenerator = ({
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [savedOfferForEmail, setSavedOfferForEmail] = useState<{
     id: string;
     offer_number: string;
@@ -82,6 +83,9 @@ export const OfferGenerator = ({
     slug?: string;
     offer_email_template?: string;
   } | null>(null);
+
+  // Ref for CustomerDataStep to call scrollToFirstError
+  const customerStepRef = useRef<CustomerDataStepHandle>(null);
 
   // Step 3 (Options) is temporarily hidden but code remains
   const steps = [
@@ -235,6 +239,30 @@ export const OfferGenerator = ({
   };
 
   const handleNext = () => {
+    // Validate step 1 before proceeding
+    if (currentStep === 1) {
+      const errors: ValidationErrors = {};
+      
+      if (!offer.customerData.name?.trim()) {
+        errors.name = 'Imię i nazwisko jest wymagane';
+      }
+      if (!offer.customerData.email?.trim()) {
+        errors.email = 'Email jest wymagany';
+      }
+      if (!offer.vehicleData.brandModel?.trim()) {
+        errors.brandModel = 'Marka i model jest wymagany';
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        // Scroll to first error field
+        customerStepRef.current?.scrollToFirstError(errors);
+        return;
+      }
+      
+      setValidationErrors({});
+    }
+    
     if (currentStep < 3) { // Max step is now 3 (Summary)
       // Optimistic navigation - change step immediately
       setCurrentStep(prev => prev + 1);
@@ -458,10 +486,27 @@ export const OfferGenerator = ({
       {currentStep === 1 && (
         <Card className="p-6">
           <CustomerDataStep
+            ref={customerStepRef}
             customerData={offer.customerData}
             vehicleData={offer.vehicleData}
-            onCustomerChange={updateCustomerData}
-            onVehicleChange={updateVehicleData}
+            onCustomerChange={(data) => {
+              updateCustomerData(data);
+              // Clear validation error when field is edited
+              if (data.name !== undefined && validationErrors.name) {
+                setValidationErrors(prev => ({ ...prev, name: undefined }));
+              }
+              if (data.email !== undefined && validationErrors.email) {
+                setValidationErrors(prev => ({ ...prev, email: undefined }));
+              }
+            }}
+            onVehicleChange={(data) => {
+              updateVehicleData(data);
+              // Clear validation error when field is edited
+              if (data.brandModel !== undefined && validationErrors.brandModel) {
+                setValidationErrors(prev => ({ ...prev, brandModel: undefined }));
+              }
+            }}
+            validationErrors={validationErrors}
           />
         </Card>
       )}
@@ -566,7 +611,7 @@ export const OfferGenerator = ({
           {currentStep < 3 ? (
             <Button
               onClick={handleNext}
-              disabled={!canProceed}
+              disabled={currentStep === 2 && !canProceed}
               className="gap-2 h-12 w-12 sm:w-auto sm:px-4"
             >
               <span className="hidden sm:inline">{t('common.next')}</span>

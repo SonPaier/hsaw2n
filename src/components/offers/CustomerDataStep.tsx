@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +10,22 @@ import { CustomerData, VehicleData } from '@/hooks/useOffer';
 import { toast } from 'sonner';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 
+export interface ValidationErrors {
+  name?: string;
+  email?: string;
+  brandModel?: string;
+}
+
+export interface CustomerDataStepHandle {
+  scrollToFirstError: (errors: ValidationErrors) => void;
+}
+
 interface CustomerDataStepProps {
   customerData: CustomerData;
   vehicleData: VehicleData;
   onCustomerChange: (data: Partial<CustomerData>) => void;
   onVehicleChange: (data: Partial<VehicleData>) => void;
+  validationErrors?: ValidationErrors;
 }
 
 // Parse address from API format: "ULICA NR, KOD MIASTO" or "ULICA NR/LOKAL, KOD MIASTO"
@@ -40,18 +51,37 @@ const paintTypes = [
   { value: 'matte', label: 'Mat' },
 ];
 
-export const CustomerDataStep = ({
-  customerData,
-  vehicleData,
-  onCustomerChange,
-  onVehicleChange,
-}: CustomerDataStepProps) => {
+export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataStepProps>(
+  ({ customerData, vehicleData, onCustomerChange, onVehicleChange, validationErrors }, ref) => {
   const { t } = useTranslation();
   const [nipLoading, setNipLoading] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [showManualCompany, setShowManualCompany] = useState(
     !!customerData.company || !!customerData.nip || !!customerData.companyAddress
   );
+
+  // Refs for scroll-to-error
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const brandModelRef = useRef<HTMLDivElement>(null);
+
+  // Expose scrollToFirstError method to parent
+  useImperativeHandle(ref, () => ({
+    scrollToFirstError: (errors: ValidationErrors) => {
+      if (errors.name && nameInputRef.current) {
+        nameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        nameInputRef.current.focus();
+      } else if (errors.email && emailInputRef.current) {
+        emailInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        emailInputRef.current.focus();
+      } else if (errors.brandModel && brandModelRef.current) {
+        brandModelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus the input inside the autocomplete if possible
+        const input = brandModelRef.current.querySelector('input');
+        if (input) input.focus();
+      }
+    }
+  }));
 
   const validateEmail = (email: string): boolean => {
     if (!email) return true; // Empty is valid (will be caught by required validation)
@@ -137,6 +167,11 @@ export const CustomerDataStep = ({
     }
   };
 
+  // Determine if field has validation error
+  const hasNameError = !!validationErrors?.name;
+  const hasEmailError = !!validationErrors?.email || !!emailError;
+  const hasBrandModelError = !!validationErrors?.brandModel;
+
   return (
     <div className="space-y-8">
       {/* Customer Info Section */}
@@ -149,23 +184,29 @@ export const CustomerDataStep = ({
           <div className="space-y-2">
             <Label htmlFor="customerName">Imię i nazwisko *</Label>
             <Input
+              ref={nameInputRef}
               id="customerName"
               value={customerData.name}
               onChange={(e) => onCustomerChange({ name: e.target.value })}
+              className={hasNameError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {validationErrors?.name && (
+              <p className="text-sm text-red-500">{validationErrors.name}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="customerEmail">Email *</Label>
             <Input
+              ref={emailInputRef}
               id="customerEmail"
               type="email"
               value={customerData.email}
               onChange={handleEmailChange}
               onPaste={handleEmailPaste}
-              className={emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              className={hasEmailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
-            {emailError && (
-              <p className="text-sm text-red-500">{emailError}</p>
+            {(validationErrors?.email || emailError) && (
+              <p className="text-sm text-red-500">{validationErrors?.email || emailError}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -316,7 +357,7 @@ export const CustomerDataStep = ({
           <Car className="w-5 h-5 text-primary" />
           Dane pojazdu
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2" ref={brandModelRef}>
           <Label htmlFor="vehicleBrandModel">Marka i model *</Label>
           <CarSearchAutocomplete
             value={vehicleData.brandModel || ''}
@@ -329,7 +370,11 @@ export const CustomerDataStep = ({
                 onVehicleChange({ brandModel: val.label });
               }
             }}
+            error={hasBrandModelError}
           />
+          {validationErrors?.brandModel && (
+            <p className="text-sm text-red-500">{validationErrors.brandModel}</p>
+          )}
         </div>
         
         {/* Paint Color and Type */}
@@ -364,4 +409,6 @@ export const CustomerDataStep = ({
       </div>
     </div>
   );
-};
+});
+
+CustomerDataStep.displayName = 'CustomerDataStep';
