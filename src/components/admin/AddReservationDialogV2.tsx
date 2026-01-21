@@ -2029,67 +2029,40 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   />
                 )}
 
-                {/* YARD/DETAILING MODE - Chips view (old behavior) */}
-                {(isYardMode || isDetailingMode) && (
-                  <div 
-                    className={cn(
-                      "rounded-lg border-2 border-dashed p-3 transition-colors",
-                      selectedServices.length > 0
-                        ? "border-primary/50 bg-primary/5"
-                        : "border-muted-foreground/30"
-                    )}
-                  >
-                    {selectedServices.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                          {selectedServiceNames.map((name, i) => (
-                            <span 
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary/10 text-primary"
-                            >
-                              {name}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markUserEditing();
-                                  const serviceToRemove = services.find(s => (s.shortcut || s.name) === name);
-                                  if (serviceToRemove) {
-                                    setSelectedServices(prev => prev.filter(id => id !== serviceToRemove.id));
-                                  }
-                                }}
-                                className="hover:bg-primary/20 rounded-full p-0.5"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                          {/* Add button to open drawer */}
-                          <button
-                            type="button"
-                            onClick={() => setServiceDrawerOpen(true)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                          >
-                            <Plus className="w-3 h-3" />
-                            {t('common.add')}
-                          </button>
-                        </div>
-                        <p className="text-base font-bold mt-1">
-                          {t('addReservation.totalDuration')}: {totalDurationMinutes >= 60 
-                            ? `${Math.floor(totalDurationMinutes / 60)}h${totalDurationMinutes % 60 > 0 ? ` ${totalDurationMinutes % 60}min` : ''}`
-                            : `${totalDurationMinutes}min`}
-                        </p>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setServiceDrawerOpen(true)}
-                        className="w-full text-left text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {t('addReservation.selectServices')}
-                      </button>
-                    )}
-                  </div>
+                {/* YARD/DETAILING MODE - Same SelectedServicesList as reservation */}
+                {(isYardMode || isPPFOrDetailingMode) && (
+                  <SelectedServicesList
+                    services={servicesWithCategory}
+                    selectedServiceIds={selectedServices}
+                    serviceItems={serviceItems}
+                    carSize={carSize}
+                    onRemoveService={(serviceId) => {
+                      markUserEditing();
+                      setSelectedServices(prev => prev.filter(id => id !== serviceId));
+                      setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
+                      setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                    }}
+                    onPriceChange={(serviceId, price) => {
+                      markUserEditing();
+                      setServiceItems(prev => {
+                        const existing = prev.find(si => si.service_id === serviceId);
+                        if (existing) {
+                          return prev.map(si => 
+                            si.service_id === serviceId 
+                              ? { ...si, custom_price: price }
+                              : si
+                          );
+                        }
+                        return [...prev, { service_id: serviceId, custom_price: price }];
+                      });
+                    }}
+                    onTotalPriceChange={(newTotal) => {
+                      if (!finalPrice) {
+                        setFinalPrice(newTotal.toString());
+                      }
+                    }}
+                    onAddMore={() => setServiceDrawerOpen(true)}
+                  />
                 )}
               </div>
             )}
