@@ -2019,6 +2019,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         return [...prev, { service_id: serviceId, custom_price: price }];
                       });
                     }}
+                    onTotalPriceChange={(newTotal) => {
+                      // Only update finalPrice if it wasn't manually set
+                      if (!finalPrice) {
+                        setFinalPrice(newTotal.toString());
+                      }
+                    }}
                     onAddMore={() => setServiceDrawerOpen(true)}
                   />
                 )}
