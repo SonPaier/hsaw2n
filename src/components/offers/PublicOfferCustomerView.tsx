@@ -1082,11 +1082,9 @@ export const PublicOfferCustomerView = ({
                         {section.scopeName}
                       </h2>
                       {scopeDescription && (
-                        <div 
-                          className="text-sm mt-1 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
-                          style={{ color: branding.offer_scope_header_text_color }}
-                          dangerouslySetInnerHTML={{ __html: parseMarkdownLists(scopeDescription) }}
-                        />
+                        <div className="mt-1">
+                          {renderDescription(scopeDescription, branding.offer_scope_header_text_color)}
+                        </div>
                       )}
                     </div>
 
