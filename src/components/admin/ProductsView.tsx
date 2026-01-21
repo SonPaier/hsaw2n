@@ -53,6 +53,7 @@ import { ProductCategoriesDialog } from '@/components/products/ProductCategories
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { sortProductsByCategoryAndPrice } from '@/lib/productSortUtils';
 
 interface PriceList {
   id: string;
@@ -188,20 +189,15 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     return counts;
   }, [products]);
 
-  // Sort and filter products
+  // Sort products by category order and price
   const sortedProducts = useMemo(() => {
-    // Sort by category order first, then by price (ascending)
-    return [...products].sort((a, b) => {
-      const catOrderA = a.category ? (categoryOrder[a.category] ?? 999) : 999;
-      const catOrderB = b.category ? (categoryOrder[b.category] ?? 999) : 999;
-      
-      if (catOrderA !== catOrderB) {
-        return catOrderA - catOrderB;
-      }
-      
-      // Within same category, sort by price ascending
-      return a.default_price - b.default_price;
-    });
+    // Map products to include category and price fields for sorting util
+    const productsForSorting = products.map(p => ({
+      ...p,
+      category: p.category,
+      price: p.default_price
+    }));
+    return sortProductsByCategoryAndPrice(productsForSorting, categoryOrder);
   }, [products, categoryOrder]);
 
   // Filter products
