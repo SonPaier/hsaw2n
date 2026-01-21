@@ -218,12 +218,39 @@ const ServiceSelectionDrawer = ({
     return groups;
   }, [services, categories, searchQuery]);
 
-  // Get price for service based on car size
+  // Round to nearest 5 PLN
+  const roundToNearest5 = (value: number): number => {
+    return Math.round(value / 5) * 5;
+  };
+
+  // Convert net price to brutto (gross) and round
+  const netToBrutto = (netPrice: number): number => {
+    const brutto = netPrice * 1.23;
+    return roundToNearest5(brutto);
+  };
+
+  // Get price for service based on car size (always returns brutto, rounded to 5)
   const getPrice = (service: Service): number | null => {
-    if (carSize === 'small' && service.price_small !== null) return service.price_small;
-    if (carSize === 'medium' && service.price_medium !== null) return service.price_medium;
-    if (carSize === 'large' && service.price_large !== null) return service.price_large;
-    return service.price_from;
+    let price: number | null = null;
+    
+    if (carSize === 'small' && service.price_small !== null) {
+      price = service.price_small;
+    } else if (carSize === 'medium' && service.price_medium !== null) {
+      price = service.price_medium;
+    } else if (carSize === 'large' && service.price_large !== null) {
+      price = service.price_large;
+    } else {
+      price = service.price_from;
+    }
+    
+    if (price === null) return null;
+    
+    // If category prices are net, convert to brutto
+    if (service.category_prices_are_net) {
+      price = netToBrutto(price);
+    }
+    
+    return price;
   };
 
   // Get duration for service based on car size
