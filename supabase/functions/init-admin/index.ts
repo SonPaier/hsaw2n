@@ -91,6 +91,17 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Copy global scopes to the new instance (if no scopes exist yet)
+    const { data: scopeResult, error: scopeError } = await supabaseAdmin
+      .rpc('copy_global_scopes_to_instance', { _instance_id: instanceId });
+
+    if (scopeError) {
+      console.error("Error copying global scopes:", scopeError);
+      // Non-fatal - continue even if scope copy fails
+    } else {
+      console.log(`Copied ${scopeResult} global scopes to instance ${instanceId}`);
+    }
+
     console.log(`Admin ${username} created successfully for instance ${instanceId}`);
 
     return new Response(
