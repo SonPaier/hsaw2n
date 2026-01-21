@@ -2530,7 +2530,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             <div className="space-y-2">
                               <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
                               <Select value={manualStartTime} onValueChange={(val) => { markUserEditing(); setManualStartTime(val); }}>
-                                <SelectTrigger id="manualStartTime">
+                                <SelectTrigger id="manualStartTime" className="bg-white">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-white max-h-60">
@@ -2545,7 +2545,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             <div className="space-y-2">
                               <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
                               <Select value={manualEndTime} onValueChange={(val) => { markUserEditing(); setUserModifiedEndTime(true); setManualEndTime(val); }}>
-                                <SelectTrigger id="manualEndTime">
+                                <SelectTrigger id="manualEndTime" className="bg-white">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-white max-h-60">
