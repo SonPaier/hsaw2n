@@ -36,6 +36,7 @@ interface SelectedServicesListProps {
   onRemoveService: (serviceId: string) => void;
   onPriceChange: (serviceId: string, price: number | null) => void;
   onAddMore: () => void;
+  onTotalPriceChange?: (newTotal: number) => void;
 }
 
 // Round to nearest 5 PLN
@@ -57,6 +58,7 @@ const SelectedServicesList = ({
   onRemoveService,
   onPriceChange,
   onAddMore,
+  onTotalPriceChange,
 }: SelectedServicesListProps) => {
   const { t } = useTranslation();
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
@@ -178,6 +180,17 @@ const SelectedServicesList = ({
                       onChange={(e) => {
                         const value = e.target.value ? parseFloat(e.target.value) : null;
                         onPriceChange(service.id, value);
+                        
+                        // Calculate new total and notify parent
+                        if (onTotalPriceChange && value !== null) {
+                          const newTotal = selectedServices.reduce((total, s) => {
+                            if (s.id === service.id) {
+                              return total + value;
+                            }
+                            return total + getDisplayedPrice(s.id, s);
+                          }, 0);
+                          onTotalPriceChange(newTotal);
+                        }
                       }}
                       onBlur={() => setEditingPriceId(null)}
                       onKeyDown={(e) => {
