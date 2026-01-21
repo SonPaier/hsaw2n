@@ -85,7 +85,8 @@ interface SelectedState {
   selectedVariants: Record<string, string>;
   selectedUpsells: Record<string, boolean>;
   selectedOptionalItems: Record<string, boolean>;
-  selectedScopeId?: string | null;
+  selectedScopeId?: string | null; // Deprecated: kept for backward compatibility
+  selectedScopeIds?: Record<string, boolean>; // New: multi-select scopes
   selectedItemInOption?: Record<string, string>;
   isDefault?: boolean; // Marker indicating this is admin's pre-selection (not customer's choice)
 }
@@ -200,8 +201,8 @@ export const PublicOfferCustomerView = ({
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   // Track selected optional items (key: item_id, value: boolean)
   const [selectedOptionalItems, setSelectedOptionalItems] = useState<Record<string, boolean>>({});
-  // Track which non-extras scope is selected (only one allowed)
-  const [selectedScopeId, setSelectedScopeId] = useState<string | null>(null);
+  // Track which non-extras scopes are selected (multi-select allowed)
+  const [selectedScopeIds, setSelectedScopeIds] = useState<Record<string, boolean>>({});
   // Track which item is selected within multi-item options (key: option_id, value: item_id)
   const [selectedItemInOption, setSelectedItemInOption] = useState<Record<string, string>>({});
   // Track which items were preselected by admin (never changes after initial load)
@@ -261,7 +262,14 @@ export const PublicOfferCustomerView = ({
 
       setSelectedVariants(restoredVariants);
       setSelectedOptionalItems(mergedOptionalItems);
-      setSelectedScopeId(savedState.selectedScopeId ?? null);
+      // Backward compatibility: convert old single selectedScopeId to new multi-select
+      if (savedState.selectedScopeIds) {
+        setSelectedScopeIds(savedState.selectedScopeIds);
+      } else if (savedState.selectedScopeId) {
+        setSelectedScopeIds({ [savedState.selectedScopeId]: true });
+      } else {
+        setSelectedScopeIds({});
+      }
       setSelectedItemInOption(mergedItemInOption);
       // Store admin's original preselection (from saved state, not migrated)
       setAdminPreselectedItems(savedState.selectedOptionalItems || {});
@@ -269,7 +277,7 @@ export const PublicOfferCustomerView = ({
       // No saved state - don't select anything by default
       // User must explicitly choose their main service
       setSelectedVariants({});
-      setSelectedScopeId(null);
+      setSelectedScopeIds({});
       setSelectedItemInOption({});
       setSelectedOptionalItems({});
       setAdminPreselectedItems({});
@@ -289,28 +297,20 @@ export const PublicOfferCustomerView = ({
   const calculateDynamicTotal = () => {
     let totalNet = 0;
     
-    // Identify extras scope options and non-extras scopes
+    // Identify extras scope options
     const extrasScopeOptionIds = new Set<string>();
-    const nonExtrasScopeIds = new Set<string>();
     offer.offer_options.forEach(opt => {
       if (opt.scope?.is_extras_scope) {
         extrasScopeOptionIds.add(opt.id);
-      } else if (opt.scope_id) {
-        nonExtrasScopeIds.add(opt.scope_id);
       }
     });
     
-    const hasSingleNonExtrasScope = nonExtrasScopeIds.size === 1;
-    const effectiveScopeId = hasSingleNonExtrasScope 
-      ? Array.from(nonExtrasScopeIds)[0] 
-      : selectedScopeId;
-    
-    // For non-extras scopes: only count the selected item from the selected scope
+    // For non-extras scopes: count selected items from ALL selected scopes (multi-select)
     offer.offer_options.forEach(option => {
       if (extrasScopeOptionIds.has(option.id)) return; // Skip extras, handled separately
       
-      // Check if this option's scope is selected (or single scope case)
-      if (option.scope_id !== effectiveScopeId) return;
+      // Check if this option's scope is selected
+      if (!option.scope_id || !selectedScopeIds[option.scope_id]) return;
       
       const selectedItemId = selectedItemInOption[option.id];
       if (selectedItemId) {
@@ -338,17 +338,8 @@ export const PublicOfferCustomerView = ({
     return { net: totalNet, gross: totalGross };
   };
 
-  // Calculate if there's only one non-extras scope (for confirm button)
-  const nonExtrasScopeIds = new Set<string>();
-  offer.offer_options.forEach(opt => {
-    if (!opt.scope?.is_extras_scope && opt.scope_id) {
-      nonExtrasScopeIds.add(opt.scope_id);
-    }
-  });
-  const hasSingleNonExtrasScope = nonExtrasScopeIds.size === 1;
-  const hasSelectedProduct = hasSingleNonExtrasScope 
-    ? Object.keys(selectedItemInOption).length > 0 
-    : !!selectedScopeId;
+  // Check if any product is selected (for confirm button)
+  const hasSelectedProduct = Object.keys(selectedItemInOption).length > 0;
 
   const dynamicTotals = calculateDynamicTotal();
 
@@ -356,7 +347,7 @@ export const PublicOfferCustomerView = ({
   const getSelectedItemsList = () => {
     const items: { name: string; price: number }[] = [];
     
-    // Identify extras scope options and non-extras scopes
+    // Identify extras scope options
     const extrasScopeOptionIds = new Set<string>();
     offer.offer_options.forEach(opt => {
       if (opt.scope?.is_extras_scope) {
@@ -364,14 +355,10 @@ export const PublicOfferCustomerView = ({
       }
     });
     
-    const effectiveScopeId = hasSingleNonExtrasScope 
-      ? Array.from(nonExtrasScopeIds)[0] 
-      : selectedScopeId;
-    
-    // For non-extras scopes: only add the selected item from the selected scope
+    // For non-extras scopes: add selected items from ALL selected scopes
     offer.offer_options.forEach(option => {
       if (extrasScopeOptionIds.has(option.id)) return;
-      if (option.scope_id !== effectiveScopeId) return;
+      if (!option.scope_id || !selectedScopeIds[option.scope_id]) return;
       
       const selectedItemId = selectedItemInOption[option.id];
       if (selectedItemId) {
@@ -398,39 +385,31 @@ export const PublicOfferCustomerView = ({
     return items;
   };
 
-  // Handle selecting a scope (and its variant)
-  const handleSelectScope = (scopeId: string, optionId: string) => {
-    setSelectedScopeId(scopeId);
-    setSelectedVariants((prev) => ({ ...prev, [scopeId]: optionId }));
-
-    // Clear ALL optional items except those from extras scopes
-    // This ensures that when switching between main services (e.g., PPF Full Body -> PPF Full Front),
-    // all previously selected upsells are deselected since upsells are specific to each service
-    setSelectedOptionalItems((prev) => {
-      const next: Record<string, boolean> = {};
-      
-      // Only keep items from extras scopes (global additional options)
-      offer.offer_options.forEach((opt) => {
-        if (opt.scope?.is_extras_scope) {
-          opt.offer_option_items.forEach((item) => {
-            if (prev[item.id]) next[item.id] = true;
-          });
-        }
+  // Handle toggling a scope selection (multi-select) and selecting an item within it
+  const handleToggleScope = (scopeId: string, optionId: string, itemId: string) => {
+    const isCurrentlySelected = selectedScopeIds[scopeId];
+    const currentItemInOption = selectedItemInOption[optionId];
+    
+    // If clicking the same item that's already selected, deselect the scope
+    if (isCurrentlySelected && currentItemInOption === itemId) {
+      // Deselect scope
+      setSelectedScopeIds(prev => {
+        const next = { ...prev };
+        delete next[scopeId];
+        return next;
       });
-
-      return next;
-    });
-
-    // Clear selectedItemInOption for options outside the new scope (except extras)
-    setSelectedItemInOption((prev) => {
-      const next: Record<string, string> = {};
-      offer.offer_options.forEach((opt) => {
-        if ((opt.scope_id === scopeId || opt.scope?.is_extras_scope) && prev[opt.id]) {
-          next[opt.id] = prev[opt.id];
-        }
+      // Clear selected item for this option
+      setSelectedItemInOption(prev => {
+        const next = { ...prev };
+        delete next[optionId];
+        return next;
       });
-      return next;
-    });
+    } else {
+      // Select or switch item within scope
+      setSelectedScopeIds(prev => ({ ...prev, [scopeId]: true }));
+      setSelectedVariants(prev => ({ ...prev, [scopeId]: optionId }));
+      setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
+    }
   };
 
 
@@ -446,15 +425,13 @@ export const PublicOfferCustomerView = ({
       return;
     }
 
-    // If this option is in a non-extras scope that's different from current selectedScopeId,
-    // we need to switch to that scope (only one main service can be selected)
-    if (option.scope_id && !option.scope?.is_extras_scope && option.scope_id !== selectedScopeId) {
-      // Switch to this scope and select this option as the variant
-      handleSelectScope(option.scope_id, optionId);
+    // For non-extras scopes, use the toggle behavior
+    if (option.scope_id && !option.scope?.is_extras_scope) {
+      handleToggleScope(option.scope_id, optionId, itemId);
+    } else {
+      // For extras or unknown, just update the item
+      setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
     }
-
-    // Update the selected item within this option
-    setSelectedItemInOption(prev => ({ ...prev, [optionId]: itemId }));
   };
 
   // Confirm selection - only for public mode
@@ -475,7 +452,7 @@ export const PublicOfferCustomerView = ({
         selectedVariants,
         selectedUpsells: derivedUpsells,
         selectedOptionalItems,
-        selectedScopeId,
+        selectedScopeIds,
         selectedItemInOption,
       };
       
@@ -1089,13 +1066,10 @@ export const PublicOfferCustomerView = ({
                 if (!option) return null;
                 
                 const selectedItemId = selectedItemInOption[option.id];
-                const isScopeSelected = selectedScopeId === section.key;
+                const isScopeSelected = selectedScopeIds[section.key];
                 
                 // Get scope description from section (already resolved from scope or option)
                 const scopeDescription = section.scopeDescription;
-                
-                // If there's only one non-extras scope, auto-select it and don't show "Wybrana" badge
-                const showSelectionUI = !hasSingleNonExtrasScope;
                 
                 return (
                   <section key={section.key} className="space-y-3">
@@ -1106,15 +1080,6 @@ export const PublicOfferCustomerView = ({
                       >
                         <FileText className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
                         {section.scopeName}
-                        {showSelectionUI && isScopeSelected && (
-                          <Badge 
-                            variant="default" 
-                            className="text-xs"
-                            style={{ backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor }}
-                          >
-                            Wybrana
-                          </Badge>
-                        )}
                       </h2>
                       {scopeDescription && (
                         <div 
