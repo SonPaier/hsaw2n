@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +71,7 @@ interface Offer {
   valid_until?: string;
   public_token: string;
   approved_at?: string | null;
+  viewed_at?: string | null;
   selected_state?: SelectedState | null;
 }
 
@@ -556,9 +558,24 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                           >
                             <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                           </button>
-                          <Badge className={cn('text-xs', statusColors[offer.status])}>
-                            {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                          </Badge>
+                          {offer.status === 'viewed' && offer.viewed_at ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className={cn('text-xs cursor-default', statusColors[offer.status])}>
+                                    {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{format(new Date(offer.viewed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Badge className={cn('text-xs', statusColors[offer.status])}>
+                              {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                            </Badge>
+                          )}
                           {/* Selected option label for accepted offers */}
                           {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
                             <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
@@ -603,9 +620,24 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
                         </div>
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
-                          <Badge className={cn('text-xs', statusColors[offer.status])}>
-                            {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                          </Badge>
+                          {offer.status === 'viewed' && offer.viewed_at ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className={cn('text-xs cursor-default', statusColors[offer.status])}>
+                                    {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{format(new Date(offer.viewed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Badge className={cn('text-xs', statusColors[offer.status])}>
+                              {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                            </Badge>
+                          )}
                           {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
                             <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
                               {offer.selectedOptionName}
