@@ -33,7 +33,8 @@ interface Reservation {
   station_id: string;
   status: string;
   confirmation_code: string;
-  service_ids?: any;
+  service_ids?: string[];
+  service_items?: Array<{ service_id: string; custom_price: number | null }>;
   service?: {
     name: string;
     shortcut?: string | null;
@@ -266,6 +267,7 @@ const HallView = () => {
           confirmation_code,
           price,
           service_ids,
+          service_items,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `)
@@ -275,7 +277,8 @@ const HallView = () => {
         setReservations(reservationsData.map(r => ({
           ...r,
           status: r.status || 'pending',
-          service_ids: r.service_ids,
+          service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
+          service_items: Array.isArray(r.service_items) ? r.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
           service: r.services ? { name: (r.services as any).name, shortcut: (r.services as any).shortcut } : undefined,
           station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
         })));
@@ -491,7 +494,7 @@ const HallView = () => {
       setReservations(reservationsData.map(r => ({
         ...r,
         status: r.status || 'pending',
-        service_ids: r.service_ids,
+        service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
         service: r.services ? { name: (r.services as any).name, shortcut: (r.services as any).shortcut } : undefined,
         station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
       })));

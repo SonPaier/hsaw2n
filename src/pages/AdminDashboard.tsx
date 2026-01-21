@@ -41,6 +41,11 @@ interface Station {
   name: string;
   type: string;
 }
+interface ServiceItem {
+  service_id: string;
+  custom_price: number | null;
+}
+
 interface Reservation {
   id: string;
   instance_id: string;
@@ -83,6 +88,8 @@ interface Reservation {
   offer_number?: string | null;
   confirmation_sms_sent_at?: string | null;
   pickup_sms_sent_at?: string | null;
+  service_items?: ServiceItem[] | null;
+  service_ids?: string[];
 }
 interface Break {
   id: string;
@@ -553,6 +560,8 @@ const AdminDashboard = () => {
       return {
         ...r,
         status: r.status || 'pending',
+        service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
+        service_items: Array.isArray(r.service_items) ? r.service_items as unknown as ServiceItem[] : undefined,
         service: r.services ? {
           name: (r.services as any).name,
           shortcut: (r.services as any).shortcut
@@ -625,6 +634,7 @@ const AdminDashboard = () => {
         source,
         car_size,
         service_ids,
+        service_items,
         original_reservation_id,
         created_by,
         created_by_username,
@@ -698,6 +708,7 @@ const AdminDashboard = () => {
           source,
           car_size,
           service_ids,
+          service_items,
           original_reservation_id,
           created_by,
           created_by_username,
@@ -824,6 +835,7 @@ const AdminDashboard = () => {
             source,
             car_size,
             service_ids,
+            service_items,
             original_reservation_id,
             offer_number,
             confirmation_sms_sent_at,
@@ -839,6 +851,8 @@ const AdminDashboard = () => {
           const mappedReservation: Reservation = {
             ...data,
             status: data.status || 'pending',
+            service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+            service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
             service: data.services ? {
               name: (data.services as any).name,
               shortcut: (data.services as any).shortcut
@@ -946,6 +960,7 @@ const AdminDashboard = () => {
               price,
               source,
               service_ids,
+              service_items,
               created_by_username,
               offer_number,
               services:service_id (name, shortcut),
@@ -964,6 +979,8 @@ const AdminDashboard = () => {
                 const newReservation = {
                   ...data,
                   status: data.status || 'pending',
+                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
                   service: data.services ? {
                     name: (data.services as any).name,
                     shortcut: (data.services as any).shortcut
@@ -1015,6 +1032,7 @@ const AdminDashboard = () => {
               price,
               source,
               service_ids,
+              service_items,
               admin_notes,
               customer_notes,
               car_size,
@@ -1035,6 +1053,8 @@ const AdminDashboard = () => {
                 const updatedReservation = {
                   ...data,
                   status: data.status || 'pending',
+                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
                   service: data.services ? {
                     name: (data.services as any).name,
                     shortcut: (data.services as any).shortcut
@@ -2506,11 +2526,12 @@ const AdminDashboard = () => {
             start_time: editingReservation.start_time,
             end_time: editingReservation.end_time,
             station_id: editingReservation.station_id,
-            service_ids: (editingReservation as any).service_ids,
+            service_ids: editingReservation.service_ids,
             service_id: (editingReservation as any).service_id,
+            service_items: editingReservation.service_items,
             admin_notes: (editingReservation as any).admin_notes,
             price: editingReservation.price,
-            offer_number: (editingReservation as any).offer_number,
+            offer_number: editingReservation.offer_number,
           } : null}
           currentUsername={username}
         />

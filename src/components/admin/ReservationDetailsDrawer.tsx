@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { ReservationHistoryDrawer } from './history/ReservationHistoryDrawer';
@@ -403,7 +404,7 @@ const ReservationDetailsDrawer = ({
                 <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <div className="text-xs text-muted-foreground">{t('common.phone')}</div>
-                  <div className="font-medium">{customerPhone}</div>
+                  <div className="font-medium">{formatPhoneDisplay(customerPhone)}</div>
                 </div>
               </div>
             )}
