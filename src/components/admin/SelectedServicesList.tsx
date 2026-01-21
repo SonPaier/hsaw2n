@@ -140,9 +140,7 @@ const SelectedServicesList = ({
 
   return (
     <div className="space-y-2">
-      {/* Header */}
-      <p className="text-sm font-medium text-muted-foreground">{t('navigation.products')}</p>
-
+      {/* Service items list */}
       {/* Service items list */}
       <div className="flex flex-col gap-1 rounded-lg overflow-hidden">
         {selectedServices.map((service) => {
