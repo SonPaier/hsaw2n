@@ -1450,6 +1450,7 @@ export type Database = {
           name: string
           short_name: string | null
           sort_order: number | null
+          source: string
           updated_at: string
         }
         Insert: {
@@ -1467,6 +1468,7 @@ export type Database = {
           name: string
           short_name?: string | null
           sort_order?: number | null
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -1484,6 +1486,7 @@ export type Database = {
           name?: string
           short_name?: string | null
           sort_order?: number | null
+          source?: string
           updated_at?: string
         }
         Relationships: [
@@ -2850,6 +2853,10 @@ export type Database = {
         Returns: boolean
       }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
+      copy_global_scopes_to_instance: {
+        Args: { _instance_id: string }
+        Returns: number
+      }
       create_offer_reminders: {
         Args: { p_completed_at: string; p_offer_id: string }
         Returns: number
