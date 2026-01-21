@@ -778,6 +778,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       
       if (loadedServicesWithCategory.length > 0) {
         setServicesWithCategory(loadedServicesWithCategory);
+        // Also initialize serviceItems from editingReservation if available
+        if (editingReservation.service_items && editingReservation.service_items.length > 0) {
+          setServiceItems(editingReservation.service_items);
+        }
       }
     }
     
