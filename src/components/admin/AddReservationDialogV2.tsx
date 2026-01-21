@@ -2381,7 +2381,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                                 <SelectTrigger id="manualStartTime">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-popover max-h-60">
+                                <SelectContent className="bg-white max-h-60">
                                   {startTimeOptions.map((time) => (
                                     <SelectItem key={time} value={time}>
                                       {time}
@@ -2396,7 +2396,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                                 <SelectTrigger id="manualEndTime">
                                   <SelectValue placeholder="--:--" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-popover max-h-60">
+                                <SelectContent className="bg-white max-h-60">
                                   {endTimeOptions.map((time) => (
                                     <SelectItem key={time} value={time}>
                                       {time}

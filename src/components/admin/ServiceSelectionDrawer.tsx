@@ -455,9 +455,9 @@ const ServiceSelectionDrawer = ({
                 
                 return (
                   <div key={category.id}>
-                    {/* Category header - centered, readonly */}
-                    <div className="py-2 px-4 bg-muted/50">
-                      <p className="text-sm font-semibold text-muted-foreground text-center uppercase tracking-wide">
+                    {/* Category header - centered, white bg, black text */}
+                    <div className="py-2 px-4 bg-white">
+                      <p className="text-sm font-semibold text-foreground text-center uppercase tracking-wide">
                         {category.name}
                       </p>
                     </div>

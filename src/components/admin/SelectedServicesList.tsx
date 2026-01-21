@@ -235,7 +235,7 @@ const SelectedServicesList = ({
 
         <div className="text-right">
           <p className="text-sm text-muted-foreground">
-            {t('addReservation.totalDuration')}: <span className="font-medium">{formatDuration(totalDuration)}</span>
+            {t('addReservation.totalDuration')}: <span className="font-bold text-base text-foreground">{formatDuration(totalDuration)}</span>
           </p>
           <p className="text-lg font-bold">
             {totalPrice} zł
