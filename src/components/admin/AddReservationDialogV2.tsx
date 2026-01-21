@@ -1413,6 +1413,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           car_size: carSize || null,
           admin_notes: adminNotes || null,
           offer_number: offerNumber || null,
+          price: finalPrice ? parseFloat(finalPrice) : null,
           service_id: selectedServices[0] || null,
           service_ids: selectedServices.length > 0 ? selectedServices : null,
         };
