@@ -731,7 +731,7 @@ const ReservationDetailsDrawer = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10"
+                    className="h-10 w-10 bg-white"
                     onClick={() => setHistoryDrawerOpen(true)}
                     title={t('reservations.changeHistory')}
                   >
@@ -741,7 +741,7 @@ const ReservationDetailsDrawer = ({
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 bg-white"
                     onClick={handleEdit}
                   >
                     <Pencil className="w-4 h-4" />
@@ -754,7 +754,7 @@ const ReservationDetailsDrawer = ({
                   <>
                     <Button 
                       variant="outline" 
-                      className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 bg-white"
                       disabled={deleting || markingNoShow}
                       onClick={() => setDeleteDialogOpen(true)}
                     >
@@ -814,7 +814,7 @@ const ReservationDetailsDrawer = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10"
+                    className="h-10 w-10 bg-white"
                     onClick={() => setHistoryDrawerOpen(true)}
                     title={t('reservations.changeHistory')}
                   >
@@ -824,7 +824,7 @@ const ReservationDetailsDrawer = ({
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 bg-white"
                     onClick={handleEdit}
                   >
                     <Pencil className="w-4 h-4" />
