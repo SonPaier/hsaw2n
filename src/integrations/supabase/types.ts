@@ -1445,7 +1445,7 @@ export type Database = {
           description: string | null
           has_coating_upsell: boolean
           id: string
-          instance_id: string
+          instance_id: string | null
           is_extras_scope: boolean
           name: string
           short_name: string | null
@@ -1463,7 +1463,7 @@ export type Database = {
           description?: string | null
           has_coating_upsell?: boolean
           id?: string
-          instance_id: string
+          instance_id?: string | null
           is_extras_scope?: boolean
           name: string
           short_name?: string | null
@@ -1481,7 +1481,7 @@ export type Database = {
           description?: string | null
           has_coating_upsell?: boolean
           id?: string
-          instance_id?: string
+          instance_id?: string | null
           is_extras_scope?: boolean
           name?: string
           short_name?: string | null
