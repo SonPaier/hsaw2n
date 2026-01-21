@@ -28,12 +28,30 @@ interface Service {
   price_medium: number | null;
   price_large: number | null;
   sort_order: number | null;
+  category_prices_are_net?: boolean;
 }
 
 interface ServiceCategory {
   id: string;
   name: string;
   sort_order: number | null;
+  prices_are_net: boolean;
+}
+
+export interface ServiceWithCategory {
+  id: string;
+  name: string;
+  shortcut?: string | null;
+  category_id: string | null;
+  duration_minutes: number | null;
+  duration_small: number | null;
+  duration_medium: number | null;
+  duration_large: number | null;
+  price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
+  category_prices_are_net?: boolean;
 }
 
 interface ServiceSelectionDrawerProps {
@@ -42,7 +60,7 @@ interface ServiceSelectionDrawerProps {
   instanceId: string;
   carSize: CarSize;
   selectedServiceIds: string[];
-  onConfirm: (serviceIds: string[], totalDuration: number) => void;
+  onConfirm: (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => void;
   /** Optional station type to filter services */
   stationType?: 'washing' | 'ppf' | 'detailing' | 'universal';
 }
@@ -95,18 +113,30 @@ const ServiceSelectionDrawer = ({
         servicesQuery.order('sort_order'),
         supabase
           .from('service_categories')
-          .select('id, name, sort_order')
+          .select('id, name, sort_order, prices_are_net')
           .eq('instance_id', instanceId)
           .eq('active', true)
           .order('sort_order'),
       ]);
 
-      if (servicesRes.data) {
-        setServices(servicesRes.data);
-      }
-      
-      if (categoriesRes.data) {
+      if (servicesRes.data && categoriesRes.data) {
+        // Create a map of category prices_are_net
+        const categoryNetMap = new Map<string, boolean>();
+        categoriesRes.data.forEach(cat => {
+          categoryNetMap.set(cat.id, cat.prices_are_net || false);
+        });
+
+        // Enrich services with category_prices_are_net
+        const enrichedServices = servicesRes.data.map(s => ({
+          ...s,
+          category_prices_are_net: s.category_id ? categoryNetMap.get(s.category_id) || false : false,
+        }));
+
+        setServices(enrichedServices);
         setCategories(categoriesRes.data);
+      } else {
+        if (servicesRes.data) setServices(servicesRes.data);
+        if (categoriesRes.data) setCategories(categoriesRes.data);
       }
       
       setLoading(false);
@@ -279,7 +309,27 @@ const ServiceSelectionDrawer = ({
 
   // Handle confirm
   const handleConfirm = () => {
-    onConfirm(selectedIds, totalDuration);
+    // Build services with category info
+    const selectedWithCategory: ServiceWithCategory[] = selectedIds
+      .map(id => services.find(s => s.id === id))
+      .filter((s): s is Service => s !== undefined)
+      .map(s => ({
+        id: s.id,
+        name: s.name,
+        shortcut: s.shortcut,
+        category_id: s.category_id,
+        duration_minutes: s.duration_minutes,
+        duration_small: s.duration_small,
+        duration_medium: s.duration_medium,
+        duration_large: s.duration_large,
+        price_from: s.price_from,
+        price_small: s.price_small,
+        price_medium: s.price_medium,
+        price_large: s.price_large,
+        category_prices_are_net: s.category_prices_are_net,
+      }));
+    
+    onConfirm(selectedIds, totalDuration, selectedWithCategory);
     onClose();
   };
 

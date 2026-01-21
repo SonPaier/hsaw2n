@@ -2140,6 +2140,7 @@ export type Database = {
           reservation_date: string
           service_id: string | null
           service_ids: Json | null
+          service_items: Json | null
           source: string | null
           start_time: string
           started_at: string | null
@@ -2186,6 +2187,7 @@ export type Database = {
           reservation_date: string
           service_id?: string | null
           service_ids?: Json | null
+          service_items?: Json | null
           source?: string | null
           start_time: string
           started_at?: string | null
@@ -2232,6 +2234,7 @@ export type Database = {
           reservation_date?: string
           service_id?: string | null
           service_ids?: Json | null
+          service_items?: Json | null
           source?: string | null
           start_time?: string
           started_at?: string | null
