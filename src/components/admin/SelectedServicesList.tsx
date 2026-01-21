@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -59,7 +58,6 @@ const SelectedServicesList = ({
   onAddMore,
 }: SelectedServicesListProps) => {
   const { t } = useTranslation();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Get base price for a service based on car size
   const getBasePrice = (service: ServiceWithCategory): number => {
@@ -132,7 +130,7 @@ const SelectedServicesList = ({
         onClick={onAddMore}
         className="w-full text-left text-muted-foreground hover:text-foreground transition-colors rounded-lg border-2 border-dashed border-muted-foreground/30 p-3"
       >
-        {t('addReservation.selectServices')}
+        {t('addReservation.addServices')}
       </button>
     );
   }
@@ -140,16 +138,14 @@ const SelectedServicesList = ({
   return (
     <div className="space-y-2">
       {/* Service items list */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
+      <div className="flex flex-col gap-1 rounded-lg overflow-hidden">
         {selectedServices.map((service) => {
-          const isExpanded = expandedId === service.id;
           const displayedPrice = getDisplayedPrice(service.id, service);
-          const basePrice = getBasePrice(service);
           const hasCustomPrice = serviceItems.find(si => si.service_id === service.id)?.custom_price !== null;
           const duration = getDuration(service);
 
           return (
-            <div key={service.id} className="bg-background">
+            <div key={service.id} className="bg-white rounded-lg border border-border">
               {/* Service row */}
               <div className="flex items-center gap-2 px-3 py-2.5">
                 {/* Service name */}
@@ -178,7 +174,7 @@ const SelectedServicesList = ({
                       onPriceChange(service.id, value);
                     }}
                     className={cn(
-                      "w-20 h-8 text-right text-sm font-semibold",
+                      "w-20 h-8 text-right text-sm font-semibold bg-white",
                       hasCustomPrice && "bg-accent border-primary/30"
                     )}
                     min={0}
@@ -187,13 +183,13 @@ const SelectedServicesList = ({
                   <span className="text-sm text-muted-foreground">zł</span>
                 </div>
 
-                {/* Remove button */}
+                {/* Remove button - red trash */}
                 <button
                   type="button"
                   onClick={() => onRemoveService(service.id)}
-                  className="p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  className="p-1.5 rounded-full hover:bg-destructive/10 text-destructive transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
