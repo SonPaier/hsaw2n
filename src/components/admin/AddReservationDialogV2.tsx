@@ -220,6 +220,22 @@ const AddReservationDialogV2 = ({
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
 const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<{
+    phone?: string;
+    carModel?: string;
+    services?: string;
+    time?: string;
+    dateRange?: string;
+  }>({});
+  
+  // Refs for scroll-to-error
+  const phoneInputRef = useRef<HTMLDivElement>(null);
+  const carModelRef = useRef<HTMLDivElement>(null);
+  const servicesRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
+  const dateRangeRef = useRef<HTMLDivElement>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
@@ -1288,20 +1304,49 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   };
 
 
+  // Helper function for scroll-to-first-error
+  const scrollToFirstError = (errors: typeof validationErrors) => {
+    if (errors.phone && phoneInputRef.current) {
+      phoneInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = phoneInputRef.current.querySelector('input');
+      if (input) input.focus();
+    } else if (errors.carModel && carModelRef.current) {
+      carModelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = carModelRef.current.querySelector('input');
+      if (input) input.focus();
+    } else if (errors.services && servicesRef.current) {
+      servicesRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (errors.dateRange && dateRangeRef.current) {
+      dateRangeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (errors.time && timeRef.current) {
+      timeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   const handleSubmit = async () => {
     // Clear slot preview immediately as first action
     onSlotPreviewChange?.(null);
     
     // Yard mode validation and submit
     if (isYardMode) {
+      const errors: typeof validationErrors = {};
+      
+      if (!phone.trim()) {
+        errors.phone = 'Telefon jest wymagany';
+      }
       if (!carModel.trim()) {
-        toast.error(t('addReservation.carModelRequired'));
-        return;
+        errors.carModel = 'Marka i model jest wymagana';
       }
       if (selectedServices.length === 0) {
-        toast.error(t('addReservation.selectAtLeastOneService'));
+        errors.services = 'Wybierz co najmniej jedną usługę';
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        scrollToFirstError(errors);
         return;
       }
+      setValidationErrors({});
       
       setLoading(true);
       try {
@@ -1351,24 +1396,33 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     
     // PPF/Detailing mode validation and submit
     if (isPPFOrDetailingMode) {
+      const errors: typeof validationErrors = {};
+      
+      if (!phone.trim()) {
+        errors.phone = 'Telefon jest wymagany';
+      }
       if (!carModel.trim()) {
-        toast.error(t('addReservation.carModelRequired'));
-        return;
+        errors.carModel = 'Marka i model jest wymagana';
       }
       // Services required only for Detailing mode, optional for PPF
       if (isDetailingMode && selectedServices.length === 0) {
-        toast.error(t('addReservation.selectAtLeastOneService'));
-        return;
+        errors.services = 'Wybierz co najmniej jedną usługę';
       }
       if (!dateRange?.from) {
-        toast.error(t('addReservation.selectDateRange'));
+        errors.dateRange = 'Wybierz zakres dat';
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        scrollToFirstError(errors);
         return;
       }
+      setValidationErrors({});
+      
       if (!propStationId) {
         toast.error(t('addReservation.noStation'));
         return;
       }
-      
       setLoading(true);
       try {
         // Create customer if needed
@@ -1478,14 +1532,16 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     }
     
     // Reservation mode validation and submit
-    if (!carModel.trim()) {
-      toast.error(t('addReservation.carModelRequired'));
-      return;
-    }
+    const errors: typeof validationErrors = {};
     
+    if (!phone.trim()) {
+      errors.phone = 'Telefon jest wymagany';
+    }
+    if (!carModel.trim()) {
+      errors.carModel = 'Marka i model jest wymagana';
+    }
     if (selectedServices.length === 0) {
-      toast.error(t('addReservation.selectAtLeastOneService'));
-      return;
+      errors.services = 'Wybierz co najmniej jedną usługę';
     }
     
     // Validate time selection based on mode
@@ -1494,16 +1550,21 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       // Use original times - validation passes automatically
     } else if (timeSelectionMode === 'slots') {
       if (!selectedTime || !selectedStationId) {
-        toast.error(t('addReservation.selectTimeSlot'));
-        return;
+        errors.time = 'Wybierz godzinę rezerwacji';
       }
     } else {
       // Manual mode
       if (!manualStartTime || !manualEndTime || !manualStationId) {
-        toast.error(t('addReservation.selectManualTime'));
-        return;
+        errors.time = 'Wypełnij wszystkie pola terminu';
       }
     }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      scrollToFirstError(errors);
+      return;
+    }
+    setValidationErrors({});
 
     setLoading(true);
     try {
@@ -1798,10 +1859,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             </div>
 
             {/* Phone */}
-            <div className="space-y-2">
+            <div className="space-y-2" ref={phoneInputRef}>
               <div className="flex items-center gap-2">
                 <Label htmlFor="phone">
-                  {t('common.phone')}
+                  {t('common.phone')} <span className="text-destructive">*</span>
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
@@ -1815,6 +1876,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                               setPhone(text.trim());
                               setSelectedCustomerId(null);
                               setCustomerDiscountPercent(null);
+                              // Clear validation error when user pastes
+                              if (validationErrors.phone) {
+                                setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                              }
                             }
                           } catch (err) {
                             console.error('Failed to read clipboard:', err);
@@ -1839,13 +1904,21 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     setPhone(value);
                     setSelectedCustomerId(null);
                     setCustomerDiscountPercent(null);
+                    // Clear validation error when user types
+                    if (validationErrors.phone) {
+                      setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                    }
                   }}
                   autoComplete="off"
+                  className={validationErrors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
                 {searchingCustomer && (
                   <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
                 )}
               </div>
+              {validationErrors.phone && (
+                <p className="text-sm text-destructive">{validationErrors.phone}</p>
+              )}
               
               {showPhoneDropdown && foundVehicles.length > 0 && (
                 <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
@@ -1882,7 +1955,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             </div>
 
             {/* Car Model + Size - REQUIRED */}
-            <div className="space-y-2">
+            <div className="space-y-2" ref={carModelRef}>
               <Label className="flex items-center gap-2">
                 {t('reservations.carModel')} <span className="text-destructive">*</span>
               </Label>
@@ -1909,8 +1982,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           else if (val.size === 'L') setCarSize('large');
                         }
                       }
+                      // Clear validation error when user changes value
+                      if (validationErrors.carModel) {
+                        setValidationErrors(prev => ({ ...prev, carModel: undefined }));
+                      }
                     }}
                     suppressAutoOpen={isEditMode}
+                    error={!!validationErrors.carModel}
                   />
                 </div>
                 
@@ -1937,6 +2015,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   </div>
                 </TooltipProvider>
               </div>
+              {validationErrors.carModel && (
+                <p className="text-sm text-destructive">{validationErrors.carModel}</p>
+              )}
               
               {/* Customer vehicles pills */}
               {customerVehicles.length > 1 && (
@@ -1968,10 +2049,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
             {/* Services selection - NEW LIST VIEW for Reservation mode, chips for Yard/Detailing */}
             {!isPPFMode && (
-              <div className="space-y-2">
+              <div className="space-y-2" ref={servicesRef}>
                 {/* Label only shown when services are selected */}
                 {selectedServices.length > 0 && (
                   <Label className="text-base font-semibold">{t('navigation.products')}</Label>
+                )}
+                {validationErrors.services && (
+                  <p className="text-sm text-destructive">{validationErrors.services}</p>
                 )}
                 
                 {/* Popular service shortcuts - only show unselected ones (for yard/detailing modes) */}
@@ -2084,6 +2168,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 onConfirm={(serviceIds, duration, servicesData) => {
                   markUserEditing();
                   setSelectedServices(serviceIds);
+                  
+                  // Clear validation error when user selects services
+                  if (validationErrors.services) {
+                    setValidationErrors(prev => ({ ...prev, services: undefined }));
+                  }
                   
                   // Merge new services with existing ones, preserving custom prices
                   const newServicesWithCategory = servicesData.filter(
@@ -2212,11 +2301,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
             {/* PPF/DETAILING MODE - Date Range, Start/End Time, Offer Number */}
             {isPPFOrDetailingMode && (
-              <div className="space-y-4">
+              <div className="space-y-4" ref={dateRangeRef}>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4" />
-                    {t('addReservation.dateRangePpf')}
+                    {t('addReservation.dateRangePpf')} <span className="text-destructive">*</span>
                   </Label>
                   <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
                     <PopoverTrigger asChild>
@@ -2224,7 +2313,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !dateRange?.from && "text-muted-foreground"
+                          !dateRange?.from && "text-muted-foreground",
+                          validationErrors.dateRange && "border-destructive"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -2249,6 +2339,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                         selected={dateRange}
                         onSelect={(range) => {
                           setDateRange(range);
+                          // Clear validation error when user selects date
+                          if (validationErrors.dateRange) {
+                            setValidationErrors(prev => ({ ...prev, dateRange: undefined }));
+                          }
                           if (range?.from && range?.to) {
                             setDateRangeOpen(false);
                           }
@@ -2259,6 +2353,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                       />
                     </PopoverContent>
                   </Popover>
+                  {validationErrors.dateRange && (
+                    <p className="text-sm text-destructive">{validationErrors.dateRange}</p>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -2653,18 +2750,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             onClick={handleSubmit} 
             disabled={
               loading || 
-              !carModel.trim() ||
               // Disable save button when actively changing time in edit mode
-              (isEditMode && isReservationMode && isChangingTime) ||
-              (isReservationMode && !isEditMode && (
-                selectedServices.length === 0 || 
-                (timeSelectionMode === 'slots' && !selectedTime) ||
-                (timeSelectionMode === 'manual' && (!manualStartTime || !manualEndTime || !manualStationId))
-              )) ||
-              (isReservationMode && isEditMode && !isChangingTime && selectedServices.length === 0) ||
-              (isYardMode && selectedServices.length === 0) ||
-              (isDetailingMode && selectedServices.length === 0) ||
-              (isPPFOrDetailingMode && !dateRange?.from)
+              (isEditMode && isReservationMode && isChangingTime)
             } 
             className="w-full"
             size="lg"
