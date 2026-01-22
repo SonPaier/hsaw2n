@@ -237,12 +237,21 @@ serve(async (req: Request): Promise<Response> => {
     const now = new Date();
     console.log("=== SEND-REMINDERS START ===");
     console.log("UTC now:", now.toISOString());
+    
+    // Log Warsaw time for debugging
+    const warsawTime = getDateTimeInTimezone(now, 'Europe/Warsaw');
+    console.log(`Warsaw time: ${warsawTime.dateStr} ${String(warsawTime.hours).padStart(2,'0')}:${String(warsawTime.minutes).padStart(2,'0')}`);
 
     // Get all SMS settings for instances
-    const { data: smsSettings } = await supabase
+    const { data: smsSettings, error: smsSettingsError } = await supabase
       .from("sms_message_settings")
       .select("instance_id, message_type, enabled, send_at_time")
       .in("message_type", ["reminder_1day", "reminder_1hour"]);
+
+    if (smsSettingsError) {
+      console.error("Error fetching SMS settings:", smsSettingsError);
+    }
+    console.log(`Fetched ${(smsSettings || []).length} SMS settings`);
 
     // Create a map of instance settings
     const instanceSettings = new Map<string, { reminder1day: SmsMessageSetting | null; reminder1hour: SmsMessageSetting | null }>();
@@ -254,6 +263,7 @@ serve(async (req: Request): Promise<Response> => {
       const instanceSetting = instanceSettings.get(instanceId)!;
       if (setting.message_type === "reminder_1day") {
         instanceSetting.reminder1day = setting as SmsMessageSetting;
+        console.log(`Instance ${instanceId}: reminder_1day enabled=${setting.enabled}, send_at_time=${setting.send_at_time}`);
       } else if (setting.message_type === "reminder_1hour") {
         instanceSetting.reminder1hour = setting as SmsMessageSetting;
       }
@@ -336,9 +346,12 @@ serve(async (req: Request): Promise<Response> => {
       const instanceSetting = instanceSettings.get(reservation.instance_id);
       const reminder1daySetting = instanceSetting?.reminder1day;
       
+      console.log(`[1-day] Checking reservation ${reservation.id} (code=${reservation.confirmation_code}), instance=${reservation.instance_id}`);
+      console.log(`[1-day] Instance setting found: ${!!instanceSetting}, reminder1day: ${JSON.stringify(reminder1daySetting)}`);
+      
       // Skip if 1-day reminder is disabled for this instance
       if (reminder1daySetting && reminder1daySetting.enabled === false) {
-        console.log(`1-day disabled for instance ${reservation.instance_id}, skip ${reservation.id}`);
+        console.log(`[1-day] SKIP: disabled for instance ${reservation.instance_id}`);
         continue;
       }
 
@@ -350,9 +363,11 @@ serve(async (req: Request): Promise<Response> => {
       const nowLocal = getDateTimeInTimezone(now, timezone);
       const tomorrowLocal = getTomorrowInTimezone(now, timezone);
       
+      console.log(`[1-day] res=${reservation.id}: tz=${timezone}, nowLocal=${nowLocal.dateStr} ${nowLocal.hours}:${nowLocal.minutes}, tomorrowLocal=${tomorrowLocal}, res_date=${reservation.reservation_date}`);
+      
       // Check if reservation is for tomorrow in this timezone
       if (reservation.reservation_date !== tomorrowLocal) {
-        // Not tomorrow in this timezone, skip
+        console.log(`[1-day] SKIP: res_date=${reservation.reservation_date} != tomorrow=${tomorrowLocal}`);
         continue;
       }
 
@@ -362,14 +377,18 @@ serve(async (req: Request): Promise<Response> => {
       
       const currentTotalMinutes = nowLocal.hours * 60 + nowLocal.minutes;
       const sendTotalMinutes = sendHour * 60 + sendMinute;
+      const timeDiff = Math.abs(currentTotalMinutes - sendTotalMinutes);
+      
+      console.log(`[1-day] res=${reservation.id}: currentMinutes=${currentTotalMinutes}, sendMinutes=${sendTotalMinutes}, diff=${timeDiff}`);
       
       // Only send if we're within a 5-minute window of the configured time
-      if (Math.abs(currentTotalMinutes - sendTotalMinutes) > 5) {
+      if (timeDiff > 5) {
+        console.log(`[1-day] SKIP: time diff ${timeDiff} > 5 minutes`);
         skippedTimezone++;
         continue;
       }
 
-      console.log(`1-day candidate: ${reservation.id}, tz=${timezone}, now=${nowLocal.dateStr} ${nowLocal.hours}:${nowLocal.minutes}, tomorrow=${tomorrowLocal}, res_date=${reservation.reservation_date}, sendAt=${sendAtTime}`);
+      console.log(`[1-day] MATCH! Attempting to send for ${reservation.id} (${reservation.confirmation_code})`);
 
       // ATOMIC CLAIM: Try to claim this reservation for sending
       const claimed = await claimReservationFor1DayReminder(supabase, reservation.id, BACKOFF_MINUTES);
