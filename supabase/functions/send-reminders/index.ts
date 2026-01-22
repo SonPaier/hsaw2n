@@ -626,7 +626,6 @@ async function sendSms(
         to: normalizedPhone.replace("+", ""),
         message: message,
         format: "json",
-        normalize: "1", // Enable Polish characters (ąćęłńóśźż)
       }),
     });
 
