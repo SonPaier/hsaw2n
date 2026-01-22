@@ -85,6 +85,8 @@ export function SmsUsageCard({ instanceId, showInstanceName = false }: SmsUsageC
   const percentage = (usage.sms_used / usage.sms_limit) * 100;
   const isNearLimit = percentage >= 80;
   const isAtLimit = percentage >= 100;
+  const isOverLimit = usage.sms_used > usage.sms_limit;
+  const overCount = isOverLimit ? usage.sms_used - usage.sms_limit : 0;
 
   return (
     <Card>
@@ -92,22 +94,24 @@ export function SmsUsageCard({ instanceId, showInstanceName = false }: SmsUsageC
         <CardTitle className="text-sm font-medium">
           {showInstanceName ? usage.name : "Zużycie SMS"}
         </CardTitle>
-        <MessageSquare className={`h-4 w-4 ${isAtLimit ? "text-destructive" : isNearLimit ? "text-amber-500" : "text-muted-foreground"}`} />
+        <MessageSquare className={`h-4 w-4 ${isOverLimit ? "text-destructive" : isAtLimit ? "text-destructive" : isNearLimit ? "text-amber-500" : "text-muted-foreground"}`} />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
+        <div className={`text-2xl font-bold ${isOverLimit ? "text-destructive" : ""}`}>
           {usage.sms_used} / {usage.sms_limit}
         </div>
         <Progress 
           value={Math.min(percentage, 100)} 
           className={`mt-2 ${isAtLimit ? "[&>div]:bg-destructive" : isNearLimit ? "[&>div]:bg-amber-500" : ""}`}
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          {isAtLimit 
-            ? "Limit wyczerpany" 
-            : isNearLimit 
-              ? `Pozostało ${usage.sms_limit - usage.sms_used} SMS`
-              : `${Math.round(percentage)}% wykorzystane`
+        <p className={`text-xs mt-1 ${isOverLimit ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          {isOverLimit 
+            ? `Przekroczono limit o ${overCount} SMS`
+            : isAtLimit 
+              ? "Limit wyczerpany" 
+              : isNearLimit 
+                ? `Pozostało ${usage.sms_limit - usage.sms_used} SMS`
+                : `${Math.round(percentage)}% wykorzystane`
           }
         </p>
       </CardContent>
