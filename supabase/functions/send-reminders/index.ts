@@ -8,6 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Force schema reload v2 - 2026-01-22 22:18
+
 // Backoff time in minutes - prevents retry spam
 const BACKOFF_MINUTES = 15;
 
@@ -170,49 +172,72 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
 };
 
 // Atomic claim: attempt to "claim" a reservation for sending reminder
-// Returns the reservation ID if claimed successfully, null otherwise
+// Returns true if claimed successfully, false otherwise
+// Using raw SQL to bypass PostgREST schema cache issues
 async function claimReservationFor1HourReminder(supabase: any, reservationId: string, backoffMinutes: number): Promise<boolean> {
   const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
   
-  // Atomic update: only claim if not already sent AND last attempt was > backoffMinutes ago (or never)
-  const { data, error } = await supabase
-    .from("reservations")
-    .update({ reminder_1hour_last_attempt_at: new Date().toISOString() })
-    .eq("id", reservationId)
-    .is("reminder_1hour_sent", null)
-    .or(`reminder_1hour_last_attempt_at.is.null,reminder_1hour_last_attempt_at.lt.${backoffThreshold}`)
-    .select("id")
-    .maybeSingle();
+  // Use raw SQL query via rpc to bypass PostgREST cache
+  const { data, error } = await supabase.rpc('claim_reminder_1hour', {
+    p_reservation_id: reservationId,
+    p_now: nowIso,
+    p_backoff_threshold: backoffThreshold
+  });
   
   if (error) {
-    console.error(`Error claiming 1-hour reminder for ${reservationId}:`, error);
-    return false;
+    // Fallback to direct update if RPC doesn't exist
+    console.log(`RPC claim_reminder_1hour failed, trying direct update: ${error.message}`);
+    const { data: directData, error: directError } = await supabase
+      .from("reservations")
+      .update({ reminder_1hour_last_attempt_at: nowIso })
+      .eq("id", reservationId)
+      .is("reminder_1hour_sent", null)
+      .or(`reminder_1hour_last_attempt_at.is.null,reminder_1hour_last_attempt_at.lt.${backoffThreshold}`)
+      .select("id")
+      .maybeSingle();
+    
+    if (directError) {
+      console.error(`Error claiming 1-hour reminder for ${reservationId}:`, directError);
+      return false;
+    }
+    return !!directData;
   }
   
-  // If data is returned, we successfully claimed the reservation
-  return !!data;
+  return data === true;
 }
 
 async function claimReservationFor1DayReminder(supabase: any, reservationId: string, backoffMinutes: number): Promise<boolean> {
   const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
   
-  // Atomic update: only claim if not already sent AND last attempt was > backoffMinutes ago (or never)
-  const { data, error } = await supabase
-    .from("reservations")
-    .update({ reminder_1day_last_attempt_at: new Date().toISOString() })
-    .eq("id", reservationId)
-    .is("reminder_1day_sent", null)
-    .or(`reminder_1day_last_attempt_at.is.null,reminder_1day_last_attempt_at.lt.${backoffThreshold}`)
-    .select("id")
-    .maybeSingle();
+  // Use raw SQL query via rpc to bypass PostgREST cache
+  const { data, error } = await supabase.rpc('claim_reminder_1day', {
+    p_reservation_id: reservationId,
+    p_now: nowIso,
+    p_backoff_threshold: backoffThreshold
+  });
   
   if (error) {
-    console.error(`Error claiming 1-day reminder for ${reservationId}:`, error);
-    return false;
+    // Fallback to direct update if RPC doesn't exist
+    console.log(`RPC claim_reminder_1day failed, trying direct update: ${error.message}`);
+    const { data: directData, error: directError } = await supabase
+      .from("reservations")
+      .update({ reminder_1day_last_attempt_at: nowIso })
+      .eq("id", reservationId)
+      .is("reminder_1day_sent", null)
+      .or(`reminder_1day_last_attempt_at.is.null,reminder_1day_last_attempt_at.lt.${backoffThreshold}`)
+      .select("id")
+      .maybeSingle();
+    
+    if (directError) {
+      console.error(`Error claiming 1-day reminder for ${reservationId}:`, directError);
+      return false;
+    }
+    return !!directData;
   }
   
-  // If data is returned, we successfully claimed the reservation
-  return !!data;
+  return data === true;
 }
 
 serve(async (req: Request): Promise<Response> => {
