@@ -436,9 +436,9 @@ serve(async (req: Request): Promise<Response> => {
 
       // Check if edit link should be included
       const includeEditLink = await shouldIncludeEditLink(supabase, reservation.instance_id, reservation.customer_phone);
-      const editLinkPart = includeEditLink ? ` Zmień lub anuluj: ${reservationUrl}` : "";
+      const editLinkPart = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : "";
 
-      const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizytę.${editLinkPart}`;
+      const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizyte.${editLinkPart}`;
 
       const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
       
@@ -518,7 +518,7 @@ serve(async (req: Request): Promise<Response> => {
       }
 
       const formattedTime = reservation.start_time.slice(0, 5);
-      const phonePart = instanceInfo.reservation_phone ? ` Telefon: ${instanceInfo.reservation_phone}.` : "";
+      const phonePart = instanceInfo.reservation_phone ? ` Tel: ${instanceInfo.reservation_phone}.` : "";
 
       const message = `${instanceInfo.name}: Za godzine o ${formattedTime} masz wizyte.${phonePart} Do zobaczenia!`;
 
