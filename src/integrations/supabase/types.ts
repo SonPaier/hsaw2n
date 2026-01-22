@@ -2859,6 +2859,22 @@ export type Database = {
         Returns: boolean
       }
       check_sms_available: { Args: { _instance_id: string }; Returns: boolean }
+      claim_reminder_1day: {
+        Args: {
+          p_backoff_threshold: string
+          p_now: string
+          p_reservation_id: string
+        }
+        Returns: boolean
+      }
+      claim_reminder_1hour: {
+        Args: {
+          p_backoff_threshold: string
+          p_now: string
+          p_reservation_id: string
+        }
+        Returns: boolean
+      }
       copy_global_scopes_to_instance: {
         Args: { _instance_id: string }
         Returns: number
