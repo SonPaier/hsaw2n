@@ -100,10 +100,11 @@ describe('ServiceSelectionDrawer', () => {
   });
 
   describe('Ładowanie i renderowanie', () => {
-    it('SDRW-U-001: pokazuje loader podczas ładowania usług', () => {
+    it('SDRW-U-001: pokazuje tytuł "Wybierz usługę"', async () => {
       renderComponent();
-      // Loader should appear briefly
-      expect(screen.getByText(/Wybierz usługę/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/Wybierz usługę/i)).toBeInTheDocument();
+      });
     });
 
     it('SDRW-U-002: wyświetla usługi pogrupowane według kategorii', async () => {
@@ -115,10 +116,13 @@ describe('ServiceSelectionDrawer', () => {
       });
     });
 
-    it('SDRW-U-003: wyświetla pole wyszukiwania', () => {
+    it('SDRW-U-003: wyświetla pole wyszukiwania z placeholderem', async () => {
       renderComponent();
       
-      expect(screen.getByPlaceholderText(/szukaj/i)).toBeInTheDocument();
+      await waitFor(() => {
+        // Placeholder is in Polish: "Wpisz skrót np. MZ, KPL..."
+        expect(screen.getByPlaceholderText(/Wpisz skrót/i)).toBeInTheDocument();
+      });
     });
   });
 
@@ -131,12 +135,13 @@ describe('ServiceSelectionDrawer', () => {
         expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
       });
       
-      const searchInput = screen.getByPlaceholderText(/szukaj/i);
+      const searchInput = screen.getByPlaceholderText(/Wpisz skrót/i);
       await user.type(searchInput, 'MP');
       
-      // Should show matching service chip
+      // Should show matching service chip - there may be multiple MP elements
       await waitFor(() => {
-        expect(screen.getByText('MP')).toBeInTheDocument();
+        const mpElements = screen.getAllByText('MP');
+        expect(mpElements.length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -148,12 +153,13 @@ describe('ServiceSelectionDrawer', () => {
         expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
       });
       
-      const searchInput = screen.getByPlaceholderText(/szukaj/i);
+      const searchInput = screen.getByPlaceholderText(/Wpisz skrót/i);
       await user.type(searchInput, 'polero');
       
       await waitFor(() => {
-        // Should show Polerowanie in matching chips
-        expect(screen.getByText('POL')).toBeInTheDocument();
+        // Should show Polerowanie in matching chips - multiple elements possible
+        const polElements = screen.getAllByText('POL');
+        expect(polElements.length).toBeGreaterThanOrEqual(1);
       });
     });
   });
@@ -217,7 +223,7 @@ describe('ServiceSelectionDrawer', () => {
   });
 
   describe('Potwierdzenie wyboru', () => {
-    it('SDRW-U-030: przycisk Potwierdź wywołuje onConfirm z wybranymi usługami', async () => {
+    it('SDRW-U-030: przycisk Dodaj wywołuje onConfirm z wybranymi usługami', async () => {
       const user = userEvent.setup();
       const onConfirm = vi.fn();
       renderComponent({ 
@@ -229,7 +235,8 @@ describe('ServiceSelectionDrawer', () => {
         expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
       });
       
-      const confirmButton = screen.getByRole('button', { name: /potwierdź/i });
+      // Button says "Dodaj" not "Potwierdź"
+      const confirmButton = screen.getByRole('button', { name: /dodaj/i });
       await user.click(confirmButton);
       
       expect(onConfirm).toHaveBeenCalled();
@@ -237,7 +244,7 @@ describe('ServiceSelectionDrawer', () => {
       expect(onConfirm.mock.calls[0][0]).toContain('svc-1');
     });
 
-    it('SDRW-U-031: przycisk Potwierdź przekazuje poprawny czas trwania', async () => {
+    it('SDRW-U-031: przycisk Dodaj przekazuje poprawny czas trwania', async () => {
       const user = userEvent.setup();
       const onConfirm = vi.fn();
       renderComponent({ 
@@ -250,7 +257,7 @@ describe('ServiceSelectionDrawer', () => {
         expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
       });
       
-      const confirmButton = screen.getByRole('button', { name: /potwierdź/i });
+      const confirmButton = screen.getByRole('button', { name: /dodaj/i });
       await user.click(confirmButton);
       
       // Second argument is totalDuration
