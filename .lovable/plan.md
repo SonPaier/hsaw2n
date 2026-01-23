@@ -1,173 +1,90 @@
 
-# Plan naprawy testów E2E - Problem "kalendarz renderuje się bez stacji"
+# Plan naprawy - alternatywne selektory dla kalendarza
 
 ## 🔍 Zidentyfikowany problem
 
-Analiza kodu ujawnia **problem wyścigu czasowego (race condition)**:
+`waitForResponse()` w Playwright czeka na **nowe** odpowiedzi HTTP wysyłane **PO** włączeniu nasłuchu. Jeśli strona już pobrała `/stations` podczas nawigacji, funkcja czeka na timeout.
 
-```
-1. seedE2EReset()         → czyści wszystkie dane
-2. seedE2EScenario()      → tworzy stacje i usługi (async w bazie)
-3. loginAsAdmin()         → loguje i czeka na kalendarz
-   ↳ waitForCalendarToLoad() → widzi admin-calendar
-   ↳ ALE stations=[] (bo React jeszcze nie pobrał danych)
-4. page.reload()          → próba "naprawienia" przez przeładowanie
-```
+## ✅ Rozwiązanie - użycie selektorów CSS zamiast waitForResponse
 
-**Główny błąd**: `loginAsAdmin()` kończy się sukcesem gdy `data-testid="admin-calendar"` jest widoczne, ale ten element renderuje się NAWET gdy `stations=[]`.
+### Zmiana w `e2e/fixtures/e2e-helpers.ts`
 
-**Dodatkowo**: `waitForResponse()` używa `.catch()` który ignoruje brak odpowiedzi zamiast failować test.
-
-## ✅ Plan naprawy
-
-### Zmiana 1: Dodać warunek na kalendarz z załadowanymi stacjami
-
-**Plik**: `e2e/fixtures/e2e-helpers.ts`
-
-**Aktualna logika** (linie 188-205):
+**Aktualna logika (błędna):**
 ```typescript
 export async function waitForCalendarToLoad(page: Page): Promise<void> {
-  // Wait for stations API response (ale ignoruje błąd!)
-  await page.waitForResponse(...).catch(() => console.log('Warning...'));
-  
-  // Czeka na kalendarz (zawsze się renderuje!)
-  const calendar = page.locator('[data-testid="admin-calendar"]');
-  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
-  
-  // Czeka na slot (ale catch ignoruje brak slotów!)
-  const slots = page.locator('[data-testid="calendar-slot"]');
-  await slots.first().waitFor(...).catch(() => console.log('Warning...'));
-}
-```
-
-**Nowa logika**:
-```typescript
-export async function waitForCalendarToLoad(page: Page): Promise<void> {
-  // Wait for stations API response - FAIL if no response
+  // ❌ PROBLEM: waitForResponse czeka na NOWE requesty
   const stationsResponse = await page.waitForResponse(
-    resp => resp.url().includes('stations') && resp.status() === 200,
+    resp => resp.url().includes('/stations') && resp.status() === 200,
     { timeout: 15000 }
   );
+  // ...
+}
+```
+
+**Nowa logika (z selektorami CSS):**
+```typescript
+export async function waitForCalendarToLoad(page: Page): Promise<void> {
+  const MAX_WAIT = process.env.CI ? 60000 : 30000;
   
-  const stationsData = await stationsResponse.json();
-  const stationCount = stationsData?.length ?? stationsData?.data?.length ?? 0;
-  console.log(`[E2E] Stations API returned ${stationCount} stations`);
+  console.log('[E2E] Waiting for calendar container...');
   
-  if (stationCount === 0) {
-    throw new Error('[E2E] Stations API returned empty array - seeding may have failed');
-  }
+  // Czekaj na dowolny z tych selektorów - kalendarz może mieć data-testid lub nie
+  const calendarSelector = '[data-testid="admin-calendar"], div.flex.flex-col.h-full.bg-card.rounded-xl';
+  await page.waitForSelector(calendarSelector, { state: 'visible', timeout: MAX_WAIT });
+  console.log('[E2E] Calendar container visible');
   
-  // Wait for calendar container
-  const calendar = page.locator('[data-testid="admin-calendar"]');
-  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
-  
-  // Wait for at least one calendar slot - REQUIRED
+  // Czekaj na sloty - to gwarantuje że stacje są załadowane
   const slots = page.locator('[data-testid="calendar-slot"]');
-  await slots.first().waitFor({ state: 'attached', timeout: 15000 });
   
-  const slotCount = await slots.count();
-  console.log(`[E2E] Calendar loaded with ${slotCount} slots`);
+  // Retry logic - czasami React potrzebuje chwili na re-render po danych
+  let slotCount = 0;
+  const maxRetries = 10;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    slotCount = await slots.count();
+    if (slotCount > 0) {
+      console.log(`[E2E] Attempt ${attempt}: Found ${slotCount} slots`);
+      break;
+    }
+    console.log(`[E2E] Attempt ${attempt}: No slots yet, waiting 500ms...`);
+    await page.waitForTimeout(500);
+  }
   
   if (slotCount === 0) {
-    await page.screenshot({ path: 'test-results/debug-no-slots.png' });
-    throw new Error('[E2E] Calendar has no slots - stations may not have loaded');
-  }
-}
-```
-
-### Zmiana 2: Usunąć nadmiarowy reload z testu
-
-**Plik**: `e2e/reservation-flow.spec.ts`
-
-**Aktualna logika** (linie 37-73):
-```typescript
-await loginAsAdmin(page);
-await expect(page).not.toHaveURL(/\/login/);
-
-// Reload to fetch seeded data  ← ZBĘDNY jeśli loginAsAdmin czeka poprawnie
-await page.reload({ waitUntil: 'networkidle' });
-```
-
-**Nowa logika**:
-```typescript
-await loginAsAdmin(page);
-await expect(page).not.toHaveURL(/\/login/);
-
-// loginAsAdmin już czeka na stations response i slots
-// NIE potrzeba dodatkowego reload
-console.log('✅ Logged in and calendar loaded with stations');
-```
-
-### Zmiana 3: Dodać retry dla waitForResponse gdy dane nie są gotowe
-
-**Plik**: `e2e/fixtures/e2e-helpers.ts`
-
-Dodać funkcję pomocniczą:
-```typescript
-async function waitForStationsWithRetry(page: Page, maxRetries = 3): Promise<number> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    // Trigger stations fetch
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    // Debugowanie - sprawdź czy są jakieś stacje w DOM
+    const stationHeaders = await page.locator('[class*="station"], th, .station-header').count();
+    console.log(`[E2E] Station headers found: ${stationHeaders}`);
     
-    const response = await page.waitForResponse(
-      resp => resp.url().includes('stations') && resp.status() === 200,
-      { timeout: 10000 }
-    ).catch(() => null);
-    
-    if (response) {
-      const data = await response.json().catch(() => ({}));
-      const count = Array.isArray(data) ? data.length : data?.data?.length ?? 0;
-      
-      if (count > 0) {
-        console.log(`[E2E] Attempt ${attempt}: Found ${count} stations`);
-        return count;
-      }
-    }
-    
-    console.log(`[E2E] Attempt ${attempt}: No stations found, retrying...`);
-    await page.waitForTimeout(1000);
+    await page.screenshot({ path: 'test-results/debug-no-slots.png' }).catch(() => {});
+    throw new Error('[E2E] Calendar has no slots after 5s - stations may not have loaded');
   }
   
-  throw new Error(`[E2E] No stations found after ${maxRetries} attempts`);
+  console.log(`[E2E] ✅ Calendar loaded with ${slotCount} slots`);
 }
 ```
 
-### Zmiana 4: Upewnić się że seed jest ZAKOŃCZONY przed logowaniem
+### Zmiana selektora kalendarza w `loginAsAdmin`
 
-**Plik**: `e2e/reservation-flow.spec.ts`
-
-Dodać weryfikację seedowania:
+Dodać obsługę obu selektorów:
 ```typescript
-console.log('🌱 Seeding basic scenario (stations, services)...');
-const seedResult = await seedE2EScenario('basic');
-
-// Upewnij się że seed zwrócił stacje
-if (!seedResult.created?.stationIds?.length) {
-  throw new Error(`Seeding failed: no stationIds in result: ${JSON.stringify(seedResult)}`);
-}
-console.log(`✅ Seeded ${seedResult.created.stationIds.length} stations, ${seedResult.created.serviceIds?.length ?? 0} services`);
-
-// Krótka pauza żeby baza danych miała czas propagować dane
-await new Promise(r => setTimeout(r, 500));
-
-await loginAsAdmin(page);
+// W przypadku gdy nie ma data-testid, fallback do klas CSS
+const calendarVisible = await page.locator(
+  '[data-testid="admin-calendar"], .flex.flex-col.h-full.bg-card.rounded-xl'
+).isVisible({ timeout: 5000 }).catch(() => false);
 ```
 
-## 📁 Pliki do modyfikacji
+## 📁 Plik do modyfikacji
 
 | Plik | Zmiany |
 |------|--------|
-| `e2e/fixtures/e2e-helpers.ts` | Zmodyfikuj `waitForCalendarToLoad()` - usunięcie `.catch()`, dodanie walidacji count |
-| `e2e/reservation-flow.spec.ts` | Usunięcie `reload()`, dodanie walidacji seed result |
+| `e2e/fixtures/e2e-helpers.ts` | Usunięcie `waitForResponse`, dodanie retry-based slot detection |
 
-## 🧪 Oczekiwany rezultat
+## 🧪 Kluczowe zmiany
 
-Po tych zmianach:
-1. **Test failuje szybko** jeśli stacje nie załadowały się (zamiast flaky pass)
-2. **Brak race condition** - czekamy na prawdziwe dane, nie na pusty kontener
-3. **Lepsze debugowanie** - screenshoty i logi pokazują dokładnie co poszło nie tak
+1. **Usunięcie `waitForResponse`** - nie jest niezawodny dla już wykonanych requestów
+2. **Dodanie retry loop dla slotów** - czekanie 10x500ms = 5s na pojawienie się slotów
+3. **Fallback selektor CSS** - `div.flex.flex-col.h-full.bg-card.rounded-xl` jako alternatywa dla `data-testid`
+4. **Lepsze debugowanie** - screenshoty i logi przy błędach
 
-## 📊 Estymacja
+## ⏱️ Estymacja
 
-- **Czas implementacji**: ~20-30 minut
-- **Ryzyko**: Niskie (zmiany tylko w testach, nie w produkcji)
+~10 minut na implementację
