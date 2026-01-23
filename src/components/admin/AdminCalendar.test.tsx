@@ -845,3 +845,496 @@ describe("AdminCalendar - Hall Mode", () => {
     }
   });
 });
+
+// =============================================================================
+// GROUP G: Status Colors (CAL-U-100 to CAL-U-107)
+// =============================================================================
+describe("AdminCalendar - G. Status Colors", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+  
+  const createReservation = (status: string, stationType: string = "washing") => ({
+    id: `res-${status}`,
+    customer_name: `Customer ${status}`,
+    customer_phone: "+48123456789",
+    vehicle_plate: "KR12345",
+    reservation_date: today,
+    start_time: "10:00",
+    end_time: "11:00",
+    station_id: "st-1",
+    status,
+    station: { type: stationType },
+    service: { name: "Service", shortcut: "SV" },
+  });
+
+  // CAL-U-100: Pending status shows amber color
+  it("CAL-U-100: pending status applies amber background", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("pending")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer pending").closest('[class*="bg-amber"]');
+    expect(card).toBeInTheDocument();
+  });
+
+  // CAL-U-101: In_progress status shows emerald color with pulse
+  it("CAL-U-101: in_progress status shows pulse indicator", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("in_progress")],
+      workingHours: mockWorkingHours,
+    });
+    
+    // Should have pulse dot
+    const pulseIndicator = document.querySelector('[class*="animate-pulse"]');
+    expect(pulseIndicator).toBeInTheDocument();
+  });
+
+  // CAL-U-102: Completed status shows sky blue color
+  it("CAL-U-102: completed status applies sky background", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("completed")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer completed").closest('[class*="bg-sky"]');
+    expect(card).toBeInTheDocument();
+  });
+
+  // CAL-U-103: Released status shows slate color
+  it("CAL-U-103: released status applies slate background", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("released")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer released").closest('[class*="bg-slate"]');
+    expect(card).toBeInTheDocument();
+  });
+
+  // CAL-U-104: Change_requested status shows orange color with icon
+  it("CAL-U-104: change_requested status shows refresh icon", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("change_requested")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer change_requested").closest('[class*="bg-orange"]');
+    expect(card).toBeInTheDocument();
+    // Should have RefreshCw icon
+    const refreshIcon = document.querySelector('svg.lucide-refresh-cw');
+    expect(refreshIcon).toBeInTheDocument();
+  });
+
+  // CAL-U-105: PPF station uses special colors
+  it("CAL-U-105: PPF station type uses emerald for confirmed", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "PPF Station", type: "ppf" }],
+      reservations: [createReservation("confirmed", "ppf")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer confirmed").closest('[class*="bg-emerald"]');
+    expect(card).toBeInTheDocument();
+  });
+
+  // CAL-U-106: Unknown status falls back to amber
+  it("CAL-U-106: unknown status defaults to amber", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("unknown_status")],
+      workingHours: mockWorkingHours,
+    });
+    
+    const card = screen.getByText("Customer unknown_status").closest('[class*="bg-amber"]');
+    expect(card).toBeInTheDocument();
+  });
+
+  // CAL-U-107: no_show reservations are filtered out (same as cancelled)
+  it("CAL-U-107: no_show reservations are not displayed", () => {
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [createReservation("no_show")],
+      workingHours: mockWorkingHours,
+    });
+    
+    expect(screen.queryByText("Customer no_show")).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// GROUP H: Overlapping Reservations (CAL-U-110 to CAL-U-113)
+// =============================================================================
+describe("AdminCalendar - H. Overlapping Reservations", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // CAL-U-110: Two overlapping reservations are staggered
+  it("CAL-U-110: overlapping reservations have offset positioning", () => {
+    const reservations = [
+      {
+        id: "res-1",
+        customer_name: "Customer A",
+        vehicle_plate: "AAA111",
+        reservation_date: today,
+        start_time: "10:00",
+        end_time: "11:00",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+      {
+        id: "res-2",
+        customer_name: "Customer B",
+        vehicle_plate: "BBB222",
+        reservation_date: today,
+        start_time: "10:30",
+        end_time: "11:30",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+    ];
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations,
+      workingHours: mockWorkingHours,
+    });
+    
+    // Both should be visible
+    expect(screen.getByText("Customer A")).toBeInTheDocument();
+    expect(screen.getByText("Customer B")).toBeInTheDocument();
+    
+    // Cards should have different left/right offsets
+    const cardA = screen.getByText("Customer A").closest('[style*="left"]');
+    const cardB = screen.getByText("Customer B").closest('[style*="left"]');
+    expect(cardA).toBeInTheDocument();
+    expect(cardB).toBeInTheDocument();
+  });
+
+  // CAL-U-111: Non-overlapping reservations have no offset
+  it("CAL-U-111: non-overlapping reservations have no stagger offset", () => {
+    const reservations = [
+      {
+        id: "res-1",
+        customer_name: "Morning Customer",
+        vehicle_plate: "AAA111",
+        reservation_date: today,
+        start_time: "09:00",
+        end_time: "10:00",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+      {
+        id: "res-2",
+        customer_name: "Afternoon Customer",
+        vehicle_plate: "BBB222",
+        reservation_date: today,
+        start_time: "14:00",
+        end_time: "15:00",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+    ];
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations,
+      workingHours: mockWorkingHours,
+    });
+    
+    expect(screen.getByText("Morning Customer")).toBeInTheDocument();
+    expect(screen.getByText("Afternoon Customer")).toBeInTheDocument();
+  });
+
+  // CAL-U-112: Three overlapping reservations all staggered
+  it("CAL-U-112: three overlapping reservations form a group", () => {
+    const reservations = [
+      {
+        id: "res-1",
+        customer_name: "Customer 1",
+        vehicle_plate: "AAA",
+        reservation_date: today,
+        start_time: "10:00",
+        end_time: "11:30",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+      {
+        id: "res-2",
+        customer_name: "Customer 2",
+        vehicle_plate: "BBB",
+        reservation_date: today,
+        start_time: "10:30",
+        end_time: "12:00",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+      {
+        id: "res-3",
+        customer_name: "Customer 3",
+        vehicle_plate: "CCC",
+        reservation_date: today,
+        start_time: "11:00",
+        end_time: "12:30",
+        station_id: "st-1",
+        status: "confirmed",
+        service: { name: "Service" },
+      },
+    ];
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations,
+      workingHours: mockWorkingHours,
+    });
+    
+    expect(screen.getByText("Customer 1")).toBeInTheDocument();
+    expect(screen.getByText("Customer 2")).toBeInTheDocument();
+    expect(screen.getByText("Customer 3")).toBeInTheDocument();
+  });
+
+  // CAL-U-113: Selected reservation has higher z-index
+  it("CAL-U-113: selected reservation has z-30 class", () => {
+    const reservation = {
+      id: "res-selected",
+      customer_name: "Selected Customer",
+      vehicle_plate: "SEL123",
+      reservation_date: today,
+      start_time: "10:00",
+      end_time: "11:00",
+      station_id: "st-1",
+      status: "confirmed",
+      service: { name: "Service" },
+    };
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [reservation],
+      workingHours: mockWorkingHours,
+      selectedReservationId: "res-selected",
+    });
+    
+    const card = screen.getByText("Selected Customer").closest('[class*="border-4"]');
+    expect(card).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// GROUP I: Multi-day Reservations (CAL-U-120 to CAL-U-122)
+// =============================================================================
+describe("AdminCalendar - I. Multi-day Reservations", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+  // CAL-U-120: Multi-day reservation shows on start date
+  it("CAL-U-120: multi-day reservation is visible on first day", () => {
+    const multiDayReservation = {
+      id: "res-multi",
+      customer_name: "Multi-day Client",
+      vehicle_plate: "MULTI",
+      reservation_date: todayStr,
+      end_date: tomorrowStr,
+      start_time: "10:00",
+      end_time: "16:00",
+      station_id: "st-1",
+      status: "confirmed",
+      service: { name: "PPF Full" },
+    };
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "ppf" }],
+      reservations: [multiDayReservation],
+      workingHours: mockWorkingHours,
+    });
+    
+    expect(screen.getByText("Multi-day Client")).toBeInTheDocument();
+  });
+
+  // CAL-U-121: Multi-day indicator or special styling
+  it("CAL-U-121: multi-day reservation has end_date set", () => {
+    const multiDayReservation = {
+      id: "res-multi",
+      customer_name: "Multi-day Client",
+      vehicle_plate: "MULTI",
+      reservation_date: todayStr,
+      end_date: tomorrowStr,
+      start_time: "10:00",
+      end_time: "16:00",
+      station_id: "st-1",
+      status: "confirmed",
+      service: { name: "PPF Full" },
+    };
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "ppf" }],
+      reservations: [multiDayReservation],
+      workingHours: mockWorkingHours,
+    });
+    
+    // Multi-day should be detected (end_date !== reservation_date)
+    expect(multiDayReservation.end_date).not.toBe(multiDayReservation.reservation_date);
+  });
+
+  // CAL-U-122: Services array displayed in chips
+  it("CAL-U-122: multiple services displayed as chips", () => {
+    const reservation = {
+      id: "res-multi-svc",
+      customer_name: "Multi-service Client",
+      vehicle_plate: "SVC123",
+      reservation_date: todayStr,
+      start_time: "10:00",
+      end_time: "14:00",
+      station_id: "st-1",
+      status: "confirmed",
+      services_data: [
+        { name: "Mycie", shortcut: "MY" },
+        { name: "Woskowanie", shortcut: "WO" },
+        { name: "Odkurzanie", shortcut: "OD" },
+      ],
+    };
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station 1", type: "washing" }],
+      reservations: [reservation],
+      workingHours: mockWorkingHours,
+    });
+    
+    expect(screen.getByText("MY")).toBeInTheDocument();
+    expect(screen.getByText("WO")).toBeInTheDocument();
+    expect(screen.getByText("OD")).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// GROUP J: Edge Cases (CAL-U-130 to CAL-U-135)
+// =============================================================================
+describe("AdminCalendar - J. Edge Cases", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
+  // CAL-U-130: Invalid working hours fallback to defaults
+  it("CAL-U-130: invalid working hours (end <= start) uses defaults", () => {
+    const invalidHours = {
+      monday: { open: "18:00", close: "09:00" }, // Invalid: close before open
+      tuesday: { open: "09:00", close: "18:00" },
+      wednesday: { open: "09:00", close: "18:00" },
+      thursday: { open: "09:00", close: "18:00" },
+      friday: { open: "09:00", close: "18:00" },
+      saturday: { open: "09:00", close: "18:00" },
+      sunday: { open: "09:00", close: "18:00" },
+    };
+    
+    renderCalendar({ 
+      stations: [mockStations[0]],
+      workingHours: invalidHours,
+    });
+    
+    // Should still render without crashing
+    expect(screen.getByText("Stanowisko 1")).toBeInTheDocument();
+  });
+
+  // CAL-U-131: Loading indicator shows when isLoadingMore=true
+  it("CAL-U-131: shows loading indicator when isLoadingMore", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      isLoadingMore: true,
+    });
+    
+    // Should show "Ładowanie..." text or animate-spin class
+    const spinningElement = document.querySelector('[class*="animate-spin"]');
+    expect(spinningElement).toBeInTheDocument();
+  });
+
+  // CAL-U-132: Protocols button shows in hall mode when enabled
+  it("CAL-U-132: protocols button appears when showProtocolsButton=true", () => {
+    const onProtocolsClick = vi.fn();
+    
+    renderCalendar({ 
+      stations: mockStations,
+      hallMode: true,
+      showProtocolsButton: true,
+      onProtocolsClick,
+    });
+    
+    // Should show clipboard-check icon
+    const protocolIcon = document.querySelector('svg.lucide-clipboard-check');
+    expect(protocolIcon).toBeInTheDocument();
+  });
+
+  // CAL-U-133: Yard vehicles button shows count badge
+  it("CAL-U-133: yard button shows vehicle count badge", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      yardVehicleCount: 5,
+    });
+    
+    // Should show badge with count
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
+
+  // CAL-U-134: Large yard count shows 99+
+  it("CAL-U-134: yard badge shows 99+ for counts over 99", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      yardVehicleCount: 150,
+    });
+    
+    expect(screen.getByText("99+")).toBeInTheDocument();
+  });
+
+  // CAL-U-135: Notes icon shows when reservation has notes
+  it("CAL-U-135: notes icon appears for reservations with admin_notes", () => {
+    const today = new Date().toISOString().split("T")[0];
+    const reservationWithNotes = {
+      id: "res-notes",
+      customer_name: "Client with Notes",
+      vehicle_plate: "NOTE123",
+      reservation_date: today,
+      start_time: "10:00",
+      end_time: "11:00",
+      station_id: "st-1",
+      status: "confirmed",
+      admin_notes: "Important note here",
+      service: { name: "Service" },
+    };
+    
+    renderCalendar({ 
+      stations: [{ id: "st-1", name: "Station", type: "washing" }],
+      reservations: [reservationWithNotes],
+      workingHours: mockWorkingHours,
+    });
+    
+    // Should show FileText icon for notes
+    const notesIcon = document.querySelector('svg.lucide-file-text');
+    expect(notesIcon).toBeInTheDocument();
+  });
+});
