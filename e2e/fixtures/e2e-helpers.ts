@@ -72,38 +72,48 @@ export async function seedE2EScenario(
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
   // Navigate to instance login (dev/staging route is /:slug/login)
-  await page.goto(`/${E2E_CONFIG.instanceSlug}/login`, { waitUntil: 'domcontentloaded' });
+  const loginUrl = `/${E2E_CONFIG.instanceSlug}/login`;
+  await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(new RegExp(`/${E2E_CONFIG.instanceSlug}/login`), { timeout: 30000 }).catch(() => {});
 
-  const calendar = page.locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]').first();
-  const usernameInput = page.locator('input#username').first();
-  const passwordInput = page.locator('input#password').first();
+  const calendar = page
+    .locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]')
+    .first();
 
-  // In CI the app can cold-start and show a spinner first. Wait for either:
-  // - already authenticated dashboard, or
-  // - login inputs.
+  // Prefer robust, accessibility-based selectors (independent of Input implementation)
+  const usernameInput = page.getByLabel(/login/i).first();
+  const passwordInput = page.getByLabel(/hasło/i).first();
+  const submitButton = page.getByRole('button', { name: /zaloguj/i }).first();
+
+  console.log('[E2E] loginAsAdmin url:', page.url());
+
+  // Cold start: wait until either dashboard already visible OR login form appears.
+  const MAX_WAIT = process.env.CI ? 60000 : 30000;
+
   await Promise.race([
-    calendar.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}),
-    usernameInput.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}),
+    calendar.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => {}),
+    usernameInput.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => {}),
   ]);
 
   // If already logged in, we're done.
-  if (await calendar.isVisible().catch(() => false)) {
-    return;
+  if (await calendar.isVisible().catch(() => false)) return;
+
+  // If we are still on a loader, wait a bit longer for the form.
+  const spinner = page.locator('[class*="animate-spin"], svg.animate-spin').first();
+  if (await spinner.isVisible().catch(() => false)) {
+    await spinner.waitFor({ state: 'hidden', timeout: MAX_WAIT }).catch(() => {});
   }
 
-  // Ensure form is ready
-  await usernameInput.waitFor({ state: 'visible', timeout: 30000 });
-  await passwordInput.waitFor({ state: 'visible', timeout: 30000 });
+  await usernameInput.waitFor({ state: 'visible', timeout: MAX_WAIT });
+  await passwordInput.waitFor({ state: 'visible', timeout: MAX_WAIT });
 
-  // Fill credentials
   await usernameInput.fill(E2E_ADMIN.username);
   await passwordInput.fill(E2E_ADMIN.password);
 
-  // Submit login
-  await page.locator('button[type="submit"], button:has-text("Zaloguj")').first().click();
+  await submitButton.click();
 
   // Wait for dashboard to load (calendar view)
-  await calendar.waitFor({ state: 'visible', timeout: 30000 });
+  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
 }
 
 /**
