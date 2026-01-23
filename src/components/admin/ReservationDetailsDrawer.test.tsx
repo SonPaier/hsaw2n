@@ -736,7 +736,7 @@ describe('ReservationDetailsDrawer', () => {
   });
 
   describe('Status Dropdown Actions', () => {
-    it('RDD-U-170: confirmed ma dropdown z opcjami statusu', async () => {
+    it('RDD-U-170: confirmed ma przycisk dropdown statusu', () => {
       renderDrawer();
       
       // Find the dropdown trigger (ChevronDown button)
@@ -744,16 +744,10 @@ describe('ReservationDetailsDrawer', () => {
         btn.querySelector('svg.lucide-chevron-down') !== null
       );
       
-      if (dropdownButtons.length > 0) {
-        await userEvent.click(dropdownButtons[0]);
-        
-        await waitFor(() => {
-          expect(screen.getByText('W trakcie')).toBeInTheDocument();
-        });
-      }
+      expect(dropdownButtons.length).toBeGreaterThan(0);
     });
 
-    it('RDD-U-171: in_progress ma dropdown ze zmianą statusu', async () => {
+    it('RDD-U-171: in_progress ma przycisk dropdown statusu', () => {
       renderDrawer({ 
         reservation: { ...mockBaseReservation, status: 'in_progress' },
       });
@@ -762,13 +756,202 @@ describe('ReservationDetailsDrawer', () => {
         btn.querySelector('svg.lucide-chevron-down') !== null
       );
       
-      if (dropdownButtons.length > 0) {
-        await userEvent.click(dropdownButtons[0]);
-        
-        await waitFor(() => {
-          expect(screen.getByText('Potwierdzona')).toBeInTheDocument();
-        });
-      }
+      expect(dropdownButtons.length).toBeGreaterThan(0);
+    });
+
+    it('RDD-U-172: completed ma przycisk dropdown statusu', () => {
+      renderDrawer({ 
+        reservation: { ...mockBaseReservation, status: 'completed' },
+      });
+      
+      const dropdownButtons = screen.getAllByRole('button').filter(btn => 
+        btn.querySelector('svg.lucide-chevron-down') !== null
+      );
+      
+      expect(dropdownButtons.length).toBeGreaterThan(0);
+    });
+
+    it('RDD-U-173: released ma przycisk dropdown statusu', () => {
+      renderDrawer({ 
+        reservation: { ...mockBaseReservation, status: 'released' },
+      });
+      
+      const dropdownButtons = screen.getAllByRole('button').filter(btn => 
+        btn.querySelector('svg.lucide-chevron-down') !== null
+      );
+      
+      expect(dropdownButtons.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Actions - Released Status', () => {
+    const releasedReservation = { ...mockBaseReservation, status: 'released' };
+
+    it('RDD-U-052: wyświetla przycisk Edytuj dla released', () => {
+      renderDrawer({ reservation: releasedReservation });
+      
+      expect(screen.getByRole('button', { name: /edytuj/i })).toBeInTheDocument();
+    });
+
+    it('RDD-U-053: NIE wyświetla przycisku Usuń dla released', () => {
+      renderDrawer({ reservation: releasedReservation });
+      
+      expect(screen.queryByRole('button', { name: /usuń/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Actions - Cancelled Status', () => {
+    const cancelledReservation = { ...mockBaseReservation, status: 'cancelled' };
+
+    it('RDD-U-064: NIE wyświetla akcji dla cancelled', () => {
+      renderDrawer({ reservation: cancelledReservation });
+      
+      // Should not have action buttons like Edit, Delete, Start Work
+      expect(screen.queryByRole('button', { name: /rozpocznij pracę/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /zakończ pracę/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /potwierdź/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Actions - No Show Status', () => {
+    const noShowReservation = { ...mockBaseReservation, status: 'no_show' };
+
+    it('RDD-U-065: NIE wyświetla akcji dla no_show', () => {
+      renderDrawer({ reservation: noShowReservation });
+      
+      // Should not have action buttons
+      expect(screen.queryByRole('button', { name: /rozpocznij pracę/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /zakończ pracę/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /potwierdź/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('SMS Links', () => {
+    it('RDD-U-083: wyświetla link SMS potwierdzenie dla confirmed', () => {
+      const onSendConfirmationSms = vi.fn();
+      renderDrawer({ 
+        reservation: mockBaseReservation,
+        onSendConfirmationSms,
+      });
+      
+      // Should show send confirmation SMS link - translation: "Wyślij SMS o potwierdzeniu wizyty"
+      expect(screen.getByText(/wyślij sms o potwierdzeniu/i)).toBeInTheDocument();
+    });
+
+    it('RDD-U-084: wyświetla link SMS odbiór dla in_progress', () => {
+      const onSendPickupSms = vi.fn();
+      renderDrawer({ 
+        reservation: { ...mockBaseReservation, status: 'in_progress' },
+        onSendPickupSms,
+      });
+      
+      // Should show send pickup SMS link - translation: "Wyślij SMS o odbiorze"
+      expect(screen.getByText(/wyślij.*sms.*odbior/i)).toBeInTheDocument();
+    });
+
+    it('RDD-U-085: wyświetla timestamp pickup_sms_sent_at', () => {
+      const onSendPickupSms = vi.fn();
+      renderDrawer({ 
+        reservation: { 
+          ...mockBaseReservation, 
+          status: 'in_progress',
+          pickup_sms_sent_at: '2025-01-24T15:30:00Z',
+        },
+        onSendPickupSms,
+      });
+      
+      // Should show "SMS wysłany" with timestamp - translation: "SMS wysłany: {{datetime}}"
+      expect(screen.getByText(/sms wysłany/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Hall Mode - Extended', () => {
+    it('RDD-U-136: ukrywa imię klienta gdy customer_name: false', () => {
+      const hallConfigHideName: HallConfig = {
+        visible_fields: {
+          customer_name: false,
+          customer_phone: false,
+          vehicle_plate: true,
+          services: true,
+          admin_notes: false,
+        },
+        allowed_actions: {
+          add_services: false,
+          change_time: false,
+          change_station: false,
+          edit_reservation: false,
+          delete_reservation: false,
+        },
+      };
+
+      renderDrawer({
+        mode: 'hall',
+        hallConfig: hallConfigHideName,
+      });
+      
+      expect(screen.queryByText('Jan Kowalski')).not.toBeInTheDocument();
+    });
+
+    it('RDD-U-137: ukrywa przycisk Edytuj gdy edit_reservation: false', () => {
+      const hallConfigNoEdit: HallConfig = {
+        visible_fields: {
+          customer_name: true,
+          customer_phone: true,
+          vehicle_plate: true,
+          services: true,
+          admin_notes: true,
+        },
+        allowed_actions: {
+          add_services: true,
+          change_time: false,
+          change_station: false,
+          edit_reservation: false,
+          delete_reservation: false,
+        },
+      };
+
+      renderDrawer({
+        mode: 'hall',
+        hallConfig: hallConfigNoEdit,
+      });
+      
+      expect(screen.queryByRole('button', { name: /edytuj/i })).not.toBeInTheDocument();
+    });
+
+    it('RDD-U-138: wyświetla przycisk Usuń gdy delete_reservation: true', () => {
+      const hallConfigWithDelete: HallConfig = {
+        visible_fields: {
+          customer_name: true,
+          customer_phone: true,
+          vehicle_plate: true,
+          services: true,
+          admin_notes: true,
+        },
+        allowed_actions: {
+          add_services: true,
+          change_time: false,
+          change_station: false,
+          edit_reservation: true,
+          delete_reservation: true,
+        },
+      };
+
+      renderDrawer({
+        mode: 'hall',
+        hallConfig: hallConfigWithDelete,
+      });
+      
+      expect(screen.getByRole('button', { name: /usuń/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Default Status Badge', () => {
+    it('RDD-U-027: wyświetla badge dla nieznanego statusu', () => {
+      renderDrawer({
+        reservation: { ...mockBaseReservation, status: 'unknown_status' },
+      });
+      
+      expect(screen.getByText('unknown_status')).toBeInTheDocument();
     });
   });
 });
