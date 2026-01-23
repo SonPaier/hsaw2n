@@ -1,192 +1,209 @@
 
-# Plan: Konfiguracja Vitest + React Testing Library + Pierwszy test E2E
+# Plan: Strategia testowania responsywności UI (mobile/tablet/desktop)
 
-## Cel
-Skonfigurować infrastrukturę testową z Vitest i React Testing Library, napisać pierwszy unit test dla `phoneUtils.ts`, oraz test E2E dla pełnego flow dodawania rezerwacji przez admina.
+## Analiza obecnego stanu
 
----
+### Wzorce responsywności w projekcie:
+1. **Hook `useIsMobile`** - zwraca `true` gdy `window.innerWidth < 768px`
+2. **Conditional rendering** - np. w `ProductsView`:
+   - Mobile (linie 422-502): layout kartowy
+   - Desktop (linie 503-607): layout tabelowy
+3. **CSS-only responsiveness** - klasy Tailwind jak `hidden sm:inline`, `flex-col sm:flex-row`
+4. **Różna paginacja** - mobile pokazuje tylko `X / Y`, desktop ma też selektor ilości na stronę
 
-## Część 1: Konfiguracja Vitest
-
-### 1.1 Instalacja zależności
-Dodanie do `devDependencies` w `package.json`:
-- `vitest` ^3.2.4
-- `@testing-library/react` ^16.0.0
-- `@testing-library/jest-dom` ^6.6.0
-- `jsdom` ^20.0.3
-
-### 1.2 Nowy plik: `vitest.config.ts`
-```typescript
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    coverage: {
-      reporter: ['text', 'html'],
-      include: ['src/lib/**', 'src/hooks/**', 'src/components/**'],
-    },
-  },
-  resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
-  },
-});
-```
-
-### 1.3 Nowy plik: `src/test/setup.ts`
-Setup dla testów React z matchMedia mock (wymagane dla komponentów używających media queries).
-
-### 1.4 Aktualizacja `tsconfig.app.json`
-Dodanie `"vitest/globals"` do `types` w `compilerOptions`.
-
-### 1.5 Dodanie skryptów do `package.json`
-```json
-"test": "vitest",
-"test:run": "vitest run",
-"test:coverage": "vitest run --coverage"
-```
+### Typowe różnice UI (mobile vs desktop):
+| Aspekt | Mobile | Desktop |
+|--------|--------|---------|
+| Listy produktów | Karty | Tabela |
+| Przyciski akcji | Tylko ikony | Ikona + tekst |
+| Paginacja | Prosta | Z selektorem page size |
+| Nawigacja | Bottom nav bar | Sidebar/Top bar |
+| Dialogi | Fullscreen drawer | Centered modal |
 
 ---
 
-## Część 2: Pierwszy Unit Test - phoneUtils
+## Proponowane podejście do testów
 
-### 2.1 Nowy plik: `src/lib/phoneUtils.test.ts`
+### 1. Utility do mockowania viewport
 
-Konwencja nazewnictwa: `PU-U-XXX` (PhoneUtils-Unit-numer)
-
-```typescript
-// PU-U-001: normalizePhone - polskie numery 9-cyfrowe
-// PU-U-002: normalizePhone - prefix +48
-// PU-U-003: normalizePhone - prefix 0048
-// PU-U-004: normalizePhone - numery międzynarodowe
-// PU-U-005: stripPhone - usuwa wszystkie znaki
-// PU-U-006: isValidPhone - walidacja długości
-// PU-U-007: formatPhoneDisplay - formatowanie polskie
-// PU-U-008: formatPhoneDisplay - formatowanie międzynarodowe
-```
-
-Przykładowa struktura:
-```typescript
-describe('phoneUtils', () => {
-  describe('normalizePhone', () => {
-    it('PU-U-001: normalizes 9-digit Polish number to E.164', () => {
-      expect(normalizePhone('733854184')).toBe('+48733854184');
-    });
-  });
-});
-```
-
----
-
-## Część 3: Test E2E - Pełny flow rezerwacji
-
-### 3.1 Nowy katalog i plik: `e2e/reservation-flow.spec.ts`
-
-Konwencja: `RF-E2E-XXX` (ReservationFlow-E2E-numer)
-
-**Scenariusz RF-E2E-001: Admin dodaje rezerwację i widzi ją na kalendarzu**
+Utworzenie helpera `setViewport` w `src/test/utils/viewport.ts`:
 
 ```text
-1. [Setup] Wywołanie seed-e2e-reset (czyszczenie)
-2. [Setup] Wywołanie seed-e2e-scenario z "basic" (stanowiska, usługi)
-3. Nawigacja do /e2e (instancja e2e)
-4. Logowanie jako admin e2e
-5. Kliknięcie "Dodaj rezerwację"
-6. Wypełnienie formularza:
-   - Telefon: 111222333
-   - Imię: Test E2E
-   - Samochód: BMW X5, WE E2E01
-   - Usługa: pierwsza dostępna
-   - Data: dzisiaj
-   - Godzina: 10:00
-7. Zapisanie rezerwacji
-8. Weryfikacja: toast sukcesu
-9. Weryfikacja: rezerwacja widoczna na kalendarzu z danymi klienta
+// Trzy predefiniowane viewporty
+MOBILE:  375 x 667  (iPhone SE)
+TABLET:  768 x 1024 (iPad)
+DESKTOP: 1280 x 800 (Laptop)
+
+// Helper funkcja
+setViewport('mobile' | 'tablet' | 'desktop')
+  -> ustawia window.innerWidth
+  -> aktualizuje matchMedia mock
+  -> wywołuje resize event
 ```
 
-### 3.2 Helper: `e2e/fixtures/e2e-helpers.ts`
-```typescript
-// Funkcja do wywoływania seed-e2e-reset
-// Funkcja do wywoływania seed-e2e-scenario
-// Dane logowania admina e2e
-```
+### 2. Struktura testów - hierarchiczna
 
----
-
-## Część 4: Struktura plików (podsumowanie)
+Zamiast duplikować 100% testów, dzielimy je na warstwy:
 
 ```text
-project/
-├── vitest.config.ts                    # NOWY
-├── package.json                        # EDYCJA (zależności + skrypty)
-├── tsconfig.app.json                   # EDYCJA (types)
-├── src/
-│   ├── test/
-│   │   └── setup.ts                    # NOWY
-│   ├── lib/
-│   │   ├── phoneUtils.ts
-│   │   └── phoneUtils.test.ts          # NOWY
-│   └── components/
-│       └── admin/
-│           ├── AddReservationDialogV2.tsx
-│           └── AddReservationDialogV2.test.tsx  # PRZYSZŁY
-└── e2e/
-    ├── fixtures/
-    │   └── e2e-helpers.ts              # NOWY
-    └── reservation-flow.spec.ts        # NOWY
+tests/
+├── logika biznesowa (1x) - niezależna od viewport
+│   └── walidacja, API calls, state management
+│
+├── core UI (1x) - testowane na desktop
+│   └── czy elementy są obecne, interakcje działają
+│
+└── viewport-specific (per viewport) - tylko różnice
+    ├── mobile: karty zamiast tabel, ukryty tekst
+    ├── tablet: layout hybrydowy
+    └── desktop: pełne kolumny, page size selector
 ```
 
----
+### 3. Wzorzec: `describe.each` z viewportami
 
-## Część 5: Konwencje i wytyczne
+```text
+const VIEWPORTS = ['mobile', 'tablet', 'desktop'] as const;
 
-| Typ testu | Prefix | Przykład | Cel czasu |
-|-----------|--------|----------|-----------|
-| Unit | XX-U-NNN | PU-U-001 | < 1s |
-| Integration | XX-I-NNN | RD-I-001 | < 5s |
-| E2E | XX-E2E-NNN | RF-E2E-001 | < 30s |
+describe.each(VIEWPORTS)('ProductsList - %s', (viewport) => {
+  beforeEach(() => setViewport(viewport));
 
-**Skróty komponentów:**
-- PU = PhoneUtils
-- TU = TextUtils  
-- RD = ReservationDialog
-- RF = ReservationFlow
+  it('renders product list', ...);  // wspólna logika
 
----
-
-## Część techniczna
-
-### Zależności do zainstalowania
-```json
-{
-  "devDependencies": {
-    "vitest": "^3.2.4",
-    "@testing-library/react": "^16.0.0",
-    "@testing-library/jest-dom": "^6.6.0",
-    "jsdom": "^20.0.3"
+  if (viewport === 'mobile') {
+    it('shows card layout', ...);
+    it('hides button text', ...);
   }
+
+  if (viewport === 'desktop') {
+    it('shows table layout', ...);
+    it('shows page size selector', ...);
+  }
+});
+```
+
+### 4. Alternatywa: Matchers warunkowe
+
+```text
+it('renders products appropriately for viewport', () => {
+  setViewport('mobile');
+  render(<ProductsView />);
+
+  // Mobile: karty
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.getAllByTestId('product-card')).toHaveLength(20);
+
+  cleanup();
+
+  setViewport('desktop');
+  render(<ProductsView />);
+
+  // Desktop: tabela
+  expect(screen.getByRole('table')).toBeInTheDocument();
+});
+```
+
+---
+
+## Implementacja
+
+### Krok 1: Viewport utility
+Plik: `src/test/utils/viewport.ts`
+
+- Eksportuje funkcję `setViewport(size)`
+- Aktualizuje `window.innerWidth` i `innerHeight`
+- Dispatchuje `resize` event
+- Aktualizuje mock `matchMedia` aby zwracał poprawną wartość `matches`
+
+### Krok 2: Aktualizacja setup.ts
+- Import viewport utility
+- Reset do desktop przed każdym testem (domyślny viewport)
+
+### Krok 3: Testy InstanceAuth - rozszerzenie o viewport
+Plik: `src/pages/InstanceAuth.test.tsx`
+
+Dodatkowe przypadki:
+| ID | Viewport | Przypadek |
+|----|----------|-----------|
+| LA-U-017 | mobile | Footer links stack vertically (flex-col) |
+| LA-U-018 | desktop | Decorative right panel is visible (lg:flex) |
+| LA-U-019 | mobile | Decorative right panel is hidden |
+
+### Krok 4: Template dla przyszłych testów
+
+Szablon `src/test/templates/responsive-component.test.template.tsx`:
+```text
+// 1. Import viewport utility
+// 2. describe.each dla viewportów
+// 3. Logika biznesowa (1x)
+// 4. Viewport-specific assertions
+```
+
+---
+
+## Korzyści tego podejścia
+
+1. **Brak duplikacji** - logika biznesowa testowana raz
+2. **Czytelność** - jasne co jest wspólne, a co viewport-specific
+3. **Łatwe utrzymanie** - zmiana w viewport utility wpływa wszędzie
+4. **Izolacja** - `beforeEach` resetuje viewport, testy się nie psują wzajemnie
+5. **Elastyczność** - można dodać tablet tylko tam gdzie ma sens
+
+---
+
+## Techniczne szczegóły
+
+### Viewport helper implementacja
+
+```text
+src/test/utils/viewport.ts
+
+export const VIEWPORTS = {
+  mobile: { width: 375, height: 667 },
+  tablet: { width: 768, height: 1024 },
+  desktop: { width: 1280, height: 800 },
+};
+
+export function setViewport(size: keyof typeof VIEWPORTS) {
+  const { width, height } = VIEWPORTS[size];
+
+  Object.defineProperty(window, 'innerWidth', { value: width, writable: true });
+  Object.defineProperty(window, 'innerHeight', { value: height, writable: true });
+
+  // Update matchMedia mock
+  window.matchMedia = (query: string) => ({
+    matches: query.includes('max-width') 
+      ? width <= parseInt(query.match(/\d+/)?.[0] || '0')
+      : width >= parseInt(query.match(/\d+/)?.[0] || '0'),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    // ... other required methods
+  });
+
+  // Trigger resize
+  window.dispatchEvent(new Event('resize'));
 }
 ```
 
-### Konfiguracja E2E token
-Token jest już skonfigurowany: `a3f8b2c4...` - będzie użyty w helperze `e2e-helpers.ts` poprzez zmienną środowiskową `E2E_SEED_TOKEN`.
+### Modyfikacja setup.ts
 
-### Mock Supabase dla unit testów
-Dla testów komponentów używających Supabase, stworzymy mock w `src/test/mocks/supabase.ts` (w przyszłych testach integracyjnych).
+```text
+// Po istniejącym matchMedia mock:
+import { setViewport } from './utils/viewport';
+
+beforeEach(() => {
+  setViewport('desktop'); // Reset do domyślnego
+});
+```
 
 ---
 
-## Kolejność implementacji
+## Rekomendacja
 
-1. Konfiguracja Vitest (vitest.config.ts, setup.ts, package.json, tsconfig)
-2. Unit testy phoneUtils.test.ts 
-3. E2E helpers (e2e-helpers.ts)
-4. E2E test reservation-flow.spec.ts
+Proponuję podejście hybrydowe:
 
-Po zatwierdzeniu planu, zaczynam od kroku 1.
+1. **Dla logiki biznesowej** - jeden test, bez viewport
+2. **Dla layoutu** - `describe.each` z mobile/desktop (tablet opcjonalnie)
+3. **Dla drobnych różnic CSS** - jeden test z wieloma asercjami
+
+To daje balans między pokryciem a utrzymywalnością testów.
