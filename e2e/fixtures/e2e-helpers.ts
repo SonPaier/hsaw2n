@@ -317,3 +317,138 @@ export async function updateReservationField(
   await input.first().clear();
   await input.first().fill(value);
 }
+
+/**
+ * Drags a reservation card to a new time slot on the calendar.
+ * Returns the target time as string if successful.
+ */
+export async function dragReservationToTime(
+  page: Page,
+  customerName: string,
+  targetTime: string,
+  targetStationIndex: number = 0
+): Promise<void> {
+  // Find the reservation card
+  const reservationCard = page.locator(
+    `[data-testid="reservation-card"]:has-text("${customerName}"), .reservation-block:has-text("${customerName}"), [class*="reservation"]:has-text("${customerName}")`
+  ).first();
+  
+  // Ensure it's visible
+  await reservationCard.waitFor({ state: 'visible', timeout: 5000 });
+  
+  // Find target time slot
+  // Time slots have data-time attribute or contain the time text
+  const targetSlot = page.locator(
+    `[data-time="${targetTime}"], [data-testid="time-slot-${targetTime}"]`
+  ).nth(targetStationIndex);
+  
+  // If no exact selector, try finding by time pattern in grid
+  if (!(await targetSlot.isVisible({ timeout: 1000 }).catch(() => false))) {
+    // Alternative: find by position in time column
+    const timeSlots = page.locator('[data-testid="calendar-slot"], .calendar-slot, [class*="slot"]');
+    const allSlots = await timeSlots.all();
+    
+    for (const slot of allSlots) {
+      const slotTime = await slot.getAttribute('data-time');
+      if (slotTime === targetTime) {
+        await reservationCard.dragTo(slot);
+        return;
+      }
+    }
+  }
+  
+  // Perform drag and drop
+  await reservationCard.dragTo(targetSlot);
+}
+
+/**
+ * Gets the current time displayed on a reservation card.
+ */
+export async function getReservationTime(page: Page, customerName: string): Promise<string> {
+  const reservationCard = page.locator(
+    `[data-testid="reservation-card"]:has-text("${customerName}"), .reservation-block:has-text("${customerName}"), [class*="reservation"]:has-text("${customerName}")`
+  ).first();
+  
+  const text = await reservationCard.textContent() || '';
+  
+  // Extract time pattern (e.g., "10:00 - 11:30" or "10:00-11:30")
+  const timeMatch = text.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+  if (timeMatch) {
+    return `${timeMatch[1]} - ${timeMatch[2]}`;
+  }
+  
+  return '';
+}
+
+/**
+ * Opens the time picker in the reservation edit dialog and changes start time.
+ */
+export async function changeReservationStartTime(
+  page: Page,
+  newStartTime: string
+): Promise<void> {
+  // Find start time selector/dropdown
+  const startTimeSelect = page.locator(
+    '[data-testid="start-time-select"], select[name="startTime"], [aria-label*="Godzina rozpoczęcia"], button:has-text("Rozpoczęcie")'
+  ).first();
+  
+  // Click to open dropdown
+  await startTimeSelect.click();
+  
+  // Wait for options to appear
+  await page.waitForTimeout(300);
+  
+  // Select the new time
+  const timeOption = page.locator(`[role="option"]:has-text("${newStartTime}"), [data-value="${newStartTime}"]`);
+  if (await timeOption.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+    await timeOption.first().click();
+  } else {
+    // Try clicking on dropdown item directly
+    await page.click(`text="${newStartTime}"`);
+  }
+}
+
+/**
+ * Opens the time picker in the reservation edit dialog and changes end time.
+ */
+export async function changeReservationEndTime(
+  page: Page,
+  newEndTime: string
+): Promise<void> {
+  // Find end time selector/dropdown
+  const endTimeSelect = page.locator(
+    '[data-testid="end-time-select"], select[name="endTime"], [aria-label*="Godzina zakończenia"], button:has-text("Zakończenie")'
+  ).first();
+  
+  // Click to open dropdown
+  await endTimeSelect.click();
+  
+  // Wait for options to appear
+  await page.waitForTimeout(300);
+  
+  // Select the new time
+  const timeOption = page.locator(`[role="option"]:has-text("${newEndTime}"), [data-value="${newEndTime}"]`);
+  if (await timeOption.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+    await timeOption.first().click();
+  } else {
+    await page.click(`text="${newEndTime}"`);
+  }
+}
+
+/**
+ * Verifies the time displayed in the reservation details drawer.
+ */
+export async function verifyReservationTimeInDrawer(
+  page: Page,
+  expectedStartTime: string,
+  expectedEndTime: string
+): Promise<boolean> {
+  const drawer = page.locator('[data-testid="reservation-details-drawer"], [role="dialog"]');
+  const text = await drawer.textContent() || '';
+  
+  // Check if both times are present
+  const hasStartTime = text.includes(expectedStartTime);
+  const hasEndTime = text.includes(expectedEndTime);
+  
+  return hasStartTime && hasEndTime;
+}
