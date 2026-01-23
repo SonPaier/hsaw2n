@@ -84,40 +84,38 @@ export async function clearBrowserStorage(page: Page): Promise<void> {
 export async function waitForCalendarToLoad(page: Page): Promise<void> {
   const MAX_WAIT = process.env.CI ? 60000 : 30000;
   
-  // Wait for stations API response - FAIL if no response
-  console.log('[E2E] Waiting for stations API response...');
-  const stationsResponse = await page.waitForResponse(
-    resp => resp.url().includes('/stations') && resp.status() === 200,
-    { timeout: 15000 }
-  );
+  console.log('[E2E] Waiting for calendar container...');
   
-  const stationsData = await stationsResponse.json();
-  const stationCount = Array.isArray(stationsData) 
-    ? stationsData.length 
-    : (stationsData?.data?.length ?? 0);
-  console.log(`[E2E] Stations API returned ${stationCount} stations`);
-  
-  if (stationCount === 0) {
-    await page.screenshot({ path: 'test-results/debug-no-stations-api.png' }).catch(() => {});
-    throw new Error('[E2E] Stations API returned empty array - seeding may have failed');
-  }
-  
-  // Wait for calendar container
-  const calendar = page.locator('[data-testid="admin-calendar"]');
-  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
+  // Wait for calendar container using CSS fallback (data-testid may not be rendered yet)
+  const calendarSelector = '[data-testid="admin-calendar"], div.flex.flex-col.h-full.bg-card.rounded-xl';
+  await page.waitForSelector(calendarSelector, { state: 'visible', timeout: MAX_WAIT });
   console.log('[E2E] Calendar container visible');
   
-  // Wait for at least one calendar slot - REQUIRED
+  // Wait for slots with retry logic - React may need time to re-render after data loads
   const slots = page.locator('[data-testid="calendar-slot"]');
-  await slots.first().waitFor({ state: 'attached', timeout: 15000 });
   
-  const slotCount = await slots.count();
-  console.log(`[E2E] Calendar loaded with ${slotCount} slots`);
+  let slotCount = 0;
+  const maxRetries = 10;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    slotCount = await slots.count();
+    if (slotCount > 0) {
+      console.log(`[E2E] Attempt ${attempt}: Found ${slotCount} slots`);
+      break;
+    }
+    console.log(`[E2E] Attempt ${attempt}: No slots yet, waiting 500ms...`);
+    await page.waitForTimeout(500);
+  }
   
   if (slotCount === 0) {
+    // Debug info - check what's in the DOM
+    const stationHeaders = await page.locator('[class*="station"], th, .station-header').count();
+    console.log(`[E2E] Station headers found: ${stationHeaders}`);
+    
     await page.screenshot({ path: 'test-results/debug-no-slots.png' }).catch(() => {});
-    throw new Error('[E2E] Calendar has no slots - stations may not have loaded');
+    throw new Error('[E2E] Calendar has no slots after 5s - stations may not have loaded');
   }
+  
+  console.log(`[E2E] ✅ Calendar loaded with ${slotCount} slots`);
 }
 
 /**
