@@ -144,6 +144,51 @@ describe('SelectedServicesList', () => {
     });
   });
 
+  describe('Czas trwania wg rozmiaru auta', () => {
+    it('SVC-U-027: używa duration_small dla carSize=small', () => {
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'], 
+        carSize: 'small',
+      });
+      
+      // duration_small = 25min
+      const durations = screen.getAllByText('25min');
+      expect(durations.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('SVC-U-028: używa duration_medium dla carSize=medium', () => {
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'], 
+        carSize: 'medium',
+      });
+      
+      // duration_medium = 30min
+      const durations = screen.getAllByText('30min');
+      expect(durations.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('SVC-U-029: używa duration_large dla carSize=large', () => {
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'], 
+        carSize: 'large',
+      });
+      
+      // duration_large = 40min
+      const durations = screen.getAllByText('40min');
+      expect(durations.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('SVC-U-030: sumuje czas trwania wielu usług wg rozmiaru', () => {
+      renderComponent({ 
+        selectedServiceIds: ['svc-1', 'svc-3'], // MP + WOS
+        carSize: 'small',
+      });
+      
+      // duration_small: 25 + 35 = 60min = 1h
+      expect(screen.getByText('1h')).toBeInTheDocument();
+    });
+  });
+
   describe('Konwersja net-to-brutto', () => {
     it('SVC-U-023: konwertuje cenę netto na brutto (x1.23, zaokrąglone do 5)', () => {
       renderComponent({ 
