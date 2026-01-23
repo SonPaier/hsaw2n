@@ -102,16 +102,37 @@ test.describe('Reservation Flow', () => {
     // Login
     await loginAsAdmin(page);
 
+    // IMPORTANT: Reload page to fetch freshly seeded data
+    console.log('🔄 Reloading to fetch seeded data...');
+    await page.reload({ waitUntil: 'networkidle' });
+
     // Wait for calendar to load
     await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
-      timeout: 10000,
+      timeout: 15000,
     });
 
+    // Wait for stations to render (they appear as columns in the grid)
+    await page.waitForTimeout(2000);
+
+    // Debug: Check what's on the page
+    const pageContent = await page.content();
+    console.log(`[E2E] Page has ${pageContent.length} chars`);
+    
+    // Look for draggable elements (reservation cards)
+    const draggables = await page.locator('div[draggable="true"]').all();
+    console.log(`[E2E] Found ${draggables.length} draggable elements`);
+
     // Verify at least one reservation is visible
-    const reservations = page.locator('[data-testid="reservation-card"], .reservation-block, [class*="reservation"]');
+    const reservations = page.locator('div[draggable="true"], [data-testid="reservation-card"], .reservation-block');
     const count = await reservations.count();
     
     console.log(`📊 Found ${count} reservations on calendar`);
+    
+    if (count === 0) {
+      await page.screenshot({ path: 'test-results/debug-rf002-no-reservations.png' }).catch(() => {});
+      console.log('[E2E] Screenshot saved: debug-rf002-no-reservations.png');
+    }
+    
     expect(count).toBeGreaterThan(0);
   });
 
@@ -128,10 +149,17 @@ test.describe('Reservation Flow', () => {
     console.log('🔐 Logging in as admin...');
     await loginAsAdmin(page);
 
+    // IMPORTANT: Reload page to fetch freshly seeded data
+    console.log('🔄 Reloading to fetch seeded data...');
+    await page.reload({ waitUntil: 'networkidle' });
+
     // Wait for calendar
     await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
-      timeout: 10000,
+      timeout: 15000,
     });
+
+    // Wait for data to load
+    await page.waitForTimeout(2000);
 
     // Debug: log all elements that could be reservations
     console.log('🔍 Looking for reservations on calendar...');
