@@ -1,5 +1,5 @@
 
-# Plan: Unit testy dla nawigacji (Sidebar/MobileBottomNav)
+# Plan: Unit testy dla nawigacji (Sidebar/MobileBottomNav) ✅ DONE
 
 ## Cel
 Utworzenie kompleksowych testów jednostkowych dla komponentów nawigacyjnych panelu admina, pokrywających różne scenariusze widoczności menu items w zależności od:
