@@ -30,12 +30,12 @@ test.describe('Reservation Happy Path', () => {
     const seedResult = await seedE2EScenario('basic');
     console.log('Seed result:', JSON.stringify(seedResult, null, 2));
 
-    // Validate seed result
-    const created = seedResult.created as { stationIds?: string[]; serviceIds?: string[] } | undefined;
-    if (!created?.stationIds?.length) {
-      throw new Error(`Seeding failed: no stationIds in result: ${JSON.stringify(seedResult)}`);
+    // Validate seed result - API returns createdData.stations as count
+    const createdData = seedResult.createdData as { stations?: number; services?: number } | undefined;
+    if (!createdData?.stations || createdData.stations === 0) {
+      throw new Error(`Seeding failed: no stations created: ${JSON.stringify(seedResult)}`);
     }
-    console.log(`✅ Seeded ${created.stationIds.length} stations, ${created.serviceIds?.length ?? 0} services`);
+    console.log(`✅ Seeded ${createdData.stations} stations, ${createdData.services ?? 0} services`);
 
     // Short pause for database propagation
     await new Promise(r => setTimeout(r, 500));
