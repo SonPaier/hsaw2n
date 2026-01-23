@@ -46,8 +46,13 @@ test.describe('Reservation Happy Path', () => {
     await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
       timeout: 15000,
     });
-    await page.waitForTimeout(2000);
-    console.log('✅ Calendar loaded');
+    
+    // Wait for calendar slots to render (they have data-testid="calendar-slot")
+    console.log('⏳ Waiting for calendar slots to render...');
+    await page.waitForSelector('[data-testid="calendar-slot"]', { timeout: 10000 });
+    
+    const slotCount = await page.locator('[data-testid="calendar-slot"]').count();
+    console.log(`✅ Calendar loaded with ${slotCount} slots`);
 
     // ========================================================================
     // STEP 2: Create reservation by clicking on calendar slot
@@ -61,23 +66,19 @@ test.describe('Reservation Happy Path', () => {
       plate: 'WE E2E01',
     };
 
-    // Find and click on a calendar time slot (not a reservation, just empty slot)
-    // The calendar grid has clickable areas per station column
-    const calendarGrid = page.locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]').first();
-    const gridBox = await calendarGrid.boundingBox();
+    // Click on a slot around 10:00
+    const targetSlot = page.locator('[data-testid="calendar-slot"][data-time="10:00"]').first();
+    const slotVisible = await targetSlot.isVisible({ timeout: 3000 }).catch(() => false);
     
-    if (!gridBox) {
-      await page.screenshot({ path: 'test-results/debug-no-calendar-grid.png' });
-      throw new Error('Calendar grid not found');
+    if (slotVisible) {
+      console.log('[E2E] Found slot at 10:00, clicking...');
+      await targetSlot.click();
+    } else {
+      // Fallback: click any visible slot
+      console.log('[E2E] 10:00 slot not found, clicking first available slot...');
+      const anySlot = page.locator('[data-testid="calendar-slot"]').first();
+      await anySlot.click();
     }
-
-    // Click at ~10:00 position in first station column
-    // Assuming grid starts around x+100 (time column) and slots are ~30px high
-    const clickX = gridBox.x + gridBox.width * 0.25; // First station column
-    const clickY = gridBox.y + 200; // ~10:00 position
-    
-    console.log(`[E2E] Clicking on calendar grid at (${Math.round(clickX)}, ${Math.round(clickY)})`);
-    await page.mouse.click(clickX, clickY);
     
     // Wait for dialog to open
     const dialogOpened = await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => null);
