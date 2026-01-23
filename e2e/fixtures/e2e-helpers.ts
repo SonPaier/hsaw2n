@@ -78,8 +78,51 @@ export async function clearBrowserStorage(page: Page): Promise<void> {
 }
 
 /**
+ * Waits for calendar to fully load with stations and slots.
+ * This is the key function to avoid race conditions.
+ */
+export async function waitForCalendarToLoad(page: Page): Promise<void> {
+  const MAX_WAIT = process.env.CI ? 60000 : 30000;
+  
+  // Wait for stations API response - FAIL if no response
+  console.log('[E2E] Waiting for stations API response...');
+  const stationsResponse = await page.waitForResponse(
+    resp => resp.url().includes('/stations') && resp.status() === 200,
+    { timeout: 15000 }
+  );
+  
+  const stationsData = await stationsResponse.json();
+  const stationCount = Array.isArray(stationsData) 
+    ? stationsData.length 
+    : (stationsData?.data?.length ?? 0);
+  console.log(`[E2E] Stations API returned ${stationCount} stations`);
+  
+  if (stationCount === 0) {
+    await page.screenshot({ path: 'test-results/debug-no-stations-api.png' }).catch(() => {});
+    throw new Error('[E2E] Stations API returned empty array - seeding may have failed');
+  }
+  
+  // Wait for calendar container
+  const calendar = page.locator('[data-testid="admin-calendar"]');
+  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
+  console.log('[E2E] Calendar container visible');
+  
+  // Wait for at least one calendar slot - REQUIRED
+  const slots = page.locator('[data-testid="calendar-slot"]');
+  await slots.first().waitFor({ state: 'attached', timeout: 15000 });
+  
+  const slotCount = await slots.count();
+  console.log(`[E2E] Calendar loaded with ${slotCount} slots`);
+  
+  if (slotCount === 0) {
+    await page.screenshot({ path: 'test-results/debug-no-slots.png' }).catch(() => {});
+    throw new Error('[E2E] Calendar has no slots - stations may not have loaded');
+  }
+}
+
+/**
  * Logs in as admin to the E2E instance.
- * Navigates to login page, fills credentials, and waits for dashboard.
+ * Navigates to login page, fills credentials, and waits for dashboard with loaded stations.
  */
 export async function loginAsAdmin(page: Page, clearStorage = true): Promise<void> {
   // Clear storage before login to avoid stale tokens
@@ -106,10 +149,10 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
     usernameInput.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => null),
   ]);
 
-  // If already logged in (redirect happened), wait for calendar and finish.
+  // If already logged in (redirect happened), wait for calendar with stations.
   if (!page.url().includes('/login')) {
-    const calendar = page.locator('[data-testid="admin-calendar"]');
-    await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
+    console.log('[E2E] Already logged in, waiting for calendar to load...');
+    await waitForCalendarToLoad(page);
     return;
   }
 
@@ -130,9 +173,10 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
     submitButton.click(),
   ]);
 
-  // Wait for dashboard to load (calendar view)
-  const calendar = page.locator('[data-testid="admin-calendar"]');
-  await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
+  // Wait for dashboard to load with stations
+  console.log('[E2E] Logged in, waiting for calendar to load with stations...');
+  await waitForCalendarToLoad(page);
+  console.log('[E2E] ✅ Login complete - calendar loaded with stations');
 }
 
 /**
