@@ -173,18 +173,18 @@ describe('ServiceSelectionDrawer', () => {
         expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
       });
       
-      // Find and click service button
+      // Find and click service button that is NOT selected (no checkmark)
       const serviceButtons = screen.getAllByRole('button');
-      const mycieButton = serviceButtons.find(btn => 
-        btn.textContent?.includes('Mycie podstawowe')
+      const wosButton = serviceButtons.find(btn => 
+        btn.textContent?.includes('Woskowanie')
       );
       
-      if (mycieButton) {
-        await user.click(mycieButton);
+      if (wosButton) {
+        await user.click(wosButton);
         
-        // Should show selected chip
+        // Should show selected chip - UI shows "Zaznaczone"
         await waitFor(() => {
-          expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
+          expect(screen.getByText(/Zaznaczone/i)).toBeInTheDocument();
         });
       }
     });
@@ -192,8 +192,9 @@ describe('ServiceSelectionDrawer', () => {
     it('SDRW-U-021: wyświetla wstępnie wybrane usługi', async () => {
       renderComponent({ selectedServiceIds: ['svc-1'] });
       
+      // UI shows "Zaznaczone" not "Wybrane usługi"
       await waitFor(() => {
-        expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
+        expect(screen.getByText(/Zaznaczone/i)).toBeInTheDocument();
       });
     });
 
@@ -201,8 +202,9 @@ describe('ServiceSelectionDrawer', () => {
       const user = userEvent.setup();
       renderComponent({ selectedServiceIds: ['svc-1'] });
       
+      // UI shows "Zaznaczone" not "Wybrane usługi"
       await waitFor(() => {
-        expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
+        expect(screen.getByText(/Zaznaczone/i)).toBeInTheDocument();
       });
       
       // Find the selected chip with X icon
@@ -216,7 +218,7 @@ describe('ServiceSelectionDrawer', () => {
         
         await waitFor(() => {
           // Should no longer show selected services section if no services selected
-          expect(screen.queryByText(/Wybrane usługi \(1\)/)).not.toBeInTheDocument();
+          expect(screen.queryByText(/Zaznaczone.*\(1\)/i)).not.toBeInTheDocument();
         });
       }
     });
@@ -231,8 +233,9 @@ describe('ServiceSelectionDrawer', () => {
         onConfirm,
       });
       
+      // UI shows "Zaznaczone" not "Wybrane usługi"
       await waitFor(() => {
-        expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
+        expect(screen.getByText(/Zaznaczone/i)).toBeInTheDocument();
       });
       
       // Button says "Dodaj" not "Potwierdź"
@@ -253,8 +256,9 @@ describe('ServiceSelectionDrawer', () => {
         onConfirm,
       });
       
+      // UI shows "Zaznaczone" not "Wybrane usługi"
       await waitFor(() => {
-        expect(screen.getByText(/Wybrane usługi/i)).toBeInTheDocument();
+        expect(screen.getByText(/Zaznaczone/i)).toBeInTheDocument();
       });
       
       const confirmButton = screen.getByRole('button', { name: /dodaj/i });
