@@ -12,6 +12,7 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://e2e.admin.n2wash.com",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    video: "on", // Always record video for debugging
   },
   projects: [
     {
