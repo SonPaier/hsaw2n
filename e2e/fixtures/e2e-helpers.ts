@@ -91,9 +91,6 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
   // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-  // Use strict data-testid selector for calendar
-  const calendar = page.locator('[data-testid="admin-calendar"]');
-
   // Prefer robust, accessibility-based selectors
   const usernameInput = page.getByLabel(/login/i).first();
   const passwordInput = page.getByLabel(/hasło/i).first();
@@ -101,16 +98,20 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
 
   console.log('[E2E] loginAsAdmin url:', page.url());
 
-  // Cold start: wait until either dashboard already visible OR login form appears.
+  // Cold start: wait until either login form appears OR app redirects to /admin (already logged in)
   const MAX_WAIT = process.env.CI ? 60000 : 30000;
 
   await Promise.race([
-    calendar.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => {}),
-    usernameInput.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => {}),
+    page.waitForURL(/\/admin(\/|\?|$)/, { timeout: MAX_WAIT }).catch(() => null),
+    usernameInput.waitFor({ state: 'visible', timeout: MAX_WAIT }).catch(() => null),
   ]);
 
-  // If already logged in, we're done.
-  if (await calendar.isVisible().catch(() => false)) return;
+  // If already logged in (redirect happened), wait for calendar and finish.
+  if (!page.url().includes('/login')) {
+    const calendar = page.locator('[data-testid="admin-calendar"]');
+    await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
+    return;
+  }
 
   // If we are still on a loader, wait a bit longer for the form.
   const spinner = page.locator('[class*="animate-spin"], svg.animate-spin').first();
@@ -124,9 +125,13 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
   await usernameInput.fill(E2E_ADMIN.username);
   await passwordInput.fill(E2E_ADMIN.password);
 
-  await submitButton.click();
+  await Promise.all([
+    page.waitForURL(/\/admin(\/|\?|$)/, { timeout: MAX_WAIT }).catch(() => null),
+    submitButton.click(),
+  ]);
 
   // Wait for dashboard to load (calendar view)
+  const calendar = page.locator('[data-testid="admin-calendar"]');
   await calendar.waitFor({ state: 'visible', timeout: MAX_WAIT });
 }
 
