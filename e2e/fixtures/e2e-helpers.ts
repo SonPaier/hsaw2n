@@ -10,9 +10,10 @@ export const E2E_CONFIG = {
 };
 
 // Admin credentials for E2E testing
+// IMPORTANT: In CI, use GitHub Secrets (E2E_ADMIN_USERNAME, E2E_ADMIN_PASSWORD)
 export const E2E_ADMIN = {
-  email: 'admin@e2e.test',
-  password: 'e2e-test-password-123',
+  username: process.env.E2E_ADMIN_USERNAME || 'admine2e',
+  password: process.env.E2E_ADMIN_PASSWORD || 'bbE9475A!dd4as_!x#',
 };
 
 /**
@@ -71,13 +72,13 @@ export async function seedE2EScenario(
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
   // Navigate to E2E instance login
-  await page.goto(`/${E2E_CONFIG.instanceSlug}`);
+  await page.goto(`/${E2E_CONFIG.instanceSlug}/login`);
   
   // Wait for login form
-  await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 10000 });
+  await page.waitForSelector('input[name="username"], input[placeholder*="Login"]', { timeout: 10000 });
   
-  // Fill credentials
-  await page.fill('input[type="email"], input[name="email"]', E2E_ADMIN.email);
+  // Fill credentials (username-based login)
+  await page.fill('input[name="username"], input[placeholder*="Login"]', E2E_ADMIN.username);
   await page.fill('input[type="password"], input[name="password"]', E2E_ADMIN.password);
   
   // Submit login
