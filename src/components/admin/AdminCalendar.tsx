@@ -1821,7 +1821,7 @@ const AdminCalendar = ({
                         // Today's earlier hours remain clickable for admin flexibility
                         const isDayClosedInDb = isDateClosed(dayStr);
                         const isDisabled = isPastDay || isOutsideWorkingHours || isDayClosedInDb || dayHours.isClosed;
-                        return <div key={slotIndex} className={cn("border-b group transition-colors relative", slotIndex % 3 === 0 && "border-border/50", slotIndex % 3 !== 0 && "border-border/20", isDropTarget && !isDisabled && "bg-primary/30 border-primary", !isDropTarget && !isDisabled && "hover:bg-primary/5 hover:z-50 cursor-pointer", isDisabled && "cursor-not-allowed")} style={{
+                        return <div key={slotIndex} data-testid="calendar-slot" data-time={`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`} data-station={station.id} data-date={dayStr} className={cn("border-b group transition-colors relative", slotIndex % 3 === 0 && "border-border/50", slotIndex % 3 !== 0 && "border-border/20", isDropTarget && !isDisabled && "bg-primary/30 border-primary", !isDropTarget && !isDisabled && "hover:bg-primary/5 hover:z-50 cursor-pointer", isDisabled && "cursor-not-allowed")} style={{
                           height: SLOT_HEIGHT
                         }} onClick={() => !isDisabled && handleSlotClick(station.id, hour, slotIndex, dayStr)} onContextMenu={e => !isDisabled && handleSlotContextMenu(e, station.id, hour, slotIndex, dayStr)} onTouchStart={() => !isDisabled && handleTouchStart(station.id, hour, slotIndex, dayStr)} onTouchEnd={handleTouchEnd} onTouchMove={handleTouchMove} onDragOver={e => {
                           e.preventDefault();
@@ -2078,7 +2078,7 @@ const AdminCalendar = ({
                     // Disable only for past days (not today) OR outside working hours OR day is closed
                     // Today's earlier hours should remain clickable!
                     const isDisabled = isPastDay || isOutsideWorkingHours || isDayClosed;
-                    return <div key={slotIndex} className={cn("border-b group transition-colors relative", slotIndex % 2 === 0 && "border-border/50", slotIndex % 2 !== 0 && "border-border/20", isDropTarget && !isDisabled && "bg-primary/30 border-primary", !isDropTarget && !isDisabled && "hover:bg-primary/5 hover:z-50 cursor-pointer", isDisabled && "cursor-not-allowed")} style={{
+                    return <div key={slotIndex} data-testid="calendar-slot" data-time={`${hour.toString().padStart(2, '0')}:${(slotIndex * SLOT_MINUTES).toString().padStart(2, '0')}`} data-station={selectedStationId} data-date={dayStr} className={cn("border-b group transition-colors relative", slotIndex % 2 === 0 && "border-border/50", slotIndex % 2 !== 0 && "border-border/20", isDropTarget && !isDisabled && "bg-primary/30 border-primary", !isDropTarget && !isDisabled && "hover:bg-primary/5 hover:z-50 cursor-pointer", isDisabled && "cursor-not-allowed")} style={{
                       height: SLOT_HEIGHT
                     }} onClick={() => !isDisabled && selectedStationId && handleSlotClick(selectedStationId, hour, slotIndex, dayStr)} onContextMenu={e => !isDisabled && selectedStationId && handleSlotContextMenu(e, selectedStationId, hour, slotIndex, dayStr)} onTouchStart={() => !isDisabled && selectedStationId && handleTouchStart(selectedStationId, hour, slotIndex, dayStr)} onTouchEnd={handleTouchEnd} onTouchMove={handleTouchMove} onDragOver={e => {
                       e.preventDefault();
