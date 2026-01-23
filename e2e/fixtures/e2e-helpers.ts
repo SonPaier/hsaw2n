@@ -115,60 +115,62 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
- * Opens the "Add Reservation" dialog.
+ * Opens the "Add Reservation" dialog by clicking on a time slot in the calendar grid.
+ * On desktop, reservations are added by clicking on an empty time slot, not via a button.
  */
 export async function openAddReservationDialog(page: Page): Promise<void> {
-  console.log('[E2E] openAddReservationDialog: looking for add button...');
+  console.log('[E2E] openAddReservationDialog: looking for calendar time slots...');
   
-  // Log all visible buttons for debugging
-  const allButtons = await page.locator('button').all();
-  console.log(`[E2E] Found ${allButtons.length} buttons on page`);
-  for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
-    const text = await allButtons[i].textContent().catch(() => '');
-    const visible = await allButtons[i].isVisible().catch(() => false);
-    console.log(`[E2E] Button ${i}: "${text?.trim().substring(0, 30)}" visible=${visible}`);
-  }
+  // Wait for calendar grid to be fully loaded
+  await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
+    timeout: 10000,
+  });
   
-  // Look for "Dodaj rezerwację" button, or a plus icon button (FAB style)
-  const addButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Nowa rezerwacja"), [data-testid="add-reservation-btn"]');
-  const addButtonCount = await addButton.count();
-  console.log(`[E2E] Add button selector matched ${addButtonCount} elements`);
+  // Find clickable time slots in the calendar grid
+  // These are typically divs with specific height that represent 15-30 minute intervals
+  const timeSlots = page.locator('[data-testid="time-slot"], .calendar-slot, [class*="slot"]:not([class*="header"])');
+  const slotCount = await timeSlots.count();
+  console.log(`[E2E] Found ${slotCount} time slot elements`);
   
-  let buttonToClick = addButton.first();
-  
-  if (addButtonCount === 0) {
-    // Try plus icon button (FAB) - common pattern for "add" actions
-    const plusButton = page.locator('button:has(.lucide-plus), button:has(svg[class*="plus"]), button[aria-label*="Dodaj"], button[aria-label*="Add"]');
-    const plusCount = await plusButton.count();
-    console.log(`[E2E] Plus icon button matched ${plusCount} elements`);
+  if (slotCount > 0) {
+    // Click on a slot in the middle of the working day (around 10:00-11:00)
+    // Try to find a slot that's not occupied
+    const targetSlot = timeSlots.nth(Math.min(8, slotCount - 1)); // ~10:00 if slots start at 8:00
+    await targetSlot.click();
+    console.log('[E2E] Clicked on calendar time slot');
+  } else {
+    // Fallback: try clicking directly on the calendar grid area
+    // The grid cells are clickable divs in the time column
+    console.log('[E2E] No explicit slots found, trying direct grid click...');
     
-    if (plusCount > 0) {
-      buttonToClick = plusButton.first();
-      console.log('[E2E] Using plus icon button as fallback');
+    // Look for the calendar content area (station columns)
+    const calendarContent = page.locator('.calendar-content, [class*="calendar"] > div').first();
+    
+    if (await calendarContent.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Click in the center of the calendar, slightly below the header
+      const box = await calendarContent.boundingBox();
+      if (box) {
+        // Click at around 10:00 position (assuming 8:00-20:00 working hours)
+        const clickY = box.y + box.height * 0.2; // ~20% from top for 10:00
+        const clickX = box.x + box.width * 0.3; // First station column
+        await page.mouse.click(clickX, clickY);
+        console.log(`[E2E] Clicked on calendar at (${clickX}, ${clickY})`);
+      }
     } else {
-      // Log page URL and any visible dialogs
-      console.log(`[E2E] Current URL: ${page.url()}`);
-      const dialogs = await page.locator('[role="dialog"]').count();
-      console.log(`[E2E] Visible dialogs: ${dialogs}`);
+      // Last resort: try the add button (for mobile or alternative layouts)
+      const addButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Nowa rezerwacja"), [data-testid="add-reservation-btn"], button:has(.lucide-plus)');
+      const addButtonCount = await addButton.count();
+      console.log(`[E2E] Add button fallback matched ${addButtonCount} elements`);
       
-      // Take a screenshot for debugging
-      await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
-      console.log('[E2E] Screenshot saved to test-results/debug-add-button.png');
-      
-      throw new Error('[E2E] Add reservation button not found');
+      if (addButtonCount > 0) {
+        await addButton.first().click();
+        console.log('[E2E] Clicked add button as fallback');
+      } else {
+        await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
+        throw new Error('[E2E] Could not find way to add reservation');
+      }
     }
   }
-  
-  const isVisible = await buttonToClick.isVisible({ timeout: 5000 }).catch(() => false);
-  console.log(`[E2E] Add button visible: ${isVisible}`);
-  
-  if (!isVisible) {
-    await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
-    throw new Error('[E2E] Add reservation button not found or not visible');
-  }
-  
-  await buttonToClick.click();
-  console.log('[E2E] Clicked add reservation button');
   
   // Wait for dialog to open
   await page.waitForSelector('[role="dialog"], [data-testid="reservation-dialog"]', { timeout: 5000 });
