@@ -59,7 +59,18 @@ test.describe('Reservation Flow', () => {
     await expect(page).not.toHaveURL(/\/login(\?|$)/);
     console.log('✅ Logged in successfully');
 
-    // Step 2: Open Add Reservation dialog
+    // IMPORTANT: Reload to fetch freshly seeded stations
+    console.log('🔄 Reloading to fetch seeded stations...');
+    await page.reload({ waitUntil: 'networkidle' });
+    
+    // Wait for calendar with stations to render
+    await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
+      timeout: 15000,
+    });
+    await page.waitForTimeout(2000); // Let stations render
+    console.log('✅ Calendar with stations loaded');
+
+    // Step 2: Open Add Reservation dialog by clicking on calendar slot
     console.log('📝 Opening add reservation dialog...');
     await openAddReservationDialog(page);
     console.log('✅ Dialog opened');
