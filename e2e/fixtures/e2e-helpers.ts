@@ -118,12 +118,52 @@ export async function loginAsAdmin(page: Page): Promise<void> {
  * Opens the "Add Reservation" dialog.
  */
 export async function openAddReservationDialog(page: Page): Promise<void> {
+  console.log('[E2E] openAddReservationDialog: looking for add button...');
+  
+  // Log all visible buttons for debugging
+  const allButtons = await page.locator('button').all();
+  console.log(`[E2E] Found ${allButtons.length} buttons on page`);
+  for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
+    const text = await allButtons[i].textContent().catch(() => '');
+    const visible = await allButtons[i].isVisible().catch(() => false);
+    console.log(`[E2E] Button ${i}: "${text?.trim().substring(0, 30)}" visible=${visible}`);
+  }
+  
   // Look for "Dodaj rezerwację" button or similar
   const addButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Nowa rezerwacja"), [data-testid="add-reservation-btn"]');
-  await addButton.first().click();
+  const addButtonCount = await addButton.count();
+  console.log(`[E2E] Add button selector matched ${addButtonCount} elements`);
+  
+  if (addButtonCount === 0) {
+    // Try alternative selectors
+    const plusButton = page.locator('button:has(.lucide-plus), button:has(svg[class*="plus"])');
+    const plusCount = await plusButton.count();
+    console.log(`[E2E] Plus icon button matched ${plusCount} elements`);
+    
+    // Log page URL and any visible dialogs
+    console.log(`[E2E] Current URL: ${page.url()}`);
+    const dialogs = await page.locator('[role="dialog"]').count();
+    console.log(`[E2E] Visible dialogs: ${dialogs}`);
+    
+    // Take a screenshot for debugging
+    await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
+    console.log('[E2E] Screenshot saved to test-results/debug-add-button.png');
+  }
+  
+  const firstButton = addButton.first();
+  const isVisible = await firstButton.isVisible({ timeout: 5000 }).catch(() => false);
+  console.log(`[E2E] Add button visible: ${isVisible}`);
+  
+  if (!isVisible) {
+    throw new Error('[E2E] Add reservation button not found or not visible');
+  }
+  
+  await firstButton.click();
+  console.log('[E2E] Clicked add reservation button');
   
   // Wait for dialog to open
   await page.waitForSelector('[role="dialog"], [data-testid="reservation-dialog"]', { timeout: 5000 });
+  console.log('[E2E] Dialog opened successfully');
 }
 
 /**
