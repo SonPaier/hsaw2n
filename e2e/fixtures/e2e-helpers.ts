@@ -123,14 +123,14 @@ export async function waitForCalendarToLoad(page: Page): Promise<void> {
  * Navigates to login page, fills credentials, and waits for dashboard with loaded stations.
  */
 export async function loginAsAdmin(page: Page, clearStorage = true): Promise<void> {
-  // Clear storage before login to avoid stale tokens
+  // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
+  // This is the FIRST page load - data should already be seeded before calling this
+  await page.goto('/login', { waitUntil: 'networkidle' });
+  
+  // Clear storage to avoid stale tokens
   if (clearStorage) {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await clearBrowserStorage(page);
   }
-  
-  // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
-  await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
   // Prefer robust, accessibility-based selectors
   const usernameInput = page.getByLabel(/login/i).first();
@@ -166,17 +166,14 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
   await usernameInput.fill(E2E_ADMIN.username);
   await passwordInput.fill(E2E_ADMIN.password);
 
+  // Click login - React Router will navigate to /admin (SPA navigation, no reload)
   await Promise.all([
-    page.waitForURL(/\/admin(\/|\?|$)/, { timeout: MAX_WAIT }).catch(() => null),
+    page.waitForURL(/\/admin(\/|\?|$)/, { timeout: MAX_WAIT }),
     submitButton.click(),
   ]);
 
-  // Wait for dashboard to load with stations
-  console.log('[E2E] Logged in, reloading to ensure fresh data after seed...');
-  
-  // Force reload to pick up freshly seeded data (React Query may have stale cache)
-  await page.reload({ waitUntil: 'networkidle' });
-  
+  // Wait for dashboard to load with stations (data was seeded before page opened)
+  console.log('[E2E] Logged in via SPA navigation, waiting for calendar...');
   await waitForCalendarToLoad(page);
   console.log('[E2E] ✅ Login complete - calendar loaded with stations');
 }
