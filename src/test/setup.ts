@@ -1,18 +1,10 @@
 import "@testing-library/jest-dom";
+import { beforeEach } from "vitest";
+import { setViewport } from "./utils/viewport";
 
-// Mock matchMedia for components using media queries
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
+// Reset viewport to desktop before each test for isolation
+beforeEach(() => {
+  setViewport("desktop");
 });
 
 // Mock ResizeObserver for components using it

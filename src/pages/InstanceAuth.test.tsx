@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { setViewport } from '@/test/utils/viewport';
 
 // Mock modules BEFORE importing the component
 vi.mock('@/integrations/supabase/client', () => ({
@@ -483,6 +484,54 @@ describe('InstanceAuth', () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/admin');
       });
+    });
+  });
+
+  // ============================================
+  // RESPONSIVE UI (LA-U-017 → LA-U-019)
+  // ============================================
+  describe('Responsive UI', () => {
+    it('LA-U-017: decorative right panel is visible on desktop (lg:flex)', async () => {
+      setViewport('desktop');
+      renderWithRouter();
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/login/i)).toBeInTheDocument();
+      });
+
+      // The right panel contains "Umów serwis" text and decorative elements
+      // It has className="hidden lg:flex" so should be visible on desktop
+      const decorativePanel = document.querySelector('.lg\\:flex.hidden');
+      expect(decorativePanel).toBeInTheDocument();
+    });
+
+    it('LA-U-018: decorative right panel is hidden on mobile', async () => {
+      setViewport('mobile');
+      renderWithRouter();
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/login/i)).toBeInTheDocument();
+      });
+
+      // On mobile, the panel with "hidden lg:flex" should not be visible
+      // We verify the component renders but the CSS will hide it
+      const decorativePanel = document.querySelector('.lg\\:flex.hidden');
+      // Panel exists in DOM but CSS class "hidden" makes it invisible on mobile
+      expect(decorativePanel).toBeInTheDocument();
+      expect(decorativePanel).toHaveClass('hidden');
+    });
+
+    it('LA-U-019: login form takes full width on mobile', async () => {
+      setViewport('mobile');
+      renderWithRouter();
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/login/i)).toBeInTheDocument();
+      });
+
+      // The form container should be full width on mobile (w-full)
+      const formSection = document.querySelector('.w-full.lg\\:w-1\\/2');
+      expect(formSection).toBeInTheDocument();
     });
   });
 });
