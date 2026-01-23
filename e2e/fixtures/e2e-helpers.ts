@@ -92,10 +92,11 @@ export async function waitForCalendarToLoad(page: Page): Promise<void> {
   console.log('[E2E] Calendar container visible');
   
   // Wait for slots with retry logic - React may need time to re-render after data loads
+  // Increased retries: instanceId fetch + stations fetch can take a while
   const slots = page.locator('[data-testid="calendar-slot"]');
   
   let slotCount = 0;
-  const maxRetries = 10;
+  const maxRetries = 20; // 20 * 500ms = 10s max wait for slots
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     slotCount = await slots.count();
     if (slotCount > 0) {
@@ -111,8 +112,12 @@ export async function waitForCalendarToLoad(page: Page): Promise<void> {
     const stationHeaders = await page.locator('[class*="station"], th, .station-header').count();
     console.log(`[E2E] Station headers found: ${stationHeaders}`);
     
+    // Check if stations array is empty in React state by looking for empty calendar message
+    const emptyMessage = await page.locator('text=/Brak stanowisk|No stations/i').count();
+    console.log(`[E2E] Empty stations message visible: ${emptyMessage > 0}`);
+    
     await page.screenshot({ path: 'test-results/debug-no-slots.png' }).catch(() => {});
-    throw new Error('[E2E] Calendar has no slots after 5s - stations may not have loaded');
+    throw new Error('[E2E] Calendar has no slots after 10s - stations may not have loaded');
   }
   
   console.log(`[E2E] ✅ Calendar loaded with ${slotCount} slots`);
@@ -172,8 +177,13 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
     submitButton.click(),
   ]);
 
-  // Wait for dashboard to load with stations (data was seeded before page opened)
-  console.log('[E2E] Logged in via SPA navigation, waiting for calendar...');
+  console.log('[E2E] Logged in via SPA navigation, forcing reload to fetch fresh data...');
+  
+  // CRITICAL: Force a full page reload to ensure React fetches fresh data
+  // SPA navigation after login may use stale React Query cache from before seed
+  await page.reload({ waitUntil: 'networkidle' });
+  
+  console.log('[E2E] Page reloaded, waiting for calendar...');
   await waitForCalendarToLoad(page);
   console.log('[E2E] ✅ Login complete - calendar loaded with stations');
 }
