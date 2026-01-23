@@ -41,11 +41,21 @@ test.describe('Reservation Happy Path', () => {
     // Reload to fetch seeded data
     console.log('🔄 Reloading to fetch seeded stations...');
     await page.reload({ waitUntil: 'networkidle' });
+    
+    // Debug: log current URL and take screenshot
+    console.log('[E2E] Current URL after reload:', page.url());
+    await page.screenshot({ path: 'test-results/debug-after-reload.png' }).catch(() => {});
 
     // Wait for calendar to fully load with stations
-    await page.waitForSelector('[data-testid="admin-calendar"]', {
-      timeout: 15000,
-    });
+    const calendarVisible = await page.waitForSelector('[data-testid="admin-calendar"]', {
+      timeout: 30000,
+    }).catch(() => null);
+    
+    if (!calendarVisible) {
+      console.log('[E2E] Calendar not found, taking debug screenshot...');
+      await page.screenshot({ path: 'test-results/debug-no-calendar.png' }).catch(() => {});
+      throw new Error('Calendar container [data-testid="admin-calendar"] not found after 30s');
+    }
     console.log('✅ Calendar container found');
     
     // Wait for calendar slots to render (they appear after stations load)

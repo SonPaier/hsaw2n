@@ -91,9 +91,8 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
   // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-  const calendar = page
-    .locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]')
-    .first();
+  // Use strict data-testid selector for calendar
+  const calendar = page.locator('[data-testid="admin-calendar"]');
 
   // Prefer robust, accessibility-based selectors
   const usernameInput = page.getByLabel(/login/i).first();
