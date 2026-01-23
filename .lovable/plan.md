@@ -1,209 +1,272 @@
 
-# Plan: Strategia testowania responsywności UI (mobile/tablet/desktop)
+# Plan: Unit testy dla AddReservationDialogV2
 
-## Analiza obecnego stanu
+## Analiza komponentu
 
-### Wzorce responsywności w projekcie:
-1. **Hook `useIsMobile`** - zwraca `true` gdy `window.innerWidth < 768px`
-2. **Conditional rendering** - np. w `ProductsView`:
-   - Mobile (linie 422-502): layout kartowy
-   - Desktop (linie 503-607): layout tabelowy
-3. **CSS-only responsiveness** - klasy Tailwind jak `hidden sm:inline`, `flex-col sm:flex-row`
-4. **Różna paginacja** - mobile pokazuje tylko `X / Y`, desktop ma też selektor ilości na stronę
+Komponent `AddReservationDialogV2.tsx` (~2850 linii) obsługuje 4 tryby:
+- **reservation** - rezerwacje myjni (sloty czasowe)
+- **yard** - pojazdy na placu (bez slotów)
+- **ppf** - folie ochronne (zakres dat)
+- **detailing** - detailing (zakres dat)
 
-### Typowe różnice UI (mobile vs desktop):
-| Aspekt | Mobile | Desktop |
-|--------|--------|---------|
-| Listy produktów | Karty | Tabela |
-| Przyciski akcji | Tylko ikony | Ikona + tekst |
-| Paginacja | Prosta | Z selektorem page size |
-| Nawigacja | Bottom nav bar | Sidebar/Top bar |
-| Dialogi | Fullscreen drawer | Centered modal |
+Każdy tryb ma osobną walidację i logikę zapisu.
 
 ---
 
-## Proponowane podejście do testów
+## Strategia testowania
 
-### 1. Utility do mockowania viewport
-
-Utworzenie helpera `setViewport` w `src/test/utils/viewport.ts`:
+### 1. Struktura plików testowych
 
 ```text
-// Trzy predefiniowane viewporty
-MOBILE:  375 x 667  (iPhone SE)
-TABLET:  768 x 1024 (iPad)
-DESKTOP: 1280 x 800 (Laptop)
-
-// Helper funkcja
-setViewport('mobile' | 'tablet' | 'desktop')
-  -> ustawia window.innerWidth
-  -> aktualizuje matchMedia mock
-  -> wywołuje resize event
+src/components/admin/
+├── AddReservationDialogV2.tsx
+├── AddReservationDialogV2.test.tsx        (nowy - 35+ testów)
+├── SelectedServicesList.test.tsx          (nowy - 8 testów)
+└── ServiceSelectionDrawer.test.tsx        (nowy - 6 testów)
 ```
 
-### 2. Struktura testów - hierarchiczna
+### 2. Mockowanie zależności
 
-Zamiast duplikować 100% testów, dzielimy je na warstwy:
+Rozszerzenie istniejącego `src/test/mocks/supabase.ts`:
+- Mock dla tabel: `services`, `stations`, `customers`, `customer_vehicles`, `reservations`, `yard_vehicles`
+- Mock dla RPC: `get_availability_blocks`
+- Mock auth: `getUser()`
 
-```text
-tests/
-├── logika biznesowa (1x) - niezależna od viewport
-│   └── walidacja, API calls, state management
-│
-├── core UI (1x) - testowane na desktop
-│   └── czy elementy są obecne, interakcje działają
-│
-└── viewport-specific (per viewport) - tylko różnice
-    ├── mobile: karty zamiast tabel, ukryty tekst
-    ├── tablet: layout hybrydowy
-    └── desktop: pełne kolumny, page size selector
-```
+Dodatkowe mocki:
+- `sonner` (toast notifications)
+- `@/lib/pushNotifications` (sendPushNotification)
+- `react-router-dom` (useParams, useNavigate)
 
-### 3. Wzorzec: `describe.each` z viewportami
+---
 
-```text
-const VIEWPORTS = ['mobile', 'tablet', 'desktop'] as const;
+## Przypadki testowe (35 testów)
 
-describe.each(VIEWPORTS)('ProductsList - %s', (viewport) => {
-  beforeEach(() => setViewport(viewport));
+### Grupa A: Walidacja formularza (7 testów)
 
-  it('renders product list', ...);  // wspólna logika
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-001 | Puste pole telefonu | Submit bez telefonu pokazuje błąd "Telefon jest wymagany" |
+| RES-U-002 | Puste pole model auta | Submit bez modelu pokazuje błąd "Marka i model jest wymagana" |
+| RES-U-003 | Brak usług (reservation) | Submit bez usług pokazuje błąd "Wybierz co najmniej jedną usługę" |
+| RES-U-004 | Brak usług (yard) | Submit bez usług w trybie yard pokazuje błąd |
+| RES-U-005 | PPF: usługi opcjonalne | Submit bez usług w trybie PPF NIE pokazuje błędu |
+| RES-U-006 | PPF/Detailing: brak zakresu dat | Submit bez dateRange pokazuje błąd |
+| RES-U-007 | Walidacja czyszczona po wpisaniu | Wpisanie wartości w pole z błędem czyści błąd |
 
-  if (viewport === 'mobile') {
-    it('shows card layout', ...);
-    it('hides button text', ...);
-  }
+### Grupa B: Tryb rezerwacji - czas (6 testów)
 
-  if (viewport === 'desktop') {
-    it('shows table layout', ...);
-    it('shows page size selector', ...);
-  }
-});
-```
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-010 | Brak slotu - błąd | Mode slots: submit bez selectedTime pokazuje błąd |
+| RES-U-011 | Manual: brak start time | Mode manual: submit bez startTime pokazuje błąd |
+| RES-U-012 | Manual: brak stacji | Mode manual: submit bez stationId pokazuje błąd |
+| RES-U-013 | Zmiana start - przesuwa end | Zmiana manualStartTime automatycznie przesuwa manualEndTime |
+| RES-U-014 | Dodanie usługi - wydłuża end | Dodanie usługi zwiększa czas końcowy o duration usługi |
+| RES-U-015 | Usunięcie usługi - skraca end | Usunięcie usługi zmniejsza czas końcowy |
 
-### 4. Alternatywa: Matchers warunkowe
+### Grupa C: Usługi i ceny (8 testów)
 
-```text
-it('renders products appropriately for viewport', () => {
-  setViewport('mobile');
-  render(<ProductsView />);
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-020 | Dodanie usługi | Klik na usługę w ServiceSelectionDrawer dodaje ją do listy |
+| RES-U-021 | Usunięcie usługi | Klik na Trash2 usuwa usługę z listy |
+| RES-U-022 | Inline edit ceny | Klik na cenę, wpisanie nowej wartości aktualizuje serviceItems |
+| RES-U-023 | Net-to-brutto konwersja | Usługa z category_prices_are_net=true: 100zł netto -> 125zł brutto (123*1.23 zaokr do 5) |
+| RES-U-024 | Cena wg carSize S | CarSize=small używa price_small |
+| RES-U-025 | Cena wg carSize M | CarSize=medium używa price_medium |
+| RES-U-026 | Cena wg carSize L | CarSize=large używa price_large |
+| RES-U-027 | Total price update | Zmiana ceny inline aktualizuje finalPrice przez onTotalPriceChange |
 
-  // Mobile: karty
-  expect(screen.queryByRole('table')).not.toBeInTheDocument();
-  expect(screen.getAllByTestId('product-card')).toHaveLength(20);
+### Grupa D: Wyszukiwanie klienta/pojazdu (5 testów)
 
-  cleanup();
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-030 | Dropdown po wpisaniu telefonu | Wpisanie 9 cyfr pokazuje dropdown z customer_vehicles |
+| RES-U-031 | Wybór pojazdu - autofill | Klik na pojazd wypełnia carModel i carSize |
+| RES-U-032 | Wybór klienta - autofill | Wybór z ClientSearchAutocomplete wypełnia name, phone, model |
+| RES-U-033 | Customer vehicles pills | Klik na pill przełącza wybrany pojazd |
+| RES-U-034 | Rabat klienta | Wybór klienta z discount_percent ustawia customerDiscountPercent |
 
-  setViewport('desktop');
-  render(<ProductsView />);
+### Grupa E: Tryb edycji (4 testy)
 
-  // Desktop: tabela
-  expect(screen.getByRole('table')).toBeInTheDocument();
-});
-```
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-040 | Prefill z editingReservation | Formularz wypełniony danymi przekazanej rezerwacji |
+| RES-U-041 | "Zmień termin" button | Klik pokazuje pełny edytor czasu (isChangingTime=true) |
+| RES-U-042 | "Anuluj zmianę" | Klik przywraca oryginalne wartości daty/czasu |
+| RES-U-043 | Ochrona przed Realtime | isUserEditingRef blokuje nadpisanie formularza |
+
+### Grupa F: UI responsywność (3 testy)
+
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-050 | Tabs widoczne na mobile | setViewport('mobile') - TabsList z slots/manual widoczny |
+| RES-U-051 | Tabs ukryte na desktop | setViewport('desktop') - TabsList ma klasę sm:hidden |
+| RES-U-052 | Drawer hidden toggle | Mobile: przycisk peek ukrywa drawer |
+
+### Grupa G: Zapis i API (5 testów)
+
+| ID | Test | Opis |
+|----|------|------|
+| RES-U-060 | Sukces - toast + callback | Po zapisie: toast.success + onSuccess wywołany |
+| RES-U-061 | Błąd API - toast error | Błąd Supabase: toast.error wyświetlony |
+| RES-U-062 | Nowy klient tworzony | Jeśli customerName bez selectedCustomerId - insert do customers |
+| RES-U-063 | Custom car model proposal | isCustomCarModel=true - insert do car_models ze status='proposal' |
+| RES-U-064 | Push notification | Po zapisie wywołany sendPushNotification z poprawnymi parametrami |
 
 ---
 
 ## Implementacja
 
-### Krok 1: Viewport utility
-Plik: `src/test/utils/viewport.ts`
+### Krok 1: Rozszerzenie mocków Supabase
 
-- Eksportuje funkcję `setViewport(size)`
-- Aktualizuje `window.innerWidth` i `innerHeight`
-- Dispatchuje `resize` event
-- Aktualizuje mock `matchMedia` aby zwracał poprawną wartość `matches`
+Plik: `src/test/mocks/supabase.ts`
 
-### Krok 2: Aktualizacja setup.ts
-- Import viewport utility
-- Reset do desktop przed każdym testem (domyślny viewport)
+Dodanie:
+- Mock dla `rpc('get_availability_blocks')` 
+- Domyślne dane dla services, stations
+- Helper `mockSupabaseRpc(name, response)`
 
-### Krok 3: Testy InstanceAuth - rozszerzenie o viewport
-Plik: `src/pages/InstanceAuth.test.tsx`
+### Krok 2: Mock dodatkowych modułów
 
-Dodatkowe przypadki:
-| ID | Viewport | Przypadek |
-|----|----------|-----------|
-| LA-U-017 | mobile | Footer links stack vertically (flex-col) |
-| LA-U-018 | desktop | Decorative right panel is visible (lg:flex) |
-| LA-U-019 | mobile | Decorative right panel is hidden |
+Plik: `src/test/mocks/modules.ts` (nowy)
 
-### Krok 4: Template dla przyszłych testów
-
-Szablon `src/test/templates/responsive-component.test.template.tsx`:
 ```text
-// 1. Import viewport utility
-// 2. describe.each dla viewportów
-// 3. Logika biznesowa (1x)
-// 4. Viewport-specific assertions
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  }
+}));
+
+// Mock push notifications
+vi.mock('@/lib/pushNotifications', () => ({
+  sendPushNotification: vi.fn(),
+  formatDateForPush: (d) => format(d, 'dd.MM'),
+}));
 ```
 
----
+### Krok 3: Test helper dla renderowania
 
-## Korzyści tego podejścia
-
-1. **Brak duplikacji** - logika biznesowa testowana raz
-2. **Czytelność** - jasne co jest wspólne, a co viewport-specific
-3. **Łatwe utrzymanie** - zmiana w viewport utility wpływa wszędzie
-4. **Izolacja** - `beforeEach` resetuje viewport, testy się nie psują wzajemnie
-5. **Elastyczność** - można dodać tablet tylko tam gdzie ma sens
-
----
-
-## Techniczne szczegóły
-
-### Viewport helper implementacja
+Plik: `src/test/helpers/renderReservationDialog.tsx` (nowy)
 
 ```text
-src/test/utils/viewport.ts
-
-export const VIEWPORTS = {
-  mobile: { width: 375, height: 667 },
-  tablet: { width: 768, height: 1024 },
-  desktop: { width: 1280, height: 800 },
-};
-
-export function setViewport(size: keyof typeof VIEWPORTS) {
-  const { width, height } = VIEWPORTS[size];
-
-  Object.defineProperty(window, 'innerWidth', { value: width, writable: true });
-  Object.defineProperty(window, 'innerHeight', { value: height, writable: true });
-
-  // Update matchMedia mock
-  window.matchMedia = (query: string) => ({
-    matches: query.includes('max-width') 
-      ? width <= parseInt(query.match(/\d+/)?.[0] || '0')
-      : width >= parseInt(query.match(/\d+/)?.[0] || '0'),
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    // ... other required methods
-  });
-
-  // Trigger resize
-  window.dispatchEvent(new Event('resize'));
+function renderReservationDialog(props: Partial<AddReservationDialogV2Props>) {
+  const defaultProps = {
+    open: true,
+    onClose: vi.fn(),
+    instanceId: 'test-instance',
+    onSuccess: vi.fn(),
+    workingHours: { monday: { open: '08:00', close: '18:00' }, ... },
+    mode: 'reservation' as const,
+  };
+  
+  return render(
+    <MemoryRouter>
+      <AddReservationDialogV2 {...defaultProps} {...props} />
+    </MemoryRouter>
+  );
 }
 ```
 
-### Modyfikacja setup.ts
+### Krok 4: Testy główne
 
+Plik: `src/components/admin/AddReservationDialogV2.test.tsx`
+
+Struktura:
 ```text
-// Po istniejącym matchMedia mock:
-import { setViewport } from './utils/viewport';
-
-beforeEach(() => {
-  setViewport('desktop'); // Reset do domyślnego
+describe('AddReservationDialogV2', () => {
+  describe('Walidacja formularza', () => { ... });
+  describe('Tryb rezerwacji - czas', () => { ... });
+  describe('Usługi i ceny', () => { ... });
+  describe('Wyszukiwanie klienta', () => { ... });
+  describe('Tryb edycji', () => { ... });
+  describe('UI responsywność', () => { ... });
+  describe('Zapis i API', () => { ... });
 });
+```
+
+### Krok 5: Testy komponentów pomocniczych
+
+Plik: `src/components/admin/SelectedServicesList.test.tsx`
+- Renderowanie listy usług
+- Inline price edit
+- Net-to-brutto konwersja
+- Total calculation
+
+Plik: `src/components/admin/ServiceSelectionDrawer.test.tsx`
+- Wyszukiwanie usług (search)
+- Matching chips
+- Kategorie i grupowanie
+- Confirm selection
+
+---
+
+## Dane testowe
+
+### Mock services
+```text
+[
+  { id: 'svc-1', name: 'Mycie podstawowe', shortcut: 'MP', duration_small: 30, duration_medium: 45, duration_large: 60, price_small: 50, price_medium: 80, price_large: 120, category_prices_are_net: false },
+  { id: 'svc-2', name: 'Polerowanie', shortcut: 'POL', duration_medium: 120, price_medium: 400, category_prices_are_net: true },
+]
+```
+
+### Mock stations
+```text
+[
+  { id: 'sta-1', name: 'Stanowisko 1', type: 'washing' },
+  { id: 'sta-2', name: 'Stanowisko PPF', type: 'ppf' },
+]
+```
+
+### Mock customer_vehicles
+```text
+[
+  { id: 'veh-1', phone: '123456789', model: 'BMW X5', car_size: 'L', customer_name: 'Jan Kowalski' },
+]
 ```
 
 ---
 
-## Rekomendacja
+## Zależności między testami
 
-Proponuję podejście hybrydowe:
+```text
+                    ┌─────────────────────┐
+                    │  supabase.ts mock   │
+                    │ (rozszerzony)       │
+                    └─────────┬───────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+    SelectedServicesList  ServiceDrawer  AddReservationDialogV2
+         (8 testów)       (6 testów)        (21 testów)
+                                                  │
+                              ┌───────────────────┤
+                              ▼                   ▼
+                        viewport.ts          modules.ts
+                     (już istnieje)         (toast, push)
+```
 
-1. **Dla logiki biznesowej** - jeden test, bez viewport
-2. **Dla layoutu** - `describe.each` z mobile/desktop (tablet opcjonalnie)
-3. **Dla drobnych różnic CSS** - jeden test z wieloma asercjami
+---
 
-To daje balans między pokryciem a utrzymywalnością testów.
+## Szacowany czas i objętość
+
+- **AddReservationDialogV2.test.tsx**: ~500-600 linii
+- **SelectedServicesList.test.tsx**: ~150 linii  
+- **ServiceSelectionDrawer.test.tsx**: ~150 linii
+- **Mocki i helpery**: ~100 linii
+
+Łącznie: ~35 testów, ~1000 linii kodu testowego
+
+---
+
+## Kolejność implementacji
+
+1. Rozszerzenie mocków (`supabase.ts`, `modules.ts`)
+2. Helper `renderReservationDialog`
+3. Testy `SelectedServicesList` (prostszy komponent)
+4. Testy `ServiceSelectionDrawer`
+5. Testy główne `AddReservationDialogV2` (walidacja -> usługi -> czas -> edycja -> API)
+6. Testy responsywności (z viewport utility)
