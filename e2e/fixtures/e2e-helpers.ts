@@ -129,36 +129,45 @@ export async function openAddReservationDialog(page: Page): Promise<void> {
     console.log(`[E2E] Button ${i}: "${text?.trim().substring(0, 30)}" visible=${visible}`);
   }
   
-  // Look for "Dodaj rezerwację" button or similar
+  // Look for "Dodaj rezerwację" button, or a plus icon button (FAB style)
   const addButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Nowa rezerwacja"), [data-testid="add-reservation-btn"]');
   const addButtonCount = await addButton.count();
   console.log(`[E2E] Add button selector matched ${addButtonCount} elements`);
   
+  let buttonToClick = addButton.first();
+  
   if (addButtonCount === 0) {
-    // Try alternative selectors
-    const plusButton = page.locator('button:has(.lucide-plus), button:has(svg[class*="plus"])');
+    // Try plus icon button (FAB) - common pattern for "add" actions
+    const plusButton = page.locator('button:has(.lucide-plus), button:has(svg[class*="plus"]), button[aria-label*="Dodaj"], button[aria-label*="Add"]');
     const plusCount = await plusButton.count();
     console.log(`[E2E] Plus icon button matched ${plusCount} elements`);
     
-    // Log page URL and any visible dialogs
-    console.log(`[E2E] Current URL: ${page.url()}`);
-    const dialogs = await page.locator('[role="dialog"]').count();
-    console.log(`[E2E] Visible dialogs: ${dialogs}`);
-    
-    // Take a screenshot for debugging
-    await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
-    console.log('[E2E] Screenshot saved to test-results/debug-add-button.png');
+    if (plusCount > 0) {
+      buttonToClick = plusButton.first();
+      console.log('[E2E] Using plus icon button as fallback');
+    } else {
+      // Log page URL and any visible dialogs
+      console.log(`[E2E] Current URL: ${page.url()}`);
+      const dialogs = await page.locator('[role="dialog"]').count();
+      console.log(`[E2E] Visible dialogs: ${dialogs}`);
+      
+      // Take a screenshot for debugging
+      await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
+      console.log('[E2E] Screenshot saved to test-results/debug-add-button.png');
+      
+      throw new Error('[E2E] Add reservation button not found');
+    }
   }
   
-  const firstButton = addButton.first();
-  const isVisible = await firstButton.isVisible({ timeout: 5000 }).catch(() => false);
+  const isVisible = await buttonToClick.isVisible({ timeout: 5000 }).catch(() => false);
   console.log(`[E2E] Add button visible: ${isVisible}`);
   
   if (!isVisible) {
+    await page.screenshot({ path: 'test-results/debug-add-button.png' }).catch(() => {});
     throw new Error('[E2E] Add reservation button not found or not visible');
   }
   
-  await firstButton.click();
+  await buttonToClick.click();
   console.log('[E2E] Clicked add reservation button');
   
   // Wait for dialog to open
