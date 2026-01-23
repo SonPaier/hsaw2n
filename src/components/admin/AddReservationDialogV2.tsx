@@ -440,9 +440,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   useEffect(() => {
     if (open) {
       // PROTECTION: Skip re-initialization if user is actively editing the same reservation
-      if (isUserEditingRef.current && 
+      // This prevents parent re-renders from resetting form state (especially isChangingTime)
+      if ((isUserEditingRef.current || isChangingTime) && 
           editingReservation?.id === lastEditingReservationIdRef.current) {
-        console.log('[ReservationDialog] Skipping re-init - user is actively editing');
+        console.log('[ReservationDialog] Skipping re-init - user is actively editing or changing time');
         return;
       }
       
