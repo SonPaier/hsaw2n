@@ -709,5 +709,322 @@ describe('AddReservationDialogV2', () => {
 
       expect(nameInput).toHaveValue('Piotr Kowalski');
     });
+
+    it('RES-U-109: edycja - wyświetla aktualną cenę rezerwacji', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        // Price field should show 80 PLN from reservation
+        const priceInput = screen.getByDisplayValue('80');
+        expect(priceInput).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-110: edycja - pole ceny jest edytowalne', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        const priceInput = screen.getByDisplayValue('80') as HTMLInputElement;
+        expect(priceInput).toBeInTheDocument();
+        expect(priceInput.type).toBe('number');
+        expect(priceInput).not.toBeDisabled();
+      });
+    });
+
+    it('RES-U-111: edycja - można zmienić model pojazdu', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveValue('Audi A6');
+      });
+
+      const carInput = screen.getByRole('combobox');
+      await user.clear(carInput);
+      await user.type(carInput, 'Mercedes C');
+
+      expect(carInput).toHaveValue('Mercedes C');
+    });
+
+    it('RES-U-112: edycja - przycisk "Zapisz" zamiast "Dodaj rezerwację"', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        // In edit mode, button says "Zapisz" (not "Dodaj rezerwację")
+        const buttons = screen.getAllByRole('button');
+        const saveButton = buttons.find(btn => btn.textContent?.toLowerCase().includes('zapisz'));
+        expect(saveButton).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /dodaj rezerwację/i })).not.toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-113: edycja - wyświetla notatki admina', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Notatka admina')).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-114: edycja - można zmienić notatki admina', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Notatka admina')).toBeInTheDocument();
+      });
+
+      const notesInput = screen.getByDisplayValue('Notatka admina');
+      await user.clear(notesInput);
+      await user.type(notesInput, 'Nowa notatka');
+
+      expect(notesInput).toHaveValue('Nowa notatka');
+    });
+
+    it('RES-U-115: edycja - po kliknięciu "Zmień termin" pojawia się przycisk "Anuluj"', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /zmień termin/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /zmień termin/i }));
+
+      await waitFor(() => {
+        // After clicking, cancel button should appear (text is just "Anuluj")
+        const cancelButton = screen.getByRole('button', { name: /anuluj/i });
+        expect(cancelButton).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-116: edycja - "Anuluj" przywraca widok podsumowania terminu', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /zmień termin/i })).toBeInTheDocument();
+      });
+
+      // Click to start changing time
+      await user.click(screen.getByRole('button', { name: /zmień termin/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /anuluj/i })).toBeInTheDocument();
+      });
+
+      // Click cancel
+      await user.click(screen.getByRole('button', { name: /anuluj/i }));
+
+      await waitFor(() => {
+        // "Zmień termin" button should reappear
+        expect(screen.getByRole('button', { name: /zmień termin/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Edycja usług w trybie edycji', () => {
+    const mockEditingReservationWithServices = {
+      id: 'res-svc-edit',
+      customer_name: 'Test Klient',
+      customer_phone: '555666777',
+      vehicle_plate: 'Toyota Yaris',
+      car_size: 'small' as const,
+      reservation_date: '2024-04-01',
+      start_time: '11:00:00',
+      end_time: '12:00:00',
+      station_id: 'sta-1',
+      service_ids: ['svc-1'],
+      service_items: [{ service_id: 'svc-1', custom_price: 60 }],
+      customer_notes: null,
+      admin_notes: null,
+      price: 60,
+      confirmation_code: 'SVC123',
+    };
+
+    it('RES-U-120: edycja - wyświetla listę wybranych usług', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservationWithServices,
+      });
+
+      await waitFor(() => {
+        // Service name should be visible
+        expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-121: edycja - wyświetla przycisk dodawania usług', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservationWithServices,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
+      });
+
+      // "Dodaj" button should be visible
+      expect(screen.getByRole('button', { name: /^dodaj$/i })).toBeInTheDocument();
+    });
+
+    it('RES-U-122: edycja - wyświetla customową cenę usługi z service_items', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservationWithServices,
+      });
+
+      await waitFor(() => {
+        // Custom price from service_items should be shown (60 PLN)
+        const priceElements = screen.getAllByText(/60/);
+        expect(priceElements.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('Tryb PPF/Detailing - edycja', () => {
+    const mockPPFReservation = {
+      id: 'res-ppf-1',
+      customer_name: 'PPF Klient',
+      customer_phone: '111222333',
+      vehicle_plate: 'BMW M3',
+      car_size: 'medium' as const,
+      reservation_date: '2024-05-01',
+      end_date: '2024-05-03',
+      start_time: '09:00:00',
+      end_time: '17:00:00',
+      station_id: 'sta-ppf',
+      service_ids: ['svc-1'],
+      customer_notes: null,
+      admin_notes: 'PPF full front',
+      price: 5000,
+      confirmation_code: 'PPF001',
+      offer_number: 'OF-2024-001',
+    };
+
+    it('RES-U-130: PPF edycja - wyświetla tytuł "Edytuj rezerwację"', async () => {
+      renderComponent({ 
+        mode: 'ppf',
+        stationId: 'sta-ppf',
+        editingReservation: mockPPFReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Edytuj rezerwację/i)).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-131: PPF edycja - wyświetla cenę z rezerwacji', async () => {
+      renderComponent({ 
+        mode: 'ppf',
+        stationId: 'sta-ppf',
+        editingReservation: mockPPFReservation,
+      });
+
+      await waitFor(() => {
+        const priceInput = screen.getByDisplayValue('5000');
+        expect(priceInput).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-132: PPF edycja - wyświetla numer oferty', async () => {
+      renderComponent({ 
+        mode: 'ppf',
+        stationId: 'sta-ppf',
+        editingReservation: mockPPFReservation,
+      });
+
+      await waitFor(() => {
+        // Offer number should be displayed
+        expect(screen.getByDisplayValue('OF-2024-001')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Yard mode - edycja', () => {
+    const mockYardVehicle = {
+      id: 'yard-1',
+      customer_name: 'Yard Klient',
+      customer_phone: '999888777',
+      vehicle_plate: 'VW Passat',
+      car_size: 'large' as const,
+      service_ids: ['svc-1'],
+      arrival_date: '2024-06-01',
+      pickup_date: null,
+      deadline_time: '14:00',
+      notes: 'Czeka na części',
+      status: 'waiting',
+      created_at: '2024-06-01T08:00:00Z',
+    };
+
+    it('RES-U-140: Yard edycja - wyświetla tytuł "Edytuj pojazd"', async () => {
+      renderComponent({ 
+        mode: 'yard',
+        editingYardVehicle: mockYardVehicle,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Edytuj pojazd/i)).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-141: Yard edycja - wypełnia dane pojazdu', async () => {
+      renderComponent({ 
+        mode: 'yard',
+        editingYardVehicle: mockYardVehicle,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Yard Klient')).toBeInTheDocument();
+        expect(screen.getByLabelText(/telefon/i)).toHaveValue('999 888 777');
+      });
+    });
+
+    it('RES-U-142: Yard edycja - wyświetla notatki', async () => {
+      renderComponent({ 
+        mode: 'yard',
+        editingYardVehicle: mockYardVehicle,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Czeka na części')).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-143: Yard edycja - wyświetla rozmiar auta (L)', async () => {
+      renderComponent({ 
+        mode: 'yard',
+        editingYardVehicle: mockYardVehicle,
+      });
+
+      await waitFor(() => {
+        const buttonL = screen.getByRole('button', { name: 'L' });
+        expect(buttonL.className).toContain('bg-primary');
+      });
+    });
   });
 });
