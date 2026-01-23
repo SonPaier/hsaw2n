@@ -42,16 +42,24 @@ test.describe('Reservation Happy Path', () => {
     console.log('🔄 Reloading to fetch seeded stations...');
     await page.reload({ waitUntil: 'networkidle' });
 
-    // Wait for calendar to fully load
-    await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', {
+    // Wait for calendar to fully load with stations
+    await page.waitForSelector('[data-testid="admin-calendar"]', {
       timeout: 15000,
     });
+    console.log('✅ Calendar container found');
     
-    // Wait for calendar slots to render (they have data-testid="calendar-slot")
+    // Wait for calendar slots to render (they appear after stations load)
+    // Use the calendar container scope + slot selector for reliability
     console.log('⏳ Waiting for calendar slots to render...');
-    await page.waitForSelector('[data-testid="calendar-slot"]', { timeout: 10000 });
+    const calendarContainer = page.locator('[data-testid="admin-calendar"]');
     
-    const slotCount = await page.locator('[data-testid="calendar-slot"]').count();
+    // Wait for at least one clickable slot to appear (not disabled)
+    await calendarContainer.locator('[data-testid="calendar-slot"]:not([data-disabled="true"])').first().waitFor({ 
+      state: 'visible', 
+      timeout: 15000 
+    });
+    
+    const slotCount = await calendarContainer.locator('[data-testid="calendar-slot"]').count();
     console.log(`✅ Calendar loaded with ${slotCount} slots`);
 
     // ========================================================================
@@ -66,28 +74,33 @@ test.describe('Reservation Happy Path', () => {
       plate: 'WE E2E01',
     };
 
-    // Get all unique station IDs from the slots
-    const allSlots = page.locator('[data-testid="calendar-slot"]');
-    const firstSlot = allSlots.first();
+    // Get clickable slots (not disabled) within the calendar
+    const clickableSlots = calendarContainer.locator('[data-testid="calendar-slot"]:not([data-disabled="true"])');
+    const clickableCount = await clickableSlots.count();
+    console.log(`[E2E] Found ${clickableCount} clickable slots`);
+    
+    // Get first station ID from slots
+    const firstSlot = clickableSlots.first();
     const firstStationId = await firstSlot.getAttribute('data-station');
     console.log(`[E2E] First station ID: ${firstStationId}`);
     
-    // Find all slots for the first station
-    const firstStationSlots = page.locator(`[data-testid="calendar-slot"][data-station="${firstStationId}"]`);
-    const firstStationSlotCount = await firstStationSlots.count();
-    console.log(`[E2E] First station has ${firstStationSlotCount} slots`);
+    // Try to click slot at 10:00 for better visibility in tests
+    const slot1000 = calendarContainer.locator(
+      `[data-testid="calendar-slot"][data-station="${firstStationId}"][data-time="10:00"]:not([data-disabled="true"])`
+    ).first();
     
-    // Click on slot at 10:00 for the first station
-    const targetSlot = page.locator(`[data-testid="calendar-slot"][data-station="${firstStationId}"][data-time="10:00"]`).first();
-    const slotVisible = await targetSlot.isVisible({ timeout: 3000 }).catch(() => false);
+    const has1000 = await slot1000.count() > 0;
     
-    if (slotVisible) {
-      console.log('[E2E] Found slot at 10:00 on first station, clicking...');
-      await targetSlot.click();
+    if (has1000) {
+      console.log('[E2E] Clicking slot at 10:00 on first station...');
+      await slot1000.click();
     } else {
-      // Fallback: click first slot of first station
-      console.log('[E2E] 10:00 slot not found, clicking first available slot on first station...');
-      await firstStationSlots.first().click();
+      // Fallback: click first clickable slot on first station
+      console.log('[E2E] 10:00 not available, clicking first clickable slot...');
+      const firstStationSlot = calendarContainer.locator(
+        `[data-testid="calendar-slot"][data-station="${firstStationId}"]:not([data-disabled="true"])`
+      ).first();
+      await firstStationSlot.click();
     }
     
     // Wait for dialog to open
