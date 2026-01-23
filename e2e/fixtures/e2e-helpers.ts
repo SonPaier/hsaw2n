@@ -67,10 +67,27 @@ export async function seedE2EScenario(
 }
 
 /**
+ * Clears browser storage (localStorage, sessionStorage) to ensure clean login.
+ */
+export async function clearBrowserStorage(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  console.log('[E2E] Browser storage cleared');
+}
+
+/**
  * Logs in as admin to the E2E instance.
  * Navigates to login page, fills credentials, and waits for dashboard.
  */
-export async function loginAsAdmin(page: Page): Promise<void> {
+export async function loginAsAdmin(page: Page, clearStorage = true): Promise<void> {
+  // Clear storage before login to avoid stale tokens
+  if (clearStorage) {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await clearBrowserStorage(page);
+  }
+  
   // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
