@@ -123,8 +123,10 @@ export function normalizePhoneOrFallback(
     fallback = "+" + fallback.slice(3);
   }
   
-  // Remove trunk zero after country code
-  fallback = fallback.replace(/^(\+\d{1,3})0(\d)/, "$1$2");
+  // Remove trunk zero after country code (common in DE, AT, but NOT after 380, 420, etc.)
+  // Pattern: +XX0... where XX is 2 digit country code followed by 0 (but not 380, 420, 421 etc.)
+  // Only apply for known trunk-zero countries: +49, +43, +41, +39
+  fallback = fallback.replace(/^(\+(?:49|43|41|39))0(\d)/, "$1$2");
   
   // FIX: Detect and fix double prefix patterns like +4848, 4848, 004848
   // Pattern: starts with +48 followed by 48 again
