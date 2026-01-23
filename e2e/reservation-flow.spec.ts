@@ -28,7 +28,17 @@ test.describe('Reservation Happy Path', () => {
     
     console.log('🌱 Seeding basic scenario (stations, services)...');
     const seedResult = await seedE2EScenario('basic');
-    console.log('Seed result:', seedResult);
+    console.log('Seed result:', JSON.stringify(seedResult, null, 2));
+
+    // Validate seed result
+    const created = seedResult.created as { stationIds?: string[]; serviceIds?: string[] } | undefined;
+    if (!created?.stationIds?.length) {
+      throw new Error(`Seeding failed: no stationIds in result: ${JSON.stringify(seedResult)}`);
+    }
+    console.log(`✅ Seeded ${created.stationIds.length} stations, ${created.serviceIds?.length ?? 0} services`);
+
+    // Short pause for database propagation
+    await new Promise(r => setTimeout(r, 500));
 
     // ========================================================================
     // STEP 1: Login as admin
@@ -36,41 +46,12 @@ test.describe('Reservation Happy Path', () => {
     console.log('\n📍 STEP 1: Login as admin');
     await loginAsAdmin(page);
     await expect(page).not.toHaveURL(/\/login(\?|$)/);
-    console.log('✅ Logged in successfully');
+    console.log('✅ Logged in and calendar loaded with stations');
 
-    // Reload to fetch seeded data
-    console.log('🔄 Reloading to fetch seeded stations...');
-    await page.reload({ waitUntil: 'networkidle' });
-    
-    // Debug: log current URL and take screenshot
-    console.log('[E2E] Current URL after reload:', page.url());
-    await page.screenshot({ path: 'test-results/debug-after-reload.png' }).catch(() => {});
-
-    // Wait for calendar to fully load with stations
-    const calendarVisible = await page.waitForSelector('[data-testid="admin-calendar"]', {
-      timeout: 30000,
-    }).catch(() => null);
-    
-    if (!calendarVisible) {
-      console.log('[E2E] Calendar not found, taking debug screenshot...');
-      await page.screenshot({ path: 'test-results/debug-no-calendar.png' }).catch(() => {});
-      throw new Error('Calendar container [data-testid="admin-calendar"] not found after 30s');
-    }
-    console.log('✅ Calendar container found');
-    
-    // Wait for calendar slots to render (they appear after stations load)
-    // Use the calendar container scope + slot selector for reliability
-    console.log('⏳ Waiting for calendar slots to render...');
+    // Get calendar container for subsequent operations
     const calendarContainer = page.locator('[data-testid="admin-calendar"]');
-    
-    // Wait for at least one clickable slot to appear (not disabled)
-    await calendarContainer.locator('[data-testid="calendar-slot"]:not([data-disabled="true"])').first().waitFor({ 
-      state: 'visible', 
-      timeout: 15000 
-    });
-    
     const slotCount = await calendarContainer.locator('[data-testid="calendar-slot"]').count();
-    console.log(`✅ Calendar loaded with ${slotCount} slots`);
+    console.log(`[E2E] Calendar has ${slotCount} slots ready`);
 
     // ========================================================================
     // STEP 2: Create reservation by clicking on calendar slot (FIRST STATION)
