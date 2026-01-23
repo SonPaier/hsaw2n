@@ -186,3 +186,134 @@ export async function verifyReservationOnCalendar(page: Page, customerName: stri
   
   return await reservation.first().isVisible({ timeout: 5000 }).catch(() => false);
 }
+
+/**
+ * Clicks on a reservation on the calendar to open details drawer.
+ */
+export async function openReservationDetails(page: Page, customerName: string): Promise<void> {
+  const reservation = page.locator(`[data-testid="reservation-card"]:has-text("${customerName}"), .reservation-block:has-text("${customerName}"), [class*="reservation"]:has-text("${customerName}")`);
+  await reservation.first().click();
+  
+  // Wait for drawer to open
+  await page.waitForSelector('[data-testid="reservation-details-drawer"], [role="dialog"]:has-text("Rezerwacja")', {
+    timeout: 5000,
+  });
+}
+
+/**
+ * Verifies that reservation details drawer shows correct data.
+ */
+export async function verifyReservationDetails(
+  page: Page,
+  expected: {
+    customerName?: string;
+    phone?: string;
+    carModel?: string;
+    plate?: string;
+  }
+): Promise<{ matches: boolean; found: Record<string, string> }> {
+  const found: Record<string, string> = {};
+  
+  const drawerContent = page.locator('[data-testid="reservation-details-drawer"], [role="dialog"]');
+  const text = await drawerContent.textContent() || '';
+  
+  if (expected.customerName) {
+    found.customerName = text.includes(expected.customerName) ? expected.customerName : '';
+  }
+  if (expected.phone) {
+    found.phone = text.includes(expected.phone) ? expected.phone : '';
+  }
+  if (expected.carModel) {
+    found.carModel = text.includes(expected.carModel) ? expected.carModel : '';
+  }
+  if (expected.plate) {
+    found.plate = text.includes(expected.plate) ? expected.plate : '';
+  }
+  
+  const matches = Object.entries(expected).every(([key, val]) => {
+    if (!val) return true;
+    return found[key] === val;
+  });
+  
+  return { matches, found };
+}
+
+/**
+ * Clicks edit button in reservation details drawer.
+ */
+export async function clickEditReservation(page: Page): Promise<void> {
+  const editButton = page.locator('[data-testid="edit-reservation-btn"], button:has-text("Edytuj"), button:has(.lucide-pencil)');
+  await editButton.first().click();
+  
+  // Wait for edit dialog/drawer to open
+  await page.waitForSelector('[data-testid="reservation-dialog"], [role="dialog"]:has(input)', {
+    timeout: 5000,
+  });
+}
+
+/**
+ * Closes reservation details drawer.
+ */
+export async function closeReservationDetails(page: Page): Promise<void> {
+  // Try close button first, then escape key
+  const closeButton = page.locator('[data-testid="close-drawer"], button[aria-label="Close"], .drawer-close');
+  if (await closeButton.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+    await closeButton.first().click();
+  } else {
+    await page.keyboard.press('Escape');
+  }
+  
+  // Wait for drawer to close
+  await page.waitForSelector('[data-testid="reservation-details-drawer"]', { 
+    state: 'hidden',
+    timeout: 3000 
+  }).catch(() => {});
+}
+
+/**
+ * Changes reservation status via drawer action buttons.
+ */
+export async function changeReservationStatus(
+  page: Page, 
+  action: 'start' | 'complete' | 'cancel' | 'confirm'
+): Promise<void> {
+  const actionMap = {
+    start: ['Rozpocznij', 'Start'],
+    complete: ['Zakończ', 'Gotowe', 'Wydaj'],
+    cancel: ['Anuluj', 'Cancel'],
+    confirm: ['Potwierdź', 'Confirm'],
+  };
+  
+  const buttonTexts = actionMap[action];
+  for (const text of buttonTexts) {
+    const button = page.locator(`button:has-text("${text}")`);
+    if (await button.first().isVisible({ timeout: 1000 }).catch(() => false)) {
+      await button.first().click();
+      await page.waitForTimeout(500);
+      return;
+    }
+  }
+  
+  throw new Error(`Could not find button for action: ${action}`);
+}
+
+/**
+ * Updates reservation form field.
+ */
+export async function updateReservationField(
+  page: Page,
+  field: 'phone' | 'name' | 'carModel' | 'plate' | 'adminNotes',
+  value: string
+): Promise<void> {
+  const fieldSelectors = {
+    phone: 'input[name="phone"], [data-testid="phone-input"]',
+    name: 'input[name="name"], [data-testid="name-input"]',
+    carModel: 'input[name="model"], [data-testid="car-input"]',
+    plate: 'input[name="plate"], [data-testid="plate-input"]',
+    adminNotes: 'textarea[name="adminNotes"], [data-testid="admin-notes"]',
+  };
+  
+  const input = page.locator(fieldSelectors[field]);
+  await input.first().clear();
+  await input.first().fill(value);
+}
