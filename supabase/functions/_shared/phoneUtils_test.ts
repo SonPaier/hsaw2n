@@ -146,3 +146,78 @@ Deno.test("PHU-025: normalizePhoneOrFallback - handles 380 Ukrainian prefix", ()
   const result = normalizePhoneOrFallback("380501234567");
   assertEquals(result, "+380501234567");
 });
+
+// ============================================================================
+// Additional coverage for uncovered branches
+// ============================================================================
+
+Deno.test("PHU-026: normalizePhone - invalid number returns error with parsed number", () => {
+  // Very short number that won't parse correctly
+  const result = normalizePhone("123");
+  assertEquals(result.isValid, false);
+  assertExists(result.error);
+});
+
+Deno.test("PHU-027: normalizePhoneOrFallback - 11 digits starting with 48", () => {
+  // This tests the specific branch for Polish 11-digit numbers
+  const result = normalizePhoneOrFallback("48733854184");
+  assertEquals(result, "+48733854184");
+});
+
+Deno.test("PHU-028: normalizePhoneOrFallback - 11+ digits with known country code (DE)", () => {
+  // Tests the branch for 11+ digits starting with known country codes
+  const result = normalizePhoneOrFallback("491711234567");
+  assertEquals(result, "+491711234567");
+});
+
+Deno.test("PHU-029: normalizePhoneOrFallback - unknown format gets default prefix", () => {
+  // Tests the else branch - unknown format gets default country prefix
+  const result = normalizePhoneOrFallback("12345678"); // 8 digits - not 9, not 11+
+  assertEquals(result, "+4812345678");
+});
+
+Deno.test("PHU-030: normalizePhoneOrFallback - custom default country", () => {
+  // Tests fallback with non-PL default country
+  const result = normalizePhoneOrFallback("1711234567", "DE");
+  // 10 digits, doesn't start with known prefix, gets DE prefix
+  assertEquals(result, "+491711234567");
+});
+
+Deno.test("PHU-031: normalizePhone - retry with + prefix succeeds", () => {
+  // Test case where initial parse fails but retry with + works
+  // 11 digits starting with 48 - first parse may fail, retry should work
+  const result = normalizePhone("48733854184");
+  assertEquals(result.phone, "+48733854184");
+  assertEquals(result.isValid, true);
+});
+
+Deno.test("PHU-032: normalizePhoneOrFallback - 4848 double prefix without +", () => {
+  // Tests the specific branch for 4848 pattern without +
+  const result = normalizePhoneOrFallback("4848733854184");
+  assertEquals(result, "+48733854184");
+});
+
+Deno.test("PHU-033: normalizePhoneOrFallback - country code not in map uses PL default", () => {
+  // Tests fallback when country code is not in the map
+  const result = normalizePhoneOrFallback("123456789", "XX" as any);
+  // XX not in map, should use "48" as default
+  assertEquals(result, "+48123456789");
+});
+
+Deno.test("PHU-034: normalizePhone - handles parse exception", () => {
+  // Test with malformed input that might cause parse exception
+  // This is hard to trigger with libphonenumber, but we test edge case
+  const result = normalizePhone("+");
+  assertEquals(result.isValid, false);
+  assertExists(result.error);
+});
+
+Deno.test("PHU-035: normalizePhoneOrFallback - handles 11+ digits with UA prefix", () => {
+  const result = normalizePhoneOrFallback("380501234567");
+  assertEquals(result, "+380501234567");
+});
+
+Deno.test("PHU-036: normalizePhoneOrFallback - handles 11+ digits with CZ prefix", () => {
+  const result = normalizePhoneOrFallback("420777123456");
+  assertEquals(result, "+420777123456");
+});

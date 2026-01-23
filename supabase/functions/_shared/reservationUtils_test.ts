@@ -258,3 +258,80 @@ Deno.test("CRD-023f: mapCarSize - medium to M", () => {
 Deno.test("CRD-023g: mapCarSize - undefined to M", () => {
   assertEquals(mapCarSize(undefined), "M");
 });
+
+// ============================================================================
+// Additional coverage for uncovered branches
+// ============================================================================
+
+Deno.test("CRD-023h: parseCarModel - empty string", () => {
+  const result = parseCarModel("");
+  assertEquals(result.brand, "Do weryfikacji");
+  assertEquals(result.name, "Do weryfikacji");
+});
+
+Deno.test("CRD-023i: parseCarModel - whitespace only", () => {
+  const result = parseCarModel("   ");
+  assertEquals(result.brand, "Do weryfikacji");
+});
+
+Deno.test("CRD-023j: mapCarSize - unknown value defaults to M", () => {
+  assertEquals(mapCarSize("unknown"), "M");
+  assertEquals(mapCarSize("xl"), "M");
+  assertEquals(mapCarSize(""), "M");
+});
+
+Deno.test("CRD-007e: calculateEndTime - 00:00 + 30min = 00:30", () => {
+  assertEquals(calculateEndTime("00:00", 30), "00:30");
+});
+
+Deno.test("CRD-007f: calculateEndTime - 00:00 + 0min = 00:00", () => {
+  assertEquals(calculateEndTime("00:00", 0), "00:00");
+});
+
+Deno.test("CRD-015d: formatDateForSms - all day names", () => {
+  const days = [
+    { date: "2026-01-18", expected: "niedziela" },   // Sunday
+    { date: "2026-01-19", expected: "poniedziałek" }, // Monday
+    { date: "2026-01-20", expected: "wtorek" },      // Tuesday
+    { date: "2026-01-21", expected: "środa" },       // Wednesday
+    { date: "2026-01-22", expected: "czwartek" },    // Thursday
+    { date: "2026-01-23", expected: "piątek" },      // Friday
+    { date: "2026-01-24", expected: "sobota" },      // Saturday
+  ];
+  
+  for (const { date, expected } of days) {
+    const result = formatDateForSms(date);
+    assertEquals(result.dayName, expected);
+  }
+});
+
+Deno.test("CRD-019b: buildConfirmationSms - both maps and edit link", () => {
+  const sms = buildConfirmationSms({
+    instanceName: "AutoSpa",
+    dayNum: 24,
+    monthNameFull: "stycznia",
+    time: "10:00",
+    autoConfirm: true,
+    googleMapsUrl: "https://goo.gl/maps/abc",
+    editUrl: "https://example.com/edit",
+  });
+  
+  assertEquals(sms.includes("Dojazd: https://goo.gl/maps/abc"), true);
+  assertEquals(sms.includes("Zmien lub anuluj: https://example.com/edit"), true);
+});
+
+Deno.test("CRD-016b: buildConfirmationSms - pending with edit link but no maps", () => {
+  const sms = buildConfirmationSms({
+    instanceName: "AutoSpa",
+    dayNum: 24,
+    monthNameFull: "stycznia",
+    time: "10:00",
+    autoConfirm: false,
+    googleMapsUrl: null,
+    editUrl: "https://example.com/edit",
+  });
+  
+  assertEquals(sms.includes("Otrzymalismy prosbe"), true);
+  assertEquals(sms.includes("Zmien lub anuluj"), true);
+  assertEquals(sms.includes("Dojazd"), false); // Maps not included in pending
+});

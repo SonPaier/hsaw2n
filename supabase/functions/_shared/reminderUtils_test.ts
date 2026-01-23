@@ -198,3 +198,76 @@ Deno.test("SRE-008b: shouldMarkPermanentFailure - at threshold", () => {
   assertEquals(shouldMarkPermanentFailure(3, 3), true);
   assertEquals(shouldMarkPermanentFailure(4, 3), true);
 });
+
+// ============================================================================
+// Additional coverage for edge cases
+// ============================================================================
+
+Deno.test("SRE-009c: isWithinReminderWindow - edge of window (exactly 5 min)", () => {
+  assertEquals(isWithinReminderWindow(1145, 1140, 5), true);  // exactly 5 min after
+  assertEquals(isWithinReminderWindow(1135, 1140, 5), true);  // exactly 5 min before
+});
+
+Deno.test("SRE-009d: isWithinReminderWindow - just outside window", () => {
+  assertEquals(isWithinReminderWindow(1146, 1140, 5), false); // 6 min after
+  assertEquals(isWithinReminderWindow(1134, 1140, 5), false); // 6 min before
+});
+
+Deno.test("SRE-002c: getDateTimeInTimezone - summer time (DST)", () => {
+  // 2026-07-15 10:00 UTC - Warsaw should be UTC+2 (CEST)
+  const date = new Date("2026-07-15T10:00:00Z");
+  const result = getDateTimeInTimezone(date, "Europe/Warsaw");
+  
+  assertEquals(result.hours, 12); // UTC+2 in summer
+  assertEquals(result.dateStr, "2026-07-15");
+});
+
+Deno.test("SRE-002d: getDateTimeInTimezone - different timezone (UTC)", () => {
+  const date = new Date("2026-01-24T10:00:00Z");
+  const result = getDateTimeInTimezone(date, "UTC");
+  
+  assertEquals(result.hours, 10);
+  assertEquals(result.minutes, 0);
+});
+
+Deno.test("SRE-004g: calculateMinutesUntilStart - exact boundary (midnight)", () => {
+  // Now: 2026-01-24 00:00 Warsaw (23:00 UTC previous day)
+  const nowUtc = new Date("2026-01-23T23:00:00Z");
+  // Reservation: 2026-01-24 at 01:00 local
+  const minutes = calculateMinutesUntilStart(nowUtc, "2026-01-24", "01:00:00", "Europe/Warsaw");
+  
+  assertEquals(minutes, 60);
+});
+
+Deno.test("SRE-006d: isInBackoffPeriod - exactly at backoff boundary", () => {
+  const now = new Date("2026-01-24T10:15:00Z");
+  const lastAttempt = "2026-01-24T10:00:00Z"; // exactly 15 minutes ago
+  // At exactly 15 min, lastAttempt is NOT > backoffThreshold (it's equal)
+  assertEquals(isInBackoffPeriod(lastAttempt, now, 15), false);
+});
+
+Deno.test("SRE-008c: shouldMarkPermanentFailure - default threshold", () => {
+  // Test with default maxFailures (3)
+  assertEquals(shouldMarkPermanentFailure(2), false);
+  assertEquals(shouldMarkPermanentFailure(3), true);
+});
+
+Deno.test("SRE-MSG-5: buildReminder1DaySms - with null editUrl", () => {
+  const sms = buildReminder1DaySms({
+    instanceName: "AutoSpa",
+    time: "10:00",
+    editUrl: null,
+  });
+  
+  assertEquals(sms.includes("Zmien lub anuluj"), false);
+});
+
+Deno.test("SRE-MSG-6: buildReminder1HourSms - with null editUrl", () => {
+  const sms = buildReminder1HourSms({
+    instanceName: "AutoSpa",
+    time: "10:00",
+    editUrl: null,
+  });
+  
+  assertEquals(sms.includes("Zmien lub anuluj"), false);
+});
