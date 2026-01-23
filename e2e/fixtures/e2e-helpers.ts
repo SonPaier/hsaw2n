@@ -143,18 +143,24 @@ export async function openAddReservationDialog(page: Page): Promise<void> {
     timeout: 10000,
   });
   
-  // Find clickable time slots in the calendar grid
-  // These are typically divs with specific height that represent 15-30 minute intervals
-  const timeSlots = page.locator('[data-testid="time-slot"], .calendar-slot, [class*="slot"]:not([class*="header"])');
+  // Find clickable time slots in the calendar grid (enabled slots only)
+  const timeSlots = page.locator('[data-testid="calendar-slot"]:not([data-disabled="true"])');
   const slotCount = await timeSlots.count();
-  console.log(`[E2E] Found ${slotCount} time slot elements`);
+  console.log(`[E2E] Found ${slotCount} clickable time slot elements`);
   
   if (slotCount > 0) {
-    // Click on a slot in the middle of the working day (around 10:00-11:00)
-    // Try to find a slot that's not occupied
-    const targetSlot = timeSlots.nth(Math.min(8, slotCount - 1)); // ~10:00 if slots start at 8:00
-    await targetSlot.click();
-    console.log('[E2E] Clicked on calendar time slot');
+    // Click on a slot around 10:00 - find by data-time attribute
+    const slot1000 = page.locator('[data-testid="calendar-slot"][data-time="10:00"]:not([data-disabled="true"])').first();
+    const has1000 = await slot1000.count() > 0;
+    
+    if (has1000) {
+      await slot1000.click();
+      console.log('[E2E] Clicked on 10:00 slot');
+    } else {
+      // Fallback to first available slot
+      await timeSlots.first().click();
+      console.log('[E2E] Clicked on first available slot');
+    }
   } else {
     // Fallback: try clicking directly on the calendar grid area
     // The grid cells are clickable divs in the time column
