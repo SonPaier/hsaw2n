@@ -2120,10 +2120,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             {/* Services selection - NEW LIST VIEW for Reservation mode, chips for Yard/Detailing */}
             {!isPPFMode && (
               <div className="space-y-2" ref={servicesRef}>
-                {/* Label only shown when services are selected */}
-                {selectedServices.length > 0 && (
-                  <Label className="text-base font-semibold">{t('navigation.products')}</Label>
-                )}
+                <Label>{t('navigation.products')}</Label>
                 {validationErrors.services && (
                   <p className="text-sm text-destructive">{validationErrors.services}</p>
                 )}
