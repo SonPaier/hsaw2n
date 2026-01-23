@@ -885,30 +885,50 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     ? Math.round(totalPrice * (1 - customerDiscountPercent / 100))
     : totalPrice;
 
-  // Auto-update manualEndTime when totalDurationMinutes increases and in manual mode
+  // Auto-update manualEndTime when totalDurationMinutes changes and in manual mode
+  // In edit mode: adjusts slot when services are added/removed (extends/shortens)
   useEffect(() => {
     if (!isReservationMode || timeSelectionMode !== 'manual' || !manualStartTime) {
       prevTotalDurationRef.current = totalDurationMinutes;
       return;
     }
     
-    // PROTECTION: Don't overwrite manually set end time
-    if (userModifiedEndTime) {
+    // In EDIT MODE: Allow service-based duration changes
+    // Track if duration actually changed (services added/removed)
+    const durationChanged = prevTotalDurationRef.current !== null && 
+                           prevTotalDurationRef.current !== totalDurationMinutes &&
+                           prevTotalDurationRef.current > 0;
+    
+    // In new reservation mode, respect userModifiedEndTime
+    // In edit mode, allow changes when services are added/removed (duration changed)
+    if (!isEditMode && userModifiedEndTime) {
       prevTotalDurationRef.current = totalDurationMinutes;
       return;
     }
     
-    // Only update if duration increased and we have a start time
+    // Only update if we have valid data
     if (totalDurationMinutes > 0 && manualStartTime && manualStartTime.includes(':')) {
+      // In edit mode, only update if duration actually changed (services added/removed)
+      // This prevents initial load from changing end time
+      if (isEditMode && !durationChanged) {
+        prevTotalDurationRef.current = totalDurationMinutes;
+        return;
+      }
+      
       const [h, m] = manualStartTime.split(':').map(Number);
       const startMinutes = h * 60 + m;
       const endMinutes = startMinutes + totalDurationMinutes;
       const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
       setManualEndTime(newEndTime);
+      
+      // In edit mode, also update the original duration ref so start time changes work correctly
+      if (isEditMode) {
+        originalDurationMinutesRef.current = totalDurationMinutes;
+      }
     }
     
     prevTotalDurationRef.current = totalDurationMinutes;
-  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode, userModifiedEndTime]);
+  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode, userModifiedEndTime, isEditMode]);
 
   // AUTO-ADJUST END TIME WHEN START TIME CHANGES IN EDIT MODE
   // This maintains the original reservation duration when user manually changes start time
