@@ -71,23 +71,39 @@ export async function seedE2EScenario(
  * Navigates to login page, fills credentials, and waits for dashboard.
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
-  // Navigate to E2E instance login
-  await page.goto(`/${E2E_CONFIG.instanceSlug}/login`);
-  
-  // Wait for login form
-  await page.waitForSelector('input[name="username"], input[placeholder*="Login"]', { timeout: 10000 });
-  
-  // Fill credentials (username-based login)
-  await page.fill('input[name="username"], input[placeholder*="Login"]', E2E_ADMIN.username);
-  await page.fill('input[type="password"], input[name="password"]', E2E_ADMIN.password);
-  
+  // Navigate to instance login (dev/staging route is /:slug/login)
+  await page.goto(`/${E2E_CONFIG.instanceSlug}/login`, { waitUntil: 'domcontentloaded' });
+
+  const calendar = page.locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]').first();
+  const usernameInput = page.locator('input#username').first();
+  const passwordInput = page.locator('input#password').first();
+
+  // In CI the app can cold-start and show a spinner first. Wait for either:
+  // - already authenticated dashboard, or
+  // - login inputs.
+  await Promise.race([
+    calendar.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}),
+    usernameInput.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {}),
+  ]);
+
+  // If already logged in, we're done.
+  if (await calendar.isVisible().catch(() => false)) {
+    return;
+  }
+
+  // Ensure form is ready
+  await usernameInput.waitFor({ state: 'visible', timeout: 30000 });
+  await passwordInput.waitFor({ state: 'visible', timeout: 30000 });
+
+  // Fill credentials
+  await usernameInput.fill(E2E_ADMIN.username);
+  await passwordInput.fill(E2E_ADMIN.password);
+
   // Submit login
-  await page.click('button[type="submit"]');
-  
+  await page.locator('button[type="submit"], button:has-text("Zaloguj")').first().click();
+
   // Wait for dashboard to load (calendar view)
-  await page.waitForSelector('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]', { 
-    timeout: 15000 
-  });
+  await calendar.waitFor({ state: 'visible', timeout: 30000 });
 }
 
 /**
