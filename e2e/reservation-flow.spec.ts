@@ -133,10 +133,33 @@ test.describe('Reservation Flow', () => {
       timeout: 10000,
     });
 
+    // Debug: log all elements that could be reservations
+    console.log('🔍 Looking for reservations on calendar...');
+    const allDivs = await page.locator('div[class*="reservation"], div[class*="card"], div[draggable="true"]').all();
+    console.log(`[E2E] Found ${allDivs.length} potential reservation elements`);
+    for (let i = 0; i < Math.min(allDivs.length, 5); i++) {
+      const text = await allDivs[i].textContent().catch(() => '');
+      const classes = await allDivs[i].getAttribute('class').catch(() => '');
+      console.log(`[E2E] Element ${i}: classes="${classes?.substring(0, 50)}" text="${text?.substring(0, 30)}"`);
+    }
+
     // Click on first reservation to open details
     console.log('👆 Clicking on reservation...');
-    const firstReservation = page.locator('[data-testid="reservation-card"], .reservation-block, [class*="reservation"]').first();
+    const firstReservation = page.locator('div[draggable="true"], [data-testid="reservation-card"], .reservation-block').first();
+    const reservationCount = await firstReservation.count();
+    console.log(`[E2E] Reservation selector matched ${reservationCount} elements`);
+    
+    if (reservationCount === 0) {
+      await page.screenshot({ path: 'test-results/debug-no-reservations.png' }).catch(() => {});
+      console.log('[E2E] Screenshot saved: debug-no-reservations.png');
+      throw new Error('No reservations found on calendar');
+    }
+    
+    const isVisible = await firstReservation.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[E2E] First reservation visible: ${isVisible}`);
+    
     await firstReservation.click();
+    console.log('[E2E] Clicked on reservation');
 
     // Verify drawer opened
     console.log('📋 Verifying details drawer...');
