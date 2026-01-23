@@ -71,16 +71,14 @@ export async function seedE2EScenario(
  * Navigates to login page, fills credentials, and waits for dashboard.
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
-  // Navigate to instance login (dev/staging route is /:slug/login)
-  const loginUrl = `/${E2E_CONFIG.instanceSlug}/login`;
-  await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(new RegExp(`/${E2E_CONFIG.instanceSlug}/login`), { timeout: 30000 }).catch(() => {});
+  // Navigate to login page (on subdomain e2e.admin.n2wash.com, login is at /login)
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
   const calendar = page
     .locator('[data-testid="admin-calendar"], .admin-calendar, [class*="calendar"]')
     .first();
 
-  // Prefer robust, accessibility-based selectors (independent of Input implementation)
+  // Prefer robust, accessibility-based selectors
   const usernameInput = page.getByLabel(/login/i).first();
   const passwordInput = page.getByLabel(/hasło/i).first();
   const submitButton = page.getByRole('button', { name: /zaloguj/i }).first();

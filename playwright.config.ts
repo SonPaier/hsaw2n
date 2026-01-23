@@ -8,7 +8,8 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "html" : "list",
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://id-preview--0bbe9475-073c-4985-bc05-4a8322b030ab.lovable.app",
+    // E2E tests run against the production E2E instance subdomain
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://e2e.admin.n2wash.com",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
