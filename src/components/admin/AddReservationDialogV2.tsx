@@ -301,6 +301,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   
   // Flag to prevent auto-calculation from overwriting manual end time
   const [userModifiedEndTime, setUserModifiedEndTime] = useState(false);
+  
+  // Track original duration for edit mode - to adjust end time when start time changes
+  const originalDurationMinutesRef = useRef<number | null>(null);
+  // Track previous manual start time to detect user-initiated changes
+  const prevManualStartTimeRef = useRef<string>('');
 
   // Helper to mark form as being actively edited by user
   const markUserEditing = useCallback(() => {
@@ -660,9 +665,22 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         // Reset time change flow and set manual time from editing reservation
         setIsChangingTime(false);
         setTimeSelectionMode('manual');
-        setManualStartTime(editingReservation.start_time?.substring(0, 5) || '');
-        setManualEndTime(editingReservation.end_time?.substring(0, 5) || '');
+        const startTimeStr = editingReservation.start_time?.substring(0, 5) || '';
+        const endTimeStr = editingReservation.end_time?.substring(0, 5) || '';
+        setManualStartTime(startTimeStr);
+        setManualEndTime(endTimeStr);
         setManualStationId(editingReservation.station_id);
+        
+        // Calculate and store original duration for automatic end time adjustment
+        if (startTimeStr && endTimeStr && startTimeStr.includes(':') && endTimeStr.includes(':')) {
+          const [startH, startM] = startTimeStr.split(':').map(Number);
+          const [endH, endM] = endTimeStr.split(':').map(Number);
+          const startMinutes = startH * 60 + startM;
+          const endMinutes = endH * 60 + endM;
+          originalDurationMinutesRef.current = endMinutes - startMinutes;
+          prevManualStartTimeRef.current = startTimeStr;
+        }
+        
         // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
         // This preserves the original end_time from the reservation being edited
         setUserModifiedEndTime(true);
@@ -751,6 +769,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       wasOpenRef.current = false;
       isUserEditingRef.current = false;
       lastEditingReservationIdRef.current = null;
+      originalDurationMinutesRef.current = null;
+      prevManualStartTimeRef.current = '';
       setServicesWithCategory([]); // Reset services list for next open
     }
   }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
@@ -889,6 +909,34 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     
     prevTotalDurationRef.current = totalDurationMinutes;
   }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode, userModifiedEndTime]);
+
+  // AUTO-ADJUST END TIME WHEN START TIME CHANGES IN EDIT MODE
+  // This maintains the original reservation duration when user manually changes start time
+  useEffect(() => {
+    if (!isReservationMode || !isEditMode || timeSelectionMode !== 'manual') return;
+    if (!manualStartTime || !manualStartTime.includes(':')) return;
+    if (originalDurationMinutesRef.current === null) return;
+    
+    // Check if start time actually changed (not just initial load)
+    if (prevManualStartTimeRef.current === manualStartTime) return;
+    if (prevManualStartTimeRef.current === '') {
+      // First time setting - just record and skip
+      prevManualStartTimeRef.current = manualStartTime;
+      return;
+    }
+    
+    // Calculate new end time based on original duration
+    const [h, m] = manualStartTime.split(':').map(Number);
+    const startMinutes = h * 60 + m;
+    const endMinutes = startMinutes + originalDurationMinutesRef.current;
+    const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+    
+    setManualEndTime(newEndTime);
+    prevManualStartTimeRef.current = manualStartTime;
+    
+    // Note: We don't reset userModifiedEndTime here because this is an automatic adjustment
+    // If user later manually changes end time, userModifiedEndTime will be set to true by the onChange handler
+  }, [manualStartTime, isReservationMode, isEditMode, timeSelectionMode]);
 
   // Emit slot preview for live calendar highlight
   useEffect(() => {
