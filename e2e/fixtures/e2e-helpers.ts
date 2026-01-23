@@ -172,7 +172,11 @@ export async function loginAsAdmin(page: Page, clearStorage = true): Promise<voi
   ]);
 
   // Wait for dashboard to load with stations
-  console.log('[E2E] Logged in, waiting for calendar to load with stations...');
+  console.log('[E2E] Logged in, reloading to ensure fresh data after seed...');
+  
+  // Force reload to pick up freshly seeded data (React Query may have stale cache)
+  await page.reload({ waitUntil: 'networkidle' });
+  
   await waitForCalendarToLoad(page);
   console.log('[E2E] ✅ Login complete - calendar loaded with stations');
 }
