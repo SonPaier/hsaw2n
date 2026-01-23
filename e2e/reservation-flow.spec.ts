@@ -55,9 +55,9 @@ test.describe('Reservation Happy Path', () => {
     console.log(`✅ Calendar loaded with ${slotCount} slots`);
 
     // ========================================================================
-    // STEP 2: Create reservation by clicking on calendar slot
+    // STEP 2: Create reservation by clicking on calendar slot (FIRST STATION)
     // ========================================================================
-    console.log('\n📍 STEP 2: Create reservation');
+    console.log('\n📍 STEP 2: Create reservation on FIRST station');
     
     const testCustomer = {
       phone: '111222333',
@@ -66,18 +66,28 @@ test.describe('Reservation Happy Path', () => {
       plate: 'WE E2E01',
     };
 
-    // Click on a slot around 10:00
-    const targetSlot = page.locator('[data-testid="calendar-slot"][data-time="10:00"]').first();
+    // Get all unique station IDs from the slots
+    const allSlots = page.locator('[data-testid="calendar-slot"]');
+    const firstSlot = allSlots.first();
+    const firstStationId = await firstSlot.getAttribute('data-station');
+    console.log(`[E2E] First station ID: ${firstStationId}`);
+    
+    // Find all slots for the first station
+    const firstStationSlots = page.locator(`[data-testid="calendar-slot"][data-station="${firstStationId}"]`);
+    const firstStationSlotCount = await firstStationSlots.count();
+    console.log(`[E2E] First station has ${firstStationSlotCount} slots`);
+    
+    // Click on slot at 10:00 for the first station
+    const targetSlot = page.locator(`[data-testid="calendar-slot"][data-station="${firstStationId}"][data-time="10:00"]`).first();
     const slotVisible = await targetSlot.isVisible({ timeout: 3000 }).catch(() => false);
     
     if (slotVisible) {
-      console.log('[E2E] Found slot at 10:00, clicking...');
+      console.log('[E2E] Found slot at 10:00 on first station, clicking...');
       await targetSlot.click();
     } else {
-      // Fallback: click any visible slot
-      console.log('[E2E] 10:00 slot not found, clicking first available slot...');
-      const anySlot = page.locator('[data-testid="calendar-slot"]').first();
-      await anySlot.click();
+      // Fallback: click first slot of first station
+      console.log('[E2E] 10:00 slot not found, clicking first available slot on first station...');
+      await firstStationSlots.first().click();
     }
     
     // Wait for dialog to open
@@ -239,28 +249,62 @@ test.describe('Reservation Happy Path', () => {
     await page.waitForTimeout(500);
 
     // ========================================================================
-    // STEP 6: Drag and drop reservation
+    // STEP 6: Drag and drop reservation to SECOND STATION
     // ========================================================================
-    console.log('\n📍 STEP 6: Drag and drop reservation');
+    console.log('\n📍 STEP 6: Drag and drop reservation to SECOND station');
 
     const dragSource = page.locator(`div[draggable="true"]:has-text("${testCustomer.name}")`).first();
     const isDraggable = await dragSource.getAttribute('draggable');
     
     if (isDraggable === 'true') {
       const sourceBox = await dragSource.boundingBox();
-      if (sourceBox) {
-        // Drag down by 2 hours (assuming ~30px per slot)
-        const targetY = sourceBox.y + 120;
+      
+      // Find the second station's slot to get target X position
+      const allSlotsForDrag = page.locator('[data-testid="calendar-slot"]');
+      const stationIds = new Set<string>();
+      const slotCountForDrag = await allSlotsForDrag.count();
+      
+      for (let i = 0; i < Math.min(slotCountForDrag, 50); i++) {
+        const stationId = await allSlotsForDrag.nth(i).getAttribute('data-station');
+        if (stationId) stationIds.add(stationId);
+      }
+      
+      const stationIdArray = Array.from(stationIds);
+      console.log(`[E2E] Found ${stationIdArray.length} stations: ${stationIdArray.join(', ')}`);
+      
+      if (sourceBox && stationIdArray.length >= 2) {
+        // Get a slot from the second station to find target X position
+        const secondStationSlot = page.locator(`[data-testid="calendar-slot"][data-station="${stationIdArray[1]}"][data-time="10:00"]`).first();
+        const secondStationBox = await secondStationSlot.boundingBox();
         
-        console.log(`[E2E] Dragging from y=${Math.round(sourceBox.y)} to y=${Math.round(targetY)}`);
-        
+        if (secondStationBox) {
+          console.log(`[E2E] Dragging from station 1 (x=${Math.round(sourceBox.x)}) to station 2 (x=${Math.round(secondStationBox.x)})`);
+          
+          // Drag to second station, same time
+          await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+          await page.mouse.down();
+          await page.mouse.move(secondStationBox.x + secondStationBox.width / 2, sourceBox.y, { steps: 15 });
+          await page.mouse.up();
+          
+          await page.waitForTimeout(1000);
+          console.log('✅ Drag and drop to second station completed');
+        } else {
+          // Fallback: just drag down on same station
+          console.log('[E2E] Second station slot not found, dragging down instead');
+          await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+          await page.mouse.down();
+          await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + 120, { steps: 10 });
+          await page.mouse.up();
+          await page.waitForTimeout(1000);
+        }
+      } else if (sourceBox) {
+        // Only 1 station, drag down
+        console.log('[E2E] Only 1 station found, dragging down by 2 hours');
         await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
         await page.mouse.down();
-        await page.mouse.move(sourceBox.x + sourceBox.width / 2, targetY, { steps: 10 });
+        await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + 120, { steps: 10 });
         await page.mouse.up();
-        
         await page.waitForTimeout(1000);
-        console.log('✅ Drag and drop completed');
       }
     } else {
       console.log('⚠️ Reservation not draggable (mobile view or disabled)');
