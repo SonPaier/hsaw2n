@@ -572,4 +572,142 @@ describe('AddReservationDialogV2', () => {
       expect(screen.getByLabelText(/telefon/i)).toBeInTheDocument();
     });
   });
+
+  describe('Scenariusze edycji rezerwacji', () => {
+    const mockEditingReservation = {
+      id: 'res-edit-1',
+      customer_name: 'Anna Nowak',
+      customer_phone: '987654321',
+      vehicle_plate: 'Audi A6',
+      car_size: 'large' as const,
+      reservation_date: '2024-03-15',
+      start_time: '09:00:00',
+      end_time: '10:30:00',
+      station_id: 'sta-1',
+      service_ids: ['svc-1'],
+      service_items: [{ service_id: 'svc-1', custom_price: 80 }],
+      customer_notes: 'Notatka klienta',
+      admin_notes: 'Notatka admina',
+      price: 80,
+      confirmation_code: 'XYZ789',
+    };
+
+    it('RES-U-100: edycja - wypełnia rozmiar auta z rezerwacji (L)', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        const buttonL = screen.getByRole('button', { name: 'L' });
+        expect(buttonL.className).toContain('bg-primary');
+      });
+    });
+
+    it('RES-U-101: edycja - wyświetla model pojazdu', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        // The car model should be in an input (combobox)
+        const combobox = screen.getByRole('combobox');
+        expect(combobox).toHaveValue('Audi A6');
+      });
+    });
+
+    it('CLI-U-102: edycja - sprawdza inicjalizację formularza', async () => {
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        // Verify basic editing UI is loaded
+        expect(screen.getByText(/Edytuj rezerwację/i)).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Anna Nowak')).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-103: edycja - zmiana rozmiaru auta aktualizuje przycisk', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'L' })).toBeInTheDocument();
+      });
+
+      // L is active (from reservation)
+      const buttonL = screen.getByRole('button', { name: 'L' });
+      expect(buttonL.className).toContain('bg-primary');
+
+      // Click S to change size
+      const buttonS = screen.getByRole('button', { name: 'S' });
+      await user.click(buttonS);
+
+      await waitFor(() => {
+        expect(buttonS.className).toContain('bg-primary');
+        expect(buttonL.className).not.toContain('bg-primary');
+      });
+    });
+
+    it('RES-U-106: edycja - kliknięcie "Zmień termin" pokazuje pola czasu', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /zmień termin/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /zmień termin/i }));
+
+      await waitFor(() => {
+        // After clicking "Zmień termin", time inputs should appear
+        expect(screen.getByText(/godzina rozpoczęcia/i)).toBeInTheDocument();
+      });
+    });
+
+    it('RES-U-107: edycja - można zmienić telefon', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/telefon/i)).toBeInTheDocument();
+      });
+
+      const phoneInput = screen.getByLabelText(/telefon/i);
+      await user.clear(phoneInput);
+      await user.type(phoneInput, '111222333');
+
+      expect(phoneInput).toHaveValue('111 222 333');
+    });
+
+    it('RES-U-108: edycja - można zmienić imię klienta', async () => {
+      const user = userEvent.setup();
+      renderComponent({ 
+        mode: 'reservation',
+        editingReservation: mockEditingReservation,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Anna Nowak')).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByDisplayValue('Anna Nowak');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Piotr Kowalski');
+
+      expect(nameInput).toHaveValue('Piotr Kowalski');
+    });
+  });
 });
