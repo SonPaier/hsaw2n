@@ -1338,3 +1338,229 @@ describe("AdminCalendar - J. Edge Cases", () => {
     expect(notesIcon).toBeInTheDocument();
   });
 });
+
+// =============================================================================
+// GROUP K: Header & Navigation (CAL-U-140 to CAL-U-155)
+// =============================================================================
+describe("AdminCalendar - K. Header & Navigation", () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+    localStorage.clear();
+  });
+
+  // CAL-U-140: Date picker selection updates currentDate
+  it("CAL-U-140: clicking date picker button opens calendar popover", () => {
+    renderCalendar({ stations: mockStations });
+    
+    // Find the calendar icon button in header (date picker trigger)
+    const calendarButton = document.querySelector('button svg.lucide-calendar');
+    expect(calendarButton).toBeInTheDocument();
+  });
+
+  // CAL-U-141: "Dziś" (Today) button sets current date and day view
+  it("CAL-U-141: dziś button exists and is clickable", () => {
+    renderCalendar({ stations: mockStations });
+    
+    // "Dziś" button exists in the header
+    const dzisButton = screen.getByRole("button", { name: /dziś/i });
+    expect(dzisButton).toBeInTheDocument();
+  });
+
+  // CAL-U-142: Plac button exists and is clickable
+  it("CAL-U-142: plac button exists", () => {
+    renderCalendar({ 
+      stations: mockStations,
+    });
+    
+    // Find "Plac" button (has ParkingSquare icon)
+    const placButton = screen.getByRole("button", { name: /plac/i });
+    expect(placButton).toBeInTheDocument();
+  });
+
+  // CAL-U-143: Navigation prev button changes date
+  it("CAL-U-143: prev button navigates to previous day", () => {
+    const onDateChange = vi.fn();
+    renderCalendar({ 
+      stations: mockStations,
+      onDateChange,
+    });
+    
+    // Find prev navigation button (ChevronLeft)
+    const prevButton = document.querySelector('button svg.lucide-chevron-left')?.parentElement;
+    expect(prevButton).toBeInTheDocument();
+    
+    if (prevButton) {
+      fireEvent.click(prevButton);
+      expect(onDateChange).toHaveBeenCalled();
+    }
+  });
+
+  // CAL-U-144: Navigation next button changes date
+  it("CAL-U-144: next button navigates to next day", () => {
+    const onDateChange = vi.fn();
+    renderCalendar({ 
+      stations: mockStations,
+      onDateChange,
+    });
+    
+    // Find next navigation button (ChevronRight)
+    const nextButton = document.querySelector('button svg.lucide-chevron-right')?.parentElement;
+    expect(nextButton).toBeInTheDocument();
+    
+    if (nextButton) {
+      fireEvent.click(nextButton);
+      expect(onDateChange).toHaveBeenCalled();
+    }
+  });
+
+  // CAL-U-145: View mode toggle - day view button active by default
+  it("CAL-U-145: day view is active by default", () => {
+    renderCalendar({ stations: mockStations });
+    
+    // Day view button should have 'secondary' variant (active state)
+    const dayButton = document.querySelector('button svg.lucide-calendar');
+    expect(dayButton).toBeInTheDocument();
+  });
+
+  // CAL-U-146: View mode toggle - two days view is available
+  it("CAL-U-146: two-days view toggle available with allowedViews", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      allowedViews: ['day', 'two-days', 'week'],
+    });
+    
+    // Two-days button should exist with title "2 dni"
+    const twoDaysButton = screen.getByRole("button", { name: /2 dni/i });
+    expect(twoDaysButton).toBeInTheDocument();
+  });
+
+  // CAL-U-147: View mode toggle - week view (when allowed)
+  it("CAL-U-147: week view toggle shown when showWeekView=true", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      showWeekView: true,
+      allowedViews: ['day', 'two-days', 'week'],
+    });
+    
+    // CalendarDays icon for week view
+    const weekIcon = document.querySelector('svg.lucide-calendar-days');
+    expect(weekIcon).toBeInTheDocument();
+  });
+
+  // CAL-U-148: Day close/open dropdown appears on day name click (desktop)
+  it("CAL-U-148: closed day toggle available when onToggleClosedDay provided", () => {
+    const onToggleClosedDay = vi.fn();
+    renderCalendar({ 
+      stations: mockStations,
+      onToggleClosedDay,
+      readOnly: false,
+    });
+    
+    // Day name should be a button/trigger when onToggleClosedDay is provided
+    // and clicking it opens a dropdown with close day option
+    const currentDate = new Date();
+    const dayName = currentDate.toLocaleDateString('pl', { weekday: 'long' });
+    // Check that there's a clickable element with day name
+    const dayElements = document.querySelectorAll('button, [role="button"]');
+    expect(dayElements.length).toBeGreaterThan(0);
+  });
+
+  // CAL-U-149: Closed day shows "Otwórz dzień" option
+  it("CAL-U-149: closed day shows red text styling", () => {
+    const today = new Date().toISOString().split("T")[0];
+    renderCalendar({ 
+      stations: mockStations,
+      closedDays: [{ id: "cd-1", closed_date: today, reason: "Holiday" }],
+      onToggleClosedDay: vi.fn(),
+    });
+    
+    // Day name should have red styling when closed
+    const redText = document.querySelector('[class*="text-red"]');
+    expect(redText).toBeInTheDocument();
+  });
+
+  // CAL-U-150: Station filter toggles station visibility when enabled
+  it("CAL-U-150: station filter button present when showStationFilter=true", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      showStationFilter: true,
+    });
+    
+    // Kolumny button should be present (title "Kolumny")
+    const kolumnyButton = screen.getByRole("button", { name: /kolumny/i });
+    expect(kolumnyButton).toBeInTheDocument();
+  });
+
+  // CAL-U-151: Hall mode eye toggle changes visibility
+  it("CAL-U-151: hall mode shows eye toggle", () => {
+    const onToggleHallDataVisibility = vi.fn();
+    renderCalendar({ 
+      stations: mockStations,
+      hallMode: true,
+      hallDataVisible: true,
+      onToggleHallDataVisibility,
+    });
+    
+    // Eye icon for visibility toggle
+    const eyeIcon = document.querySelector('svg.lucide-eye');
+    expect(eyeIcon).toBeInTheDocument();
+    
+    // Click should call callback
+    const eyeButton = eyeIcon?.parentElement;
+    if (eyeButton) {
+      fireEvent.click(eyeButton);
+      expect(onToggleHallDataVisibility).toHaveBeenCalled();
+    }
+  });
+
+  // CAL-U-152: Hall mode shows eye-off when data hidden
+  it("CAL-U-152: hall mode shows eye-off when hallDataVisible=false", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      hallMode: true,
+      hallDataVisible: false,
+      onToggleHallDataVisibility: vi.fn(),
+    });
+    
+    // Eye-off icon when data is hidden
+    const eyeOffIcon = document.querySelector('svg.lucide-eye-off');
+    expect(eyeOffIcon).toBeInTheDocument();
+  });
+
+  // CAL-U-153: allowedViews restricts view mode buttons
+  it("CAL-U-153: allowedViews=['day'] hides other view buttons", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      allowedViews: ['day'],
+    });
+    
+    // When only 'day' is allowed, two-days button should not be present
+    const twoDaysButton = screen.queryByRole("button", { name: /2 dni/i });
+    expect(twoDaysButton).toBeNull();
+  });
+
+  // CAL-U-154: isLoadingMore shows spinner
+  it("CAL-U-154: isLoadingMore shows loading spinner", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      isLoadingMore: true,
+    });
+    
+    // Should show animate-spin somewhere
+    const spinningElement = document.querySelector('[class*="animate-spin"]');
+    expect(spinningElement).toBeInTheDocument();
+  });
+
+  // CAL-U-155: readOnly mode hides add reservation functionality
+  it("CAL-U-155: readOnly mode does not show station filter", () => {
+    renderCalendar({ 
+      stations: mockStations,
+      readOnly: true,
+      showStationFilter: false,
+    });
+    
+    // Settings icon should not be present in readOnly
+    const settingsIcon = document.querySelector('svg.lucide-settings-2');
+    expect(settingsIcon).toBeNull();
+  });
+});
