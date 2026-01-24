@@ -59,10 +59,9 @@ const ServiceRow = ({
   isMobile: boolean;
 }) => {
   const formatPrice = () => {
-    if (service.requires_size) {
-      // Show "od X zł" with smallest price (S size)
-      const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
-      if (prices.length === 0) return '-';
+    // Check if any size-based prices exist
+    const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
+    if (prices.length > 0) {
       const minPrice = Math.min(...prices);
       return `od ${minPrice} zł`;
     }
