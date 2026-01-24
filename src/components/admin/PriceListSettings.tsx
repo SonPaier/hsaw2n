@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, Star, FolderPlus } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
@@ -141,7 +141,6 @@ const ServiceRow = ({
       </button>
       
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
         <span className={cn("truncate", !service.active && "line-through")}>{service.name}</span>
         {!service.active && (
           <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">nieaktywna</span>
@@ -819,14 +818,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
               />
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
               <Checkbox
                 id="is_popular"
                 checked={formData.is_popular}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_popular: !!v }))}
               />
-              <Label htmlFor="is_popular" className="flex items-center gap-2 cursor-pointer">
-                <Star className="w-4 h-4 text-amber-500" />
+              <Label htmlFor="is_popular" className="cursor-pointer">
                 {t('priceList.form.popularService')}
               </Label>
             </div>
