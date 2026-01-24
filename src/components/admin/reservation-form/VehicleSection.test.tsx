@@ -47,7 +47,7 @@ describe('VehicleSection', () => {
   describe('Renderowanie', () => {
     it('VS-U-001: wyświetla pole modelu auta z wymaganą gwiazdką', () => {
       renderComponent();
-      expect(screen.getByText(/Marka i model/i)).toBeInTheDocument();
+      expect(screen.getByText(/Model i marka pojazdu/i)).toBeInTheDocument();
       expect(screen.getByText('*')).toBeInTheDocument();
     });
 
