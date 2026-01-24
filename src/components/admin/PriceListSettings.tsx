@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Loader2, Save, GripVertical, Star, FolderPlus } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, Star, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -91,22 +86,16 @@ const STATION_TYPES = [
   { value: 'universal', labelKey: 'priceList.stationTypes.universal' },
 ];
 
-// Sortable service item component
-const SortableServiceItem = ({ 
+// Simple service row component for flat list
+const ServiceRow = ({ 
   service, 
   onEdit, 
   onDelete, 
-  onToggleActive,
-  onTogglePopular,
-  t,
   isMobile
 }: { 
   service: Service; 
   onEdit: () => void; 
   onDelete: () => void; 
-  onToggleActive: () => void;
-  onTogglePopular: () => void;
-  t: (key: string) => string;
   isMobile: boolean;
 }) => {
   const {
@@ -124,137 +113,47 @@ const SortableServiceItem = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Mobile layout
-  if (isMobile) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={cn(
-          "p-4 border border-border/50 rounded-lg bg-white",
-          !service.active && "opacity-50"
-        )}
-      >
-        <div className="flex items-start gap-2">
-          <button
-            {...attributes}
-            {...listeners}
-            className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground mt-0.5"
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
-          
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Line 1: Service name */}
-            <div className="flex items-center gap-2">
-              {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
-              <span className="font-medium">{service.name}</span>
-              {!service.active && (
-                <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('priceList.inactive')}</span>
-              )}
-            </div>
-            
-            {/* Lines 2-4: Prices per size OR single price */}
-            {service.requires_size ? (
-              <div className="text-sm text-muted-foreground space-y-1">
-                <div>S: <span className="font-bold">{service.price_small} zł</span> / <span className="font-bold">{service.duration_small || service.duration_minutes || '-'} min</span></div>
-                <div>M: <span className="font-bold">{service.price_medium} zł</span> / <span className="font-bold">{service.duration_medium || service.duration_minutes || '-'} min</span></div>
-                <div>L: <span className="font-bold">{service.price_large} zł</span> / <span className="font-bold">{service.duration_large || service.duration_minutes || '-'} min</span></div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                {service.price_from && <span>od <span className="font-bold">{service.price_from} zł</span></span>}
-                {service.duration_minutes && <span className="ml-2">• <span className="font-bold">{service.duration_minutes} min</span></span>}
-              </div>
-            )}
-            
-            {/* Line 5: Actions */}
-            <div className="flex items-center gap-1 pt-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onTogglePopular}
-                title={service.is_popular ? t('priceList.removeFromPopular') : t('priceList.markAsPopular')}
-                className="h-8 w-8"
-              >
-                <Star className={cn("w-4 h-4", service.is_popular ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
-              </Button>
-              <Switch
-                checked={service.active ?? true}
-                onCheckedChange={onToggleActive}
-              />
-              <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
-                <Edit2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={onDelete}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatPrice = () => {
+    if (service.requires_size) {
+      if (isMobile) {
+        return `${service.price_small || 0} / ${service.price_medium || 0} / ${service.price_large || 0} zł`;
+      }
+      return `S: ${service.price_small || 0} zł | M: ${service.price_medium || 0} zł | L: ${service.price_large || 0} zł`;
+    }
+    return service.price_from ? `od ${service.price_from} zł` : '';
+  };
 
-  // Desktop layout
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 p-4 border border-border/50 rounded-lg bg-white",
+        "flex items-center gap-2 px-4 py-3 border-b border-border/30 last:border-b-0",
         !service.active && "opacity-50"
       )}
     >
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground"
+        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground shrink-0"
       >
         <GripVertical className="w-4 h-4" />
       </button>
       
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
-          <span className="font-medium truncate">{service.name}</span>
-          {!service.active && (
-            <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('priceList.inactive')}</span>
-          )}
-        </div>
-        <div className="text-sm text-muted-foreground mt-1">
-          {service.requires_size ? (
-            <span>
-              S: <span className="font-bold">{service.price_small} zł</span> / <span className="font-bold">{service.duration_small || service.duration_minutes || '-'} min</span>
-              {' | '}M: <span className="font-bold">{service.price_medium} zł</span> / <span className="font-bold">{service.duration_medium || service.duration_minutes || '-'} min</span>
-              {' | '}L: <span className="font-bold">{service.price_large} zł</span> / <span className="font-bold">{service.duration_large || service.duration_minutes || '-'} min</span>
-            </span>
-          ) : (
-            <>
-              {service.price_from && <span>od <span className="font-bold">{service.price_from} zł</span></span>}
-              {service.duration_minutes && <span className="ml-2">• <span className="font-bold">{service.duration_minutes} min</span></span>}
-            </>
-          )}
-        </div>
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        {service.is_popular && <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+        <span className={cn("truncate", !service.active && "line-through")}>{service.name}</span>
+        {!service.active && (
+          <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">nieaktywna</span>
+        )}
       </div>
       
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onTogglePopular}
-          title={service.is_popular ? t('priceList.removeFromPopular') : t('priceList.markAsPopular')}
-        >
-          <Star className={cn("w-4 h-4", service.is_popular ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
-        </Button>
-        <Switch
-          checked={service.active ?? true}
-          onCheckedChange={onToggleActive}
-        />
-        <Button variant="ghost" size="icon" onClick={onEdit}>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-sm text-muted-foreground hidden sm:inline whitespace-nowrap">{formatPrice()}</span>
+        <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
           <Edit2 className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-destructive" onClick={onDelete}>
+        <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={onDelete}>
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
@@ -269,7 +168,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   
@@ -323,11 +221,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       
       if (error) throw error;
       setCategories(data || []);
-      
-      // Open first category by default
-      if (data && data.length > 0 && openSections.length === 0) {
-        setOpenSections([data[0].id]);
-      }
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -362,14 +255,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     };
     loadData();
   }, [instanceId]);
-
-  const toggleSection = (key: string) => {
-    setOpenSections(prev => 
-      prev.includes(key) 
-        ? prev.filter(k => k !== key)
-        : [...prev, key]
-    );
-  };
 
   const getServicesByCategory = (categoryId: string | null) => {
     if (categoryId === null) {
@@ -430,7 +315,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       toast.error(t('priceList.errors.nameRequired'));
       return;
     }
-    // Category is now optional - no validation needed
 
     setSaving(true);
     try {
@@ -458,7 +342,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       if (editingService) {
         const { error } = await supabase
           .from('unified_services')
-          .update({ ...serviceData, service_type: 'reservation' })
+          .update({ ...serviceData, service_type: 'both' })
           .eq('id', editingService.id);
         
         if (error) throw error;
@@ -466,7 +350,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       } else {
         const { error } = await supabase
           .from('unified_services')
-          .insert({ ...serviceData, service_type: 'reservation' });
+          .insert({ ...serviceData, service_type: 'both' });
         
         if (error) throw error;
         toast.success(t('priceList.serviceAdded'));
@@ -484,7 +368,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
 
   const handleDelete = async (serviceId: string) => {
     try {
-      // Check if service is linked to any reservations
       const { count } = await supabase
         .from('reservations')
         .select('id', { count: 'exact', head: true })
@@ -493,7 +376,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       const hasReservations = (count || 0) > 0;
       
       if (hasReservations) {
-        // Service has reservations - soft delete (deactivate)
         if (!confirm(t('priceList.confirmDeactivate'))) return;
         
         const { error } = await supabase
@@ -504,7 +386,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         if (error) throw error;
         toast.success(t('priceList.serviceDeactivated'));
       } else {
-        // No reservations - can delete physically
         if (!confirm(t('priceList.confirmDelete'))) return;
         
         const { error } = await supabase
@@ -523,57 +404,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
-  const toggleServiceActive = async (service: Service) => {
-    const newValue = !service.active;
-    
-    // Optimistic update
-    setServices(prev => prev.map(s => 
-      s.id === service.id ? { ...s, active: newValue } : s
-    ));
-    
-    try {
-      const { error } = await supabase
-        .from('unified_services')
-        .update({ active: newValue })
-        .eq('id', service.id);
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error toggling service:', error);
-      toast.error(t('priceList.errors.statusError'));
-      // Revert on error
-      setServices(prev => prev.map(s => 
-        s.id === service.id ? { ...s, active: !newValue } : s
-      ));
-    }
-  };
-
-  const toggleServicePopular = async (service: Service) => {
-    const newValue = !service.is_popular;
-    
-    // Optimistic update - update local state immediately
-    setServices(prev => prev.map(s => 
-      s.id === service.id ? { ...s, is_popular: newValue } : s
-    ));
-    
-    try {
-      const { error } = await supabase
-        .from('unified_services')
-        .update({ is_popular: newValue })
-        .eq('id', service.id);
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error toggling popular:', error);
-      toast.error(t('priceList.errors.popularError'));
-      // Revert on error
-      setServices(prev => prev.map(s => 
-        s.id === service.id ? { ...s, is_popular: !newValue } : s
-      ));
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent, categoryId: string) => {
+  const handleDragEnd = async (event: DragEndEvent, categoryId: string | null) => {
     const { active, over } = event;
     
     if (!over || active.id === over.id) return;
@@ -586,13 +417,15 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     
     const reorderedServices = arrayMove(sectionServices, oldIndex, newIndex);
     
-    // Update local state immediately
     setServices(prev => {
-      const otherServices = prev.filter(s => s.category_id !== categoryId);
+      const otherServices = prev.filter(s => 
+        categoryId === null 
+          ? s.category_id && categories.some(c => c.id === s.category_id)
+          : s.category_id !== categoryId
+      );
       return [...otherServices, ...reorderedServices.map((s, i) => ({ ...s, sort_order: i }))];
     });
     
-    // Update in database
     try {
       for (let i = 0; i < reorderedServices.length; i++) {
         await supabase
@@ -678,7 +511,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    // Check if there are services in this category
     const servicesInCategory = services.filter(s => s.category_id === categoryId);
     
     if (servicesInCategory.length > 0) {
@@ -686,39 +518,16 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       return;
     }
     
+    if (!confirm(t('priceList.confirmDeleteCategory'))) return;
+    
     try {
-      // Check if any services that WERE in this category are linked to reservations
-      const { count } = await supabase
-        .from('reservations')
-        .select('id', { count: 'exact', head: true })
-        .in('service_id', servicesInCategory.map(s => s.id));
+      const { error } = await supabase
+        .from('unified_categories')
+        .delete()
+        .eq('id', categoryId);
       
-      const hasReservations = (count || 0) > 0;
-      
-      if (hasReservations) {
-        // Soft delete
-        if (!confirm(t('priceList.confirmDeactivateCategory'))) return;
-        
-        const { error } = await supabase
-          .from('unified_categories')
-          .update({ active: false })
-          .eq('id', categoryId);
-        
-        if (error) throw error;
-        toast.success(t('priceList.categoryDeactivated'));
-      } else {
-        // Physical delete
-        if (!confirm(t('priceList.confirmDeleteCategory'))) return;
-        
-        const { error } = await supabase
-          .from('unified_categories')
-          .delete()
-          .eq('id', categoryId);
-        
-        if (error) throw error;
-        toast.success(t('priceList.categoryDeleted'));
-      }
-      
+      if (error) throw error;
+      toast.success(t('priceList.categoryDeleted'));
       fetchCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -734,195 +543,104 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     );
   }
 
+  const uncategorizedServices = getServicesByCategory(null);
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{t('priceList.title')}</h3>
-        <Button onClick={() => openCategoryDialog()} size="sm" className="gap-2">
+    <div className="space-y-6">
+      {/* Top action buttons */}
+      <div className="flex items-center gap-2">
+        <Button onClick={() => openEditDialog()} className="gap-2">
+          <Plus className="w-4 h-4" />
+          {t('priceList.addNewService')}
+        </Button>
+        <Button onClick={() => openCategoryDialog()} variant="secondary" className="gap-2">
           <FolderPlus className="w-4 h-4" />
           {t('priceList.addCategory')}
         </Button>
       </div>
 
       {/* Uncategorized services */}
-      {(() => {
-        const uncategorizedServices = getServicesByCategory(null);
-        const isUncategorizedOpen = openSections.includes('uncategorized');
-        
-        if (uncategorizedServices.length > 0) {
-          return (
-            <Collapsible
-              open={isUncategorizedOpen}
-              onOpenChange={() => toggleSection('uncategorized')}
+      {uncategorizedServices.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between py-3 border-b-2 border-border">
+            <h3 className="font-semibold text-foreground">{t('priceList.noCategory')}</h3>
+            <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, '')} className="h-8 w-8">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="bg-white rounded-b-lg">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, null)}
             >
-              <CollapsibleTrigger asChild>
-                <div className="p-4 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {isUncategorizedOpen ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                      <span className="font-medium">{t('priceList.noCategory')}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({uncategorizedServices.length} {t('priceList.servicesCount')})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, '')} title={t('priceList.addService')}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={(event) => handleDragEnd(event, '')}
-                >
-                  <SortableContext
-                    items={uncategorizedServices.map(s => s.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="mt-2 space-y-2">
-                      {uncategorizedServices.map(service => (
-                        <SortableServiceItem
-                          key={service.id}
-                          service={service}
-                          onEdit={() => openEditDialog(service)}
-                          onDelete={() => handleDelete(service.id)}
-                          onToggleActive={() => toggleServiceActive(service)}
-                          onTogglePopular={() => toggleServicePopular(service)}
-                          t={t}
-                          isMobile={isMobile}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        }
-        return null;
-      })()}
+              <SortableContext
+                items={uncategorizedServices.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {uncategorizedServices.map(service => (
+                  <ServiceRow
+                    key={service.id}
+                    service={service}
+                    onEdit={() => openEditDialog(service)}
+                    onDelete={() => handleDelete(service.id)}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
+        </div>
+      )}
 
       {/* Categories */}
       {categories.map(category => {
         const categoryServices = getServicesByCategory(category.id);
-        const isOpen = openSections.includes(category.id);
 
         return (
-          <Collapsible
-            key={category.id}
-            open={isOpen}
-            onOpenChange={() => toggleSection(category.id)}
-          >
-            <CollapsibleTrigger asChild>
-              <div className="p-4 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">
-                {/* Mobile: 2 lines */}
-                <div className="md:hidden space-y-2">
-                  <div className="flex items-center gap-3">
-                    {isOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({categoryServices.length} {t('priceList.servicesCount')})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 pl-7" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(undefined, category.id)} className="h-8 px-2">
-                      <Plus className="w-4 h-4 mr-1" />{t('common.add')}
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} className="h-8 w-8">
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteCategory(category.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Desktop: single line */}
-                <div className="hidden md:flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {isOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({categoryServices.length} {t('priceList.servicesCount')})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} title={t('priceList.addService')}>
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} title={t('priceList.editCategory')}>
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteCategory(category.id)} title={t('priceList.deleteCategory')}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(event) => handleDragEnd(event, category.id)}
-              >
-                <SortableContext
-                  items={categoryServices.map(s => s.id)}
-                  strategy={verticalListSortingStrategy}
+          <div key={category.id}>
+            <div className="flex items-center justify-between py-3 border-b-2 border-border">
+              <h3 className="font-semibold text-foreground">{category.name}</h3>
+              <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} className="h-8 w-8">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="bg-white rounded-b-lg">
+              {categoryServices.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-4 text-center">
+                  {t('priceList.noServicesInCategory')}
+                </p>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => handleDragEnd(event, category.id)}
                 >
-                  <div className="mt-2 space-y-2">
-                    {categoryServices.length === 0 ? (
-                      <p className="text-sm text-muted-foreground p-4 text-center">
-                        {t('priceList.noServicesInCategory')}
-                      </p>
-                    ) : (
-                      categoryServices.map(service => (
-                        <SortableServiceItem
-                          key={service.id}
-                          service={service}
-                          onEdit={() => openEditDialog(service)}
-                          onDelete={() => handleDelete(service.id)}
-                          onToggleActive={() => toggleServiceActive(service)}
-                          onTogglePopular={() => toggleServicePopular(service)}
-                          t={t}
-                          isMobile={isMobile}
-                        />
-                      ))
-                    )}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </CollapsibleContent>
-          </Collapsible>
+                  <SortableContext
+                    items={categoryServices.map(s => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {categoryServices.map(service => (
+                      <ServiceRow
+                        key={service.id}
+                        service={service}
+                        onEdit={() => openEditDialog(service)}
+                        onDelete={() => handleDelete(service.id)}
+                        isMobile={isMobile}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          </div>
         );
       })}
       
-      {/* Empty state - no categories and no services */}
-      {categories.length === 0 && getServicesByCategory(null).length === 0 && (
+      {/* Empty state */}
+      {categories.length === 0 && uncategorizedServices.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           <p>{t('priceList.noServices')}</p>
-          <Button onClick={() => openEditDialog()} variant="outline" className="mt-4 gap-2">
-            <Plus className="w-4 h-4" />
-            {t('priceList.addNewService')}
-          </Button>
         </div>
       )}
 
