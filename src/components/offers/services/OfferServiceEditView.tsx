@@ -373,7 +373,8 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           .insert({
             ...scopeData,
             instance_id: instanceId,
-            active: true
+            active: true,
+            has_unified_services: true // New templates always use unified services
           })
           .select('id')
           .single();

@@ -34,6 +34,7 @@ export function ScopesStep({ instanceId, selectedScopeIds, onScopesChange }: Sco
         .select('id, name, description, has_coating_upsell, is_extras_scope')
         .eq('instance_id', instanceId)
         .eq('active', true)
+        .eq('has_unified_services', true) // Only show new unified templates
         .eq('is_extras_scope', false) // Exclude extras scopes - they are always shown in step 3
         .order('sort_order');
 

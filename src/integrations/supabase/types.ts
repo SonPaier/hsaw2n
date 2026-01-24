@@ -1447,6 +1447,7 @@ export type Database = {
           default_warranty: string | null
           description: string | null
           has_coating_upsell: boolean
+          has_unified_services: boolean | null
           id: string
           instance_id: string | null
           is_extras_scope: boolean
@@ -1465,6 +1466,7 @@ export type Database = {
           default_warranty?: string | null
           description?: string | null
           has_coating_upsell?: boolean
+          has_unified_services?: boolean | null
           id?: string
           instance_id?: string | null
           is_extras_scope?: boolean
@@ -1483,6 +1485,7 @@ export type Database = {
           default_warranty?: string | null
           description?: string | null
           has_coating_upsell?: boolean
+          has_unified_services?: boolean | null
           id?: string
           instance_id?: string | null
           is_extras_scope?: boolean
