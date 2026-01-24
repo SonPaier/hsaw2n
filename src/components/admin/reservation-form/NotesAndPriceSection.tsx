@@ -1,0 +1,73 @@
+import { useTranslation } from 'react-i18next';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+
+interface NotesAndPriceSectionProps {
+  adminNotes: string;
+  setAdminNotes: (notes: string) => void;
+  showPrice: boolean;
+  finalPrice: string;
+  setFinalPrice: (price: string) => void;
+  discountedPrice: number;
+  totalPrice: number;
+  customerDiscountPercent: number | null;
+}
+
+export const NotesAndPriceSection = ({
+  adminNotes,
+  setAdminNotes,
+  showPrice,
+  finalPrice,
+  setFinalPrice,
+  discountedPrice,
+  totalPrice,
+  customerDiscountPercent,
+}: NotesAndPriceSectionProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      {/* Notes - always visible */}
+      <div className="space-y-2">
+        <Label htmlFor="adminNotes" className="text-sm text-muted-foreground">
+          {t('addReservation.notes')}
+        </Label>
+        <Textarea
+          id="adminNotes"
+          value={adminNotes}
+          onChange={(e) => setAdminNotes(e.target.value)}
+          rows={2}
+          placeholder={t('addReservation.notesPlaceholder')}
+        />
+      </div>
+
+      {/* Final Price - visible in reservation mode */}
+      {showPrice && (
+        <div className="space-y-2">
+          <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
+            {t('addReservation.amount')}
+          </Label>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Input
+              id="finalPrice"
+              type="number"
+              value={finalPrice || discountedPrice}
+              onChange={(e) => setFinalPrice(e.target.value)}
+              className="w-32"
+            />
+            <span className="text-muted-foreground">zł</span>
+            {customerDiscountPercent && customerDiscountPercent > 0 && totalPrice > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="line-through text-muted-foreground">{totalPrice} zł</span>
+                <span className="text-green-600 font-medium">-{customerDiscountPercent}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default NotesAndPriceSection;
