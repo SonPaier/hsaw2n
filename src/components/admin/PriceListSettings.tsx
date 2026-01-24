@@ -524,13 +524,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={() => setCategoryManagementOpen(true)} variant="outline" className="gap-2 bg-white">
+            <Settings2 className="w-4 h-4" />
+            {t('priceList.manageCategories')}
+          </Button>
           <Button onClick={() => openEditDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
             {t('priceList.addService')}
-          </Button>
-          <Button onClick={() => setCategoryManagementOpen(true)} variant="secondary" className="gap-2">
-            <Settings2 className="w-4 h-4" />
-            {t('priceList.manageCategories')}
           </Button>
         </div>
       </div>
