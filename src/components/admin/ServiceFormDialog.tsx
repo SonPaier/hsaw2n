@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Sparkles, ChevronDown } from 'lucide-react';
+import { Loader2, Sparkles, ChevronDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,11 +33,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface ServiceCategory {
+  id: string;
+  name: string;
+}
+
+interface ReminderTemplateOption {
   id: string;
   name: string;
 }
@@ -59,6 +70,7 @@ interface ServiceData {
   category_id: string | null;
   service_type: 'both' | 'reservation' | 'offer';
   sort_order?: number | null;
+  reminder_template_id?: string | null;
 }
 
 interface ServiceFormDialogProps {
@@ -70,6 +82,24 @@ interface ServiceFormDialogProps {
   onSaved: () => void;
   defaultCategoryId?: string;
   totalServicesCount?: number;
+}
+
+// Info icon with tooltip component
+function FieldInfo({ tooltip }: { tooltip: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" className="p-0.5 text-muted-foreground hover:text-foreground">
+            <Info className="w-3.5 h-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs text-sm">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 const ServiceFormContent = ({
@@ -96,6 +126,7 @@ const ServiceFormContent = ({
   const [saving, setSaving] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
   
   // Auto-expand size prices/durations if any exist
   const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
@@ -118,7 +149,23 @@ const ServiceFormContent = ({
     duration_large: service?.duration_large ?? null,
     category_id: service?.category_id || defaultCategoryId || '',
     service_type: service?.service_type || 'both',
+    reminder_template_id: service?.reminder_template_id || '__none__',
   });
+
+  // Fetch reminder templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data } = await supabase
+        .from('reminder_templates')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .order('name');
+      setReminderTemplates(data || []);
+    };
+    if (instanceId) {
+      fetchTemplates();
+    }
+  }, [instanceId]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -156,6 +203,7 @@ const ServiceFormContent = ({
         duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
+        reminder_template_id: service.reminder_template_id || '__none__',
       });
     }
   }, [service, defaultCategoryId]);
@@ -185,6 +233,7 @@ const ServiceFormContent = ({
         category_id: formData.category_id || null,
         service_type: formData.service_type,
         requires_size: showSizePrices || showSizeDurations,
+        reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
         active: true,
       };
 
@@ -263,38 +312,53 @@ const ServiceFormContent = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-24">
-        {/* Row 1: Name, Short Name, Category */}
+        {/* Row 1: Name, Short Name */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr_1fr]"
+          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr]"
         )}>
           <div className="space-y-2">
-            <Label className="text-sm">{t('priceList.form.clientVisibleName')} *</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm">{t('priceList.form.fullOfficialName', 'Pełna, oficjalna nazwa usługi')} *</Label>
+              <FieldInfo tooltip="Nazwa wyświetlana klientom w ofercie i cenniku" />
+            </div>
             <Input
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder={t('priceList.form.serviceNamePlaceholder')}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm">{t('priceList.form.shortNameLabel', 'Twoja nazwa lub skrót')}</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm">{t('priceList.form.shortNameLabel', 'Twoja nazwa lub skrót')}</Label>
+              <FieldInfo tooltip="Wewnętrzna nazwa robocza widoczna tylko dla Ciebie" />
+            </div>
             <Input
               value={formData.short_name}
               onChange={(e) => setFormData(prev => ({ ...prev, short_name: e.target.value.toUpperCase() }))}
-              placeholder="np. MZ"
               maxLength={10}
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm">{t('priceList.form.category')}</Label>
+        </div>
+
+        {/* Row 2: Price + Category */}
+        <div className={cn(
+          "grid gap-4",
+          isMobile ? "grid-cols-1" : "grid-cols-[1fr_3fr]"
+        )}>
+          {/* Category - left on desktop */}
+          <div className="space-y-2 order-2 md:order-1">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm">{t('priceList.form.category')}</Label>
+              <FieldInfo tooltip="Grupowanie usług w cenniku" />
+            </div>
             <Select
               value={formData.category_id || 'none'}
               onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={t('priceList.noCategory')} />
+              <SelectTrigger className="bg-white">
+                <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-popover">
+              <SelectContent className="bg-white">
                 <SelectItem value="none">{t('priceList.noCategory')}</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>
@@ -304,109 +368,103 @@ const ServiceFormContent = ({
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* Row 2: Price Section */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            <Label className="text-sm">{priceLabel}</Label>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className={cn("text-sm", !formData.prices_are_net && "text-muted-foreground")}>
-                {t('priceList.form.netPrice')}
-              </span>
+          {/* Price section - right on desktop */}
+          <div className="space-y-2 order-1 md:order-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm">{priceLabel}</Label>
+                <FieldInfo tooltip="Cena bazowa usługi" />
+              </div>
               <Switch
                 checked={!formData.prices_are_net}
                 onCheckedChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: !v }))}
               />
-              <span className={cn("text-sm", formData.prices_are_net && "text-muted-foreground")}>
-                {t('priceList.form.grossPrice')}
+              <span className="text-sm text-muted-foreground">
+                {formData.prices_are_net ? t('priceList.form.grossPrice') : t('priceList.form.netPrice')}
               </span>
             </div>
-          </div>
 
-          {!showSizePrices ? (
-            <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
-              <Input
-                type="number"
-                value={formData.price_from ?? ''}
-                onChange={(e) => handlePriceChange('price_from', e.target.value)}
-                placeholder="-"
-              />
-              {!isMobile && (
-                <div className="col-span-2 flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowSizePrices(true)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {t('priceList.form.priceBySizeLink')}
-                  </button>
+            {!showSizePrices ? (
+              <div className="space-y-1">
+                <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+                  <Input
+                    type="number"
+                    value={formData.price_from ?? ''}
+                    onChange={(e) => handlePriceChange('price_from', e.target.value)}
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-              )}
-              {isMobile && (
                 <button
                   type="button"
                   onClick={() => setShowSizePrices(true)}
-                  className="text-sm text-primary hover:underline text-left"
+                  className="text-sm text-primary font-semibold hover:underline"
                 >
                   {t('priceList.form.priceBySizeLink')}
                 </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">S</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_small ?? ''}
-                    onChange={(e) => handlePriceChange('price_small', e.target.value)}
-                    placeholder="-"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">M</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_medium ?? ''}
-                    onChange={(e) => handlePriceChange('price_medium', e.target.value)}
-                    placeholder="-"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">L</Label>
-                  <Input
-                    type="number"
-                    value={formData.price_large ?? ''}
-                    onChange={(e) => handlePriceChange('price_large', e.target.value)}
-                    placeholder="-"
-                  />
-                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSizePrices(false);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    price_small: null, 
-                    price_medium: null, 
-                    price_large: null 
-                  }));
-                }}
-                className="text-sm text-muted-foreground hover:underline"
-              >
-                {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">S</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_small ?? ''}
+                      onChange={(e) => handlePriceChange('price_small', e.target.value)}
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">M</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_medium ?? ''}
+                      onChange={(e) => handlePriceChange('price_medium', e.target.value)}
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">L</Label>
+                    <Input
+                      type="number"
+                      value={formData.price_large ?? ''}
+                      onChange={(e) => handlePriceChange('price_large', e.target.value)}
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSizePrices(false);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      price_small: null, 
+                      price_medium: null, 
+                      price_large: null 
+                    }));
+                  }}
+                  className="text-sm text-primary font-semibold hover:underline"
+                >
+                  {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Row 3: Description */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm">{t('priceList.form.description')}</Label>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm">{t('priceList.form.descriptionShort', 'Opis')}</Label>
+              <FieldInfo tooltip="Opis wyświetlany klientom podczas rezerwacji" />
+            </div>
             <Button
               type="button"
               variant="ghost"
@@ -427,7 +485,6 @@ const ServiceFormContent = ({
             ref={textareaRef}
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            placeholder={t('priceList.form.descriptionPlaceholder')}
             className="min-h-[288px] resize-none overflow-hidden"
             style={{ height: 'auto' }}
           />
@@ -438,7 +495,7 @@ const ServiceFormContent = ({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full py-2"
+              className="flex items-center gap-2 text-sm text-primary font-semibold hover:text-primary/80 w-full py-2"
             >
               <ChevronDown className={cn(
                 "w-4 h-4 transition-transform",
@@ -449,29 +506,30 @@ const ServiceFormContent = ({
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-2">
             {/* Duration */}
-            <div className="space-y-3">
-              <Label className="text-sm">{t('priceList.form.duration')}</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm">{t('priceList.form.duration')}</Label>
+                <FieldInfo tooltip="Czas trwania usługi w minutach" />
+              </div>
               {!showSizeDurations ? (
-                <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+                <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       value={formData.duration_minutes ?? ''}
                       onChange={(e) => handleDurationChange('duration_minutes', e.target.value)}
-                      placeholder="60"
                       className="w-24"
+                      min="0"
                     />
                     <span className="text-sm text-muted-foreground">{t('common.minutes', 'min')}</span>
                   </div>
-                  <div className="col-span-2 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowSizeDurations(true)}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {t('priceList.form.durationBySizeLink', 'Czas zależny od wielkości samochodu')}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSizeDurations(true)}
+                    className="text-sm text-primary font-semibold hover:underline"
+                  >
+                    {t('priceList.form.durationBySizeLink', 'Czas zależny od wielkości samochodu')}
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -482,7 +540,7 @@ const ServiceFormContent = ({
                         type="number"
                         value={formData.duration_small ?? ''}
                         onChange={(e) => handleDurationChange('duration_small', e.target.value)}
-                        placeholder="60"
+                        min="0"
                       />
                     </div>
                     <div className="space-y-1">
@@ -491,7 +549,7 @@ const ServiceFormContent = ({
                         type="number"
                         value={formData.duration_medium ?? ''}
                         onChange={(e) => handleDurationChange('duration_medium', e.target.value)}
-                        placeholder="60"
+                        min="0"
                       />
                     </div>
                     <div className="space-y-1">
@@ -500,7 +558,7 @@ const ServiceFormContent = ({
                         type="number"
                         value={formData.duration_large ?? ''}
                         onChange={(e) => handleDurationChange('duration_large', e.target.value)}
-                        placeholder="60"
+                        min="0"
                       />
                     </div>
                   </div>
@@ -515,7 +573,7 @@ const ServiceFormContent = ({
                         duration_large: null 
                       }));
                     }}
-                    className="text-sm text-muted-foreground hover:underline"
+                    className="text-sm text-primary font-semibold hover:underline"
                   >
                     {t('priceList.form.useSingleDuration', 'Użyj jednego czasu')}
                   </button>
@@ -525,27 +583,54 @@ const ServiceFormContent = ({
 
             {/* Visibility */}
             <div className="space-y-2">
-              <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+                <FieldInfo tooltip="Gdzie usługa będzie widoczna" />
+              </div>
               <Select
                 value={formData.service_type}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-popover">
+                <SelectContent className="bg-white">
                   <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
                   <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
                   <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Reminder Template */}
+            {reminderTemplates.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-sm">{t('productDialog.reminderTemplate', 'Szablon przypomnień')}</Label>
+                  <FieldInfo tooltip="Automatyczne przypomnienia SMS po wykonaniu usługi" />
+                </div>
+                <Select
+                  value={formData.reminder_template_id}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, reminder_template_id: v }))}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="__none__">{t('reminderTemplates.noTemplate', 'Brak')}</SelectItem>
+                    {reminderTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
       </div>
 
       {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex justify-end gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex justify-end gap-3 z-50">
         <Button variant="outline" onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
@@ -581,12 +666,12 @@ export const ServiceFormDialog = ({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader>
+        <DrawerContent className="h-[100dvh] max-h-[100dvh]">
+          <DrawerHeader className="flex-shrink-0">
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 pb-4 overflow-y-auto">
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
             <ServiceFormContent
               service={service}
               categories={categories}
