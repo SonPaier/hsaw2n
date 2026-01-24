@@ -275,6 +275,7 @@ export const CarSearchAutocomplete = ({
             }
           }}
           disabled={disabled}
+          data-testid="car-input"
           className={cn(
             'pr-16',
             error && 'border-destructive focus-visible:ring-destructive'
