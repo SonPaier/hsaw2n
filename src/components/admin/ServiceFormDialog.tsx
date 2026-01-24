@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Sparkles, ChevronDown, Info } from 'lucide-react';
+import { Loader2, Sparkles, ChevronDown, Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,6 +89,7 @@ interface ServiceFormDialogProps {
   onSaved: () => void;
   defaultCategoryId?: string;
   totalServicesCount?: number;
+  onDelete?: () => void;
 }
 
 // Info icon with tooltip component
@@ -111,63 +112,65 @@ function FieldInfo({ tooltip }: { tooltip: string }) {
 
 const ServiceFormContent = ({
   service,
-  categories,
-  instanceId,
-  onSaved,
-  onClose,
-  defaultCategoryId,
-  totalServicesCount = 0,
-  isMobile = false,
-}: {
-  service?: ServiceData | null;
-  categories: ServiceCategory[];
-  instanceId: string;
-  onSaved: () => void;
-  onClose: () => void;
-  defaultCategoryId?: string;
-  totalServicesCount?: number;
-  isMobile?: boolean;
-}) => {
-  const { t } = useTranslation();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [saving, setSaving] = useState(false);
-  const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
-  
-  // Auto-expand advanced section if any advanced field has value
-  const hasAdvancedValues = !!(
-    service?.duration_minutes || 
-    service?.duration_small || 
-    service?.duration_medium || 
-    service?.duration_large ||
-    (service?.service_type && service.service_type !== 'both') ||
-    service?.reminder_template_id
-  );
-  const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
-  
-  // Auto-expand size prices/durations if any exist
-  const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
-  const hasSizeDurations = !!(service?.duration_small || service?.duration_medium || service?.duration_large);
-  const [showSizePrices, setShowSizePrices] = useState(hasSizePrices);
-  const [showSizeDurations, setShowSizeDurations] = useState(hasSizeDurations);
+        categories,
+        instanceId,
+        onSaved,
+        onClose,
+        defaultCategoryId,
+        totalServicesCount = 0,
+        isMobile = false,
+        onDelete,
+      }: {
+        service?: ServiceData | null;
+        categories: ServiceCategory[];
+        instanceId: string;
+        onSaved: () => void;
+        onClose: () => void;
+        defaultCategoryId?: string;
+        totalServicesCount?: number;
+        isMobile?: boolean;
+        onDelete?: () => void;
+      }) => {
+        const { t } = useTranslation();
+        const textareaRef = useRef<HTMLTextAreaElement>(null);
+        const [saving, setSaving] = useState(false);
+        const [generatingDescription, setGeneratingDescription] = useState(false);
+        const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
+        
+        // Auto-expand advanced section if any advanced field has value
+        const hasAdvancedValues = !!(
+          service?.duration_minutes || 
+          service?.duration_small || 
+          service?.duration_medium || 
+          service?.duration_large ||
+          (service?.service_type && service.service_type !== 'both') ||
+          service?.reminder_template_id
+        );
+        const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
+        
+        // Auto-expand size prices/durations if any exist
+        const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
+        const hasSizeDurations = !!(service?.duration_small || service?.duration_medium || service?.duration_large);
+        const [showSizePrices, setShowSizePrices] = useState(hasSizePrices);
+        const [showSizeDurations, setShowSizeDurations] = useState(hasSizeDurations);
 
-  const [formData, setFormData] = useState({
-    name: service?.name || '',
-    short_name: service?.short_name || '',
-    description: service?.description || '',
-    price_from: service?.price_from ?? null,
-    price_small: service?.price_small ?? null,
-    price_medium: service?.price_medium ?? null,
-    price_large: service?.price_large ?? null,
-    prices_are_net: service?.prices_are_net ?? true,
-    duration_minutes: service?.duration_minutes ?? null,
-    duration_small: service?.duration_small ?? null,
-    duration_medium: service?.duration_medium ?? null,
-    duration_large: service?.duration_large ?? null,
-    category_id: service?.category_id || defaultCategoryId || '',
-    service_type: service?.service_type || 'both',
-    reminder_template_id: service?.reminder_template_id || '__none__',
-  });
+        const [formData, setFormData] = useState({
+          name: service?.name || '',
+          short_name: service?.short_name || '',
+          description: service?.description || '',
+          price_from: service?.price_from ?? null,
+          price_small: service?.price_small ?? null,
+          price_medium: service?.price_medium ?? null,
+          price_large: service?.price_large ?? null,
+          prices_are_net: service?.prices_are_net ?? true,
+          duration_minutes: service?.duration_minutes ?? null,
+          duration_small: service?.duration_small ?? null,
+          duration_medium: service?.duration_medium ?? null,
+          duration_large: service?.duration_large ?? null,
+          category_id: service?.category_id || defaultCategoryId || '',
+          service_type: service?.service_type || 'both',
+          reminder_template_id: service?.reminder_template_id || '__none__',
+        });
 
   // Fetch reminder templates
   useEffect(() => {
@@ -479,15 +482,7 @@ const ServiceFormContent = ({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setShowSizePrices(false);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    price_small: null, 
-                    price_medium: null, 
-                    price_large: null 
-                  }));
-                }}
+                onClick={() => setShowSizePrices(false)}
                 className="text-sm text-primary font-semibold hover:underline"
               >
                 {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
@@ -602,15 +597,7 @@ const ServiceFormContent = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowSizeDurations(false);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        duration_small: null, 
-                        duration_medium: null, 
-                        duration_large: null 
-                      }));
-                    }}
+                    onClick={() => setShowSizeDurations(false)}
                     className="text-sm text-primary font-semibold hover:underline"
                   >
                     {t('priceList.form.useSingleDuration', 'Użyj jednego czasu')}
@@ -678,14 +665,28 @@ const ServiceFormContent = ({
       </div>
 
       {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex justify-end gap-3 z-50">
-        <Button variant="outline" onClick={onClose} disabled={saving}>
-          {t('common.cancel')}
-        </Button>
-        <Button onClick={handleSave} disabled={saving || !formData.name.trim()}>
-          {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-          {t('common.save')}
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex items-center z-50">
+        {service?.id && onDelete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t('common.delete', 'Usuń')}
+          </Button>
+        )}
+        <div className="flex-1" />
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleSave} disabled={saving || !formData.name.trim()}>
+            {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            {t('common.save')}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -700,6 +701,7 @@ export const ServiceFormDialog = ({
   onSaved,
   defaultCategoryId,
   totalServicesCount = 0,
+  onDelete,
 }: ServiceFormDialogProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -727,6 +729,7 @@ export const ServiceFormDialog = ({
               defaultCategoryId={defaultCategoryId}
               totalServicesCount={totalServicesCount}
               isMobile={true}
+              onDelete={onDelete}
             />
           </div>
         </DrawerContent>
@@ -751,6 +754,7 @@ export const ServiceFormDialog = ({
             defaultCategoryId={defaultCategoryId}
             totalServicesCount={totalServicesCount}
             isMobile={false}
+            onDelete={onDelete}
           />
         </div>
       </DialogContent>
