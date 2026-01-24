@@ -29,7 +29,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
         // Parallel fetch for performance
         const [historyData, servicesRes, stationsRes] = await Promise.all([
           fetchReservationHistory(reservationId),
-          supabase.from('services').select('id, name, shortcut').eq('instance_id', instanceId),
+          supabase.from('unified_services').select('id, name, shortcut').eq('instance_id', instanceId).eq('service_type', 'reservation'),
           supabase.from('stations').select('id, name').eq('instance_id', instanceId),
         ]);
 

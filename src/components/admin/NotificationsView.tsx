@@ -94,7 +94,7 @@ export default function NotificationsView({
         const serviceIds = reservationData.service_ids as string[] | null;
         if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
           const { data: services } = await supabase
-            .from('services')
+            .from('unified_services')
             .select('name, shortcut, price_small, price_medium, price_large, price_from')
             .in('id', serviceIds);
           servicesData = services;

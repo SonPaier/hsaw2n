@@ -102,9 +102,10 @@ const ServiceSelectionDrawer = ({
       setLoading(true);
       
       let servicesQuery = supabase
-        .from('services')
+        .from('unified_services')
         .select('id, name, shortcut, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
         .eq('instance_id', instanceId)
+        .eq('service_type', 'reservation')
         .eq('active', true);
       
       // All services available - no station_type filtering
@@ -112,9 +113,10 @@ const ServiceSelectionDrawer = ({
       const [servicesRes, categoriesRes] = await Promise.all([
         servicesQuery.order('sort_order'),
         supabase
-          .from('service_categories')
+          .from('unified_categories')
           .select('id, name, sort_order, prices_are_net')
           .eq('instance_id', instanceId)
+          .eq('category_type', 'reservation')
           .eq('active', true)
           .order('sort_order'),
       ]);
