@@ -32,6 +32,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
 import { OfferRemindersDialog } from '@/components/offers/OfferRemindersDialog';
 import { OfferSelectionDialog } from '@/components/offers/OfferSelectionDialog';
+import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
 import { OfferServicesListView } from '@/components/offers/services/OfferServicesListView';
 import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
 import { toast } from 'sonner';
@@ -162,6 +163,9 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
   
   // Selection dialog state
   const [selectionDialog, setSelectionDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
+
+  // Reminder templates dialog state
+  const [showReminderTemplates, setShowReminderTemplates] = useState(false);
 
   // Services view state
   const [showServicesView, setShowServicesView] = useState(false);
@@ -470,6 +474,10 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             <Button variant="outline" size="icon" onClick={() => setShowServicesView(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Layers className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">Twoje Szablony</span>
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setShowReminderTemplates(true)} className="sm:w-auto sm:px-4 w-10 h-10">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">{t('reminderTemplates.title')}</span>
             </Button>
             <Button variant="outline" size="icon" onClick={onNavigateToProducts} className="sm:w-auto sm:px-4 w-10 h-10">
               <Package className="w-4 h-4" />
@@ -891,6 +899,15 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
           open={selectionDialog.open}
           onOpenChange={(open) => !open && setSelectionDialog({ open: false, offer: null })}
           offer={selectionDialog.offer}
+        />
+      )}
+
+      {/* Reminder Templates Dialog */}
+      {instanceId && (
+        <ReminderTemplatesDialog
+          open={showReminderTemplates}
+          onOpenChange={setShowReminderTemplates}
+          instanceId={instanceId}
         />
       )}
     </>
