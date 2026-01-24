@@ -2670,6 +2670,161 @@ export type Database = {
           },
         ]
       }
+      unified_categories: {
+        Row: {
+          category_type: string
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          instance_id: string
+          name: string
+          prices_are_net: boolean | null
+          slug: string | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category_type: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          prices_are_net?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          prices_are_net?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_categories_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_services: {
+        Row: {
+          active: boolean | null
+          category_id: string | null
+          created_at: string
+          default_payment_terms: string | null
+          default_price: number | null
+          default_service_info: string | null
+          default_validity_days: number | null
+          default_warranty_terms: string | null
+          deleted_at: string | null
+          description: string | null
+          duration_large: number | null
+          duration_medium: number | null
+          duration_small: number | null
+          id: string
+          instance_id: string
+          is_popular: boolean | null
+          metadata: Json | null
+          name: string
+          price_large: number | null
+          price_medium: number | null
+          price_small: number | null
+          prices_are_net: boolean | null
+          requires_size: boolean | null
+          short_name: string | null
+          sort_order: number | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          category_id?: string | null
+          created_at?: string
+          default_payment_terms?: string | null
+          default_price?: number | null
+          default_service_info?: string | null
+          default_validity_days?: number | null
+          default_warranty_terms?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          duration_large?: number | null
+          duration_medium?: number | null
+          duration_small?: number | null
+          id?: string
+          instance_id: string
+          is_popular?: boolean | null
+          metadata?: Json | null
+          name: string
+          price_large?: number | null
+          price_medium?: number | null
+          price_small?: number | null
+          prices_are_net?: boolean | null
+          requires_size?: boolean | null
+          short_name?: string | null
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          category_id?: string | null
+          created_at?: string
+          default_payment_terms?: string | null
+          default_price?: number | null
+          default_service_info?: string | null
+          default_validity_days?: number | null
+          default_warranty_terms?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          duration_large?: number | null
+          duration_medium?: number | null
+          duration_small?: number | null
+          id?: string
+          instance_id?: string
+          is_popular?: boolean | null
+          metadata?: Json | null
+          name?: string
+          price_large?: number | null
+          price_medium?: number | null
+          price_small?: number | null
+          prices_are_net?: boolean | null
+          requires_size?: boolean | null
+          short_name?: string | null
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "unified_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_services_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
