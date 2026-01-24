@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Building2, Clock, Grid2X2, FileText, Settings2, Users, MessageSquare, Loader2, Save, Upload, Trash2, Image as ImageIcon,
+  Building2, Clock, Grid2X2, Settings2, Users, MessageSquare, Loader2, Save, Upload, Trash2, Image as ImageIcon,
   ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import PriceListSettings from './PriceListSettings';
 import StationsSettings from './StationsSettings';
 import WorkingHoursSettings from './WorkingHoursSettings';
 import SmsMessageSettings from './SmsMessageSettings';
@@ -27,7 +26,7 @@ interface SettingsViewProps {
   onWorkingHoursUpdate?: () => void;
 }
 
-type SettingsTab = 'company' | 'pricelist' | 'stations' | 'hours' | 'app' | 'sms' | 'users';
+type SettingsTab = 'company' | 'stations' | 'hours' | 'app' | 'sms' | 'users';
 
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
@@ -82,7 +81,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
 
   const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: t('settings.tabs.company'), icon: <Building2 className="w-4 h-4" /> },
-    { key: 'pricelist', label: t('settings.tabs.pricelist'), icon: <FileText className="w-4 h-4" /> },
     { key: 'stations', label: t('settings.tabs.stations'), icon: <Grid2X2 className="w-4 h-4" /> },
     { key: 'hours', label: t('settings.tabs.hours'), icon: <Clock className="w-4 h-4" /> },
     { key: 'app', label: t('settings.tabs.app'), icon: <Settings2 className="w-4 h-4" /> },
@@ -414,9 +412,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
             </Button>
           </div>
         );
-
-      case 'pricelist':
-        return <PriceListSettings instanceId={instanceId} />;
 
       case 'stations':
         return <StationsSettings instanceId={instanceId} />;
