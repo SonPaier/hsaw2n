@@ -17,7 +17,7 @@ type CarSize = 'small' | 'medium' | 'large';
 interface Service {
   id: string;
   name: string;
-  shortcut?: string | null;
+  short_name?: string | null;
   category_id: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
@@ -29,6 +29,7 @@ interface Service {
   price_large: number | null;
   sort_order: number | null;
   category_prices_are_net?: boolean;
+  station_type?: string | null;
 }
 
 interface ServiceCategory {
@@ -41,7 +42,7 @@ interface ServiceCategory {
 export interface ServiceWithCategory {
   id: string;
   name: string;
-  shortcut?: string | null;
+  short_name?: string | null;
   category_id: string | null;
   duration_minutes: number | null;
   duration_small: number | null;

@@ -2672,6 +2672,7 @@ export type Database = {
       }
       unified_categories: {
         Row: {
+          active: boolean | null
           category_type: string
           created_at: string
           deleted_at: string | null
@@ -2685,6 +2686,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active?: boolean | null
           category_type: string
           created_at?: string
           deleted_at?: string | null
@@ -2698,6 +2700,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active?: boolean | null
           category_type?: string
           created_at?: string
           deleted_at?: string | null
@@ -2734,19 +2737,24 @@ export type Database = {
           description: string | null
           duration_large: number | null
           duration_medium: number | null
+          duration_minutes: number | null
           duration_small: number | null
           id: string
           instance_id: string
           is_popular: boolean | null
           metadata: Json | null
           name: string
+          price_from: number | null
           price_large: number | null
           price_medium: number | null
           price_small: number | null
           prices_are_net: boolean | null
           requires_size: boolean | null
+          service_type: string | null
           short_name: string | null
+          shortcut: string | null
           sort_order: number | null
+          station_type: string | null
           unit: string | null
           updated_at: string
         }
@@ -2763,19 +2771,24 @@ export type Database = {
           description?: string | null
           duration_large?: number | null
           duration_medium?: number | null
+          duration_minutes?: number | null
           duration_small?: number | null
           id?: string
           instance_id: string
           is_popular?: boolean | null
           metadata?: Json | null
           name: string
+          price_from?: number | null
           price_large?: number | null
           price_medium?: number | null
           price_small?: number | null
           prices_are_net?: boolean | null
           requires_size?: boolean | null
+          service_type?: string | null
           short_name?: string | null
+          shortcut?: string | null
           sort_order?: number | null
+          station_type?: string | null
           unit?: string | null
           updated_at?: string
         }
@@ -2792,19 +2805,24 @@ export type Database = {
           description?: string | null
           duration_large?: number | null
           duration_medium?: number | null
+          duration_minutes?: number | null
           duration_small?: number | null
           id?: string
           instance_id?: string
           is_popular?: boolean | null
           metadata?: Json | null
           name?: string
+          price_from?: number | null
           price_large?: number | null
           price_medium?: number | null
           price_small?: number | null
           prices_are_net?: boolean | null
           requires_size?: boolean | null
+          service_type?: string | null
           short_name?: string | null
+          shortcut?: string | null
           sort_order?: number | null
+          station_type?: string | null
           unit?: string | null
           updated_at?: string
         }
