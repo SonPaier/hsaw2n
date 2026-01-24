@@ -94,9 +94,9 @@ export function OfferProductSelectionDrawer({
         productsQuery = productsQuery.eq('service_type', 'both');
         categoriesQuery = categoriesQuery.eq('category_type', 'both');
       } else {
-        // Legacy behavior - show 'offer' or 'both'
-        productsQuery = productsQuery.or('service_type.eq.offer,service_type.eq.both');
-        categoriesQuery = categoriesQuery.or('category_type.eq.offer,category_type.eq.both');
+        // Legacy behavior - show only 'offer' (no 'both')
+        productsQuery = productsQuery.eq('service_type', 'offer');
+        categoriesQuery = categoriesQuery.eq('category_type', 'offer');
       }
       
       const [productsRes, categoriesRes] = await Promise.all([

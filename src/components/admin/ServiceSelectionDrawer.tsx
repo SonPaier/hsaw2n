@@ -127,22 +127,26 @@ const ServiceSelectionDrawer = ({
         // New unified services - show only 'both'
         servicesQuery = servicesQuery.eq('service_type', 'both');
       } else {
-        // Legacy behavior - show services matching context or 'both'
-        servicesQuery = servicesQuery.or(`service_type.eq.${context},service_type.eq.both`);
+        // Legacy behavior - show only services matching context (no 'both')
+        servicesQuery = servicesQuery.eq('service_type', context);
       }
       
       // Fetch categories - match the same logic as services
-      const categoryTypeFilter = hasUnifiedServices ? 'both' : context;
+      let categoriesQuery = supabase
+        .from('unified_categories')
+        .select('id, name, sort_order, prices_are_net')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+      
+      if (hasUnifiedServices) {
+        categoriesQuery = categoriesQuery.eq('category_type', 'both');
+      } else {
+        categoriesQuery = categoriesQuery.eq('category_type', context);
+      }
       
       const [servicesRes, categoriesRes] = await Promise.all([
         servicesQuery.order('sort_order'),
-        supabase
-          .from('unified_categories')
-          .select('id, name, sort_order, prices_are_net')
-          .eq('instance_id', instanceId)
-          .or(`category_type.eq.${categoryTypeFilter},category_type.eq.both`)
-          .eq('active', true)
-          .order('sort_order'),
+        categoriesQuery.order('sort_order'),
       ]);
 
       if (servicesRes.data && categoriesRes.data) {
