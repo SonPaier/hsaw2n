@@ -1,90 +1,53 @@
 
-# Plan naprawy - alternatywne selektory dla kalendarza
 
-## 🔍 Zidentyfikowany problem
+# Plan Migracji: Unified Services - Fazy 1-2
 
-`waitForResponse()` w Playwright czeka na **nowe** odpowiedzi HTTP wysyłane **PO** włączeniu nasłuchu. Jeśli strona już pobrała `/stations` podczas nawigacji, funkcja czeka na timeout.
+## Co robimy teraz (bezpieczne przed 16:00)
 
-## ✅ Rozwiązanie - użycie selektorów CSS zamiast waitForResponse
+### FAZA 1: Tworzenie nowych tabel
 
-### Zmiana w `e2e/fixtures/e2e-helpers.ts`
+**1.1 Tabela `unified_categories`**
+- Pola: id, instance_id, category_type, name, slug, description, sort_order, deleted_at
+- Indeksy na instance_id i category_type
+- RLS policy dla odczytu aktywnych kategorii
 
-**Aktualna logika (błędna):**
-```typescript
-export async function waitForCalendarToLoad(page: Page): Promise<void> {
-  // ❌ PROBLEM: waitForResponse czeka na NOWE requesty
-  const stationsResponse = await page.waitForResponse(
-    resp => resp.url().includes('/stations') && resp.status() === 200,
-    { timeout: 15000 }
-  );
-  // ...
-}
-```
+**1.2 Tabela `unified_services`**
+- Pola bazowe: id, instance_id, category_id, name, short_name, description
+- Ceny rezerwacji: price_small, price_medium, price_large
+- Cena ofertowa: default_price
+- Czasy: duration_small, duration_medium, duration_large
+- Flagi: requires_size, is_popular, prices_are_net
+- Warunki ofertowe: default_validity_days, default_payment_terms, default_warranty_terms, default_service_info
+- Metadata JSONB i soft delete (deleted_at)
+- Indeksy na instance_id, category_id, deleted_at
 
-**Nowa logika (z selektorami CSS):**
-```typescript
-export async function waitForCalendarToLoad(page: Page): Promise<void> {
-  const MAX_WAIT = process.env.CI ? 60000 : 30000;
-  
-  console.log('[E2E] Waiting for calendar container...');
-  
-  // Czekaj na dowolny z tych selektorów - kalendarz może mieć data-testid lub nie
-  const calendarSelector = '[data-testid="admin-calendar"], div.flex.flex-col.h-full.bg-card.rounded-xl';
-  await page.waitForSelector(calendarSelector, { state: 'visible', timeout: MAX_WAIT });
-  console.log('[E2E] Calendar container visible');
-  
-  // Czekaj na sloty - to gwarantuje że stacje są załadowane
-  const slots = page.locator('[data-testid="calendar-slot"]');
-  
-  // Retry logic - czasami React potrzebuje chwili na re-render po danych
-  let slotCount = 0;
-  const maxRetries = 10;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    slotCount = await slots.count();
-    if (slotCount > 0) {
-      console.log(`[E2E] Attempt ${attempt}: Found ${slotCount} slots`);
-      break;
-    }
-    console.log(`[E2E] Attempt ${attempt}: No slots yet, waiting 500ms...`);
-    await page.waitForTimeout(500);
-  }
-  
-  if (slotCount === 0) {
-    // Debugowanie - sprawdź czy są jakieś stacje w DOM
-    const stationHeaders = await page.locator('[class*="station"], th, .station-header').count();
-    console.log(`[E2E] Station headers found: ${stationHeaders}`);
-    
-    await page.screenshot({ path: 'test-results/debug-no-slots.png' }).catch(() => {});
-    throw new Error('[E2E] Calendar has no slots after 5s - stations may not have loaded');
-  }
-  
-  console.log(`[E2E] ✅ Calendar loaded with ${slotCount} slots`);
-}
-```
+### FAZA 2: Migracja danych
 
-### Zmiana selektora kalendarza w `loginAsAdmin`
+**2.1 Kategorie rezerwacji** (service_categories → unified_categories)
+- Kopiowanie z zachowaniem oryginalnych UUID
+- category_type = 'reservation'
 
-Dodać obsługę obu selektorów:
-```typescript
-// W przypadku gdy nie ma data-testid, fallback do klas CSS
-const calendarVisible = await page.locator(
-  '[data-testid="admin-calendar"], .flex.flex-col.h-full.bg-card.rounded-xl'
-).isVisible({ timeout: 5000 }).catch(() => false);
-```
+**2.2 Kategorie ofertowe** (products_library.category → unified_categories)
+- Tworzenie nowych UUID dla unikalnych kombinacji (instance_id, category)
+- category_type = 'offer'
 
-## 📁 Plik do modyfikacji
+**2.3 Usługi rezerwacji** (services → unified_services)
+- Zachowanie oryginalnych UUID
+- Przeniesienie prices_are_net z kategorii na usługę
+- Metadata z legacy_subcategory
 
-| Plik | Zmiany |
-|------|--------|
-| `e2e/fixtures/e2e-helpers.ts` | Usunięcie `waitForResponse`, dodanie retry-based slot detection |
+**2.4 Produkty ofertowe** (products_library → unified_services)
+- Zachowanie oryginalnych UUID
+- Linkowanie do nowych kategorii ofertowych
+- Metadata z brand i unit
 
-## 🧪 Kluczowe zmiany
+## Co zostawiamy na po 16:00
 
-1. **Usunięcie `waitForResponse`** - nie jest niezawodny dla już wykonanych requestów
-2. **Dodanie retry loop dla slotów** - czekanie 10x500ms = 5s na pojawienie się slotów
-3. **Fallback selektor CSS** - `div.flex.flex-col.h-full.bg-card.rounded-xl` jako alternatywa dla `data-testid`
-4. **Lepsze debugowanie** - screenshoty i logi przy błędach
+- Faza 3: Aktualizacja Foreign Keys
+- Fazy 4-7: Aktualizacja kodu frontend i Edge Functions
+- Fazy 8-10: Testy i cleanup
 
-## ⏱️ Estymacja
+## Ryzyko
 
-~10 minut na implementację
+Brak - nowe tabele nie wpływają na działającą aplikację. Stare tabele pozostają nietknięte.
+
