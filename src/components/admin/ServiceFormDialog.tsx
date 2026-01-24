@@ -491,20 +491,22 @@ export const ServiceFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <ServiceFormContent
-          service={service}
-          categories={categories}
-          instanceId={instanceId}
-          onSaved={onSaved}
-          onClose={handleClose}
-          defaultCategoryId={defaultCategoryId}
-          totalServicesCount={totalServicesCount}
-        />
+        <div className="flex-1 overflow-y-auto pr-2">
+          <ServiceFormContent
+            service={service}
+            categories={categories}
+            instanceId={instanceId}
+            onSaved={onSaved}
+            onClose={handleClose}
+            defaultCategoryId={defaultCategoryId}
+            totalServicesCount={totalServicesCount}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
