@@ -914,10 +914,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "offer_option_items_product_id_fkey"
+            foreignKeyName: "offer_option_items_unified_service_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_library"
+            referencedRelation: "unified_services"
             referencedColumns: ["id"]
           },
         ]
@@ -1124,10 +1124,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "offer_reminders_product_id_fkey"
+            foreignKeyName: "offer_reminders_unified_service_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_library"
+            referencedRelation: "unified_services"
             referencedColumns: ["id"]
           },
         ]
@@ -1191,10 +1191,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "offer_scope_extra_products_product_id_fkey"
+            foreignKeyName: "offer_scope_extra_products_unified_service_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_library"
+            referencedRelation: "unified_services"
             referencedColumns: ["id"]
           },
         ]
@@ -1296,17 +1296,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "offer_scope_products_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_library"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "offer_scope_products_scope_id_fkey"
             columns: ["scope_id"]
             isOneToOne: false
             referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_products_unified_service_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "unified_services"
             referencedColumns: ["id"]
           },
         ]
@@ -1366,17 +1366,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "offer_scope_variant_products_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_library"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "offer_scope_variant_products_scope_id_fkey"
             columns: ["scope_id"]
             isOneToOne: false
             referencedRelation: "offer_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_scope_variant_products_unified_service_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "unified_services"
             referencedColumns: ["id"]
           },
           {
