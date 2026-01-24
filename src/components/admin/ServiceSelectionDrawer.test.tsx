@@ -10,11 +10,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn().mockImplementation((table: string) => {
       const mockData: Record<string, unknown[]> = {
-        services: [
+        unified_services: [
           {
             id: 'svc-1',
             name: 'Mycie podstawowe',
-            shortcut: 'MP',
+            short_name: 'MP',
             category_id: 'cat-1',
             duration_minutes: 30,
             duration_small: 25,
@@ -30,7 +30,7 @@ vi.mock('@/integrations/supabase/client', () => ({
           {
             id: 'svc-2',
             name: 'Polerowanie',
-            shortcut: 'POL',
+            short_name: 'POL',
             category_id: 'cat-2',
             duration_minutes: 120,
             duration_small: 100,
@@ -46,7 +46,7 @@ vi.mock('@/integrations/supabase/client', () => ({
           {
             id: 'svc-3',
             name: 'Woskowanie',
-            shortcut: 'WOS',
+            short_name: 'WOS',
             category_id: 'cat-1',
             duration_minutes: 45,
             duration_small: 35,
@@ -60,7 +60,7 @@ vi.mock('@/integrations/supabase/client', () => ({
             station_type: 'washing',
           },
         ],
-        service_categories: [
+        unified_categories: [
           { id: 'cat-1', name: 'Mycie', sort_order: 1, prices_are_net: false },
           { id: 'cat-2', name: 'Detailing', sort_order: 2, prices_are_net: true },
         ],

@@ -315,11 +315,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     
     try {
       const { data, error } = await supabase
-        .from('service_categories')
+        .from('unified_categories')
         .select('*')
         .eq('instance_id', instanceId)
         .eq('active', true)
-        .order('sort_order');
+        .order('sort_order') as unknown as { data: ServiceCategory[] | null; error: any };
       
       if (error) throw error;
       setCategories(data || []);
@@ -641,7 +641,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       
       if (editingCategory) {
         const { error } = await supabase
-          .from('service_categories')
+          .from('unified_categories')
           .update({
             name: categoryFormData.name.trim(),
             description: categoryFormData.description.trim() || null,
@@ -655,7 +655,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       } else {
         const maxSortOrder = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order)) + 1 : 0;
         const { error } = await supabase
-          .from('service_categories')
+          .from('unified_categories')
           .insert({
             instance_id: instanceId,
             name: categoryFormData.name.trim(),
@@ -664,6 +664,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             sort_order: maxSortOrder,
             active: true,
             prices_are_net: categoryFormData.prices_are_net,
+            category_type: 'reservation',
           });
         
         if (error) throw error;
@@ -703,7 +704,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         if (!confirm(t('priceList.confirmDeactivateCategory'))) return;
         
         const { error } = await supabase
-          .from('service_categories')
+          .from('unified_categories')
           .update({ active: false })
           .eq('id', categoryId);
         
@@ -714,7 +715,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         if (!confirm(t('priceList.confirmDeleteCategory'))) return;
         
         const { error } = await supabase
-          .from('service_categories')
+          .from('unified_categories')
           .delete()
           .eq('id', categoryId);
         
