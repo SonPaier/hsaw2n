@@ -1,28 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, Droplets, Shield } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, Droplets } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface Station {
   id: string;
@@ -43,44 +33,8 @@ interface SubscriptionData {
   } | null;
 }
 
-const useStationTypeConfig = () => {
-  const { t } = useTranslation();
-  
-  return {
-    washing: {
-      label: t('stationsSettings.typeWashing'),
-      icon: Droplets,
-      description: t('stationsSettings.typeWashingDesc'),
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    },
-    ppf: {
-      label: t('stationsSettings.typePpf'),
-      icon: Shield,
-      description: t('stationsSettings.typePpfDesc'),
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
-    },
-    detailing: {
-      label: t('stationsSettings.typeDetailing'),
-      icon: Droplets,
-      description: t('stationsSettings.typeDetailingDesc'),
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-    },
-    universal: {
-      label: t('stationsSettings.typeUniversal'),
-      icon: Droplets,
-      description: t('stationsSettings.typeUniversalDesc'),
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-    },
-  };
-};
-
 const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const { t } = useTranslation();
-  const STATION_TYPE_CONFIG = useStationTypeConfig();
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,8 +47,6 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   
   const [formData, setFormData] = useState({
     name: '',
-    type: 'washing' as Station['type'],
-    active: true,
   });
 
   const fetchStations = async () => {
@@ -150,15 +102,11 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       setEditingStation(station);
       setFormData({
         name: station.name,
-        type: station.type,
-        active: station.active ?? true,
       });
     } else {
       setEditingStation(null);
       setFormData({
         name: '',
-        type: 'washing',
-        active: true,
       });
     }
     setEditDialogOpen(true);
@@ -176,15 +124,15 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       const stationData = {
         instance_id: instanceId,
         name: formData.name.trim(),
-        type: formData.type,
-        active: formData.active,
+        type: 'universal' as const,
+        active: true,
         sort_order: editingStation?.sort_order ?? stations.length,
       };
 
       if (editingStation) {
         const { error } = await supabase
           .from('stations')
-          .update(stationData)
+          .update({ name: formData.name.trim() })
           .eq('id', editingStation.id);
         
         if (error) throw error;
@@ -231,21 +179,6 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
     }
   };
 
-  const toggleStationActive = async (station: Station) => {
-    try {
-      const { error } = await supabase
-        .from('stations')
-        .update({ active: !station.active })
-        .eq('id', station.id);
-      
-      if (error) throw error;
-      fetchStations();
-    } catch (error) {
-      console.error('Error toggling station:', error);
-      toast.error(t('stationsSettings.toggleError'));
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -283,60 +216,40 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
         </div>
       ) : (
         <div className="grid gap-3">
-          {stations.map(station => {
-            const config = STATION_TYPE_CONFIG[station.type];
-            const Icon = config.icon;
-            
-            return (
-              <div
-                key={station.id}
-                className={cn(
-                  "flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg",
-                  !station.active && "opacity-50"
-                )}
-              >
-                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                  <div className={cn("p-2 rounded-lg shrink-0", config.bgColor)}>
-                    <Icon className={cn("w-5 h-5", config.color)} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm sm:text-base">{station.name}</span>
-                      {!station.active && (
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('stationsSettings.inactive')}</span>
-                      )}
-                    </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1">
-                      {config.label} • {config.description}
-                    </div>
-                  </div>
+          {stations.map(station => (
+            <div
+              key={station.id}
+              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg"
+            >
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                <div className="p-2 rounded-lg shrink-0 bg-primary/10">
+                  <Droplets className="w-5 h-5 text-primary" />
                 </div>
-                
-                <div className="flex items-center gap-2 justify-end sm:justify-start pl-10 sm:pl-0 shrink-0">
-                  <Switch
-                    checked={station.active ?? true}
-                    onCheckedChange={() => toggleStationActive(station)}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10"
-                    onClick={() => openEditDialog(station)}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10 text-destructive"
-                    onClick={() => handleDelete(station.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-sm sm:text-base">{station.name}</span>
                 </div>
               </div>
-            );
-          })}
+              
+              <div className="flex items-center gap-2 justify-end sm:justify-start pl-10 sm:pl-0 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-10 sm:w-10"
+                  onClick={() => openEditDialog(station)}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-10 sm:w-10 text-destructive"
+                  onClick={() => handleDelete(station.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -347,9 +260,6 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
             <DialogTitle>
               {editingStation ? t('stationsSettings.editStation') : t('stationsSettings.addNewStation')}
             </DialogTitle>
-            <DialogDescription>
-              {t('stationsSettings.stationDescription')}
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -359,55 +269,6 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder={t('stationsSettings.stationNamePlaceholder')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('stationsSettings.stationType')}</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, type: v as Station['type'] }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="washing">
-                    <div className="flex items-center gap-2">
-                      <Droplets className="w-4 h-4 text-blue-500" />
-                      <span>{t('stationsSettings.typeWashing')}</span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({t('stationsSettings.typeWashingDesc')})
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="ppf">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-orange-500" />
-                      <span>{t('stationsSettings.typePpf')}</span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({t('stationsSettings.typePpfDesc')})
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="detailing">
-                    <div className="flex items-center gap-2">
-                      <Droplets className="w-4 h-4 text-purple-500" />
-                      <span>{t('stationsSettings.typeDetailing')}</span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({t('stationsSettings.typeDetailingDesc')})
-                      </span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label>{t('stationsSettings.stationActive')}</Label>
-              <Switch
-                checked={formData.active}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, active: v }))}
               />
             </div>
           </div>

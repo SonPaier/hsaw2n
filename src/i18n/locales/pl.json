@@ -1034,7 +1034,10 @@
     "selectedTerm": "Wybrany termin",
     "changeTerm": "Zmień termin",
     "moveReservation": "Przenieś",
-    "reservationUpdated": "Rezerwacja zaktualizowana"
+    "reservationUpdated": "Rezerwacja zaktualizowana",
+    "saveChanges": "Zapisz zmiany",
+    "saveYardChanges": "Zapisz zmiany",
+    "addYardVehicle": "Dodaj pojazd"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",
