@@ -2442,9 +2442,9 @@ const AdminDashboard = () => {
               />
             )}
 
-            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} onNavigateToProducts={() => setCurrentView('products')} />}
+            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} />}
 
-            {currentView === 'products' && <ProductsView instanceId={instanceId} onBackToOffers={() => setCurrentView('offers')} />}
+            {currentView === 'products' && <ProductsView instanceId={instanceId} />}
 
             {currentView === 'followup' && <FollowUpView instanceId={instanceId} />}
 
