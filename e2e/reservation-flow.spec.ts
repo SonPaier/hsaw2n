@@ -118,56 +118,74 @@ test.describe('Reservation Happy Path', () => {
       await nameInput.fill(testCustomer.name);
     }
 
-    // Car model
+    // Car model - type "golf" and select from autocomplete
+    console.log('🚗 Selecting car model...');
     const carInput = page.locator('input[name="model"], input[placeholder*="Model"], [data-testid="car-input"]').first();
     if (await carInput.isVisible()) {
-      await carInput.fill(testCustomer.carModel);
-      await page.waitForTimeout(300);
-      // Select from autocomplete if visible
-      const autocompleteOption = page.locator('[role="option"], [class*="autocomplete"] li').first();
-      if (await autocompleteOption.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await carInput.click();
+      await carInput.fill('golf');
+      console.log('✅ Typed "golf" in car input');
+      
+      // Wait for autocomplete options to appear
+      await page.waitForTimeout(500);
+      
+      // Select "Volkswagen Golf" from autocomplete list
+      const autocompleteOption = page.locator('[role="option"]:has-text("Golf"), [data-testid="car-option"]:has-text("Golf")').first();
+      if (await autocompleteOption.isVisible({ timeout: 2000 }).catch(() => false)) {
         await autocompleteOption.click();
+        console.log('✅ Selected Volkswagen Golf from autocomplete');
+      } else {
+        // Fallback - press Enter to confirm
+        await page.keyboard.press('Enter');
+        console.log('⚠️ Autocomplete not visible, pressed Enter');
       }
+      await page.waitForTimeout(300);
     }
 
     // Plate
     const plateInput = page.locator('input[name="plate"], input[placeholder*="Rejestracja"], [data-testid="plate-input"]').first();
     if (await plateInput.isVisible()) {
       await plateInput.fill(testCustomer.plate);
+      console.log('✅ Filled plate number');
     }
 
-    // Select first service - need to open service drawer first
-    console.log('🔧 Selecting service...');
+    // Select services - open drawer ONCE, select TWO services, then confirm
+    console.log('🔧 Selecting services...');
     
-    // Click "Add services" button to open service drawer
     const addServicesButton = page.locator('[data-testid="add-services-button"], button:has-text("Dodaj usługi")').first();
-    if (await addServicesButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await addServicesButton.click();
-      console.log('✅ Clicked add services button');
-      
-      // Wait for drawer to open and services to load
-      await page.waitForTimeout(500);
-      
-      // Click on first service item in drawer
-      const serviceItem = page.locator('[data-testid="service-item"]').first();
-      await serviceItem.waitFor({ state: 'visible', timeout: 5000 });
-      await serviceItem.click();
-      console.log('✅ Selected service');
-      
-      // Click confirm button in drawer
-      const confirmButton = page.locator('[data-testid="service-confirm-button"]').first();
-      await confirmButton.click();
-      console.log('✅ Confirmed service selection');
-      
-      // Wait for drawer to close
-      await page.waitForTimeout(500);
-    } else {
-      // Try old fallback
-      const serviceButton = page.locator('[data-testid="service-item"], .service-card, [class*="service"]').first();
-      if (await serviceButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await serviceButton.click();
-      }
+    await addServicesButton.waitFor({ state: 'visible', timeout: 5000 });
+    await addServicesButton.click();
+    console.log('✅ Opened service drawer');
+    
+    // Wait for drawer to fully open and services to load
+    await page.waitForTimeout(800);
+    
+    // Get all service items
+    const serviceItems = page.locator('[data-testid="service-item"]');
+    const serviceCount = await serviceItems.count();
+    console.log(`[E2E] Found ${serviceCount} services in drawer`);
+    
+    // Click on first two services (if available)
+    if (serviceCount >= 1) {
+      await serviceItems.nth(0).click();
+      console.log('✅ Selected first service');
     }
+    
+    if (serviceCount >= 2) {
+      await page.waitForTimeout(200);
+      await serviceItems.nth(1).click();
+      console.log('✅ Selected second service');
+    }
+    
+    await page.waitForTimeout(300);
+    
+    // Click confirm button to add services and close drawer
+    const confirmButton = page.locator('[data-testid="service-confirm-button"]').first();
+    await confirmButton.click();
+    console.log('✅ Confirmed service selection');
+    
+    // Wait for drawer to close
+    await page.waitForTimeout(500)
 
     // Save reservation
     console.log('💾 Saving reservation...');
