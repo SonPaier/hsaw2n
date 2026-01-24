@@ -975,6 +975,7 @@
     "defaultCustomer": "Klient",
     "defaultVehicle": "Pojazd",
     "customerNameAlias": "Imię / Alias klienta",
+    "customerPhone": "Telefon",
     "searchCustomer": "Szukaj klienta...",
     "carModel": "Marka i model auta",
     "carSize": "Wielkość samochodu",
