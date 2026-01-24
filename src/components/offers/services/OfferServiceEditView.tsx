@@ -36,8 +36,24 @@ interface Product {
   short_name: string | null;
   default_price: number | null;
   price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
   category_id?: string | null;
 }
+
+// Get the lowest available price for display
+const getLowestPrice = (p: Product): number => {
+  // Priority: price_from, then lowest of S/M/L, then default_price
+  if (p.price_from != null) return p.price_from;
+  
+  const sizes = [p.price_small, p.price_medium, p.price_large].filter(
+    (v): v is number => v != null
+  );
+  if (sizes.length > 0) return Math.min(...sizes);
+  
+  return p.default_price ?? 0;
+};
 
 type DrawerProduct = {
   id: string;
@@ -130,7 +146,7 @@ function SortableProductItem({
         </div>
         <div className="flex items-center gap-3">
           <span className="font-semibold text-foreground">
-            {formatPrice(scopeProduct.product?.price_from ?? scopeProduct.product?.default_price ?? 0)}
+            {formatPrice(scopeProduct.product ? getLowestPrice(scopeProduct.product) : 0)}
           </span>
           <button
             type="button"
@@ -193,7 +209,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       const [productsRes, categoriesRes] = await Promise.all([
         supabase
           .from('unified_services')
-          .select('id, name, short_name, default_price, price_from, category_id')
+          .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id')
           .eq('instance_id', instanceId)
           .eq('service_type', 'both')
           .eq('active', true)
@@ -233,8 +249,8 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       productName: p.name,
       productShortName: p.short_name,
       variantName: null,
-      // Use price_from as primary (like ServiceSelectionDrawer), fallback to default_price
-      price: p.price_from ?? p.default_price ?? 0,
+      // Use lowest available price (price_from -> min(S/M/L) -> default_price)
+      price: getLowestPrice(p),
       // Map category_id to category NAME (drawer groups by name)
       category: p.category_id ? (categoryMap[p.category_id] ?? null) : null,
     }));
@@ -359,6 +375,9 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           short_name: p.productShortName,
           default_price: p.price,
           price_from: p.price,
+          price_small: null,
+          price_medium: null,
+          price_large: null,
           category_id: p.category ?? null,
         },
       }));
@@ -687,7 +706,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           if (editingProductId) {
             const { data } = await supabase
               .from('unified_services')
-              .select('id, name, short_name, default_price, price_from, category_id')
+              .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id')
               .eq('id', editingProductId)
               .single();
             
