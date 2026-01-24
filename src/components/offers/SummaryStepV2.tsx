@@ -124,12 +124,14 @@ export const SummaryStepV2 = ({
       setLoading(true);
 
       // First, fetch all extras scopes for this instance (always shown)
+      // Only use unified templates (has_unified_services = true)
       const { data: extrasScopes } = await supabase
         .from('offer_scopes')
         .select('id')
         .eq('instance_id', instanceId)
         .eq('active', true)
-        .eq('is_extras_scope', true);
+        .eq('is_extras_scope', true)
+        .eq('has_unified_services', true);
 
       const extrasScopeIds = (extrasScopes || []).map(s => s.id);
       
@@ -170,13 +172,13 @@ export const SummaryStepV2 = ({
         .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
 
-      // For extras scopes - fetch ALL products from unified_services
+      // For extras scopes - fetch ALL products from unified_services with type 'both'
       // This ensures new products are automatically available without manual sync
       const { data: allProductsData } = await supabase
         .from('unified_services')
         .select('id, name, short_name, default_price, category_id')
         .eq('instance_id', instanceId)
-        .eq('service_type', 'offer')
+        .eq('service_type', 'both')
         .eq('active', true)
         .order('name');
 
