@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Loader2, Save, Sparkles, ChevronDown, ChevronUp, Car } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
@@ -21,7 +20,6 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerFooter,
 } from '@/components/ui/drawer';
 import {
   Select,
@@ -55,6 +53,9 @@ interface ServiceData {
   price_large: number | null;
   prices_are_net: boolean;
   duration_minutes: number | null;
+  duration_small?: number | null;
+  duration_medium?: number | null;
+  duration_large?: number | null;
   category_id: string | null;
   service_type: 'both' | 'reservation' | 'offer';
   sort_order?: number | null;
@@ -79,6 +80,7 @@ const ServiceFormContent = ({
   onClose,
   defaultCategoryId,
   totalServicesCount = 0,
+  isMobile = false,
 }: {
   service?: ServiceData | null;
   categories: ServiceCategory[];
@@ -87,15 +89,19 @@ const ServiceFormContent = ({
   onClose: () => void;
   defaultCategoryId?: string;
   totalServicesCount?: number;
+  isMobile?: boolean;
 }) => {
   const { t } = useTranslation();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [saving, setSaving] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   
-  // Auto-expand size prices if any exist
+  // Auto-expand size prices/durations if any exist
   const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
+  const hasSizeDurations = !!(service?.duration_small || service?.duration_medium || service?.duration_large);
   const [showSizePrices, setShowSizePrices] = useState(hasSizePrices);
+  const [showSizeDurations, setShowSizeDurations] = useState(hasSizeDurations);
 
   const [formData, setFormData] = useState({
     name: service?.name || '',
@@ -106,15 +112,35 @@ const ServiceFormContent = ({
     price_medium: service?.price_medium ?? null,
     price_large: service?.price_large ?? null,
     prices_are_net: service?.prices_are_net ?? true,
-    duration_minutes: service?.duration_minutes ?? 60,
+    duration_minutes: service?.duration_minutes ?? null,
+    duration_small: service?.duration_small ?? null,
+    duration_medium: service?.duration_medium ?? null,
+    duration_large: service?.duration_large ?? null,
     category_id: service?.category_id || defaultCategoryId || '',
     service_type: service?.service_type || 'both',
   });
 
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const minHeight = 12 * 24; // 12 rows * ~24px line height
+      const scrollHeight = textarea.scrollHeight;
+      textarea.style.height = `${Math.max(minHeight, scrollHeight)}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [formData.description]);
+
   useEffect(() => {
     if (service) {
       const hasSizes = !!(service.price_small || service.price_medium || service.price_large);
+      const hasDurations = !!(service.duration_small || service.duration_medium || service.duration_large);
       setShowSizePrices(hasSizes);
+      setShowSizeDurations(hasDurations);
       setFormData({
         name: service.name || '',
         short_name: service.short_name || '',
@@ -124,7 +150,10 @@ const ServiceFormContent = ({
         price_medium: service.price_medium ?? null,
         price_large: service.price_large ?? null,
         prices_are_net: service.prices_are_net ?? true,
-        duration_minutes: service.duration_minutes ?? 60,
+        duration_minutes: service.duration_minutes ?? null,
+        duration_small: service.duration_small ?? null,
+        duration_medium: service.duration_medium ?? null,
+        duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
       });
@@ -144,15 +173,18 @@ const ServiceFormContent = ({
         name: formData.name.trim(),
         short_name: formData.short_name.trim() || null,
         description: formData.description.trim() || null,
-        price_from: formData.price_from,
+        price_from: showSizePrices ? null : formData.price_from,
         price_small: showSizePrices ? formData.price_small : null,
         price_medium: showSizePrices ? formData.price_medium : null,
         price_large: showSizePrices ? formData.price_large : null,
         prices_are_net: formData.prices_are_net,
-        duration_minutes: formData.duration_minutes,
+        duration_minutes: showSizeDurations ? null : formData.duration_minutes,
+        duration_small: showSizeDurations ? formData.duration_small : null,
+        duration_medium: showSizeDurations ? formData.duration_medium : null,
+        duration_large: showSizeDurations ? formData.duration_large : null,
         category_id: formData.category_id || null,
         service_type: formData.service_type,
-        requires_size: showSizePrices,
+        requires_size: showSizePrices || showSizeDurations,
         active: true,
       };
 
@@ -219,162 +251,40 @@ const ServiceFormContent = ({
     setFormData(prev => ({ ...prev, [field]: numValue }));
   };
 
+  const handleDurationChange = (field: 'duration_minutes' | 'duration_small' | 'duration_medium' | 'duration_large', value: string) => {
+    const numValue = value === '' ? null : parseInt(value);
+    setFormData(prev => ({ ...prev, [field]: numValue }));
+  };
+
+  const priceLabel = formData.prices_are_net 
+    ? t('priceList.form.priceNet', 'Cena netto')
+    : t('priceList.form.priceGross', 'Cena brutto');
+
   return (
-    <div className="space-y-4">
-      {/* Short Name & Name */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-2">
-          <Label className="text-sm">{t('priceList.form.shortName')}</Label>
-          <Input
-            value={formData.short_name}
-            onChange={(e) => setFormData(prev => ({ ...prev, short_name: e.target.value.toUpperCase() }))}
-            placeholder="np. MZ"
-            maxLength={10}
-          />
-        </div>
-        <div className="space-y-2 col-span-2">
-          <Label className="text-sm">{t('priceList.form.clientVisibleName')} *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder={t('priceList.form.serviceNamePlaceholder')}
-          />
-        </div>
-      </div>
-
-      {/* Price Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 space-y-2">
-            <Label className="text-sm">{t('priceList.form.priceOptional')}</Label>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto space-y-6 pb-24">
+        {/* Row 1: Name, Short Name, Category */}
+        <div className={cn(
+          "grid gap-4",
+          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr_1fr]"
+        )}>
+          <div className="space-y-2">
+            <Label className="text-sm">{t('priceList.form.clientVisibleName')} *</Label>
             <Input
-              type="number"
-              value={formData.price_from ?? ''}
-              onChange={(e) => handlePriceChange('price_from', e.target.value)}
-              placeholder="-"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder={t('priceList.form.serviceNamePlaceholder')}
             />
           </div>
-          <div className="flex items-center gap-2 pt-6">
-            <span className={cn("text-sm", !formData.prices_are_net && "text-muted-foreground")}>
-              {t('priceList.form.netPrice')}
-            </span>
-            <Switch
-              checked={!formData.prices_are_net}
-              onCheckedChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: !v }))}
+          <div className="space-y-2">
+            <Label className="text-sm">{t('priceList.form.shortNameLabel', 'Twoja nazwa lub skrót')}</Label>
+            <Input
+              value={formData.short_name}
+              onChange={(e) => setFormData(prev => ({ ...prev, short_name: e.target.value.toUpperCase() }))}
+              placeholder="np. MZ"
+              maxLength={10}
             />
-            <span className={cn("text-sm", formData.prices_are_net && "text-muted-foreground")}>
-              {t('priceList.form.grossPrice')}
-            </span>
           </div>
-        </div>
-
-        {/* Size prices toggle link */}
-        {!showSizePrices && (
-          <button
-            type="button"
-            onClick={() => setShowSizePrices(true)}
-            className="flex items-center gap-2 text-sm text-primary hover:underline"
-          >
-            <Car className="w-4 h-4" />
-            {t('priceList.form.priceBySizeLink')}
-          </button>
-        )}
-
-        {/* Size prices */}
-        {showSizePrices && (
-          <div className="space-y-2 p-3 bg-muted/50 rounded-lg border">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">{t('priceList.form.priceBySizeLink')}</Label>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSizePrices(false);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    price_small: null, 
-                    price_medium: null, 
-                    price_large: null 
-                  }));
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {t('common.hide')}
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">S (mały)</Label>
-                <Input
-                  type="number"
-                  value={formData.price_small ?? ''}
-                  onChange={(e) => handlePriceChange('price_small', e.target.value)}
-                  placeholder="-"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">M (średni)</Label>
-                <Input
-                  type="number"
-                  value={formData.price_medium ?? ''}
-                  onChange={(e) => handlePriceChange('price_medium', e.target.value)}
-                  placeholder="-"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">L (duży)</Label>
-                <Input
-                  type="number"
-                  value={formData.price_large ?? ''}
-                  onChange={(e) => handlePriceChange('price_large', e.target.value)}
-                  placeholder="-"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Description with AI */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm">{t('priceList.form.description')}</Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleGenerateDescription}
-            disabled={generatingDescription || !formData.name.trim()}
-            className="h-7 text-xs gap-1"
-          >
-            {generatingDescription ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Sparkles className="w-3 h-3" />
-            )}
-            {t('priceList.form.generateDescription')}
-          </Button>
-        </div>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder={t('priceList.form.descriptionPlaceholder')}
-          rows={3}
-        />
-      </div>
-
-      {/* Advanced Section */}
-      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full py-2"
-          >
-            {advancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {t('priceList.form.advanced')}
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 pt-2">
-          {/* Category */}
           <div className="space-y-2">
             <Label className="text-sm">{t('priceList.form.category')}</Label>
             <Select
@@ -382,7 +292,7 @@ const ServiceFormContent = ({
               onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('priceList.form.selectCategory')} />
+                <SelectValue placeholder={t('priceList.noCategory')} />
               </SelectTrigger>
               <SelectContent className="bg-popover">
                 <SelectItem value="none">{t('priceList.noCategory')}</SelectItem>
@@ -394,52 +304,253 @@ const ServiceFormContent = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Duration */}
-          <div className="space-y-2">
-            <Label className="text-sm">{t('priceList.form.duration')}</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                value={formData.duration_minutes ?? ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  duration_minutes: e.target.value ? parseInt(e.target.value) : null 
-                }))}
-                className="w-24"
+        {/* Row 2: Price Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-4">
+            <Label className="text-sm">{priceLabel}</Label>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className={cn("text-sm", !formData.prices_are_net && "text-muted-foreground")}>
+                {t('priceList.form.netPrice')}
+              </span>
+              <Switch
+                checked={!formData.prices_are_net}
+                onCheckedChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: !v }))}
               />
-              <span className="text-sm text-muted-foreground">{t('common.minutes')}</span>
+              <span className={cn("text-sm", formData.prices_are_net && "text-muted-foreground")}>
+                {t('priceList.form.grossPrice')}
+              </span>
             </div>
           </div>
 
-          {/* Visibility */}
-          <div className="space-y-2">
-            <Label className="text-sm">{t('priceList.form.visibility')}</Label>
-            <Select
-              value={formData.service_type}
-              onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
-                <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
-                <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+          {!showSizePrices ? (
+            <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+              <Input
+                type="number"
+                value={formData.price_from ?? ''}
+                onChange={(e) => handlePriceChange('price_from', e.target.value)}
+                placeholder="-"
+              />
+              {!isMobile && (
+                <div className="col-span-2 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowSizePrices(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {t('priceList.form.priceBySizeLink')}
+                  </button>
+                </div>
+              )}
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => setShowSizePrices(true)}
+                  className="text-sm text-primary hover:underline text-left"
+                >
+                  {t('priceList.form.priceBySizeLink')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">S</Label>
+                  <Input
+                    type="number"
+                    value={formData.price_small ?? ''}
+                    onChange={(e) => handlePriceChange('price_small', e.target.value)}
+                    placeholder="-"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">M</Label>
+                  <Input
+                    type="number"
+                    value={formData.price_medium ?? ''}
+                    onChange={(e) => handlePriceChange('price_medium', e.target.value)}
+                    placeholder="-"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">L</Label>
+                  <Input
+                    type="number"
+                    value={formData.price_large ?? ''}
+                    onChange={(e) => handlePriceChange('price_large', e.target.value)}
+                    placeholder="-"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSizePrices(false);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    price_small: null, 
+                    price_medium: null, 
+                    price_large: null 
+                  }));
+                }}
+                className="text-sm text-muted-foreground hover:underline"
+              >
+                {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
+              </button>
+            </div>
+          )}
+        </div>
 
-      {/* Footer Buttons */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onClose}>
+        {/* Row 3: Description */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">{t('priceList.form.description')}</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleGenerateDescription}
+              disabled={generatingDescription || !formData.name.trim()}
+              className="h-7 text-sm gap-1.5 text-primary font-semibold hover:text-primary/80"
+            >
+              {generatingDescription ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {t('priceList.form.generateDescription')}
+            </Button>
+          </div>
+          <Textarea
+            ref={textareaRef}
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder={t('priceList.form.descriptionPlaceholder')}
+            className="min-h-[288px] resize-none overflow-hidden"
+            style={{ height: 'auto' }}
+          />
+        </div>
+
+        {/* Advanced Section */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full py-2"
+            >
+              <ChevronDown className={cn(
+                "w-4 h-4 transition-transform",
+                advancedOpen && "rotate-180"
+              )} />
+              {t('priceList.form.advancedProperties', 'Zobacz zaawansowane właściwości usługi')}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-2">
+            {/* Duration */}
+            <div className="space-y-3">
+              <Label className="text-sm">{t('priceList.form.duration')}</Label>
+              {!showSizeDurations ? (
+                <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={formData.duration_minutes ?? ''}
+                      onChange={(e) => handleDurationChange('duration_minutes', e.target.value)}
+                      placeholder="60"
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">{t('common.minutes', 'min')}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeDurations(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {t('priceList.form.durationBySizeLink', 'Czas zależny od wielkości samochodu')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">S</Label>
+                      <Input
+                        type="number"
+                        value={formData.duration_small ?? ''}
+                        onChange={(e) => handleDurationChange('duration_small', e.target.value)}
+                        placeholder="60"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">M</Label>
+                      <Input
+                        type="number"
+                        value={formData.duration_medium ?? ''}
+                        onChange={(e) => handleDurationChange('duration_medium', e.target.value)}
+                        placeholder="60"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">L</Label>
+                      <Input
+                        type="number"
+                        value={formData.duration_large ?? ''}
+                        onChange={(e) => handleDurationChange('duration_large', e.target.value)}
+                        placeholder="60"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSizeDurations(false);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        duration_small: null, 
+                        duration_medium: null, 
+                        duration_large: null 
+                      }));
+                    }}
+                    className="text-sm text-muted-foreground hover:underline"
+                  >
+                    {t('priceList.form.useSingleDuration', 'Użyj jednego czasu')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Visibility */}
+            <div className="space-y-2">
+              <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+              <Select
+                value={formData.service_type}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
+                  <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
+                  <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Fixed Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex justify-end gap-3">
+        <Button variant="outline" onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          <Save className="w-4 h-4" />
+        <Button onClick={handleSave} disabled={saving || !formData.name.trim()}>
+          {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
           {t('common.save')}
         </Button>
       </div>
@@ -461,7 +572,9 @@ export const ServiceFormDialog = ({
   const isMobile = useIsMobile();
 
   const title = service?.id ? t('priceList.editService') : t('priceList.addNewService');
-  const description = t('priceList.dialogDescription');
+  const description = service?.id 
+    ? t('priceList.form.editDescription', 'Zmień dane usługi')
+    : t('priceList.form.addDescription', 'Dodaj nową usługę do cennika');
 
   const handleClose = () => onOpenChange(false);
 
@@ -482,6 +595,7 @@ export const ServiceFormDialog = ({
               onClose={handleClose}
               defaultCategoryId={defaultCategoryId}
               totalServicesCount={totalServicesCount}
+              isMobile={true}
             />
           </div>
         </DrawerContent>
@@ -491,12 +605,12 @@ export const ServiceFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:hover:bg-muted">
+        <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1 overflow-hidden px-6">
           <ServiceFormContent
             service={service}
             categories={categories}
@@ -505,11 +619,10 @@ export const ServiceFormDialog = ({
             onClose={handleClose}
             defaultCategoryId={defaultCategoryId}
             totalServicesCount={totalServicesCount}
+            isMobile={false}
           />
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
-export default ServiceFormDialog;
