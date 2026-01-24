@@ -30,6 +30,7 @@ interface Service {
   sort_order: number | null;
   category_prices_are_net?: boolean;
   station_type?: string | null;
+  service_type?: string | null;
 }
 
 interface ServiceCategory {
@@ -64,6 +65,13 @@ interface ServiceSelectionDrawerProps {
   onConfirm: (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => void;
   /** Optional station type to filter services */
   stationType?: 'washing' | 'ppf' | 'detailing' | 'universal';
+  /** 
+   * Context where the drawer is used:
+   * - 'reservation': Show services with service_type='reservation' or 'both' (legacy behavior when hasUnifiedServices=false)
+   * - 'offer': Show services with service_type='offer' or 'both'
+   * - When hasUnifiedServices=true, always filter by 'both'
+   */
+  context?: 'reservation' | 'offer';
   /** When true, filter by service_type='both'. When false/undefined, filter by 'reservation' (legacy). */
   hasUnifiedServices?: boolean;
 }
@@ -76,6 +84,7 @@ const ServiceSelectionDrawer = ({
   selectedServiceIds: initialSelectedIds,
   onConfirm,
   stationType,
+  context = 'reservation',
   hasUnifiedServices = false,
 }: ServiceSelectionDrawerProps) => {
   const { t } = useTranslation();
@@ -105,20 +114,25 @@ const ServiceSelectionDrawer = ({
       
       setLoading(true);
       
-      // Filter by service_type based on hasUnifiedServices flag:
-      // - hasUnifiedServices=true (new records) → show only 'both'
-      // - hasUnifiedServices=false (legacy) → show 'reservation' for backward compatibility
-      const serviceTypeFilter = hasUnifiedServices ? 'both' : 'reservation';
-      
+      // Build query for services based on context and hasUnifiedServices
+      // For new records (hasUnifiedServices=true), always use 'both'
+      // For legacy records, use the appropriate service_type based on context
       let servicesQuery = supabase
         .from('unified_services')
-        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
+        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type, service_type')
         .eq('instance_id', instanceId)
-        .eq('service_type', serviceTypeFilter)
         .eq('active', true);
       
-      // Fetch categories - for hasUnifiedServices=true use 'both', otherwise 'reservation' for legacy
-      const categoryTypeFilter = hasUnifiedServices ? 'both' : 'reservation';
+      if (hasUnifiedServices) {
+        // New unified services - show only 'both'
+        servicesQuery = servicesQuery.eq('service_type', 'both');
+      } else {
+        // Legacy behavior - show services matching context or 'both'
+        servicesQuery = servicesQuery.or(`service_type.eq.${context},service_type.eq.both`);
+      }
+      
+      // Fetch categories - match the same logic as services
+      const categoryTypeFilter = hasUnifiedServices ? 'both' : context;
       
       const [servicesRes, categoriesRes] = await Promise.all([
         servicesQuery.order('sort_order'),
@@ -126,7 +140,7 @@ const ServiceSelectionDrawer = ({
           .from('unified_categories')
           .select('id, name, sort_order, prices_are_net')
           .eq('instance_id', instanceId)
-          .eq('category_type', categoryTypeFilter)
+          .or(`category_type.eq.${categoryTypeFilter},category_type.eq.both`)
           .eq('active', true)
           .order('sort_order'),
       ]);
@@ -155,7 +169,7 @@ const ServiceSelectionDrawer = ({
     };
     
     fetchData();
-  }, [open, instanceId, stationType, hasUnifiedServices]);
+  }, [open, instanceId, stationType, hasUnifiedServices, context]);
 
   // Parse search tokens and find matching services
   const { matchingServices, searchTokens } = useMemo(() => {
@@ -485,15 +499,15 @@ const ServiceSelectionDrawer = ({
           ) : (
             <div className="pb-4">
               {groupedServices.map(({ category, services: categoryServices }) => {
-                const serviceCount = categoryServices.length;
+                const visibleServices = categoryServices;
                 
-                // Hide empty categories when searching
-                if (searchQuery.trim() && serviceCount === 0) {
+                // Hide category if no visible services
+                if (visibleServices.length === 0) {
                   return null;
                 }
                 
                 return (
-                  <div key={category.id}>
+                  <div key={category.id} data-testid={`category-${category.id}`}>
                     {/* Category header - centered, white bg, black text */}
                     <div className="py-2 px-4 bg-white">
                       <p className="text-sm font-semibold text-foreground text-center uppercase tracking-wide">
@@ -502,7 +516,7 @@ const ServiceSelectionDrawer = ({
                     </div>
                     
                     {/* Services list - flat */}
-                    {categoryServices.map((service) => {
+                    {visibleServices.map((service) => {
                       const isSelected = selectedIds.includes(service.id);
                       const price = getPrice(service);
                       const duration = getDuration(service);
