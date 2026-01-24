@@ -2755,6 +2755,7 @@ export type Database = {
           price_medium: number | null
           price_small: number | null
           prices_are_net: boolean | null
+          reminder_template_id: string | null
           requires_size: boolean | null
           service_type: string | null
           short_name: string | null
@@ -2789,6 +2790,7 @@ export type Database = {
           price_medium?: number | null
           price_small?: number | null
           prices_are_net?: boolean | null
+          reminder_template_id?: string | null
           requires_size?: boolean | null
           service_type?: string | null
           short_name?: string | null
@@ -2823,6 +2825,7 @@ export type Database = {
           price_medium?: number | null
           price_small?: number | null
           prices_are_net?: boolean | null
+          reminder_template_id?: string | null
           requires_size?: boolean | null
           service_type?: string | null
           short_name?: string | null
@@ -2845,6 +2848,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_services_reminder_template_id_fkey"
+            columns: ["reminder_template_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_templates"
             referencedColumns: ["id"]
           },
         ]
