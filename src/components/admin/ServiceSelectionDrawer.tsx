@@ -114,9 +114,9 @@ const ServiceSelectionDrawer = ({
       
       setLoading(true);
       
-      // Build query for services based on context and hasUnifiedServices
-      // For new records (hasUnifiedServices=true), always use 'both'
-      // For legacy records, use the appropriate service_type based on context
+      // Build query for services based on hasUnifiedServices
+      // Stage 1 (Fetch): hasUnifiedServices controls what we fetch
+      // Stage 2 (UI): context controls visibility (applied after fetch via service_type field)
       let servicesQuery = supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type, service_type')
@@ -124,10 +124,10 @@ const ServiceSelectionDrawer = ({
         .eq('active', true);
       
       if (hasUnifiedServices) {
-        // New unified services - show only 'both'
-        servicesQuery = servicesQuery.eq('service_type', 'both');
+        // New unified: fetch services visible in this context (context + 'both')
+        servicesQuery = servicesQuery.in('service_type', [context, 'both']);
       } else {
-        // Legacy behavior - show only services matching context (no 'both')
+        // Legacy: fetch only services matching exact context (no 'both')
         servicesQuery = servicesQuery.eq('service_type', context);
       }
       
@@ -139,8 +139,10 @@ const ServiceSelectionDrawer = ({
         .eq('active', true);
       
       if (hasUnifiedServices) {
-        categoriesQuery = categoriesQuery.eq('category_type', 'both');
+        // New unified: fetch categories visible in this context (context + 'both')
+        categoriesQuery = categoriesQuery.in('category_type', [context, 'both']);
       } else {
+        // Legacy: fetch only categories matching exact context
         categoriesQuery = categoriesQuery.eq('category_type', context);
       }
       
