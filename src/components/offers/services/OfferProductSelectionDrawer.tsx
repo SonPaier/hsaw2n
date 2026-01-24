@@ -19,6 +19,13 @@ interface Product {
   category_id: string | null;
   default_price: number;
   unit: string;
+  service_type: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  sort_order: number | null;
 }
 
 interface OfferProductSelectionDrawerProps {
@@ -39,6 +46,7 @@ export function OfferProductSelectionDrawer({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
   const [searchQuery, setSearchQuery] = useState('');
   const initRef = useRef(false);
@@ -56,24 +64,37 @@ export function OfferProductSelectionDrawer({
     }
   }, [open, initialSelectedIds]);
 
-  // Fetch products
+  // Fetch products and categories
   useEffect(() => {
     const fetchData = async () => {
       if (!open || !instanceId) return;
       
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('unified_services')
-        .select('id, name, short_name, category_id, default_price, unit')
-        .eq('service_type', 'both')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('category_id')
-        .order('name');
+      // Fetch products with service_type 'offer' or 'both'
+      const [productsRes, categoriesRes] = await Promise.all([
+        supabase
+          .from('unified_services')
+          .select('id, name, short_name, category_id, default_price, unit, service_type')
+          .or('service_type.eq.offer,service_type.eq.both')
+          .eq('instance_id', instanceId)
+          .eq('active', true)
+          .order('category_id')
+          .order('name'),
+        supabase
+          .from('unified_categories')
+          .select('id, name, sort_order')
+          .or('category_type.eq.offer,category_type.eq.both')
+          .eq('instance_id', instanceId)
+          .eq('active', true)
+          .order('sort_order'),
+      ]);
 
-      if (data && !error) {
-        setProducts(data);
+      if (productsRes.data && !productsRes.error) {
+        setProducts(productsRes.data);
+      }
+      if (categoriesRes.data && !categoriesRes.error) {
+        setCategories(categoriesRes.data);
       }
       
       setLoading(false);
@@ -89,33 +110,43 @@ export function OfferProductSelectionDrawer({
       .filter((p): p is Product => p !== undefined);
   }, [selectedIds, products]);
 
-  // Group products by category - filter based on search
+  // Group products by category - filter based on search and visibility
   const groupedProducts = useMemo(() => {
-    const groups: Map<string, Product[]> = new Map();
+    const groups: { category: Category | null; categoryName: string; products: Product[] }[] = [];
     
-    products.forEach(product => {
-      const category = product.category_id || 'Inne';
+    // Group by actual categories
+    categories.forEach(category => {
+      let categoryProducts = products.filter(p => p.category_id === category.id);
       
       // Filter by search if there's a query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        if (!product.name.toLowerCase().includes(query) && 
-            !category.toLowerCase().includes(query)) {
-          return;
-        }
+        categoryProducts = categoryProducts.filter(p => 
+          p.name.toLowerCase().includes(query) ||
+          (p.short_name && p.short_name.toLowerCase().includes(query))
+        );
       }
       
-      if (!groups.has(category)) {
-        groups.set(category, []);
+      if (categoryProducts.length > 0) {
+        groups.push({ category, categoryName: category.name, products: categoryProducts });
       }
-      groups.get(category)!.push(product);
     });
     
-    return Array.from(groups.entries()).map(([category, products]) => ({
-      category,
-      products,
-    }));
-  }, [products, searchQuery]);
+    // Add uncategorized products
+    let uncategorized = products.filter(p => !p.category_id || !categories.some(c => c.id === p.category_id));
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      uncategorized = uncategorized.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        (p.short_name && p.short_name.toLowerCase().includes(query))
+      );
+    }
+    if (uncategorized.length > 0) {
+      groups.push({ category: null, categoryName: 'Inne', products: uncategorized });
+    }
+    
+    return groups;
+  }, [products, categories, searchQuery]);
 
   // Format price
   const formatPrice = (price: number): string => {
@@ -203,18 +234,14 @@ export function OfferProductSelectionDrawer({
             </div>
           ) : (
             <div className="pb-4">
-              {groupedProducts.map(({ category, products: categoryProducts }) => {
-                // Hide empty categories when searching
-                if (searchQuery.trim() && categoryProducts.length === 0) {
-                  return null;
-                }
-                
+              {groupedProducts.map(({ category, categoryName, products: categoryProducts }) => {
+                // Already filtered - only groups with products are included
                 return (
-                  <div key={category}>
+                  <div key={category?.id || 'uncategorized'} data-testid={`category-${category?.id || 'uncategorized'}`}>
                     {/* Category header - centered, readonly */}
                     <div className="py-2 px-4 bg-muted/50">
                       <p className="text-sm font-semibold text-muted-foreground text-center uppercase tracking-wide">
-                        {category}
+                        {categoryName}
                       </p>
                     </div>
                     
