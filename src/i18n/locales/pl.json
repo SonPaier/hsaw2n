@@ -1783,6 +1783,8 @@
     "addService": "Dodaj usługę",
     "servicesCount": "usług",
     "noServicesInCategory": "Brak usług w tej kategorii",
+    "noCategory": "Bez kategorii",
+    "noServices": "Brak usług. Dodaj pierwszą usługę, aby zacząć.",
     "noCategories": "Brak kategorii. Dodaj pierwszą kategorię, aby zacząć.",
     "editService": "Edytuj usługę",
     "addNewService": "Dodaj nową usługę",
