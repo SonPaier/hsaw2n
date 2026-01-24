@@ -149,7 +149,7 @@ export const useOffer = (instanceId: string) => {
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, default_price, unit, description)
+          product:unified_services!product_id(id, name, default_price, unit, description)
         `)
         .in('scope_id', scopeIds)
         .order('sort_order');
@@ -173,20 +173,23 @@ export const useOffer = (instanceId: string) => {
           .filter(p => p.scope_id === scope.id)
           .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-        const items: OfferItem[] = products.map(p => ({
-          id: crypto.randomUUID(),
-          productId: p.product_id || undefined,
-          customName: p.variant_name 
-            ? `${p.variant_name}\n${p.product?.name || ''}` 
-            : (p.product?.name || ''),
-          customDescription: '', // Description comes from products_library via FK
-          quantity: 1,
-          unitPrice: p.product?.default_price || 0,
-          unit: p.product?.unit || 'szt',
-          discountPercent: 0,
-          isOptional: !p.is_default, // Non-default items are optional
-          isCustom: !p.product_id,
-        }));
+        const items: OfferItem[] = products.map(p => {
+          const product = (p as any).product;
+          return {
+            id: crypto.randomUUID(),
+            productId: p.product_id || undefined,
+            customName: p.variant_name 
+              ? `${p.variant_name}\n${product?.name || ''}` 
+              : (product?.name || ''),
+            customDescription: '', // Description comes from unified_services via FK
+            quantity: 1,
+            unitPrice: product?.default_price || 0,
+            unit: product?.unit || 'szt',
+            discountPercent: 0,
+            isOptional: !p.is_default, // Non-default items are optional
+            isCustom: !p.product_id,
+          };
+        });
 
         newOptions.push({
           id: crypto.randomUUID(),

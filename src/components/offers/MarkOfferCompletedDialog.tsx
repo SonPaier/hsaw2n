@@ -106,7 +106,7 @@ export function MarkOfferCompletedDialog({
             id,
             product_id,
             custom_name,
-            products_library (
+            unified_services:product_id (
               id,
               name,
               reminder_template_id,
@@ -154,7 +154,7 @@ export function MarkOfferCompletedDialog({
             }
           }
           
-          const product = item.products_library;
+          const product = (item as any).unified_services;
           if (!product?.reminder_template_id || !product.reminder_templates) continue;
 
           const template = product.reminder_templates;

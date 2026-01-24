@@ -233,7 +233,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, short_name, default_price)
+          product:unified_services!product_id(id, name, short_name, default_price)
         `)
         .eq('scope_id', scopeId)
         .order('sort_order');
@@ -245,7 +245,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           variant_name: p.variant_name || '',
           is_default: p.is_default,
           sort_order: p.sort_order,
-          product: p.product as Product | undefined
+          product: (p as any).product as Product | undefined
         })));
       }
 
@@ -283,8 +283,9 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
 
     if (newProductIds.length > 0) {
       const { data } = await supabase
-        .from('products_library')
+        .from('unified_services')
         .select('id, name, short_name, default_price')
+        .eq('service_type', 'offer')
         .in('id', newProductIds);
 
       if (data) {
