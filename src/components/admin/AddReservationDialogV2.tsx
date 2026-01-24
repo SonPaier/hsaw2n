@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, ChevronLeft, ChevronRight, ChevronDown, X, CalendarIcon, Clock, AlertTriangle, Plus, ClipboardPaste } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { format, addDays, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
+import { Loader2, ChevronDown, X, CalendarIcon, Clock, Plus, ClipboardPaste } from 'lucide-react';
+import { format, addDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
@@ -32,11 +31,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -56,7 +50,7 @@ import SelectedServicesList, { ServiceItem } from './SelectedServicesList';
 import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
 
 type CarSize = 'small' | 'medium' | 'large';
-type DialogMode = 'reservation' | 'yard' | 'ppf' | 'detailing';
+type DialogMode = 'reservation' | 'yard';
 
 interface Service {
   id: string;
@@ -99,26 +93,10 @@ interface Station {
   type: string;
 }
 
-interface AvailabilityBlock {
-  block_date: string;
-  start_time: string;
-  end_time: string;
-  station_id: string;
-}
-
 interface WorkingHours {
   open: string;
   close: string;
 }
-
-interface TimeSlot {
-  time: string;
-  availableStationIds: string[];
-  overlapType: 'none' | 'single' | 'double';
-  overlapMinutes: number;
-}
-
-const OVERLAP_TOLERANCE = 15; // maksymalny akceptowalny overlap w minutach na jeden kierunek
 
 interface EditingReservation {
   id: string;
@@ -164,17 +142,17 @@ interface AddReservationDialogV2Props {
   workingHours?: Record<string, WorkingHours | null> | null;
   /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
-  /** Mode: reservation (washing), yard, ppf, detailing */
+  /** Mode: reservation or yard */
   mode?: DialogMode;
-  /** Station ID for ppf/detailing modes */
+  /** Station ID for reservation mode */
   stationId?: string;
   /** Yard vehicle to edit when mode='yard' */
   editingYardVehicle?: YardVehicle | null;
-  /** Initial date from slot click - sets manual mode */
+  /** Initial date from slot click */
   initialDate?: string;
-  /** Initial time from slot click - sets manual mode */
+  /** Initial time from slot click */
   initialTime?: string;
-  /** Initial station from slot click - sets manual mode */
+  /** Initial station from slot click */
   initialStationId?: string;
   /** Callback for live slot preview on calendar */
   onSlotPreviewChange?: (preview: {
@@ -186,9 +164,6 @@ interface AddReservationDialogV2Props {
   /** Current user's username to save with new reservations */
   currentUsername?: string | null;
 }
-
-const SLOT_INTERVAL = 15;
-const MIN_LEAD_TIME_MINUTES = 15;
 
 const AddReservationDialogV2 = ({
   open,
@@ -207,9 +182,6 @@ const AddReservationDialogV2 = ({
   currentUsername = null,
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
-  const isPPFMode = mode === 'ppf';
-  const isDetailingMode = mode === 'detailing';
-  const isPPFOrDetailingMode = isPPFMode || isDetailingMode;
   const isReservationMode = mode === 'reservation';
   const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
   
@@ -218,7 +190,7 @@ const AddReservationDialogV2 = ({
   
   // Mobile: toggle drawer visibility to peek at calendar
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
-const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   
   // Validation errors state
@@ -238,11 +210,10 @@ const [loading, setLoading] = useState(false);
   const dateRangeRef = useRef<HTMLDivElement>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
-  const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [foundVehicles, setFoundVehicles] = useState<CustomerVehicle[]>([]);
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
-const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
-const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   
   // Ref to suppress phone search after programmatic phone value set (edit mode)
   const suppressPhoneSearchRef = useRef(false);
@@ -255,9 +226,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [servicesWithCategory, setServicesWithCategory] = useState<ServiceWithCategory[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [finalPrice, setFinalPrice] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -268,28 +236,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   
-  // Date picker
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  
   // Services dropdown
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
-  
-  const slotsScrollRef = useRef<HTMLDivElement>(null);
 
-  // Manual time selection mode (for reservation mode only)
-  const [timeSelectionMode, setTimeSelectionMode] = useState<'slots' | 'manual'>('manual');
+  // Manual time selection
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
-  
-  // Edit mode: time change flow
-  const [isChangingTime, setIsChangingTime] = useState(false);
-  const [originalDate, setOriginalDate] = useState<Date | null>(null);
-  const [originalTime, setOriginalTime] = useState<string | null>(null);
-  const [originalStationId, setOriginalStationId] = useState<string | null>(null);
-  const [originalManualStartTime, setOriginalManualStartTime] = useState<string>('');
-  const [originalManualEndTime, setOriginalManualEndTime] = useState<string>('');
-  const [originalManualStationId, setOriginalManualStationId] = useState<string | null>(null);
-  const [originalTimeSelectionMode, setOriginalTimeSelectionMode] = useState<'slots' | 'manual'>('manual');
   const [manualStationId, setManualStationId] = useState<string | null>(null);
   
   // Track the last totalDurationMinutes to detect changes
@@ -319,38 +271,23 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [pickupDateOpen, setPickupDateOpen] = useState(false);
   const [deadlineTime, setDeadlineTime] = useState('');
 
-  // PPF/Detailing mode state
+  // Reservation mode - DateRange picker (default 1 day)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
-  const [ppfStartTime, setPpfStartTime] = useState('09:00');
-  const [ppfEndTime, setPpfEndTime] = useState('17:00');
   const [offerNumber, setOfferNumber] = useState('');
-
-  // Get station type for service filtering
-  const getStationType = (): 'washing' | 'ppf' | 'detailing' | 'universal' => {
-    if (mode === 'ppf') return 'ppf';
-    if (mode === 'detailing') return 'detailing';
-    return 'washing';
-  };
 
   // Fetch services and stations on mount
   useEffect(() => {
     const fetchData = async () => {
       if (!open || !instanceId) return;
       
-      const stationType = getStationType();
-      
-      // For yard/detailing mode, fetch ALL services (no filter)
-      // For PPF mode, filter by station_type='ppf'
-      // For reservation mode, filter by station_type='washing'
-      let servicesQuery = supabase
+      // Fetch all active services (no station_type filtering)
+      const servicesQuery = supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
         .eq('service_type', 'reservation')
         .eq('active', true);
-      
-      // All services available in all modes - no station_type filtering
       
       const { data: servicesData } = await servicesQuery.order('sort_order');
       
@@ -374,31 +311,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     };
     
     fetchData();
-  }, [open, instanceId, mode]);
-
-  // Stable date string to prevent refetching when Date object reference changes
-  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-
-  // Fetch availability blocks when date changes (only for reservation mode)
-  useEffect(() => {
-    const fetchAvailability = async () => {
-      if (!open || !instanceId || !selectedDateStr || !isReservationMode) return;
-      
-      const toDate = format(addDays(new Date(selectedDateStr), 7), 'yyyy-MM-dd');
-      
-      const { data } = await supabase.rpc('get_availability_blocks', {
-        _instance_id: instanceId,
-        _from: selectedDateStr,
-        _to: toDate,
-      });
-      
-      if (data) {
-        setAvailabilityBlocks(data);
-      }
-    };
-    
-    fetchAvailability();
-  }, [open, instanceId, selectedDateStr, isReservationMode]);
+  }, [open, instanceId, mode, isReservationMode]);
 
   // Calculate the next working day based on working hours
   const getNextWorkingDay = useCallback((): Date => {
@@ -441,10 +354,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   useEffect(() => {
     if (open) {
       // PROTECTION: Skip re-initialization if user is actively editing the same reservation
-      // This prevents parent re-renders from resetting form state (especially isChangingTime)
-      if ((isUserEditingRef.current || isChangingTime) && 
-          editingReservation?.id === lastEditingReservationIdRef.current) {
-        console.log('[ReservationDialog] Skipping re-init - user is actively editing or changing time');
+      if (isUserEditingRef.current && editingReservation?.id === lastEditingReservationIdRef.current) {
+        console.log('[ReservationDialog] Skipping re-init - user is actively editing');
         return;
       }
       
@@ -485,114 +396,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setArrivalDate(new Date());
         setPickupDate(null);
         setDeadlineTime('');
-        setAdminNotes('');
-        setFoundVehicles([]);
-        setFoundCustomers([]);
-        setSelectedCustomerId(null);
-        setCustomerDiscountPercent(null);
-        setShowPhoneDropdown(false);
-        setShowCustomerDropdown(false);
-        setCustomerVehicles([]);
-        setSelectedVehicleId(null);
-      } else if (isPPFOrDetailingMode && editingReservation) {
-        // PPF/Detailing edit mode
-        suppressPhoneSearchRef.current = true;
-        setCustomerName(editingReservation.customer_name || '');
-        setPhone(editingReservation.customer_phone || '');
-        setCarModel(editingReservation.vehicle_plate || '');
-        setCarSize(editingReservation.car_size || 'medium');
-        // Use service_ids if not empty, otherwise fallback to service_id
-        const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
-          ? editingReservation.service_ids 
-          : (editingReservation.service_id ? [editingReservation.service_id] : []);
-        setSelectedServices(serviceIds);
-        
-        // Load servicesWithCategory from services list for backwards compatibility
-        if (services.length > 0 && serviceIds.length > 0) {
-          const loadedServicesWithCategory: ServiceWithCategory[] = [];
-          serviceIds.forEach(id => {
-            const service = services.find(s => s.id === id);
-            if (service) {
-              loadedServicesWithCategory.push({
-                id: service.id,
-                name: service.name,
-                short_name: service.short_name,
-                category_id: service.category_id,
-                duration_minutes: service.duration_minutes,
-                duration_small: service.duration_small,
-                duration_medium: service.duration_medium,
-                duration_large: service.duration_large,
-                price_from: service.price_from,
-                price_small: service.price_small,
-                price_medium: service.price_medium,
-                price_large: service.price_large,
-                category_prices_are_net: false,
-              });
-            }
-          });
-          setServicesWithCategory(loadedServicesWithCategory);
-        }
-        
-        // Load serviceItems from reservation's service_items column if available
-        const reservationServiceItems = editingReservation.service_items as ServiceItem[] | null;
-        if (reservationServiceItems && Array.isArray(reservationServiceItems) && reservationServiceItems.length > 0) {
-          setServiceItems(reservationServiceItems);
-        } else {
-          // Initialize serviceItems for legacy reservations without service_items
-          setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
-        }
-        
-        // Set final price for PPF/Detailing mode
-        setFinalPrice(editingReservation.price?.toString() || '');
-        
-        // Date range
-        const fromDate = new Date(editingReservation.reservation_date);
-        const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
-        setDateRange({ from: fromDate, to: toDate });
-        
-        setPpfStartTime(editingReservation.start_time?.substring(0, 5) || '09:00');
-        setPpfEndTime(editingReservation.end_time?.substring(0, 5) || '17:00');
-        
-        // Use offer_number column directly (or fallback to parsing from admin_notes for legacy data)
-        if (editingReservation.offer_number) {
-          setOfferNumber(editingReservation.offer_number);
-          setAdminNotes(editingReservation.admin_notes || '');
-        } else if (editingReservation.admin_notes) {
-          // Fallback for legacy data with offer in notes
-          const offerMatch = editingReservation.admin_notes.match(/Oferta:\s*([^\n]+)/);
-          if (offerMatch) {
-            setOfferNumber(offerMatch[1].trim());
-            setAdminNotes(editingReservation.admin_notes.replace(/Oferta:\s*[^\n]+\n?/, '').trim());
-          } else {
-            setOfferNumber('');
-            setAdminNotes(editingReservation.admin_notes);
-          }
-        } else {
-          setOfferNumber('');
-          setAdminNotes('');
-        }
-        
-        setFoundVehicles([]);
-        setFoundCustomers([]);
-        setSelectedCustomerId(null);
-        setCustomerDiscountPercent(null);
-        setShowPhoneDropdown(false);
-        setShowCustomerDropdown(false);
-        setCustomerVehicles([]);
-        setSelectedVehicleId(null);
-      } else if (isPPFOrDetailingMode) {
-        // PPF/Detailing create mode
-        setCustomerName('');
-        setPhone('');
-        setCarModel('');
-        setCarSize('medium');
-        setSelectedServices([]);
-        // Set date range to initialDate (slot click) or today
-        const slotDate = initialDate ? new Date(initialDate) : new Date();
-        setDateRange({ from: slotDate, to: slotDate });
-        setPpfStartTime('09:00');
-        setPpfEndTime('17:00');
-        setOfferNumber('');
         setAdminNotes('');
         setFoundVehicles([]);
         setFoundCustomers([]);
@@ -649,12 +452,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           // Initialize serviceItems for legacy reservations without service_items
           setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
         }
-        setSelectedDate(new Date(editingReservation.reservation_date));
-        setSelectedTime(null); // Reset - will use editingReservation values in display
-        setSelectedStationId(editingReservation.station_id);
+        
+        // Date range - use reservation_date and end_date
+        const fromDate = new Date(editingReservation.reservation_date);
+        const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
+        setDateRange({ from: fromDate, to: toDate });
+        
         setAdminNotes(editingReservation.admin_notes || '');
         setFinalPrice(editingReservation.price?.toString() || '');
-        // Load offer_number for reservation edit mode
         setOfferNumber(editingReservation.offer_number || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
@@ -664,9 +469,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
-        // Reset time change flow and set manual time from editing reservation
-        setIsChangingTime(false);
-        setTimeSelectionMode('manual');
+        
+        // Set manual time from editing reservation
         const startTimeStr = editingReservation.start_time?.substring(0, 5) || '';
         const endTimeStr = editingReservation.end_time?.substring(0, 5) || '';
         setManualStartTime(startTimeStr);
@@ -684,18 +488,16 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         }
         
         // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
-        // This preserves the original end_time from the reservation being edited
         setUserModifiedEndTime(true);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click
         if (wasOpenRef.current) {
           // Dialog was already open - only update date/time/station, keep other data
-          setSelectedDate(new Date(initialDate));
-          setTimeSelectionMode('manual');
+          const slotDate = new Date(initialDate);
+          setDateRange({ from: slotDate, to: slotDate });
           setManualStartTime(initialTime);
           setManualStationId(initialStationId);
           // Recalculate end time based on current services duration
-          // Note: totalDurationMinutes is calculated from selectedServices which we're keeping
           const currentDuration = selectedServices.reduce((total, serviceId) => {
             const service = services.find(s => s.id === serviceId);
             if (!service) return total;
@@ -717,11 +519,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           setCarModel('');
           setCarSize('medium');
           setSelectedServices([]);
-          setSelectedDate(new Date(initialDate));
-          setSelectedTime(null);
-          setSelectedStationId(null);
+          const slotDate = new Date(initialDate);
+          setDateRange({ from: slotDate, to: slotDate });
           setAdminNotes('');
           setFinalPrice('');
+          setOfferNumber('');
           setFoundCustomers([]);
           setSelectedCustomerId(null);
           setCustomerDiscountPercent(null);
@@ -729,8 +531,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           setShowCustomerDropdown(false);
           setCustomerVehicles([]);
           setSelectedVehicleId(null);
-          // Set manual mode with slot values
-          setTimeSelectionMode('manual');
           setManualStartTime(initialTime);
           setManualEndTime('');
           setManualStationId(initialStationId);
@@ -742,14 +542,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setCarModel('');
         setCarSize('medium');
         setSelectedServices([]);
-        setSelectedDate(getNextWorkingDay());
-        setSelectedTime(null);
-        setSelectedStationId(null);
+        // Default to today with 1-day range
+        const today = getNextWorkingDay();
+        setDateRange({ from: today, to: today });
         setAdminNotes('');
         setFinalPrice('');
-        setSelectedTime(null);
-        setSelectedStationId(null);
-        setAdminNotes('');
+        setOfferNumber('');
         setFoundVehicles([]);
         setFoundCustomers([]);
         setSelectedCustomerId(null);
@@ -758,8 +556,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
-        // Reset manual time mode
-        setTimeSelectionMode('manual');
         setManualStartTime('');
         setManualEndTime('');
         setManualStationId(null);
@@ -775,10 +571,9 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       prevManualStartTimeRef.current = '';
       setServicesWithCategory([]); // Reset services list for next open
     }
-  }, [open, getNextWorkingDay, editingReservation, isYardMode, isPPFOrDetailingMode, editingYardVehicle, initialDate, initialTime, initialStationId]);
+  }, [open, getNextWorkingDay, editingReservation, isYardMode, editingYardVehicle, initialDate, initialTime, initialStationId, services, selectedServices, carSize]);
 
   // NEW: Re-map servicesWithCategory when services are loaded (for edit mode)
-  // This fixes race condition where services[] is empty on first dialog open
   useEffect(() => {
     if (!open || services.length === 0) return;
     
@@ -823,36 +618,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         }
       }
     }
-    
-    // Handle PPF/Detailing edit mode
-    if (isPPFOrDetailingMode && editingYardVehicle?.service_ids) {
-      const loadedServicesWithCategory: ServiceWithCategory[] = [];
-      editingYardVehicle.service_ids.forEach(id => {
-        const service = services.find(s => s.id === id);
-        if (service) {
-          loadedServicesWithCategory.push({
-            id: service.id,
-            name: service.name,
-            short_name: service.short_name,
-            category_id: service.category_id,
-            duration_minutes: service.duration_minutes,
-            duration_small: service.duration_small,
-            duration_medium: service.duration_medium,
-            duration_large: service.duration_large,
-            price_from: service.price_from,
-            price_small: service.price_small,
-            price_medium: service.price_medium,
-            price_large: service.price_large,
-            category_prices_are_net: false,
-          });
-        }
-      });
-      
-      if (loadedServicesWithCategory.length > 0) {
-        setServicesWithCategory(loadedServicesWithCategory);
-      }
-    }
-  }, [open, services, editingReservation, isPPFOrDetailingMode, editingYardVehicle, servicesWithCategory.length]);
+  }, [open, services, editingReservation, servicesWithCategory.length]);
 
   // Get duration for a service based on car size
   const getServiceDuration = (service: Service): number => {
@@ -876,291 +642,96 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     return service.price_from || 0;
   };
 
-  // Calculate total price from selected services
+  // Calculate total price from selected services (using custom prices from serviceItems if available)
   const totalPrice = selectedServices.reduce((total, serviceId) => {
     const service = services.find(s => s.id === serviceId);
-    return total + (service ? getServicePrice(service) : 0);
+    if (!service) return total;
+    
+    // Check if there's a custom price in serviceItems
+    const serviceItem = serviceItems.find(si => si.service_id === serviceId);
+    if (serviceItem?.custom_price !== null && serviceItem?.custom_price !== undefined) {
+      return total + serviceItem.custom_price;
+    }
+    
+    return total + getServicePrice(service);
   }, 0);
 
-  // Calculate discounted price based on customer discount
-  const discountedPrice = customerDiscountPercent && customerDiscountPercent > 0
+  // Calculate discounted price
+  const discountedPrice = customerDiscountPercent && customerDiscountPercent > 0 
     ? Math.round(totalPrice * (1 - customerDiscountPercent / 100))
     : totalPrice;
 
-  // Auto-update manualEndTime when totalDurationMinutes changes and in manual mode
-  // In edit mode: adjusts slot when services are added/removed (extends/shortens)
+  // Auto-update end time when start time or duration changes (for reservation mode)
   useEffect(() => {
-    if (!isReservationMode || timeSelectionMode !== 'manual' || !manualStartTime) {
-      prevTotalDurationRef.current = totalDurationMinutes;
-      return;
-    }
+    if (!isReservationMode || !open) return;
     
-    // In EDIT MODE: Allow service-based duration changes
-    // Track if duration actually changed (services added/removed)
-    const durationChanged = prevTotalDurationRef.current !== null && 
-                           prevTotalDurationRef.current !== totalDurationMinutes &&
-                           prevTotalDurationRef.current > 0;
+    // Skip if user manually modified end time
+    if (userModifiedEndTime) return;
     
-    // In new reservation mode, respect userModifiedEndTime
-    // In edit mode, allow changes when services are added/removed (duration changed)
-    if (!isEditMode && userModifiedEndTime) {
-      prevTotalDurationRef.current = totalDurationMinutes;
-      return;
-    }
+    // Skip if no start time
+    if (!manualStartTime || !manualStartTime.includes(':')) return;
     
-    // Only update if we have valid data
-    if (totalDurationMinutes > 0 && manualStartTime && manualStartTime.includes(':')) {
-      // In edit mode, only update if duration actually changed (services added/removed)
-      // This prevents initial load from changing end time
-      if (isEditMode && !durationChanged) {
-        prevTotalDurationRef.current = totalDurationMinutes;
-        return;
-      }
-      
+    // Calculate new end time based on total duration
+    if (totalDurationMinutes > 0) {
       const [h, m] = manualStartTime.split(':').map(Number);
-      const startMinutes = h * 60 + m;
-      const endMinutes = startMinutes + totalDurationMinutes;
+      const endMinutes = h * 60 + m + totalDurationMinutes;
       const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
       setManualEndTime(newEndTime);
-      
-      // In edit mode, also update the original duration ref so start time changes work correctly
-      if (isEditMode) {
-        originalDurationMinutesRef.current = totalDurationMinutes;
-      }
     }
     
     prevTotalDurationRef.current = totalDurationMinutes;
-  }, [totalDurationMinutes, manualStartTime, timeSelectionMode, isReservationMode, userModifiedEndTime, isEditMode]);
+  }, [open, isReservationMode, manualStartTime, totalDurationMinutes, userModifiedEndTime]);
 
-  // AUTO-ADJUST END TIME WHEN START TIME CHANGES IN EDIT MODE
-  // This maintains the original reservation duration when user manually changes start time
+  // Auto-adjust end time when start time changes in edit mode (preserve duration)
   useEffect(() => {
-    if (!isReservationMode || !isEditMode || timeSelectionMode !== 'manual') return;
-    if (!manualStartTime || !manualStartTime.includes(':')) return;
+    if (!isReservationMode || !open || !isEditMode) return;
+    
+    // Skip if user manually modified end time
+    if (userModifiedEndTime) return;
+    
+    // Skip if no original duration stored
     if (originalDurationMinutesRef.current === null) return;
     
-    // Check if start time actually changed (not just initial load)
-    if (prevManualStartTimeRef.current === manualStartTime) return;
-    if (prevManualStartTimeRef.current === '') {
-      // First time setting - just record and skip
-      prevManualStartTimeRef.current = manualStartTime;
-      return;
-    }
+    // Skip if start time hasn't actually changed
+    if (manualStartTime === prevManualStartTimeRef.current) return;
     
-    // Calculate new end time based on original duration
+    // Skip if start time is empty or invalid
+    if (!manualStartTime || !manualStartTime.includes(':')) return;
+    
+    // Calculate new end time preserving original duration
     const [h, m] = manualStartTime.split(':').map(Number);
-    const startMinutes = h * 60 + m;
-    const endMinutes = startMinutes + originalDurationMinutesRef.current;
+    const endMinutes = h * 60 + m + originalDurationMinutesRef.current;
     const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-    
     setManualEndTime(newEndTime);
-    prevManualStartTimeRef.current = manualStartTime;
     
-    // Note: We don't reset userModifiedEndTime here because this is an automatic adjustment
-    // If user later manually changes end time, userModifiedEndTime will be set to true by the onChange handler
-  }, [manualStartTime, isReservationMode, isEditMode, timeSelectionMode]);
+    prevManualStartTimeRef.current = manualStartTime;
+  }, [open, isReservationMode, isEditMode, manualStartTime, userModifiedEndTime]);
 
-  // Emit slot preview for live calendar highlight
+  // Emit slot preview for calendar highlighting (reservation mode only)
   useEffect(() => {
-    if (!isReservationMode || !open || isEditMode) {
-      onSlotPreviewChange?.(null);
-      return;
-    }
-
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
-    if (timeSelectionMode === 'slots') {
-      // Tab 1: Wybór ze slotów - use selectedTime + totalDurationMinutes
-      if (selectedTime && selectedStationId && totalDurationMinutes > 0) {
-        const [h, m] = selectedTime.split(':').map(Number);
-        const startMinutes = h * 60 + m;
-        const endMinutes = startMinutes + totalDurationMinutes;
-        const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-        
-        onSlotPreviewChange?.({
-          date: dateStr,
-          startTime: selectedTime,
-          endTime,
-          stationId: selectedStationId
-        });
-      } else {
-        onSlotPreviewChange?.(null);
-      }
-    } else if (timeSelectionMode === 'manual') {
-      // Tab 2: Ustaw ręcznie
-      if (manualStartTime && manualEndTime && manualStationId) {
-        onSlotPreviewChange?.({
-          date: dateStr,
-          startTime: manualStartTime,
-          endTime: manualEndTime,
-          stationId: manualStationId
-        });
-      } else {
-        onSlotPreviewChange?.(null);
-      }
+    if (!open || !isReservationMode || !onSlotPreviewChange) return;
+    
+    // In edit mode, always show preview based on current manual values
+    if (manualStartTime && manualEndTime && manualStationId && dateRange?.from) {
+      onSlotPreviewChange({
+        date: format(dateRange.from, 'yyyy-MM-dd'),
+        startTime: manualStartTime,
+        endTime: manualEndTime,
+        stationId: manualStationId,
+      });
+    } else {
+      onSlotPreviewChange(null);
     }
   }, [
     open,
     isReservationMode,
     isEditMode,
-    selectedDate,
-    timeSelectionMode,
-    // Slots mode
-    selectedTime,
-    selectedStationId,
-    totalDurationMinutes,
-    // Manual mode
+    dateRange,
     manualStartTime,
     manualEndTime,
     manualStationId,
     onSlotPreviewChange
   ]);
-
-  // Get available time slots for the selected date (reservation mode only)
-  // Now includes overlap slots for admin with ±15 min tolerance
-  const getAvailableSlots = (): TimeSlot[] => {
-    if (!workingHours || selectedServices.length === 0 || stations.length === 0 || !isReservationMode) {
-      return [];
-    }
-    
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const dayName = format(selectedDate, 'EEEE').toLowerCase();
-    const dayHours = workingHours[dayName];
-    
-    // Validate that day is enabled AND has valid open/close times
-    if (!dayHours || !dayHours.open || !dayHours.close) return [];
-    
-    // Additional validation for proper time format
-    if (!dayHours.open.includes(':') || !dayHours.close.includes(':')) return [];
-    
-    const parseTimeToMinutes = (timeStr: string): number => {
-      const [h, m] = timeStr.split(':').map(Number);
-      return h * 60 + m;
-    };
-    
-    const [openH, openM] = dayHours.open.split(':').map(Number);
-    const [closeH, closeM] = dayHours.close.split(':').map(Number);
-    
-    // Validate parsed values are numbers
-    if (isNaN(openH) || isNaN(openM) || isNaN(closeH) || isNaN(closeM)) return [];
-    
-    const openMinutes = openH * 60 + openM;
-    const closeMinutes = closeH * 60 + closeM;
-    
-    const dayBlocks = availabilityBlocks.filter(b => b.block_date === dateStr);
-    
-    let minStartTime = openMinutes;
-    if (isSameDay(selectedDate, new Date())) {
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes() + MIN_LEAD_TIME_MINUTES;
-      minStartTime = Math.max(openMinutes, Math.ceil(nowMinutes / SLOT_INTERVAL) * SLOT_INTERVAL);
-    }
-    
-    const slots: TimeSlot[] = [];
-    const slotMap = new Map<string, TimeSlot>();
-    
-    for (let time = minStartTime; time + totalDurationMinutes <= closeMinutes; time += SLOT_INTERVAL) {
-      const timeStr = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
-      const slotStart = time;
-      const slotEnd = time + totalDurationMinutes;
-      
-      for (const station of stations) {
-        const stationBlocks = dayBlocks.filter(b => b.station_id === station.id);
-        
-        let totalOverlap = 0;
-        let overlapDirections = 0;
-        let hasExcessiveOverlap = false;
-        
-        for (const block of stationBlocks) {
-          const blockStart = parseTimeToMinutes(block.start_time);
-          const blockEnd = parseTimeToMinutes(block.end_time);
-          
-          // Sprawdź czy slot i blok się nakładają
-          if (slotStart < blockEnd && slotEnd > blockStart) {
-            const overlapStart = Math.max(slotStart, blockStart);
-            const overlapEnd = Math.min(slotEnd, blockEnd);
-            const overlap = overlapEnd - overlapStart;
-            
-            if (overlap > OVERLAP_TOLERANCE) {
-              hasExcessiveOverlap = true;
-              break;
-            }
-            
-            if (overlap > 0) {
-              totalOverlap += overlap;
-              overlapDirections++;
-            }
-          }
-        }
-        
-        // Akceptuj slot jeśli: brak overlap LUB overlap w tolerancji
-        if (!hasExcessiveOverlap && totalOverlap <= OVERLAP_TOLERANCE * 2) {
-          let overlapType: 'none' | 'single' | 'double' = 'none';
-          if (totalOverlap > 0 && overlapDirections === 1) {
-            overlapType = 'single'; // pomarańczowy
-          } else if (totalOverlap > 0 && overlapDirections >= 2) {
-            overlapType = 'double'; // czerwony
-          }
-          
-          const existingSlot = slotMap.get(timeStr);
-          if (existingSlot) {
-            // Preferuj stanowisko z mniejszym overlapem
-            if (totalOverlap < existingSlot.overlapMinutes) {
-              slotMap.set(timeStr, {
-                time: timeStr,
-                availableStationIds: [station.id],
-                overlapType,
-                overlapMinutes: totalOverlap
-              });
-            } else if (totalOverlap === existingSlot.overlapMinutes) {
-              existingSlot.availableStationIds.push(station.id);
-            }
-          } else {
-            slotMap.set(timeStr, {
-              time: timeStr,
-              availableStationIds: [station.id],
-              overlapType,
-              overlapMinutes: totalOverlap
-            });
-          }
-        }
-      }
-    }
-    
-    // Konwertuj mapę na tablicę i sortuj: najpierw zielone, potem pomarańczowe, na końcu czerwone
-    const result = Array.from(slotMap.values());
-    result.sort((a, b) => {
-      const orderMap = { none: 0, single: 1, double: 2 };
-      if (orderMap[a.overlapType] !== orderMap[b.overlapType]) {
-        return orderMap[a.overlapType] - orderMap[b.overlapType];
-      }
-      return a.time.localeCompare(b.time);
-    });
-    
-    return result;
-  };
-
-  const availableSlots = getAvailableSlots();
-
-  // Handle slot selection
-  const handleSelectSlot = (slot: TimeSlot) => {
-    setSelectedTime(slot.time);
-    setSelectedStationId(slot.availableStationIds[0]);
-  };
-
-  // Navigation
-  const handlePrevDay = () => {
-    const newDate = subDays(selectedDate, 1);
-    if (!isBefore(newDate, startOfDay(new Date()))) {
-      setSelectedDate(newDate);
-      setSelectedTime(null);
-    }
-  };
-
-  const handleNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
-    setSelectedTime(null);
-  };
 
   // Normalize phone: remove spaces and country code (+48, 0048, 48 at start)
   const normalizePhone = (phone: string): string => {
@@ -1465,144 +1036,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       return;
     }
     
-    // PPF/Detailing mode validation and submit
-    if (isPPFOrDetailingMode) {
-      const errors: typeof validationErrors = {};
-      
-      if (!phone.trim()) {
-        errors.phone = 'Telefon jest wymagany';
-      }
-      if (!carModel.trim()) {
-        errors.carModel = 'Marka i model jest wymagana';
-      }
-      // Services required only for Detailing mode, optional for PPF
-      if (isDetailingMode && selectedServices.length === 0) {
-        errors.services = 'Wybierz co najmniej jedną usługę';
-      }
-      if (!dateRange?.from) {
-        errors.dateRange = 'Wybierz zakres dat';
-      }
-      
-      if (Object.keys(errors).length > 0) {
-        setValidationErrors(errors);
-        scrollToFirstError(errors);
-        return;
-      }
-      setValidationErrors({});
-      
-      if (!propStationId) {
-        toast.error(t('addReservation.noStation'));
-        return;
-      }
-      setLoading(true);
-      try {
-        // Create customer if needed
-        let customerId = selectedCustomerId;
-        
-        if (customerName && !customerId && phone) {
-          const { data: existingCustomer } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('instance_id', instanceId)
-            .eq('phone', phone)
-            .maybeSingle();
-          
-          if (existingCustomer) {
-            customerId = existingCustomer.id;
-          } else {
-            const { data: newCustomer, error: customerError } = await supabase
-              .from('customers')
-              .insert({
-                instance_id: instanceId,
-                phone: normalizePhoneForStorage(phone),
-                name: customerName,
-              })
-              .select('id')
-              .single();
-            
-            if (!customerError && newCustomer) {
-              customerId = newCustomer.id;
-            }
-          }
-        }
-
-        const reservationData = {
-          station_id: propStationId,
-          reservation_date: format(dateRange.from, 'yyyy-MM-dd'),
-          end_date: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
-          start_time: ppfStartTime,
-          end_time: ppfEndTime,
-          customer_name: customerName.trim() || phone || 'Klient',
-          customer_phone: normalizePhoneForStorage(phone) || '',
-          vehicle_plate: carModel || '',
-          car_size: carSize || null,
-          admin_notes: adminNotes || null,
-          offer_number: offerNumber || null,
-          price: finalPrice ? parseFloat(finalPrice) : null,
-          service_id: selectedServices[0] || null,
-          service_ids: selectedServices.length > 0 ? selectedServices : null,
-        };
-
-        if (isEditMode && editingReservation) {
-          const { error: updateError } = await supabase
-            .from('reservations')
-            .update(reservationData)
-            .eq('id', editingReservation.id);
-
-          if (updateError) throw updateError;
-
-          sendPushNotification({
-            instanceId,
-            title: `✏️ Rezerwacja zmieniona`,
-            body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
-            url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
-            tag: `edited-reservation-${editingReservation.id}`,
-          });
-
-          toast.success(t('addReservation.reservationUpdated'));
-        } else {
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          const newReservationData = {
-            ...reservationData,
-            instance_id: instanceId,
-            confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
-            status: 'confirmed' as const,
-            confirmed_at: new Date().toISOString(),
-            created_by: user?.id || null,
-            created_by_username: currentUsername || null,
-            has_unified_services: true, // New reservations use unified services (service_type='both')
-          };
-
-          const { error: insertError } = await supabase
-            .from('reservations')
-            .insert([newReservationData]);
-
-          if (insertError) throw insertError;
-
-          sendPushNotification({
-            instanceId,
-            title: `📅 Nowa rezerwacja (admin)`,
-            body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange.from)} o ${ppfStartTime}`,
-            url: `/admin?reservationCode=${newReservationData.confirmation_code}`,
-            tag: `new-reservation-admin-${Date.now()}`,
-          });
-
-          toast.success(t('addReservation.reservationCreated'));
-        }
-        
-        // Pass reservation ID for debounce marking (only in edit mode - new reservations don't have ID yet)
-        onSuccess(editingReservation?.id);
-        onClose();
-      } catch (error) {
-        console.error('Error saving reservation:', error);
-        toast.error(t('addReservation.reservationError'));
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-    
     // Reservation mode validation and submit
     const errors: typeof validationErrors = {};
     
@@ -1615,20 +1048,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     if (selectedServices.length === 0) {
       errors.services = 'Wybierz co najmniej jedną usługę';
     }
-    
-    // Validate time selection based on mode
-    // In edit mode without time change, use original reservation values - skip validation
-    if (isEditMode && !isChangingTime && editingReservation) {
-      // Use original times - validation passes automatically
-    } else if (timeSelectionMode === 'slots') {
-      if (!selectedTime || !selectedStationId) {
-        errors.time = 'Wybierz godzinę rezerwacji';
-      }
-    } else {
-      // Manual mode
-      if (!manualStartTime || !manualEndTime || !manualStationId) {
-        errors.time = 'Wypełnij wszystkie pola terminu';
-      }
+    if (!dateRange?.from) {
+      errors.dateRange = 'Wybierz datę';
+    }
+    if (!manualStartTime || !manualEndTime || !manualStationId) {
+      errors.time = 'Wypełnij wszystkie pola terminu';
     }
     
     if (Object.keys(errors).length > 0) {
@@ -1670,34 +1094,14 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         }
       }
 
-      // Determine start time, end time, and station based on mode
-      let finalStartTime: string;
-      let finalEndTime: string;
-      let finalStationId: string | null;
-      
-      // Always use manual values in manual mode (they're prefilled with original values on edit)
-      if (timeSelectionMode === 'manual') {
-        finalStartTime = manualStartTime;
-        finalEndTime = manualEndTime;
-        finalStationId = manualStationId;
-      } else {
-        finalStartTime = selectedTime!;
-        finalStationId = selectedStationId;
-        // Calculate end time from duration
-        const [hours, minutes] = finalStartTime.split(':').map(Number);
-        const totalMinutes = hours * 60 + minutes + totalDurationMinutes;
-        const endHours = Math.floor(totalMinutes / 60);
-        const endMins = totalMinutes % 60;
-        finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-      }
-
       if (isEditMode && editingReservation) {
         // Update existing reservation
         const updateData = {
-          station_id: finalStationId,
-          reservation_date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: finalStartTime,
-          end_time: finalEndTime,
+          station_id: manualStationId,
+          reservation_date: format(dateRange!.from!, 'yyyy-MM-dd'),
+          end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+          start_time: manualStartTime,
+          end_time: manualEndTime,
           customer_name: customerName.trim() || phone || 'Klient',
           customer_phone: normalizePhoneForStorage(phone) || '',
           vehicle_plate: carModel || '',
@@ -1721,7 +1125,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         sendPushNotification({
           instanceId,
           title: `✏️ Rezerwacja zmieniona`,
-          body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
+          body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange!.from!)} o ${manualStartTime}`,
           url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
           tag: `edited-reservation-${editingReservation.id}`,
         });
@@ -1733,10 +1137,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         
         const reservationData = {
           instance_id: instanceId,
-          station_id: finalStationId,
-          reservation_date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: finalStartTime,
-          end_time: finalEndTime,
+          station_id: manualStationId,
+          reservation_date: format(dateRange!.from!, 'yyyy-MM-dd'),
+          end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+          start_time: manualStartTime,
+          end_time: manualEndTime,
           customer_name: customerName.trim() || phone || 'Klient',
           customer_phone: normalizePhoneForStorage(phone) || '',
           vehicle_plate: carModel || '',
@@ -1746,12 +1151,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           service_id: selectedServices[0],
           service_ids: selectedServices,
           service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
+          offer_number: offerNumber || null,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
           status: 'confirmed' as const,
           confirmed_at: new Date().toISOString(),
           created_by: user?.id || null,
           created_by_username: currentUsername || null,
-          has_unified_services: true, // New reservations use unified services (service_type='both')
+          has_unified_services: true,
         };
 
         const { error: reservationError } = await supabase
@@ -1760,14 +1166,11 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
         if (reservationError) throw reservationError;
 
-        // SMS confirmation is now sent manually via drawer button
-        // (automatic SMS removed - admin uses "Wyślij SMS o potwierdzeniu" button)
-
         // Send push notification for new reservation by admin
         sendPushNotification({
           instanceId,
           title: `📅 Nowa rezerwacja (admin)`,
-          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(selectedDate)} o ${finalStartTime}`,
+          body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange!.from!)} o ${manualStartTime}`,
           url: `/admin?reservationCode=${reservationData.confirmation_code}`,
           tag: `new-reservation-admin-${Date.now()}`,
         });
@@ -1796,26 +1199,12 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     .filter(s => selectedServices.includes(s.id))
     .map(s => s.short_name || s.name);
 
-  const canGoPrev = !isBefore(subDays(selectedDate, 1), startOfDay(new Date()));
-
-  const [notesOpen, setNotesOpen] = useState(false);
-
   // Get dialog title based on mode
   const getDialogTitle = () => {
     if (isYardMode) {
       return isEditMode ? t('addReservation.yardEditTitle') : t('addReservation.yardTitle');
     }
-    if (isPPFOrDetailingMode) {
-      return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
-    }
     return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
-  };
-
-  // Get station type label for service filtering
-  const getStationTypeLabel = () => {
-    if (mode === 'ppf') return 'PPF';
-    if (mode === 'detailing') return 'Detailing';
-    return '';
   };
 
   return (
@@ -1838,11 +1227,6 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           <div className="flex items-center justify-between">
             <SheetTitle>
               {getDialogTitle()}
-              {isPPFOrDetailingMode && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  ({getStationTypeLabel()})
-                </span>
-              )}
             </SheetTitle>
             <button 
               type="button"
@@ -1934,69 +1318,35 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             {/* Phone */}
             <div className="space-y-2" ref={phoneInputRef}>
               <div className="flex items-center gap-2">
-                <Label htmlFor="phone">
-                  {t('common.phone')} <span className="text-destructive">*</span>
+                <Label>
+                  {t('addReservation.customerPhone')} <span className="text-destructive">*</span>
                 </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const text = await navigator.clipboard.readText();
-                            if (text) {
-                              setPhone(text.trim());
-                              setSelectedCustomerId(null);
-                              setCustomerDiscountPercent(null);
-                              // Clear validation error when user pastes
-                              if (validationErrors.phone) {
-                                setValidationErrors(prev => ({ ...prev, phone: undefined }));
-                              }
-                            }
-                          } catch (err) {
-                            console.error('Failed to read clipboard:', err);
-                          }
-                        }}
-                        className="p-1 rounded hover:bg-muted transition-colors group"
-                      >
-                        <ClipboardPaste className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{t('common.paste')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {searchingCustomer && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
               </div>
-              <div className="relative">
-                <PhoneMaskedInput
-                  id="phone"
-                  value={phone}
-                  onChange={(value) => {
-                    setPhone(value);
-                    setSelectedCustomerId(null);
-                    setCustomerDiscountPercent(null);
-                    // Clear validation error when user types
-                    if (validationErrors.phone) {
-                      setValidationErrors(prev => ({ ...prev, phone: undefined }));
-                    }
-                  }}
-                  autoComplete="off"
-                  className={validationErrors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}
-                />
-                {searchingCustomer && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
-                )}
-              </div>
+              <PhoneMaskedInput
+                value={phone}
+                onChange={(val) => {
+                  markUserEditing();
+                  setPhone(val);
+                  setSelectedCustomerId(null);
+                  setCustomerDiscountPercent(null);
+                  // Clear validation error when user changes value
+                  if (validationErrors.phone) {
+                    setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                  }
+                }}
+                error={!!validationErrors.phone}
+                data-testid="phone-input"
+              />
               {validationErrors.phone && (
                 <p className="text-sm text-destructive">{validationErrors.phone}</p>
               )}
               
+              {/* Phone search results dropdown */}
               {showPhoneDropdown && foundVehicles.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
+                <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {foundVehicles.map((vehicle) => {
-                    // Format phone: remove +48 prefix, add spaces for 9-digit numbers
+                    // Format phone for display (remove +48 prefix, add spaces)
                     const formatDisplayPhone = (phone: string) => {
                       let display = phone.replace(/^\+48\s*/, '');
                       const digits = display.replace(/\D/g, '');
@@ -2120,161 +1470,111 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               )}
             </div>
 
-            {/* Services selection - NEW LIST VIEW for Reservation mode, chips for Yard/Detailing */}
-            {!isPPFMode && (
-              <div className="space-y-2" ref={servicesRef}>
-                <Label>{t('navigation.products')}</Label>
-                {validationErrors.services && (
-                  <p className="text-sm text-destructive">{validationErrors.services}</p>
-                )}
-                
-                {/* Popular service shortcuts - only show unselected ones (for yard/detailing modes) */}
-                {(isYardMode || isDetailingMode) && services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {services
-                      .filter(s => s.is_popular && !selectedServices.includes(s.id))
-                      .map(service => (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => {
-                            markUserEditing();
-                            setSelectedServices(prev => [...prev, service.id]);
-                          }}
-                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
-                        >
-                          {service.short_name || service.name}
-                        </button>
-                      ))}
-                  </div>
-                )}
-                
-                {/* RESERVATION MODE - New list view with inline price edit */}
-                {isReservationMode && (
-                  <SelectedServicesList
-                    services={servicesWithCategory}
-                    selectedServiceIds={selectedServices}
-                    serviceItems={serviceItems}
-                    carSize={carSize}
-                    onRemoveService={(serviceId) => {
-                      markUserEditing();
-                      setSelectedServices(prev => prev.filter(id => id !== serviceId));
-                      setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
-                      setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
-                      setSelectedTime(null);
-                      setSelectedStationId(null);
-                    }}
-                    onPriceChange={(serviceId, price) => {
-                      markUserEditing();
-                      setServiceItems(prev => {
-                        const existing = prev.find(si => si.service_id === serviceId);
-                        if (existing) {
-                          return prev.map(si => 
-                            si.service_id === serviceId 
-                              ? { ...si, custom_price: price }
-                              : si
-                          );
-                        }
-                        return [...prev, { service_id: serviceId, custom_price: price }];
-                      });
-                    }}
-                    onTotalPriceChange={(newTotal) => {
-                      // Only update finalPrice if it wasn't manually set
-                      if (!finalPrice) {
-                        setFinalPrice(newTotal.toString());
-                      }
-                    }}
-                    onAddMore={() => setServiceDrawerOpen(true)}
-                  />
-                )}
-
-                {/* YARD/DETAILING MODE - Same SelectedServicesList as reservation */}
-                {(isYardMode || isPPFOrDetailingMode) && (
-                  <SelectedServicesList
-                    services={servicesWithCategory}
-                    selectedServiceIds={selectedServices}
-                    serviceItems={serviceItems}
-                    carSize={carSize}
-                    onRemoveService={(serviceId) => {
-                      markUserEditing();
-                      setSelectedServices(prev => prev.filter(id => id !== serviceId));
-                      setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
-                      setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
-                    }}
-                    onPriceChange={(serviceId, price) => {
-                      markUserEditing();
-                      setServiceItems(prev => {
-                        const existing = prev.find(si => si.service_id === serviceId);
-                        if (existing) {
-                          return prev.map(si => 
-                            si.service_id === serviceId 
-                              ? { ...si, custom_price: price }
-                              : si
-                          );
-                        }
-                        return [...prev, { service_id: serviceId, custom_price: price }];
-                      });
-                    }}
-                    onTotalPriceChange={(newTotal) => {
-                      if (!finalPrice) {
-                        setFinalPrice(newTotal.toString());
-                      }
-                    }}
-                    onAddMore={() => setServiceDrawerOpen(true)}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Service Selection Drawer */}
-            {!isPPFMode && (
-              <ServiceSelectionDrawer
-                open={serviceDrawerOpen}
-                onClose={() => setServiceDrawerOpen(false)}
-                instanceId={instanceId}
-                carSize={carSize}
+            {/* Services selection */}
+            <div className="space-y-2" ref={servicesRef}>
+              <Label>{t('navigation.products')}</Label>
+              {validationErrors.services && (
+                <p className="text-sm text-destructive">{validationErrors.services}</p>
+              )}
+              
+              {/* Popular service shortcuts - only for yard mode */}
+              {isYardMode && services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {services
+                    .filter(s => s.is_popular && !selectedServices.includes(s.id))
+                    .map(service => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => {
+                          markUserEditing();
+                          setSelectedServices(prev => [...prev, service.id]);
+                        }}
+                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
+                      >
+                        {service.short_name || service.name}
+                      </button>
+                    ))}
+                </div>
+              )}
+              
+              {/* Services list with inline price edit */}
+              <SelectedServicesList
+                services={servicesWithCategory}
                 selectedServiceIds={selectedServices}
-                stationType={getStationType()}
-                hasUnifiedServices={!isEditMode}
-                onConfirm={(serviceIds, duration, servicesData) => {
+                serviceItems={serviceItems}
+                carSize={carSize}
+                onRemoveService={(serviceId) => {
                   markUserEditing();
-                  setSelectedServices(serviceIds);
-                  
-                  // Clear validation error when user selects services
-                  if (validationErrors.services) {
-                    setValidationErrors(prev => ({ ...prev, services: undefined }));
-                  }
-                  
-                  // Merge new services with existing ones, preserving custom prices
-                  const newServicesWithCategory = servicesData.filter(
-                    s => !servicesWithCategory.some(existing => existing.id === s.id)
-                  );
-                  setServicesWithCategory(prev => {
-                    // Keep existing services that are still selected
-                    const kept = prev.filter(s => serviceIds.includes(s.id));
-                    return [...kept, ...newServicesWithCategory];
-                  });
-                  
-                  // Initialize serviceItems for new services (with base price considering net/brutto)
-                  const existingItemIds = serviceItems.map(si => si.service_id);
-                  const newItems = serviceIds
-                    .filter(id => !existingItemIds.includes(id))
-                    .map(id => ({ service_id: id, custom_price: null }));
-                  
+                  setSelectedServices(prev => prev.filter(id => id !== serviceId));
+                  setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
+                  setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                }}
+                onPriceChange={(serviceId, price) => {
+                  markUserEditing();
                   setServiceItems(prev => {
-                    // Keep only items for selected services
-                    const kept = prev.filter(si => serviceIds.includes(si.service_id));
-                    return [...kept, ...newItems];
+                    const existing = prev.find(si => si.service_id === serviceId);
+                    if (existing) {
+                      return prev.map(si => 
+                        si.service_id === serviceId 
+                          ? { ...si, custom_price: price }
+                          : si
+                      );
+                    }
+                    return [...prev, { service_id: serviceId, custom_price: price }];
                   });
-                  
-                  // Reset time selection when services change (reservation mode only)
-                  if (isReservationMode) {
-                    setSelectedTime(null);
-                    setSelectedStationId(null);
+                }}
+                onTotalPriceChange={(newTotal) => {
+                  // Only update finalPrice if it wasn't manually set
+                  if (!finalPrice) {
+                    setFinalPrice(newTotal.toString());
                   }
                 }}
+                onAddMore={() => setServiceDrawerOpen(true)}
               />
-            )}
+            </div>
+
+            {/* Service Selection Drawer */}
+            <ServiceSelectionDrawer
+              open={serviceDrawerOpen}
+              onClose={() => setServiceDrawerOpen(false)}
+              instanceId={instanceId}
+              carSize={carSize}
+              selectedServiceIds={selectedServices}
+              stationType="universal"
+              hasUnifiedServices={!isEditMode}
+              onConfirm={(serviceIds, duration, servicesData) => {
+                markUserEditing();
+                setSelectedServices(serviceIds);
+                
+                // Clear validation error when user selects services
+                if (validationErrors.services) {
+                  setValidationErrors(prev => ({ ...prev, services: undefined }));
+                }
+                
+                // Merge new services with existing ones, preserving custom prices
+                const newServicesWithCategory = servicesData.filter(
+                  s => !servicesWithCategory.some(existing => existing.id === s.id)
+                );
+                setServicesWithCategory(prev => {
+                  // Keep existing services that are still selected
+                  const kept = prev.filter(s => serviceIds.includes(s.id));
+                  return [...kept, ...newServicesWithCategory];
+                });
+                
+                // Initialize serviceItems for new services (with base price considering net/brutto)
+                const existingItemIds = serviceItems.map(si => si.service_id);
+                const newItems = serviceIds
+                  .filter(id => !existingItemIds.includes(id))
+                  .map(id => ({ service_id: id, custom_price: null }));
+                
+                setServiceItems(prev => {
+                  // Keep only items for selected services
+                  const kept = prev.filter(si => serviceIds.includes(si.service_id));
+                  return [...kept, ...newItems];
+                });
+              }}
+            />
 
             {/* Divider between services and time/date selection */}
             <Separator className="my-2" />
@@ -2312,6 +1612,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             }
                           }}
                           locale={pl}
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -2343,6 +1644,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             setPickupDateOpen(false);
                           }}
                           locale={pl}
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -2370,9 +1672,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               </div>
             )}
 
-            {/* PPF/DETAILING MODE - Date Range, Start/End Time, Offer Number */}
-            {isPPFOrDetailingMode && (
+            {/* RESERVATION MODE - Date Range, Start/End Time, Station, Offer Number */}
+            {isReservationMode && (
               <div className="space-y-4" ref={dateRangeRef}>
+                {/* Date Range Picker */}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4" />
@@ -2390,13 +1693,13 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {dateRange?.from ? (
-                          dateRange.to ? (
+                          dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? (
                             <>
                               {format(dateRange.from, "d MMM", { locale: pl })} -{" "}
                               {format(dateRange.to, "d MMM yyyy", { locale: pl })}
                             </>
                           ) : (
-                            format(dateRange.from, "d MMM yyyy", { locale: pl })
+                            format(dateRange.from, "EEEE, d MMM yyyy", { locale: pl })
                           )
                         ) : (
                           <span>{t('addReservation.selectDateRange')}</span>
@@ -2418,7 +1721,18 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                             setDateRangeOpen(false);
                           }
                         }}
-                        numberOfMonths={2}
+                        disabled={(date) => {
+                          // Disable past dates
+                          if (isBefore(date, startOfDay(new Date()))) return true;
+                          // Disable closed days based on working hours
+                          if (workingHours) {
+                            const dayName = format(date, 'EEEE').toLowerCase();
+                            const dayHours = workingHours[dayName];
+                            if (!dayHours || !dayHours.open || !dayHours.close) return true;
+                          }
+                          return false;
+                        }}
+                        numberOfMonths={isMobile ? 1 : 2}
                         locale={pl}
                         className="pointer-events-auto"
                       />
@@ -2429,31 +1743,64 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                   )}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ppfStartTime">
-                      {t('addReservation.startTime')}
-                    </Label>
-                    <Input
-                      id="ppfStartTime"
-                      type="time"
-                      value={ppfStartTime}
-                      onChange={(e) => setPpfStartTime(e.target.value)}
-                    />
+                {/* Time selection */}
+                <div className="space-y-4" ref={timeRef}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
+                      <Select value={manualStartTime} onValueChange={(val) => { markUserEditing(); setManualStartTime(val); }}>
+                        <SelectTrigger id="manualStartTime" className="bg-white">
+                          <SelectValue placeholder="--:--" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white max-h-60">
+                          {startTimeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
+                      <Select value={manualEndTime} onValueChange={(val) => { markUserEditing(); setUserModifiedEndTime(true); setManualEndTime(val); }}>
+                        <SelectTrigger id="manualEndTime" className="bg-white">
+                          <SelectValue placeholder="--:--" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white max-h-60">
+                          {endTimeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+                  
+                  {/* Station selector */}
                   <div className="space-y-2">
-                    <Label htmlFor="ppfEndTime">
-                      {t('addReservation.endTime')}
-                    </Label>
-                    <Input
-                      id="ppfEndTime"
-                      type="time"
-                      value={ppfEndTime}
-                      onChange={(e) => setPpfEndTime(e.target.value)}
-                    />
+                    <Label htmlFor="manualStation">{t('addReservation.selectStation')} <span className="text-destructive">*</span></Label>
+                    <Select value={manualStationId || ''} onValueChange={setManualStationId}>
+                      <SelectTrigger className={cn(validationErrors.time && !manualStationId && "border-destructive")}>
+                        <SelectValue placeholder={t('addReservation.selectStation')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        {stations.map((station) => (
+                          <SelectItem key={station.id} value={station.id}>
+                            {station.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  
+                  {validationErrors.time && (
+                    <p className="text-sm text-destructive">{validationErrors.time}</p>
+                  )}
                 </div>
                 
+                {/* Offer number */}
                 <div className="space-y-2">
                   <Label>
                     {t('addReservation.offerNumber')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
@@ -2478,300 +1825,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                     placeholder={t('addReservation.offerNumberPlaceholder')}
                   />
                 </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  {t('addReservation.multiDayHint')}
-                </p>
               </div>
-            )}
-
-            {/* RESERVATION MODE - Date navigation + Time slots */}
-            {isReservationMode && (
-              <>
-                {/* Edit mode: show summary or full editor */}
-                {isEditMode && !isChangingTime ? (
-                  // Summary view with "Zmień termin" button
-                  <div className="space-y-2">
-                    <p className="text-lg font-medium">
-                      {format(selectedDate, 'EEEE, d MMMM', { locale: pl })}, {timeSelectionMode === 'manual' 
-                        ? `${manualStartTime || editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${manualEndTime || editingReservation?.end_time?.substring(0, 5) || '--:--'}`
-                        : selectedTime 
-                          ? `${selectedTime} - ${(() => {
-                              const [h, m] = selectedTime.split(':').map(Number);
-                              const endMinutes = h * 60 + m + totalDurationMinutes;
-                              return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-                            })()}`
-                          : `${editingReservation?.start_time?.substring(0, 5) || '--:--'} - ${editingReservation?.end_time?.substring(0, 5) || '--:--'}`
-                      }
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline" 
-                      onClick={() => {
-                        // Save original values before changing
-                        setOriginalDate(selectedDate);
-                        setOriginalTime(selectedTime);
-                        setOriginalStationId(selectedStationId);
-                        setOriginalManualStartTime(manualStartTime);
-                        setOriginalManualEndTime(manualEndTime);
-                        setOriginalManualStationId(manualStationId);
-                        setOriginalTimeSelectionMode(timeSelectionMode);
-                        setIsChangingTime(true);
-                      }}
-                    >
-                      {t('addReservation.changeTerm')}
-                    </Button>
-                  </div>
-                ) : (
-                  // Full date/time selection (new reservation or changing time)
-                  <>
-                    {/* Date navigation with chevron */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={handlePrevDay}
-                          disabled={!canGoPrev}
-                          className={cn(
-                            "p-2 rounded-full transition-colors",
-                            canGoPrev ? "hover:bg-muted text-foreground" : "opacity-30 cursor-not-allowed"
-                          )}
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        
-                        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className="flex items-center gap-1 text-base font-medium hover:text-primary transition-colors"
-                            >
-                              {format(selectedDate, 'EEEE, d MMM', { locale: pl })}
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="center">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(date) => {
-                                if (date) {
-                                  setSelectedDate(date);
-                                  setSelectedTime(null);
-                                  setDatePickerOpen(false);
-                                }
-                              }}
-                              disabled={(date) => {
-                                // Disable past dates
-                                if (isBefore(date, startOfDay(new Date()))) return true;
-                                // Disable closed days based on working hours
-                                if (workingHours) {
-                                  const dayName = format(date, 'EEEE').toLowerCase();
-                                  const dayHours = workingHours[dayName];
-                                  if (!dayHours || !dayHours.open || !dayHours.close) return true;
-                                }
-                                return false;
-                              }}
-                              locale={pl}
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        
-                        <button
-                          type="button"
-                          onClick={handleNextDay}
-                          className="p-2 rounded-full hover:bg-muted text-foreground transition-colors"
-                        >
-                          <ChevronRight className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Time selection with tabs */}
-                    <div className="space-y-2">
-                      <Tabs 
-                        value={timeSelectionMode} 
-                        onValueChange={(v) => {
-                          setTimeSelectionMode(v as 'slots' | 'manual');
-                          // Reset or prefill values when switching tabs
-                          if (v === 'slots') {
-                            setManualStartTime('');
-                            setManualEndTime('');
-                            setManualStationId(null);
-                          } else {
-                            // When switching to manual mode, prefill with current reservation data
-                            if (isEditMode && editingReservation) {
-                              setManualStartTime(editingReservation.start_time?.substring(0, 5) || '');
-                              setManualEndTime(editingReservation.end_time?.substring(0, 5) || '');
-                              setManualStationId(editingReservation.station_id);
-                            } else {
-                              setSelectedTime(null);
-                              setSelectedStationId(null);
-                            }
-                          }
-                        }}
-                      >
-                        {/* Tabs hidden on desktop, visible on mobile */}
-                        <TabsList variant="light" className="w-full sm:hidden">
-                          <TabsTrigger value="slots" className="flex-1">
-                            {t('addReservation.availableSlotsTab')}
-                          </TabsTrigger>
-                          <TabsTrigger value="manual" className="flex-1">
-                            {t('addReservation.manualTimeTab')}
-                          </TabsTrigger>
-                        </TabsList>
-                        
-                        {/* Available slots tab - hidden on desktop */}
-                        <TabsContent value="slots" className="mt-3 sm:hidden">
-                          {selectedServices.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-4 text-center">
-                              {t('addReservation.selectServiceFirst')}
-                            </p>
-                          ) : availableSlots.length > 0 ? (
-                            <div className="w-full overflow-hidden">
-                              <div 
-                                ref={slotsScrollRef}
-                                className="flex gap-3 overflow-x-auto pb-2 w-full touch-pan-x"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-                              >
-                                {availableSlots.map((slot) => {
-                                  const isSelected = selectedTime === slot.time;
-                                  const isOverlapSingle = slot.overlapType === 'single';
-                                  const isOverlapDouble = slot.overlapType === 'double';
-                                  
-                                  return (
-                                    <button
-                                      key={slot.time}
-                                      type="button"
-                                      onClick={() => handleSelectSlot(slot)}
-                                      className={cn(
-                                        "flex-shrink-0 py-3 px-5 rounded-2xl text-base font-medium transition-all duration-200 min-w-[80px] flex items-center justify-center gap-1.5",
-                                        isSelected 
-                                          ? "bg-primary text-primary-foreground shadow-lg" 
-                                          : isOverlapDouble
-                                            ? "bg-red-50 border-2 border-red-300 text-red-700 hover:border-red-400"
-                                            : isOverlapSingle
-                                              ? "bg-orange-50 border-2 border-orange-300 text-orange-700 hover:border-orange-400"
-                                              : "bg-card border-2 border-border hover:border-primary/50"
-                                      )}
-                                    >
-                                      {(isOverlapSingle || isOverlapDouble) && !isSelected && (
-                                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                                      )}
-                                      {slot.time}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground py-4 text-center">
-                              {t('booking.noSlotsForDay')}
-                            </p>
-                          )}
-                        </TabsContent>
-                        
-                        {/* Manual time tab - always visible content on desktop */}
-                        <TabsContent value="manual" className="mt-3 space-y-4 sm:block" forceMount>
-                          {/* Time selectors - hidden on mobile when slots tab is active */}
-                          <div className={cn(
-                            "grid grid-cols-2 gap-4",
-                            timeSelectionMode === 'slots' && "hidden sm:grid"
-                          )}>
-                            <div className="space-y-2">
-                              <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
-                              <Select value={manualStartTime} onValueChange={(val) => { markUserEditing(); setManualStartTime(val); }}>
-                                <SelectTrigger id="manualStartTime" className="bg-white">
-                                  <SelectValue placeholder="--:--" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white max-h-60">
-                                  {startTimeOptions.map((time) => (
-                                    <SelectItem key={time} value={time}>
-                                      {time}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
-                              <Select value={manualEndTime} onValueChange={(val) => { markUserEditing(); setUserModifiedEndTime(true); setManualEndTime(val); }}>
-                                <SelectTrigger id="manualEndTime" className="bg-white">
-                                  <SelectValue placeholder="--:--" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white max-h-60">
-                                  {endTimeOptions.map((time) => (
-                                    <SelectItem key={time} value={time}>
-                                      {time}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          {/* Station selector - hidden on desktop, also hidden on mobile when slots tab is active */}
-                          <div className={cn(
-                            "space-y-2",
-                            timeSelectionMode === 'slots' ? "hidden" : "sm:hidden"
-                          )}>
-                            <Label htmlFor="manualStation">{t('addReservation.selectStation')}</Label>
-                            <Select value={manualStationId || ''} onValueChange={setManualStationId}>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t('addReservation.selectStation')} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {stations.map((station) => (
-                                  <SelectItem key={station.id} value={station.id}>
-                                    {station.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-
-                    {/* Move/Cancel buttons for edit mode time change */}
-                    {isEditMode && isChangingTime && (
-                      <div className="flex gap-3 pt-2">
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            setIsChangingTime(false);
-                          }}
-                          disabled={
-                            (timeSelectionMode === 'slots' && !selectedTime) ||
-                            (timeSelectionMode === 'manual' && (!manualStartTime || !manualEndTime || !manualStationId))
-                          }
-                          className="flex-1"
-                        >
-                          {t('addReservation.moveReservation')}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => {
-                            // Restore original values
-                            if (originalDate) setSelectedDate(originalDate);
-                            setSelectedTime(originalTime);
-                            setSelectedStationId(originalStationId);
-                            setManualStartTime(originalManualStartTime);
-                            setManualEndTime(originalManualEndTime);
-                            setManualStationId(originalManualStationId);
-                            setTimeSelectionMode(originalTimeSelectionMode);
-                            setIsChangingTime(false);
-                          }}
-                          className="flex-1"
-                        >
-                          {t('common.cancel')}
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
             )}
 
             {/* Notes - always visible */}
@@ -2788,8 +1842,8 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               />
             </div>
 
-            {/* Final Price - visible in reservation, detailing, and PPF modes */}
-            {(isReservationMode || isPPFOrDetailingMode) && (
+            {/* Final Price - visible in reservation mode */}
+            {isReservationMode && (
               <div className="space-y-2">
                 <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
                   {t('addReservation.amount')}
@@ -2819,34 +1873,37 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
         <SheetFooter className="px-6 py-4 border-t shrink-0">
           <Button 
             onClick={handleSubmit} 
-            disabled={
-              loading || 
-              // Disable save button when actively changing time in edit mode
-              (isEditMode && isReservationMode && isChangingTime)
-            } 
+            disabled={loading} 
             className="w-full"
             size="lg"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isYardMode 
-              ? (isEditMode ? t('common.save') : t('addReservation.addVehicle'))
-              : (isEditMode ? t('common.save') : t('addReservation.addReservation'))
+              ? (isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle'))
+              : (isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation'))
             }
           </Button>
         </SheetFooter>
-      </SheetContent>
-    </Sheet>
-    
-    {/* Mobile FAB: Toggle drawer visibility to peek at calendar */}
-    {isMobile && open && (
-      <button
-        type="button"
-        onClick={() => setIsDrawerHidden(prev => !prev)}
-        className="fixed bottom-24 right-4 z-[60] w-11 h-11 rounded-full bg-success text-success-foreground shadow-lg flex items-center justify-center text-lg font-bold hover:bg-success/90 transition-colors"
-      >
-        {isDrawerHidden ? 'R' : 'K'}
-      </button>
-    )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile FAB to toggle drawer visibility */}
+      {isMobile && open && (
+        <button
+          type="button"
+          onClick={() => setIsDrawerHidden(!isDrawerHidden)}
+          className={cn(
+            "fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center transition-all",
+            isDrawerHidden ? "bottom-20 right-4" : "bottom-20 left-4"
+          )}
+        >
+          {isDrawerHidden ? (
+            <ClipboardPaste className="w-6 h-6" />
+          ) : (
+            <CalendarIcon className="w-6 h-6" />
+          )}
+        </button>
+      )}
     </>
   );
 };
