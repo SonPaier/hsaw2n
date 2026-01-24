@@ -611,6 +611,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         instanceId={instanceId}
         selectedProductIds={scopeProducts.map(sp => sp.product_id)}
         onConfirm={handleProductConfirm}
+        hasUnifiedServices={true}
       />
 
       {/* Product Edit Dialog */}
