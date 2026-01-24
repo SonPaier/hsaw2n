@@ -165,17 +165,18 @@ export const SummaryStepV2 = ({
           variant_name,
           is_default,
           sort_order,
-          product:products_library(id, name, short_name, default_price, category)
+          product:unified_services!product_id(id, name, short_name, default_price, category_id)
         `)
         .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
 
-      // For extras scopes - fetch ALL products from products_library
+      // For extras scopes - fetch ALL products from unified_services
       // This ensures new products are automatically available without manual sync
       const { data: allProductsData } = await supabase
-        .from('products_library')
-        .select('id, name, short_name, default_price, category')
+        .from('unified_services')
+        .select('id, name, short_name, default_price, category_id')
         .eq('instance_id', instanceId)
+        .eq('service_type', 'offer')
         .eq('active', true)
         .order('name');
 
@@ -196,7 +197,7 @@ export const SummaryStepV2 = ({
 
       // Build services state
       const newServices: ServiceState[] = scopesData.map(scope => {
-        // For extras scopes: use ALL products from products_library (dynamic, always up-to-date)
+        // For extras scopes: use ALL products from unified_services (dynamic, always up-to-date)
         // For regular scopes: use configured offer_scope_products
         let scopeProducts: ScopeProduct[];
         
@@ -212,7 +213,7 @@ export const SummaryStepV2 = ({
               name: product.name,
               short_name: product.short_name,
               default_price: product.default_price,
-              category: product.category
+              category: product.category_id
             }
           }));
         } else {
@@ -223,7 +224,7 @@ export const SummaryStepV2 = ({
               product_id: p.product_id,
               variant_name: p.variant_name,
               is_default: p.is_default,
-              product: p.product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
+              product: (p as any).product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
             }));
         }
 
@@ -498,20 +499,36 @@ export const SummaryStepV2 = ({
   // Open product edit dialog
   const openProductEdit = async (productId: string) => {
     const { data } = await supabase
-      .from('products_library')
+      .from('unified_services')
       .select('*')
       .eq('id', productId)
       .single();
     
     if (data) {
-      setEditingProduct(data as typeof editingProduct);
+      // Map unified_services fields to Product format expected by AddProductDialog
+      setEditingProduct({
+        id: data.id,
+        name: data.name,
+        short_name: data.short_name,
+        brand: null, // unified_services doesn't have brand
+        description: data.description,
+        category: data.category_id, // Map category_id to category
+        unit: data.unit || 'szt',
+        default_price: data.default_price || 0,
+        metadata: data.metadata as Record<string, unknown> | null,
+        source: 'instance', // Default for unified_services
+        instance_id: data.instance_id,
+        reminder_template_id: null, // Not supported in unified_services yet
+      });
       // Also fetch categories
-      const { data: products } = await supabase
-        .from('products_library')
-        .select('category')
-        .eq('instance_id', instanceId);
+      const { data: categories } = await supabase
+        .from('unified_categories')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .eq('category_type', 'offer')
+        .eq('active', true);
       
-      const cats = [...new Set((products || []).map(p => p.category).filter(Boolean) as string[])];
+      const cats = (categories || []).map(c => c.name).filter(Boolean);
       setProductCategories(cats);
     }
   };
@@ -528,7 +545,7 @@ export const SummaryStepV2 = ({
         variant_name,
         is_default,
         sort_order,
-        product:products_library(id, name, short_name, default_price)
+        product:unified_services!product_id(id, name, short_name, default_price)
       `)
       .in('scope_id', services.map(s => s.scopeId))
       .order('sort_order');
@@ -537,12 +554,13 @@ export const SummaryStepV2 = ({
     setServices(prev => prev.map(service => {
       const updatedProducts = service.selectedProducts.map(sp => {
         const freshData = (scopeProductsData || []).find(p => p.id === sp.scopeProductId);
-        if (freshData?.product) {
+        const product = (freshData as any)?.product;
+        if (product) {
           return {
             ...sp,
-            productName: freshData.product.name,
-            productShortName: freshData.product.short_name,
-            price: freshData.product.default_price,
+            productName: product.name,
+            productShortName: product.short_name,
+            price: product.default_price,
           };
         }
         return sp;
@@ -550,12 +568,13 @@ export const SummaryStepV2 = ({
 
       const updatedSuggested = service.suggestedProducts.map(sp => {
         const freshData = (scopeProductsData || []).find(p => p.id === sp.scopeProductId);
-        if (freshData?.product) {
+        const product = (freshData as any)?.product;
+        if (product) {
           return {
             ...sp,
-            productName: freshData.product.name,
-            productShortName: freshData.product.short_name,
-            price: freshData.product.default_price,
+            productName: product.name,
+            productShortName: product.short_name,
+            price: product.default_price,
           };
         }
         return sp;

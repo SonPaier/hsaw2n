@@ -61,7 +61,7 @@ type DialogMode = 'reservation' | 'yard' | 'ppf' | 'detailing';
 interface Service {
   id: string;
   name: string;
-  shortcut?: string | null;
+  short_name?: string | null;
   category_id?: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
@@ -344,9 +344,10 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
       // For PPF mode, filter by station_type='ppf'
       // For reservation mode, filter by station_type='washing'
       let servicesQuery = supabase
-        .from('services')
-        .select('id, name, shortcut, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
+        .from('unified_services')
+        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
+        .eq('service_type', 'reservation')
         .eq('active', true);
       
       // All services available in all modes - no station_type filtering
@@ -515,7 +516,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               loadedServicesWithCategory.push({
                 id: service.id,
                 name: service.name,
-                shortcut: service.shortcut,
+                short_name: service.short_name,
                 category_id: service.category_id,
                 duration_minutes: service.duration_minutes,
                 duration_small: service.duration_small,
@@ -623,7 +624,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
               loadedServicesWithCategory.push({
                 id: service.id,
                 name: service.name,
-                shortcut: service.shortcut,
+                short_name: service.short_name,
                 category_id: service.category_id,
                 duration_minutes: service.duration_minutes,
                 duration_small: service.duration_small,
@@ -799,7 +800,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           loadedServicesWithCategory.push({
             id: service.id,
             name: service.name,
-            shortcut: service.shortcut,
+            short_name: service.short_name,
             category_id: service.category_id,
             duration_minutes: service.duration_minutes,
             duration_small: service.duration_small,
@@ -832,7 +833,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           loadedServicesWithCategory.push({
             id: service.id,
             name: service.name,
-            shortcut: service.shortcut,
+            short_name: service.short_name,
             category_id: service.category_id,
             duration_minutes: service.duration_minutes,
             duration_small: service.duration_small,
@@ -1791,7 +1792,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   // Get selected service names for display
   const selectedServiceNames = services
     .filter(s => selectedServices.includes(s.id))
-    .map(s => s.shortcut || s.name);
+    .map(s => s.short_name || s.name);
 
   const canGoPrev = !isBefore(subDays(selectedDate, 1), startOfDay(new Date()));
 
@@ -2140,7 +2141,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                           }}
                           className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
                         >
-                          {service.shortcut || service.name}
+                          {service.short_name || service.name}
                         </button>
                       ))}
                   </div>

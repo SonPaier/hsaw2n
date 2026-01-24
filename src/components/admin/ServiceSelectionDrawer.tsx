@@ -104,7 +104,7 @@ const ServiceSelectionDrawer = ({
       
       let servicesQuery = supabase
         .from('unified_services')
-        .select('id, name, shortcut, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
+        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
         .eq('instance_id', instanceId)
         .eq('service_type', 'reservation')
         .eq('active', true);
@@ -158,17 +158,17 @@ const ServiceSelectionDrawer = ({
     const matched: { service: Service; token: string }[] = [];
 
     tokens.forEach(token => {
-      // First try exact shortcut match
+      // First try exact short_name match
       let found = services.find(s => 
-        s.shortcut?.toUpperCase() === token && 
+        s.short_name?.toUpperCase() === token && 
         !selectedIds.includes(s.id) &&
         !matched.some(m => m.service.id === s.id)
       );
       
-      // Fallback to partial shortcut match
+      // Fallback to partial short_name match
       if (!found) {
         found = services.find(s => 
-          s.shortcut?.toUpperCase().startsWith(token) && 
+          s.short_name?.toUpperCase().startsWith(token) && 
           !selectedIds.includes(s.id) &&
           !matched.some(m => m.service.id === s.id)
         );
@@ -210,7 +210,7 @@ const ServiceSelectionDrawer = ({
       if (searchQuery.trim()) {
         const query = searchQuery.toUpperCase();
         categoryServices = categoryServices.filter(s => 
-          s.shortcut?.toUpperCase().includes(query) ||
+          s.short_name?.toUpperCase().includes(query) ||
           s.name.toUpperCase().includes(query)
         );
       }
@@ -346,7 +346,7 @@ const ServiceSelectionDrawer = ({
       .map(s => ({
         id: s.id,
         name: s.name,
-        shortcut: s.shortcut,
+        short_name: s.short_name,
         category_id: s.category_id,
         duration_minutes: s.duration_minutes,
         duration_small: s.duration_small,
@@ -365,8 +365,8 @@ const ServiceSelectionDrawer = ({
 
   // Get display label for service chip
   const getChipLabel = (service: Service): string => {
-    if (service.shortcut) {
-      return service.shortcut;
+    if (service.short_name) {
+      return service.short_name;
     }
     // Truncate long names
     return service.name.length > 12 ? service.name.substring(0, 10) + '...' : service.name;
@@ -432,7 +432,7 @@ const ServiceSelectionDrawer = ({
                     onClick={() => addFromMatch(service, token)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors min-h-[36px]"
                   >
-                    <span className="font-bold">{service.shortcut || service.name}</span>
+                    <span className="font-bold">{service.short_name || service.name}</span>
                   </button>
                 ))}
               </div>
@@ -513,8 +513,8 @@ const ServiceSelectionDrawer = ({
                           {/* Service info */}
                           <div className="flex-1 text-left">
                             <p className="font-medium text-foreground">
-                              {service.shortcut && (
-                                <span className="text-primary font-bold mr-2">{service.shortcut}</span>
+                              {service.short_name && (
+                                <span className="text-primary font-bold mr-2">{service.short_name}</span>
                               )}
                               {service.name}
                             </p>
