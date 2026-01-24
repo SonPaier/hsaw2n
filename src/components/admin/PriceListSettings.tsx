@@ -318,6 +318,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         .from('unified_categories')
         .select('*')
         .eq('instance_id', instanceId)
+        .eq('category_type', 'both')
         .eq('active', true)
         .order('sort_order') as unknown as { data: ServiceCategory[] | null; error: any };
       
@@ -342,7 +343,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         .from('unified_services')
         .select('*')
         .eq('instance_id', instanceId)
-        .eq('service_type', 'reservation')
+        .eq('service_type', 'both')
         .order('sort_order') as unknown as { data: Service[] | null; error: any };
       
       if (error) throw error;
@@ -664,7 +665,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             sort_order: maxSortOrder,
             active: true,
             prices_are_net: categoryFormData.prices_are_net,
-            category_type: 'reservation',
+            category_type: 'both',
           });
         
         if (error) throw error;

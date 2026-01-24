@@ -525,7 +525,7 @@ export const SummaryStepV2 = ({
         .from('unified_categories')
         .select('id, name')
         .eq('instance_id', instanceId)
-        .eq('category_type', 'offer')
+        .eq('category_type', 'both')
         .eq('active', true);
       
       const cats = (categories || []).map(c => c.name).filter(Boolean);
