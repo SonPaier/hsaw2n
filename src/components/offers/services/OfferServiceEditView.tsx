@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { OfferProductSelectionDrawer } from './OfferProductSelectionDrawer';
+import { ScopeProductSelectionDrawer } from './ScopeProductSelectionDrawer';
 import { AddProductDialog } from '@/components/products/AddProductDialog';
 import {
   DndContext,
@@ -35,7 +35,18 @@ interface Product {
   name: string;
   short_name: string | null;
   default_price: number;
+  category_id?: string | null;
 }
+
+type DrawerProduct = {
+  id: string;
+  productId: string;
+  productName: string;
+  productShortName: string | null;
+  variantName: string | null;
+  price: number;
+  category?: string | null;
+};
 
 interface ScopeProduct {
   id?: string;
@@ -167,10 +178,58 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [defaultNotes, setDefaultNotes] = useState('');
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [scopeProducts, setScopeProducts] = useState<ScopeProduct[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
+
+  // Prefetch ALL unified services (type 'both') for drawer, same as SummaryStepV2 (extras)
+  useEffect(() => {
+    const fetchDrawerData = async () => {
+      const [productsRes, categoryOrderRes] = await Promise.all([
+        supabase
+          .from('unified_services')
+          .select('id, name, short_name, default_price, category_id')
+          .eq('instance_id', instanceId)
+          .eq('service_type', 'both')
+          .eq('active', true)
+          .order('name'),
+        supabase
+          .from('offer_product_categories')
+          .select('name, sort_order')
+          .eq('instance_id', instanceId)
+          .eq('active', true),
+      ]);
+
+      if (!productsRes.error && productsRes.data) {
+        setAvailableProducts(productsRes.data as Product[]);
+      }
+
+      const order: Record<string, number> = {};
+      if (!categoryOrderRes.error && categoryOrderRes.data) {
+        categoryOrderRes.data.forEach((cat) => {
+          order[cat.name] = cat.sort_order ?? 0;
+        });
+      }
+      setCategoryOrder(order);
+    };
+
+    if (instanceId) fetchDrawerData();
+  }, [instanceId]);
+
+  const drawerProducts = useMemo<DrawerProduct[]>(() => {
+    return availableProducts.map((p) => ({
+      id: p.id,
+      productId: p.id,
+      productName: p.name,
+      productShortName: p.short_name,
+      variantName: null,
+      price: p.default_price,
+      category: p.category_id ?? null,
+    }));
+  }, [availableProducts]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -271,42 +330,35 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
     }
   };
 
-  // Handle product selection from drawer
-  const handleProductConfirm = async (productIds: string[]) => {
-    // Start with current products that are still selected
-    const keepProducts = scopeProducts.filter(sp => productIds.includes(sp.product_id));
-    
-    // Find new product IDs that aren't in current list
-    const newProductIds = productIds.filter(
-      id => !scopeProducts.some(sp => sp.product_id === id)
-    );
+  // Handle product selection from drawer (same behavior as SummaryStepV2 drawer sync)
+  const handleProductConfirm = (products: DrawerProduct[]) => {
+    const selectedIds = new Set(products.map((p) => p.id));
 
-    if (newProductIds.length > 0) {
-      const { data } = await supabase
-        .from('unified_services')
-        .select('id, name, short_name, default_price')
-        .eq('service_type', 'both')
-        .in('id', newProductIds);
+    const kept = scopeProducts.filter((sp) => selectedIds.has(sp.product_id));
+    const keptIds = new Set(kept.map((sp) => sp.product_id));
 
-      if (data) {
-        const newScopeProducts: ScopeProduct[] = data.map((product, index) => ({
-          product_id: product.id,
-          variant_name: '',
-          is_default: keepProducts.length === 0 && index === 0, // First product is default if list was empty
-          sort_order: keepProducts.length + index,
-          product
-        }));
+    const added: ScopeProduct[] = products
+      .filter((p) => !keptIds.has(p.id))
+      .map((p, idx) => ({
+        product_id: p.productId,
+        variant_name: '',
+        is_default: kept.length === 0 && idx === 0,
+        sort_order: 0,
+        product: {
+          id: p.productId,
+          name: p.productName,
+          short_name: p.productShortName,
+          default_price: p.price,
+          category_id: p.category ?? null,
+        },
+      }));
 
-        // Combine kept products with new ones in a single setState
-        setScopeProducts([...keepProducts, ...newScopeProducts]);
-      } else {
-        // No new products fetched, just update with kept products
-        setScopeProducts(keepProducts);
-      }
-    } else {
-      // No new products, just update with kept products (handles removals)
-      setScopeProducts(keepProducts);
-    }
+    const next = [...kept, ...added].map((sp, index) => ({
+      ...sp,
+      sort_order: index,
+    }));
+
+    setScopeProducts(next);
   };
 
   const removeProduct = (productId: string) => {
@@ -605,13 +657,13 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         </div>
       </div>
 
-      <OfferProductSelectionDrawer
+      <ScopeProductSelectionDrawer
         open={isProductDrawerOpen}
         onClose={() => setIsProductDrawerOpen(false)}
-        instanceId={instanceId}
-        selectedProductIds={scopeProducts.map(sp => sp.product_id)}
+        availableProducts={drawerProducts}
+        alreadySelectedIds={scopeProducts.map((sp) => sp.product_id)}
+        categoryOrder={categoryOrder}
         onConfirm={handleProductConfirm}
-        hasUnifiedServices={true}
       />
 
       {/* Product Edit Dialog */}
@@ -625,7 +677,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           if (editingProductId) {
             const { data } = await supabase
               .from('unified_services')
-              .select('id, name, short_name, default_price')
+              .select('id, name, short_name, default_price, category_id')
               .eq('id', editingProductId)
               .single();
             
@@ -636,6 +688,11 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
                     ? { ...sp, product: data }
                     : sp
                 )
+              );
+
+              // Also refresh the drawer list so prices/names stay in sync
+              setAvailableProducts((prev) =>
+                prev.map((p) => (p.id === editingProductId ? (data as Product) : p))
               );
             }
           }
