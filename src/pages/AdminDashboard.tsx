@@ -92,6 +92,7 @@ interface Reservation {
   pickup_sms_sent_at?: string | null;
   service_items?: ServiceItem[] | null;
   service_ids?: string[];
+  has_unified_services?: boolean | null;
 }
 interface Break {
   id: string;
@@ -575,7 +576,8 @@ const AdminDashboard = () => {
           type: (r.stations as any).type
         } : undefined,
         original_reservation: originalReservation || null,
-        created_by_username: r.created_by_username || null
+        created_by_username: r.created_by_username || null,
+        has_unified_services: r.has_unified_services ?? null
       };
     });
   }, []);
@@ -646,6 +648,7 @@ const AdminDashboard = () => {
         offer_number,
         confirmation_sms_sent_at,
         pickup_sms_sent_at,
+        has_unified_services,
         services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
@@ -720,6 +723,7 @@ const AdminDashboard = () => {
           offer_number,
           confirmation_sms_sent_at,
           pickup_sms_sent_at,
+          has_unified_services,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
@@ -2547,6 +2551,7 @@ const AdminDashboard = () => {
             admin_notes: (editingReservation as any).admin_notes,
             price: editingReservation.price,
             offer_number: editingReservation.offer_number,
+            has_unified_services: editingReservation.has_unified_services,
           } : null}
           currentUsername={username}
         />

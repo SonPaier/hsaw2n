@@ -44,6 +44,7 @@ interface Reservation {
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
   price: number | null;
+  has_unified_services?: boolean | null;
 }
 
 interface Break {
@@ -268,6 +269,7 @@ const HallView = () => {
           price,
           service_ids,
           service_items,
+          has_unified_services,
           services:service_id (name, shortcut),
           stations:station_id (name, type)
         `)
@@ -280,7 +282,8 @@ const HallView = () => {
           service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
           service_items: Array.isArray(r.service_items) ? r.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
           service: r.services ? { name: (r.services as any).name, shortcut: (r.services as any).shortcut } : undefined,
-          station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
+          station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
+          has_unified_services: r.has_unified_services,
         })));
       }
 
@@ -609,6 +612,7 @@ const HallView = () => {
             station_id: editingReservation.station_id,
             price: editingReservation.price,
             service_ids: editingReservation.service_ids,
+            has_unified_services: editingReservation.has_unified_services,
           }}
         />
       )}
