@@ -19,7 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  ArrowLeft,
   Bell,
   FolderOpen,
 } from 'lucide-react';
@@ -86,10 +85,9 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 interface ProductsViewProps {
   instanceId: string | null;
-  onBackToOffers?: () => void;
 }
 
-export default function ProductsView({ instanceId, onBackToOffers }: ProductsViewProps) {
+export default function ProductsView({ instanceId }: ProductsViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -336,17 +334,6 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
 
   return (
     <div>
-      <div className="mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => onBackToOffers?.()}
-          className="gap-2 -ml-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {t('offers.backToList')}
-        </Button>
-      </div>
       <div className="flex flex-col gap-2 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t('products.title')}</h1>

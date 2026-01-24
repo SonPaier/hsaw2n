@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, Package, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,10 +125,9 @@ interface InstanceData {
 interface OffersViewProps {
   instanceId: string | null;
   instanceData?: InstanceData | null;
-  onNavigateToProducts: () => void;
 }
 
-export default function OffersView({ instanceId, instanceData, onNavigateToProducts }: OffersViewProps) {
+export default function OffersView({ instanceId, instanceData }: OffersViewProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -478,10 +477,6 @@ export default function OffersView({ instanceId, instanceData, onNavigateToProdu
             <Button variant="outline" size="icon" onClick={() => setShowReminderTemplates(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Bell className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">{t('reminderTemplates.title')}</span>
-            </Button>
-            <Button variant="outline" size="icon" onClick={onNavigateToProducts} className="sm:w-auto sm:px-4 w-10 h-10">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline ml-2">{t('offers.products')}</span>
             </Button>
             <Button variant="outline" size="icon" onClick={() => setShowScopesSettings(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Settings className="w-4 h-4" />
