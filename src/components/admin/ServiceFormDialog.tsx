@@ -131,11 +131,13 @@ const ServiceFormContent = ({
         isMobile?: boolean;
         onDelete?: () => void;
       }) => {
-        const { t } = useTranslation();
+      const { t } = useTranslation();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
+        const nameInputRef = useRef<HTMLInputElement>(null);
         const [saving, setSaving] = useState(false);
         const [generatingDescription, setGeneratingDescription] = useState(false);
         const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
+        const [nameError, setNameError] = useState(false);
         
         // Auto-expand advanced section if any advanced field has value
         const hasAdvancedValues = !!(
@@ -239,8 +241,15 @@ const ServiceFormContent = ({
   }, [service, defaultCategoryId]);
 
   const handleSave = async () => {
+    // Clear previous error
+    setNameError(false);
+    
     if (!formData.name.trim()) {
+      setNameError(true);
       toast.error(t('priceList.errors.nameRequired'));
+      // Scroll to name field and focus
+      nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => nameInputRef.current?.focus(), 300);
       return;
     }
 
@@ -353,9 +362,17 @@ const ServiceFormContent = ({
               <FieldInfo tooltip="Nazwa wyświetlana klientom w ofercie i cenniku" />
             </div>
             <Input
+              ref={nameInputRef}
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, name: e.target.value }));
+                if (nameError && e.target.value.trim()) setNameError(false);
+              }}
+              className={cn(nameError && "border-destructive focus-visible:ring-destructive")}
             />
+            {nameError && (
+              <p className="text-sm text-destructive">{t('priceList.errors.nameRequired', 'Nazwa usługi jest wymagana')}</p>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
@@ -682,7 +699,7 @@ const ServiceFormContent = ({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSave} disabled={saving || !formData.name.trim()}>
+          <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             {t('common.save')}
           </Button>
