@@ -98,7 +98,7 @@ function FieldInfo({ tooltip }: { tooltip: string }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <button type="button" className="p-0.5 text-muted-foreground hover:text-foreground">
-            <Info className="w-3.5 h-3.5" />
+            <Info className="w-5 h-5" />
           </button>
         </TooltipTrigger>
         <TooltipContent>
@@ -332,11 +332,11 @@ const ServiceFormContent = ({
         {/* Row 1: Name, Short Name, Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[40%_25%_15%]"
+          isMobile ? "grid-cols-1" : "grid-cols-[45%_35%_20%]"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label className="text-sm">{t('priceList.form.fullOfficialName', 'Pełna, oficjalna nazwa usługi')} *</Label>
+              <Label className="text-sm leading-5">{t('priceList.form.fullOfficialName', 'Pełna, oficjalna nazwa usługi')} *</Label>
               <FieldInfo tooltip="Nazwa wyświetlana klientom w ofercie i cenniku" />
             </div>
             <Input
@@ -346,7 +346,7 @@ const ServiceFormContent = ({
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label className="text-sm">{t('priceList.form.shortNameLabel', 'Twoja nazwa lub skrót')}</Label>
+              <Label className="text-sm leading-5">{t('priceList.form.shortNameLabel', 'Twoja nazwa lub skrót')}</Label>
               <FieldInfo tooltip="Wewnętrzna nazwa robocza widoczna tylko dla Ciebie" />
             </div>
             <Input
@@ -357,7 +357,7 @@ const ServiceFormContent = ({
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label className="text-sm">{t('priceList.form.category')}</Label>
+              <Label className="text-sm leading-5">{t('priceList.form.category')}</Label>
               <FieldInfo tooltip="Grupowanie usług w cenniku" />
             </div>
             <Select
@@ -381,30 +381,29 @@ const ServiceFormContent = ({
 
         {/* Row 2: Price section */}
         <div className="space-y-3">
-          {/* Radio for net/gross */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <Label className="text-sm">{t('priceList.form.priceType', 'Cena')}</Label>
-              <FieldInfo tooltip="Cena bazowa usługi" />
+          {/* Radio for net/gross above price label */}
+          <RadioGroup
+            value={formData.prices_are_net ? 'net' : 'gross'}
+            onValueChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: v === 'net' }))}
+            className="flex items-center gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="gross" id="price-gross" />
+              <Label htmlFor="price-gross" className="text-sm font-normal cursor-pointer">
+                {t('priceList.form.priceGross', 'Cena brutto')}
+              </Label>
             </div>
-            <RadioGroup
-              value={formData.prices_are_net ? 'net' : 'gross'}
-              onValueChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: v === 'net' }))}
-              className="flex items-center gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="gross" id="price-gross" />
-                <Label htmlFor="price-gross" className="text-sm font-normal cursor-pointer">
-                  {t('priceList.form.priceGross', 'Cena brutto')}
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="net" id="price-net" />
-                <Label htmlFor="price-net" className="text-sm font-normal cursor-pointer">
-                  {t('priceList.form.priceNet', 'Cena netto')}
-                </Label>
-              </div>
-            </RadioGroup>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="net" id="price-net" />
+              <Label htmlFor="price-net" className="text-sm font-normal cursor-pointer">
+                {t('priceList.form.priceNet', 'Cena netto')}
+              </Label>
+            </div>
+          </RadioGroup>
+          
+          <div className="flex items-center gap-1.5">
+            <Label className="text-sm leading-5">{t('priceList.form.priceType', 'Cena')}</Label>
+            <FieldInfo tooltip="Cena bazowa usługi" />
           </div>
 
           {!showSizePrices ? (
@@ -691,9 +690,7 @@ export const ServiceFormDialog = ({
   const isMobile = useIsMobile();
 
   const title = service?.id ? t('priceList.editService') : t('priceList.addNewService');
-  const description = service?.id 
-    ? t('priceList.form.editDescription', 'Zmień dane usługi')
-    : t('priceList.form.addDescription', 'Dodaj nową usługę do cennika');
+  const description = '';
 
   const handleClose = () => onOpenChange(false);
 
