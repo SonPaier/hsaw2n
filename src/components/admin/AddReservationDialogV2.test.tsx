@@ -453,18 +453,9 @@ describe('AddReservationDialogV2', () => {
     });
   });
 
-  describe('Tryb PPF/Detailing', () => {
-    it('RES-U-070: wyświetla pole daty w trybie PPF', async () => {
-      renderComponent({ mode: 'ppf' as const, stationId: 'sta-1' });
-
-      await waitFor(() => {
-        // PPF mode should show date range picker - look for the label
-        expect(screen.getByText(/Data/i)).toBeInTheDocument();
-      });
-    });
-
-    it('RES-U-071: wyświetla pole daty w trybie Detailing', async () => {
-      renderComponent({ mode: 'detailing' as const, stationId: 'sta-1' });
+  describe('Tryb rezerwacji', () => {
+    it('RES-U-070: wyświetla pole daty w trybie reservation', async () => {
+      renderComponent({ mode: 'reservation' as const, stationId: 'sta-1' });
 
       await waitFor(() => {
         expect(screen.getByText(/Data/i)).toBeInTheDocument();
@@ -906,31 +897,31 @@ describe('AddReservationDialogV2', () => {
     });
   });
 
-  describe('Tryb PPF/Detailing - edycja', () => {
-    const mockPPFReservation = {
-      id: 'res-ppf-1',
-      customer_name: 'PPF Klient',
+  describe('Reservation mode - edycja z numerem oferty', () => {
+    const mockReservationWithOffer = {
+      id: 'res-1',
+      customer_name: 'Klient Test',
       customer_phone: '111222333',
       vehicle_plate: 'BMW M3',
       car_size: 'medium' as const,
       reservation_date: '2024-05-01',
-      end_date: '2024-05-03',
+      end_date: '2024-05-01',
       start_time: '09:00:00',
       end_time: '17:00:00',
-      station_id: 'sta-ppf',
+      station_id: 'sta-1',
       service_ids: ['svc-1'],
       customer_notes: null,
-      admin_notes: 'PPF full front',
+      admin_notes: 'Notatka admina',
       price: 5000,
-      confirmation_code: 'PPF001',
+      confirmation_code: 'ABC001',
       offer_number: 'OF-2024-001',
     };
 
-    it('RES-U-130: PPF edycja - wyświetla tytuł "Edytuj rezerwację"', async () => {
+    it('RES-U-130: Reservation edycja - wyświetla tytuł "Edytuj rezerwację"', async () => {
       renderComponent({ 
-        mode: 'ppf',
-        stationId: 'sta-ppf',
-        editingReservation: mockPPFReservation,
+        mode: 'reservation',
+        stationId: 'sta-1',
+        editingReservation: mockReservationWithOffer,
       });
 
       await waitFor(() => {
@@ -938,11 +929,11 @@ describe('AddReservationDialogV2', () => {
       });
     });
 
-    it('RES-U-131: PPF edycja - wyświetla cenę z rezerwacji', async () => {
+    it('RES-U-131: Reservation edycja - wyświetla cenę z rezerwacji', async () => {
       renderComponent({ 
-        mode: 'ppf',
-        stationId: 'sta-ppf',
-        editingReservation: mockPPFReservation,
+        mode: 'reservation',
+        stationId: 'sta-1',
+        editingReservation: mockReservationWithOffer,
       });
 
       await waitFor(() => {
@@ -951,15 +942,14 @@ describe('AddReservationDialogV2', () => {
       });
     });
 
-    it('RES-U-132: PPF edycja - wyświetla numer oferty', async () => {
+    it('RES-U-132: Reservation edycja - wyświetla numer oferty', async () => {
       renderComponent({ 
-        mode: 'ppf',
-        stationId: 'sta-ppf',
-        editingReservation: mockPPFReservation,
+        mode: 'reservation',
+        stationId: 'sta-1',
+        editingReservation: mockReservationWithOffer,
       });
 
       await waitFor(() => {
-        // Offer number should be displayed
         expect(screen.getByDisplayValue('OF-2024-001')).toBeInTheDocument();
       });
     });

@@ -1335,7 +1335,7 @@ const AddReservationDialogV2 = ({
                     setValidationErrors(prev => ({ ...prev, phone: undefined }));
                   }
                 }}
-                error={!!validationErrors.phone}
+                className={validationErrors.phone ? 'border-destructive' : ''}
                 data-testid="phone-input"
               />
               {validationErrors.phone && (

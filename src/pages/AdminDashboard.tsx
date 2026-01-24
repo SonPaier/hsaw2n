@@ -2512,11 +2512,7 @@ const AdminDashboard = () => {
           instanceId={instanceId}
           onSuccess={handleReservationAdded}
           workingHours={workingHours}
-          mode={
-            newReservationData.stationType === 'ppf' ? 'ppf' 
-            : newReservationData.stationType === 'detailing' ? 'detailing' 
-            : 'reservation'
-          }
+          mode="reservation"
           stationId={newReservationData.stationId}
           initialDate={newReservationData.date}
           initialTime={newReservationData.time}
