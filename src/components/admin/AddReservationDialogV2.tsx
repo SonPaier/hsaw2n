@@ -1571,6 +1571,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
             confirmed_at: new Date().toISOString(),
             created_by: user?.id || null,
             created_by_username: currentUsername || null,
+            has_unified_services: true, // New reservations use unified services (service_type='both')
           };
 
           const { error: insertError } = await supabase
@@ -1750,6 +1751,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
           confirmed_at: new Date().toISOString(),
           created_by: user?.id || null,
           created_by_username: currentUsername || null,
+          has_unified_services: true, // New reservations use unified services (service_type='both')
         };
 
         const { error: reservationError } = await supabase
@@ -2233,6 +2235,7 @@ const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
                 carSize={carSize}
                 selectedServiceIds={selectedServices}
                 stationType={getStationType()}
+                hasUnifiedServices={!isEditMode}
                 onConfirm={(serviceIds, duration, servicesData) => {
                   markUserEditing();
                   setSelectedServices(serviceIds);

@@ -64,6 +64,8 @@ interface ServiceSelectionDrawerProps {
   onConfirm: (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => void;
   /** Optional station type to filter services */
   stationType?: 'washing' | 'ppf' | 'detailing' | 'universal';
+  /** When true, filter by service_type='both'. When false/undefined, filter by 'reservation' (legacy). */
+  hasUnifiedServices?: boolean;
 }
 
 const ServiceSelectionDrawer = ({
@@ -74,6 +76,7 @@ const ServiceSelectionDrawer = ({
   selectedServiceIds: initialSelectedIds,
   onConfirm,
   stationType,
+  hasUnifiedServices = false,
 }: ServiceSelectionDrawerProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -102,11 +105,16 @@ const ServiceSelectionDrawer = ({
       
       setLoading(true);
       
+      // Determine service_type filter based on hasUnifiedServices flag
+      // - hasUnifiedServices=true (new records) → filter by 'both'
+      // - hasUnifiedServices=false (legacy) → filter by 'reservation'
+      const serviceTypeFilter = hasUnifiedServices ? 'both' : 'reservation';
+      
       let servicesQuery = supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type')
         .eq('instance_id', instanceId)
-        .eq('service_type', 'reservation')
+        .eq('service_type', serviceTypeFilter)
         .eq('active', true);
       
       // All services available - no station_type filtering
@@ -146,7 +154,7 @@ const ServiceSelectionDrawer = ({
     };
     
     fetchData();
-  }, [open, instanceId, stationType]);
+  }, [open, instanceId, stationType, hasUnifiedServices]);
 
   // Parse search tokens and find matching services
   const { matchingServices, searchTokens } = useMemo(() => {
