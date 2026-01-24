@@ -473,7 +473,7 @@ const ServiceFormContent = ({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="flex gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5">
                     <Label className="text-sm leading-5">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
@@ -485,6 +485,7 @@ const ServiceFormContent = ({
                     onChange={(e) => handlePriceChange('price_small', e.target.value)}
                     step="0.01"
                     min="0"
+                    className="w-24"
                   />
                 </div>
                 <div className="space-y-1">
@@ -495,6 +496,7 @@ const ServiceFormContent = ({
                     onChange={(e) => handlePriceChange('price_medium', e.target.value)}
                     step="0.01"
                     min="0"
+                    className="w-24"
                   />
                 </div>
                 <div className="space-y-1">
@@ -505,6 +507,7 @@ const ServiceFormContent = ({
                     onChange={(e) => handlePriceChange('price_large', e.target.value)}
                     step="0.01"
                     min="0"
+                    className="w-24"
                   />
                 </div>
               </div>
@@ -594,7 +597,7 @@ const ServiceFormContent = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="flex gap-3">
                     <div className="space-y-1">
                       <Label className="text-sm leading-5">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
                       <Input
@@ -602,6 +605,7 @@ const ServiceFormContent = ({
                         value={formData.duration_small ?? ''}
                         onChange={(e) => handleDurationChange('duration_small', e.target.value)}
                         min="0"
+                        className="w-24"
                       />
                     </div>
                     <div className="space-y-1">
@@ -611,6 +615,7 @@ const ServiceFormContent = ({
                         value={formData.duration_medium ?? ''}
                         onChange={(e) => handleDurationChange('duration_medium', e.target.value)}
                         min="0"
+                        className="w-24"
                       />
                     </div>
                     <div className="space-y-1">
@@ -620,6 +625,7 @@ const ServiceFormContent = ({
                         value={formData.duration_large ?? ''}
                         onChange={(e) => handleDurationChange('duration_large', e.target.value)}
                         min="0"
+                        className="w-24"
                       />
                     </div>
                   </div>
