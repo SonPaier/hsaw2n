@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sheet';
 
 
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
 
 interface MobileBottomNavProps {
   currentView: ViewType;
@@ -64,15 +64,17 @@ const MobileBottomNav = ({
     { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
     // 3. Klienci
     { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
-    // 4. Oferty (when enabled)
+    // 4. Cennik (admin only)
+    ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Cennik' }] : []),
+    // 5. Oferty (when enabled)
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    // 5. Hale (when enabled and admin)
+    // 6. Hale (when enabled and admin)
     ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-    // 6. Protokoły (when enabled and admin)
+    // 7. Protokoły (when enabled and admin)
     ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-    // 7. Powiadomienia (second to last)
+    // 8. Powiadomienia (second to last)
     { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
-    // 8. Ustawienia (always last, admin only)
+    // 9. Ustawienia (always last, admin only)
     ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
   ];
 

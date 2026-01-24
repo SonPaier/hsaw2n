@@ -32,6 +32,7 @@ import ProductsView from '@/components/admin/ProductsView';
 import FollowUpView from '@/components/admin/FollowUpView';
 import NotificationsView from '@/components/admin/NotificationsView';
 import SettingsView from '@/components/admin/SettingsView';
+import PriceListSettings from '@/components/admin/PriceListSettings';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
@@ -107,8 +108,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -2278,6 +2279,11 @@ const AdminDashboard = () => {
                 <UserCircle className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Klienci"}
               </Button>
+              {/* Cennik - after Klienci, before Oferty */}
+              {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('pricelist'), 50); }} title="Cennik">
+                <FileText className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && "Cennik"}
+              </Button>}
               {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('offers'), 50); }} title="Oferty">
                   <FileText className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Oferty"}
@@ -2416,6 +2422,13 @@ const AdminDashboard = () => {
             )}
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
+
+            {currentView === 'pricelist' && instanceId && (
+              <div className="max-w-3xl mx-auto">
+                <h1 className="text-2xl font-bold text-foreground mb-6">Cennik usług</h1>
+                <PriceListSettings instanceId={instanceId} />
+              </div>
+            )}
 
             {currentView === 'settings' && (
               <SettingsView 
