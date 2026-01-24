@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, FolderPlus, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, Search, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { CategoryManagementDialog } from './CategoryManagementDialog';
 
 interface Service {
   id: string;
@@ -171,14 +172,8 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   
-  // Category dialog state
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: '',
-    description: '',
-  });
-  const [savingCategory, setSavingCategory] = useState(false);
+  // Category management dialog state
+  const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   
   // Form state for editing/adding service
   const [formData, setFormData] = useState({
@@ -451,99 +446,14 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
-  // Category management functions
-  const openCategoryDialog = (category?: ServiceCategory) => {
-    if (category) {
-      setEditingCategory(category);
-      setCategoryFormData({
-        name: category.name,
-        description: category.description || '',
-      });
-    } else {
-      setEditingCategory(null);
-      setCategoryFormData({
-        name: '',
-        description: '',
-      });
-    }
-    setCategoryDialogOpen(true);
-  };
-
-  const handleSaveCategory = async () => {
-    if (!instanceId) return;
-    if (!categoryFormData.name.trim()) {
-      toast.error(t('priceList.errors.categoryNameRequired'));
-      return;
-    }
-
-    setSavingCategory(true);
-    try {
-      const slug = categoryFormData.name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
-      if (editingCategory) {
-        const { error } = await supabase
-          .from('unified_categories')
-          .update({
-            name: categoryFormData.name.trim(),
-            description: categoryFormData.description.trim() || null,
-            slug,
-          })
-          .eq('id', editingCategory.id);
-        
-        if (error) throw error;
-        toast.success(t('priceList.categoryUpdated'));
-      } else {
-        const maxSortOrder = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order)) + 1 : 0;
-        const { error } = await supabase
-          .from('unified_categories')
-          .insert({
-            instance_id: instanceId,
-            name: categoryFormData.name.trim(),
-            description: categoryFormData.description.trim() || null,
-            slug,
-            sort_order: maxSortOrder,
-            active: true,
-            category_type: 'both',
-          });
-        
-        if (error) throw error;
-        toast.success(t('priceList.categoryAdded'));
-      }
-
-      setCategoryDialogOpen(false);
-      fetchCategories();
-    } catch (error) {
-      console.error('Error saving category:', error);
-      toast.error(t('priceList.errors.categorySaveError'));
-    } finally {
-      setSavingCategory(false);
-    }
-  };
-
-  const handleDeleteCategory = async (categoryId: string) => {
-    const servicesInCategory = services.filter(s => s.category_id === categoryId);
-    
-    if (servicesInCategory.length > 0) {
-      toast.error(t('priceList.categoryHasServices'));
-      return;
-    }
-    
-    if (!confirm(t('priceList.confirmDeleteCategory'))) return;
-    
-    try {
-      const { error } = await supabase
-        .from('unified_categories')
-        .delete()
-        .eq('id', categoryId);
-      
-      if (error) throw error;
-      toast.success(t('priceList.categoryDeleted'));
-      fetchCategories();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      toast.error(t('priceList.errors.categoryDeleteError'));
-    }
-  };
+  // Compute service counts per category for the management dialog
+  const serviceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    categories.forEach(cat => {
+      counts[cat.id] = services.filter(s => s.category_id === cat.id).length;
+    });
+    return counts;
+  }, [categories, services]);
 
   if (loading) {
     return (
@@ -567,9 +477,9 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             <Plus className="w-4 h-4" />
             {t('priceList.addService')}
           </Button>
-          <Button onClick={() => openCategoryDialog()} variant="secondary" className="gap-2">
-            <FolderPlus className="w-4 h-4" />
-            {t('priceList.addCategory')}
+          <Button onClick={() => setCategoryManagementOpen(true)} variant="secondary" className="gap-2">
+            <Settings2 className="w-4 h-4" />
+            {t('priceList.manageCategories')}
           </Button>
         </div>
       </div>
@@ -622,6 +532,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       {/* Categories */}
       {categories.map(category => {
         const categoryServices = getServicesByCategory(category.id);
+
+        // Hide category when searching and no matching services
+        if (searchQuery.trim() && categoryServices.length === 0) {
+          return null;
+        }
 
         return (
           <div key={category.id}>
@@ -870,46 +785,14 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Add/Edit Category Dialog */}
-      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCategory ? t('priceList.editCategory') : t('priceList.addCategory')}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('priceList.categoryName')} *</Label>
-              <Input
-                value={categoryFormData.name}
-                onChange={(e) => setCategoryFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder={t('priceList.categoryNamePlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('priceList.categoryDescription')}</Label>
-              <Textarea
-                value={categoryFormData.description}
-                onChange={(e) => setCategoryFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t('priceList.categoryDescriptionPlaceholder')}
-                rows={2}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSaveCategory} disabled={savingCategory} className="gap-2">
-              {savingCategory && <Loader2 className="w-4 h-4 animate-spin" />}
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Category Management Dialog */}
+      <CategoryManagementDialog
+        open={categoryManagementOpen}
+        onOpenChange={setCategoryManagementOpen}
+        instanceId={instanceId || ''}
+        serviceCounts={serviceCounts}
+        onCategoriesChanged={fetchCategories}
+      />
     </div>
   );
 };
