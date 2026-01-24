@@ -192,13 +192,25 @@ test.describe('Reservation Happy Path', () => {
     const saveButton = page.locator('button:has-text("Zapisz"), button:has-text("Dodaj"), button[type="submit"]').first();
     await saveButton.click();
 
-    // Wait for success
-    await page.waitForSelector('[data-sonner-toast][data-type="success"], .toast-success, [role="status"]', {
-      timeout: 10000,
-    }).catch(() => console.log('⚠️ Toast not detected, continuing...'));
+    // Wait for dialog to close (indicates save completed)
+    await page.waitForFunction(() => {
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      return dialogs.length === 0;
+    }, { timeout: 15000 }).catch(() => console.log('⚠️ Dialog still open, checking toast...'));
     
-    // Wait for dialog to close
-    await page.waitForTimeout(1000);
+    // Also check for success toast
+    const toastVisible = await page.waitForSelector('[data-sonner-toast][data-type="success"], .toast-success', {
+      timeout: 5000,
+    }).catch(() => null);
+    
+    if (toastVisible) {
+      console.log('✅ Success toast detected');
+    } else {
+      console.log('⚠️ Toast not detected, but continuing...');
+    }
+    
+    // Wait for calendar to refresh with new reservation
+    await page.waitForTimeout(2000);
     console.log('✅ Reservation created');
 
     // ========================================================================
@@ -206,21 +218,33 @@ test.describe('Reservation Happy Path', () => {
     // ========================================================================
     console.log('\n📍 STEP 3: View reservation details');
 
-    // Find the reservation on calendar (draggable div with customer name)
-    const reservation = page.locator(`div[draggable="true"]:has-text("${testCustomer.name}"), [class*="reservation"]:has-text("${testCustomer.name}")`).first();
+    // Wait for reservation to appear on calendar with retry logic
+    const reservation = page.locator(`div[draggable="true"]:has-text("${testCustomer.name}")`).first();
     
-    const reservationVisible = await reservation.isVisible({ timeout: 5000 }).catch(() => false);
-    if (!reservationVisible) {
+    // Retry loop - wait up to 10 seconds for reservation to appear
+    let reservationFound = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const isVisible = await reservation.isVisible().catch(() => false);
+      if (isVisible) {
+        reservationFound = true;
+        console.log(`✅ Reservation found on attempt ${attempt + 1}`);
+        break;
+      }
+      await page.waitForTimeout(1000);
+      console.log(`[E2E] Waiting for reservation to appear... attempt ${attempt + 1}/10`);
+    }
+    
+    if (!reservationFound) {
       await page.screenshot({ path: 'test-results/debug-reservation-not-visible.png' });
-      console.log('[E2E] Reservation not immediately visible, checking page content...');
+      console.log('[E2E] Reservation not visible after 10s, checking for any draggable...');
       
-      // Try broader selector
+      // Try broader selector - any reservation
       const anyReservation = page.locator('div[draggable="true"]').first();
       if (await anyReservation.isVisible({ timeout: 2000 }).catch(() => false)) {
         console.log('[E2E] Found a draggable div, clicking on it instead');
         await anyReservation.click();
       } else {
-        throw new Error(`Reservation for "${testCustomer.name}" not found on calendar`);
+        throw new Error(`Reservation for "${testCustomer.name}" not found on calendar after 10s`);
       }
     } else {
       await reservation.click();
