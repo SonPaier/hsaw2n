@@ -86,7 +86,7 @@ const InlineEditablePrice = ({
       const minPrice = Math.min(...prices);
       return `od ${minPrice} zł`;
     }
-    return service.price_from ? `${service.price_from} zł` : '-';
+    return service.price_from ? `od ${service.price_from} zł` : '-';
   };
 
   const handleClick = (e: React.MouseEvent) => {
