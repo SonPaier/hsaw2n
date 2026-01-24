@@ -189,24 +189,32 @@ test.describe('Reservation Happy Path', () => {
 
     // Save reservation
     console.log('💾 Saving reservation...');
-    const saveButton = page.locator('button:has-text("Zapisz"), button:has-text("Dodaj"), button[type="submit"]').first();
+    // Button text is "Dodaj rezerwację" for new reservations (from t('addReservation.addReservation'))
+    const saveButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Zapisz"), button:has-text("Dodaj")').first();
     await saveButton.click();
 
-    // Wait for dialog to close (indicates save completed)
-    await page.waitForFunction(() => {
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      return dialogs.length === 0;
-    }, { timeout: 15000 }).catch(() => console.log('⚠️ Dialog still open, checking toast...'));
+    // Wait for Sheet (dialog) to close - this is the primary success indicator
+    // Sheet uses [role="dialog"] in Radix UI
+    console.log('⏳ Waiting for dialog to close...');
+    try {
+      await page.waitForFunction(() => {
+        const dialogs = document.querySelectorAll('[role="dialog"]');
+        return dialogs.length === 0;
+      }, { timeout: 15000 });
+      console.log('✅ Dialog closed successfully');
+    } catch {
+      console.log('⚠️ Dialog still open after 15s, taking screenshot...');
+      await page.screenshot({ path: 'test-results/debug-dialog-still-open.png' });
+    }
     
-    // Also check for success toast
-    const toastVisible = await page.waitForSelector('[data-sonner-toast][data-type="success"], .toast-success', {
-      timeout: 5000,
-    }).catch(() => null);
-    
+    // Check for Sonner success toast (optional - toast may auto-dismiss quickly)
+    // Sonner uses [data-sonner-toast] with data-type attribute
+    const toastVisible = await page.locator('[data-sonner-toast]').first().isVisible({ timeout: 2000 }).catch(() => false);
     if (toastVisible) {
-      console.log('✅ Success toast detected');
+      const toastText = await page.locator('[data-sonner-toast]').first().textContent().catch(() => '');
+      console.log(`✅ Toast detected: "${toastText}"`);
     } else {
-      console.log('⚠️ Toast not detected, but continuing...');
+      console.log('ℹ️ Toast not visible (may have auto-dismissed)');
     }
     
     // Wait for calendar to refresh with new reservation
