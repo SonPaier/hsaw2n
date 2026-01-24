@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, ChevronDown, X, CalendarIcon, Clock, Plus, ClipboardPaste } from 'lucide-react';
+import { Loader2, X, CalendarIcon, ClipboardPaste, Plus } from 'lucide-react';
 import { format, addDays, isSameDay, isBefore, startOfDay } from 'date-fns';
-import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
-import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import {
@@ -16,29 +13,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PhoneMaskedInput } from '@/components/ui/phone-masked-input';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -47,7 +22,13 @@ import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
 import ServiceSelectionDrawer, { ServiceWithCategory } from './ServiceSelectionDrawer';
 import SelectedServicesList, { ServiceItem } from './SelectedServicesList';
-import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
+import {
+  CustomerSection,
+  VehicleSection,
+  YardDateTimeSection,
+  ReservationDateTimeSection,
+  NotesAndPriceSection,
+} from './reservation-form';
 
 type CarSize = 'small' | 'medium' | 'large';
 type DialogMode = 'reservation' | 'yard';
@@ -1218,672 +1199,292 @@ const AddReservationDialogV2 = ({
           )}
           hideOverlay
           hideCloseButton
-          // Keep drawer open; allow clicking calendar behind
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-        {/* Fixed Header with Close button */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <div className="flex items-center justify-between">
-            <SheetTitle>
-              {getDialogTitle()}
-            </SheetTitle>
-            <button 
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-muted transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </SheetHeader>
+          {/* Fixed Header with Close button */}
+          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <div className="flex items-center justify-between">
+              <SheetTitle>
+                {getDialogTitle()}
+              </SheetTitle>
+              <button 
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </SheetHeader>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            {/* Customer Name - using new ClientSearchAutocomplete */}
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                {t('addReservation.customerNameAlias')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
-              </Label>
-              <ClientSearchAutocomplete
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
+              {/* Customer Section */}
+              <CustomerSection
                 instanceId={instanceId}
-                value={customerName}
-                onChange={(val) => {
-                  setCustomerName(val);
+                customerName={customerName}
+                onCustomerNameChange={setCustomerName}
+                phone={phone}
+                onPhoneChange={(val) => {
+                  markUserEditing();
+                  setPhone(val);
                   setSelectedCustomerId(null);
                   setCustomerDiscountPercent(null);
+                  if (validationErrors.phone) {
+                    setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                  }
                 }}
-                onSelect={async (customer) => {
+                phoneError={validationErrors.phone}
+                searchingCustomer={searchingCustomer}
+                foundVehicles={foundVehicles}
+                showPhoneDropdown={showPhoneDropdown}
+                onSelectVehicle={selectVehicle}
+                onCustomerSelect={async (customer) => {
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
-                  
-                  // Fetch customer discount
                   const { data: customerData } = await supabase
                     .from('customers')
                     .select('discount_percent')
                     .eq('id', customer.id)
                     .maybeSingle();
-                  
                   setCustomerDiscountPercent(customerData?.discount_percent || null);
-                  
-                  // Fetch customer's most recent vehicle - try by customer_id first, then by phone
-                  let vehicleData = null;
-                  
-                  // Try by customer_id
-                  const { data: byCustomerId } = await supabase
-                    .from('customer_vehicles')
-                    .select('model, car_size')
-                    .eq('instance_id', instanceId)
-                    .eq('customer_id', customer.id)
-                    .order('last_used_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-                  
-                  if (byCustomerId) {
-                    vehicleData = byCustomerId;
-                  } else {
-                    // Fallback: try by phone number (normalized - remove spaces and country code)
-                    const normalizedPhone = normalizePhone(customer.phone);
-                    const { data: byPhone } = await supabase
-                      .from('customer_vehicles')
-                      .select('model, car_size')
-                      .eq('instance_id', instanceId)
-                      .or(`phone.ilike.%${normalizedPhone}%`)
-                      .order('last_used_at', { ascending: false })
-                      .limit(1)
-                      .maybeSingle();
-                    
-                    if (byPhone) {
-                      vehicleData = byPhone;
-                    }
-                  }
-                  
-                  if (vehicleData) {
-                    setCarModel(vehicleData.model);
-                    if (vehicleData.car_size === 'S') setCarSize('small');
-                    else if (vehicleData.car_size === 'L') setCarSize('large');
-                    else setCarSize('medium');
-                  }
                 }}
-                onClear={() => {
+                onClearCustomer={() => {
                   setSelectedCustomerId(null);
                   setCustomerDiscountPercent(null);
                 }}
                 suppressAutoSearch={isEditMode}
+                phoneInputRef={phoneInputRef}
+                setCarModel={setCarModel}
+                setCarSize={setCarSize}
               />
-            </div>
 
-            {/* Phone */}
-            <div className="space-y-2" ref={phoneInputRef}>
-              <div className="flex items-center gap-2">
-                <Label>
-                  {t('addReservation.customerPhone')} <span className="text-destructive">*</span>
-                </Label>
-                {searchingCustomer && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-              </div>
-              <PhoneMaskedInput
-                value={phone}
-                onChange={(val) => {
-                  markUserEditing();
-                  setPhone(val);
-                  setSelectedCustomerId(null);
-                  setCustomerDiscountPercent(null);
-                  // Clear validation error when user changes value
-                  if (validationErrors.phone) {
-                    setValidationErrors(prev => ({ ...prev, phone: undefined }));
+              {/* Vehicle Section */}
+              <VehicleSection
+                carModel={carModel}
+                onCarModelChange={(val) => {
+                  if (val === null) {
+                    setCarModel('');
+                    setIsCustomCarModel(false);
+                    setSelectedVehicleId(null);
+                  } else if ('type' in val && val.type === 'custom') {
+                    setCarModel(val.label);
+                    setIsCustomCarModel(true);
+                    setSelectedVehicleId(null);
+                  } else {
+                    setCarModel(val.label);
+                    setIsCustomCarModel(false);
+                    setSelectedVehicleId(null);
+                    if ('size' in val) {
+                      if (val.size === 'S') setCarSize('small');
+                      else if (val.size === 'M') setCarSize('medium');
+                      else if (val.size === 'L') setCarSize('large');
+                    }
+                  }
+                  if (validationErrors.carModel) {
+                    setValidationErrors(prev => ({ ...prev, carModel: undefined }));
                   }
                 }}
-                className={validationErrors.phone ? 'border-destructive' : ''}
-                data-testid="phone-input"
-              />
-              {validationErrors.phone && (
-                <p className="text-sm text-destructive">{validationErrors.phone}</p>
-              )}
-              
-              {/* Phone search results dropdown */}
-              {showPhoneDropdown && foundVehicles.length > 0 && (
-                <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {foundVehicles.map((vehicle) => {
-                    // Format phone for display (remove +48 prefix, add spaces)
-                    const formatDisplayPhone = (phone: string) => {
-                      let display = phone.replace(/^\+48\s*/, '');
-                      const digits = display.replace(/\D/g, '');
-                      if (digits.length === 9) {
-                        return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6)}`;
-                      }
-                      return display;
-                    };
-                    
-                    return (
-                      <button
-                        key={vehicle.id}
-                        type="button"
-                        className="w-full p-3 text-left hover:bg-muted/30 transition-colors flex flex-col border-b border-border last:border-0"
-                        onClick={() => selectVehicle(vehicle)}
-                      >
-                        <div className="font-medium text-base">
-                          {vehicle.customer_name || formatDisplayPhone(vehicle.phone)}
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-primary">{formatDisplayPhone(vehicle.phone)}</span>
-                          {vehicle.model && <span className="text-muted-foreground"> • {vehicle.model}</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Car Model + Size - REQUIRED */}
-            <div className="space-y-2" ref={carModelRef}>
-              <Label className="flex items-center gap-2">
-                {t('reservations.carModel')} <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <CarSearchAutocomplete
-                    value={carModel}
-                    onChange={(val: CarSearchValue) => {
-                      if (val === null) {
-                        setCarModel('');
-                        setIsCustomCarModel(false);
-                        setSelectedVehicleId(null);
-                      } else if ('type' in val && val.type === 'custom') {
-                        setCarModel(val.label);
-                        setIsCustomCarModel(true);
-                        setSelectedVehicleId(null);
-                      } else {
-                        setCarModel(val.label);
-                        setIsCustomCarModel(false);
-                        setSelectedVehicleId(null);
-                        if ('size' in val) {
-                          if (val.size === 'S') setCarSize('small');
-                          else if (val.size === 'M') setCarSize('medium');
-                          else if (val.size === 'L') setCarSize('large');
-                        }
-                      }
-                      // Clear validation error when user changes value
-                      if (validationErrors.carModel) {
-                        setValidationErrors(prev => ({ ...prev, carModel: undefined }));
-                      }
-                    }}
-                    suppressAutoOpen={isEditMode}
-                    error={!!validationErrors.carModel}
-                  />
-                </div>
-                
-                <TooltipProvider>
-                  <div className="flex gap-1 shrink-0">
-                    {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
-                      <Tooltip key={size}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={carSize === size ? 'default' : 'outline'}
-                            className="w-9 h-9 font-bold p-0"
-                            onClick={() => setCarSize(size)}
-                          >
-                            {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>{t(`reservations.carSizes.${size}`)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </TooltipProvider>
-              </div>
-              {validationErrors.carModel && (
-                <p className="text-sm text-destructive">{validationErrors.carModel}</p>
-              )}
-              
-              {/* Customer vehicles pills */}
-              {customerVehicles.length > 1 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {customerVehicles.map((vehicle) => (
-                    <button
-                      key={vehicle.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedVehicleId(vehicle.id);
-                        setCarModel(vehicle.model);
-                        if (vehicle.car_size === 'S') setCarSize('small');
-                        else if (vehicle.car_size === 'L') setCarSize('large');
-                        else setCarSize('medium');
-                      }}
-                      className={cn(
-                        "px-3 py-1.5 text-sm rounded-full transition-colors font-medium",
-                        selectedVehicleId === vehicle.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-white hover:bg-muted/50 text-foreground border border-border"
-                      )}
-                    >
-                      {vehicle.model}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Services selection */}
-            <div className="space-y-2" ref={servicesRef}>
-              <Label>{t('navigation.products')}</Label>
-              {validationErrors.services && (
-                <p className="text-sm text-destructive">{validationErrors.services}</p>
-              )}
-              
-              {/* Popular service shortcuts - only for yard mode */}
-              {isYardMode && services.filter(s => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {services
-                    .filter(s => s.is_popular && !selectedServices.includes(s.id))
-                    .map(service => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => {
-                          markUserEditing();
-                          setSelectedServices(prev => [...prev, service.id]);
-                        }}
-                        className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
-                      >
-                        {service.short_name || service.name}
-                      </button>
-                    ))}
-                </div>
-              )}
-              
-              {/* Services list with inline price edit */}
-              <SelectedServicesList
-                services={servicesWithCategory}
-                selectedServiceIds={selectedServices}
-                serviceItems={serviceItems}
                 carSize={carSize}
-                onRemoveService={(serviceId) => {
-                  markUserEditing();
-                  setSelectedServices(prev => prev.filter(id => id !== serviceId));
-                  setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
-                  setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                onCarSizeChange={setCarSize}
+                carModelError={validationErrors.carModel}
+                customerVehicles={customerVehicles}
+                selectedVehicleId={selectedVehicleId}
+                onVehicleSelect={(vehicle) => {
+                  setSelectedVehicleId(vehicle.id);
+                  setCarModel(vehicle.model);
+                  if (vehicle.car_size === 'S') setCarSize('small');
+                  else if (vehicle.car_size === 'L') setCarSize('large');
+                  else setCarSize('medium');
                 }}
-                onPriceChange={(serviceId, price) => {
-                  markUserEditing();
-                  setServiceItems(prev => {
-                    const existing = prev.find(si => si.service_id === serviceId);
-                    if (existing) {
-                      return prev.map(si => 
-                        si.service_id === serviceId 
-                          ? { ...si, custom_price: price }
-                          : si
-                      );
+                suppressAutoOpen={isEditMode}
+                carModelRef={carModelRef}
+              />
+
+              {/* Services Section */}
+              <div className="space-y-2" ref={servicesRef}>
+                <Label className="flex items-center gap-2">
+                  {t('addReservation.services')} <span className="text-destructive">*</span>
+                </Label>
+                
+                {/* Quick Add Services Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => setServiceDrawerOpen(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  {selectedServices.length === 0 
+                    ? t('addReservation.addServices')
+                    : t('addReservation.editServices')
+                  }
+                </Button>
+                
+                {validationErrors.services && (
+                  <p className="text-sm text-destructive">{validationErrors.services}</p>
+                )}
+                
+                {/* Services list with inline price edit */}
+                <SelectedServicesList
+                  services={servicesWithCategory}
+                  selectedServiceIds={selectedServices}
+                  serviceItems={serviceItems}
+                  carSize={carSize}
+                  onRemoveService={(serviceId) => {
+                    markUserEditing();
+                    setSelectedServices(prev => prev.filter(id => id !== serviceId));
+                    setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
+                    setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                  }}
+                  onPriceChange={(serviceId, price) => {
+                    markUserEditing();
+                    setServiceItems(prev => {
+                      const existing = prev.find(si => si.service_id === serviceId);
+                      if (existing) {
+                        return prev.map(si => 
+                          si.service_id === serviceId 
+                            ? { ...si, custom_price: price }
+                            : si
+                        );
+                      }
+                      return [...prev, { service_id: serviceId, custom_price: price }];
+                    });
+                  }}
+                  onTotalPriceChange={(newTotal) => {
+                    if (!finalPrice) {
+                      setFinalPrice(newTotal.toString());
                     }
-                    return [...prev, { service_id: serviceId, custom_price: price }];
+                  }}
+                  onAddMore={() => setServiceDrawerOpen(true)}
+                />
+              </div>
+
+              {/* Service Selection Drawer */}
+              <ServiceSelectionDrawer
+                open={serviceDrawerOpen}
+                onClose={() => setServiceDrawerOpen(false)}
+                instanceId={instanceId}
+                carSize={carSize}
+                selectedServiceIds={selectedServices}
+                stationType="universal"
+                hasUnifiedServices={!isEditMode}
+                onConfirm={(serviceIds, duration, servicesData) => {
+                  markUserEditing();
+                  setSelectedServices(serviceIds);
+                  
+                  if (validationErrors.services) {
+                    setValidationErrors(prev => ({ ...prev, services: undefined }));
+                  }
+                  
+                  const newServicesWithCategory = servicesData.filter(
+                    s => !servicesWithCategory.some(existing => existing.id === s.id)
+                  );
+                  setServicesWithCategory(prev => {
+                    const kept = prev.filter(s => serviceIds.includes(s.id));
+                    return [...kept, ...newServicesWithCategory];
+                  });
+                  
+                  const existingItemIds = serviceItems.map(si => si.service_id);
+                  const newItems = serviceIds
+                    .filter(id => !existingItemIds.includes(id))
+                    .map(id => ({ service_id: id, custom_price: null }));
+                  
+                  setServiceItems(prev => {
+                    const kept = prev.filter(si => serviceIds.includes(si.service_id));
+                    return [...kept, ...newItems];
                   });
                 }}
-                onTotalPriceChange={(newTotal) => {
-                  // Only update finalPrice if it wasn't manually set
-                  if (!finalPrice) {
-                    setFinalPrice(newTotal.toString());
-                  }
-                }}
-                onAddMore={() => setServiceDrawerOpen(true)}
+              />
+
+              <Separator className="my-2" />
+
+              {/* YARD MODE - Date/Time Section */}
+              {isYardMode && (
+                <YardDateTimeSection
+                  arrivalDate={arrivalDate}
+                  setArrivalDate={setArrivalDate}
+                  arrivalDateOpen={arrivalDateOpen}
+                  setArrivalDateOpen={setArrivalDateOpen}
+                  pickupDate={pickupDate}
+                  setPickupDate={setPickupDate}
+                  pickupDateOpen={pickupDateOpen}
+                  setPickupDateOpen={setPickupDateOpen}
+                  deadlineTime={deadlineTime}
+                  setDeadlineTime={setDeadlineTime}
+                  timeOptions={yardTimeOptions}
+                />
+              )}
+
+              {/* RESERVATION MODE - Date/Time Section */}
+              {isReservationMode && (
+              <ReservationDateTimeSection
+                instanceId={instanceId}
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                dateRangeOpen={dateRangeOpen}
+                setDateRangeOpen={setDateRangeOpen}
+                dateRangeError={validationErrors.dateRange}
+                onClearDateRangeError={() => setValidationErrors(prev => ({ ...prev, dateRange: undefined }))}
+                manualStartTime={manualStartTime}
+                setManualStartTime={setManualStartTime}
+                manualEndTime={manualEndTime}
+                setManualEndTime={setManualEndTime}
+                setUserModifiedEndTime={setUserModifiedEndTime}
+                manualStationId={manualStationId}
+                setManualStationId={setManualStationId}
+                stations={stations}
+                startTimeOptions={startTimeOptions}
+                endTimeOptions={endTimeOptions}
+                timeError={validationErrors.time}
+                offerNumber={offerNumber}
+                setOfferNumber={setOfferNumber}
+                customerName={customerName}
+                setCustomerName={setCustomerName}
+                phone={phone}
+                setPhone={setPhone}
+                carModel={carModel}
+                setCarModel={setCarModel}
+                workingHours={workingHours}
+                isMobile={isMobile}
+                markUserEditing={markUserEditing}
+                dateRangeRef={dateRangeRef}
+                timeRef={timeRef}
+              />
+              )}
+
+              {/* Notes and Price Section */}
+              <NotesAndPriceSection
+                adminNotes={adminNotes}
+                setAdminNotes={setAdminNotes}
+                showPrice={isReservationMode}
+                finalPrice={finalPrice}
+                setFinalPrice={setFinalPrice}
+                totalPrice={totalPrice}
+                discountedPrice={discountedPrice}
+                customerDiscountPercent={customerDiscountPercent}
               />
             </div>
-
-            {/* Service Selection Drawer */}
-            <ServiceSelectionDrawer
-              open={serviceDrawerOpen}
-              onClose={() => setServiceDrawerOpen(false)}
-              instanceId={instanceId}
-              carSize={carSize}
-              selectedServiceIds={selectedServices}
-              stationType="universal"
-              hasUnifiedServices={!isEditMode}
-              onConfirm={(serviceIds, duration, servicesData) => {
-                markUserEditing();
-                setSelectedServices(serviceIds);
-                
-                // Clear validation error when user selects services
-                if (validationErrors.services) {
-                  setValidationErrors(prev => ({ ...prev, services: undefined }));
-                }
-                
-                // Merge new services with existing ones, preserving custom prices
-                const newServicesWithCategory = servicesData.filter(
-                  s => !servicesWithCategory.some(existing => existing.id === s.id)
-                );
-                setServicesWithCategory(prev => {
-                  // Keep existing services that are still selected
-                  const kept = prev.filter(s => serviceIds.includes(s.id));
-                  return [...kept, ...newServicesWithCategory];
-                });
-                
-                // Initialize serviceItems for new services (with base price considering net/brutto)
-                const existingItemIds = serviceItems.map(si => si.service_id);
-                const newItems = serviceIds
-                  .filter(id => !existingItemIds.includes(id))
-                  .map(id => ({ service_id: id, custom_price: null }));
-                
-                setServiceItems(prev => {
-                  // Keep only items for selected services
-                  const kept = prev.filter(si => serviceIds.includes(si.service_id));
-                  return [...kept, ...newItems];
-                });
-              }}
-            />
-
-            {/* Divider between services and time/date selection */}
-            <Separator className="my-2" />
-
-            {/* YARD MODE - Arrival Date, Pickup Date, Deadline */}
-            {isYardMode && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      {t('addReservation.arrivalDate')}
-                    </Label>
-                    <Popover open={arrivalDateOpen} onOpenChange={setArrivalDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !arrivalDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {arrivalDate ? format(arrivalDate, 'd MMM', { locale: pl }) : t('addReservation.selectDate')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={arrivalDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              setArrivalDate(date);
-                              setArrivalDateOpen(false);
-                            }
-                          }}
-                          locale={pl}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      {t('addReservation.pickupDate')}
-                    </Label>
-                    <Popover open={pickupDateOpen} onOpenChange={setPickupDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !pickupDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {pickupDate ? format(pickupDate, 'd MMM', { locale: pl }) : t('addReservation.selectDate')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={pickupDate || undefined}
-                          onSelect={(date) => {
-                            setPickupDate(date || null);
-                            setPickupDateOpen(false);
-                          }}
-                          locale={pl}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {t('addReservation.deadline')}
-                  </Label>
-                  <Select value={deadlineTime} onValueChange={setDeadlineTime}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="--:--" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white max-h-60">
-                      <SelectItem value="none">{t('common.noResults')}</SelectItem>
-                      {yardTimeOptions.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* RESERVATION MODE - Date Range, Start/End Time, Station, Offer Number */}
-            {isReservationMode && (
-              <div className="space-y-4" ref={dateRangeRef}>
-                {/* Date Range Picker */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    {t('addReservation.dateRangePpf')} <span className="text-destructive">*</span>
-                  </Label>
-                  <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dateRange?.from && "text-muted-foreground",
-                          validationErrors.dateRange && "border-destructive"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? (
-                            <>
-                              {format(dateRange.from, "d MMM", { locale: pl })} -{" "}
-                              {format(dateRange.to, "d MMM yyyy", { locale: pl })}
-                            </>
-                          ) : (
-                            format(dateRange.from, "EEEE, d MMM yyyy", { locale: pl })
-                          )
-                        ) : (
-                          <span>{t('addReservation.selectDateRange')}</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="range"
-                        defaultMonth={dateRange?.from || new Date()}
-                        selected={dateRange}
-                        onSelect={(range) => {
-                          setDateRange(range);
-                          // Clear validation error when user selects date
-                          if (validationErrors.dateRange) {
-                            setValidationErrors(prev => ({ ...prev, dateRange: undefined }));
-                          }
-                          if (range?.from && range?.to) {
-                            setDateRangeOpen(false);
-                          }
-                        }}
-                        disabled={(date) => {
-                          // Disable past dates
-                          if (isBefore(date, startOfDay(new Date()))) return true;
-                          // Disable closed days based on working hours
-                          if (workingHours) {
-                            const dayName = format(date, 'EEEE').toLowerCase();
-                            const dayHours = workingHours[dayName];
-                            if (!dayHours || !dayHours.open || !dayHours.close) return true;
-                          }
-                          return false;
-                        }}
-                        numberOfMonths={isMobile ? 1 : 2}
-                        locale={pl}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {validationErrors.dateRange && (
-                    <p className="text-sm text-destructive">{validationErrors.dateRange}</p>
-                  )}
-                </div>
-                
-                {/* Time selection */}
-                <div className="space-y-4" ref={timeRef}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="manualStartTime">{t('addReservation.manualStartTime')}</Label>
-                      <Select value={manualStartTime} onValueChange={(val) => { markUserEditing(); setManualStartTime(val); }}>
-                        <SelectTrigger id="manualStartTime" className="bg-white">
-                          <SelectValue placeholder="--:--" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white max-h-60">
-                          {startTimeOptions.map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="manualEndTime">{t('addReservation.manualEndTime')}</Label>
-                      <Select value={manualEndTime} onValueChange={(val) => { markUserEditing(); setUserModifiedEndTime(true); setManualEndTime(val); }}>
-                        <SelectTrigger id="manualEndTime" className="bg-white">
-                          <SelectValue placeholder="--:--" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white max-h-60">
-                          {endTimeOptions.map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  {/* Station selector */}
-                  <div className="space-y-2">
-                    <Label htmlFor="manualStation">{t('addReservation.selectStation')} <span className="text-destructive">*</span></Label>
-                    <Select value={manualStationId || ''} onValueChange={setManualStationId}>
-                      <SelectTrigger className={cn(validationErrors.time && !manualStationId && "border-destructive")}>
-                        <SelectValue placeholder={t('addReservation.selectStation')} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        {stations.map((station) => (
-                          <SelectItem key={station.id} value={station.id}>
-                            {station.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {validationErrors.time && (
-                    <p className="text-sm text-destructive">{validationErrors.time}</p>
-                  )}
-                </div>
-                
-                {/* Offer number */}
-                <div className="space-y-2">
-                  <Label>
-                    {t('addReservation.offerNumber')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
-                  </Label>
-                  <OfferSearchAutocomplete
-                    instanceId={instanceId}
-                    value={offerNumber}
-                    onChange={setOfferNumber}
-                    onOfferSelect={(offer) => {
-                      setOfferNumber(offer.offer_number);
-                      // Optionally pre-fill customer data if not already filled
-                      if (!customerName && offer.customer_name) {
-                        setCustomerName(offer.customer_name);
-                      }
-                      if (!phone && offer.customer_phone) {
-                        setPhone(offer.customer_phone);
-                      }
-                      if (!carModel && offer.vehicle_model) {
-                        setCarModel(offer.vehicle_model);
-                      }
-                    }}
-                    placeholder={t('addReservation.offerNumberPlaceholder')}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Notes - always visible */}
-            <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-sm text-muted-foreground">
-                {t('addReservation.notes')}
-              </Label>
-              <Textarea
-                id="adminNotes"
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                rows={2}
-                placeholder={t('addReservation.notesPlaceholder')}
-              />
-            </div>
-
-            {/* Final Price - visible in reservation mode */}
-            {isReservationMode && (
-              <div className="space-y-2">
-                <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
-                  {t('addReservation.amount')}
-                </Label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Input
-                    id="finalPrice"
-                    type="number"
-                    value={finalPrice || discountedPrice}
-                    onChange={(e) => setFinalPrice(e.target.value)}
-                    className="w-32"
-                  />
-                  <span className="text-muted-foreground">zł</span>
-                  {customerDiscountPercent && customerDiscountPercent > 0 && totalPrice > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="line-through text-muted-foreground">{totalPrice} zł</span>
-                      <span className="text-green-600 font-medium">-{customerDiscountPercent}%</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* Fixed Footer */}
-        <SheetFooter className="px-6 py-4 border-t shrink-0">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={loading} 
-            className="w-full"
-            size="lg"
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isYardMode 
-              ? (isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle'))
-              : (isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation'))
-            }
-          </Button>
-        </SheetFooter>
+          {/* Fixed Footer */}
+          <SheetFooter className="px-6 py-4 border-t shrink-0">
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full"
+            >
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isYardMode
+                ? (isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle'))
+                : (isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation'))
+              }
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
