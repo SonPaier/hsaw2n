@@ -6,23 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, GripVertical, Tag, ChevronDown, Sparkles } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ChevronDown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-interface OfferVariant {
-  id: string;
-  name: string;
-  active: boolean;
-}
-
-interface ScopeVariantLink {
-  variant_id: string;
-  isNew?: boolean;
-  isDeleted?: boolean;
-}
 
 interface ScopeExtra {
   id: string;
@@ -43,7 +31,6 @@ interface OfferScope {
   active: boolean;
   has_coating_upsell: boolean;
   is_extras_scope: boolean;
-  variantLinks: ScopeVariantLink[];
   extras: ScopeExtra[];
   isNew?: boolean;
   isDeleted?: boolean;
@@ -63,7 +50,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
   ({ instanceId, onChange }, ref) => {
     const { t } = useTranslation();
     const [scopes, setScopes] = useState<OfferScope[]>([]);
-    const [allVariants, setAllVariants] = useState<OfferVariant[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedScopes, setExpandedScopes] = useState<Set<string>>(new Set());
 
@@ -124,32 +110,10 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
             if (error) throw error;
           }
 
-          // Handle variant links and extras for all scopes
+          // Handle extras for all scopes
           for (const scope of scopes.filter(s => !s.isDeleted)) {
             const realScopeId = scope.isNew ? scopeIdMap.get(scope.id) : scope.id;
             if (!realScopeId) continue;
-
-            // Delete removed variant links
-            const deletedLinks = scope.variantLinks.filter(l => l.isDeleted && !l.isNew);
-            for (const link of deletedLinks) {
-              await supabase
-                .from('offer_scope_variants')
-                .delete()
-                .eq('scope_id', realScopeId)
-                .eq('variant_id', link.variant_id);
-            }
-
-            // Add new variant links
-            const newLinks = scope.variantLinks.filter(l => l.isNew && !l.isDeleted);
-            for (const link of newLinks) {
-              await supabase
-                .from('offer_scope_variants')
-                .insert({
-                  scope_id: realScopeId,
-                  variant_id: link.variant_id,
-                  instance_id: instanceId,
-                });
-            }
 
             // Handle extras
             // Delete removed extras
@@ -204,17 +168,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
 
     const fetchData = async () => {
       try {
-        // Fetch variants
-        const { data: variantsData, error: variantsError } = await supabase
-          .from('offer_variants')
-          .select('id, name, active')
-          .eq('instance_id', instanceId)
-          .eq('active', true)
-          .order('sort_order');
-
-        if (variantsError) throw variantsError;
-        setAllVariants(variantsData || []);
-
         // Fetch scopes
         const { data: scopesData, error: scopesError } = await supabase
           .from('offer_scopes')
@@ -224,14 +177,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
 
         if (scopesError) throw scopesError;
 
-        // Fetch scope-variant links
-        const { data: linksData, error: linksError } = await supabase
-          .from('offer_scope_variants')
-          .select('scope_id, variant_id')
-          .eq('instance_id', instanceId);
-
-        if (linksError) throw linksError;
-
         // Fetch scope extras
         const { data: extrasData, error: extrasError } = await supabase
           .from('offer_scope_extras')
@@ -240,13 +185,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
           .order('sort_order');
 
         if (extrasError) throw extrasError;
-
-        // Map links to scopes
-        const linksByScope = (linksData || []).reduce((acc, link) => {
-          if (!acc[link.scope_id]) acc[link.scope_id] = [];
-          acc[link.scope_id].push({ variant_id: link.variant_id });
-          return acc;
-        }, {} as Record<string, ScopeVariantLink[]>);
 
         // Map extras to scopes
         const extrasByScope = (extrasData || []).reduce((acc, extra) => {
@@ -263,7 +201,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
 
         setScopes((scopesData || []).map(s => ({ 
           ...s, 
-          variantLinks: linksByScope[s.id] || [],
           extras: extrasByScope[s.id] || [],
           isNew: false, 
           isDeleted: false, 
@@ -286,7 +223,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         active: true,
         has_coating_upsell: false,
         is_extras_scope: false,
-        variantLinks: [],
         extras: [],
         isNew: true,
         isDirty: true,
@@ -311,30 +247,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
       } else {
         setScopes(scopes.map(s => s.id === id ? { ...s, isDeleted: true } : s));
       }
-      onChange?.();
-    };
-
-    const toggleVariant = (scopeId: string, variantId: string) => {
-      setScopes(scopes.map(scope => {
-        if (scope.id !== scopeId) return scope;
-        
-        const existingLink = scope.variantLinks.find(l => l.variant_id === variantId);
-        let newLinks: ScopeVariantLink[];
-        
-        if (existingLink) {
-          if (existingLink.isNew) {
-            newLinks = scope.variantLinks.filter(l => l.variant_id !== variantId);
-          } else {
-            newLinks = scope.variantLinks.map(l => 
-              l.variant_id === variantId ? { ...l, isDeleted: true } : l
-            );
-          }
-        } else {
-          newLinks = [...scope.variantLinks, { variant_id: variantId, isNew: true }];
-        }
-        
-        return { ...scope, variantLinks: newLinks, isDirty: true };
-      }));
       onChange?.();
     };
 
@@ -390,15 +302,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
         return { ...scope, extras: newExtras, isDirty: true };
       }));
       onChange?.();
-    };
-
-    const isVariantLinked = (scope: OfferScope, variantId: string): boolean => {
-      const link = scope.variantLinks.find(l => l.variant_id === variantId);
-      return link ? !link.isDeleted : false;
-    };
-
-    const getLinkedVariantsCount = (scope: OfferScope): number => {
-      return scope.variantLinks.filter(l => !l.isDeleted).length;
     };
 
     const getExtrasCount = (scope: OfferScope): number => {
@@ -492,17 +395,11 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                         </label>
                       </div>
                       
-                      {/* Variants and Extras */}
+                      {/* Extras */}
                       <Collapsible open={expandedScopes.has(scope.id)} onOpenChange={() => toggleExpanded(scope.id)}>
                         <div className="flex items-center justify-between">
                           <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm" className="gap-2 px-2">
-                              <Tag className="h-4 w-4" />
-                              <span>{t('offerSettings.scopes.variants')}</span>
-                              <Badge variant="secondary" className="ml-1">
-                                {getLinkedVariantsCount(scope)}
-                              </Badge>
-                              <span className="mx-2 text-muted-foreground">|</span>
                               <Sparkles className="h-4 w-4" />
                               <span>{t('offerSettings.scopes.options')}</span>
                               <Badge variant="secondary" className="ml-1">
@@ -521,41 +418,6 @@ export const OfferScopesSettings = forwardRef<OfferScopesSettingsRef, OfferScope
                           </Button>
                         </div>
                         <CollapsibleContent className="pt-3 space-y-4">
-                          {/* Variants section */}
-                          <div className="space-y-2">
-                            <h4 className="text-sm font-medium flex items-center gap-2">
-                              <Tag className="h-4 w-4" />
-                              {t('offerSettings.scopes.assignedVariants')}
-                            </h4>
-                            {allVariants.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">
-                                {t('offerSettings.scopes.noVariantsDefined')}
-                              </p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {allVariants.map((variant) => {
-                                  const isLinked = isVariantLinked(scope, variant.id);
-                                  return (
-                                    <label
-                                      key={variant.id}
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors ${
-                                        isLinked 
-                                          ? 'bg-primary/10 border-primary' 
-                                          : 'bg-muted/50 border-border hover:bg-muted'
-                                      }`}
-                                    >
-                                      <Checkbox
-                                        checked={isLinked}
-                                        onCheckedChange={() => toggleVariant(scope.id, variant.id)}
-                                      />
-                                      <span className="text-sm">{variant.name}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-
                           {/* Extras section */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
