@@ -332,7 +332,7 @@ const ServiceFormContent = ({
         {/* Row 1: Name, Short Name, Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[45%_35%_20%]"
+          isMobile ? "grid-cols-1" : "grid-cols-[3fr_2fr_1fr]"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
@@ -401,10 +401,12 @@ const ServiceFormContent = ({
             </div>
           </RadioGroup>
           
-          <div className="flex items-center gap-1.5">
-            <Label className="text-sm leading-5">{t('priceList.form.priceType', 'Cena')}</Label>
-            <FieldInfo tooltip="Cena bazowa usługi" />
-          </div>
+          {!showSizePrices && (
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm leading-5">{t('priceList.form.priceType', 'Cena')}</Label>
+              <FieldInfo tooltip="Cena bazowa usługi" />
+            </div>
+          )}
 
           {!showSizePrices ? (
             <div className="space-y-1">
@@ -429,7 +431,10 @@ const ServiceFormContent = ({
             <div className="space-y-2">
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label className="text-sm leading-5">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
+                    <FieldInfo tooltip="Cena bazowa usługi" />
+                  </div>
                   <Input
                     type="number"
                     value={formData.price_small ?? ''}
@@ -439,7 +444,7 @@ const ServiceFormContent = ({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
+                  <Label className="text-sm leading-5">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
                   <Input
                     type="number"
                     value={formData.price_medium ?? ''}
@@ -449,7 +454,7 @@ const ServiceFormContent = ({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
+                  <Label className="text-sm leading-5">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
                   <Input
                     type="number"
                     value={formData.price_large ?? ''}
@@ -555,7 +560,7 @@ const ServiceFormContent = ({
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
+                      <Label className="text-sm leading-5">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_small ?? ''}
@@ -564,7 +569,7 @@ const ServiceFormContent = ({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
+                      <Label className="text-sm leading-5">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_medium ?? ''}
@@ -573,7 +578,7 @@ const ServiceFormContent = ({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
+                      <Label className="text-sm leading-5">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_large ?? ''}
@@ -645,13 +650,10 @@ const ServiceFormContent = ({
                 </Select>
                 {/* Show reminder items list when template is selected */}
                 {templateItems.length > 0 && (
-                  <div className="mt-2 pl-2 border-l-2 border-muted space-y-1">
+                  <div className="mt-4 pl-3 border-l-2 border-muted space-y-1.5">
                     {templateItems.map((item, idx) => (
-                      <div key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span className="font-medium">{item.months} mies.</span>
-                        <span>–</span>
-                        <span>{item.service_type === 'inspection' ? 'Przegląd' : item.service_type === 'maintenance' ? 'Konserwacja' : item.service_type}</span>
-                        {item.is_paid && <span className="text-xs bg-muted px-1.5 py-0.5 rounded">płatne</span>}
+                      <div key={idx} className="text-sm text-foreground/50">
+                        {item.months} mies. – {item.service_type === 'inspection' ? 'Przegląd' : item.service_type === 'maintenance' ? 'Konserwacja' : 'Serwis'}{item.is_paid ? ', płatne' : ''}
                       </div>
                     ))}
                   </div>
