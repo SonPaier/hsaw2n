@@ -149,6 +149,7 @@ export function OfferServicesListView({ instanceId, onBack, onEdit, onCreate }: 
         .select('id, name, description, has_coating_upsell, is_extras_scope, sort_order')
         .eq('instance_id', instanceId)
         .eq('active', true)
+        .eq('has_unified_services', true) // Only show new unified templates
         .eq('is_extras_scope', false) // Hide extras scope - it auto-loads all products
         .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
