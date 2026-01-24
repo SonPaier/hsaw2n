@@ -158,19 +158,20 @@ Deno.serve(async (req) => {
 
     // Check/create services
     const { data: existingServices } = await supabase
-      .from("services")
+      .from("unified_services")
       .select("id")
-      .eq("instance_id", E2E_INSTANCE_ID);
+      .eq("instance_id", E2E_INSTANCE_ID)
+      .eq("service_type", "reservation");
 
     if ((!existingServices || existingServices.length === 0) && categoryId) {
       const { data: services, error: servicesError } = await supabase
-        .from("services")
+        .from("unified_services")
         .insert([
           {
             instance_id: E2E_INSTANCE_ID,
             category_id: categoryId,
             name: "Mycie podstawowe",
-            shortcut: "MP",
+            short_name: "MP",
             duration_small: 30,
             duration_medium: 40,
             duration_large: 50,
@@ -179,13 +180,14 @@ Deno.serve(async (req) => {
             price_large: 90,
             requires_size: true,
             sort_order: 1,
-            active: true
+            active: true,
+            service_type: "reservation"
           },
           {
             instance_id: E2E_INSTANCE_ID,
             category_id: categoryId,
             name: "Mycie premium",
-            shortcut: "MX",
+            short_name: "MX",
             duration_small: 60,
             duration_medium: 80,
             duration_large: 100,
@@ -194,18 +196,20 @@ Deno.serve(async (req) => {
             price_large: 160,
             requires_size: true,
             sort_order: 2,
-            active: true
+            active: true,
+            service_type: "reservation"
           },
           {
             instance_id: E2E_INSTANCE_ID,
             category_id: categoryId,
             name: "Odkurzanie",
-            shortcut: "ODK",
+            short_name: "ODK",
             duration_minutes: 20,
             price_from: 30,
             requires_size: false,
             sort_order: 3,
-            active: true
+            active: true,
+            service_type: "reservation"
           },
         ])
         .select();
@@ -219,9 +223,10 @@ Deno.serve(async (req) => {
 
     // Get services for later use
     const { data: allServices } = await supabase
-      .from("services")
+      .from("unified_services")
       .select("id, name")
       .eq("instance_id", E2E_INSTANCE_ID)
+      .eq("service_type", "reservation")
       .eq("active", true);
 
     const firstService = allServices?.[0];

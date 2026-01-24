@@ -426,7 +426,7 @@ serve(async (req: Request): Promise<Response> => {
 
       // Get service name
       const { data: service } = await supabase
-        .from("services")
+        .from("unified_services")
         .select("name")
         .eq("id", reservation.service_id)
         .single() as { data: Service | null };

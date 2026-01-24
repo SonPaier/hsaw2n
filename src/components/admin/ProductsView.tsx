@@ -133,11 +133,12 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     if (!instanceId) return;
     
     const { data: productsData } = await supabase
-      .from('products_library')
+      .from('unified_services')
       .select('*')
-      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`);
+      .eq('service_type', 'offer')
+      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`) as unknown as { data: Product[] | null };
 
-    setProducts((productsData as Product[]) || []);
+    setProducts(productsData || []);
   };
 
   const fetchCategoryOrder = async () => {
@@ -301,7 +302,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
       }
 
       const { error } = await supabase
-        .from('products_library')
+        .from('unified_services')
         .delete()
         .eq('id', product.id);
 

@@ -339,10 +339,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('services')
+        .from('unified_services')
         .select('*')
         .eq('instance_id', instanceId)
-        .order('sort_order');
+        .eq('service_type', 'reservation')
+        .order('sort_order') as unknown as { data: Service[] | null; error: any };
       
       if (error) throw error;
       setServices(data || []);
@@ -456,16 +457,16 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
 
       if (editingService) {
         const { error } = await supabase
-          .from('services')
-          .update(serviceData)
+          .from('unified_services')
+          .update({ ...serviceData, service_type: 'reservation' })
           .eq('id', editingService.id);
         
         if (error) throw error;
         toast.success(t('priceList.serviceUpdated'));
       } else {
         const { error } = await supabase
-          .from('services')
-          .insert(serviceData);
+          .from('unified_services')
+          .insert({ ...serviceData, service_type: 'reservation' });
         
         if (error) throw error;
         toast.success(t('priceList.serviceAdded'));
@@ -496,7 +497,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         if (!confirm(t('priceList.confirmDeactivate'))) return;
         
         const { error } = await supabase
-          .from('services')
+          .from('unified_services')
           .update({ active: false })
           .eq('id', serviceId);
         
@@ -507,7 +508,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         if (!confirm(t('priceList.confirmDelete'))) return;
         
         const { error } = await supabase
-          .from('services')
+          .from('unified_services')
           .delete()
           .eq('id', serviceId);
         
@@ -532,7 +533,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     
     try {
       const { error } = await supabase
-        .from('services')
+        .from('unified_services')
         .update({ active: newValue })
         .eq('id', service.id);
       
@@ -557,7 +558,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     
     try {
       const { error } = await supabase
-        .from('services')
+        .from('unified_services')
         .update({ is_popular: newValue })
         .eq('id', service.id);
       
@@ -595,7 +596,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     try {
       for (let i = 0; i < reorderedServices.length; i++) {
         await supabase
-          .from('services')
+          .from('unified_services')
           .update({ sort_order: i })
           .eq('id', reorderedServices[i].id);
       }

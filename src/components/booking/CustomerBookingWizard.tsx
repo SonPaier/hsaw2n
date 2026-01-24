@@ -543,8 +543,8 @@ export default function CustomerBookingWizard({
         setInstance(parsedInstance);
         const {
           data: servicesData
-        } = await supabase.from('services').select('*').eq('instance_id', instanceData.id).eq('active', true).order('sort_order');
-        setServices(servicesData as Service[] || []);
+        } = await supabase.from('unified_services').select('*').eq('instance_id', instanceData.id).eq('active', true).eq('service_type', 'reservation').order('sort_order') as unknown as { data: Service[] | null };
+        setServices(servicesData || []);
         const {
           data: stationsData
         } = await supabase.from('stations').select('*').eq('instance_id', instanceData.id).eq('active', true).order('sort_order');
