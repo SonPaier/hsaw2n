@@ -105,9 +105,9 @@ const ServiceSelectionDrawer = ({
       
       setLoading(true);
       
-      // Determine service_type filter based on hasUnifiedServices flag
-      // - hasUnifiedServices=true (new records) → filter by 'both'
-      // - hasUnifiedServices=false (legacy) → filter by 'reservation'
+      // Filter by service_type based on hasUnifiedServices flag:
+      // - hasUnifiedServices=true (new records) → show only 'both'
+      // - hasUnifiedServices=false (legacy) → show 'reservation' for backward compatibility
       const serviceTypeFilter = hasUnifiedServices ? 'both' : 'reservation';
       
       let servicesQuery = supabase
@@ -116,8 +116,6 @@ const ServiceSelectionDrawer = ({
         .eq('instance_id', instanceId)
         .eq('service_type', serviceTypeFilter)
         .eq('active', true);
-      
-      // All services available - no station_type filtering
       
       const [servicesRes, categoriesRes] = await Promise.all([
         servicesQuery.order('sort_order'),

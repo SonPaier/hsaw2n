@@ -135,7 +135,8 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
     const { data: productsData } = await supabase
       .from('unified_services')
       .select('*')
-      .eq('service_type', 'offer')
+      .eq('service_type', 'both')
+      .eq('active', true)
       .eq('instance_id', instanceId) as unknown as { data: Product[] | null };
 
     setProducts(productsData || []);

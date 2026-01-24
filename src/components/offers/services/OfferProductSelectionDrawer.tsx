@@ -66,7 +66,7 @@ export function OfferProductSelectionDrawer({
       const { data, error } = await supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, default_price, unit')
-        .eq('service_type', 'offer')
+        .eq('service_type', 'both')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('category_id')
