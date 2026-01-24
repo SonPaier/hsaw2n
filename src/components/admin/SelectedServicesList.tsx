@@ -133,6 +133,7 @@ const SelectedServicesList = ({
         type="button"
         onClick={onAddMore}
         className="w-full"
+        data-testid="add-services-button"
       >
         <Plus className="w-4 h-4 mr-2" />
         {t('addReservation.addServices')}
