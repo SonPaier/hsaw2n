@@ -1310,20 +1310,6 @@ const AddReservationDialogV2 = ({
                   {t('addReservation.services')} <span className="text-destructive">*</span>
                 </Label>
                 
-                {/* Quick Add Services Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  onClick={() => setServiceDrawerOpen(true)}
-                >
-                  <Plus className="w-4 h-4" />
-                  {selectedServices.length === 0 
-                    ? t('addReservation.addServices')
-                    : t('addReservation.editServices')
-                  }
-                </Button>
-                
                 {validationErrors.services && (
                   <p className="text-sm text-destructive">{validationErrors.services}</p>
                 )}
