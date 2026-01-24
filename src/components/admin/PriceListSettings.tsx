@@ -60,14 +60,11 @@ const ServiceRow = ({
 }) => {
   const formatPrice = () => {
     if (service.requires_size) {
-      // On mobile show the lowest price
-      if (isMobile) {
-        const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
-        if (prices.length === 0) return '-';
-        const minPrice = Math.min(...prices);
-        return `od ${minPrice} zł`;
-      }
-      return `S: ${service.price_small || 0} zł | M: ${service.price_medium || 0} zł | L: ${service.price_large || 0} zł`;
+      // Show "od X zł" with smallest price (S size)
+      const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
+      if (prices.length === 0) return '-';
+      const minPrice = Math.min(...prices);
+      return `od ${minPrice} zł`;
     }
     return service.price_from ? `od ${service.price_from} zł` : '-';
   };
