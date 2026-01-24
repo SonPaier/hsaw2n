@@ -93,9 +93,10 @@ export function YardVehiclesList({ instanceId, onVehicleDragStart, hallMode = fa
 
   const fetchServices = async () => {
     const { data } = await supabase
-      .from('services')
+      .from('unified_services')
       .select('id, name, shortcut')
       .eq('instance_id', instanceId)
+      .eq('service_type', 'reservation')
       .eq('active', true);
 
     if (data) {

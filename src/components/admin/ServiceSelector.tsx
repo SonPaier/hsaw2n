@@ -32,9 +32,10 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
     const fetchServices = async () => {
       setLoading(true);
       const { data } = await supabase
-        .from('services')
+        .from('unified_services')
         .select('id, name, shortcut, duration_minutes, is_popular')
         .eq('instance_id', instanceId)
+        .eq('service_type', 'reservation')
         .eq('active', true)
         .order('sort_order');
       
