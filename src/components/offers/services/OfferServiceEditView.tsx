@@ -203,7 +203,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
 
-  // Prefetch services visible in offer context (service_type IN ('offer', 'both'))
+  // Prefetch services with service_type='both' (unified model)
   useEffect(() => {
     const fetchDrawerData = async () => {
       const [productsRes, categoriesRes] = await Promise.all([
@@ -211,14 +211,14 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           .from('unified_services')
           .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type')
           .eq('instance_id', instanceId)
-          .in('service_type', ['offer', 'both'])
+          .eq('service_type', 'both')
           .eq('active', true)
           .order('name'),
         supabase
           .from('unified_categories')
           .select('id, name, sort_order')
           .eq('instance_id', instanceId)
-          .in('category_type', ['offer', 'both'])
+          .eq('category_type', 'both')
           .eq('active', true),
       ]);
 

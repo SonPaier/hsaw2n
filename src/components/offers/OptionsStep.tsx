@@ -85,14 +85,14 @@ export const OptionsStep = ({
   }>({});
   const [optionToDelete, setOptionToDelete] = useState<OfferOption | null>(null);
 
-  // Fetch products - for offers, show services with service_type IN ('offer', 'both')
+  // Fetch products - for unified offers (hasUnifiedServices=true), fetch only 'both'
   useEffect(() => {
     const fetchProducts = async () => {
       const { data, error } = await supabase
         .from('unified_services')
         .select('*')
         .eq('active', true)
-        .in('service_type', ['offer', 'both'])
+        .eq('service_type', 'both')
         .eq('instance_id', instanceId)
         .order('sort_order');
       if (!error && data) {

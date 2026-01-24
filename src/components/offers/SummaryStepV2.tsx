@@ -191,22 +191,22 @@ export const SummaryStepV2 = ({
         .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
 
-      // For extras scopes - fetch products visible in offer context (service_type IN ('offer', 'both'))
+      // For extras scopes - fetch products with service_type='both' (unified model)
       // This ensures new products are automatically available without manual sync
       const { data: allProductsData } = await supabase
         .from('unified_services')
         .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type')
         .eq('instance_id', instanceId)
-        .in('service_type', ['offer', 'both'])
+        .eq('service_type', 'both')
         .eq('active', true)
         .order('name');
 
-      // Fetch categories visible in offer context (category_type IN ('offer', 'both'))
+      // Fetch categories with category_type='both' (unified model)
       const { data: categoryData } = await supabase
         .from('unified_categories')
         .select('id, name, sort_order')
         .eq('instance_id', instanceId)
-        .in('category_type', ['offer', 'both'])
+        .eq('category_type', 'both')
         .eq('active', true);
 
       // Build category ID -> name map for resolving UUIDs
