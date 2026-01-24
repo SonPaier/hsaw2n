@@ -149,7 +149,7 @@ export const useOffer = (instanceId: string) => {
           variant_name,
           is_default,
           sort_order,
-          product:unified_services!product_id(id, name, default_price, unit, description)
+          product:unified_services!product_id(id, name, default_price, price_from, price_small, price_medium, price_large, unit, description)
         `)
         .in('scope_id', scopeIds)
         .order('sort_order');
@@ -175,6 +175,16 @@ export const useOffer = (instanceId: string) => {
 
         const items: OfferItem[] = products.map(p => {
           const product = (p as any).product;
+          // Helper: get lowest available price (price_from -> min(S/M/L) -> default_price)
+          const getLowestPrice = (): number => {
+            if (!product) return 0;
+            if (product.price_from != null) return product.price_from;
+            const sizes = [product.price_small, product.price_medium, product.price_large].filter(
+              (v: number | null): v is number => v != null
+            );
+            if (sizes.length > 0) return Math.min(...sizes);
+            return product.default_price ?? 0;
+          };
           return {
             id: crypto.randomUUID(),
             productId: p.product_id || undefined,
@@ -183,7 +193,7 @@ export const useOffer = (instanceId: string) => {
               : (product?.name || ''),
             customDescription: '', // Description comes from unified_services via FK
             quantity: 1,
-            unitPrice: product?.default_price || 0,
+            unitPrice: getLowestPrice(),
             unit: product?.unit || 'szt',
             discountPercent: 0,
             isOptional: !p.is_default, // Non-default items are optional

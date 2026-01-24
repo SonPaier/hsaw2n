@@ -201,17 +201,21 @@ export const SummaryStepV2 = ({
         .eq('active', true)
         .order('name');
 
-      // Fetch category order for sorting products
-      const { data: categoryOrderData } = await supabase
-        .from('offer_product_categories')
-        .select('name, sort_order')
+      // Fetch categories for ordering AND name mapping
+      const { data: categoryData } = await supabase
+        .from('unified_categories')
+        .select('id, name, sort_order')
         .eq('instance_id', instanceId)
+        .eq('category_type', 'both')
         .eq('active', true);
 
+      // Build category ID -> name map for resolving UUIDs
+      const categoryIdToNameMap: Record<string, string> = {};
       const categoryOrderMap: Record<string, number> = {};
-      if (categoryOrderData) {
-        categoryOrderData.forEach(cat => {
-          categoryOrderMap[cat.name] = cat.sort_order;
+      if (categoryData) {
+        categoryData.forEach(cat => {
+          categoryIdToNameMap[cat.id] = cat.name;
+          categoryOrderMap[cat.name] = cat.sort_order ?? 999;
         });
       }
       setCategoryOrder(categoryOrderMap);
@@ -238,7 +242,7 @@ export const SummaryStepV2 = ({
               price_small: product.price_small,
               price_medium: product.price_medium,
               price_large: product.price_large,
-              category: product.category_id
+              category: product.category_id ? categoryIdToNameMap[product.category_id] || null : null
             }
           }));
         } else {
@@ -260,7 +264,7 @@ export const SummaryStepV2 = ({
                   price_small: prod.price_small,
                   price_medium: prod.price_medium,
                   price_large: prod.price_large,
-                  category: prod.category_id
+                  category: prod.category_id ? categoryIdToNameMap[prod.category_id] || null : null
                 } : null
               };
             });
