@@ -80,6 +80,12 @@ interface ServiceData {
   reminder_template_id?: string | null;
 }
 
+interface ExistingService {
+  id?: string;
+  name: string;
+  short_name: string | null;
+}
+
 interface ServiceFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,6 +96,7 @@ interface ServiceFormDialogProps {
   defaultCategoryId?: string;
   totalServicesCount?: number;
   onDelete?: () => void;
+  existingServices?: ExistingService[];
 }
 
 // Info icon with tooltip component - only shows on click, not on focus
@@ -131,6 +138,7 @@ const ServiceFormContent = ({
         totalServicesCount = 0,
         isMobile = false,
         onDelete,
+        existingServices = [],
       }: {
         service?: ServiceData | null;
         categories: ServiceCategory[];
@@ -141,6 +149,7 @@ const ServiceFormContent = ({
         totalServicesCount?: number;
         isMobile?: boolean;
         onDelete?: () => void;
+        existingServices?: ExistingService[];
       }) => {
       const { t } = useTranslation();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -149,6 +158,7 @@ const ServiceFormContent = ({
         const [generatingDescription, setGeneratingDescription] = useState(false);
         const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
         const [nameError, setNameError] = useState(false);
+        const [shortNameError, setShortNameError] = useState(false);
         
         // Auto-expand advanced section if any advanced field has value
         const hasAdvancedValues = !!(
@@ -252,16 +262,43 @@ const ServiceFormContent = ({
   }, [service, defaultCategoryId]);
 
   const handleSave = async () => {
-    // Clear previous error
+    // Clear previous errors
     setNameError(false);
+    setShortNameError(false);
     
+    // Validate required name
     if (!formData.name.trim()) {
       setNameError(true);
       toast.error(t('priceList.errors.nameRequired'));
-      // Scroll to name field and focus
       nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(() => nameInputRef.current?.focus(), 300);
       return;
+    }
+
+    // Validate unique name (case-insensitive, trimmed)
+    const nameExists = existingServices.some(
+      s => s.id !== service?.id && 
+           s.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    );
+    if (nameExists) {
+      setNameError(true);
+      toast.error(t('priceList.errors.nameExists', 'Usługa o takiej nazwie już istnieje'));
+      nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => nameInputRef.current?.focus(), 300);
+      return;
+    }
+
+    // Validate unique short_name if provided (case-insensitive, trimmed)
+    if (formData.short_name?.trim()) {
+      const shortNameExists = existingServices.some(
+        s => s.id !== service?.id && 
+             s.short_name?.toLowerCase().trim() === formData.short_name.toLowerCase().trim()
+      );
+      if (shortNameExists) {
+        setShortNameError(true);
+        toast.error(t('priceList.errors.shortNameExists', 'Usługa o takim skrócie już istnieje'));
+        return;
+      }
     }
 
     setSaving(true);
@@ -392,9 +429,16 @@ const ServiceFormContent = ({
             </div>
             <Input
               value={formData.short_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, short_name: e.target.value.toUpperCase() }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, short_name: e.target.value.toUpperCase() }));
+                if (shortNameError) setShortNameError(false);
+              }}
               maxLength={10}
+              className={cn(shortNameError && "border-destructive focus-visible:ring-destructive")}
             />
+            {shortNameError && (
+              <p className="text-sm text-destructive">{t('priceList.errors.shortNameExists', 'Usługa o takim skrócie już istnieje')}</p>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
@@ -736,6 +780,7 @@ export const ServiceFormDialog = ({
   defaultCategoryId,
   totalServicesCount = 0,
   onDelete,
+  existingServices = [],
 }: ServiceFormDialogProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -764,6 +809,7 @@ export const ServiceFormDialog = ({
               totalServicesCount={totalServicesCount}
               isMobile={true}
               onDelete={onDelete}
+              existingServices={existingServices}
             />
           </div>
         </DrawerContent>
@@ -793,6 +839,7 @@ export const ServiceFormDialog = ({
             totalServicesCount={totalServicesCount}
             isMobile={false}
             onDelete={onDelete}
+            existingServices={existingServices}
           />
         </div>
       </DialogContent>
