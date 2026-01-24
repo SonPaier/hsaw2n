@@ -470,17 +470,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
-          {/* Szablon typu dodatki */}
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="isExtrasScope" 
-              checked={isExtrasScope}
-              onCheckedChange={(checked) => setIsExtrasScope(checked === true)}
-            />
-            <Label htmlFor="isExtrasScope" className="cursor-pointer">
-              Szablon typu dodatki
-            </Label>
-          </div>
+          {/* Hidden: Szablon typu dodatki - internal field, not exposed in UI */}
 
           {/* Opis */}
           <div className="space-y-2">
