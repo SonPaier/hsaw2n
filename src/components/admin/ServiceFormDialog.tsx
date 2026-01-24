@@ -282,7 +282,6 @@ const ServiceFormContent = ({
     );
     if (nameExists) {
       setNameError(true);
-      toast.error(t('priceList.errors.nameExists', 'Usługa o takiej nazwie już istnieje'));
       nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setTimeout(() => nameInputRef.current?.focus(), 300);
       return;
@@ -296,7 +295,6 @@ const ServiceFormContent = ({
       );
       if (shortNameExists) {
         setShortNameError(true);
-        toast.error(t('priceList.errors.shortNameExists', 'Usługa o takim skrócie już istnieje'));
         return;
       }
     }
