@@ -1597,6 +1597,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_data: Json
+          has_unified_services: boolean | null
           hide_unit_prices: boolean
           id: string
           instance_id: string
@@ -1627,6 +1628,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
           instance_id: string
@@ -1657,6 +1659,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
           instance_id?: string
@@ -2125,6 +2128,7 @@ export type Database = {
           edited_by_customer_at: string | null
           end_date: string | null
           end_time: string
+          has_unified_services: boolean | null
           id: string
           instance_id: string
           no_show_at: string | null
@@ -2172,6 +2176,7 @@ export type Database = {
           edited_by_customer_at?: string | null
           end_date?: string | null
           end_time: string
+          has_unified_services?: boolean | null
           id?: string
           instance_id: string
           no_show_at?: string | null
@@ -2219,6 +2224,7 @@ export type Database = {
           edited_by_customer_at?: string | null
           end_date?: string | null
           end_time?: string
+          has_unified_services?: boolean | null
           id?: string
           instance_id?: string
           no_show_at?: string | null
