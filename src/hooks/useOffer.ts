@@ -471,6 +471,7 @@ export const useOffer = (instanceId: string) => {
         hide_unit_prices: boolean;
         offer_number?: string;
         selected_state?: Json;
+        has_unified_services?: boolean;
       } = {
         instance_id: instanceId,
         customer_data: offer.customerData as unknown as Json,
@@ -487,6 +488,8 @@ export const useOffer = (instanceId: string) => {
         hide_unit_prices: offer.hideUnitPrices,
         ...(offerNumber && { offer_number: offerNumber }),
         ...(selectedStateToSave && { selected_state: selectedStateToSave as unknown as Json }),
+        // New offers use unified services (service_type='both')
+        ...(!offer.id && { has_unified_services: true }),
       };
 
       let offerId = offer.id;
