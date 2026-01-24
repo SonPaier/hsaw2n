@@ -34,7 +34,8 @@ interface Product {
   id: string;
   name: string;
   short_name: string | null;
-  default_price: number;
+  default_price: number | null;
+  price_from: number | null;
   category_id?: string | null;
 }
 
@@ -129,7 +130,7 @@ function SortableProductItem({
         </div>
         <div className="flex items-center gap-3">
           <span className="font-semibold text-foreground">
-            {formatPrice(scopeProduct.product?.default_price || 0)}
+            {formatPrice(scopeProduct.product?.price_from ?? scopeProduct.product?.default_price ?? 0)}
           </span>
           <button
             type="button"
@@ -192,7 +193,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       const [productsRes, categoriesRes] = await Promise.all([
         supabase
           .from('unified_services')
-          .select('id, name, short_name, default_price, category_id')
+          .select('id, name, short_name, default_price, price_from, category_id')
           .eq('instance_id', instanceId)
           .eq('service_type', 'both')
           .eq('active', true)
@@ -232,7 +233,8 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       productName: p.name,
       productShortName: p.short_name,
       variantName: null,
-      price: p.default_price,
+      // Use price_from as primary (like ServiceSelectionDrawer), fallback to default_price
+      price: p.price_from ?? p.default_price ?? 0,
       // Map category_id to category NAME (drawer groups by name)
       category: p.category_id ? (categoryMap[p.category_id] ?? null) : null,
     }));
@@ -356,6 +358,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           name: p.productName,
           short_name: p.productShortName,
           default_price: p.price,
+          price_from: p.price,
           category_id: p.category ?? null,
         },
       }));
@@ -684,7 +687,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           if (editingProductId) {
             const { data } = await supabase
               .from('unified_services')
-              .select('id, name, short_name, default_price, category_id')
+              .select('id, name, short_name, default_price, price_from, category_id')
               .eq('id', editingProductId)
               .single();
             
@@ -692,7 +695,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
               setScopeProducts(prev => 
                 prev.map(sp => 
                   sp.product_id === editingProductId 
-                    ? { ...sp, product: data }
+                    ? { ...sp, product: data as Product }
                     : sp
                 )
               );
