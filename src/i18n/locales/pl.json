@@ -1883,6 +1883,8 @@
     "errors": {
       "fetchError": "Błąd podczas pobierania usług",
       "nameRequired": "Nazwa usługi jest wymagana",
+      "nameExists": "Nazwa jest już używana",
+      "shortNameExists": "Skrót jest już używany",
       "categoryRequired": "Wybierz kategorię",
       "categoryNameRequired": "Nazwa kategorii jest wymagana",
       "saveError": "Błąd podczas zapisywania usługi",
