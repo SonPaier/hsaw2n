@@ -179,6 +179,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [scopeProducts, setScopeProducts] = useState<ScopeProduct[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // id -> name
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
   const [isProductDrawerOpen, setIsProductDrawerOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -188,7 +189,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   // Prefetch ALL unified services (type 'both') for drawer, same as SummaryStepV2 (extras)
   useEffect(() => {
     const fetchDrawerData = async () => {
-      const [productsRes, categoryOrderRes] = await Promise.all([
+      const [productsRes, categoriesRes] = await Promise.all([
         supabase
           .from('unified_services')
           .select('id, name, short_name, default_price, category_id')
@@ -197,9 +198,10 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           .eq('active', true)
           .order('name'),
         supabase
-          .from('offer_product_categories')
-          .select('name, sort_order')
+          .from('unified_categories')
+          .select('id, name, sort_order')
           .eq('instance_id', instanceId)
+          .eq('category_type', 'both')
           .eq('active', true),
       ]);
 
@@ -207,12 +209,16 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         setAvailableProducts(productsRes.data as Product[]);
       }
 
+      // Build category id->name map and name->sort_order map
+      const catMap: Record<string, string> = {};
       const order: Record<string, number> = {};
-      if (!categoryOrderRes.error && categoryOrderRes.data) {
-        categoryOrderRes.data.forEach((cat) => {
+      if (!categoriesRes.error && categoriesRes.data) {
+        categoriesRes.data.forEach((cat) => {
+          catMap[cat.id] = cat.name;
           order[cat.name] = cat.sort_order ?? 0;
         });
       }
+      setCategoryMap(catMap);
       setCategoryOrder(order);
     };
 
@@ -227,9 +233,10 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       productShortName: p.short_name,
       variantName: null,
       price: p.default_price,
-      category: p.category_id ?? null,
+      // Map category_id to category NAME (drawer groups by name)
+      category: p.category_id ? (categoryMap[p.category_id] ?? null) : null,
     }));
-  }, [availableProducts]);
+  }, [availableProducts, categoryMap]);
 
   // DnD sensors
   const sensors = useSensors(
