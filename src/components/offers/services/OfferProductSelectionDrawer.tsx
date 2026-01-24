@@ -67,7 +67,7 @@ export function OfferProductSelectionDrawer({
         .from('unified_services')
         .select('id, name, short_name, category_id, default_price, unit')
         .eq('service_type', 'offer')
-        .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
+        .eq('instance_id', instanceId)
         .eq('active', true)
         .order('category_id')
         .order('name');

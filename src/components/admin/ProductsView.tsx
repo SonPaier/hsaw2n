@@ -136,7 +136,7 @@ export default function ProductsView({ instanceId, onBackToOffers }: ProductsVie
       .from('unified_services')
       .select('*')
       .eq('service_type', 'offer')
-      .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`) as unknown as { data: Product[] | null };
+      .eq('instance_id', instanceId) as unknown as { data: Product[] | null };
 
     setProducts(productsData || []);
   };
