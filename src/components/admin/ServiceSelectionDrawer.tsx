@@ -117,13 +117,16 @@ const ServiceSelectionDrawer = ({
         .eq('service_type', serviceTypeFilter)
         .eq('active', true);
       
+      // Fetch categories - for hasUnifiedServices=true use 'both', otherwise 'reservation' for legacy
+      const categoryTypeFilter = hasUnifiedServices ? 'both' : 'reservation';
+      
       const [servicesRes, categoriesRes] = await Promise.all([
         servicesQuery.order('sort_order'),
         supabase
           .from('unified_categories')
           .select('id, name, sort_order, prices_are_net')
           .eq('instance_id', instanceId)
-          .eq('category_type', 'reservation')
+          .eq('category_type', categoryTypeFilter)
           .eq('active', true)
           .order('sort_order'),
       ]);
