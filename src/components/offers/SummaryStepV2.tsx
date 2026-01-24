@@ -42,19 +42,38 @@ interface ScopeData {
   is_extras_scope: boolean;
 }
 
+interface ProductPricing {
+  id: string;
+  name: string;
+  short_name: string | null;
+  default_price: number | null;
+  price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
+  category: string | null;
+}
+
 interface ScopeProduct {
   id: string;
   product_id: string;
   variant_name: string | null;
   is_default: boolean;
-  product: {
-    id: string;
-    name: string;
-    short_name: string | null;
-    default_price: number;
-    category: string | null;
-  } | null;
+  product: ProductPricing | null;
 }
+
+// Get the lowest available price for display (price_from -> min(S/M/L) -> default_price)
+const getLowestPrice = (p: ProductPricing | null): number => {
+  if (!p) return 0;
+  if (p.price_from != null) return p.price_from;
+  
+  const sizes = [p.price_small, p.price_medium, p.price_large].filter(
+    (v): v is number => v != null
+  );
+  if (sizes.length > 0) return Math.min(...sizes);
+  
+  return p.default_price ?? 0;
+};
 
 interface ServiceState {
   scopeId: string;
@@ -167,7 +186,7 @@ export const SummaryStepV2 = ({
           variant_name,
           is_default,
           sort_order,
-          product:unified_services!product_id(id, name, short_name, default_price, category_id)
+          product:unified_services!product_id(id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id)
         `)
         .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
@@ -176,7 +195,7 @@ export const SummaryStepV2 = ({
       // This ensures new products are automatically available without manual sync
       const { data: allProductsData } = await supabase
         .from('unified_services')
-        .select('id, name, short_name, default_price, category_id')
+        .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id')
         .eq('instance_id', instanceId)
         .eq('service_type', 'both')
         .eq('active', true)
@@ -215,19 +234,36 @@ export const SummaryStepV2 = ({
               name: product.name,
               short_name: product.short_name,
               default_price: product.default_price,
+              price_from: product.price_from,
+              price_small: product.price_small,
+              price_medium: product.price_medium,
+              price_large: product.price_large,
               category: product.category_id
             }
           }));
         } else {
           scopeProducts = (scopeProductsData || [])
             .filter(p => p.scope_id === scope.id)
-            .map(p => ({
-              id: p.id,
-              product_id: p.product_id,
-              variant_name: p.variant_name,
-              is_default: p.is_default,
-              product: (p as any).product as { id: string; name: string; short_name: string | null; default_price: number; category: string | null } | null
-            }));
+            .map(p => {
+              const prod = (p as any).product;
+              return {
+                id: p.id,
+                product_id: p.product_id,
+                variant_name: p.variant_name,
+                is_default: p.is_default,
+                product: prod ? {
+                  id: prod.id,
+                  name: prod.name,
+                  short_name: prod.short_name,
+                  default_price: prod.default_price,
+                  price_from: prod.price_from,
+                  price_small: prod.price_small,
+                  price_medium: prod.price_medium,
+                  price_large: prod.price_large,
+                  category: prod.category_id
+                } : null
+              };
+            });
         }
 
         // Check if we have saved options for this scope - restore them
@@ -242,7 +278,7 @@ export const SummaryStepV2 = ({
           variantName: p.variant_name,
           productName: p.product!.name,
           productShortName: p.product!.short_name,
-          price: p.product!.default_price,
+          price: getLowestPrice(p.product),
           isDefault: p.is_default,
           isPreselected,
         });
@@ -404,7 +440,7 @@ export const SummaryStepV2 = ({
         variantName: scopeProduct.variant_name,
         productName: scopeProduct.product!.name,
         productShortName: scopeProduct.product!.short_name,
-        price: scopeProduct.product!.default_price,
+        price: getLowestPrice(scopeProduct.product),
         isDefault: scopeProduct.is_default,
         isPreselected: false, // New products added manually are not preselected by default
       };
@@ -547,7 +583,7 @@ export const SummaryStepV2 = ({
         variant_name,
         is_default,
         sort_order,
-        product:unified_services!product_id(id, name, short_name, default_price)
+        product:unified_services!product_id(id, name, short_name, default_price, price_from, price_small, price_medium, price_large)
       `)
       .in('scope_id', services.map(s => s.scopeId))
       .order('sort_order');
@@ -562,7 +598,7 @@ export const SummaryStepV2 = ({
             ...sp,
             productName: product.name,
             productShortName: product.short_name,
-            price: product.default_price,
+            price: getLowestPrice(product),
           };
         }
         return sp;
@@ -576,7 +612,7 @@ export const SummaryStepV2 = ({
             ...sp,
             productName: product.name,
             productShortName: product.short_name,
-            price: product.default_price,
+            price: getLowestPrice(product),
           };
         }
         return sp;
@@ -870,7 +906,7 @@ export const SummaryStepV2 = ({
                 productName: p.product?.name || '',
                 productShortName: p.product?.short_name || null,
                 variantName: p.variant_name,
-                price: p.product?.default_price || 0,
+                price: getLowestPrice(p.product),
                 category: p.product?.category || null
               }))}
             alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
@@ -1026,7 +1062,7 @@ export const SummaryStepV2 = ({
                   productName: p.product?.name || '',
                   productShortName: p.product?.short_name || null,
                   variantName: p.variant_name,
-                  price: p.product?.default_price || 0,
+                  price: getLowestPrice(p.product),
                   category: p.product?.category || null
                 }))}
               alreadySelectedIds={service.selectedProducts.map(p => p.scopeProductId)}
@@ -1172,7 +1208,7 @@ export const SummaryStepV2 = ({
                   productName: p.product?.name || '',
                   productShortName: p.product?.short_name || null,
                   variantName: p.variant_name,
-                  price: p.product?.default_price || 0,
+                  price: getLowestPrice(p.product),
                   category: p.product?.category || null
                 }))}
               alreadySelectedIds={service.suggestedProducts.map(p => p.scopeProductId)}
