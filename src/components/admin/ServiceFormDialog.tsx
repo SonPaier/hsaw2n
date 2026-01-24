@@ -132,8 +132,18 @@ const ServiceFormContent = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [saving, setSaving] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplateOption[]>([]);
+  
+  // Auto-expand advanced section if any advanced field has value
+  const hasAdvancedValues = !!(
+    service?.duration_minutes || 
+    service?.duration_small || 
+    service?.duration_medium || 
+    service?.duration_large ||
+    (service?.service_type && service.service_type !== 'both') ||
+    service?.reminder_template_id
+  );
+  const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
   
   // Auto-expand size prices/durations if any exist
   const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
@@ -380,26 +390,29 @@ const ServiceFormContent = ({
         </div>
 
         {/* Row 2: Price section */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* Radio for net/gross above price label */}
-          <RadioGroup
-            value={formData.prices_are_net ? 'net' : 'gross'}
-            onValueChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: v === 'net' }))}
-            className="flex items-center gap-4"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="gross" id="price-gross" />
-              <Label htmlFor="price-gross" className="text-sm font-normal cursor-pointer">
-                {t('priceList.form.priceGross', 'Cena brutto')}
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="net" id="price-net" />
-              <Label htmlFor="price-net" className="text-sm font-normal cursor-pointer">
-                {t('priceList.form.priceNet', 'Cena netto')}
-              </Label>
-            </div>
-          </RadioGroup>
+          <div className="space-y-2">
+            <Label className="text-sm leading-5">{t('priceList.form.priceTypeQuestion', 'Ustal, czy cena jest netto czy brutto')}</Label>
+            <RadioGroup
+              value={formData.prices_are_net ? 'net' : 'gross'}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: v === 'net' }))}
+              className="flex items-center gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="gross" id="price-gross" />
+                <Label htmlFor="price-gross" className="text-sm font-normal cursor-pointer">
+                  {t('priceList.form.priceGross', 'Cena brutto')}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="net" id="price-net" />
+                <Label htmlFor="price-net" className="text-sm font-normal cursor-pointer">
+                  {t('priceList.form.priceNet', 'Cena netto')}
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
           
           {!showSizePrices && (
             <div className="flex items-center gap-1.5">
@@ -723,7 +736,7 @@ export const ServiceFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:hover:bg-muted">
+      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-muted [&>button]:absolute [&>button]:right-4 [&>button]:top-4">
         <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

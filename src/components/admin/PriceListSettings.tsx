@@ -26,6 +26,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { CategoryManagementDialog } from './CategoryManagementDialog';
 import { ServiceFormDialog } from './ServiceFormDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Service {
   id: string;
@@ -149,6 +150,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>('');
   
+  // Confirm dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState<{ id: string; isDeactivate: boolean } | null>(null);
+  
   // Category management dialog state
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
 
@@ -236,7 +241,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     setEditDialogOpen(true);
   };
 
-  const handleDelete = async (serviceId: string) => {
+  const handleDeleteClick = async (serviceId: string) => {
     try {
       const { count } = await supabase
         .from('reservations')
@@ -244,24 +249,31 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         .or(`service_id.eq.${serviceId},service_ids.cs.["${serviceId}"]`);
       
       const hasReservations = (count || 0) > 0;
-      
-      if (hasReservations) {
-        if (!confirm(t('priceList.confirmDeactivate'))) return;
-        
+      setConfirmData({ id: serviceId, isDeactivate: hasReservations });
+      setConfirmOpen(true);
+    } catch (error) {
+      console.error('Error checking reservations:', error);
+      toast.error(t('priceList.errors.deleteError'));
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmData) return;
+    
+    try {
+      if (confirmData.isDeactivate) {
         const { error } = await supabase
           .from('unified_services')
           .update({ active: false })
-          .eq('id', serviceId);
+          .eq('id', confirmData.id);
         
         if (error) throw error;
         toast.success(t('priceList.serviceDeactivated'));
       } else {
-        if (!confirm(t('priceList.confirmDelete'))) return;
-        
         const { error } = await supabase
           .from('unified_services')
           .delete()
-          .eq('id', serviceId);
+          .eq('id', confirmData.id);
         
         if (error) throw error;
         toast.success(t('priceList.serviceDeleted'));
@@ -384,7 +396,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     key={service.id}
                     service={service}
                     onEdit={() => openEditDialog(service)}
-                    onDelete={() => handleDelete(service.id)}
+                    onDelete={() => handleDeleteClick(service.id)}
                     isMobile={isMobile}
                   />
                 ))}
@@ -431,7 +443,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                         key={service.id}
                         service={service}
                         onEdit={() => openEditDialog(service)}
-                        onDelete={() => handleDelete(service.id)}
+                        onDelete={() => handleDeleteClick(service.id)}
                         isMobile={isMobile}
                       />
                     ))}
@@ -482,6 +494,23 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         instanceId={instanceId || ''}
         serviceCounts={serviceCounts}
         onCategoriesChanged={fetchCategories}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={confirmData?.isDeactivate 
+          ? t('priceList.confirmDeactivateTitle', 'Dezaktywować usługę?')
+          : t('priceList.confirmDeleteTitle', 'Usunąć usługę?')
+        }
+        description={confirmData?.isDeactivate 
+          ? t('priceList.confirmDeactivate')
+          : t('priceList.confirmDelete')
+        }
+        confirmLabel={confirmData?.isDeactivate ? t('common.deactivate', 'Dezaktywuj') : t('common.delete', 'Usuń')}
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
       />
     </div>
   );
