@@ -75,9 +75,9 @@ export const OptionsStep = ({
       const {
         data,
         error
-      } = await supabase.from('products_library').select('*').eq('active', true).or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`).order('sort_order');
+      } = await supabase.from('unified_services').select('*').eq('active', true).eq('service_type', 'offer').or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`).order('sort_order');
       if (!error && data) {
-        setProducts(data);
+        setProducts(data as any);
       } else {
         console.error('Error fetching products:', error);
       }

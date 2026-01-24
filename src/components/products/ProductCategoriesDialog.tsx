@@ -246,10 +246,10 @@ export function ProductCategoriesDialog({
 
       // Update all products with old category name to new name
       const { error: prodError } = await supabase
-        .from('products_library')
-        .update({ category: editName.trim() })
+        .from('unified_services')
+        .update({ category_id: editName.trim() })
         .eq('instance_id', instanceId)
-        .eq('category', oldCategory.name);
+        .eq('category_id', oldCategory.name);
 
       if (prodError) throw prodError;
 

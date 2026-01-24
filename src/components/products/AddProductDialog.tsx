@@ -249,17 +249,15 @@ export function AddProductDialog({
       if (isEditMode && product) {
         // Update existing product
         const { error } = await supabase
-          .from('products_library')
+          .from('unified_services')
           .update({
             name: name.trim(),
             short_name: shortName.trim() || null,
-            brand: brand.trim() || null,
             description: description.trim() || null,
-            category: finalCategory || null,
+            category_id: finalCategory || null,
             unit: 'szt',
             default_price: priceValue,
             metadata: Object.keys(metadata).length > 0 ? metadata : null,
-            reminder_template_id: finalTemplateId,
           })
           .eq('id', product.id);
 
@@ -268,20 +266,19 @@ export function AddProductDialog({
       } else {
         // Create new product
         const { error } = await supabase
-          .from('products_library')
+          .from('unified_services')
           .insert({
             instance_id: instanceId,
             name: name.trim(),
             short_name: shortName.trim() || null,
-            brand: brand.trim() || null,
             description: description.trim() || null,
-            category: finalCategory || null,
+            category_id: finalCategory || null,
             unit: 'szt',
             default_price: priceValue,
             metadata: metadata,
             source: 'instance',
             active: true,
-            reminder_template_id: finalTemplateId,
+            service_type: 'offer',
           });
 
         if (error) throw error;

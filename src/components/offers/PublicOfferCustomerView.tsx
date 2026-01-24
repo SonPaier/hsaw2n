@@ -63,7 +63,7 @@ interface OfferOptionItem {
   unit: string;
   discount_percent: number;
   is_optional: boolean;
-  products_library?: {
+  unified_services?: {
     description?: string;
   } | null;
 }
@@ -958,9 +958,9 @@ export const PublicOfferCustomerView = ({
                                 </Button>
                               </div>
                             </div>
-                            {(item.custom_description || item.products_library?.description) && (
+                            {(item.custom_description || item.unified_services?.description) && (
                               <div className="mt-1">
-                                {renderDescription(item.custom_description || item.products_library?.description || '')}
+                                {renderDescription(item.custom_description || item.unified_services?.description || '')}
                               </div>
                             )}
                           </div>
@@ -973,8 +973,8 @@ export const PublicOfferCustomerView = ({
                             >
                               {item.custom_name}
                             </p>
-                            {(item.custom_description || item.products_library?.description) && 
-                              renderDescription(item.custom_description || item.products_library?.description || '')
+                            {(item.custom_description || item.unified_services?.description) && 
+                              renderDescription(item.custom_description || item.unified_services?.description || '')
                             }
                             <div className="flex items-center justify-end gap-3">
                               {!offer.hide_unit_prices && (
@@ -1105,7 +1105,7 @@ export const PublicOfferCustomerView = ({
                           const nameParts = (item.custom_name || '').split('\n');
                           const variantLabel = nameParts.length > 1 ? nameParts[0] : null;
                           const productName = nameParts.length > 1 ? nameParts.slice(1).join('\n') : item.custom_name;
-                          const description = item.custom_description || item.products_library?.description;
+                          const description = item.custom_description || item.unified_services?.description;
                           
                           return (
                             <div

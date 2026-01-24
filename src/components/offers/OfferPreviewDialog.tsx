@@ -148,7 +148,7 @@ export const OfferPreviewDialog = ({
           }
         }
 
-        // Fetch product descriptions from products_library
+        // Fetch product descriptions from unified_services
         const productIds = [...new Set(
           offer.options.flatMap(opt => 
             opt.items.map(item => item.productId).filter(Boolean)
@@ -157,7 +157,7 @@ export const OfferPreviewDialog = ({
         
         if (productIds.length > 0) {
           const { data: productsData } = await supabase
-            .from('products_library')
+            .from('unified_services')
             .select('id, description')
             .in('id', productIds);
           
@@ -259,7 +259,7 @@ export const OfferPreviewDialog = ({
           unit: item.unit,
           discount_percent: item.discountPercent,
           is_optional: item.isOptional,
-          products_library: item.productId && productDescriptions[item.productId] 
+          unified_services: item.productId && productDescriptions[item.productId] 
             ? { description: productDescriptions[item.productId] } 
             : null,
         })),

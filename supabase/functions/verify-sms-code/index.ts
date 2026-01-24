@@ -137,7 +137,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Calculate end time based on service duration
     const { data: serviceData } = await supabase
-      .from("services")
+      .from("unified_services")
       .select("duration_minutes, name")
       .eq("id", reservationData.serviceId)
       .single();

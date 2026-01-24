@@ -44,7 +44,7 @@ const PublicOfferView = () => {
               ),
               offer_option_items (
                 *,
-                products_library (
+                unified_services:product_id (
                   description
                 )
               )

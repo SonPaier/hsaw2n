@@ -513,9 +513,9 @@ const AdminDashboard = () => {
     if (!instanceId) return;
     const {
       data
-    } = await supabase.from('services').select('id, name, shortcut, duration_minutes, duration_small, duration_medium, duration_large').eq('instance_id', instanceId).eq('active', true);
+    } = await supabase.from('unified_services').select('id, name, short_name, duration_minutes, duration_small, duration_medium, duration_large').eq('instance_id', instanceId).eq('active', true).eq('service_type', 'reservation');
     if (data) {
-      setAllServices(data);
+      setAllServices(data.map(s => ({ ...s, shortcut: s.short_name })));
     }
   };
 
@@ -594,7 +594,7 @@ const AdminDashboard = () => {
     // Fetch ALL services (including inactive) to properly map historical reservations
     const {
       data: servicesData
-    } = await supabase.from('services').select('id, name, shortcut, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId);
+    } = await supabase.from('unified_services').select('id, name, short_name, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).eq('service_type', 'reservation') as unknown as { data: Array<{ id: string; name: string; short_name: string | null; price_small: number | null; price_medium: number | null; price_large: number | null; price_from: number | null }> | null };
     const servicesMap = new Map<string, {
       id: string;
       name: string;
@@ -608,7 +608,7 @@ const AdminDashboard = () => {
       servicesData.forEach(s => servicesMap.set(s.id, {
         id: s.id,
         name: s.name,
-        shortcut: s.shortcut,
+        shortcut: s.short_name,
         price_small: s.price_small,
         price_medium: s.price_medium,
         price_large: s.price_large,

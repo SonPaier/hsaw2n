@@ -96,10 +96,11 @@ export function ReminderTemplatesDialog({
 
     try {
       // Check if template is used in any products
-      const { count } = await supabase
-        .from('products_library')
+      const result = await supabase
+        .from('offer_option_items')
         .select('*', { count: 'exact', head: true })
-        .eq('reminder_template_id', template.id);
+        .eq('product_id', template.id);
+      const count = result.count;
 
       if (count && count > 0) {
         toast.error(t('reminderTemplates.templateInUse'));

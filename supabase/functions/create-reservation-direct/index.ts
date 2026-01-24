@@ -125,7 +125,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Customer is verified - create reservation directly
     const { data: serviceData } = await supabase
-      .from("services")
+      .from("unified_services")
       .select("duration_minutes, name")
       .eq("id", reservationData.serviceId)
       .single();

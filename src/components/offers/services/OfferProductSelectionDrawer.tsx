@@ -16,7 +16,7 @@ interface Product {
   id: string;
   name: string;
   short_name: string | null;
-  category: string | null;
+  category_id: string | null;
   default_price: number;
   unit: string;
 }
@@ -64,11 +64,12 @@ export function OfferProductSelectionDrawer({
       setLoading(true);
       
       const { data, error } = await supabase
-        .from('products_library')
-        .select('id, name, short_name, category, default_price, unit')
+        .from('unified_services')
+        .select('id, name, short_name, category_id, default_price, unit')
+        .eq('service_type', 'offer')
         .or(`instance_id.eq.${instanceId},and(source.eq.global,instance_id.is.null)`)
         .eq('active', true)
-        .order('category')
+        .order('category_id')
         .order('name');
 
       if (data && !error) {
@@ -93,7 +94,7 @@ export function OfferProductSelectionDrawer({
     const groups: Map<string, Product[]> = new Map();
     
     products.forEach(product => {
-      const category = product.category || 'Inne';
+      const category = product.category_id || 'Inne';
       
       // Filter by search if there's a query
       if (searchQuery.trim()) {

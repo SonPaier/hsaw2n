@@ -632,7 +632,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           // Refresh the product data after edit
           if (editingProductId) {
             const { data } = await supabase
-              .from('products_library')
+              .from('unified_services')
               .select('id, name, short_name, default_price')
               .eq('id', editingProductId)
               .single();
