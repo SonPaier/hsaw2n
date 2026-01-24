@@ -114,7 +114,7 @@ const createChainMock = (data: unknown = [], error: null | { message: string } =
 const setupMocks = () => {
   mockFrom.mockImplementation((table: string) => {
     switch (table) {
-      case 'services':
+      case 'unified_services':
         return createChainMock(mockServices);
       case 'stations':
         return createChainMock(mockStations);
@@ -342,7 +342,7 @@ describe('AddReservationDialogV2', () => {
     const setupVehicleMocks = () => {
       mockFrom.mockImplementation((table: string) => {
         switch (table) {
-          case 'services':
+          case 'unified_services':
             return createChainMock(mockServices);
           case 'stations':
             return createChainMock(mockStations);
@@ -414,7 +414,7 @@ describe('AddReservationDialogV2', () => {
       // Setup mock with only one vehicle
       mockFrom.mockImplementation((table: string) => {
         switch (table) {
-          case 'services':
+          case 'unified_services':
             return createChainMock(mockServices);
           case 'stations':
             return createChainMock(mockStations);

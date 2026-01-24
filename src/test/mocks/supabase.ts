@@ -129,7 +129,7 @@ export const resetSupabaseMocks = () => {
     error: null,
   };
   
-  queryMocks['service_categories:select'] = {
+  queryMocks['unified_categories:select'] = {
     data: defaultMockCategories,
     error: null,
   };
