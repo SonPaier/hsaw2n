@@ -677,6 +677,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         defaultCategoryId={defaultCategoryId}
         totalServicesCount={services.length}
         onDelete={editingService ? () => handleDeleteClick(editingService.id) : undefined}
+        existingServices={services.map(s => ({ id: s.id, name: s.name, short_name: s.shortcut }))}
       />
 
       {/* Category Management Dialog */}
