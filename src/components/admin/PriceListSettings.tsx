@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Plus, Loader2, Search, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -65,14 +65,126 @@ interface PriceListSettingsProps {
   instanceId: string | null;
 }
 
+// Inline editable price component
+const InlineEditablePrice = ({ 
+  service, 
+  onPriceUpdate 
+}: { 
+  service: Service; 
+  onPriceUpdate: (serviceId: string, newPrice: number | null) => Promise<void>;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const hasSizePrices = [service.price_small, service.price_medium, service.price_large].some(p => p != null && p > 0);
+
+  const formatDisplayPrice = () => {
+    const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
+    if (prices.length > 0) {
+      const minPrice = Math.min(...prices);
+      return `od ${minPrice} zł`;
+    }
+    return service.price_from ? `${service.price_from} zł` : '-';
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Only allow inline edit for simple price_from (no size-based prices)
+    if (hasSizePrices) return;
+    
+    setEditValue(service.price_from?.toString() || '');
+    setIsEditing(true);
+  };
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    
+    const numValue = editValue.trim() === '' ? null : parseFloat(editValue.replace(',', '.'));
+    
+    if (editValue.trim() !== '' && (isNaN(numValue!) || numValue! < 0)) {
+      toast.error('Nieprawidłowa cena');
+      setIsEditing(false);
+      return;
+    }
+
+    // Skip if value didn't change
+    if (numValue === service.price_from) {
+      setIsEditing(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onPriceUpdate(service.id, numValue);
+      setIsEditing(false);
+    } catch {
+      // Error handled in parent
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          disabled={saving}
+          className="w-20 px-2 py-1 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <span className="text-sm text-muted-foreground">zł</span>
+      </div>
+    );
+  }
+
+  return (
+    <span 
+      onClick={handleClick}
+      className={cn(
+        "text-sm font-semibold text-primary whitespace-nowrap",
+        !hasSizePrices && "cursor-pointer hover:bg-primary/10 px-2 py-1 rounded -mx-2 -my-1"
+      )}
+      title={hasSizePrices ? 'Edytuj w dialogu (ceny zależne od rozmiaru)' : 'Kliknij aby edytować cenę'}
+    >
+      {formatDisplayPrice()}
+    </span>
+  );
+};
+
 // Sortable service row component for desktop
 const SortableServiceRow = ({ 
   service, 
   onEdit,
+  onPriceUpdate,
   disabled,
 }: { 
   service: Service; 
   onEdit: () => void; 
+  onPriceUpdate: (serviceId: string, newPrice: number | null) => Promise<void>;
   disabled: boolean;
 }) => {
   const {
@@ -87,15 +199,6 @@ const SortableServiceRow = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-  };
-
-  const formatPrice = () => {
-    const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
-    if (prices.length > 0) {
-      const minPrice = Math.min(...prices);
-      return `od ${minPrice} zł`;
-    }
-    return service.price_from ? `od ${service.price_from} zł` : '-';
   };
 
   return (
@@ -120,7 +223,7 @@ const SortableServiceRow = ({
       </div>
       
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm font-semibold text-primary whitespace-nowrap">{formatPrice()}</span>
+        <InlineEditablePrice service={service} onPriceUpdate={onPriceUpdate} />
       </div>
     </div>
   );
@@ -130,19 +233,12 @@ const SortableServiceRow = ({
 const ServiceRow = ({ 
   service, 
   onEdit,
+  onPriceUpdate,
 }: { 
   service: Service; 
   onEdit: () => void; 
+  onPriceUpdate: (serviceId: string, newPrice: number | null) => Promise<void>;
 }) => {
-  const formatPrice = () => {
-    const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
-    if (prices.length > 0) {
-      const minPrice = Math.min(...prices);
-      return `od ${minPrice} zł`;
-    }
-    return service.price_from ? `od ${service.price_from} zł` : '-';
-  };
-
   return (
     <button
       type="button"
@@ -160,7 +256,7 @@ const ServiceRow = ({
       </div>
       
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm font-semibold text-primary whitespace-nowrap">{formatPrice()}</span>
+        <InlineEditablePrice service={service} onPriceUpdate={onPriceUpdate} />
       </div>
     </button>
   );
@@ -368,6 +464,30 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
+  // Inline price update handler
+  const handleInlinePriceUpdate = useCallback(async (serviceId: string, newPrice: number | null) => {
+    // Optimistic update
+    setServices(prev => prev.map(s => 
+      s.id === serviceId ? { ...s, price_from: newPrice } : s
+    ));
+
+    try {
+      const { error } = await supabase
+        .from('unified_services')
+        .update({ price_from: newPrice })
+        .eq('id', serviceId);
+      
+      if (error) throw error;
+      toast.success('Cena zaktualizowana');
+    } catch (error) {
+      console.error('Error updating price:', error);
+      toast.error('Błąd aktualizacji ceny');
+      // Revert on error
+      fetchServices();
+      throw error;
+    }
+  }, []);
+
   // Compute service counts per category for the management dialog
   const serviceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -437,6 +557,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                   key={service.id}
                   service={service}
                   onEdit={() => openEditDialog(service)}
+                  onPriceUpdate={handleInlinePriceUpdate}
                 />
               ))
             ) : (
@@ -451,6 +572,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                       key={service.id}
                       service={service}
                       onEdit={() => openEditDialog(service)}
+                      onPriceUpdate={handleInlinePriceUpdate}
                       disabled={isSearching}
                     />
                   ))}
@@ -489,6 +611,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                     key={service.id}
                     service={service}
                     onEdit={() => openEditDialog(service)}
+                    onPriceUpdate={handleInlinePriceUpdate}
                   />
                 ))
               ) : (
@@ -503,6 +626,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                         key={service.id}
                         service={service}
                         onEdit={() => openEditDialog(service)}
+                        onPriceUpdate={handleInlinePriceUpdate}
                         disabled={isSearching}
                       />
                     ))}
