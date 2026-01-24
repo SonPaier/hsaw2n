@@ -244,12 +244,17 @@ const ServiceRow = ({
       type="button"
       onClick={onEdit}
       className={cn(
-        "flex items-center gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-muted/50 transition-colors",
+        "flex items-center gap-2 px-4 py-2.5 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-muted/50 transition-colors",
         !service.active && "opacity-50"
       )}
     >
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className={cn("truncate", !service.active && "line-through")}>{service.name}</span>
+        <span className={cn(
+          "text-sm leading-tight line-clamp-2",
+          !service.active && "line-through"
+        )}>
+          {service.name}
+        </span>
         {!service.active && (
           <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">nieaktywna</span>
         )}
