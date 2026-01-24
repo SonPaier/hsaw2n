@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -48,9 +48,16 @@ interface ServiceCategory {
   name: string;
 }
 
+interface ReminderTemplateItem {
+  months: number;
+  is_paid: boolean;
+  service_type: string;
+}
+
 interface ReminderTemplateOption {
   id: string;
   name: string;
+  items?: ReminderTemplateItem[];
 }
 
 interface ServiceData {
@@ -157,15 +164,25 @@ const ServiceFormContent = ({
     const fetchTemplates = async () => {
       const { data } = await supabase
         .from('reminder_templates')
-        .select('id, name')
+        .select('id, name, items')
         .eq('instance_id', instanceId)
         .order('name');
-      setReminderTemplates(data || []);
+      // Cast items from Json to our expected type
+      const templates: ReminderTemplateOption[] = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        items: Array.isArray(t.items) ? (t.items as unknown as ReminderTemplateItem[]) : [],
+      }));
+      setReminderTemplates(templates);
     };
     if (instanceId) {
       fetchTemplates();
     }
   }, [instanceId]);
+
+  // Get selected template's items
+  const selectedTemplate = reminderTemplates.find(t => t.id === formData.reminder_template_id);
+  const templateItems = selectedTemplate?.items || [];
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -312,10 +329,10 @@ const ServiceFormContent = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-24">
-        {/* Row 1: Name, Short Name */}
+        {/* Row 1: Name, Short Name, Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr]"
+          isMobile ? "grid-cols-1" : "grid-cols-[40%_25%_15%]"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
@@ -338,15 +355,7 @@ const ServiceFormContent = ({
               maxLength={10}
             />
           </div>
-        </div>
-
-        {/* Row 2: Price + Category */}
-        <div className={cn(
-          "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[1fr_3fr]"
-        )}>
-          {/* Category - left on desktop */}
-          <div className="space-y-2 order-2 md:order-1">
+          <div className="space-y-2">
             <div className="flex items-center gap-1.5">
               <Label className="text-sm">{t('priceList.form.category')}</Label>
               <FieldInfo tooltip="Grupowanie usług w cenniku" />
@@ -368,94 +377,106 @@ const ServiceFormContent = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Price section - right on desktop */}
-          <div className="space-y-2 order-1 md:order-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm">{priceLabel}</Label>
-                <FieldInfo tooltip="Cena bazowa usługi" />
-              </div>
-              <Switch
-                checked={!formData.prices_are_net}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: !v }))}
-              />
-              <span className="text-sm text-muted-foreground">
-                {formData.prices_are_net ? t('priceList.form.grossPrice') : t('priceList.form.netPrice')}
-              </span>
+        {/* Row 2: Price section */}
+        <div className="space-y-3">
+          {/* Radio for net/gross */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm">{t('priceList.form.priceType', 'Cena')}</Label>
+              <FieldInfo tooltip="Cena bazowa usługi" />
             </div>
+            <RadioGroup
+              value={formData.prices_are_net ? 'net' : 'gross'}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, prices_are_net: v === 'net' }))}
+              className="flex items-center gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="gross" id="price-gross" />
+                <Label htmlFor="price-gross" className="text-sm font-normal cursor-pointer">
+                  {t('priceList.form.priceGross', 'Cena brutto')}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="net" id="price-net" />
+                <Label htmlFor="price-net" className="text-sm font-normal cursor-pointer">
+                  {t('priceList.form.priceNet', 'Cena netto')}
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
 
-            {!showSizePrices ? (
-              <div className="space-y-1">
-                <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+          {!showSizePrices ? (
+            <div className="space-y-1">
+              <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+                <Input
+                  type="number"
+                  value={formData.price_from ?? ''}
+                  onChange={(e) => handlePriceChange('price_from', e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSizePrices(true)}
+                className="text-sm text-primary font-semibold hover:underline"
+              >
+                {t('priceList.form.priceBySizeLink')}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
                   <Input
                     type="number"
-                    value={formData.price_from ?? ''}
-                    onChange={(e) => handlePriceChange('price_from', e.target.value)}
+                    value={formData.price_small ?? ''}
+                    onChange={(e) => handlePriceChange('price_small', e.target.value)}
                     step="0.01"
                     min="0"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSizePrices(true)}
-                  className="text-sm text-primary font-semibold hover:underline"
-                >
-                  {t('priceList.form.priceBySizeLink')}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">S</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_small ?? ''}
-                      onChange={(e) => handlePriceChange('price_small', e.target.value)}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">M</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_medium ?? ''}
-                      onChange={(e) => handlePriceChange('price_medium', e.target.value)}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">L</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_large ?? ''}
-                      onChange={(e) => handlePriceChange('price_large', e.target.value)}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
+                  <Input
+                    type="number"
+                    value={formData.price_medium ?? ''}
+                    onChange={(e) => handlePriceChange('price_medium', e.target.value)}
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSizePrices(false);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      price_small: null, 
-                      price_medium: null, 
-                      price_large: null 
-                    }));
-                  }}
-                  className="text-sm text-primary font-semibold hover:underline"
-                >
-                  {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
-                </button>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
+                  <Input
+                    type="number"
+                    value={formData.price_large ?? ''}
+                    onChange={(e) => handlePriceChange('price_large', e.target.value)}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
               </div>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSizePrices(false);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    price_small: null, 
+                    price_medium: null, 
+                    price_large: null 
+                  }));
+                }}
+                className="text-sm text-primary font-semibold hover:underline"
+              >
+                {t('priceList.form.useSinglePrice', 'Użyj jednej ceny')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Row 3: Description */}
@@ -535,7 +556,7 @@ const ServiceFormContent = ({
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">S</Label>
+                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeSmall', 'Mały (S)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_small ?? ''}
@@ -544,7 +565,7 @@ const ServiceFormContent = ({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">M</Label>
+                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeMedium', 'Średni (M)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_medium ?? ''}
@@ -553,7 +574,7 @@ const ServiceFormContent = ({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">L</Label>
+                      <Label className="text-xs text-muted-foreground">{t('priceList.form.sizeLarge', 'Duży (L)')}</Label>
                       <Input
                         type="number"
                         value={formData.duration_large ?? ''}
@@ -623,6 +644,19 @@ const ServiceFormContent = ({
                     ))}
                   </SelectContent>
                 </Select>
+                {/* Show reminder items list when template is selected */}
+                {templateItems.length > 0 && (
+                  <div className="mt-2 pl-2 border-l-2 border-muted space-y-1">
+                    {templateItems.map((item, idx) => (
+                      <div key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                        <span className="font-medium">{item.months} mies.</span>
+                        <span>–</span>
+                        <span>{item.service_type === 'inspection' ? 'Przegląd' : item.service_type === 'maintenance' ? 'Konserwacja' : item.service_type}</span>
+                        {item.is_paid && <span className="text-xs bg-muted px-1.5 py-0.5 rounded">płatne</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </CollapsibleContent>
