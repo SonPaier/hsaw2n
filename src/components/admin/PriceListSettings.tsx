@@ -279,7 +279,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [categoryFormData, setCategoryFormData] = useState({
     name: '',
     description: '',
-    prices_are_net: false,
   });
   const [savingCategory, setSavingCategory] = useState(false);
   
@@ -372,7 +371,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     );
   };
 
-  const getServicesByCategory = (categoryId: string) => {
+  const getServicesByCategory = (categoryId: string | null) => {
+    if (categoryId === null) {
+      return services.filter(s => !s.category_id || !categories.some(c => c.id === s.category_id));
+    }
     return services.filter(s => s.category_id === categoryId);
   };
 
@@ -428,10 +430,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       toast.error(t('priceList.errors.nameRequired'));
       return;
     }
-    if (!formData.category_id) {
-      toast.error(t('priceList.errors.categoryRequired'));
-      return;
-    }
+    // Category is now optional - no validation needed
 
     setSaving(true);
     try {
@@ -616,14 +615,12 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setCategoryFormData({
         name: category.name,
         description: category.description || '',
-        prices_are_net: category.prices_are_net ?? false,
       });
     } else {
       setEditingCategory(null);
       setCategoryFormData({
         name: '',
         description: '',
-        prices_are_net: false,
       });
     }
     setCategoryDialogOpen(true);
@@ -647,7 +644,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             name: categoryFormData.name.trim(),
             description: categoryFormData.description.trim() || null,
             slug,
-            prices_are_net: categoryFormData.prices_are_net,
           })
           .eq('id', editingCategory.id);
         
@@ -664,7 +660,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             slug,
             sort_order: maxSortOrder,
             active: true,
-            prices_are_net: categoryFormData.prices_are_net,
             category_type: 'both',
           });
         
@@ -749,75 +744,34 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         </Button>
       </div>
 
-      {categories.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>{t('priceList.noCategories')}</p>
-          <Button onClick={() => openCategoryDialog()} variant="outline" className="mt-4 gap-2">
-            <FolderPlus className="w-4 h-4" />
-            {t('priceList.addCategory')}
-          </Button>
-        </div>
-      ) : (
-        categories.map(category => {
-          const categoryServices = getServicesByCategory(category.id);
-          const isOpen = openSections.includes(category.id);
-
+      {/* Uncategorized services */}
+      {(() => {
+        const uncategorizedServices = getServicesByCategory(null);
+        const isUncategorizedOpen = openSections.includes('uncategorized');
+        
+        if (uncategorizedServices.length > 0) {
           return (
             <Collapsible
-              key={category.id}
-              open={isOpen}
-              onOpenChange={() => toggleSection(category.id)}
+              open={isUncategorizedOpen}
+              onOpenChange={() => toggleSection('uncategorized')}
             >
               <CollapsibleTrigger asChild>
                 <div className="p-4 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">
-                  {/* Mobile: 2 lines */}
-                  <div className="md:hidden space-y-2">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {isOpen ? (
+                      {isUncategorizedOpen ? (
                         <ChevronDown className="w-4 h-4" />
                       ) : (
                         <ChevronRight className="w-4 h-4" />
                       )}
-                      <span className="font-medium">{category.name}</span>
+                      <span className="font-medium">{t('priceList.noCategory')}</span>
                       <span className="text-sm text-muted-foreground">
-                        ({categoryServices.length} {t('priceList.servicesCount')})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 pl-7" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(undefined, category.id)} className="h-8 px-2">
-                        <Plus className="w-4 h-4 mr-1" />{t('common.add')}
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} className="h-8 w-8">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteCategory(category.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Desktop: single line */}
-                  <div className="hidden md:flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {isOpen ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                      <span className="font-medium">{category.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({categoryServices.length} {t('priceList.servicesCount')})
+                        ({uncategorizedServices.length} {t('priceList.servicesCount')})
                       </span>
                     </div>
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} title={t('priceList.addService')}>
+                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, '')} title={t('priceList.addService')}>
                         <Plus className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} title={t('priceList.editCategory')}>
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteCategory(category.id)} title={t('priceList.deleteCategory')}>
-                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -828,38 +782,148 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragEnd={(event) => handleDragEnd(event, category.id)}
+                  onDragEnd={(event) => handleDragEnd(event, '')}
                 >
                   <SortableContext
-                    items={categoryServices.map(s => s.id)}
+                    items={uncategorizedServices.map(s => s.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="mt-2 space-y-2">
-                      {categoryServices.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-4 text-center">
-                          {t('priceList.noServicesInCategory')}
-                        </p>
-                      ) : (
-                        categoryServices.map(service => (
-                          <SortableServiceItem
-                            key={service.id}
-                            service={service}
-                            onEdit={() => openEditDialog(service)}
-                            onDelete={() => handleDelete(service.id)}
-                            onToggleActive={() => toggleServiceActive(service)}
-                            onTogglePopular={() => toggleServicePopular(service)}
-                            t={t}
-                            isMobile={isMobile}
-                          />
-                        ))
-                      )}
+                      {uncategorizedServices.map(service => (
+                        <SortableServiceItem
+                          key={service.id}
+                          service={service}
+                          onEdit={() => openEditDialog(service)}
+                          onDelete={() => handleDelete(service.id)}
+                          onToggleActive={() => toggleServiceActive(service)}
+                          onTogglePopular={() => toggleServicePopular(service)}
+                          t={t}
+                          isMobile={isMobile}
+                        />
+                      ))}
                     </div>
                   </SortableContext>
                 </DndContext>
               </CollapsibleContent>
             </Collapsible>
           );
-        })
+        }
+        return null;
+      })()}
+
+      {/* Categories */}
+      {categories.map(category => {
+        const categoryServices = getServicesByCategory(category.id);
+        const isOpen = openSections.includes(category.id);
+
+        return (
+          <Collapsible
+            key={category.id}
+            open={isOpen}
+            onOpenChange={() => toggleSection(category.id)}
+          >
+            <CollapsibleTrigger asChild>
+              <div className="p-4 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 transition-colors">
+                {/* Mobile: 2 lines */}
+                <div className="md:hidden space-y-2">
+                  <div className="flex items-center gap-3">
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                    <span className="font-medium">{category.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      ({categoryServices.length} {t('priceList.servicesCount')})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 pl-7" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(undefined, category.id)} className="h-8 px-2">
+                      <Plus className="w-4 h-4 mr-1" />{t('common.add')}
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} className="h-8 w-8">
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleDeleteCategory(category.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Desktop: single line */}
+                <div className="hidden md:flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                    <span className="font-medium">{category.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      ({categoryServices.length} {t('priceList.servicesCount')})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} title={t('priceList.addService')}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openCategoryDialog(category)} title={t('priceList.editCategory')}>
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteCategory(category.id)} title={t('priceList.deleteCategory')}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => handleDragEnd(event, category.id)}
+              >
+                <SortableContext
+                  items={categoryServices.map(s => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="mt-2 space-y-2">
+                    {categoryServices.length === 0 ? (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        {t('priceList.noServicesInCategory')}
+                      </p>
+                    ) : (
+                      categoryServices.map(service => (
+                        <SortableServiceItem
+                          key={service.id}
+                          service={service}
+                          onEdit={() => openEditDialog(service)}
+                          onDelete={() => handleDelete(service.id)}
+                          onToggleActive={() => toggleServiceActive(service)}
+                          onTogglePopular={() => toggleServicePopular(service)}
+                          t={t}
+                          isMobile={isMobile}
+                        />
+                      ))
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+      
+      {/* Empty state - no categories and no services */}
+      {categories.length === 0 && getServicesByCategory(null).length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>{t('priceList.noServices')}</p>
+          <Button onClick={() => openEditDialog()} variant="outline" className="mt-4 gap-2">
+            <Plus className="w-4 h-4" />
+            {t('priceList.addNewService')}
+          </Button>
+        </div>
       )}
 
       {/* Edit/Add Service Dialog */}
@@ -906,15 +970,16 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label>{t('priceList.form.category')} *</Label>
+              <Label>{t('priceList.form.category')}</Label>
               <Select
-                value={formData.category_id}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v }))}
+                value={formData.category_id || 'none'}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('priceList.form.selectCategory')} />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
+                  <SelectItem value="none">{t('priceList.noCategory')}</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
@@ -1087,22 +1152,6 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 onChange={(e) => setCategoryFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder={t('priceList.categoryDescriptionPlaceholder')}
                 rows={2}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="space-y-0.5">
-                <Label>{t('priceList.pricesAreNet')}</Label>
-                <p className="text-xs text-muted-foreground">
-                  {categoryFormData.prices_are_net 
-                    ? t('priceList.pricesNetDescription')
-                    : t('priceList.pricesGrossDescription')
-                  }
-                </p>
-              </div>
-              <Switch
-                checked={categoryFormData.prices_are_net}
-                onCheckedChange={(v) => setCategoryFormData(prev => ({ ...prev, prices_are_net: v }))}
               />
             </div>
           </div>
