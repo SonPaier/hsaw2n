@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, FolderPlus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, FolderPlus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
@@ -166,6 +166,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -255,11 +256,21 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     loadData();
   }, [instanceId]);
 
+  // Filter services by search query
+  const filteredServices = useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const query = searchQuery.toLowerCase().trim();
+    return services.filter(s => 
+      s.name.toLowerCase().includes(query) || 
+      (s.shortcut && s.shortcut.toLowerCase().includes(query))
+    );
+  }, [services, searchQuery]);
+
   const getServicesByCategory = (categoryId: string | null) => {
     if (categoryId === null) {
-      return services.filter(s => !s.category_id || !categories.some(c => c.id === s.category_id));
+      return filteredServices.filter(s => !s.category_id || !categories.some(c => c.id === s.category_id));
     }
-    return services.filter(s => s.category_id === categoryId);
+    return filteredServices.filter(s => s.category_id === categoryId);
   };
 
   const openEditDialog = (service?: Service, preselectedCategoryId?: string) => {
@@ -547,22 +558,38 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   return (
     <div className="space-y-6">
       {/* Top action buttons */}
-      <div className="flex items-center gap-2">
-        <Button onClick={() => openEditDialog()} className="gap-2">
-          <Plus className="w-4 h-4" />
-          {t('priceList.addNewService')}
-        </Button>
-        <Button onClick={() => openCategoryDialog()} variant="secondary" className="gap-2">
-          <FolderPlus className="w-4 h-4" />
-          {t('priceList.addCategory')}
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Usługi będą widoczne do wyboru w rezerwacjach i przy tworzeniu szablonów ofert. Kategorie są opcjonalne.
+        </p>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={() => openEditDialog()} className="gap-2">
+            <Plus className="w-4 h-4" />
+            {t('priceList.addService')}
+          </Button>
+          <Button onClick={() => openCategoryDialog()} variant="secondary" className="gap-2">
+            <FolderPlus className="w-4 h-4" />
+            {t('priceList.addCategory')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Szukaj po nazwie lub skrócie..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Uncategorized services */}
       {uncategorizedServices.length > 0 && (
         <div>
           <div className="flex items-center justify-between py-3 border-b-2 border-border">
-            <h3 className="font-semibold text-foreground">{t('priceList.noCategory')}</h3>
+            <h3 className="font-semibold text-foreground uppercase">{t('priceList.noCategory')}</h3>
             <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, '')} className="h-8 w-8">
               <Plus className="w-4 h-4" />
             </Button>
@@ -599,7 +626,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         return (
           <div key={category.id}>
             <div className="flex items-center justify-between py-3 border-b-2 border-border">
-              <h3 className="font-semibold text-foreground">{category.name}</h3>
+              <h3 className="font-semibold text-foreground uppercase">{category.name}</h3>
               <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} className="h-8 w-8">
                 <Plus className="w-4 h-4" />
               </Button>
