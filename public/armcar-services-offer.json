@@ -4,419 +4,199 @@
     "name": "Bezpieczne mycie ręczne na dwa wiadra (Two Bucket Wash)",
     "short_name": "BEZPIECZNE MYCIE",
     "description": "Profesjonalne mycie metodą dwóch wiader",
-    "sort_order": 0
+    "category_id": "3bd01d67-1f3d-4039-a5d8-7657a65aa23c",
+    "category_name": "MYJNIA SAMOCHODOWA",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 250.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
     "id": "96b92ea7-d4eb-4b90-900b-7896b8cd18dc",
     "name": "Czyszczenie i konserwacja skór",
     "short_name": "SKÓRY",
     "description": "Profesjonalna pielęgnacja tapicerki skórzanej",
-    "sort_order": 0
-  },
-  {
-    "id": "6e83f6c5-179e-45b9-b781-b50681f5a79a",
-    "name": "Dekontaminacja chemiczna",
-    "short_name": null,
-    "description": "Zapewnij swojemu pojazdowi nieskazitelny blask i perfekcyjną gładkość lakieru dzięki naszej usłudze dekontaminacji chemicznej, która skutecznie usuwa nawet najbardziej uporczywe zabrudzenia, przygotowując powierzchnię pod dalsze etapy detailingu. Stosujemy zaawansowane preparaty, które bezpiecznie eliminują osady metaliczne, smołę i żywicę, nie wpływając na integralność lakieru, co jest kluczowe dla zachowania jego trwałości. Ten precyzyjny proces jest fundamentem dla osiągnięcia długotrwałego efektu wizualnego i optymalnej przyczepności dla aplikowanych później powłok ochronnych.",
-    "sort_order": 0
-  },
-  {
-    "id": "2ab4f33c-fc63-4bf9-bbc6-0f833389c3bd",
-    "name": "Dekontaminacja mechaniczna",
-    "short_name": null,
-    "description": "Glinkowanie lakieru",
-    "sort_order": 0
-  },
-  {
-    "id": "58b010ea-89d8-4c6e-8350-10b6052f50d3",
-    "name": "Detailingowe czyszczenie wnętrza",
-    "short_name": null,
-    "description": "Głębokie czyszczenie wnętrza pojazdu",
-    "sort_order": 0
+    "category_id": "46aa3c7e-a315-47a6-9bf0-5961c1b13414",
+    "category_name": "USŁUGI DETAILINGOWE",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 350.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
     "id": "951dbb2b-ddc0-47c2-b4f2-76079efc228a",
     "name": "Elastomer 12 miesięcy",
     "short_name": "Elastomer 12",
     "description": null,
-    "sort_order": 0
+    "category_id": "188d37d1-1d7d-4ac4-8f5d-d2413a96aef6",
+    "category_name": "POWŁOKI OCHRONNE",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 2000.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
     "id": "ca992e47-2704-44ca-8c8d-746ea4f58b6c",
     "name": "Elastomer 24 miesiące",
     "short_name": "Elastomer 24",
     "description": null,
-    "sort_order": 0
+    "category_id": "188d37d1-1d7d-4ac4-8f5d-d2413a96aef6",
+    "category_name": "POWŁOKI OCHRONNE",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 2600.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
     "id": "4023eba8-cccf-48f3-bd23-d22523b38b24",
     "name": "Elastomer 36 miesięcy",
     "short_name": "Elastomer",
-    "description": "Właściwości i korzyści\n\t•\tTrwałość ochrony: do 36 miesięcy\n\t•\tTwardość struktury 9H – zwiększona odporność na mikrozarysowania\n\t•\tEfekt self-healing – redukcja drobnych śladów użytkowania pod wpływem temperatury\n\t•\tSilna hydrofobowość – szybkie odprowadzanie wody i ograniczone osadzanie brudu\n\t•\tWysoka odporność chemiczna – sól drogowa, detergenty, kwaśne opady, promieniowanie UV\n\t•\tWyraźne pogłębienie koloru i szklisty połysk lakieru\n\n⸻\n\n Efekt wizualny\n\nLakier zyskuje głębię koloru, wysoki połysk oraz efekt czystej, gładkiej powierzchni. Samochód dłużej pozostaje czysty, a bieżąca pielęgnacja staje się łatwiejsza i bezpieczniejsza dla lakieru.\n\n⸻\n\nPrzeznaczenie\n\nPowłoka rekomendowana jest dla:\n\t•\tpojazdów nowych,\n\t•\tsamochodów po korekcie lakieru,\n\t•\taut użytkowanych na co dzień, również w warunkach miejskich i autostradowych.\n\n⸻\n\n Pielęgnacja i utrzymanie efektu\n\nDla zachowania maksymalnych właściwości ochronnych i wizualnych zalecana jest:\n\t•\tregularna, bezpieczna pielęgnacja pojazdu,\n\t•\tstosowanie odpowiednich środków myjących,\n\t•\tokresowa kontrola stanu powłoki.\n\nPowłoka nie wymaga obowiązkowych serwisów producenta.",
-    "sort_order": 0
-  },
-  {
-    "id": "3ce1ebe5-b5d3-498e-ab49-ffbc25cf235c",
-    "name": "Elastomer 48 miesięcy",
-    "short_name": "Elastomer 48",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "4cc13689-538d-4cb2-8ea3-9d19b6e8c37a",
-    "name": "Elastomer 60 miesięcy",
-    "short_name": "Elastomer 60",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "f2c1c65c-6e19-412e-9953-dd6f1c0f2667",
-    "name": "Folia ochronna Piano Black",
-    "short_name": "Piano Black",
-    "description": "Zabezpieczenie elementów Piano Black przed rysami, zmatowieniem i odciskami palców.",
-    "sort_order": 0
-  },
-  {
-    "id": "50ede69a-f0fd-49f6-a3d5-7cd6df85b3d7",
-    "name": "Folia ochronna Tunel środkowy",
-    "short_name": "Tunel środkowy",
-    "description": "Ochrona tunelu środkowego przed rysami i uszkodzeniami mechanicznymi.",
-    "sort_order": 0
-  },
-  {
-    "id": "5aaadc10-ac5f-4bc7-a305-8dc343d9e8da",
-    "name": "Folia ochronna Wyświetlacze",
-    "short_name": "Wyswietlacze",
-    "description": "Bezbarwna folia chroniąca ekrany przed zarysowaniami i śladami użytkowania.",
-    "sort_order": 0
-  },
-  {
-    "id": "6c5fe92f-46d1-43f1-baac-1f779719f9c3",
-    "name": "Folia PPF Izotronik Clear Gloss bezbarwna",
-    "short_name": "Izotronik BEZBARWNA",
-    "description": "* grubość 190 µm zapewniająca skuteczną ochronę przed uszkodzeniami\n* bezbarwna, błyszcząca folia PPF do codziennej ochrony lakieru\n* samoregenerująca warstwa topcoat redukująca drobne rysy pod wpływem ciepła\n* wysoka elastyczność umożliwiająca idealne dopasowanie do przetłoczeń i kształtów nadwozia\n* ochrona przed zarysowaniami, chemią drogową i czynnikami atmosferycznymi bez wpływu na kolor i połysk lakieru",
-    "sort_order": 0
-  },
-  {
-    "id": "7702a004-3a0b-47fd-8440-5ae4d5b8ee8e",
-    "name": "Folia PPF Izotronik Clear Mat",
-    "short_name": "Izotronik MAT",
-    "description": "Folia ochronna matowa",
-    "sort_order": 0
-  },
-  {
-    "id": "a0d1feb3-7fa3-487a-9d96-629c7b2ce430",
-    "name": "Folia PPF Izotronik Kolor",
-    "short_name": "Izotronik KOLOR",
-    "description": "1️⃣ Charakterystyka ogólna\nFolie kolorowe Izotronik to nowoczesne rozwiązanie 2w1 – zmiana koloru pojazdu połączona z realną ochroną lakieru. Stanowią alternatywę dla klasycznych folii winylowych, oferując większą trwałość, grubość oraz odporność mechaniczną.\nPonad 230 wariantów barw.\n2️⃣ Specyfikacja techniczna (do oferty)\n\t•\tTyp folii: Color PPF / Color Protection Film\n\t•\tMateriał: TPU (termoplastyczny poliuretan)\n\t•\tGrubość: ok. 190–210 mikronów\n\t•\tWarstwa samoregenerująca: TAK (mikrozarysowania znikają pod wpływem ciepła)\n\t•\tWykończenia:\n\t•\tGloss\n\t•\tSatin / Semi-matt\n\t•\tMatt\n\t•\tEfekty specjalne (perła, metalik, kolory niestandardowe)\n\t•\tOchrona UV: wysoka – brak blaknięcia koloru\n\t•\tHydrofobowość: TAK – łatwiejsze mycie i mniejsze osadzanie brudu\n\t•\tKlej: akrylowy, bezpieczny dla lakieru OEM\n\t•\tDemontaż: bezpieczny, bez uszkodzeń lakieru (przy prawidłowej aplikacji)\n3️⃣ Efekt wizualny\n\t•\tJednolity, głęboki kolor\n\t•\tBrak „plastikowego" efektu znanego z tanich winyli\n\t•\tBardzo dobra głębia koloru i połysk (szczególnie wersje gloss)\n\t•\tLakier wygląda jak po profesjonalnym lakierowaniu, ale pozostaje w pełni odwracalny\n4️⃣ Ochrona lakieru\n\nFolia zabezpiecza karoserię przed:\n\t•\todpryskami kamieni\n\t•\tmikrozarysowaniami\n\t•\tsolą drogową i chemią\n\t•\tptasimi odchodami i owadami\n\t•\tpromieniowaniem UV\n\n➡️ Znacznie wyższy poziom ochrony niż folia winylowa",
-    "sort_order": 0
-  },
-  {
-    "id": "7a05f264-8120-46f7-a2e6-131f4fd94477",
-    "name": "Folia PPF Izotronik Satyna",
-    "short_name": "Izotronik SATYNA",
-    "description": "Folia ochronna satynowa",
-    "sort_order": 0
-  },
-  {
-    "id": "178ea118-3cd2-44c0-9e15-215ae134736f",
-    "name": "Folia PPF UltraFit Crystal XP bezbarwna",
-    "short_name": "UltraFit Crystal XP",
-    "description": "•\tRealna ochrona lakieru\nSkutecznie zabezpiecza karoserię przed odpryskami kamieni, piaskiem, rysami parkingowymi oraz uszkodzeniami eksploatacyjnymi.\n\t•\tSamoregeneracja rys (Self-Healing)\nDrobne zarysowania znikają pod wpływem ciepła (słońce, ciepła woda), dzięki czemu lakier przez lata wygląda jak nowy.\n\t•\tIdealna przejrzystość – niewidoczna na aucie\nFolia jest krystalicznie czysta, nie zmienia koloru lakieru i nie powoduje efektu „skórki pomarańczy".\n\t•\tGrubość ok. 200 mikronów\nZnacznie grubsza niż lakier bezbarwny – tworzy fizyczną barierę ochronną, której lakier sam w sobie nie zapewnia.\n\t•\tWbudowana nano-ceramika\nPowierzchnia jest hydrofobowa – woda, brud i owady słabiej przylegają, a auto dłużej pozostaje czyste.\n\t•\tBrak żółknięcia i odporność UV\nFolia zachowuje przejrzystość przez lata, nawet przy intensywnej ekspozycji na słońce.\n\t•\tZwiększony połysk i efekt „szkła"\nLakier wygląda głębiej, bardziej elegancko i jak świeżo po wyjeździe z salonu.\n\t•\tBezpieczna i odwracalna\nPo demontażu folii lakier pozostaje w oryginalnym stanie – bez śladów i uszkodzeń.\n\t•\t10 lat gwarancji producenta\nPotwierdzenie jakości materiału i długoterminowej ochrony pojazdu.\n\t•\tRealna oszczędność\nChroniąc lakier, unikasz kosztownych napraw, lakierowania i spadku wartości auta przy sprzedaży.",
-    "sort_order": 0
-  },
-  {
-    "id": "3c9646f1-d18a-45d2-8175-125d931eb51c",
-    "name": "Folia PPF UltraFit XP Kolor",
-    "short_name": "UltraFit Kolor",
-    "description": "1️⃣ Czym jest kolorowa folia UltraFit\nKolorowe folie UltraFit to poliuretanowe folie ochronne PPF z pigmentem, które łączą zmianę koloru pojazdu z pełną ochroną lakieru. Jest to rozwiązanie klasy premium, wyraźnie przewyższające klasyczne folie winylowe.\n2️⃣ Specyfikacja techniczna \n\t•\tTyp folii: Color Paint Protection Film (Color PPF)\n\t•\tMateriał: TPU – termoplastyczny poliuretan\n\t•\tGrubość całkowita: 190–210 mikronów\n\t•\tPigment w strukturze folii: TAK (kolor w masie TPU)\n\t•\tTop Coat: elastomerowy, samoregenerujący\n\t•\tSamoregeneracja: TAK – mikrozarysowania znikają pod wpływem ciepła\n\t•\tWykończenia:\n\t•\tGloss\n\t•\tSatin\n\t•\tMatte\n\t•\tKolory specjalne (perła, metalik – w zależności od serii)\n\t•\tOdporność UV: bardzo wysoka – brak blaknięcia\n\t•\tHydrofobowość: TAK\n\t•\tOdporność chemiczna: wysoka (sól, chemia, owady, ptasie odchody)\n\t•\tKlej: akrylowy klasy OEM – bezpieczny dla lakieru\n\t•\tDemontaż: w pełni odwracalny, bez uszkodzeń lakieru\n3️⃣ Efekt wizualny\n\t•\tJednolity, głęboki kolor bez prześwitów\n\t•\tBrak „winylowego" efektu plastiku\n\t•\tBardzo dobra klarowność (szczególnie wersje Gloss)\n\t•\tLakier wygląda jak po profesjonalnym lakierowaniu\n\t•\tKolor + ochrona w jednym procesie\n4️⃣ Ochrona lakieru\nKolorowa folia UltraFit chroni przed:\n\t•\todpryskami kamieni\n\t•\tzarysowaniami eksploatacyjnymi\n\t•\tsolą drogową i chemią\n\t•\tpromieniowaniem UV\n\t•\toksydacją lakieru\n➡️ Realna ochrona lakieru – nie tylko zmiana wyglądu",
-    "sort_order": 0
-  },
-  {
-    "id": "a316dc91-0142-4a81-bccb-abe812e6232a",
-    "name": "Folia PPF UltraFit XP Retro Mat",
-    "short_name": "UltraFit Mat",
-    "description": "Najważniejsze właściwości folii:\n* 200 µm grubości – bardzo wysoka ochrona przed odpryskami i uszkodzeniami\n* jednolity, satynowo-matowy efekt (retro / satin look)\n* samoregeneracja drobnych rys pod wpływem ciepła\n* wysoka odporność na chemię drogową i warunki atmosferyczne\n* ochrona UV i przed utlenianiem lakieru\n* właściwości hydrofobowe – łatwiejsza pielęgnacja\n* stabilność koloru – brak żółknięcia i matowienia",
-    "sort_order": 0
-  },
-  {
-    "id": "29fbd9c9-866a-4461-84d8-89d28afa361c",
-    "name": "Folia PPF UltraFit XP Satyna",
-    "short_name": "UltraFit Satyna",
-    "description": "Folia ochronna satynowa premium",
-    "sort_order": 0
-  },
-  {
-    "id": "6f16f1fb-a07d-415b-a9ac-adc74f3cfc93",
-    "name": "Gyeon – impregnacja alcantary",
-    "short_name": null,
-    "description": "Impregnacja chroniąca alcantarę przed wilgocią, zabrudzeniami i przetarciami.",
-    "sort_order": 0
-  },
-  {
-    "id": "ceab94ff-5f77-449e-9951-a2a4c5965ce3",
-    "name": "Impregnacja tapicerki Gyeon Q² FabricCoat",
-    "short_name": "Tapicerka FabricCoat",
-    "description": "Hydrofobowa ochrona tapicerki materiałowej przed plamami i wnikaniem brudu.",
-    "sort_order": 0
-  },
-  {
-    "id": "f2741be8-4ba6-4275-9461-d03df13ece41",
-    "name": "Korekta lakieru 1-etapowa – od 60%",
-    "short_name": null,
-    "description": "Skuteczna korekta usuwająca do 60% niedoskonałości lakieru przy zachowaniu naturalnego wykończenia.",
-    "sort_order": 0
-  },
-  {
-    "id": "f267197a-7a15-436c-a7b8-eebd13846731",
-    "name": "Korekta lakieru 2-etapowa – od 80%",
-    "short_name": null,
-    "description": "Zaawansowana korekta lakieru eliminująca do 80% rys i defektów, zapewniająca wyraźną poprawę wyglądu.",
-    "sort_order": 0
-  },
-  {
-    "id": "6243a991-0c9d-44fb-98bd-134e4f30de8f",
-    "name": "Korekta lakieru 3-etapowa – od 90%",
-    "short_name": null,
-    "description": "Najdokładniejsza korekta lakieru usuwająca do 90% niedoskonałości i maksymalnie wydobywająca głębię koloru.",
-    "sort_order": 0
-  },
-  {
-    "id": "71c1f69f-5297-4004-aed9-00b1d4d3c02f",
-    "name": "Korekta lakieru punktowa",
-    "short_name": null,
-    "description": "Lokalna korekta wybranych miejsc",
-    "sort_order": 0
-  },
-  {
-    "id": "0e0de28f-540c-4a9f-b6ba-9fa86f6decb4",
-    "name": "Lekka korekta (Light One Step) – 30–50%",
-    "short_name": null,
-    "description": "Jednoetapowe odświeżenie lakieru usuwające 30–50% drobnych rys i hologramów, poprawiające połysk.",
-    "sort_order": 0
-  },
-  {
-    "id": "5d39288f-cd67-4650-a6f0-105e26517e3a",
-    "name": "Mycie detailingowe zewnętrzne",
-    "short_name": null,
-    "description": "Kompleksowe mycie zewnętrzne z dbałością o detale",
-    "sort_order": 0
-  },
-  {
-    "id": "1c728a56-684a-4bf0-afa2-e8ed241c8d0d",
-    "name": "Mycie podwozia hurricanem",
-    "short_name": "Mycie podwozia",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "7f426169-8cf1-47d4-a374-767adb7836e8",
-    "name": "Mycie silnika",
-    "short_name": "Mycie silnika",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "b2591558-dbe1-4614-a62b-2d7ba21fdcec",
-    "name": "Ozonowanie",
-    "short_name": "Ozonowanie",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "6841449c-1f1a-43f7-ba38-eb8563611870",
-    "name": "Polerowanie reflektorów",
-    "short_name": null,
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "49ac2c2e-64ae-4cde-993e-06bbcff2ad98",
-    "name": "Powłoka ceramiczna do ciemnych lakierów Gyeon Q² Pure EVO - 36 miesięcy ochrony",
-    "short_name": "Pure EVO 36",
-    "description": "Powłoka ceramiczna o wysokim połysku, dedykowana szczególnie do ciemnych lakierów. Trwałość do 3 lat. Zapewnia maksymalną głębię koloru i dobrą odporność mechaniczną.",
-    "sort_order": 0
-  },
-  {
-    "id": "2295c6fe-0510-4744-ae10-ca99a0d379c5",
-    "name": "Powłoka ceramiczna do opon Gyeon Q² Tire",
-    "short_name": null,
-    "description": "Powłoka zabezpieczająca opony, nadająca im estetyczne wykończenie i odporność na zabrudzenia.",
-    "sort_order": 0
-  },
-  {
-    "id": "6f020c2a-7244-49ec-9ae3-5236bef48491",
-    "name": "Powłoka ceramiczna do szyb Gyeon Q² View EVO",
-    "short_name": null,
-    "description": "Długotrwała powłoka hydrofobowa poprawiająca widoczność podczas deszczu i ułatwiająca mycie szyb.",
-    "sort_order": 0
-  },
-  {
-    "id": "0570d595-fe72-4462-ae64-93fe6697f65f",
-    "name": "Powłoka ceramiczna do szyb Gyeon Quick View",
-    "short_name": null,
-    "description": "Szybka aplikacja hydrofobowej ochrony szyb poprawiającej odprowadzanie wody.",
-    "sort_order": 0
+    "description": "Trwałość ochrony: do 36 miesięcy, Twardość struktury 9H, Efekt self-healing, Silna hydrofobowość",
+    "category_id": "188d37d1-1d7d-4ac4-8f5d-d2413a96aef6",
+    "category_name": "POWŁOKI OCHRONNE",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 3200.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
     "id": "f8911a0a-da8f-4879-846c-13911bc1fd65",
     "name": "Powłoka ceramiczna Gyeon Q² Mohs EVO - 36 miesięcy ochrony",
     "short_name": "Mohs EVO 36",
-    "description": "Gyeon Mohs EVO to zaawansowana powłoka ceramiczna klasy premium od marki Gyeon, przeznaczona do długoterminowej ochrony lakieru samochodowego. Jest to jedna z najmocniejszych powłok w ofercie producenta, ceniona za trwałość, odporność chemiczną oraz wyjątkowy efekt wizualny.\n\n🔹 Charakterystyka produktu\n\t•\tpowłoka ceramiczna nowej generacji (technologia EVO)\n\t•\tbardzo wysoka odporność na chemię, sól drogową i promieniowanie UV\n\t•\ttwardość i odporność na mikrozarysowania\n\t•\tsilne właściwości hydrofobowe i samoczyszczące\n\t•\tmożliwość aplikacji podwójnej (zwiększona trwałość i efekt)\n\t•\tprzeznaczona wyłącznie na lakier samochodowy\n\n✨ Efekt na karoserii\nPo aplikacji Gyeon Mohs EVO lakier zyskuje:\n\t•\twyraźnie pogłębiony kolor i efekt „mokrego lakieru"\n\t•\twysoki, szklisty połysk bez sztucznego efektu\n\t•\tgładką, śliską powierzchnię ograniczającą osadzanie się brudu\n\t•\tłatwiejsze i szybsze mycie pojazdu\n\t•\tdługotrwały efekt estetyczny utrzymujący się przez lata\n\n🛡️ Ochrona lakieru\nPowłoka tworzy trwałą, niewidoczną warstwę ochronną, która:\n\t•\tzabezpiecacza lakier przed utlenianiem i blaknięciem\n\t•\togranicza wpływ ptasich odchodów, owadów i osadów drogowych\n\t•\tchroni przed drobnymi zarysowaniami eksploatacyjnymi",
-    "sort_order": 0
+    "description": "Zaawansowana powłoka ceramiczna klasy premium, bardzo wysoka odporność na chemię i UV",
+    "category_id": "188d37d1-1d7d-4ac4-8f5d-d2413a96aef6",
+    "category_name": "POWŁOKI OCHRONNE",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 2700.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
-    "id": "925aaacc-025e-4409-9061-6a2104f53bec",
-    "name": "Powłoka ceramiczna Gyeon Q² Mohs Evo x2 - 60 miesięcy ochrony",
-    "short_name": "Mohs EVO 60",
-    "description": "Efekt powłoki:\n\n* Bardzo mocne podbicie koloru oraz głębi lakieru, nadające efekt „mokrego" wykończenia\n* Wysoki, krystalicznie czysty, wręcz szklany połysk\n* Wyraźna śliskość powierzchni, zauważalna już przy pierwszym kontakcie\n* Silny efekt hydrofobowy – woda błyskawicznie spływa z powierzchni\n* Ograniczone osadzanie się brudu, kurzu i zanieczyszczeń drogowych\n* Znacznie łatwiejsze, szybsze i bezpieczniejsze mycie pojazdu\n* Zwiększona odporność na chemię, promieniowanie UV oraz trudne warunki atmosferyczne",
-    "sort_order": 0
+    "id": "178ea118-3cd2-44c0-9e15-215ae134736f",
+    "name": "Folia PPF UltraFit Crystal XP bezbarwna",
+    "short_name": "UltraFit Crystal XP",
+    "description": "Realna ochrona lakieru, samoregeneracja rys, grubość ok. 200 mikronów, 10 lat gwarancji",
+    "category_id": "ca918cb9-e684-405c-beb9-ff53ab63683a",
+    "category_name": "WRAPPING - FOLIA PPF",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 0.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   },
   {
-    "id": "5dae58fa-50c7-435a-8e05-1fbad903a67f",
-    "name": "Powłoka ceramiczna Gyeon Q² One EVO - 24 miesięcy ochrony",
-    "short_name": "One EVO 24",
-    "description": "Jednowarstwowa powłoka ceramiczna o trwałości do 24 miesięcy. Poprawia połysk, zabezpiecza lakier przed chemią i czynnikami atmosferycznymi. Rozwiązanie pośrednie między CanCoat a Mohs.",
-    "sort_order": 0
-  },
-  {
-    "id": "f8b69306-0163-4d7b-b3d0-5056e1eb825d",
-    "name": "Powłoka ceramiczna Gyeon Q² Pure EVO - 36 miesięcy ochrony",
-    "short_name": "Pure EVO 36",
-    "description": "Powłoka ceramiczna o wysokim połysku, dedykowana szczególnie do ciemnych lakierów. Trwałość do 3 lat. Zapewnia maksymalną głębię koloru i dobrą odporność mechaniczną.",
-    "sort_order": 0
-  },
-  {
-    "id": "bd054e8b-d657-47f9-8b93-7ca330fb1e38",
-    "name": "Powłoka ceramiczna Gyeon Q² Pure EVO x2 - 60 miesięcy ochrony",
-    "short_name": "Pure EVO 60",
-    "description": "Dwie warstwy powłoki Q² Pure EVO. Zwiększona grubość ochrony i realna trwałość do ok. 5 lat. Lepsza odporność na zużycie i dłuższe utrzymanie efektu wizualnego.",
-    "sort_order": 0
-  },
-  {
-    "id": "b8cf4935-7877-4e46-bc5c-62ad701407d2",
-    "name": "Powłoka ceramiczna Gyeon Q² Syncro EVO - 48 miesięcy ochrony",
-    "short_name": "Syncro EVO 48",
-    "description": "System dwuetapowy (baza + top). Trwałość do 4 lat. Bardzo wysoka odporność chemiczna i mechaniczna, silna hydrofobowość. Rozwiązanie klasy premium.",
-    "sort_order": 0
-  },
-  {
-    "id": "921d0bda-7b2b-45cf-98e7-c5915806a930",
-    "name": "Powłoka cermaniczna na felgi Gyeon Q² Rim EVO",
-    "short_name": "Felgi RIM EVO",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "4de0f4f1-d53e-4db0-b61f-e495509c21fc",
-    "name": "Powłoka cermiaczna do lakierów matowych Gyeon CanCaot EVO - 12 miesięcy ochrony",
-    "short_name": "CanCaot EVO 12",
-    "description": "Lekka powłoka ochronna do lakieru. Zapewnia do 12 miesięcy ochrony, wyraźny efekt hydrofobowy i zwiększony połysk. Szybka aplikacja, dobra opcja ochrony rocznej.",
-    "sort_order": 0
-  },
-  {
-    "id": "85d728a9-eeca-4019-a4bd-a1167cbac3d3",
-    "name": "Powłoka cermiaczna do lakierów matowych Gyeon Q² Matte EVO - 24 miesiące ochrony",
-    "short_name": "Matte EVO 24",
-    "description": "24 miesiące ochrony",
-    "sort_order": 0
-  },
-  {
-    "id": "ff42bc40-3ae6-49b6-b242-e8cd454b09d2",
-    "name": "Powłoka na tapicerkę i elementy skórzane Gyeon Q² LeatherShield",
-    "short_name": "Skórzane LeatShield",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "7200aa50-5d06-44bf-9e09-e0e4189a4593",
-    "name": "Pranie boczków drzwiowych",
-    "short_name": "Pranie boczków",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "2b30ff58-179c-4209-af97-58b3cb34f3d4",
-    "name": "Pranie dywaników (komplet)",
-    "short_name": "Pranie dywaników",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "e9a7d303-3932-423a-ae62-13df35a0e04b",
-    "name": "Pranie foteli",
-    "short_name": "Pranie foteli",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "89b7ee61-3769-4bd6-ad5b-515c679a2246",
-    "name": "Pranie pasów bezpieczeństwa",
-    "short_name": "Pranie pasów",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "10a1b9b7-4725-4551-bb35-92fa3152bd24",
-    "name": "Pranie podłogi",
-    "short_name": "Pranie podłogi",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "1d428b88-ba5e-4734-8c88-37fe62f8ef29",
-    "name": "Pranie sufitu",
-    "short_name": "Pranie sufitu",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "ff4dc5ff-f837-4674-ba5b-299b9482cbc8",
-    "name": "Próg załadunkowy bagażnika",
-    "short_name": "Próg bagażnika",
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "8fb3309e-8d5b-4e17-aa15-e2735c1b719a",
-    "name": "Progi drzwi wewnętrzne",
-    "short_name": null,
-    "description": null,
-    "sort_order": 0
-  },
-  {
-    "id": "d6a8b8c5-8ade-4018-8463-539a852de0fb",
-    "name": "Usuwanie wgnieceń (PDR)",
-    "short_name": null,
-    "description": "Bezlakierowe usuwanie wgnieceń",
-    "sort_order": 0
-  },
-  {
-    "id": "161cb26d-c60f-4a8f-aaa6-21851fae8a97",
-    "name": "Wosk Fusso Coat – ochrona do 12 miesięcy",
-    "short_name": "Wosk do 12 miesięcy",
-    "description": "•\tRodzaj zabezpieczenia: wosk syntetyczny (sealant)\n\t•\tTrwałość: do 12 miesięcy\n\t•\tHydrofobowość: bardzo wysoka – silne odpychanie wody i zabrudzeń\n\t•\tOchrona: sól drogowa, chemia, kwaśne deszcze, promieniowanie UV\n\t•\tEfekt wizualny: czysty, uporządkowany połysk bez „tłustego" filmu\n\t•\tPowierzchnia lakieru: gładka i śliska w dotyku\n\t•\tOdporność: wysoka odporność na częste mycie\n\t•\tZastosowanie: lakiery nowe i używane\n\t•\tSezonowość: idealny na jesień i zimę\n\t•\tAlternatywa dla ceramiki: długotrwała ochrona w niższym budżecie",
-    "sort_order": 0
-  },
-  {
-    "id": "80664f2e-3b6b-4aaf-b2fa-3a8124e7e4e1",
-    "name": "Wosk Gyeon Q² Wax do 6 miesięcy",
-    "short_name": "WOSK GYEON 6M",
-    "description": "⭐ Co zyskujesz po aplikacji?\n\t•\tEfekt „mokrego lakieru" – intensywny połysk i wyraźne pogłębienie koloru\n\t•\tSilna hydrofobowość – woda i zabrudzenia są skutecznie odpychane\n\t•\tLakier dłużej pozostaje czysty i łatwiejszy w pielęgnacji\n\t•\tOchrona przed UV, solą drogową i chemią myjniową\n🛡️ Ochrona i trwałość\n\t•\tTrwałość zabezpieczenia do 6 miesięcy\n\t•\tBezpieczny dla lakierów nowych i używanych\n\t•\tChroni lakier przed utlenianiem i matowieniem\n🧼 Komfort użytkowania\n\t•\tBrak smug i zacieków\n\t•\tGładka, śliska powierzchnia lakieru\n\t•\tIdealny jako szybkie odświeżenie wyglądu pojazdu\n✔️ Dlaczego warto?\n\t•\tNatychmiastowy efekt wizualny\n\t•\tKrótki czas realizacji usługi\n\t•\tDoskonały stosunek ceny do efektu\n\t•\tIdealne rozwiązanie sezonowe lub jako uzupełnienie",
-    "sort_order": 0
-  },
-  {
-    "id": "2d12bd09-0dcb-46f6-8faa-07a170f3b9b7",
-    "name": "Wosk Soft99 do 12 miesięcy ochrony",
-    "short_name": "WOSK SOFT99 12M",
-    "description": "Dlaczego warto wybrać Gyeon Wax?\n\t•\tNatychmiastowy efekt wizualny\nWyraźne pogłębienie koloru, wysoki połysk i efekt „mokrego  do 12 miesięcy ochr",
-    "sort_order": 0
-  },
-  {
-    "id": "ae6320aa-3379-42fe-a78c-5bd0729fe5de",
-    "name": "Zaprawki lakiernicze",
-    "short_name": null,
-    "description": null,
-    "sort_order": 0
+    "id": "6c5fe92f-46d1-43f1-baac-1f779719f9c3",
+    "name": "Folia PPF Izotronik Clear Gloss bezbarwna",
+    "short_name": "Izotronik BEZBARWNA",
+    "description": "Grubość 190 µm, bezbarwna błyszcząca folia PPF, samoregenerująca warstwa topcoat",
+    "category_id": "ca918cb9-e684-405c-beb9-ff53ab63683a",
+    "category_name": "WRAPPING - FOLIA PPF",
+    "price_small": null,
+    "price_medium": null,
+    "price_large": null,
+    "price_from": null,
+    "default_price": 0.00,
+    "duration_small": null,
+    "duration_medium": null,
+    "duration_large": null,
+    "duration_minutes": null,
+    "requires_size": false,
+    "is_popular": false,
+    "prices_are_net": false,
+    "unit": "szt",
+    "station_type": "washing",
+    "service_type": "offer",
+    "sort_order": 0,
+    "active": true
   }
 ]
