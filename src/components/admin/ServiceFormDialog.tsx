@@ -402,7 +402,7 @@ const ServiceFormContent = ({
         {/* Row 1: Name, Short Name, Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr_2fr]"
+          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1.5fr_1.5fr]"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
@@ -419,7 +419,11 @@ const ServiceFormContent = ({
               className={cn(nameError && "border-destructive focus-visible:ring-destructive")}
             />
             {nameError && (
-              <p className="text-sm text-destructive">{t('priceList.errors.nameRequired', 'Nazwa usługi jest wymagana')}</p>
+              <p className="text-sm text-destructive">
+                {existingServices.some(s => s.id !== service?.id && s.name.toLowerCase().trim() === formData.name.toLowerCase().trim())
+                  ? t('priceList.errors.nameExists', 'Nazwa jest już używana')
+                  : t('priceList.errors.nameRequired', 'Nazwa usługi jest wymagana')}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -437,7 +441,7 @@ const ServiceFormContent = ({
               className={cn(shortNameError && "border-destructive focus-visible:ring-destructive")}
             />
             {shortNameError && (
-              <p className="text-sm text-destructive">{t('priceList.errors.shortNameExists', 'Usługa o takim skrócie już istnieje')}</p>
+              <p className="text-sm text-destructive">{t('priceList.errors.shortNameExists', 'Skrót jest już używany')}</p>
             )}
           </div>
           <div className="space-y-2">
