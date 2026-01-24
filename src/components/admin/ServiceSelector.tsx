@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 interface Service {
   id: string;
   name: string;
-  shortcut?: string | null;
+  short_name?: string | null;
   duration_minutes?: number | null;
   is_popular?: boolean | null;
 }
@@ -33,11 +33,11 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
       setLoading(true);
       const { data } = await supabase
         .from('unified_services')
-        .select('id, name, shortcut, duration_minutes, is_popular')
+        .select('id, name, short_name, duration_minutes, is_popular')
         .eq('instance_id', instanceId)
         .eq('service_type', 'reservation')
         .eq('active', true)
-        .order('sort_order');
+        .order('sort_order') as { data: Array<{ id: string; name: string; short_name: string | null; duration_minutes: number | null; is_popular: boolean | null }> | null };
       
       if (data) {
         setServices(data);
@@ -81,7 +81,7 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
   // Filter services based on search
   const filteredServices = searchValue
     ? services.filter(s => 
-        s.shortcut?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        s.short_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
         s.name.toLowerCase().includes(searchValue.toLowerCase())
       )
     : services;
@@ -135,10 +135,10 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
                     onCheckedChange={() => toggleService(service.id)}
                   />
                   <span className="text-sm">
-                    {service.shortcut && (
-                      <span className="text-primary font-semibold">[{service.shortcut}]</span>
+                    {service.short_name && (
+                      <span className="text-primary font-semibold">[{service.short_name}]</span>
                     )}
-                    {service.shortcut ? ` - ${service.name}` : service.name}
+                    {service.short_name ? ` - ${service.name}` : service.name}
                   </span>
                 </label>
               ))}
@@ -163,7 +163,7 @@ const ServiceSelector = ({ instanceId, selectedServiceIds, onServicesChange }: S
                   : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
-              {service.shortcut || service.name}
+              {service.short_name || service.name}
             </button>
           );
         })}
