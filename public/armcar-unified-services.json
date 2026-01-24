@@ -1,0 +1,597 @@
+{
+  "instance_id": "4ce15650-76c7-47e7-b5c8-32b9a2d1c321",
+  "generated_at": "2026-01-24",
+  "description": "Połączony cennik ARMCAR - usługi z service_type='both'",
+  "services": [
+    {
+      "category": "MYJNIA SAMOCHODOWA",
+      "items": [
+        {
+          "name": "Mycie zewnętrzne",
+          "short_name": "Mycie zewn.",
+          "price_small": 50, "price_medium": 60, "price_large": 80,
+          "duration_small": 30, "duration_medium": 35, "duration_large": 40,
+          "source": "reservation"
+        },
+        {
+          "name": "Komplet mycia (zewnątrz + wnętrze)",
+          "short_name": "Komplet mycia",
+          "price_small": 130, "price_medium": 160, "price_large": 200,
+          "duration_small": 90, "duration_medium": 100, "duration_large": 120,
+          "source": "reservation"
+        },
+        {
+          "name": "Odkurzanie",
+          "short_name": "Odkurzanie",
+          "price_small": 30, "price_medium": 40, "price_large": 50,
+          "duration_small": 20, "duration_medium": 25, "duration_large": 30,
+          "source": "reservation"
+        },
+        {
+          "name": "Czyszczenie plastików",
+          "short_name": "Plastiki",
+          "price_small": 20, "price_medium": 30, "price_large": 40,
+          "duration_small": 15, "duration_medium": 20, "duration_large": 25,
+          "source": "reservation"
+        },
+        {
+          "name": "Mycie szyb wewnątrz",
+          "short_name": "Szyby wewn.",
+          "price_small": 30, "price_medium": 30, "price_large": 40,
+          "duration_small": 15, "duration_medium": 20, "duration_large": 25,
+          "source": "reservation"
+        },
+        {
+          "name": "Mycie silnika",
+          "short_name": "Silnik",
+          "price_from": 122,
+          "duration_small": 60, "duration_medium": 60, "duration_large": 60,
+          "source": "reservation"
+        },
+        {
+          "name": "Mycie podwozia",
+          "short_name": "Podwozie",
+          "price_from": 81,
+          "duration_small": 30, "duration_medium": 30, "duration_large": 30,
+          "source": "reservation"
+        },
+        {
+          "name": "Usuwanie owadów",
+          "short_name": "Owady",
+          "price_small": 20, "price_medium": 20, "price_large": 30,
+          "duration_small": 10, "duration_medium": 15, "duration_large": 20,
+          "source": "reservation"
+        },
+        {
+          "name": "Nabłyszczanie opon",
+          "short_name": "Opony",
+          "price_small": 10, "price_medium": 10, "price_large": 10,
+          "duration_small": 5, "duration_medium": 5, "duration_large": 5,
+          "source": "reservation"
+        },
+        {
+          "name": "Usuwanie smoły",
+          "short_name": "Smoła",
+          "price_small": 20, "price_medium": 20, "price_large": 30,
+          "duration_small": 10, "duration_medium": 15, "duration_large": 20,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "PRANIE TAPICERKI",
+      "items": [
+        {
+          "name": "Pranie tapicerki - komplet",
+          "short_name": "Tapicerka komplet",
+          "price_small": 350, "price_medium": 400, "price_large": 500,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie foteli - komplet",
+          "short_name": "Fotele komplet",
+          "price_small": 150, "price_medium": 200, "price_large": 250,
+          "duration_small": 60, "duration_medium": 75, "duration_large": 90,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie fotela - 1 szt.",
+          "short_name": "Fotel 1 szt.",
+          "price_from": 50,
+          "duration_small": 20, "duration_medium": 20, "duration_large": 20,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie kanapy tylnej",
+          "short_name": "Kanapa tylna",
+          "price_from": 70,
+          "duration_small": 30, "duration_medium": 35, "duration_large": 40,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie podłogi - komplet",
+          "short_name": "Podłoga komplet",
+          "price_small": 100, "price_medium": 120, "price_large": 150,
+          "duration_small": 45, "duration_medium": 55, "duration_large": 65,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie bagażnika",
+          "short_name": "Bagażnik",
+          "price_small": 50, "price_medium": 70, "price_large": 100,
+          "duration_small": 25, "duration_medium": 30, "duration_large": 40,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie podsufitki",
+          "short_name": "Podsufitka",
+          "price_from": 81,
+          "duration_small": 40, "duration_medium": 50, "duration_large": 60,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie dywaników materiałowych",
+          "short_name": "Dywaniki mat.",
+          "price_from": 20,
+          "duration_small": 15, "duration_medium": 15, "duration_large": 15,
+          "source": "reservation"
+        },
+        {
+          "name": "Pranie pasów bezpieczeństwa",
+          "short_name": "Pasy",
+          "price_from": 49,
+          "duration_small": 20, "duration_medium": 20, "duration_large": 20,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "KOREKTA LAKIERU",
+      "items": [
+        {
+          "name": "Korekta lakieru - 1 etap",
+          "short_name": "Korekta 1-etap",
+          "price_small": 600, "price_medium": 800, "price_large": 1000,
+          "duration_small": 300, "duration_medium": 360, "duration_large": 420,
+          "source": "reservation"
+        },
+        {
+          "name": "Korekta lakieru - 2 etapy",
+          "short_name": "Korekta 2-etapy",
+          "price_small": 1000, "price_medium": 1400, "price_large": 1800,
+          "duration_small": 480, "duration_medium": 540, "duration_large": 600,
+          "source": "reservation"
+        },
+        {
+          "name": "Korekta lakieru - 3 etapy",
+          "short_name": "Korekta 3-etapy",
+          "price_small": 1400, "price_medium": 1800, "price_large": 2200,
+          "duration_small": 600, "duration_medium": 660, "duration_large": 720,
+          "source": "reservation"
+        },
+        {
+          "name": "Polerowanie reflektorów (para)",
+          "short_name": "Reflektory",
+          "price_from": 150,
+          "duration_small": 60, "duration_medium": 60, "duration_large": 60,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "USŁUGI DETAILINGOWE",
+      "items": [
+        {
+          "name": "Dekontaminacja lakieru",
+          "short_name": "Dekontaminacja",
+          "price_small": 150, "price_medium": 200, "price_large": 250,
+          "duration_small": 60, "duration_medium": 75, "duration_large": 90,
+          "source": "reservation"
+        },
+        {
+          "name": "Dekontaminacja felg",
+          "short_name": "Dekon. felg",
+          "price_from": 100,
+          "duration_small": 45, "duration_medium": 45, "duration_large": 45,
+          "source": "reservation"
+        },
+        {
+          "name": "Ozonowanie wnętrza",
+          "short_name": "Ozonowanie",
+          "price_from": 50,
+          "duration_small": 30, "duration_medium": 30, "duration_large": 30,
+          "source": "reservation"
+        },
+        {
+          "name": "Pielęgnacja skóry",
+          "short_name": "Pielęgnacja skóry",
+          "price_small": 200, "price_medium": 250, "price_large": 300,
+          "duration_small": 90, "duration_medium": 105, "duration_large": 120,
+          "source": "reservation"
+        },
+        {
+          "name": "Renowacja skóry",
+          "short_name": "Renowacja skóry",
+          "price_from": 500,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "reservation"
+        },
+        {
+          "name": "Impregnacja tkanin",
+          "short_name": "Impregnacja tkanin",
+          "price_small": 100, "price_medium": 130, "price_large": 160,
+          "duration_small": 30, "duration_medium": 40, "duration_large": 50,
+          "source": "reservation"
+        },
+        {
+          "name": "Czyszczenie felg z wosku",
+          "short_name": "Felgi z wosku",
+          "price_from": 60,
+          "duration_small": 30, "duration_medium": 40, "duration_large": 50,
+          "source": "reservation"
+        },
+        {
+          "name": "Detailing wnętrza",
+          "short_name": "Detailing wnętrza",
+          "price_small": 500, "price_medium": 600, "price_large": 800,
+          "duration_small": 240, "duration_medium": 300, "duration_large": 360,
+          "source": "reservation"
+        },
+        {
+          "name": "Detailing zewnętrzny",
+          "short_name": "Detailing zewn.",
+          "price_small": 600, "price_medium": 800, "price_large": 1000,
+          "duration_small": 300, "duration_medium": 360, "duration_large": 420,
+          "source": "reservation"
+        },
+        {
+          "name": "Czyszczenie uszczelki szyby",
+          "short_name": "Uszczelki szyb",
+          "price_from": 20,
+          "duration_small": 10, "duration_medium": 15, "duration_large": 20,
+          "source": "reservation"
+        },
+        {
+          "name": "Usuwanie sierści zwierząt",
+          "short_name": "Sierść",
+          "price_from": 50,
+          "duration_small": 30, "duration_medium": 45, "duration_large": 60,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "POWŁOKI CERAMICZNE GYEON",
+      "items": [
+        {
+          "name": "Gyeon Q² Syncro (3-5 lat)",
+          "short_name": "Syncro",
+          "description": "Dwuwarstwowa powłoka ceramiczna z toplayerem. Ochrona 3-5 lat.",
+          "price_from": 2500,
+          "duration_small": 480, "duration_medium": 540, "duration_large": 600,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² Mohs+ (3 lata)",
+          "short_name": "Mohs+",
+          "description": "Jednowarstwowa powłoka ceramiczna. Ochrona do 3 lat.",
+          "price_from": 2000,
+          "duration_small": 420, "duration_medium": 480, "duration_large": 540,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² Mohs (2 lata)",
+          "short_name": "Mohs",
+          "description": "Podstawowa powłoka ceramiczna. Ochrona do 2 lat.",
+          "price_from": 1500,
+          "duration_small": 360, "duration_medium": 420, "duration_large": 480,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² CanCoat (8-12 miesięcy)",
+          "short_name": "CanCoat",
+          "description": "Powłoka typu spray-on. Ochrona 8-12 miesięcy.",
+          "price_from": 500,
+          "duration_small": 120, "duration_medium": 150, "duration_large": 180,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² Rim (powłoka na felgi)",
+          "short_name": "Rim",
+          "description": "Dedykowana powłoka na felgi.",
+          "price_from": 400,
+          "duration_small": 90, "duration_medium": 120, "duration_large": 150,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² View (powłoka na szyby)",
+          "short_name": "View",
+          "description": "Hydrofobowa powłoka na szyby.",
+          "price_from": 200,
+          "duration_small": 45, "duration_medium": 60, "duration_large": 75,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² Leather Shield (powłoka na skórę)",
+          "short_name": "Leather Shield",
+          "description": "Ochrona skórzanej tapicerki.",
+          "price_from": 300,
+          "duration_small": 60, "duration_medium": 90, "duration_large": 120,
+          "source": "offer+manual"
+        },
+        {
+          "name": "Gyeon Q² Fabric Coat (powłoka na tkaniny)",
+          "short_name": "Fabric Coat",
+          "description": "Impregnacja tapicerki materiałowej.",
+          "price_from": 250,
+          "duration_small": 45, "duration_medium": 60, "duration_large": 75,
+          "source": "offer+manual"
+        }
+      ]
+    },
+    {
+      "category": "ELASTOMER / WOSK",
+      "items": [
+        {
+          "name": "Elastomer 6 miesięcy",
+          "short_name": "Elastomer 6m",
+          "price_small": 200, "price_medium": 250, "price_large": 300,
+          "duration_small": 60, "duration_medium": 75, "duration_large": 90,
+          "source": "reservation"
+        },
+        {
+          "name": "Elastomer 1 rok",
+          "short_name": "Elastomer 1r",
+          "price_small": 300, "price_medium": 400, "price_large": 500,
+          "duration_small": 90, "duration_medium": 105, "duration_large": 120,
+          "source": "reservation"
+        },
+        {
+          "name": "Elastomer 2 lata",
+          "short_name": "Elastomer 2l",
+          "price_from": 600,
+          "duration_small": 120, "duration_medium": 150, "duration_large": 180,
+          "source": "reservation"
+        },
+        {
+          "name": "Elastomer 3 lata",
+          "short_name": "Elastomer 3l",
+          "price_from": 850,
+          "duration_small": 150, "duration_medium": 180, "duration_large": 210,
+          "source": "reservation"
+        },
+        {
+          "name": "Elastomer 4 lata",
+          "short_name": "Elastomer 4l",
+          "price_from": 1000,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "reservation"
+        },
+        {
+          "name": "Elastomer 5 lat",
+          "short_name": "Elastomer 5l",
+          "price_from": 1200,
+          "duration_small": 210, "duration_medium": 240, "duration_large": 270,
+          "source": "reservation"
+        },
+        {
+          "name": "Wosk naturalny",
+          "short_name": "Wosk nat.",
+          "price_small": 100, "price_medium": 130, "price_large": 160,
+          "duration_small": 45, "duration_medium": 55, "duration_large": 65,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "FOLIE PPF - IZOTRONIK",
+      "items": [
+        {
+          "name": "PPF Izotronik - Maska",
+          "short_name": "PPF Maska",
+          "description": "Folia ochronna na maskę. Gwarancja 10 lat.",
+          "price_from": 1500,
+          "duration_small": 240, "duration_medium": 300, "duration_large": 360,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Błotniki przednie",
+          "short_name": "PPF Błotniki",
+          "description": "Folia ochronna na błotniki przednie.",
+          "price_from": 800,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Zderzak przedni",
+          "short_name": "PPF Zderzak przód",
+          "description": "Folia ochronna na zderzak przedni.",
+          "price_from": 1200,
+          "duration_small": 240, "duration_medium": 300, "duration_large": 360,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Zderzak tylny",
+          "short_name": "PPF Zderzak tył",
+          "description": "Folia ochronna na zderzak tylny.",
+          "price_from": 1000,
+          "duration_small": 210, "duration_medium": 270, "duration_large": 330,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Lusterka",
+          "short_name": "PPF Lusterka",
+          "description": "Folia ochronna na lusterka zewnętrzne.",
+          "price_from": 400,
+          "duration_small": 90, "duration_medium": 120, "duration_large": 150,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Klamki",
+          "short_name": "PPF Klamki",
+          "description": "Folia ochronna na klamki.",
+          "price_from": 300,
+          "duration_small": 60, "duration_medium": 90, "duration_large": 120,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Progi",
+          "short_name": "PPF Progi",
+          "description": "Folia ochronna na progi.",
+          "price_from": 600,
+          "duration_small": 150, "duration_medium": 180, "duration_large": 210,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Słupki A",
+          "short_name": "PPF Słupki A",
+          "description": "Folia ochronna na słupki A.",
+          "price_from": 400,
+          "duration_small": 90, "duration_medium": 120, "duration_large": 150,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Dach",
+          "short_name": "PPF Dach",
+          "description": "Folia ochronna na dach.",
+          "price_from": 1500,
+          "duration_small": 300, "duration_medium": 360, "duration_large": 420,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Full Front",
+          "short_name": "PPF Full Front",
+          "description": "Kompletna ochrona przodu pojazdu.",
+          "price_from": 4500,
+          "duration_small": 480, "duration_medium": 600, "duration_large": 720,
+          "source": "offer"
+        },
+        {
+          "name": "PPF Izotronik - Full Body",
+          "short_name": "PPF Full Body",
+          "description": "Całkowita ochrona karoserii.",
+          "price_from": 15000,
+          "duration_small": 2400, "duration_medium": 2880, "duration_large": 3360,
+          "source": "offer"
+        }
+      ]
+    },
+    {
+      "category": "FOLIE PPF - ULTRAFIT",
+      "items": [
+        {
+          "name": "PPF UltraFit - Maska",
+          "short_name": "UltraFit Maska",
+          "description": "Premium folia PPF na maskę.",
+          "price_from": 1800,
+          "duration_small": 240, "duration_medium": 300, "duration_large": 360,
+          "source": "offer"
+        },
+        {
+          "name": "PPF UltraFit - Błotniki przednie",
+          "short_name": "UltraFit Błotniki",
+          "description": "Premium folia PPF na błotniki.",
+          "price_from": 1000,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "offer"
+        },
+        {
+          "name": "PPF UltraFit - Zderzak przedni",
+          "short_name": "UltraFit Zderzak",
+          "description": "Premium folia PPF na zderzak przedni.",
+          "price_from": 1500,
+          "duration_small": 240, "duration_medium": 300, "duration_large": 360,
+          "source": "offer"
+        },
+        {
+          "name": "PPF UltraFit - Full Front",
+          "short_name": "UltraFit Full Front",
+          "description": "Kompletna ochrona przodu - premium.",
+          "price_from": 5500,
+          "duration_small": 480, "duration_medium": 600, "duration_large": 720,
+          "source": "offer"
+        },
+        {
+          "name": "PPF UltraFit - Full Body",
+          "short_name": "UltraFit Full Body",
+          "description": "Całkowita ochrona - premium.",
+          "price_from": 18000,
+          "duration_small": 2400, "duration_medium": 2880, "duration_large": 3360,
+          "source": "offer"
+        }
+      ]
+    },
+    {
+      "category": "MOVENO",
+      "items": [
+        {
+          "name": "MOVENO P1",
+          "short_name": "MOVENO P1",
+          "price_from": 500,
+          "duration_small": 120, "duration_medium": 120, "duration_large": 120,
+          "source": "reservation"
+        },
+        {
+          "name": "MOVENO P2",
+          "short_name": "MOVENO P2",
+          "price_from": 750,
+          "duration_small": 180, "duration_medium": 180, "duration_large": 180,
+          "source": "reservation"
+        }
+      ]
+    },
+    {
+      "category": "PRZYCIEMNIANIE SZYB",
+      "items": [
+        {
+          "name": "Przyciemnianie szyb - komplet tylnych",
+          "short_name": "Szyby tylne",
+          "description": "Folie przyciemniające na tylne szyby.",
+          "price_from": 600,
+          "duration_small": 180, "duration_medium": 210, "duration_large": 240,
+          "source": "offer"
+        },
+        {
+          "name": "Przyciemnianie szyb - cały samochód",
+          "short_name": "Szyby komplet",
+          "description": "Folie przyciemniające na wszystkie szyby.",
+          "price_from": 1000,
+          "duration_small": 300, "duration_medium": 360, "duration_large": 420,
+          "source": "offer"
+        }
+      ]
+    },
+    {
+      "category": "INNE USŁUGI",
+      "items": [
+        {
+          "name": "Usuwanie naklejek/folii",
+          "short_name": "Usuwanie folii",
+          "description": "Demontaż starych folii/naklejek.",
+          "price_from": 200,
+          "duration_small": 60, "duration_medium": 90, "duration_large": 120,
+          "source": "offer"
+        },
+        {
+          "name": "Konsultacja / Wycena",
+          "short_name": "Konsultacja",
+          "price_from": 0,
+          "duration_small": 30, "duration_medium": 30, "duration_large": 30,
+          "source": "manual"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_services": 73,
+    "categories": 11,
+    "notes": [
+      "Ceny w PLN netto",
+      "Czasy w minutach",
+      "price_small/medium/large = ceny dla rozmiarów auta",
+      "price_from = cena minimalna (wycena indywidualna)",
+      "source: reservation = z cennika rezerwacji, offer = z cennika ofert, manual = uzupełnione ręcznie"
+    ]
+  }
+}
