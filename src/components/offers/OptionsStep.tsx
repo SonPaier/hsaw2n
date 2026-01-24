@@ -16,9 +16,25 @@ interface Product {
   name: string;
   description: string | null;
   default_price: number;
+  price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
   unit: string;
   category: string | null;
 }
+
+// Get the lowest available price for display (price_from -> min(S/M/L) -> default_price)
+const getLowestPrice = (p: Product): number => {
+  if (p.price_from != null) return p.price_from;
+  
+  const sizes = [p.price_small, p.price_medium, p.price_large].filter(
+    (v): v is number => v != null
+  );
+  if (sizes.length > 0) return Math.min(...sizes);
+  
+  return p.default_price ?? 0;
+};
 interface Scope {
   id: string;
   name: string;
@@ -149,7 +165,7 @@ export const OptionsStep = ({
     onUpdateItem(optionId, itemId, {
       productId: product.id,
       customName: product.name,
-      unitPrice: product.default_price,
+      unitPrice: getLowestPrice(product),
       unit: product.unit,
       isCustom: false
     });
@@ -264,7 +280,7 @@ export const OptionsStep = ({
                               className="flex justify-between cursor-pointer"
                             >
                               <span className="flex-1">{product.name}</span>
-                              <span className="font-bold text-sm ml-4">{formatPrice(product.default_price)}</span>
+                              <span className="font-bold text-sm ml-4">{formatPrice(getLowestPrice(product))}</span>
                             </CommandItem>
                           ))
                         }
@@ -396,7 +412,7 @@ export const OptionsStep = ({
                             }).slice(0, 10).map(product => <CommandItem key={product.id} value={product.id} onSelect={() => handleProductSelect(option.id, item.id, product)} className="flex justify-between cursor-pointer">
                                         <span className="flex-1">{product.name}</span>
                                         <span className="font-bold text-sm ml-4">
-                                          {formatPrice(product.default_price)}
+                                          {formatPrice(getLowestPrice(product))}
                                         </span>
                                       </CommandItem>)}
                                 </CommandGroup>
@@ -482,7 +498,7 @@ export const OptionsStep = ({
                             }).slice(0, 10).map(product => <CommandItem key={product.id} value={product.id} onSelect={() => handleProductSelect(option.id, item.id, product)} className="flex justify-between cursor-pointer">
                                         <span className="flex-1">{product.name}</span>
                                         <span className="font-bold text-sm ml-4">
-                                          {formatPrice(product.default_price)}
+                                          {formatPrice(getLowestPrice(product))}
                                         </span>
                                       </CommandItem>)}
                                 </CommandGroup>
