@@ -10,6 +10,23 @@ import { cn } from '@/lib/utils';
 import { CategoryManagementDialog } from './CategoryManagementDialog';
 import { ServiceFormDialog } from './ServiceFormDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Service {
   id: string;
@@ -46,20 +63,76 @@ interface PriceListSettingsProps {
   instanceId: string | null;
 }
 
-// Removed STATION_TYPES as it's no longer used in the new form
-
-// Simple service row component for flat list
-const ServiceRow = ({ 
+// Sortable service row component for desktop
+const SortableServiceRow = ({ 
   service, 
   onEdit,
-  isMobile
+  disabled,
 }: { 
   service: Service; 
   onEdit: () => void; 
-  isMobile: boolean;
+  disabled: boolean;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: service.id, disabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const formatPrice = () => {
+    const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
+    if (prices.length > 0) {
+      const minPrice = Math.min(...prices);
+      return `od ${minPrice} zł`;
+    }
+    return service.price_from ? `od ${service.price_from} zł` : '-';
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={onEdit}
+      className={cn(
+        "flex items-center gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-muted/50 transition-colors cursor-pointer",
+        !service.active && "opacity-50",
+        isDragging && "opacity-50 bg-muted z-50",
+        !disabled && "cursor-grab active:cursor-grabbing"
+      )}
+    >
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <span className={cn("truncate", !service.active && "line-through")}>{service.name}</span>
+        {!service.active && (
+          <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">nieaktywna</span>
+        )}
+      </div>
+      
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-sm font-semibold text-primary whitespace-nowrap">{formatPrice()}</span>
+      </div>
+    </div>
+  );
+};
+
+// Simple service row for mobile (no drag)
+const ServiceRow = ({ 
+  service, 
+  onEdit,
+}: { 
+  service: Service; 
+  onEdit: () => void; 
 }) => {
   const formatPrice = () => {
-    // Check if any size-based prices exist
     const prices = [service.price_small, service.price_medium, service.price_large].filter(p => p != null && p > 0) as number[];
     if (prices.length > 0) {
       const minPrice = Math.min(...prices);
@@ -108,6 +181,18 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   
   // Category management dialog state
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+
+  // DnD sensors - only enabled on desktop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchCategories = async () => {
     if (!instanceId) return;
@@ -234,6 +319,53 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
     }
   };
 
+  // Handle drag end for reordering services
+  const handleDragEnd = async (event: DragEndEvent, categoryId: string | null) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    const categoryServices = categoryId === null 
+      ? services.filter(s => !s.category_id || !categories.some(c => c.id === s.category_id))
+      : services.filter(s => s.category_id === categoryId);
+    
+    const oldIndex = categoryServices.findIndex(s => s.id === active.id);
+    const newIndex = categoryServices.findIndex(s => s.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    const reorderedCategoryServices = arrayMove(categoryServices, oldIndex, newIndex);
+    
+    // Update local state immediately for smooth UX
+    const newServices = services.map(s => {
+      const reorderedIdx = reorderedCategoryServices.findIndex(rs => rs.id === s.id);
+      if (reorderedIdx !== -1) {
+        return { ...s, sort_order: reorderedIdx };
+      }
+      return s;
+    });
+    setServices(newServices);
+    
+    // Persist to database
+    try {
+      const updates = reorderedCategoryServices.map((s, idx) => ({
+        id: s.id,
+        sort_order: idx,
+      }));
+      
+      for (const update of updates) {
+        await supabase
+          .from('unified_services')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
+      }
+    } catch (error) {
+      console.error('Error reordering services:', error);
+      toast.error(t('priceList.errors.reorderError', 'Błąd zmiany kolejności'));
+      fetchServices(); // Revert on error
+    }
+  };
+
   // Compute service counts per category for the management dialog
   const serviceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -252,6 +384,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   }
 
   const uncategorizedServices = getServicesByCategory(null);
+  const isSearching = !!searchQuery.trim();
 
   return (
     <div className="space-y-6">
@@ -296,14 +429,32 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             </Button>
           </div>
           <div className="bg-white rounded-lg">
-            {uncategorizedServices.map(service => (
-              <ServiceRow
-                key={service.id}
-                service={service}
-                onEdit={() => openEditDialog(service)}
-                isMobile={isMobile}
-              />
-            ))}
+            {isMobile ? (
+              uncategorizedServices.map(service => (
+                <ServiceRow
+                  key={service.id}
+                  service={service}
+                  onEdit={() => openEditDialog(service)}
+                />
+              ))
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e) => handleDragEnd(e, null)}
+              >
+                <SortableContext items={uncategorizedServices.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                  {uncategorizedServices.map(service => (
+                    <SortableServiceRow
+                      key={service.id}
+                      service={service}
+                      onEdit={() => openEditDialog(service)}
+                      disabled={isSearching}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
         </div>
       )}
@@ -330,15 +481,31 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
                 <p className="text-sm text-muted-foreground p-4 text-center">
                   {t('priceList.noServicesInCategory')}
                 </p>
-              ) : (
+              ) : isMobile ? (
                 categoryServices.map(service => (
                   <ServiceRow
                     key={service.id}
                     service={service}
                     onEdit={() => openEditDialog(service)}
-                    isMobile={isMobile}
                   />
                 ))
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => handleDragEnd(e, category.id)}
+                >
+                  <SortableContext items={categoryServices.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                    {categoryServices.map(service => (
+                      <SortableServiceRow
+                        key={service.id}
+                        service={service}
+                        onEdit={() => openEditDialog(service)}
+                        disabled={isSearching}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </div>
