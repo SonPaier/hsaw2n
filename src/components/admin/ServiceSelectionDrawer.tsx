@@ -499,6 +499,8 @@ const ServiceSelectionDrawer = ({
                         <button
                           key={service.id}
                           type="button"
+                          data-testid="service-item"
+                          data-service-id={service.id}
                           onClick={() => toggleService(service.id)}
                           className={cn(
                             "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
@@ -567,6 +569,7 @@ const ServiceSelectionDrawer = ({
             disabled={selectedIds.length === 0}
             className="w-full"
             size="lg"
+            data-testid="service-confirm-button"
           >
             {t('serviceDrawer.addButton')}
           </Button>

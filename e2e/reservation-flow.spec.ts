@@ -136,11 +136,37 @@ test.describe('Reservation Happy Path', () => {
       await plateInput.fill(testCustomer.plate);
     }
 
-    // Select first service
+    // Select first service - need to open service drawer first
     console.log('🔧 Selecting service...');
-    const serviceButton = page.locator('[data-testid="service-item"], .service-card, [class*="service"]').first();
-    if (await serviceButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await serviceButton.click();
+    
+    // Click "Add services" button to open service drawer
+    const addServicesButton = page.locator('[data-testid="add-services-button"], button:has-text("Dodaj usługi")').first();
+    if (await addServicesButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await addServicesButton.click();
+      console.log('✅ Clicked add services button');
+      
+      // Wait for drawer to open and services to load
+      await page.waitForTimeout(500);
+      
+      // Click on first service item in drawer
+      const serviceItem = page.locator('[data-testid="service-item"]').first();
+      await serviceItem.waitFor({ state: 'visible', timeout: 5000 });
+      await serviceItem.click();
+      console.log('✅ Selected service');
+      
+      // Click confirm button in drawer
+      const confirmButton = page.locator('[data-testid="service-confirm-button"]').first();
+      await confirmButton.click();
+      console.log('✅ Confirmed service selection');
+      
+      // Wait for drawer to close
+      await page.waitForTimeout(500);
+    } else {
+      // Try old fallback
+      const serviceButton = page.locator('[data-testid="service-item"], .service-card, [class*="service"]').first();
+      if (await serviceButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await serviceButton.click();
+      }
     }
 
     // Save reservation
