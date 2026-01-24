@@ -34,6 +34,8 @@ interface OfferProductSelectionDrawerProps {
   instanceId: string;
   selectedProductIds: string[];
   onConfirm: (productIds: string[]) => void;
+  /** When true, filter by service_type='both'. When false/undefined, filter by 'offer' or 'both' (legacy). */
+  hasUnifiedServices?: boolean;
 }
 
 export function OfferProductSelectionDrawer({
@@ -42,6 +44,7 @@ export function OfferProductSelectionDrawer({
   instanceId,
   selectedProductIds: initialSelectedIds,
   onConfirm,
+  hasUnifiedServices = false,
 }: OfferProductSelectionDrawerProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -71,23 +74,34 @@ export function OfferProductSelectionDrawer({
       
       setLoading(true);
       
-      // Fetch products with service_type 'offer' or 'both'
+      // Build query based on hasUnifiedServices
+      // For new records (hasUnifiedServices=true), show only 'both'
+      // For legacy records, show 'offer' or 'both'
+      let productsQuery = supabase
+        .from('unified_services')
+        .select('id, name, short_name, category_id, default_price, unit, service_type')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+      
+      let categoriesQuery = supabase
+        .from('unified_categories')
+        .select('id, name, sort_order')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+      
+      if (hasUnifiedServices) {
+        // New unified services - show only 'both'
+        productsQuery = productsQuery.eq('service_type', 'both');
+        categoriesQuery = categoriesQuery.eq('category_type', 'both');
+      } else {
+        // Legacy behavior - show 'offer' or 'both'
+        productsQuery = productsQuery.or('service_type.eq.offer,service_type.eq.both');
+        categoriesQuery = categoriesQuery.or('category_type.eq.offer,category_type.eq.both');
+      }
+      
       const [productsRes, categoriesRes] = await Promise.all([
-        supabase
-          .from('unified_services')
-          .select('id, name, short_name, category_id, default_price, unit, service_type')
-          .or('service_type.eq.offer,service_type.eq.both')
-          .eq('instance_id', instanceId)
-          .eq('active', true)
-          .order('category_id')
-          .order('name'),
-        supabase
-          .from('unified_categories')
-          .select('id, name, sort_order')
-          .or('category_type.eq.offer,category_type.eq.both')
-          .eq('instance_id', instanceId)
-          .eq('active', true)
-          .order('sort_order'),
+        productsQuery.order('category_id').order('name'),
+        categoriesQuery.order('sort_order'),
       ]);
 
       if (productsRes.data && !productsRes.error) {
@@ -101,7 +115,7 @@ export function OfferProductSelectionDrawer({
     };
     
     fetchData();
-  }, [open, instanceId]);
+  }, [open, instanceId, hasUnifiedServices]);
 
   // Get selected products with details
   const selectedProducts = useMemo(() => {

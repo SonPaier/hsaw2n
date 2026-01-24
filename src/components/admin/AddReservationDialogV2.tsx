@@ -98,6 +98,7 @@ interface EditingReservation {
   price?: number | null;
   confirmation_code?: string;
   offer_number?: string | null;
+  has_unified_services?: boolean | null;
 }
 
 export interface YardVehicle {
@@ -1357,7 +1358,7 @@ const AddReservationDialogV2 = ({
                 carSize={carSize}
                 selectedServiceIds={selectedServices}
                 stationType="universal"
-                hasUnifiedServices={!isEditMode}
+                hasUnifiedServices={isEditMode ? (editingReservation?.has_unified_services ?? false) : true}
                 onConfirm={(serviceIds, duration, servicesData) => {
                   markUserEditing();
                   setSelectedServices(serviceIds);
