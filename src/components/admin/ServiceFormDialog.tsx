@@ -365,7 +365,7 @@ const ServiceFormContent = ({
         {/* Row 1: Name, Short Name, Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[3fr_2fr_1fr]"
+          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1fr_2fr]"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">

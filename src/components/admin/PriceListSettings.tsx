@@ -514,7 +514,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const isSearching = !!searchQuery.trim();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 md:pb-6">
       {/* Header with buttons inline on desktop */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
