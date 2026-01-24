@@ -86,7 +86,7 @@ const ServiceRow = ({
       </div>
       
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">{formatPrice()}</span>
+        <span className="text-sm font-semibold text-primary whitespace-nowrap">{formatPrice()}</span>
       </div>
     </button>
   );
@@ -256,11 +256,14 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Top action buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Usługi będą widoczne do wyboru w rezerwacjach i przy tworzeniu szablonów ofert. Kategorie są opcjonalne.
-        </p>
+      {/* Header with buttons inline on desktop */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Cennik usług</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Usługi będą widoczne do wyboru w rezerwacjach i przy tworzeniu szablonów ofert. Kategorie są opcjonalne.
+          </p>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button onClick={() => openEditDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
@@ -287,13 +290,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       {/* Uncategorized services */}
       {uncategorizedServices.length > 0 && (
         <div>
-          <div className="flex items-center justify-between py-3 border-b-2 border-border">
+          <div className="flex items-center justify-between py-3">
             <h3 className="font-semibold text-foreground uppercase">{t('priceList.noCategory')}</h3>
             <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, '')} className="h-8 w-8">
               <Plus className="w-4 h-4" />
             </Button>
           </div>
-          <div className="bg-white rounded-b-lg">
+          <div className="bg-white rounded-lg">
             {uncategorizedServices.map(service => (
               <ServiceRow
                 key={service.id}
@@ -317,13 +320,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
 
         return (
           <div key={category.id}>
-            <div className="flex items-center justify-between py-3 border-b-2 border-border">
+            <div className="flex items-center justify-between py-3">
               <h3 className="font-semibold text-foreground uppercase">{category.name}</h3>
               <Button variant="ghost" size="icon" onClick={() => openEditDialog(undefined, category.id)} className="h-8 w-8">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-white rounded-b-lg">
+            <div className="bg-white rounded-lg">
               {categoryServices.length === 0 ? (
                 <p className="text-sm text-muted-foreground p-4 text-center">
                   {t('priceList.noServicesInCategory')}
