@@ -317,7 +317,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           variant_name,
           is_default,
           sort_order,
-          product:unified_services!product_id(id, name, short_name, default_price)
+          product:unified_services!product_id(id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id)
         `)
         .eq('scope_id', scopeId)
         .order('sort_order');
@@ -369,17 +369,23 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
         variant_name: '',
         is_default: kept.length === 0 && idx === 0,
         sort_order: 0,
-        product: {
-          id: p.productId,
-          name: p.productName,
-          short_name: p.productShortName,
-          default_price: p.price,
-          price_from: p.price,
-          price_small: null,
-          price_medium: null,
-          price_large: null,
-          category_id: p.category ?? null,
-        },
+        // Use the full product record (with price_from + S/M/L) from drawer prefetch
+        // so price display stays consistent after save/reload.
+        product:
+          availableProducts.find((ap) => ap.id === p.productId) ??
+          {
+            id: p.productId,
+            name: p.productName,
+            short_name: p.productShortName,
+            default_price: null,
+            // If we don't have full record, at least keep the computed lowest price
+            // for immediate UI feedback.
+            price_from: p.price,
+            price_small: null,
+            price_medium: null,
+            price_large: null,
+            category_id: null,
+          },
       }));
 
     const next = [...kept, ...added].map((sp, index) => ({
