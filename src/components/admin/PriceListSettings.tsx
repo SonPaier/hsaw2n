@@ -41,12 +41,14 @@ interface Service {
   price_small: number | null;
   price_medium: number | null;
   price_large: number | null;
+  prices_are_net: boolean | null;
   requires_size: boolean | null;
   station_type: string | null;
   category_id: string;
   active: boolean | null;
   sort_order: number | null;
   is_popular: boolean | null;
+  service_type: string | null;
 }
 
 interface ServiceCategory {
@@ -533,13 +535,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           price_small: editingService.price_small,
           price_medium: editingService.price_medium,
           price_large: editingService.price_large,
-          prices_are_net: true,
+          prices_are_net: editingService.prices_are_net ?? true,
           duration_minutes: editingService.duration_minutes,
           duration_small: editingService.duration_small,
           duration_medium: editingService.duration_medium,
           duration_large: editingService.duration_large,
           category_id: editingService.category_id,
-          service_type: 'both',
+          service_type: (editingService.service_type || 'both') as 'both' | 'offer' | 'reservation',
         } : null}
         categories={categories}
         onSaved={fetchServices}
