@@ -285,7 +285,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       const { data } = await supabase
         .from('unified_services')
         .select('id, name, short_name, default_price')
-        .eq('service_type', 'offer')
+        .eq('service_type', 'both')
         .in('id', newProductIds);
 
       if (data) {
