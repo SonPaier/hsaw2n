@@ -92,13 +92,24 @@ interface ServiceFormDialogProps {
   onDelete?: () => void;
 }
 
-// Info icon with tooltip component
+// Info icon with tooltip component - only shows on click, not on focus
 function FieldInfo({ tooltip }: { tooltip: string }) {
+  const [open, setOpen] = useState(false);
+  
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
-          <button type="button" className="p-0.5 text-muted-foreground hover:text-foreground">
+          <button 
+            type="button" 
+            className="p-0.5 text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(!open);
+            }}
+            onFocus={(e) => e.preventDefault()}
+          >
             <Info className="w-5 h-5" />
           </button>
         </TooltipTrigger>
@@ -756,7 +767,11 @@ export const ServiceFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-muted [&>button]:absolute [&>button]:right-4 [&>button]:top-4">
+      <DialogContent 
+        className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-muted [&>button]:absolute [&>button]:right-4 [&>button]:top-4"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
