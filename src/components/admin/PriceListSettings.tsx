@@ -1,28 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, GripVertical, Search, Settings2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, GripVertical, Search, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslation } from 'react-i18next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -44,6 +25,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CategoryManagementDialog } from './CategoryManagementDialog';
+import { ServiceFormDialog } from './ServiceFormDialog';
 
 interface Service {
   id: string;
@@ -80,12 +62,7 @@ interface PriceListSettingsProps {
   instanceId: string | null;
 }
 
-const STATION_TYPES = [
-  { value: 'washing', labelKey: 'priceList.stationTypes.washing' },
-  { value: 'detailing', labelKey: 'priceList.stationTypes.detailing' },
-  { value: 'ppf', labelKey: 'priceList.stationTypes.ppf' },
-  { value: 'universal', labelKey: 'priceList.stationTypes.universal' },
-];
+// Removed STATION_TYPES as it's no longer used in the new form
 
 // Simple service row component for flat list
 const ServiceRow = ({ 
@@ -168,32 +145,12 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [saving, setSaving] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [defaultCategoryId, setDefaultCategoryId] = useState<string>('');
   
   // Category management dialog state
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
-  
-  // Form state for editing/adding service
-  const [formData, setFormData] = useState({
-    name: '',
-    shortcut: '',
-    description: '',
-    duration_minutes: 60,
-    duration_small: 60,
-    duration_medium: 60,
-    duration_large: 60,
-    price_from: 0,
-    price_small: 0,
-    price_medium: 0,
-    price_large: 0,
-    requires_size: true,
-    station_type: 'washing',
-    category_id: '',
-    active: true,
-    is_popular: false,
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -271,104 +228,12 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const openEditDialog = (service?: Service, preselectedCategoryId?: string) => {
     if (service) {
       setEditingService(service);
-      setFormData({
-        name: service.name,
-        shortcut: service.shortcut || '',
-        description: service.description || '',
-        duration_minutes: service.duration_minutes || 60,
-        duration_small: service.duration_small || service.duration_minutes || 60,
-        duration_medium: service.duration_medium || service.duration_minutes || 60,
-        duration_large: service.duration_large || service.duration_minutes || 60,
-        price_from: service.price_from || 0,
-        price_small: service.price_small || 0,
-        price_medium: service.price_medium || 0,
-        price_large: service.price_large || 0,
-        requires_size: service.requires_size ?? true,
-        station_type: service.station_type || 'washing',
-        category_id: service.category_id,
-        active: service.active ?? true,
-        is_popular: service.is_popular ?? false,
-      });
+      setDefaultCategoryId(service.category_id || '');
     } else {
       setEditingService(null);
-      const defaultCategoryId = preselectedCategoryId || (categories.length > 0 ? categories[0].id : '');
-      setFormData({
-        name: '',
-        shortcut: '',
-        description: '',
-        duration_minutes: 60,
-        duration_small: 60,
-        duration_medium: 60,
-        duration_large: 60,
-        price_from: 0,
-        price_small: 0,
-        price_medium: 0,
-        price_large: 0,
-        requires_size: true,
-        station_type: 'washing',
-        category_id: defaultCategoryId,
-        active: true,
-        is_popular: false,
-      });
+      setDefaultCategoryId(preselectedCategoryId || '');
     }
     setEditDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!instanceId) return;
-    if (!formData.name.trim()) {
-      toast.error(t('priceList.errors.nameRequired'));
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const serviceData = {
-        instance_id: instanceId,
-        name: formData.name.trim(),
-        shortcut: formData.shortcut.trim() || null,
-        description: formData.description.trim() || null,
-        duration_minutes: formData.duration_minutes,
-        duration_small: formData.requires_size ? formData.duration_small : null,
-        duration_medium: formData.requires_size ? formData.duration_medium : null,
-        duration_large: formData.requires_size ? formData.duration_large : null,
-        price_from: formData.price_from || null,
-        price_small: formData.requires_size ? formData.price_small : null,
-        price_medium: formData.requires_size ? formData.price_medium : null,
-        price_large: formData.requires_size ? formData.price_large : null,
-        requires_size: formData.requires_size,
-        station_type: formData.station_type as any,
-        category_id: formData.category_id,
-        active: formData.active,
-        is_popular: formData.is_popular,
-        sort_order: editingService?.sort_order ?? services.length,
-      };
-
-      if (editingService) {
-        const { error } = await supabase
-          .from('unified_services')
-          .update({ ...serviceData, service_type: 'both' })
-          .eq('id', editingService.id);
-        
-        if (error) throw error;
-        toast.success(t('priceList.serviceUpdated'));
-      } else {
-        const { error } = await supabase
-          .from('unified_services')
-          .insert({ ...serviceData, service_type: 'both' });
-        
-        if (error) throw error;
-        toast.success(t('priceList.serviceAdded'));
-      }
-
-      setEditDialogOpen(false);
-      fetchServices();
-    } catch (error) {
-      console.error('Error saving service:', error);
-      toast.error(t('priceList.errors.saveError'));
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleDelete = async (serviceId: string) => {
@@ -586,204 +451,29 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       )}
 
       {/* Edit/Add Service Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingService ? t('priceList.editService') : t('priceList.addNewService')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('priceList.dialogDescription')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2 col-span-2">
-                <Label>{t('priceList.form.serviceName')} *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={t('priceList.form.serviceNamePlaceholder')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('priceList.form.shortcut')}</Label>
-                <Input
-                  value={formData.shortcut}
-                  onChange={(e) => setFormData(prev => ({ ...prev, shortcut: e.target.value.toUpperCase() }))}
-                  placeholder={t('priceList.form.shortcutPlaceholder')}
-                  maxLength={10}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('priceList.form.description')}</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t('priceList.form.descriptionPlaceholder')}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('priceList.form.category')}</Label>
-              <Select
-                value={formData.category_id || 'none'}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('priceList.form.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="none">{t('priceList.noCategory')}</SelectItem>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('priceList.form.stationType')}</Label>
-              <Select
-                value={formData.station_type}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, station_type: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {STATION_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {t(type.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('priceList.form.duration')}</Label>
-              <Input
-                type="number"
-                value={formData.duration_minutes}
-                onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) || 60 }))}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label>{t('priceList.form.priceBySize')}</Label>
-              <Switch
-                checked={formData.requires_size}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, requires_size: v }))}
-              />
-            </div>
-
-            {formData.requires_size ? (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.sizeSmall')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_small}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price_small: parseFloat(e.target.value) || 0 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.sizeMedium')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_medium}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price_medium: parseFloat(e.target.value) || 0 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.sizeLarge')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.price_large}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price_large: parseFloat(e.target.value) || 0 }))}
-                    />
-                  </div>
-                </div>
-
-                <Label className="text-sm text-muted-foreground">{t('priceList.form.durationBySize')}</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.small')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.duration_small}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration_small: parseInt(e.target.value) || 60 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.medium')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.duration_medium}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration_medium: parseInt(e.target.value) || 60 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">{t('priceList.form.large')}</Label>
-                    <Input
-                      type="number"
-                      value={formData.duration_large}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration_large: parseInt(e.target.value) || 60 }))}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-2">
-                <Label>{t('priceList.form.priceFrom')}</Label>
-                <Input
-                  type="number"
-                  value={formData.price_from}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price_from: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <Label>{t('priceList.form.serviceActive')}</Label>
-              <Switch
-                checked={formData.active}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, active: v }))}
-              />
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
-              <Checkbox
-                id="is_popular"
-                checked={formData.is_popular}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_popular: !!v }))}
-              />
-              <Label htmlFor="is_popular" className="cursor-pointer">
-                {t('priceList.form.popularService')}
-              </Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              <Save className="w-4 h-4" />
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ServiceFormDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        instanceId={instanceId || ''}
+        service={editingService ? {
+          id: editingService.id,
+          name: editingService.name,
+          short_name: editingService.shortcut,
+          description: editingService.description,
+          price_from: editingService.price_from,
+          price_small: editingService.price_small,
+          price_medium: editingService.price_medium,
+          price_large: editingService.price_large,
+          prices_are_net: true,
+          duration_minutes: editingService.duration_minutes,
+          category_id: editingService.category_id,
+          service_type: 'both',
+        } : null}
+        categories={categories}
+        onSaved={fetchServices}
+        defaultCategoryId={defaultCategoryId}
+        totalServicesCount={services.length}
+      />
 
       {/* Category Management Dialog */}
       <CategoryManagementDialog
