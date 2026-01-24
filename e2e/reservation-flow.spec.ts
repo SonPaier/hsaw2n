@@ -189,9 +189,7 @@ test.describe('Reservation Happy Path', () => {
 
     // Save reservation
     console.log('💾 Saving reservation...');
-    // Button text is "Dodaj rezerwację" for new reservations (from t('addReservation.addReservation'))
-    const saveButton = page.locator('button:has-text("Dodaj rezerwację"), button:has-text("Zapisz"), button:has-text("Dodaj")').first();
-    await saveButton.click();
+    await page.getByRole('button', { name: 'Dodaj rezerwację' }).click();
 
     // Wait for Sheet (dialog) to close - this is the primary success indicator
     // Sheet uses [role="dialog"] in Radix UI
