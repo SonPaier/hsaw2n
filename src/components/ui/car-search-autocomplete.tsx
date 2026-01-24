@@ -324,6 +324,7 @@ export const CarSearchAutocomplete = ({
                         role="option"
                         aria-selected={isActive}
                         data-index={itemIndex}
+                        data-testid="car-option"
                         className={cn(
                           'w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between',
                           isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
