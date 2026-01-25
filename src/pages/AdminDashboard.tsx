@@ -1189,8 +1189,10 @@ const AdminDashboard = () => {
   };
   const handleReservationClick = (reservation: Reservation) => {
     // Close add/edit drawer when opening details drawer
+    setAddReservationOpen(false);
     setAddReservationV2Open(false);
     setEditingReservation(null);
+    setSlotPreview(null);
     setSelectedReservation(reservation);
   };
   const handleDeleteReservation = async (reservationId: string, customerData: {
