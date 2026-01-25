@@ -1114,6 +1114,26 @@ const AddReservationDialogV2 = ({
 
         if (updateError) throw updateError;
 
+        // Upsert customer vehicle (silently in background)
+        if (carModel && carModel.trim() && carModel.trim() !== 'BRAK' && phone) {
+          const carSizeCode = carSize === 'small' ? 'S' : carSize === 'large' ? 'L' : 'M';
+          (async () => {
+            try {
+              await supabase.rpc('upsert_customer_vehicle', {
+                _instance_id: instanceId,
+                _phone: normalizePhoneForStorage(phone),
+                _model: carModel.trim(),
+                _plate: null,
+                _customer_id: customerId || null,
+                _car_size: carSizeCode,
+              });
+              console.log('Customer vehicle upserted on edit:', carModel);
+            } catch (err) {
+              console.error('Failed to upsert customer vehicle:', err);
+            }
+          })();
+        }
+
         // Send push notification for edit
         sendPushNotification({
           instanceId,
@@ -1169,6 +1189,26 @@ const AddReservationDialogV2 = ({
         });
 
         toast.success(t('addReservation.reservationCreated'));
+        
+        // Upsert customer vehicle (silently in background)
+        if (carModel && carModel.trim() && carModel.trim() !== 'BRAK' && phone) {
+          const carSizeCode = carSize === 'small' ? 'S' : carSize === 'large' ? 'L' : 'M';
+          (async () => {
+            try {
+              await supabase.rpc('upsert_customer_vehicle', {
+                _instance_id: instanceId,
+                _phone: normalizePhoneForStorage(phone),
+                _model: carModel.trim(),
+                _plate: null,
+                _customer_id: customerId || null,
+                _car_size: carSizeCode,
+              });
+              console.log('Customer vehicle upserted on create:', carModel);
+            } catch (err) {
+              console.error('Failed to upsert customer vehicle:', err);
+            }
+          })();
+        }
         
         // Save custom car model as proposal (silently in background)
         if (isCustomCarModel && carModel.trim() && carModel.trim() !== 'BRAK') {
