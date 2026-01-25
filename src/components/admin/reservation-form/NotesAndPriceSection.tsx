@@ -52,9 +52,10 @@ export const NotesAndPriceSection = ({
             <Input
               id="finalPrice"
               type="number"
-              value={finalPrice || discountedPrice}
+              value={finalPrice !== '' ? finalPrice : discountedPrice || ''}
               onChange={(e) => setFinalPrice(e.target.value)}
               className="w-32"
+              placeholder={discountedPrice > 0 ? String(discountedPrice) : '0'}
             />
             <span className="text-muted-foreground">zł</span>
             {customerDiscountPercent && customerDiscountPercent > 0 && totalPrice > 0 && (
