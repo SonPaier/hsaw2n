@@ -210,6 +210,8 @@ const AddReservationDialogV2 = ({
   const [servicesWithCategory, setServicesWithCategory] = useState<ServiceWithCategory[]>([]);
   const [adminNotes, setAdminNotes] = useState('');
   const [finalPrice, setFinalPrice] = useState('');
+  // Track if user manually modified the finalPrice (dirty check)
+  const [userModifiedFinalPrice, setUserModifiedFinalPrice] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isCustomCarModel, setIsCustomCarModel] = useState(false);
   const [customerDiscountPercent, setCustomerDiscountPercent] = useState<number | null>(null);
@@ -352,6 +354,7 @@ const AddReservationDialogV2 = ({
       
       // Reset user editing flags for new dialog session
       setUserModifiedEndTime(false);
+      setUserModifiedFinalPrice(false);
       setValidationErrors({});
       
       if (isYardMode && editingYardVehicle) {
@@ -448,6 +451,8 @@ const AddReservationDialogV2 = ({
         
         setAdminNotes(editingReservation.admin_notes || '');
         setFinalPrice(editingReservation.price?.toString() || '');
+        // Mark as user-modified if editing reservation with existing price
+        setUserModifiedFinalPrice(!!editingReservation.price);
         setOfferNumber(editingReservation.offer_number || '');
         setFoundVehicles([]);
         setFoundCustomers([]);
@@ -1360,7 +1365,8 @@ const AddReservationDialogV2 = ({
                     });
                   }}
                   onTotalPriceChange={(newTotal) => {
-                    if (!finalPrice) {
+                    // Only auto-update finalPrice if user hasn't manually modified it
+                    if (!userModifiedFinalPrice) {
                       setFinalPrice(newTotal.toString());
                     }
                   }}
@@ -1472,6 +1478,7 @@ const AddReservationDialogV2 = ({
                 discountedPrice={discountedPrice}
                 customerDiscountPercent={customerDiscountPercent}
                 markUserEditing={markUserEditing}
+                onFinalPriceUserEdit={() => setUserModifiedFinalPrice(true)}
               />
             </div>
           </div>
