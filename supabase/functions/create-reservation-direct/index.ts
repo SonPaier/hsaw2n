@@ -152,7 +152,9 @@ serve(async (req: Request): Promise<Response> => {
       .from("reservations")
       .insert({
         instance_id: instanceId,
-        service_id: reservationData.serviceId,
+        service_id: null,
+        service_ids: [reservationData.serviceId],
+        has_unified_services: true,
         station_id: reservationData.stationId || null,
         reservation_date: reservationData.date,
         start_time: reservationData.time,

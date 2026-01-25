@@ -2271,13 +2271,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reservations_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reservations_station_id_fkey"
             columns: ["station_id"]
             isOneToOne: false
