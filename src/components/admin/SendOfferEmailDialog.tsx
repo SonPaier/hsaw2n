@@ -126,11 +126,14 @@ export function SendOfferEmailDialog({
         },
       });
 
-      if (error) throw error;
-      
-      // Check for error in response body
+      // Check for error in response body first (Edge Function returns JSON with error)
       if (data?.error) {
         throw new Error(data.error);
+      }
+      
+      // Then check for network/invoke error
+      if (error) {
+        throw new Error(error.message || 'Błąd połączenia z serwerem');
       }
 
       toast.success(t('offers.emailSent'));
@@ -148,8 +151,10 @@ export function SendOfferEmailDialog({
         userMessage = 'Brak adresu email klienta';
       } else if (errorMessage.includes('SMTP not configured')) {
         userMessage = 'Wysyłka email nie jest skonfigurowana';
-      } else if (errorMessage.includes('Invalid address') || errorMessage.includes('invalid') && errorMessage.includes('address')) {
+      } else if (errorMessage.includes('Invalid address') || (errorMessage.includes('invalid') && errorMessage.includes('address'))) {
         userMessage = 'Nieprawidłowy adres email - sprawdź czy nie ma literówki';
+      } else if (errorMessage.includes('mailbox unavailable') || errorMessage.includes('invalid DNS') || errorMessage.includes('550')) {
+        userMessage = 'Nieprawidłowy adres email - domena nie istnieje lub zawiera błąd';
       } else if (errorMessage.includes('Mailbox not found') || errorMessage.includes('does not exist') || errorMessage.includes('User unknown')) {
         userMessage = 'Adres email nie istnieje - sprawdź poprawność';
       } else if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
@@ -158,9 +163,8 @@ export function SendOfferEmailDialog({
         userMessage = 'Wiadomość została odrzucona przez serwer odbiorcy';
       } else if (errorMessage.includes('authentication') || errorMessage.includes('auth')) {
         userMessage = 'Błąd autoryzacji serwera email';
-      } else if (errorMessage) {
-        // Show the actual error if we don't have a specific translation
-        userMessage = `Błąd wysyłki: ${errorMessage}`;
+      } else if (errorMessage.includes('non-2xx') || errorMessage.includes('Edge Function')) {
+        userMessage = 'Błąd wysyłki email - sprawdź poprawność adresu';
       }
       
       toast.error(userMessage);
@@ -179,20 +183,20 @@ export function SendOfferEmailDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto px-6 pb-4">
+        <div className="flex-1 flex flex-col overflow-hidden px-6 pb-4">
           {/* Recipient */}
-          <div className="flex items-center gap-2 text-sm mb-3">
+          <div className="flex items-center gap-2 text-sm mb-3 flex-shrink-0">
             <span className="text-muted-foreground">{t('sendEmailDialog.to')}:</span>
             <span className="font-medium">{customerEmail || t('offers.noCustomerEmail')}</span>
           </div>
 
           {/* Email body editor */}
-          <div className="space-y-2">
+          <div className="flex flex-col flex-1 space-y-2">
             <Label>{t('sendEmailDialog.editTemplate')}</Label>
             <Textarea
               value={emailBody}
               onChange={(e) => setEmailBody(e.target.value)}
-              className="min-h-[300px] sm:min-h-[400px] resize-none font-mono text-sm"
+              className="flex-1 min-h-0 resize-none font-mono text-sm"
             />
           </div>
         </div>
