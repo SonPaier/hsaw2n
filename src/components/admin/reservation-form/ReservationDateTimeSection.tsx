@@ -131,6 +131,7 @@ export const ReservationDateTimeSection = ({
               defaultMonth={dateRange?.from || new Date()}
               selected={dateRange}
               onSelect={(range) => {
+                markUserEditing();
                 setDateRange(range);
                 onClearDateRangeError();
                 if (range?.from && range?.to) {
@@ -210,7 +211,7 @@ export const ReservationDateTimeSection = ({
           <Label htmlFor="manualStation">
             {t('addReservation.selectStation')} <span className="text-destructive">*</span>
           </Label>
-          <Select value={manualStationId || ''} onValueChange={setManualStationId}>
+          <Select value={manualStationId || ''} onValueChange={(val) => { markUserEditing(); setManualStationId(val); }}>
             <SelectTrigger className={cn(timeError && !manualStationId && 'border-destructive')}>
               <SelectValue placeholder={t('addReservation.selectStation')} />
             </SelectTrigger>
