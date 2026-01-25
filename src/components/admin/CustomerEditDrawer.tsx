@@ -119,7 +119,7 @@ const CustomerEditDrawer = ({
         vehicle_plate,
         price,
         status,
-        services:service_id (name)
+        service_ids
       `)
       .eq('instance_id', instanceId)
       .eq('customer_phone', customer.phone)
@@ -132,7 +132,7 @@ const CustomerEditDrawer = ({
         reservation_date: v.reservation_date,
         start_time: v.start_time,
         vehicle_plate: v.vehicle_plate,
-        service_name: v.services ? (v.services as any).name : null,
+        service_name: null, // Legacy relation removed - would need to lookup from service_ids
         price: v.price,
         status: v.status,
       })));

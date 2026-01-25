@@ -652,7 +652,6 @@ const AdminDashboard = () => {
         confirmation_sms_sent_at,
         pickup_sms_sent_at,
         has_unified_services,
-        services:service_id (name, shortcut),
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
@@ -727,7 +726,6 @@ const AdminDashboard = () => {
           confirmation_sms_sent_at,
           pickup_sms_sent_at,
           has_unified_services,
-          services:service_id (name, shortcut),
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
         .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
@@ -852,7 +850,6 @@ const AdminDashboard = () => {
             offer_number,
             confirmation_sms_sent_at,
             pickup_sms_sent_at,
-            services:service_id (name, shortcut),
             stations:station_id (name, type)
           `)
           .eq('instance_id', instanceId)
@@ -865,10 +862,7 @@ const AdminDashboard = () => {
             status: data.status || 'pending',
             service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
             service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
-            service: data.services ? {
-              name: (data.services as any).name,
-              shortcut: (data.services as any).shortcut
-            } : undefined,
+            service: undefined, // Legacy relation removed - use service_ids/service_items instead
             station: data.stations ? {
               name: (data.stations as any).name,
               type: (data.stations as any).type
@@ -975,7 +969,6 @@ const AdminDashboard = () => {
               service_items,
               created_by_username,
               offer_number,
-              services:service_id (name, shortcut),
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -993,10 +986,7 @@ const AdminDashboard = () => {
                   status: data.status || 'pending',
                   service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
                   service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
-                  service: data.services ? {
-                    name: (data.services as any).name,
-                    shortcut: (data.services as any).shortcut
-                  } : undefined,
+                  service: undefined, // Legacy relation removed - use service_ids/service_items instead
                   services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
                   station: data.stations ? {
                     name: (data.stations as any).name,
@@ -1049,7 +1039,6 @@ const AdminDashboard = () => {
               customer_notes,
               car_size,
               offer_number,
-              services:service_id (name, shortcut),
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -1067,10 +1056,7 @@ const AdminDashboard = () => {
                   status: data.status || 'pending',
                   service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
                   service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
-                  service: data.services ? {
-                    name: (data.services as any).name,
-                    shortcut: (data.services as any).shortcut
-                  } : undefined,
+                  service: undefined, // Legacy relation removed
                   services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
                   station: data.stations ? {
                     name: (data.stations as any).name,
