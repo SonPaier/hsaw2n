@@ -209,7 +209,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       const [productsRes, categoriesRes] = await Promise.all([
         supabase
           .from('unified_services')
-          .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type')
+          .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type, visibility')
           .eq('instance_id', instanceId)
           .eq('service_type', 'both')
           .eq('active', true)
@@ -223,7 +223,12 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       ]);
 
       if (!productsRes.error && productsRes.data) {
-        setAvailableProducts(productsRes.data as Product[]);
+        // Filter out services with visibility='only_reservations' - they shouldn't appear in offer drawers
+        const filtered = productsRes.data.filter(p => {
+          const vis = (p as any).visibility || 'everywhere';
+          return vis !== 'only_reservations';
+        });
+        setAvailableProducts(filtered as Product[]);
       }
 
       // Build category id->name map and name->sort_order map

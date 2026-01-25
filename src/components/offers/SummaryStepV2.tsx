@@ -193,13 +193,20 @@ export const SummaryStepV2 = ({
 
       // For extras scopes - fetch products with service_type='both' (unified model)
       // This ensures new products are automatically available without manual sync
+      // Also filter out visibility='only_reservations' as those should not appear in offer drawers
       const { data: allProductsData } = await supabase
         .from('unified_services')
-        .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type')
+        .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type, visibility')
         .eq('instance_id', instanceId)
         .eq('service_type', 'both')
         .eq('active', true)
         .order('name');
+      
+      // Filter out services with visibility='only_reservations' (they shouldn't appear in offers)
+      const filteredProductsData = (allProductsData || []).filter(p => {
+        const vis = (p as any).visibility || 'everywhere';
+        return vis !== 'only_reservations';
+      });
 
       // Fetch categories with category_type='both' (unified model)
       const { data: categoryData } = await supabase
@@ -228,7 +235,7 @@ export const SummaryStepV2 = ({
         
         if (scope.is_extras_scope) {
           // All products available as extras - no need to manually add them to offer_scope_products
-          scopeProducts = (allProductsData || []).map(product => ({
+          scopeProducts = filteredProductsData.map(product => ({
             id: `extras-${product.id}`, // Virtual ID since not from offer_scope_products
             product_id: product.id,
             variant_name: null,
