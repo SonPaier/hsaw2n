@@ -108,6 +108,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [savedProtocolIdForEmail, setSavedProtocolIdForEmail] = useState<string | null>(null);
+  
+  // Date picker
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Unsaved changes dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -706,7 +709,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data protokołu</Label>
-              <Popover>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -723,8 +726,14 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                   <Calendar
                     mode="single"
                     selected={protocolDate}
-                    onSelect={(date) => date && setProtocolDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setProtocolDate(date);
+                        setDatePickerOpen(false);
+                      }
+                    }}
                     locale={pl}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
