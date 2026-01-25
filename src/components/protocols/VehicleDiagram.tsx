@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type VehicleView = 'full';
-
 export type BodyType = 'sedan' | 'suv' | 'coupe' | 'cabrio' | 'van' | 'kombi' | 'hatchback';
 
 export interface DamagePoint {
@@ -38,7 +38,10 @@ export const VehicleDiagram = ({
 }: VehicleDiagramProps) => {
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
+  const isMobile = useIsMobile();
+  
+  // Point size: 0.75rem (12px) on desktop, 2.5x larger (30px) on mobile
+  const pointSize = isMobile ? '1.875rem' : '0.75rem';
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || draggingPointId) return;
     if (!onAddPoint) return;
@@ -138,8 +141,8 @@ export const VehicleDiagram = ({
             style={{
               left: `${point.x_percent}%`,
               top: `${point.y_percent}%`,
-              width: '0.75rem',
-              height: '0.75rem',
+              width: pointSize,
+              height: pointSize,
             }}
             onMouseDown={(e) => !readOnly && handlePointMouseDown(e, point)}
             onTouchStart={(e) => !readOnly && handlePointMouseDown(e, point)}
