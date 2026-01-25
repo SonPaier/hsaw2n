@@ -76,6 +76,7 @@ interface ServiceData {
   duration_large?: number | null;
   category_id: string | null;
   service_type: 'both' | 'reservation' | 'offer';
+  visibility?: 'all' | 'reservations' | 'offers';
   sort_order?: number | null;
   reminder_template_id?: string | null;
 }
@@ -192,6 +193,7 @@ const ServiceFormContent = ({
           duration_large: service?.duration_large ?? null,
           category_id: service?.category_id || defaultCategoryId || '',
           service_type: service?.service_type || 'both',
+          visibility: service?.visibility || 'all',
           reminder_template_id: service?.reminder_template_id || '__none__',
         });
 
@@ -256,6 +258,7 @@ const ServiceFormContent = ({
         duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
+        visibility: service.visibility || 'all',
         reminder_template_id: service.reminder_template_id || '__none__',
       });
     }
@@ -317,6 +320,7 @@ const ServiceFormContent = ({
         duration_large: showSizeDurations ? formData.duration_large : null,
         category_id: formData.category_id || null,
         service_type: formData.service_type,
+        visibility: formData.visibility,
         requires_size: showSizePrices || showSizeDurations,
         reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
         active: true,
@@ -686,28 +690,26 @@ const ServiceFormContent = ({
               )}
             </div>
 
-            {/* Visibility - only show for legacy services, hidden for unified ones */}
-            {formData.service_type !== 'both' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
-                  <FieldInfo tooltip="Gdzie usługa będzie widoczna" />
-                </div>
-                <Select
-                  value={formData.service_type}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
-                    <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
-                    <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Visibility - controls where service appears in UI drawers */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+                <FieldInfo tooltip="Gdzie usługa będzie widoczna w drawerach wyboru" />
               </div>
-            )}
+              <Select
+                value={formData.visibility}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, visibility: v as 'all' | 'reservations' | 'offers' }))}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="all">{t('priceList.form.visibilityAll', 'Wszędzie')}</SelectItem>
+                  <SelectItem value="reservations">{t('priceList.form.visibilityReservations', 'Tylko rezerwacje')}</SelectItem>
+                  <SelectItem value="offers">{t('priceList.form.visibilityOffers', 'Tylko oferty')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Reminder Template */}
             {reminderTemplates.length > 0 && (
