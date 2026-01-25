@@ -263,12 +263,18 @@ const AddReservationDialogV2 = ({
     const fetchData = async () => {
       if (!open || !instanceId) return;
       
-      // Fetch all active services (service_type 'reservation' or 'both')
+      // Fetch services based on has_unified_services flag:
+      // - unified (has_unified_services=true) → only 'both'
+      // - legacy (has_unified_services=false) → only 'reservation'
+      const serviceTypeFilter = editingReservation?.has_unified_services === false 
+        ? 'reservation' 
+        : 'both';
+      
       const servicesQuery = supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
-        .in('service_type', ['reservation', 'both'])
+        .eq('service_type', serviceTypeFilter)
         .eq('active', true);
       
       const { data: servicesData } = await servicesQuery.order('sort_order');
