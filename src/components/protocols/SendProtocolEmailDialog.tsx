@@ -41,7 +41,7 @@ const getDefaultMessage = (customerName: string, vehicleInfo: string | undefined
       .replace(/{typ_protokolu}/g, typeLabel);
   }
   const typeLabel = PROTOCOL_TYPE_LABELS[protocolType];
-  return `Dzień dobry ${customerName},\n\nW załączeniu przesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\n[Link do protokołu zostanie automatycznie dołączony]\n\nPozdrawiamy`;
+  return `Dzień dobry ${customerName},\n\nPrzesyłamy protokół ${typeLabel} pojazdu${vehicleInfo ? ` ${vehicleInfo}` : ''}.\n\nProsimy o zapoznanie się z dokumentem.\n\n[Link do protokołu zostanie automatycznie dołączony]`;
 };
 
 const getDefaultSubject = (vehicleInfo: string | undefined, protocolType: ProtocolType) => {
