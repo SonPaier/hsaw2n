@@ -1,145 +1,83 @@
 
-# Plan: Zamiana starego dialogu edycji usługi na nowy ServiceFormDialog
+# Plan: Naprawa błędu FK constraint dla unified_services
 
-## Kontekst
+## Problem
+Kolumna `reservations.service_id` ma Foreign Key constraint do starej tabeli `services`, ale aplikacja używa teraz `unified_services`. Próba zapisu rezerwacji z nową usługą powoduje błąd 409 Conflict.
 
-Obecnie w projekcie istnieją dwa dialogi do edycji usług:
+## Rozwiązanie
 
-1. **Stary dialog (`AddProductDialog`)** - prosty formularz z polami:
-   - Nazwa, Nazwa skrócona, Cena netto
-   - Marka, Kategoria
-   - Opis (z AI)
-   - Szablon przypomnień
-   - Dodatkowe parametry (metadata)
+### 1. Migracja bazy danych
+Usunięcie starego FK constraint:
+```sql
+ALTER TABLE public.reservations 
+DROP CONSTRAINT IF EXISTS reservations_service_id_fkey;
 
-2. **Nowy dialog (`ServiceFormDialog`)** - pełny formularz z cennikiem:
-   - Nazwa, Skrót (short_name), Kategoria
-   - Ceny S/M/L lub pojedyncza cena
-   - Wybór netto/brutto
-   - Czasy trwania (pojedynczy lub S/M/L)
-   - Opis (z AI)
-   - Widoczność (wszędzie, tylko rezerwacje, tylko oferty)
-   - Szablon przypomnień
-   - Sekcja zaawansowana
-
-## Miejsca użycia starego dialogu
-
-| Plik | Kontekst |
-|------|----------|
-| `ProductsView.tsx` | Biblioteka produktów (usługi legacy typu offer) |
-| `SummaryStepV2.tsx` | Kreator ofert - edycja usługi w podsumowaniu |
-| `OfferServiceEditView.tsx` | Edytor szablonów ofert - edycja usługi w szablonie |
-
-## Plan implementacji
-
-### Krok 1: Przygotowanie ServiceFormDialog do użycia w różnych kontekstach
-
-Aktualnie `ServiceFormDialog` jest ściśle związany z cennikiem. Musimy upewnić się, że:
-- Może być używany bez przekazywania `onDelete` (ukrywa przycisk Usuń)
-- Może być używany bez `existingServices` (pomija walidację unikalności)
-- Obsługuje callback `onSaved` który odświeża dane w miejscu wywołania
-
-### Krok 2: Aktualizacja OfferServiceEditView.tsx
-
-Zamiana:
-```tsx
-// PRZED:
-import { AddProductDialog } from '@/components/products/AddProductDialog';
-...
-<AddProductDialog
-  open={!!editingProductId}
-  onOpenChange={(open) => !open && setEditingProductId(null)}
-  instanceId={instanceId}
-  categories={[]}
-  onProductAdded={async () => { ... }}
-  product={scopeProducts.find(sp => sp.product_id === editingProductId)?.product as any}
-/>
+COMMENT ON COLUMN public.reservations.service_id IS 
+  'Legacy: dla starych rezerwacji. Nowe (has_unified_services=true) używają service_ids array';
 ```
 
-Na:
-```tsx
-// PO:
-import { ServiceFormDialog } from '@/components/admin/ServiceFormDialog';
-...
-<ServiceFormDialog
-  open={!!editingProductId}
-  onOpenChange={(open) => !open && setEditingProductId(null)}
-  instanceId={instanceId}
-  categories={categories} // z prefetch unified_categories
-  service={mapProductToServiceData(editingProduct)}
-  onSaved={async () => { ... }}
-/>
+### 2. Aktualizacja frontendu
+**Plik: `src/components/admin/AddReservationDialogV2.tsx`**
+
+Zmiana w **UPDATE** (linia ~1093):
+```typescript
+// Przed:
+service_id: selectedServices[0],
+
+// Po:
+service_id: editingReservation.has_unified_services ? null : selectedServices[0],
 ```
 
-Szczegóły:
-- Dodać fetch kategorii z `unified_categories` (już jest w komponencie jako `categoryMap`)
-- Zmapować `Product` na `ServiceData` zgodnie z interfejsem
-- Usunąć import `AddProductDialog`
+Zmiana w **INSERT** (linia ~1133):
+```typescript
+// Przed:
+service_id: selectedServices[0],
 
-### Krok 3: Aktualizacja SummaryStepV2.tsx
+// Po:
+service_id: null,
+```
 
-Analogiczna zamiana jak w kroku 2:
-- Zamienić `AddProductDialog` na `ServiceFormDialog`
-- Zmapować `editingProduct` na format `ServiceData`
-- Dodać fetch kategorii (jeśli jeszcze nie ma)
+### 3. Aktualizacja Edge Functions
 
-### Krok 4: Aktualizacja ProductsView.tsx
+**Plik: `supabase/functions/create-reservation-direct/index.ts`** (linia ~155)
+```typescript
+// Przed:
+service_id: reservationData.serviceId,
 
-Tutaj sytuacja jest bardziej złożona, ponieważ `ProductsView` obsługuje produkty typu `offer` (legacy):
-- Zamienić `AddProductDialog` na `ServiceFormDialog`
-- Upewnić się, że przekazywany `service_type` odpowiada kontekstowi widoku
-- Zmapować strukturę `Product` na `ServiceData`
+// Po:
+service_id: null,
+service_ids: [reservationData.serviceId],
+has_unified_services: true,
+```
 
-### Krok 5: Usunięcie AddProductDialog
+**Plik: `supabase/functions/verify-sms-code/index.ts`** (linia ~170)
+```typescript
+// Przed:
+service_id: reservationData.serviceId,
 
-Po przeniesieniu wszystkich użyć:
-- Usunąć plik `src/components/products/AddProductDialog.tsx`
-- Usunąć ewentualne nieużywane klucze tłumaczeń z `pl.json` (jeśli były specyficzne dla tego dialogu)
+// Po:
+service_id: null,
+service_ids: [reservationData.serviceId],
+has_unified_services: true,
+```
 
 ## Szczegóły techniczne
 
-### Mapowanie Product -> ServiceData
+### Pliki do edycji
+| Plik | Zmiana |
+|------|--------|
+| Migracja SQL | Usunięcie `reservations_service_id_fkey` |
+| `AddReservationDialogV2.tsx` | `service_id: null` dla nowych, warunkowe dla edycji |
+| `create-reservation-direct/index.ts` | `service_id: null`, dodanie `service_ids` i `has_unified_services` |
+| `verify-sms-code/index.ts` | Analogiczna zmiana jak wyżej |
 
-```typescript
-function mapProductToServiceData(product: Product | null): ServiceData | null {
-  if (!product) return null;
-  return {
-    id: product.id,
-    name: product.name,
-    short_name: product.short_name,
-    description: product.description,
-    price_from: product.price_from ?? product.default_price,
-    price_small: product.price_small,
-    price_medium: product.price_medium,
-    price_large: product.price_large,
-    prices_are_net: product.prices_are_net ?? false,
-    duration_minutes: product.duration_minutes,
-    duration_small: product.duration_small,
-    duration_medium: product.duration_medium,
-    duration_large: product.duration_large,
-    category_id: product.category_id,
-    service_type: (product.service_type as 'both' | 'reservation' | 'offer') ?? 'both',
-    visibility: product.visibility,
-    reminder_template_id: product.reminder_template_id,
-  };
-}
-```
+### Dlaczego to bezpieczne
+- Stare rezerwacje zachowają swoje `service_id` - bez zmian
+- Nowe rezerwacje używają `service_ids` (JSONB array) i `service_items` (snapshot)
+- Flaga `has_unified_services` pozwala rozróżnić stary i nowy model
+- Edycja starych rezerwacji (`has_unified_services = false`) zachowuje kompatybilność
 
-### Zmiana kategorii
-
-ServiceFormDialog wymaga kategorii jako `{ id: string, name: string }[]`, więc:
-- W `OfferServiceEditView` wykorzystać istniejący `categoryMap` przekształcony na tablicę
-- W `SummaryStepV2` dodać fetch kategorii z `unified_categories`
-- W `ProductsView` wykorzystać istniejące kategorie
-
-## Pliki do modyfikacji
-
-1. `src/components/offers/services/OfferServiceEditView.tsx` - zamiana dialogu
-2. `src/components/offers/SummaryStepV2.tsx` - zamiana dialogu
-3. `src/components/admin/ProductsView.tsx` - zamiana dialogu
-4. `src/components/products/AddProductDialog.tsx` - usunięcie pliku
-
-## Ryzyko
-
-- **Brak pola "Marka"** - ServiceFormDialog nie ma pola brand. Jeśli jest używane, trzeba je dodać lub zaakceptować brak
-- **Brak "Dodatkowych parametrów"** - metadata nie jest obsługiwana w ServiceFormDialog. Do rozważenia czy jest potrzebna
+### Efekt po naprawie
+- Błąd 409 przestanie występować
+- Nowe rezerwacje: `service_id: null`, dane w `service_ids`
+- Stare rezerwacje: bez zmian, `service_id` wskazuje na `services`
