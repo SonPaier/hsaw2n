@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -62,6 +62,8 @@ const SelectedServicesList = ({
 }: SelectedServicesListProps) => {
   const { t } = useTranslation();
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  // Local editing value to allow typing empty/partial values
+  const [editingValue, setEditingValue] = useState<string>('');
 
   // Get base price for a service based on car size
   const getBasePrice = (service: ServiceWithCategory): number => {
@@ -177,25 +179,42 @@ const SelectedServicesList = ({
                   {isEditing ? (
                     <Input
                       type="number"
-                      value={displayedPrice || ''}
+                      value={editingValue}
                       onChange={(e) => {
-                        const value = e.target.value ? parseFloat(e.target.value) : null;
+                        const rawValue = e.target.value;
+                        setEditingValue(rawValue);
+                        
+                        // Notify parent of price change
+                        const value = rawValue === '' ? null : parseFloat(rawValue);
                         onPriceChange(service.id, value);
                         
                         // Calculate new total and notify parent
-                        if (onTotalPriceChange && value !== null) {
+                        if (onTotalPriceChange) {
                           const newTotal = selectedServices.reduce((total, s) => {
                             if (s.id === service.id) {
-                              return total + value;
+                              return total + (value || 0);
                             }
                             return total + getDisplayedPrice(s.id, s);
                           }, 0);
                           onTotalPriceChange(newTotal);
                         }
                       }}
-                      onBlur={() => setEditingPriceId(null)}
+                      onBlur={() => {
+                        // On blur, if value is empty, reset to base price
+                        if (editingValue === '') {
+                          onPriceChange(service.id, null);
+                        }
+                        setEditingPriceId(null);
+                        setEditingValue('');
+                      }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') setEditingPriceId(null);
+                        if (e.key === 'Enter') {
+                          if (editingValue === '') {
+                            onPriceChange(service.id, null);
+                          }
+                          setEditingPriceId(null);
+                          setEditingValue('');
+                        }
                       }}
                       className={cn(
                         "w-20 h-8 text-right text-sm font-semibold bg-white",
@@ -208,7 +227,10 @@ const SelectedServicesList = ({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setEditingPriceId(service.id)}
+                      onClick={() => {
+                        setEditingPriceId(service.id);
+                        setEditingValue(displayedPrice.toString());
+                      }}
                       className={cn(
                         "px-2 py-1 rounded text-sm font-semibold text-right min-w-[60px] hover:bg-muted transition-colors",
                         hasCustomPrice && "text-primary"

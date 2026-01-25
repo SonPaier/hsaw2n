@@ -13,6 +13,7 @@ interface NotesAndPriceSectionProps {
   totalPrice: number;
   customerDiscountPercent: number | null;
   markUserEditing?: () => void;
+  onFinalPriceUserEdit?: () => void;
 }
 
 export const NotesAndPriceSection = ({
@@ -25,6 +26,7 @@ export const NotesAndPriceSection = ({
   totalPrice,
   customerDiscountPercent,
   markUserEditing,
+  onFinalPriceUserEdit,
 }: NotesAndPriceSectionProps) => {
   const { t } = useTranslation();
 
@@ -60,6 +62,7 @@ export const NotesAndPriceSection = ({
               value={finalPrice !== '' ? finalPrice : discountedPrice || ''}
               onChange={(e) => {
                 markUserEditing?.();
+                onFinalPriceUserEdit?.();
                 setFinalPrice(e.target.value);
               }}
               className="w-32"

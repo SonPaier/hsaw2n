@@ -337,4 +337,121 @@ describe('SelectedServicesList', () => {
       expect(screen.getByText(/1h 15min/)).toBeInTheDocument();
     });
   });
+
+  describe('Inline price editing - local state', () => {
+    it('SVC-U-030: pozwala usunąć wszystkie cyfry w trybie edycji', async () => {
+      const user = userEvent.setup();
+      const onPriceChange = vi.fn();
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'],
+        onPriceChange,
+      });
+      
+      // Click on price to start editing
+      const priceButton = screen.getByRole('button', { name: '50' });
+      await user.click(priceButton);
+      
+      // Find the input
+      const input = screen.getByRole('spinbutton');
+      expect(input).toHaveValue(50);
+      
+      // Clear the input
+      await user.clear(input);
+      
+      // Input should be empty now (local state)
+      expect(input).toHaveValue(null);
+      
+      // onPriceChange should be called with null
+      expect(onPriceChange).toHaveBeenCalledWith('svc-1', null);
+    });
+
+    it('SVC-U-031: pozwala wpisać nową wartość po usunięciu', async () => {
+      const user = userEvent.setup();
+      const onPriceChange = vi.fn();
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'],
+        onPriceChange,
+      });
+      
+      // Click on price to start editing
+      const priceButton = screen.getByRole('button', { name: '50' });
+      await user.click(priceButton);
+      
+      // Find and clear the input
+      const input = screen.getByRole('spinbutton');
+      await user.clear(input);
+      
+      // Type new value
+      await user.type(input, '75');
+      
+      // onPriceChange should be called with 75
+      expect(onPriceChange).toHaveBeenCalledWith('svc-1', 75);
+    });
+
+    it('SVC-U-032: resetuje do ceny bazowej przy blur z pustą wartością', async () => {
+      const user = userEvent.setup();
+      const onPriceChange = vi.fn();
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'],
+        onPriceChange,
+      });
+      
+      // Click on price to start editing
+      const priceButton = screen.getByRole('button', { name: '50' });
+      await user.click(priceButton);
+      
+      // Clear the input
+      const input = screen.getByRole('spinbutton');
+      await user.clear(input);
+      
+      // Blur (click outside)
+      fireEvent.blur(input);
+      
+      // Should call onPriceChange with null to reset
+      expect(onPriceChange).toHaveBeenLastCalledWith('svc-1', null);
+    });
+  });
+
+  describe('onTotalPriceChange callback', () => {
+    it('SVC-U-040: wywołuje onTotalPriceChange z nową sumą przy zmianie ceny', async () => {
+      const user = userEvent.setup();
+      const onTotalPriceChange = vi.fn();
+      renderComponent({ 
+        selectedServiceIds: ['svc-1', 'svc-3'], // 50 + 80 = 130
+        onTotalPriceChange,
+      });
+      
+      // Click on first price to start editing
+      const priceButton = screen.getByRole('button', { name: '50' });
+      await user.click(priceButton);
+      
+      // Clear and type new value
+      const input = screen.getByRole('spinbutton');
+      await user.clear(input);
+      await user.type(input, '100');
+      
+      // Should call with updated total: 100 + 80 = 180
+      expect(onTotalPriceChange).toHaveBeenCalledWith(180);
+    });
+
+    it('SVC-U-041: oblicza sumę jako 0 dla pustych cen', async () => {
+      const user = userEvent.setup();
+      const onTotalPriceChange = vi.fn();
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'], // 50
+        onTotalPriceChange,
+      });
+      
+      // Click on price to start editing
+      const priceButton = screen.getByRole('button', { name: '50' });
+      await user.click(priceButton);
+      
+      // Clear the input (price = 0)
+      const input = screen.getByRole('spinbutton');
+      await user.clear(input);
+      
+      // Should call with 0
+      expect(onTotalPriceChange).toHaveBeenCalledWith(0);
+    });
+  });
 });

@@ -16,6 +16,7 @@ const renderComponent = (props: Partial<React.ComponentProps<typeof NotesAndPric
     totalPrice: 100,
     customerDiscountPercent: null,
     markUserEditing: vi.fn(),
+    onFinalPriceUserEdit: vi.fn(),
   };
 
   return render(
@@ -153,6 +154,18 @@ describe('NotesAndPriceSection', () => {
       await user.type(input, '100');
       
       expect(markUserEditing).toHaveBeenCalled();
+    });
+
+    it('NP-U-032: wywołuje onFinalPriceUserEdit przy ręcznej zmianie ceny', async () => {
+      const onFinalPriceUserEdit = vi.fn();
+      const user = userEvent.setup();
+      renderComponent({ showPrice: true, onFinalPriceUserEdit });
+
+      const input = screen.getByLabelText(/Kwota razem brutto/i);
+      await user.clear(input);
+      await user.type(input, '200');
+      
+      expect(onFinalPriceUserEdit).toHaveBeenCalled();
     });
   });
 });
