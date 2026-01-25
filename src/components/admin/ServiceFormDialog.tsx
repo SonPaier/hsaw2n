@@ -193,7 +193,7 @@ const ServiceFormContent = ({
           duration_large: service?.duration_large ?? null,
           category_id: service?.category_id || defaultCategoryId || '',
           service_type: service?.service_type || 'both',
-          visibility: service?.visibility || 'everywhere',
+          visibility: (service?.service_type || 'both') === 'both' ? (service?.visibility || 'everywhere') : 'everywhere',
           reminder_template_id: service?.reminder_template_id || '__none__',
         });
 
@@ -258,7 +258,7 @@ const ServiceFormContent = ({
         duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
-        visibility: service.visibility || 'everywhere',
+        visibility: (service.service_type || 'both') === 'both' ? (service.visibility || 'everywhere') : 'everywhere',
         reminder_template_id: service.reminder_template_id || '__none__',
       });
     }
@@ -320,7 +320,8 @@ const ServiceFormContent = ({
         duration_large: showSizeDurations ? formData.duration_large : null,
         category_id: formData.category_id || null,
         service_type: formData.service_type,
-        visibility: formData.visibility,
+        // visibility is meaningful only for unified services (service_type='both')
+        visibility: formData.service_type === 'both' ? formData.visibility : 'everywhere',
         requires_size: showSizePrices || showSizeDurations,
         reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
         active: true,

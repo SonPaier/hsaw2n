@@ -661,7 +661,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         service={editingService ? {
           id: editingService.id,
           name: editingService.name,
-          short_name: editingService.shortcut,
+          short_name: (editingService.short_name ?? editingService.shortcut) || null,
           description: editingService.description,
           price_from: editingService.price_from,
           price_small: editingService.price_small,
@@ -674,13 +674,15 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           duration_large: editingService.duration_large,
           category_id: editingService.category_id,
           service_type: (editingService.service_type || 'both') as 'both' | 'offer' | 'reservation',
+          visibility: (editingService.visibility ?? 'everywhere') as 'everywhere' | 'only_reservations' | 'only_offers',
+          reminder_template_id: editingService.reminder_template_id || null,
         } : null}
         categories={categories}
         onSaved={fetchServices}
         defaultCategoryId={defaultCategoryId}
         totalServicesCount={services.length}
         onDelete={editingService ? () => handleDeleteClick(editingService.id) : undefined}
-        existingServices={services.map(s => ({ id: s.id, name: s.name, short_name: s.shortcut }))}
+        existingServices={services.map(s => ({ id: s.id, name: s.name, short_name: (s.short_name ?? s.shortcut) || null }))}
       />
 
       {/* Category Management Dialog */}
