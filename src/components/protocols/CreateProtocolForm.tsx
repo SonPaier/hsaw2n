@@ -7,13 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Loader2, PenLine, Mail, Settings } from 'lucide-react';
+import { CalendarIcon, Loader2, PenLine, Mail, Settings, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { normalizePhone } from '@/lib/phoneUtils';
-import { ProtocolHeader } from './ProtocolHeader';
 import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } from './VehicleDiagram';
 import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
@@ -528,8 +527,20 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   return (
     <div className="min-h-screen bg-muted/50 flex flex-col">
       {/* Sticky header */}
-      <div className="bg-white border-b">
-        <ProtocolHeader instance={instance} onClose={handleNavigateBack} />
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="w-full max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={handleNavigateBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">
+            {isEditMode ? 'Edycja protokołu' : 'Nowy protokół'}
+          </h1>
+          {onOpenSettings && (
+            <Button variant="ghost" size="icon" className="ml-auto" onClick={onOpenSettings}>
+              <Settings className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Scrollable content */}
