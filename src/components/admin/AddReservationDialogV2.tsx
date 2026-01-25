@@ -263,12 +263,12 @@ const AddReservationDialogV2 = ({
     const fetchData = async () => {
       if (!open || !instanceId) return;
       
-      // Fetch all active services (no station_type filtering)
+      // Fetch all active services (service_type 'reservation' or 'both')
       const servicesQuery = supabase
         .from('unified_services')
         .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
         .eq('instance_id', instanceId)
-        .eq('service_type', 'reservation')
+        .in('service_type', ['reservation', 'both'])
         .eq('active', true);
       
       const { data: servicesData } = await servicesQuery.order('sort_order');
