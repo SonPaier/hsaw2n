@@ -175,7 +175,7 @@ export function SendOfferEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0" style={{ zIndex: 1100 }}>
+      <DialogContent className="max-w-3xl h-[100dvh] sm:h-[80vh] flex flex-col p-0" style={{ zIndex: 1100 }}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5" />
