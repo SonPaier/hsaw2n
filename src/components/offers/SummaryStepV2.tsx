@@ -318,13 +318,15 @@ export const SummaryStepV2 = ({
         // Get customer selections from saved state (when customer accepted offer)
         const customerSelectedOptionalItems = offer.defaultSelectedState?.selectedOptionalItems || {};
 
-        // CRITICAL: For new offers (!offer.id), ALWAYS use only default products
-        // regardless of what generateOptionsFromScopes pre-populated in offer.options.
-        // Only trust saved items when we have a real offer.id from the database.
-        const isExistingOffer = Boolean(offer.id);
-        const hasSavedItems = isExistingOffer && existingOption && existingOption.items.length > 0;
-
-        if (hasSavedItems) {
+        // CRITICAL: Check if this is a persisted offer loaded from database.
+        // offer.id exists only after saveOffer() or loadOffer() from DB.
+        // We IGNORE offer.options pre-populated by generateOptionsFromScopes because
+        // that function includes ALL scope products, not just is_default ones.
+        const isPersistedOffer = Boolean(offer.id);
+        
+        // For persisted offers, restore from database items
+        // For new offers, use ONLY is_default products from template
+        if (isPersistedOffer && existingOption && existingOption.items.length > 0) {
           // Restore from saved offer - use all saved items
           const allRestored = existingOption.items.map(item => {
             // Find matching scope product - parse name from customName (format: "VARIANT\nProductName" or just "ProductName")
@@ -362,7 +364,8 @@ export const SummaryStepV2 = ({
             selectedProducts = allRestored;
           }
         } else {
-          // New offer or auto-generated options - use only default products
+          // NEW OFFER: use ONLY is_default products from the scope template
+          // This ignores whatever generateOptionsFromScopes put in offer.options
           selectedProducts = buildDefaultSelected();
           
           // For extras scopes: start with empty suggested list (admin adds manually)
