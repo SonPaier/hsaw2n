@@ -130,10 +130,11 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   // Track if form has been saved at least once
   const hasBeenSavedRef = useRef(false);
 
-  // Generate notes from damage points
+  // Generate notes from damage points (exclude unsaved points with isNew flag)
   const generatedNotes = useMemo(() => {
-    if (damagePoints.length === 0) return '';
-    return damagePoints.map(point => {
+    const savedPoints = damagePoints.filter(p => !p.isNew);
+    if (savedPoints.length === 0) return '';
+    return savedPoints.map(point => {
       const viewLabel = VIEW_LABELS[point.view];
       const damageLabel = point.damage_type ? DAMAGE_TYPE_LABELS[point.damage_type] || point.damage_type : 'usterka';
       const customNote = point.custom_note ? ` - ${point.custom_note}` : '';
