@@ -185,6 +185,7 @@ export const PublicProtocolCustomerView = ({
           {hasDamagePoints && (
             <div className="space-y-2">
               <Label className="text-muted-foreground text-sm">Stan pojazdu</Label>
+              <p className="text-xs text-muted-foreground">Kliknij na punkt, aby zapoznać się z uszkodzeniem</p>
               <VehicleDiagram
                 bodyType={protocol.body_type}
                 damagePoints={damagePoints}
