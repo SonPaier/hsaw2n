@@ -131,7 +131,7 @@ export const PublicProtocolCustomerView = ({
           {/* Customer data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-muted-foreground text-sm">Imię i nazwisko</Label>
+              <Label className="text-muted-foreground text-sm">Imię i nazwisko Klienta</Label>
               <p className="text-base font-medium">{protocol.customer_name}</p>
             </div>
             

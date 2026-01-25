@@ -111,7 +111,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   
   // Date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-
+  
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState<{ customerName?: boolean }>({});
   // Unsaved changes dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<'back' | 'cancel' | null>(null);
@@ -389,10 +391,32 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   };
 
   const handleSave = async (openEmailAfter = false) => {
+    // Validate customer name
     if (!customerName.trim()) {
-      toast.error('Podaj imię i nazwisko klienta');
+      setValidationErrors({ customerName: true });
+      toast.error('Podaj imię i nazwisko Klienta');
+      // Scroll to and focus the customer name field
+      const customerNameInput = document.querySelector('[data-field="customer-name"]');
+      if (customerNameInput) {
+        customerNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (customerNameInput as HTMLElement).focus?.();
+      }
       return null;
     }
+    
+    // Validate email if sending
+    if (openEmailAfter && !customerEmail.trim()) {
+      toast.error('Aby wysłać protokół podaj email Klienta');
+      // Scroll to and focus the email field
+      const emailInput = document.querySelector('[data-field="customer-email"]');
+      if (emailInput) {
+        emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (emailInput as HTMLElement).focus?.();
+      }
+      return null;
+    }
+    
+    setValidationErrors({});
 
     if (openEmailAfter) {
       setSavingAndSending(true);
@@ -581,17 +605,24 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           {/* Customer data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Imię i nazwisko *</Label>
+              <Label>Imię i nazwisko Klienta *</Label>
               <ClientSearchAutocomplete
                 instanceId={instanceId}
                 value={customerName}
-                onChange={setCustomerName}
+                onChange={(val) => {
+                  setCustomerName(val);
+                  if (val.trim()) setValidationErrors(prev => ({ ...prev, customerName: false }));
+                }}
                 onSelect={handleCustomerSelect}
                 onClear={handleCustomerClear}
                 placeholder="Wyszukaj klienta lub wpisz nowe dane"
-                className="bg-white"
+                className={cn("bg-white", validationErrors.customerName && "border-destructive")}
                 suppressAutoSearch={isEditMode}
+                data-field="customer-name"
               />
+              {validationErrors.customerName && (
+                <p className="text-xs text-destructive">Imię i nazwisko Klienta jest wymagane</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Telefon</Label>
@@ -607,12 +638,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               />
             </div>
             <div className="space-y-2">
-              <Label>Email klienta</Label>
+              <Label>Email Klienta</Label>
               <Input
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="klient@email.com"
+                data-field="customer-email"
               />
             </div>
             <div className="space-y-2">
