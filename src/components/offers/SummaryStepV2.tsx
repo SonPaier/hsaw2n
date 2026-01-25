@@ -1266,30 +1266,7 @@ export const SummaryStepV2 = ({
         </div>
       ))}
 
-      {/* Totals */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2 mb-4 font-semibold">
-            <Calculator className="w-4 h-4 text-primary" />
-            Podsumowanie
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>Suma netto</span>
-              <span className="font-semibold">{formatPrice(totalNet)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>VAT ({offer.vatRate}%)</span>
-              <span>{formatPrice(vatAmount)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Suma brutto</span>
-              <span className="text-primary">{formatPrice(totalGross)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Totals - hidden, pricing shown only in preview */}
 
       {/* Additional Conditions */}
       <Collapsible open={conditionsOpen} onOpenChange={setConditionsOpen}>
