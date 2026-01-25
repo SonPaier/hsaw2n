@@ -58,6 +58,8 @@ interface ReservationDateTimeSectionProps {
   markUserEditing: () => void;
   dateRangeRef: RefObject<HTMLDivElement>;
   timeRef: RefObject<HTMLDivElement>;
+  /** Is edit mode - controls station selector visibility */
+  isEditMode?: boolean;
 }
 
 export const ReservationDateTimeSection = ({
@@ -94,8 +96,17 @@ export const ReservationDateTimeSection = ({
   markUserEditing,
   dateRangeRef,
   timeRef,
+  isEditMode = false,
 }: ReservationDateTimeSectionProps) => {
   const { t } = useTranslation();
+  
+  // Calendar months logic:
+  // - Single day: always 1 month
+  // - Multi day: 1 on mobile, 2 on desktop
+  const getNumberOfMonths = () => {
+    if (reservationType === 'single') return 1;
+    return isMobile ? 1 : 2;
+  };
 
   return (
     <div className="space-y-4" ref={dateRangeRef}>
@@ -183,7 +194,7 @@ export const ReservationDateTimeSection = ({
                   }
                   return false;
                 }}
-                numberOfMonths={isMobile ? 1 : 2}
+                numberOfMonths={1}
                 locale={pl}
                 className="pointer-events-auto"
               />
@@ -209,7 +220,7 @@ export const ReservationDateTimeSection = ({
                   }
                   return false;
                 }}
-                numberOfMonths={isMobile ? 1 : 2}
+                numberOfMonths={getNumberOfMonths()}
                 locale={pl}
                 className="pointer-events-auto"
               />
@@ -267,29 +278,31 @@ export const ReservationDateTimeSection = ({
           </div>
         </div>
 
-        {/* Station selector */}
-        <div className="space-y-2">
-          <Label htmlFor="manualStation">
-            {t('addReservation.selectStation')} <span className="text-destructive">*</span>
-          </Label>
-          <Select value={manualStationId || ''} onValueChange={(val) => { markUserEditing(); setManualStationId(val); }}>
-            <SelectTrigger className={cn(timeError && !manualStationId && 'border-destructive')}>
-              <SelectValue placeholder={t('addReservation.selectStation')} />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {stations.map((station) => (
-                <SelectItem key={station.id} value={station.id}>
-                  {station.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Station selector - only visible in edit mode */}
+        {isEditMode && (
+          <div className="space-y-2">
+            <Label htmlFor="manualStation">
+              {t('addReservation.selectStation')} <span className="text-destructive">*</span>
+            </Label>
+            <Select value={manualStationId || ''} onValueChange={(val) => { markUserEditing(); setManualStationId(val); }}>
+              <SelectTrigger className={cn(timeError && !manualStationId && 'border-destructive')}>
+                <SelectValue placeholder={t('addReservation.selectStation')} />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                {stations.map((station) => (
+                  <SelectItem key={station.id} value={station.id}>
+                    {station.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {timeError && <p className="text-sm text-destructive">{timeError}</p>}
       </div>
 
-      {/* Offer number */}
+      {/* Offer number - hidden for now, will return to this later
       <div className="space-y-2">
         <Label>
           {t('addReservation.offerNumber')}{' '}
@@ -315,6 +328,7 @@ export const ReservationDateTimeSection = ({
           placeholder={t('addReservation.offerNumberPlaceholder')}
         />
       </div>
+      */}
     </div>
   );
 };
