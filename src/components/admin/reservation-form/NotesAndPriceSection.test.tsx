@@ -15,6 +15,7 @@ const renderComponent = (props: Partial<React.ComponentProps<typeof NotesAndPric
     discountedPrice: 100,
     totalPrice: 100,
     customerDiscountPercent: null,
+    markUserEditing: vi.fn(),
   };
 
   return render(

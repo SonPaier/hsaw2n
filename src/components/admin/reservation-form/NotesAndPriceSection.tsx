@@ -12,6 +12,7 @@ interface NotesAndPriceSectionProps {
   discountedPrice: number;
   totalPrice: number;
   customerDiscountPercent: number | null;
+  markUserEditing?: () => void;
 }
 
 export const NotesAndPriceSection = ({
@@ -23,6 +24,7 @@ export const NotesAndPriceSection = ({
   discountedPrice,
   totalPrice,
   customerDiscountPercent,
+  markUserEditing,
 }: NotesAndPriceSectionProps) => {
   const { t } = useTranslation();
 
@@ -36,7 +38,10 @@ export const NotesAndPriceSection = ({
         <Textarea
           id="adminNotes"
           value={adminNotes}
-          onChange={(e) => setAdminNotes(e.target.value)}
+          onChange={(e) => {
+            markUserEditing?.();
+            setAdminNotes(e.target.value);
+          }}
           rows={2}
           placeholder={t('addReservation.notesPlaceholder')}
         />
@@ -53,7 +58,10 @@ export const NotesAndPriceSection = ({
               id="finalPrice"
               type="number"
               value={finalPrice !== '' ? finalPrice : discountedPrice || ''}
-              onChange={(e) => setFinalPrice(e.target.value)}
+              onChange={(e) => {
+                markUserEditing?.();
+                setFinalPrice(e.target.value);
+              }}
               className="w-32"
               placeholder={discountedPrice > 0 ? String(discountedPrice) : '0'}
             />
