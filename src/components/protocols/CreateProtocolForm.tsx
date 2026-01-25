@@ -80,6 +80,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   // Refs for scroll-to-error
   const customerNameRef = useRef<HTMLDivElement>(null);
   const customerEmailRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   // Form state
   const [offerNumber, setOfferNumber] = useState('');
@@ -172,6 +173,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     setNotes(generatedNotes);
   }, [generatedNotes]);
 
+  // Auto-resize notes textarea
+  useEffect(() => {
+    if (notesRef.current) {
+      notesRef.current.style.height = 'auto';
+      notesRef.current.style.height = Math.max(150, notesRef.current.scrollHeight) + 'px';
+    }
+  }, [notes]);
   // Cleanup orphaned photos from storage
   const cleanupOrphanedPhotos = useCallback(async () => {
     if (uploadedPhotosInSession.length === 0) return;
@@ -729,11 +737,12 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           <div className="space-y-2">
             <Label>Uwagi</Label>
             <Textarea
+              ref={notesRef}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Uwagi dotyczące stanu pojazdu..."
-              rows={6}
-              className="resize-none"
+              className="resize-none overflow-hidden"
+              style={{ minHeight: '150px' }}
             />
           </div>
 
