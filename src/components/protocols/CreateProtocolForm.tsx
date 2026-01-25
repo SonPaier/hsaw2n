@@ -526,8 +526,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
 
   return (
     <div className="min-h-screen bg-muted/50 flex flex-col">
-      {/* Sticky header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      {/* Sticky header - full width, edge-to-edge */}
+      <div className="bg-white border-b fixed top-0 left-0 right-0 z-50">
         <div className="w-full max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={handleNavigateBack}>
             <ArrowLeft className="h-5 w-5" />
@@ -542,6 +542,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           )}
         </div>
       </div>
+
+      {/* Spacer for fixed header */}
+      <div className="h-14" />
 
       {/* Scrollable content */}
       <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
