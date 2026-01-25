@@ -1232,7 +1232,10 @@ const AddReservationDialogV2 = ({
               <CustomerSection
                 instanceId={instanceId}
                 customerName={customerName}
-                onCustomerNameChange={setCustomerName}
+                onCustomerNameChange={(val) => {
+                  markUserEditing();
+                  setCustomerName(val);
+                }}
                 phone={phone}
                 onPhoneChange={(val) => {
                   markUserEditing();
@@ -1247,8 +1250,12 @@ const AddReservationDialogV2 = ({
                 searchingCustomer={searchingCustomer}
                 foundVehicles={foundVehicles}
                 showPhoneDropdown={showPhoneDropdown}
-                onSelectVehicle={selectVehicle}
+                onSelectVehicle={(vehicle) => {
+                  markUserEditing();
+                  selectVehicle(vehicle);
+                }}
                 onCustomerSelect={async (customer) => {
+                  markUserEditing();
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
@@ -1273,6 +1280,7 @@ const AddReservationDialogV2 = ({
               <VehicleSection
                 carModel={carModel}
                 onCarModelChange={(val) => {
+                  markUserEditing();
                   if (val === null) {
                     setCarModel('');
                     setIsCustomCarModel(false);
@@ -1296,11 +1304,15 @@ const AddReservationDialogV2 = ({
                   }
                 }}
                 carSize={carSize}
-                onCarSizeChange={setCarSize}
+                onCarSizeChange={(size) => {
+                  markUserEditing();
+                  setCarSize(size);
+                }}
                 carModelError={validationErrors.carModel}
                 customerVehicles={customerVehicles}
                 selectedVehicleId={selectedVehicleId}
                 onVehicleSelect={(vehicle) => {
+                  markUserEditing();
                   setSelectedVehicleId(vehicle.id);
                   setCarModel(vehicle.model);
                   if (vehicle.car_size === 'S') setCarSize('small');

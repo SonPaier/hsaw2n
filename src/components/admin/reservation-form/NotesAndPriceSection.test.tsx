@@ -130,4 +130,29 @@ describe('NotesAndPriceSection', () => {
       expect(screen.queryByText('-10%')).not.toBeInTheDocument();
     });
   });
+
+  describe('markUserEditing', () => {
+    it('NP-U-030: wywołuje markUserEditing przy zmianie notatek', async () => {
+      const markUserEditing = vi.fn();
+      const user = userEvent.setup();
+      renderComponent({ markUserEditing });
+
+      const textarea = screen.getByLabelText(/Notatki wewnętrzne/i);
+      await user.type(textarea, 'x');
+      
+      expect(markUserEditing).toHaveBeenCalled();
+    });
+
+    it('NP-U-031: wywołuje markUserEditing przy zmianie ceny', async () => {
+      const markUserEditing = vi.fn();
+      const user = userEvent.setup();
+      renderComponent({ showPrice: true, markUserEditing });
+
+      const input = screen.getByLabelText(/Kwota razem brutto/i);
+      await user.clear(input);
+      await user.type(input, '100');
+      
+      expect(markUserEditing).toHaveBeenCalled();
+    });
+  });
 });
