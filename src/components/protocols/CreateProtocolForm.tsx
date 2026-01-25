@@ -784,7 +784,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           >
             {savingAndSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             <Mail className="h-4 w-4 mr-2" />
-            Wyślij
+            Zapisz i wyślij
           </Button>
           <Button onClick={() => handleSave(false)} disabled={saving || savingAndSending}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
