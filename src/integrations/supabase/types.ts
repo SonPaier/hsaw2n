@@ -2767,6 +2767,7 @@ export type Database = {
           station_type: string | null
           unit: string | null
           updated_at: string
+          visibility: string | null
         }
         Insert: {
           active?: boolean | null
@@ -2802,6 +2803,7 @@ export type Database = {
           station_type?: string | null
           unit?: string | null
           updated_at?: string
+          visibility?: string | null
         }
         Update: {
           active?: boolean | null
@@ -2837,6 +2839,7 @@ export type Database = {
           station_type?: string | null
           unit?: string | null
           updated_at?: string
+          visibility?: string | null
         }
         Relationships: [
           {
