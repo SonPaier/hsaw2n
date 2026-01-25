@@ -1459,6 +1459,7 @@ const AddReservationDialogV2 = ({
                 totalPrice={totalPrice}
                 discountedPrice={discountedPrice}
                 customerDiscountPercent={customerDiscountPercent}
+                markUserEditing={markUserEditing}
               />
             </div>
           </div>
