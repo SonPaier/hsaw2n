@@ -17,31 +17,26 @@ interface ProtocolHeaderProps {
 export const ProtocolHeader = ({ instance, protocolNumber, onClose }: ProtocolHeaderProps) => {
   return (
     <header className="bg-white border-b sticky top-0 z-50">
-      <div className="w-full max-w-3xl mx-auto px-4 py-2 sm:py-4">
+      <div className="w-full max-w-3xl mx-auto px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between">
-          {/* Mobile: Just title */}
-          <div className="flex sm:hidden items-center">
-            <h1 className="font-bold text-base">Protokół</h1>
-          </div>
-
-          {/* Desktop: Logo + Company name */}
-          <div className="hidden sm:flex items-center gap-3">
+          {/* Logo + Company name - both mobile and desktop */}
+          <div className="flex items-center gap-3">
             {instance?.logo_url ? (
               <img 
                 src={instance.logo_url} 
                 alt={instance.name} 
-                className="h-12 object-contain" 
+                className="h-10 sm:h-12 object-contain" 
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <span className="text-primary font-bold text-lg">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <span className="text-primary font-bold text-base sm:text-lg">
                   {instance?.name?.charAt(0) || 'P'}
                 </span>
               </div>
             )}
             <div>
-              <h1 className="font-bold text-lg">{instance?.name || 'Protokół'}</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="font-bold text-base sm:text-lg">{instance?.name || 'Protokół'}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {protocolNumber 
                   ? `Protokół #${protocolNumber}` 
                   : 'Protokół przyjęcia pojazdu'}
