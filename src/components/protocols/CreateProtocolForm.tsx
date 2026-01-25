@@ -561,7 +561,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Numer oferty</Label>
+              <Label>Powiązana oferta</Label>
               <OfferSearchAutocomplete
                 instanceId={instanceId}
                 value={offerNumber}
