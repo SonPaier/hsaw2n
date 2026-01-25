@@ -597,10 +597,10 @@ const AdminDashboard = () => {
     const to = toDate === undefined ? loadedDateRange.to : toDate;
 
     // First fetch services to map service_ids (include pricing)
-    // Fetch ALL services (including inactive) to properly map historical reservations
+    // Fetch ALL services (both 'reservation' and 'both' types, including inactive) to properly map historical reservations
     const {
       data: servicesData
-    } = await supabase.from('unified_services').select('id, name, short_name, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).eq('service_type', 'reservation') as unknown as { data: Array<{ id: string; name: string; short_name: string | null; price_small: number | null; price_medium: number | null; price_large: number | null; price_from: number | null }> | null };
+    } = await supabase.from('unified_services').select('id, name, short_name, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).in('service_type', ['reservation', 'both']) as unknown as { data: Array<{ id: string; name: string; short_name: string | null; price_small: number | null; price_medium: number | null; price_large: number | null; price_from: number | null }> | null };
     const servicesMap = new Map<string, {
       id: string;
       name: string;
