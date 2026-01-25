@@ -1519,6 +1519,7 @@ const AddReservationDialogV2 = ({
                 markUserEditing={markUserEditing}
                 dateRangeRef={dateRangeRef}
                 timeRef={timeRef}
+                isEditMode={isEditMode}
               />
               )}
 
