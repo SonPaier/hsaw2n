@@ -278,7 +278,7 @@ export function AddProductDialog({
             metadata: metadata,
             source: 'instance',
             active: true,
-            service_type: 'offer',
+            service_type: 'both',
           });
 
         if (error) throw error;

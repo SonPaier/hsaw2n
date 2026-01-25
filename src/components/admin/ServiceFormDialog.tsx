@@ -686,26 +686,28 @@ const ServiceFormContent = ({
               )}
             </div>
 
-            {/* Visibility */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
-                <FieldInfo tooltip="Gdzie usługa będzie widoczna" />
+            {/* Visibility - only show for legacy services, hidden for unified ones */}
+            {formData.service_type !== 'both' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+                  <FieldInfo tooltip="Gdzie usługa będzie widoczna" />
+                </div>
+                <Select
+                  value={formData.service_type}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
+                    <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
+                    <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select
-                value={formData.service_type}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v as 'both' | 'reservation' | 'offer' }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="both">{t('priceList.form.visibilityAll')}</SelectItem>
-                  <SelectItem value="reservation">{t('priceList.form.visibilityReservations')}</SelectItem>
-                  <SelectItem value="offer">{t('priceList.form.visibilityOffers')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            )}
 
             {/* Reminder Template */}
             {reminderTemplates.length > 0 && (
