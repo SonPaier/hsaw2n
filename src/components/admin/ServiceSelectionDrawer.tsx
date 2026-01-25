@@ -119,7 +119,7 @@ const ServiceSelectionDrawer = ({
       // hasUnifiedServices=false → only services matching exact context (legacy)
       let servicesQuery = supabase
         .from('unified_services')
-        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type, service_type')
+        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, sort_order, station_type, service_type, visibility')
         .eq('instance_id', instanceId)
         .eq('active', true);
       
@@ -158,8 +158,15 @@ const ServiceSelectionDrawer = ({
           categoryNetMap.set(cat.id, cat.prices_are_net || false);
         });
 
+        // Filter by visibility for reservation context:
+        // Hide services with visibility='only_offers' from reservation drawers
+        const visibilityFiltered = servicesRes.data.filter(s => {
+          const vis = (s as any).visibility || 'everywhere';
+          return vis !== 'only_offers';
+        });
+
         // Enrich services with category_prices_are_net
-        const enrichedServices = servicesRes.data.map(s => ({
+        const enrichedServices = visibilityFiltered.map(s => ({
           ...s,
           category_prices_are_net: s.category_id ? categoryNetMap.get(s.category_id) || false : false,
         }));
@@ -167,7 +174,12 @@ const ServiceSelectionDrawer = ({
         setServices(enrichedServices);
         setCategories(categoriesRes.data);
       } else {
-        if (servicesRes.data) setServices(servicesRes.data);
+        // Also apply visibility filter in fallback path
+        const visFiltered = servicesRes.data?.filter(s => {
+          const vis = (s as any).visibility || 'everywhere';
+          return vis !== 'only_offers';
+        });
+        if (visFiltered) setServices(visFiltered);
         if (categoriesRes.data) setCategories(categoriesRes.data);
       }
       
