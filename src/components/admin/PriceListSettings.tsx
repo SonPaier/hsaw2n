@@ -32,6 +32,7 @@ interface Service {
   id: string;
   name: string;
   shortcut: string | null;
+  short_name: string | null;
   description: string | null;
   duration_minutes: number | null;
   duration_small: number | null;
@@ -49,6 +50,8 @@ interface Service {
   sort_order: number | null;
   is_popular: boolean | null;
   service_type: string | null;
+  visibility: string | null;
+  reminder_template_id: string | null;
 }
 
 interface ServiceCategory {
