@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScopeProductSelectionDrawer } from './services/ScopeProductSelectionDrawer';
-import { AddProductDialog } from '@/components/products/AddProductDialog';
+import { ServiceFormDialog, ServiceData } from '@/components/admin/ServiceFormDialog';
 import { CustomerData, VehicleData, OfferState, OfferItem, OfferOption, DefaultSelectedState } from '@/hooks/useOffer';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,8 +133,8 @@ export const SummaryStepV2 = ({
   const [productDrawerOpen, setProductDrawerOpen] = useState<string | null>(null); // scopeId
   const [suggestedDrawerOpen, setSuggestedDrawerOpen] = useState<string | null>(null); // for suggested extras
   const [editingPrice, setEditingPrice] = useState<{ scopeId: string; productId: string; value: string; isSuggested?: boolean } | null>(null);
-  const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; short_name: string | null; brand: string | null; description: string | null; category: string | null; unit: string; default_price: number; metadata: Record<string, unknown> | null; source: string; instance_id: string | null; reminder_template_id?: string | null } | null>(null);
-  const [productCategories, setProductCategories] = useState<string[]>([]);
+  const [editingProduct, setEditingProduct] = useState<ServiceData | null>(null);
+  const [productCategories, setProductCategories] = useState<{ id: string; name: string }[]>([]);
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
 
   // Load scope data and products for selected scopes + always include extras scopes
@@ -549,25 +549,30 @@ export const SummaryStepV2 = ({
   const openProductEdit = async (productId: string) => {
     const { data } = await supabase
       .from('unified_services')
-      .select('*')
+      .select('id, name, short_name, description, price_from, price_small, price_medium, price_large, prices_are_net, duration_minutes, duration_small, duration_medium, duration_large, category_id, service_type, visibility, reminder_template_id')
       .eq('id', productId)
       .single();
     
     if (data) {
-      // Map unified_services fields to Product format expected by AddProductDialog
+      // Map unified_services fields to ServiceData format
       setEditingProduct({
         id: data.id,
         name: data.name,
         short_name: data.short_name,
-        brand: null, // unified_services doesn't have brand
         description: data.description,
-        category: data.category_id, // Map category_id to category
-        unit: data.unit || 'szt',
-        default_price: data.default_price || 0,
-        metadata: data.metadata as Record<string, unknown> | null,
-        source: 'instance', // Default for unified_services
-        instance_id: data.instance_id,
-        reminder_template_id: null, // Not supported in unified_services yet
+        price_from: data.price_from,
+        price_small: data.price_small,
+        price_medium: data.price_medium,
+        price_large: data.price_large,
+        prices_are_net: data.prices_are_net ?? true,
+        duration_minutes: data.duration_minutes,
+        duration_small: data.duration_small,
+        duration_medium: data.duration_medium,
+        duration_large: data.duration_large,
+        category_id: data.category_id,
+        service_type: (data.service_type as 'both' | 'reservation' | 'offer') ?? 'both',
+        visibility: (data.visibility as 'everywhere' | 'only_reservations' | 'only_offers') ?? 'everywhere',
+        reminder_template_id: data.reminder_template_id,
       });
       // Also fetch categories
       const { data: categories } = await supabase
@@ -577,8 +582,7 @@ export const SummaryStepV2 = ({
         .eq('category_type', 'both')
         .eq('active', true);
       
-      const cats = (categories || []).map(c => c.name).filter(Boolean);
-      setProductCategories(cats);
+      setProductCategories(categories || []);
     }
   };
 
@@ -1374,16 +1378,16 @@ export const SummaryStepV2 = ({
       </Collapsible>
 
       {/* Product Edit Dialog */}
-      <AddProductDialog
+      <ServiceFormDialog
         open={!!editingProduct}
         onOpenChange={(open) => !open && setEditingProduct(null)}
         instanceId={instanceId}
         categories={productCategories}
-        onProductAdded={() => {
+        service={editingProduct}
+        onSaved={() => {
           refreshProductData();
           setEditingProduct(null);
         }}
-        product={editingProduct}
       />
     </div>
   );

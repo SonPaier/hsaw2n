@@ -60,7 +60,7 @@ interface ReminderTemplateOption {
   items?: ReminderTemplateItem[];
 }
 
-interface ServiceData {
+export interface ServiceData {
   id?: string;
   name: string;
   short_name: string | null;

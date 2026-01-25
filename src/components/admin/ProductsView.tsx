@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
-import { AddProductDialog } from '@/components/products/AddProductDialog';
+import { ServiceFormDialog, ServiceData } from '@/components/admin/ServiceFormDialog';
 import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
 import { ProductCategoriesDialog } from '@/components/products/ProductCategoriesDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -73,12 +73,49 @@ interface Product {
   brand: string | null;
   description: string | null;
   category: string | null;
+  category_id?: string | null;
   unit: string;
   default_price: number;
+  price_from?: number | null;
+  price_small?: number | null;
+  price_medium?: number | null;
+  price_large?: number | null;
+  prices_are_net?: boolean;
+  duration_minutes?: number | null;
+  duration_small?: number | null;
+  duration_medium?: number | null;
+  duration_large?: number | null;
+  service_type?: string;
+  visibility?: string;
+  reminder_template_id?: string | null;
   metadata: Record<string, unknown> | null;
   source: string;
   instance_id: string | null;
 }
+
+// Helper: Map Product to ServiceData for ServiceFormDialog
+const mapProductToServiceData = (product: Product | null): ServiceData | null => {
+  if (!product) return null;
+  return {
+    id: product.id,
+    name: product.name,
+    short_name: product.short_name,
+    description: product.description || null,
+    price_from: product.price_from ?? product.default_price ?? null,
+    price_small: product.price_small ?? null,
+    price_medium: product.price_medium ?? null,
+    price_large: product.price_large ?? null,
+    prices_are_net: product.prices_are_net ?? true,
+    duration_minutes: product.duration_minutes ?? null,
+    duration_small: product.duration_small ?? null,
+    duration_medium: product.duration_medium ?? null,
+    duration_large: product.duration_large ?? null,
+    category_id: product.category_id ?? null,
+    service_type: (product.service_type as 'both' | 'reservation' | 'offer') ?? 'both',
+    visibility: (product.visibility as 'everywhere' | 'only_reservations' | 'only_offers') ?? 'everywhere',
+    reminder_template_id: product.reminder_template_id ?? null,
+  };
+};
 
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
@@ -680,7 +717,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
       )}
 
       {instanceId && (
-        <AddProductDialog
+        <ServiceFormDialog
           open={showAddProductDialog || !!editingProduct}
           onOpenChange={(open) => {
             if (!open) {
@@ -689,13 +726,13 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
             }
           }}
           instanceId={instanceId}
-          categories={categories}
-          onProductAdded={() => { 
+          categories={categories.map(c => ({ id: c, name: c }))}
+          service={mapProductToServiceData(editingProduct)}
+          onSaved={() => { 
             fetchData(); 
             setEditingProduct(null);
             setShowAddProductDialog(false);
           }}
-          product={editingProduct}
         />
       )}
 
