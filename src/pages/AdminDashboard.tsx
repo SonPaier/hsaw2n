@@ -1188,6 +1188,9 @@ const AdminDashboard = () => {
     navigate('/login');
   };
   const handleReservationClick = (reservation: Reservation) => {
+    // Close add/edit drawer when opening details drawer
+    setAddReservationV2Open(false);
+    setEditingReservation(null);
     setSelectedReservation(reservation);
   };
   const handleDeleteReservation = async (reservationId: string, customerData: {
@@ -1326,6 +1329,8 @@ const AdminDashboard = () => {
   };
   const handleAddReservation = (stationId: string, date: string, time: string) => {
     const station = stations.find(s => s.id === stationId);
+    // Close details drawer when opening add drawer
+    setSelectedReservation(null);
     setEditingReservation(null); // Clear editing mode
     setNewReservationData({
       stationId,
@@ -1352,6 +1357,8 @@ const AdminDashboard = () => {
 
   // Quick add reservation (for mobile bottom nav / FAB) - opens with "Dostępne sloty" tab
   const handleQuickAddReservation = () => {
+    // Close details drawer when opening add drawer
+    setSelectedReservation(null);
     setEditingReservation(null); // Clear editing mode
     setNewReservationData({
       stationId: '',
