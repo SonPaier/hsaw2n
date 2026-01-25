@@ -60,6 +60,7 @@ interface Reservation {
   service_ids?: string[];
   service_items?: Array<{ service_id: string; custom_price: number | null }> | null;
   offer_number?: string | null;
+  has_unified_services?: boolean | null;
   service?: {
     name: string;
   };
@@ -1162,6 +1163,7 @@ const ReservationDetailsDrawer = ({
         instanceId={reservation?.instance_id || ''}
         open={historyDrawerOpen}
         onClose={() => setHistoryDrawerOpen(false)}
+        hasUnifiedServices={reservation?.has_unified_services ?? true}
       />
     </>
   );

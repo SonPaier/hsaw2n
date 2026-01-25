@@ -12,9 +12,11 @@ interface Props {
   instanceId: string;
   open: boolean;
   onClose: () => void;
+  /** When true, fetch 'both' service_type; when false, fetch 'reservation' */
+  hasUnifiedServices?: boolean;
 }
 
-export function ReservationHistoryDrawer({ reservationId, instanceId, open, onClose }: Props) {
+export function ReservationHistoryDrawer({ reservationId, instanceId, open, onClose, hasUnifiedServices = true }: Props) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<GroupedChange[]>([]);
   const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
@@ -26,10 +28,26 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     const loadData = async () => {
       setLoading(true);
       try {
+        // Fetch services based on has_unified_services:
+        // - unified → fetch 'both' AND 'reservation' to cover all IDs
+        // - legacy → fetch only 'reservation'
+        let servicesQuery = supabase
+          .from('unified_services')
+          .select('id, name, short_name')
+          .eq('instance_id', instanceId);
+        
+        if (hasUnifiedServices) {
+          // Unified: fetch both types to cover all historical service IDs
+          servicesQuery = servicesQuery.in('service_type', ['both', 'reservation']);
+        } else {
+          // Legacy: only reservation services
+          servicesQuery = servicesQuery.eq('service_type', 'reservation');
+        }
+
         // Parallel fetch for performance
         const [historyData, servicesRes, stationsRes] = await Promise.all([
           fetchReservationHistory(reservationId),
-          supabase.from('unified_services').select('id, name, shortcut').eq('instance_id', instanceId).eq('service_type', 'reservation'),
+          servicesQuery,
           supabase.from('stations').select('id, name').eq('instance_id', instanceId),
         ]);
 
@@ -37,7 +55,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
 
         const sMap = new Map<string, string>();
         for (const s of servicesRes.data || []) {
-          sMap.set(s.id, s.shortcut || s.name);
+          sMap.set(s.id, s.short_name || s.name);
         }
         setServicesMap(sMap);
 
@@ -54,7 +72,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     };
 
     loadData();
-  }, [open, reservationId, instanceId]);
+  }, [open, reservationId, instanceId, hasUnifiedServices]);
 
   return (
     <Sheet open={open} onOpenChange={onClose} modal={false}>
