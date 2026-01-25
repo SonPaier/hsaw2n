@@ -44,11 +44,12 @@ interface ProtocolsViewProps {
   instanceId: string;
   kioskMode?: boolean;
   onBack?: () => void;
+  onEditModeChange?: (isEditing: boolean) => void;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: ProtocolsViewProps) => {
+export const ProtocolsView = ({ instanceId, kioskMode = false, onBack, onEditModeChange }: ProtocolsViewProps) => {
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +72,12 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack }: Protoco
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
+
+  // Notify parent when entering/exiting edit mode
+  useEffect(() => {
+    const isEditing = showCreateForm || !!editingProtocolId;
+    onEditModeChange?.(isEditing);
+  }, [showCreateForm, editingProtocolId, onEditModeChange]);
 
   const fetchInstanceSlug = async () => {
     const { data } = await supabase

@@ -259,6 +259,9 @@ const AdminDashboard = () => {
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
   const [instanceData, setInstanceData] = useState<any>(null);
 
+  // Protocol editing mode - used to hide sidebar/mobile nav
+  const [protocolEditMode, setProtocolEditMode] = useState(false);
+
   // Combined feature check: checks both plan features and instance-level features
   const { hasFeature } = useCombinedFeatures(instanceId);
 
@@ -2231,10 +2234,10 @@ const AdminDashboard = () => {
 
       <div className={cn("min-h-screen h-screen bg-background flex overflow-hidden", updateAvailable && "pt-14")}>
         {/* Sidebar - Mobile Overlay */}
-        {sidebarOpen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+        {sidebarOpen && !protocolEditMode && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
         {/* Sidebar - fixed height, never scrolls */}
-        <aside className={cn("fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64")}>
+        <aside className={cn("fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed ? "lg:w-16" : "w-64", protocolEditMode && "hidden")}>
           <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
             <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
@@ -2459,7 +2462,7 @@ const AdminDashboard = () => {
 
             {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
 
-            {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} />}
+            {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} onEditModeChange={setProtocolEditMode} />}
           </div>
         </main>
       </div>
@@ -2563,20 +2566,22 @@ const AdminDashboard = () => {
       setInstanceData(updated);
     }} />
 
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav 
-        currentView={currentView} 
-        onViewChange={setCurrentView} 
-        onAddReservation={handleQuickAddReservation} 
-        onLogout={handleLogout}
-        unreadNotificationsCount={unreadNotificationsCount}
-        offersEnabled={hasFeature('offers')}
-        followupEnabled={hasFeature('followup')}
-        hallViewEnabled={hasFeature('hall_view')}
-        protocolsEnabled={hasFeature('vehicle_reception_protocol')}
-        userRole={userRole}
-        currentVersion={currentVersion}
-      />
+      {/* Mobile Bottom Navigation - hidden when editing protocols */}
+      {!protocolEditMode && (
+        <MobileBottomNav 
+          currentView={currentView} 
+          onViewChange={setCurrentView} 
+          onAddReservation={handleQuickAddReservation} 
+          onLogout={handleLogout}
+          unreadNotificationsCount={unreadNotificationsCount}
+          offersEnabled={hasFeature('offers')}
+          followupEnabled={hasFeature('followup')}
+          hallViewEnabled={hasFeature('hall_view')}
+          protocolsEnabled={hasFeature('vehicle_reception_protocol')}
+          userRole={userRole}
+          currentVersion={currentVersion}
+        />
+      )}
     </>;
 };
 export default AdminDashboard;
