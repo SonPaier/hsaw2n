@@ -777,13 +777,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
       </main>
 
       {/* Fixed footer */}
-      <footer className="fixed bottom-16 sm:bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
-        <Button variant="outline" onClick={handleNavigateBack}>
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-50">
+        <Button variant="outline" onClick={handleNavigateBack} className="bg-white">
           Anuluj
         </Button>
         <div className="flex gap-2">
           {onOpenSettings && (
-            <Button variant="outline" size="icon" onClick={onOpenSettings}>
+            <Button variant="outline" size="icon" onClick={onOpenSettings} className="bg-white">
               <Settings className="h-4 w-4" />
             </Button>
           )}
@@ -791,10 +791,11 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             variant="outline" 
             onClick={handleSaveAndSendEmail} 
             disabled={saving || savingAndSending}
+            className="bg-white"
           >
             {savingAndSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            <Mail className="h-4 w-4 mr-2" />
-            Zapisz i wyślij
+            <Mail className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Zapisz i wyślij</span>
           </Button>
           <Button onClick={() => handleSave(false)} disabled={saving || savingAndSending}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
