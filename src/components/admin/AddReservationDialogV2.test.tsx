@@ -356,6 +356,109 @@ describe('AddReservationDialogV2 - Integration', () => {
     });
   });
 
+  describe('Reservation type toggle', () => {
+    it('RES-INT-060: domyślnie wyświetla radio "Jednodniowa" jako zaznaczone', async () => {
+      renderComponent();
+      await waitFor(() => {
+        const singleRadio = screen.getByLabelText(/jednodniowa/i);
+        expect(singleRadio).toBeChecked();
+      });
+    });
+
+    it('RES-INT-061: wyświetla radio "Wielodniowa" jako niezaznaczone domyślnie', async () => {
+      renderComponent();
+      await waitFor(() => {
+        const multiRadio = screen.getByLabelText(/wielodniowa/i);
+        expect(multiRadio).not.toBeChecked();
+      });
+    });
+
+    it('RES-INT-062: zmiana na "Wielodniowa" przełącza radio', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/wielodniowa/i)).toBeInTheDocument();
+      });
+      
+      const multiRadio = screen.getByLabelText(/wielodniowa/i);
+      await user.click(multiRadio);
+      
+      expect(multiRadio).toBeChecked();
+    });
+
+    it('RES-INT-063: edycja rezerwacji wielodniowej preselektuje "Wielodniowa"', async () => {
+      const multiDayReservation = {
+        id: 'res-multi',
+        customer_name: 'Jan Multi',
+        customer_phone: '111222333',
+        vehicle_plate: 'Audi A6',
+        car_size: 'medium' as const,
+        reservation_date: '2024-02-01',
+        end_date: '2024-02-03',
+        start_time: '10:00:00',
+        end_time: '11:30:00',
+        station_id: 'sta-1',
+        service_ids: ['svc-1'],
+        admin_notes: '',
+        price: 100,
+        confirmation_code: 'MULTI123',
+      };
+      
+      renderComponent({ editingReservation: multiDayReservation });
+      
+      await waitFor(() => {
+        const multiRadio = screen.getByLabelText(/wielodniowa/i);
+        expect(multiRadio).toBeChecked();
+      });
+    });
+
+    it('RES-INT-064: edycja rezerwacji jednodniowej preselektuje "Jednodniowa"', async () => {
+      const singleDayReservation = {
+        id: 'res-single',
+        customer_name: 'Jan Single',
+        customer_phone: '444555666',
+        vehicle_plate: 'BMW X3',
+        car_size: 'medium' as const,
+        reservation_date: '2024-02-01',
+        end_date: '2024-02-01',
+        start_time: '10:00:00',
+        end_time: '11:30:00',
+        station_id: 'sta-1',
+        service_ids: ['svc-1'],
+        admin_notes: '',
+        price: 100,
+        confirmation_code: 'SINGLE123',
+      };
+      
+      renderComponent({ editingReservation: singleDayReservation });
+      
+      await waitFor(() => {
+        const singleRadio = screen.getByLabelText(/jednodniowa/i);
+        expect(singleRadio).toBeChecked();
+      });
+    });
+
+    it('RES-INT-065: przełączenie z "Wielodniowa" na "Jednodniowa" zachowuje radio state', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/wielodniowa/i)).toBeInTheDocument();
+      });
+      
+      // Switch to multi
+      const multiRadio = screen.getByLabelText(/wielodniowa/i);
+      await user.click(multiRadio);
+      expect(multiRadio).toBeChecked();
+      
+      // Switch back to single
+      const singleRadio = screen.getByLabelText(/jednodniowa/i);
+      await user.click(singleRadio);
+      expect(singleRadio).toBeChecked();
+    });
+  });
+
   describe('Customer vehicle upsert', () => {
     it('RES-INT-050: wywołuje upsert_customer_vehicle przy tworzeniu nowej rezerwacji', async () => {
       const user = userEvent.setup();

@@ -259,6 +259,9 @@ const AddReservationDialogV2 = ({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [offerNumber, setOfferNumber] = useState('');
+  
+  // Reservation type: single (1 day) or multi (date range)
+  const [reservationType, setReservationType] = useState<'single' | 'multi'>('single');
 
   // Fetch services and stations on mount
   useEffect(() => {
@@ -449,6 +452,14 @@ const AddReservationDialogV2 = ({
         const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
         setDateRange({ from: fromDate, to: toDate });
         
+        // Auto-detect reservation type based on date range
+        if (editingReservation.end_date && 
+            editingReservation.reservation_date !== editingReservation.end_date) {
+          setReservationType('multi');
+        } else {
+          setReservationType('single');
+        }
+        
         setAdminNotes(editingReservation.admin_notes || '');
         setFinalPrice(editingReservation.price?.toString() || '');
         // Mark as user-modified if editing reservation with existing price
@@ -514,6 +525,7 @@ const AddReservationDialogV2 = ({
           setSelectedServices([]);
           const slotDate = new Date(initialDate);
           setDateRange({ from: slotDate, to: slotDate });
+          setReservationType('single');
           setAdminNotes('');
           setFinalPrice('');
           setOfferNumber('');
@@ -538,6 +550,7 @@ const AddReservationDialogV2 = ({
         // Default to today with 1-day range
         const today = getNextWorkingDay();
         setDateRange({ from: today, to: today });
+        setReservationType('single');
         setAdminNotes('');
         setFinalPrice('');
         setOfferNumber('');
@@ -1474,6 +1487,8 @@ const AddReservationDialogV2 = ({
               {isReservationMode && (
               <ReservationDateTimeSection
                 instanceId={instanceId}
+                reservationType={reservationType}
+                setReservationType={setReservationType}
                 dateRange={dateRange}
                 setDateRange={setDateRange}
                 dateRangeOpen={dateRangeOpen}

@@ -2,6 +2,7 @@ import { DateRange } from 'react-day-picker';
 
 export type CarSize = 'small' | 'medium' | 'large';
 export type DialogMode = 'reservation' | 'yard';
+export type ReservationType = 'single' | 'multi';
 
 export interface Service {
   id: string;
