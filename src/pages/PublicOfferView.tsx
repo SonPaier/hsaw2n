@@ -43,10 +43,7 @@ const PublicOfferView = () => {
                 is_extras_scope
               ),
               offer_option_items (
-                *,
-                unified_services:product_id (
-                  description
-                )
+                *
               )
             ),
             instances (
@@ -87,7 +84,45 @@ const PublicOfferView = () => {
           return;
         }
 
-        const fetchedOffer = data as unknown as PublicOfferData;
+        // Fetch product descriptions separately (same approach as OfferPreviewDialog)
+        // This ensures descriptions are loaded even when FK relation doesn't work
+        const productIds = [...new Set(
+          (data.offer_options || []).flatMap((opt: { offer_option_items?: { product_id?: string }[] }) => 
+            (opt.offer_option_items || []).map(item => item.product_id).filter(Boolean)
+          )
+        )] as string[];
+        
+        let productDescriptions: Record<string, string> = {};
+        if (productIds.length > 0) {
+          const { data: productsData } = await supabase
+            .from('unified_services')
+            .select('id, description')
+            .in('id', productIds);
+          
+          if (productsData) {
+            productsData.forEach(p => {
+              if (p.description) {
+                productDescriptions[p.id] = p.description;
+              }
+            });
+          }
+        }
+
+        // Enrich offer_option_items with unified_services descriptions
+        const enrichedData = {
+          ...data,
+          offer_options: (data.offer_options || []).map((opt: { offer_option_items?: { product_id?: string }[] }) => ({
+            ...opt,
+            offer_option_items: (opt.offer_option_items || []).map((item: { product_id?: string }) => ({
+              ...item,
+              unified_services: item.product_id && productDescriptions[item.product_id]
+                ? { description: productDescriptions[item.product_id] }
+                : null,
+            })),
+          })),
+        };
+
+        const fetchedOffer = enrichedData as unknown as PublicOfferData;
         setOffer(fetchedOffer);
 
         // Mark as viewed if not already (skip for admin previews)
