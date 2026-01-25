@@ -438,12 +438,23 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         // Create new protocol with current time
         const now = new Date();
         const currentTime = format(now, 'HH:mm:ss');
+        
+        // Generate a short public token for public access
+        const generateShortToken = () => {
+          const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+          let result = '';
+          for (let i = 0; i < 12; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return result;
+        };
 
         const { data: protocol, error: protocolError } = await supabase
           .from('vehicle_protocols')
           .insert({
             ...protocolPayload,
             protocol_time: currentTime,
+            public_token: generateShortToken(),
           } as any)
           .select('id')
           .single();
