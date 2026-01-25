@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ScopeProductSelectionDrawer } from './ScopeProductSelectionDrawer';
-import { AddProductDialog } from '@/components/products/AddProductDialog';
+import { ServiceFormDialog, ServiceData } from '@/components/admin/ServiceFormDialog';
 import {
   DndContext,
   closestCenter,
@@ -40,7 +40,40 @@ interface Product {
   price_medium: number | null;
   price_large: number | null;
   category_id?: string | null;
+  description?: string | null;
+  prices_are_net?: boolean;
+  duration_minutes?: number | null;
+  duration_small?: number | null;
+  duration_medium?: number | null;
+  duration_large?: number | null;
+  service_type?: string;
+  visibility?: string;
+  reminder_template_id?: string | null;
 }
+
+// Helper: Map Product to ServiceData for ServiceFormDialog
+const mapProductToServiceData = (product: Product | null | undefined): ServiceData | null => {
+  if (!product) return null;
+  return {
+    id: product.id,
+    name: product.name,
+    short_name: product.short_name,
+    description: product.description || null,
+    price_from: product.price_from ?? product.default_price,
+    price_small: product.price_small ?? null,
+    price_medium: product.price_medium ?? null,
+    price_large: product.price_large ?? null,
+    prices_are_net: product.prices_are_net ?? true,
+    duration_minutes: product.duration_minutes ?? null,
+    duration_small: product.duration_small ?? null,
+    duration_medium: product.duration_medium ?? null,
+    duration_large: product.duration_large ?? null,
+    category_id: product.category_id ?? null,
+    service_type: (product.service_type as 'both' | 'reservation' | 'offer') ?? 'both',
+    visibility: (product.visibility as 'everywhere' | 'only_reservations' | 'only_offers') ?? 'everywhere',
+    reminder_template_id: product.reminder_template_id ?? null,
+  };
+};
 
 // Get the lowest available price for display
 const getLowestPrice = (p: Product): number => {
@@ -707,17 +740,18 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
       />
 
       {/* Product Edit Dialog */}
-      <AddProductDialog
+      <ServiceFormDialog
         open={!!editingProductId}
         onOpenChange={(open) => !open && setEditingProductId(null)}
         instanceId={instanceId}
-        categories={[]}
-        onProductAdded={async () => {
+        categories={Object.entries(categoryMap).map(([id, name]) => ({ id, name }))}
+        service={mapProductToServiceData(scopeProducts.find(sp => sp.product_id === editingProductId)?.product)}
+        onSaved={async () => {
           // Refresh the product data after edit
           if (editingProductId) {
             const { data } = await supabase
               .from('unified_services')
-              .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id')
+              .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, description, prices_are_net, duration_minutes, duration_small, duration_medium, duration_large, service_type, visibility, reminder_template_id')
               .eq('id', editingProductId)
               .single();
             
@@ -738,7 +772,6 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
           }
           setEditingProductId(null);
         }}
-        product={scopeProducts.find(sp => sp.product_id === editingProductId)?.product as any}
       />
     </>
   );
