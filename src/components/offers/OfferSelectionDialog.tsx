@@ -127,10 +127,10 @@ export function OfferSelectionDialog({ open, onOpenChange, offer }: OfferSelecti
     });
   }
 
-  // Use saved totals from selected_state if available, otherwise calculate
-  const totalNet = selectedState.totalNet ?? selections.reduce((sum, s) => sum + s.price, 0);
+  // Use the confirmed totals from the offer - these are what the customer agreed to
   const vatRate = offer.vat_rate ?? 23;
-  const totalGross = selectedState.totalGross ?? totalNet * (1 + vatRate / 100);
+  const totalNet = offer.total_net;
+  const totalGross = offer.total_gross;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
