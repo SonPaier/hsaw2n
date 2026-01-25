@@ -1,192 +1,106 @@
 
+# Plan naprawy: service_type nie może być zmieniane dla zunifikowanych usług
 
-## Plan migracji szablonów ofert do zunifikowanych usług
+## Podsumowanie problemu
 
-### Cel
-Przeprowadzić migrację szablonów (`offer_scopes`) ARMCAR do nowego systemu zunifikowanych usług (`service_type = 'both'`), zachowując kompatybilność wsteczną z istniejącymi ofertami.
+Pole `service_type` w `unified_services` określa przynależność do modelu danych:
+- `'reservation'` - legacy usługi rezerwacyjne
+- `'offer'` - legacy usługi ofertowe  
+- `'both'` - zunifikowane usługi (nowy model)
 
----
+**Problem:** UI "Widoczność usługi" pozwala zmienić `service_type`, co powoduje że usługi znikają z cennika (bo cennik filtruje `service_type = 'both'`).
 
-### Analiza obecnego stanu
+## Bugi do naprawienia
 
-**Dane ARMCAR (instance_id: `4ce15650-...`):**
-- **Aktywne szablony:** 9 (8 zwykłych + 1 Dodatki)
-- **Usługi unified_services:** 80 typu 'both', 61 typu 'offer', 53 typu 'reservation'
-- **Obecne powiązania:** Szablony używają usług typu 'offer'
-- **Mapowanie nazw:** ~70% usług 'offer' ma odpowiednik 'both' (po identycznej nazwie)
+### Bug 1: AddProductDialog tworzy produkty z service_type: 'offer'
+**Plik:** `src/components/products/AddProductDialog.tsx`
 
-**Problem:**
-- Obecne szablony (`offer_scopes`) referencjonują `product_id` z usług typu 'offer'
-- Nowe oferty powinny używać tylko usług typu 'both'
-- Istniejące oferty muszą zachować działające referencje do starych szablonów
+Nowe produkty tworzone z ProductsView mają `service_type: 'offer'`, przez co nie pojawiają się w zunifikowanym cenniku.
 
----
+**Naprawa:** Zmienić na `service_type: 'both'`
 
-### Strategia migracji
+### Bug 2: ServiceFormDialog nadpisuje service_type
+**Plik:** `src/components/admin/ServiceFormDialog.tsx` (linie 689-708)
 
-Zastosujemy sprawdzony wzorzec z rezerwacji:
+Select "Widoczność usługi" zapisuje wybór do pola `service_type`. Dla zunifikowanych usług powoduje to ich "zniknięcie" z cennika.
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    OFFER_SCOPES                                  │
-├─────────────────────────────────────────────────────────────────┤
-│ STARE SZABLONY (has_unified_services = false)                   │
-│   → Ukryte w UI                                                 │
-│   → Zachowują FK do usług 'offer'                              │
-│   → Istniejące oferty zachowują do nich referencje             │
-├─────────────────────────────────────────────────────────────────┤
-│ NOWE SZABLONY (has_unified_services = true)                     │
-│   → Widoczne w UI                                               │
-│   → FK do usług 'both'                                          │
-│   → Nowe oferty używają tylko tych szablonów                   │
-└─────────────────────────────────────────────────────────────────┘
+**Naprawa:** Ukryć sekcję visibility dla usług z `service_type = 'both'`
+
+## Szczegóły techniczne
+
+### Zmiana w AddProductDialog.tsx
+
+Lokalizacja: około linii 281
+
+```typescript
+// Przed:
+service_type: 'offer',
+
+// Po:
+service_type: 'both',
 ```
 
----
+### Zmiana w ServiceFormDialog.tsx
 
-### Szczegółowy plan implementacji
+Lokalizacja: linie 689-708
 
-#### Krok 1: Migracja bazy danych
-Dodanie kolumny `has_unified_services` do tabeli `offer_scopes`:
+```typescript
+// Przed:
+<div className="space-y-2">
+  <div className="flex items-center gap-1.5">
+    <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+    ...
+  </div>
+  <Select
+    value={formData.service_type}
+    onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v }))}
+  >
+    ...
+  </Select>
+</div>
+
+// Po:
+{/* Visibility - tylko dla legacy usług, ukryte dla zunifikowanych */}
+{formData.service_type !== 'both' && (
+  <div className="space-y-2">
+    <div className="flex items-center gap-1.5">
+      <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
+      ...
+    </div>
+    <Select
+      value={formData.service_type}
+      onValueChange={(v) => setFormData(prev => ({ ...prev, service_type: v }))}
+    >
+      ...
+    </Select>
+  </div>
+)}
+```
+
+### Naprawa danych w bazie (jednorazowa migracja SQL)
+
+Przywrócenie `service_type = 'both'` dla usług przypisanych do kategorii typu 'both':
 
 ```sql
-ALTER TABLE offer_scopes 
-ADD COLUMN has_unified_services BOOLEAN DEFAULT false;
-
--- Oznacz wszystkie istniejące jako legacy
-UPDATE offer_scopes SET has_unified_services = false;
+UPDATE unified_services us
+SET service_type = 'both'
+FROM unified_categories uc
+WHERE us.category_id = uc.id
+  AND uc.category_type = 'both'
+  AND us.service_type != 'both';
 ```
 
-#### Krok 2: Skrypt migracji danych dla ARMCAR
-
-Utworzenie kopii szablonów z mapowaniem usług:
-
-```sql
--- Dla każdego aktywnego szablonu ARMCAR:
--- 1. Skopiuj offer_scopes z has_unified_services = true
--- 2. Skopiuj offer_scope_products z zamianą product_id na odpowiednik 'both'
-```
-
-**Logika mapowania usług:**
-1. Szukaj usługi 'both' o identycznej nazwie
-2. Jeśli brak dopasowania - pozostaw NULL (usługa do ręcznego dodania)
-3. Zachowaj `variant_name`, `is_default`, `sort_order`
-
-#### Krok 3: Aktualizacja frontendowych komponentów
-
-**OfferServicesListView.tsx** - Lista szablonów:
-```typescript
-// Dodaj filtr w fetchScopes()
-.eq('has_unified_services', true) // Pokazuj tylko nowe szablony
-```
-
-**ScopesStep.tsx** - Wybór szablonów w kreatorze oferty:
-```typescript
-// Dodaj filtr w fetchScopes()
-.eq('has_unified_services', true) // Nowe oferty widzą tylko nowe szablony
-```
-
-**OfferServiceEditView.tsx** - Edycja/tworzenie szablonu:
-```typescript
-// Przy tworzeniu nowego szablonu
-has_unified_services: true
-
-// Drawer wyboru usług używa już hasUnifiedServices=true
-// (obecnie hardcoded - bez zmian)
-```
-
-**OfferProductSelectionDrawer.tsx** - Bez zmian:
-- Już filtruje po `service_type = 'both'` gdy `hasUnifiedServices = true`
-
-#### Krok 4: Szablon "Dodatki" (is_extras_scope)
-
-Specjalna obsługa:
-1. Skopiuj szablon "Dodatki" z `has_unified_services = true`
-2. Przy ładowaniu dodatków w ofercie - używaj nowego szablonu
-3. Dynamiczne ładowanie usług 'both' (istniejąca logika)
-
----
-
-### Mapowanie usług - brakujące odpowiedniki
-
-Usługi typu 'offer' bez odpowiednika 'both' (wymagają ręcznego dodania lub pominięcia):
-- Dekontaminacja chemiczna
-- Dekontaminacja mechaniczna
-- Korekta lakieru 1/2/3-etapowa
-- Lekka korekta (Light One Step)
-- Folia PPF Izotronik Kolor
-- Powłoka Gyeon Rim EVO
-- Powłoka CanCoat EVO / Matte EVO
-- Bezpieczne mycie na dwa wiadra
-
-**Opcje:**
-1. Utworzenie brakujących usług 'both' przed migracją
-2. Pominięcie przy mapowaniu (puste pozycje w szablonach)
-
----
-
-### Zmiany w komponentach
+## Podsumowanie zmian
 
 | Plik | Zmiana |
 |------|--------|
-| `OfferServicesListView.tsx` | Dodanie filtru `.eq('has_unified_services', true)` |
-| `ScopesStep.tsx` | Dodanie filtru `.eq('has_unified_services', true)` |
-| `OfferServiceEditView.tsx` | Ustawienie `has_unified_services: true` przy insert |
-| `useOffer.ts` | Bez zmian (już ustawia `has_unified_services` na ofercie) |
+| `AddProductDialog.tsx` | `service_type: 'offer'` → `'both'` |
+| `ServiceFormDialog.tsx` | Ukrycie sekcji visibility gdy `service_type = 'both'` |
+| Migracja SQL | Naprawa istniejących danych |
 
----
+## Efekt po zmianach
 
-### Sekwencja wdrożenia
-
-1. **Migracja DB:** Dodanie kolumny `has_unified_services`
-2. **Skrypt danych:** Kopiowanie szablonów ARMCAR z mapowaniem
-3. **Frontend:** Aktualizacja filtrów w 3 komponentach
-4. **Weryfikacja:** Test tworzenia nowej oferty i edycji szablonów
-5. **Cleanup (opcjonalny):** Soft-delete starych szablonów po potwierdzeniu działania
-
----
-
-### Sekcja techniczna - szczegóły SQL
-
-**Skrypt kopiowania szablonów:**
-```sql
--- CTE: Mapowanie nazw usług offer -> both
-WITH service_mapping AS (
-  SELECT 
-    offer.id as offer_service_id,
-    both.id as both_service_id,
-    offer.name
-  FROM unified_services offer
-  LEFT JOIN unified_services both 
-    ON both.name = offer.name 
-    AND both.service_type = 'both'
-    AND both.instance_id = offer.instance_id
-  WHERE offer.service_type = 'offer'
-    AND offer.instance_id = '4ce15650-76c7-47e7-b5c8-32b9a2d1c321'
-),
--- Kopiuj szablony
-new_scopes AS (
-  INSERT INTO offer_scopes (
-    instance_id, name, description, sort_order, active,
-    has_coating_upsell, is_extras_scope, 
-    default_payment_terms, default_notes, default_warranty,
-    default_service_info, short_name, source,
-    has_unified_services
-  )
-  SELECT 
-    instance_id, name, description, sort_order, active,
-    has_coating_upsell, is_extras_scope,
-    default_payment_terms, default_notes, default_warranty,
-    default_service_info, short_name, source,
-    true -- has_unified_services
-  FROM offer_scopes
-  WHERE instance_id = '4ce15650-76c7-47e7-b5c8-32b9a2d1c321'
-    AND active = true
-    AND has_unified_services IS NOT TRUE
-  RETURNING id, name
-)
--- Kopiuj produkty z mapowaniem
-INSERT INTO offer_scope_products (...)
-...
-```
-
+- Nowe produkty będą widoczne w cenniku (service_type = 'both')
+- Edycja zunifikowanych usług nie zmieni ich service_type
+- Usunięte usługi wrócą do cennika po migracji SQL
+- Legacy usługi nadal mogą mieć zmienianą visibility (bez wpływu na nowy cennik)
