@@ -40,8 +40,9 @@ export const VehicleDiagram = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
   
-  // Point size: 0.75rem (12px) on desktop, 2.5x larger (30px) on mobile
-  const pointSize = isMobile ? '1.875rem' : '0.75rem';
+  // Point size: larger in readOnly mode (public view) or on mobile for better touch/visibility
+  // 1.875rem (30px) for public/mobile, 0.75rem (12px) for admin desktop
+  const pointSize = (readOnly || isMobile) ? '1.875rem' : '0.75rem';
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || draggingPointId) return;
     if (!onAddPoint) return;
