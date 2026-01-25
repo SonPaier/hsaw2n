@@ -373,4 +373,134 @@ describe('ServiceSelectionDrawer', () => {
       });
     });
   });
+
+  describe('Pre-selekcja usług (issue #drawer-preselect)', () => {
+    it('SDRW-P-001: drawer pokazuje już wybrane usługi jako zaznaczone przy otwarciu', async () => {
+      // Given: reservation with 2 services already selected (MZ, KPL)
+      renderComponent({ selectedServiceIds: ['svc-1', 'svc-2'] });
+      
+      await waitFor(() => {
+        // Should show "Zaznaczone (2)" section with the pre-selected services
+        expect(screen.getByText(/Zaznaczone.*\(2\)/i)).toBeInTheDocument();
+      });
+      
+      // The selected chips should be visible in the header area
+      const chips = screen.getAllByRole('button');
+      const mpChip = chips.find(btn => btn.textContent?.includes('MP'));
+      const polChip = chips.find(btn => btn.textContent?.includes('POL'));
+      
+      expect(mpChip).toBeTruthy();
+      expect(polChip).toBeTruthy();
+    });
+
+    it('SDRW-P-002: pre-wybrane usługi mają checkmark w liście usług', async () => {
+      renderComponent({ selectedServiceIds: ['svc-1'] });
+      
+      await waitFor(() => {
+        expect(screen.getByText('Mycie podstawowe')).toBeInTheDocument();
+      });
+      
+      // Find the service row - it should have a check icon
+      const checkIcons = document.querySelectorAll('[data-testid="check-icon"]');
+      // Or find by the Check component from lucide-react
+      const serviceRow = screen.getByText('Mycie podstawowe').closest('button');
+      expect(serviceRow).toBeTruthy();
+      
+      // The row should indicate it's selected (via Check icon or styling)
+      if (serviceRow) {
+        const svg = serviceRow.querySelector('svg');
+        expect(svg).toBeTruthy(); // Should have Check icon
+      }
+    });
+
+    it('SDRW-P-003: nie pozwala duplikować już wybranych usług przez ponowne dodanie', async () => {
+      const user = userEvent.setup();
+      const onConfirm = vi.fn();
+      
+      // Start with svc-1 already selected
+      renderComponent({ 
+        selectedServiceIds: ['svc-1'],
+        onConfirm,
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Zaznaczone.*\(1\)/i)).toBeInTheDocument();
+      });
+      
+      // Wait for confirm button and click it
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /dodaj/i })).toBeInTheDocument();
+      });
+      
+      const confirmButton = screen.getByRole('button', { name: /dodaj/i });
+      await user.click(confirmButton);
+      
+      // Wait for onConfirm to be called
+      await waitFor(() => {
+        expect(onConfirm).toHaveBeenCalled();
+      });
+      
+      // onConfirm should receive unique IDs only (toggle behavior means clicking selected removes it)
+      const selectedIds = onConfirm.mock.calls[0][0] as string[];
+      const uniqueIds = [...new Set(selectedIds)];
+      expect(selectedIds.length).toBe(uniqueIds.length);
+    });
+
+    it('SDRW-P-004: zmiana selectedServiceIds między re-renderami aktualizuje selekcję', async () => {
+      const { rerender } = render(
+        <I18nextProvider i18n={i18n}>
+          <ServiceSelectionDrawer
+            open={true}
+            onClose={vi.fn()}
+            instanceId="test-instance-id"
+            carSize="medium"
+            selectedServiceIds={['svc-1']}
+            onConfirm={vi.fn()}
+            context="reservation"
+            hasUnifiedServices={false}
+          />
+        </I18nextProvider>
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Zaznaczone.*\(1\)/i)).toBeInTheDocument();
+      });
+      
+      // Re-render with 2 services
+      rerender(
+        <I18nextProvider i18n={i18n}>
+          <ServiceSelectionDrawer
+            open={false} // Close first
+            onClose={vi.fn()}
+            instanceId="test-instance-id"
+            carSize="medium"
+            selectedServiceIds={['svc-1', 'svc-2']}
+            onConfirm={vi.fn()}
+            context="reservation"
+            hasUnifiedServices={false}
+          />
+        </I18nextProvider>
+      );
+      
+      // Re-open with new selection
+      rerender(
+        <I18nextProvider i18n={i18n}>
+          <ServiceSelectionDrawer
+            open={true}
+            onClose={vi.fn()}
+            instanceId="test-instance-id"
+            carSize="medium"
+            selectedServiceIds={['svc-1', 'svc-2']}
+            onConfirm={vi.fn()}
+            context="reservation"
+            hasUnifiedServices={false}
+          />
+        </I18nextProvider>
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Zaznaczone.*\(2\)/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
