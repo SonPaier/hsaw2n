@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -171,39 +171,37 @@ export function SendOfferEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-full max-h-[100vh] sm:max-h-[90vh] flex flex-col p-0" style={{ zIndex: 1100 }}>
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0" style={{ zIndex: 1100 }}>
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5" />
             {t('sendEmailDialog.title')}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden px-6 space-y-3">
+        <div className="flex-1 overflow-auto px-6 pb-4">
           {/* Recipient */}
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm mb-3">
             <span className="text-muted-foreground">{t('sendEmailDialog.to')}:</span>
             <span className="font-medium">{customerEmail || t('offers.noCustomerEmail')}</span>
           </div>
 
           {/* Email body editor */}
-          <div className="flex-1 flex flex-col space-y-2 min-h-0">
+          <div className="space-y-2">
             <Label>{t('sendEmailDialog.editTemplate')}</Label>
-            <ScrollArea className="flex-1 rounded-md border" style={{ height: 'calc(100vh - 280px)', maxHeight: '500px' }}>
-              <Textarea
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                className="min-h-[450px] border-0 resize-none font-mono text-sm"
-              />
-            </ScrollArea>
+            <Textarea
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              className="min-h-[300px] sm:min-h-[400px] resize-none font-mono text-sm"
+            />
           </div>
         </div>
 
-        <DialogFooter className="sticky bottom-0 bg-background border-t px-6 py-4 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending} className="bg-white">
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 py-4 gap-2 sm:gap-0 flex-col-reverse sm:flex-row">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending} className="bg-white w-full sm:w-auto">
             {t('sendEmailDialog.cancel')}
           </Button>
-          <Button onClick={handleSend} disabled={sending || !customerEmail}>
+          <Button onClick={handleSend} disabled={sending || !customerEmail} className="w-full sm:w-auto">
             {sending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
