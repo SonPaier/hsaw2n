@@ -76,7 +76,7 @@ interface ServiceData {
   duration_large?: number | null;
   category_id: string | null;
   service_type: 'both' | 'reservation' | 'offer';
-  visibility?: 'all' | 'reservations' | 'offers';
+  visibility?: 'everywhere' | 'only_reservations' | 'only_offers';
   sort_order?: number | null;
   reminder_template_id?: string | null;
 }
@@ -193,7 +193,7 @@ const ServiceFormContent = ({
           duration_large: service?.duration_large ?? null,
           category_id: service?.category_id || defaultCategoryId || '',
           service_type: service?.service_type || 'both',
-          visibility: service?.visibility || 'all',
+          visibility: service?.visibility || 'everywhere',
           reminder_template_id: service?.reminder_template_id || '__none__',
         });
 
@@ -258,7 +258,7 @@ const ServiceFormContent = ({
         duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
-        visibility: service.visibility || 'all',
+        visibility: service.visibility || 'everywhere',
         reminder_template_id: service.reminder_template_id || '__none__',
       });
     }
@@ -698,15 +698,15 @@ const ServiceFormContent = ({
               </div>
               <Select
                 value={formData.visibility}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, visibility: v as 'all' | 'reservations' | 'offers' }))}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, visibility: v as 'everywhere' | 'only_reservations' | 'only_offers' }))}
               >
                 <SelectTrigger className="bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="all">{t('priceList.form.visibilityAll', 'Wszędzie')}</SelectItem>
-                  <SelectItem value="reservations">{t('priceList.form.visibilityReservations', 'Tylko rezerwacje')}</SelectItem>
-                  <SelectItem value="offers">{t('priceList.form.visibilityOffers', 'Tylko oferty')}</SelectItem>
+                  <SelectItem value="everywhere">{t('priceList.form.visibilityAll', 'Wszędzie')}</SelectItem>
+                  <SelectItem value="only_reservations">{t('priceList.form.visibilityReservations', 'Tylko rezerwacje')}</SelectItem>
+                  <SelectItem value="only_offers">{t('priceList.form.visibilityOffers', 'Tylko oferty')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
