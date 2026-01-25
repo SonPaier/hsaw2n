@@ -119,7 +119,7 @@ export function SendOfferEmailDialog({
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-offer-email', {
+      const { data, error } = await supabase.functions.invoke('send-offer-email', {
         body: { 
           offerId: offer.id,
           customEmailBody: emailBody 
@@ -127,13 +127,43 @@ export function SendOfferEmailDialog({
       });
 
       if (error) throw error;
+      
+      // Check for error in response body
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       toast.success(t('offers.emailSent'));
       onOpenChange(false);
       onSent();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error sending email:', error);
-      toast.error(t('offers.errors.emailError'));
+      
+      // Parse error message for human-readable display
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      let userMessage = 'Nie udało się wysłać wiadomości';
+      
+      if (errorMessage.includes('No customer email')) {
+        userMessage = 'Brak adresu email klienta';
+      } else if (errorMessage.includes('SMTP not configured')) {
+        userMessage = 'Wysyłka email nie jest skonfigurowana';
+      } else if (errorMessage.includes('Invalid address') || errorMessage.includes('invalid') && errorMessage.includes('address')) {
+        userMessage = 'Nieprawidłowy adres email - sprawdź czy nie ma literówki';
+      } else if (errorMessage.includes('Mailbox not found') || errorMessage.includes('does not exist') || errorMessage.includes('User unknown')) {
+        userMessage = 'Adres email nie istnieje - sprawdź poprawność';
+      } else if (errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+        userMessage = 'Błąd połączenia z serwerem email - spróbuj ponownie';
+      } else if (errorMessage.includes('rejected') || errorMessage.includes('spam')) {
+        userMessage = 'Wiadomość została odrzucona przez serwer odbiorcy';
+      } else if (errorMessage.includes('authentication') || errorMessage.includes('auth')) {
+        userMessage = 'Błąd autoryzacji serwera email';
+      } else if (errorMessage) {
+        // Show the actual error if we don't have a specific translation
+        userMessage = `Błąd wysyłki: ${errorMessage}`;
+      }
+      
+      toast.error(userMessage);
     } finally {
       setSending(false);
     }

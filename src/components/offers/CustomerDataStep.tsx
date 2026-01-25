@@ -83,10 +83,36 @@ export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataS
     }
   }));
 
-  const validateEmail = (email: string): boolean => {
-    if (!email) return true; // Empty is valid (will be caught by required validation)
+  const validateEmail = (email: string): string | null => {
+    if (!email) return null; // Empty is valid (will be caught by required validation)
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (!emailRegex.test(email)) {
+      return 'Nieprawidłowy format adresu email';
+    }
+    
+    // Check for common domain typos
+    const domain = email.split('@')[1]?.toLowerCase() || '';
+    
+    // Gmail typos
+    if (domain.match(/^g?mail\.com[a-z]+/i) || domain.match(/^gmail\.[a-z]{2,}\.[a-z]+$/i)) {
+      return 'Sprawdź domenę - czy chodziło o gmail.com?';
+    }
+    if (domain === 'gmial.com' || domain === 'gmal.com' || domain === 'gmali.com' || domain === 'gmaill.com') {
+      return 'Sprawdź domenę - czy chodziło o gmail.com?';
+    }
+    
+    // Other common typos
+    if (domain.match(/\.(com|pl|eu|net|org)[a-z]+$/i)) {
+      return 'Sprawdź domenę - wygląda na literówkę';
+    }
+    
+    // Double dots in domain
+    if (domain.includes('..')) {
+      return 'Nieprawidłowa domena - podwójna kropka';
+    }
+    
+    return null;
   };
 
   const sanitizeEmail = (email: string): string => {
@@ -98,11 +124,8 @@ export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataS
     const email = e.target.value;
     onCustomerChange({ email });
     
-    if (email && !validateEmail(email)) {
-      setEmailError('Nieprawidłowy format adresu email');
-    } else {
-      setEmailError(null);
-    }
+    const error = validateEmail(email);
+    setEmailError(error);
   };
 
   const handleEmailPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -115,11 +138,8 @@ export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataS
       onCustomerChange({ email: cleanEmail });
       
       // Also validate the cleaned email
-      if (cleanEmail && !validateEmail(cleanEmail)) {
-        setEmailError('Nieprawidłowy format adresu email');
-      } else {
-        setEmailError(null);
-      }
+      const error = validateEmail(cleanEmail);
+      setEmailError(error);
     }
   };
 
