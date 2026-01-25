@@ -17,14 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { OfferSearchAutocomplete } from '@/components/protocols/OfferSearchAutocomplete';
-import { Station, WorkingHours } from './types';
+import { Station, WorkingHours, ReservationType } from './types';
 import { RefObject } from 'react';
 
 interface ReservationDateTimeSectionProps {
   instanceId: string;
+  reservationType: ReservationType;
+  setReservationType: (type: ReservationType) => void;
   dateRange: DateRange | undefined;
   setDateRange: (range: DateRange | undefined) => void;
   dateRangeOpen: boolean;
@@ -59,6 +62,8 @@ interface ReservationDateTimeSectionProps {
 
 export const ReservationDateTimeSection = ({
   instanceId,
+  reservationType,
+  setReservationType,
   dateRange,
   setDateRange,
   dateRangeOpen,
@@ -94,6 +99,36 @@ export const ReservationDateTimeSection = ({
 
   return (
     <div className="space-y-4" ref={dateRangeRef}>
+      {/* Reservation Type Toggle */}
+      <div className="space-y-2">
+        <Label>{t('addReservation.reservationType')}</Label>
+        <RadioGroup
+          value={reservationType}
+          onValueChange={(val: ReservationType) => {
+            markUserEditing();
+            setReservationType(val);
+            // When switching to single, sync to = from
+            if (val === 'single' && dateRange?.from) {
+              setDateRange({ from: dateRange.from, to: dateRange.from });
+            }
+          }}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="single" id="res-type-single" />
+            <Label htmlFor="res-type-single" className="cursor-pointer font-normal">
+              {t('addReservation.singleDay')}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="multi" id="res-type-multi" />
+            <Label htmlFor="res-type-multi" className="cursor-pointer font-normal">
+              {t('addReservation.multiDay')}
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+
       {/* Date Range Picker */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
@@ -126,33 +161,59 @@ export const ReservationDateTimeSection = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              defaultMonth={dateRange?.from || new Date()}
-              selected={dateRange}
-              onSelect={(range) => {
-                markUserEditing();
-                setDateRange(range);
-                onClearDateRangeError();
-                if (range?.from && range?.to) {
-                  setDateRangeOpen(false);
-                }
-              }}
-              disabled={(date) => {
-                // Disable past dates
-                if (isBefore(date, startOfDay(new Date()))) return true;
-                // Disable closed days based on working hours
-                if (workingHours) {
-                  const dayName = format(date, 'EEEE').toLowerCase();
-                  const dayHours = workingHours[dayName];
-                  if (!dayHours || !dayHours.open || !dayHours.close) return true;
-                }
-                return false;
-              }}
-              numberOfMonths={isMobile ? 1 : 2}
-              locale={pl}
-              className="pointer-events-auto"
-            />
+            {reservationType === 'single' ? (
+              <Calendar
+                mode="single"
+                defaultMonth={dateRange?.from || new Date()}
+                selected={dateRange?.from}
+                onSelect={(date) => {
+                  markUserEditing();
+                  onClearDateRangeError();
+                  if (date) {
+                    setDateRange({ from: date, to: date });
+                    setDateRangeOpen(false);
+                  }
+                }}
+                disabled={(date) => {
+                  if (isBefore(date, startOfDay(new Date()))) return true;
+                  if (workingHours) {
+                    const dayName = format(date, 'EEEE').toLowerCase();
+                    const dayHours = workingHours[dayName];
+                    if (!dayHours || !dayHours.open || !dayHours.close) return true;
+                  }
+                  return false;
+                }}
+                numberOfMonths={isMobile ? 1 : 2}
+                locale={pl}
+                className="pointer-events-auto"
+              />
+            ) : (
+              <Calendar
+                mode="range"
+                defaultMonth={dateRange?.from || new Date()}
+                selected={dateRange}
+                onSelect={(range) => {
+                  markUserEditing();
+                  onClearDateRangeError();
+                  setDateRange(range);
+                  if (range?.from && range?.to) {
+                    setDateRangeOpen(false);
+                  }
+                }}
+                disabled={(date) => {
+                  if (isBefore(date, startOfDay(new Date()))) return true;
+                  if (workingHours) {
+                    const dayName = format(date, 'EEEE').toLowerCase();
+                    const dayHours = workingHours[dayName];
+                    if (!dayHours || !dayHours.open || !dayHours.close) return true;
+                  }
+                  return false;
+                }}
+                numberOfMonths={isMobile ? 1 : 2}
+                locale={pl}
+                className="pointer-events-auto"
+              />
+            )}
           </PopoverContent>
         </Popover>
         {dateRangeError && <p className="text-sm text-destructive">{dateRangeError}</p>}

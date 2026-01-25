@@ -1037,7 +1037,10 @@
     "reservationUpdated": "Rezerwacja zaktualizowana",
     "saveChanges": "Zapisz zmiany",
     "saveYardChanges": "Zapisz zmiany",
-    "addYardVehicle": "Dodaj pojazd"
+    "addYardVehicle": "Dodaj pojazd",
+    "reservationType": "Typ rezerwacji",
+    "singleDay": "Jednodniowa",
+    "multiDay": "Wielodniowa"
   },
   "reservationDetails": {
     "editTitle": "Edytuj rezerwację",
