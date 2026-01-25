@@ -76,6 +76,10 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   const [saving, setSaving] = useState(false);
   const [savingAndSending, setSavingAndSending] = useState(false);
   const isEditMode = !!protocolId;
+  
+  // Refs for scroll-to-error
+  const customerNameRef = useRef<HTMLDivElement>(null);
+  const customerEmailRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [offerNumber, setOfferNumber] = useState('');
@@ -395,24 +399,21 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     if (!customerName.trim()) {
       setValidationErrors({ customerName: true });
       toast.error('Podaj imię i nazwisko Klienta');
-      // Scroll to and focus the customer name field
-      const customerNameInput = document.querySelector('[data-field="customer-name"]');
-      if (customerNameInput) {
-        customerNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        (customerNameInput as HTMLElement).focus?.();
-      }
+      // Scroll to customer name field using ref
+      setTimeout(() => {
+        customerNameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
       return null;
     }
     
     // Validate email if sending
     if (openEmailAfter && !customerEmail.trim()) {
       toast.error('Aby wysłać protokół podaj email Klienta');
-      // Scroll to and focus the email field
-      const emailInput = document.querySelector('[data-field="customer-email"]');
-      if (emailInput) {
-        emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        (emailInput as HTMLElement).focus?.();
-      }
+      // Scroll to email field using ref
+      setTimeout(() => {
+        customerEmailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        customerEmailRef.current?.focus();
+      }, 100);
       return null;
     }
     
@@ -604,7 +605,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
 
           {/* Customer data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2" ref={customerNameRef}>
               <Label>Imię i nazwisko Klienta *</Label>
               <ClientSearchAutocomplete
                 instanceId={instanceId}
@@ -618,7 +619,6 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 placeholder="Wyszukaj klienta lub wpisz nowe dane"
                 className={cn("bg-white", validationErrors.customerName && "border-destructive")}
                 suppressAutoSearch={isEditMode}
-                data-field="customer-name"
               />
               {validationErrors.customerName && (
                 <p className="text-xs text-destructive">Imię i nazwisko Klienta jest wymagane</p>
@@ -640,11 +640,11 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             <div className="space-y-2">
               <Label>Email Klienta</Label>
               <Input
+                ref={customerEmailRef}
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="klient@email.com"
-                data-field="customer-email"
               />
             </div>
             <div className="space-y-2">
