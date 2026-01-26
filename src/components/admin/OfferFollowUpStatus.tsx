@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 type FollowUpPhoneStatus = 'called_discussed' | 'call_later' | 'called_no_answer' | null;
 
@@ -54,15 +55,15 @@ export function OfferFollowUpStatus({
   };
 
   return (
-    <div className="flex items-center gap-2" onClick={handleStatusClick}>
+    <div className="flex items-center gap-3" onClick={handleStatusClick}>
       {/* Phone icon - opens dialer */}
       <a
         href={`tel:${phone}`}
         onClick={handlePhoneClick}
-        className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         title={`Zadzwoń: ${phone}`}
       >
-        <Phone className="w-4 h-4 text-gray-500" />
+        <Phone className="w-6 h-6 text-gray-500" />
       </a>
 
       {/* Status dropdown */}
@@ -70,13 +71,13 @@ export function OfferFollowUpStatus({
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              'flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors',
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
               currentConfig ? currentConfig.className : DEFAULT_STATUS_CLASS
             )}
             onClick={handleStatusClick}
           >
             {currentConfig ? currentConfig.label : 'Ustaw status'}
-            <ChevronDown className="w-3 h-3" />
+            <ChevronDown className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" onClick={handleStatusClick}>
@@ -89,7 +90,7 @@ export function OfferFollowUpStatus({
               >
                 <span
                   className={cn(
-                    'px-3 py-1 rounded-full text-xs font-medium w-full text-center',
+                    'px-4 py-1.5 rounded-full text-sm font-medium w-full text-center',
                     config.className
                   )}
                 >
@@ -105,7 +106,7 @@ export function OfferFollowUpStatus({
             >
               <span
                 className={cn(
-                  'px-3 py-1 rounded-full text-xs font-medium w-full text-center',
+                  'px-4 py-1.5 rounded-full text-sm font-medium w-full text-center',
                   DEFAULT_STATUS_CLASS
                 )}
               >

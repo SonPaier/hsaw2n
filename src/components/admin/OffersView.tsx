@@ -398,7 +398,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       setOffers(prev => prev.map(o => 
         o.id === offerId ? { ...o, follow_up_phone_status: newStatus } : o
       ));
-      toast.success('Status zaktualizowany');
     } catch (error) {
       console.error('Error updating follow-up status:', error);
       toast.error('Błąd aktualizacji statusu');
