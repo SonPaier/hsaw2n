@@ -645,9 +645,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             </Badge>
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">
+                        <div className="text-base text-foreground mt-2 mb-1">
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
-                          {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
+                          {offer.vehicle_data?.brandModel && <span className="text-muted-foreground"> • {offer.vehicle_data.brandModel}</span>}
                         </div>
                         {offer.offer_scopes && offer.offer_scopes.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
@@ -702,9 +702,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                           )}
                         </div>
                         {/* Line 3: Customer and vehicle */}
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-base text-foreground mt-2 mb-1">
                           {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
-                          {offer.vehicle_data?.brandModel && ` • ${offer.vehicle_data.brandModel}`}
+                          {offer.vehicle_data?.brandModel && <span className="text-muted-foreground"> • {offer.vehicle_data.brandModel}</span>}
                         </div>
                         {/* Line 4: Services */}
                         {offer.offer_scopes && offer.offer_scopes.length > 0 && (
