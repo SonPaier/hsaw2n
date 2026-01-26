@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
-import { normalizeSearchQuery } from '@/lib/textUtils';
+import { normalizeSearchQuery, formatViewedDate } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -564,18 +564,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                           </button>
                           {offer.status === 'viewed' && offer.viewed_at ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge className={cn('text-xs cursor-default', statusColors[offer.status])}>
-                                    {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{format(new Date(offer.viewed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Badge className={cn('text-xs', statusColors[offer.status])}>
+                              Obejrzana {formatViewedDate(offer.viewed_at)}
+                            </Badge>
                           ) : (
                             <Badge className={cn('text-xs', statusColors[offer.status])}>
                               {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
@@ -626,18 +617,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
                           {offer.status === 'viewed' && offer.viewed_at ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge className={cn('text-xs cursor-default', statusColors[offer.status])}>
-                                    {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{format(new Date(offer.viewed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Badge className={cn('text-xs', statusColors[offer.status])}>
+                              Obejrzana {formatViewedDate(offer.viewed_at)}
+                            </Badge>
                           ) : (
                             <Badge className={cn('text-xs', statusColors[offer.status])}>
                               {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
