@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers, Banknote } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers, Banknote, Phone } from 'lucide-react';
 import { normalizeSearchQuery, formatViewedDate } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ import { OfferServicesListView } from '@/components/offers/services/OfferService
 import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
 import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
 import { OfferFollowUpStatus } from './OfferFollowUpStatus';
+import { OfferPreviewDialogByToken } from './OfferPreviewDialogByToken';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -184,6 +185,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // Services view state
   const [showServicesView, setShowServicesView] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+
+  // Preview dialog state
+  const [previewDialog, setPreviewDialog] = useState<{ open: boolean; token: string | null }>({ open: false, token: null });
 
   // Reset generator state when clicking sidebar link (same route navigation)
   useEffect(() => {
@@ -663,7 +667,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                           <div className="mt-2">
                             <OfferFollowUpStatus
                               offerId={offer.id}
-                              phone={offer.customer_data.phone}
                               currentStatus={offer.follow_up_phone_status ?? null}
                               onStatusChange={handleFollowUpStatusChange}
                             />
@@ -732,7 +735,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                           <div className="pt-2">
                             <OfferFollowUpStatus
                               offerId={offer.id}
-                              phone={offer.customer_data.phone}
                               currentStatus={offer.follow_up_phone_status ?? null}
                               onStatusChange={handleFollowUpStatusChange}
                             />
@@ -757,7 +759,13 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/offers/${offer.public_token}?admin=true`, '_blank'); }}>
+                          {offer.customer_data?.phone && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${offer.customer_data.phone}`; }}>
+                              <Phone className="w-4 h-4 mr-2" />
+                              Zadzwoń
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setPreviewDialog({ open: true, token: offer.public_token }); }}>
                             <Eye className="w-4 h-4 mr-2" />
                             {t('offers.preview')}
                           </DropdownMenuItem>
@@ -1018,6 +1026,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
             );
             setApprovalDialog({ open: false, offer: null, mode: 'approve' });
           }}
+        />
+      )}
+
+      {/* Offer Preview Dialog */}
+      {previewDialog.token && (
+        <OfferPreviewDialogByToken
+          open={previewDialog.open}
+          onClose={() => setPreviewDialog({ open: false, token: null })}
+          token={previewDialog.token}
         />
       )}
     </>

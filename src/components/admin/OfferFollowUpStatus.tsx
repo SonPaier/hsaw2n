@@ -1,4 +1,4 @@
-import { Phone, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,13 +6,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
 type FollowUpPhoneStatus = 'called_discussed' | 'call_later' | 'called_no_answer' | null;
 
 interface OfferFollowUpStatusProps {
   offerId: string;
-  phone: string;
   currentStatus: FollowUpPhoneStatus;
   onStatusChange: (offerId: string, newStatus: FollowUpPhoneStatus) => void;
 }
@@ -36,15 +34,10 @@ const DEFAULT_STATUS_CLASS = 'bg-gray-200 text-gray-600 hover:bg-gray-300';
 
 export function OfferFollowUpStatus({
   offerId,
-  phone,
   currentStatus,
   onStatusChange,
 }: OfferFollowUpStatusProps) {
   const currentConfig = currentStatus ? STATUS_CONFIG[currentStatus] : null;
-
-  const handlePhoneClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -55,17 +48,7 @@ export function OfferFollowUpStatus({
   };
 
   return (
-    <div className="flex items-center gap-3" onClick={handleStatusClick}>
-      {/* Phone icon - opens dialer */}
-      <a
-        href={`tel:${phone}`}
-        onClick={handlePhoneClick}
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        title={`Zadzwoń: ${phone}`}
-      >
-        <Phone className="w-6 h-6 text-gray-500" />
-      </a>
-
+    <div className="flex items-center" onClick={handleStatusClick}>
       {/* Status dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
