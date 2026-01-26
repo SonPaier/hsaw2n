@@ -1,58 +1,146 @@
 
-# Plan: Inline data obejrzenia oferty
+
+# Plan: Dialog zatwierdzenia oferty przez admina + edycja kwoty
 
 ## Cel
-Zamiana tooltipa z datą obejrzenia na tekst inline w badge, z relatywnym formatowaniem daty (dziś, wczoraj, pełna data).
+1. Gdy admin zmienia status oferty na "Zaakceptowana" → dialog z edycją kwoty netto/brutto
+2. Dla już zaakceptowanych ofert (status `accepted` lub `completed`) → nowa opcja "Zmień kwotę" w dropdown
+3. Po zapisie lista automatycznie się odświeża
 
-## Zmiany
+---
 
-### 1. Dodanie funkcji formatującej datę (`src/lib/textUtils.ts`)
+## Zmiany w bazie danych
 
-Nowa funkcja `formatViewedDate` zwracająca:
-- `"HH:mm, dziś"` - dla dzisiejszej daty
-- `"HH:mm, wczoraj"` - dla wczorajszej daty  
-- `"HH:mm, d MMMM"` - dla starszych dat (np. "13:52, 26 stycznia")
-
-```typescript
-export const formatViewedDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  const time = format(date, 'HH:mm', { locale: pl });
-  
-  if (date >= today) {
-    return `${time}, dziś`;
-  } else if (date >= yesterday) {
-    return `${time}, wczoraj`;
-  } else {
-    return `${time}, ${format(date, 'd MMMM', { locale: pl })}`;
-  }
-};
+### Nowe kolumny w tabeli `offers`
+```sql
+ALTER TABLE offers ADD COLUMN admin_approved_net numeric;
+ALTER TABLE offers ADD COLUMN admin_approved_gross numeric;
 ```
 
-### 2. Modyfikacja `OffersView.tsx`
+---
 
-**Linie 566-578 (desktop)** - usunięcie TooltipProvider/Tooltip, zastąpienie prostym Badge:
-```tsx
-{offer.status === 'viewed' && offer.viewed_at ? (
-  <Badge className={cn('text-xs', statusColors[offer.status])}>
-    Obejrzana {formatViewedDate(offer.viewed_at)}
-  </Badge>
-) : (
-  // ... pozostały kod dla innych statusów
+## Nowy komponent: `AdminOfferApprovalDialog.tsx`
+
+**Lokalizacja:** `src/components/offers/AdminOfferApprovalDialog.tsx`
+
+### Props
+```typescript
+interface AdminOfferApprovalDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  offer: {
+    id: string;
+    customer_data: { name?: string };
+    total_net: number | null;
+    total_gross: number | null;
+    admin_approved_net: number | null;
+    admin_approved_gross: number | null;
+  };
+  mode: 'approve' | 'edit';
+  onConfirm: (netAmount: number, grossAmount: number) => Promise<void>;
+}
+```
+
+### Wygląd dialogu
+- **Nagłówek:** "Oferta zaakceptowana"
+- **Opis:** "Oferta dla 'IMIĘ_KLIENTA' zaakceptowana na kwotę:"
+- **Pola:**
+  - Input "Kwota netto (zł)"
+  - Input "Kwota brutto (zł)"
+- **Przyciski:** "Anuluj" i "Zapisz"
+
+### Logika przeliczania
+- Edycja netto → brutto = netto × 1.23
+- Edycja brutto → netto = brutto ÷ 1.23
+- Zaokrąglanie do 2 miejsc po przecinku
+
+### Inicjalne wartości (priorytet)
+1. `admin_approved_net/gross` (jeśli admin już wcześniej ustawił)
+2. `total_net/gross` (jeśli klient zatwierdził)
+3. Puste (jeśli brak obu)
+
+---
+
+## Modyfikacja `OffersView.tsx`
+
+### 1. Nowy stan dla dialogu
+```typescript
+const [approvalDialog, setApprovalDialog] = useState<{ 
+  open: boolean; 
+  offer: OfferWithOptions | null;
+  mode: 'approve' | 'edit';
+}>({ open: false, offer: null, mode: 'approve' });
+```
+
+### 2. Przechwycenie statusu "accepted" w dropdown
+```typescript
+if (status === 'accepted') {
+  setApprovalDialog({ open: true, offer, mode: 'approve' });
+} else {
+  handleChangeStatus(offer.id, status);
+}
+```
+
+### 3. Nowa opcja "Zmień kwotę" w dropdown
+```typescript
+{(offer.status === 'accepted' || offer.status === 'completed') && (
+  <DropdownMenuItem onClick={() => setApprovalDialog({ open: true, offer, mode: 'edit' })}>
+    <Receipt className="w-4 h-4 mr-2" />
+    Zmień kwotę
+  </DropdownMenuItem>
 )}
 ```
 
-**Linie 628-640 (mobile)** - analogiczna zmiana.
+### 4. Funkcja `handleApproveOffer`
+```typescript
+const handleApproveOffer = async (
+  offerId: string, 
+  netAmount: number, 
+  grossAmount: number,
+  changeStatus: boolean
+) => {
+  const updateData = {
+    admin_approved_net: netAmount,
+    admin_approved_gross: grossAmount,
+    ...(changeStatus && {
+      status: 'accepted',
+      approved_at: new Date().toISOString(),
+      approved_by: userId,
+    }),
+  };
+  
+  await supabase.from('offers').update(updateData).eq('id', offerId);
+  await fetchOffers();  // ← odświeżenie listy
+  toast.success(changeStatus ? t('offers.statusChanged') : 'Kwota została zmieniona');
+};
+```
 
-## Pliki do modyfikacji
-1. `src/lib/textUtils.ts` - dodanie `formatViewedDate`
-2. `src/components/admin/OffersView.tsx` - usunięcie tooltipów, inline data w 2 miejscach
+### 5. Wyświetlanie kwoty na liście (priorytet admin → klient)
+```typescript
+{(offer.admin_approved_gross || offer.approved_at) && (
+  <span className="font-semibold">
+    {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
+  </span>
+)}
+```
 
-## Przykładowe wyniki
-- Oferta obejrzana dziś o 13:52 → `Obejrzana 13:52, dziś`
-- Oferta obejrzana wczoraj o 10:30 → `Obejrzana 10:30, wczoraj`
-- Oferta obejrzana 26 stycznia o 14:15 → `Obejrzana 14:15, 26 stycznia`
+---
+
+## Pliki do modyfikacji/utworzenia
+
+| Plik | Operacja |
+|------|----------|
+| Migracja SQL | Dodanie `admin_approved_net`, `admin_approved_gross` |
+| `src/components/offers/AdminOfferApprovalDialog.tsx` | **Nowy** |
+| `src/components/admin/OffersView.tsx` | Modyfikacja |
+
+---
+
+## Szczegóły techniczne
+
+- VAT stały = 23% (mnożnik 1.23)
+- Inputy typu `number` z `step="0.01"`
+- Walidacja: przynajmniej jedna kwota > 0
+- Priorytet wyświetlania: `admin_approved_gross ?? total_gross`
+- Opcja "Zmień kwotę" widoczna tylko dla `accepted` lub `completed`
+
