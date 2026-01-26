@@ -1593,6 +1593,8 @@ export type Database = {
       }
       offers: {
         Row: {
+          admin_approved_gross: number | null
+          admin_approved_net: number | null
           approved_at: string | null
           approved_by: string | null
           completed_at: string | null
@@ -1624,6 +1626,8 @@ export type Database = {
           warranty: string | null
         }
         Insert: {
+          admin_approved_gross?: number | null
+          admin_approved_net?: number | null
           approved_at?: string | null
           approved_by?: string | null
           completed_at?: string | null
@@ -1655,6 +1659,8 @@ export type Database = {
           warranty?: string | null
         }
         Update: {
+          admin_approved_gross?: number | null
+          admin_approved_net?: number | null
           approved_at?: string | null
           approved_by?: string | null
           completed_at?: string | null
