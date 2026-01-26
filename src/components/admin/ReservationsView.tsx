@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Search, Phone, MessageSquare, Check, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -142,10 +143,11 @@ const ReservationsView = ({
       return tabFiltered;
     }
     const query = debouncedQuery.toLowerCase().trim();
+    const normalizedQuery = normalizeSearchQuery(query);
     return tabFiltered.filter(r => {
-      const matchesCode = r.confirmation_code?.toLowerCase().includes(query);
+      const matchesCode = r.confirmation_code && normalizeSearchQuery(r.confirmation_code).toLowerCase().includes(normalizedQuery);
       const matchesName = r.customer_name?.toLowerCase().includes(query);
-      const matchesPhone = r.customer_phone?.includes(query);
+      const matchesPhone = r.customer_phone && normalizeSearchQuery(r.customer_phone).includes(normalizedQuery);
       const matchesVehicle = r.vehicle_plate?.toLowerCase().includes(query);
       return matchesCode || matchesName || matchesPhone || matchesVehicle;
     });

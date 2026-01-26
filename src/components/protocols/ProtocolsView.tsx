@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -108,11 +109,12 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack, onEditMod
   const filteredProtocols = useMemo(() => {
     return protocols.filter(p => {
       const query = searchQuery.toLowerCase();
+      const normalizedQuery = normalizeSearchQuery(query);
       return (
         p.customer_name.toLowerCase().includes(query) ||
-        p.offer_number?.toLowerCase().includes(query) ||
+        (p.offer_number && normalizeSearchQuery(p.offer_number).toLowerCase().includes(normalizedQuery)) ||
         p.vehicle_model?.toLowerCase().includes(query) ||
-        p.registration_number?.toLowerCase().includes(query)
+        (p.registration_number && normalizeSearchQuery(p.registration_number).toLowerCase().includes(normalizedQuery))
       );
     });
   }, [protocols, searchQuery]);

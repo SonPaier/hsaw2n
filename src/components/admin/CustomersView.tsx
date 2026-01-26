@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus, Trash2 } from 'lucide-react';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -109,14 +110,15 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     // Filter by search query (including vehicle search)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
+      const normalizedQuery = normalizeSearchQuery(query);
       result = result.filter(c => {
         // Search in customer fields
         const matchesCustomer = 
           c.name.toLowerCase().includes(query) ||
-          c.phone.includes(query) ||
+          normalizeSearchQuery(c.phone).includes(normalizedQuery) ||
           (c.email && c.email.toLowerCase().includes(query)) ||
           (c.company && c.company.toLowerCase().includes(query)) ||
-          (c.nip && c.nip.includes(query));
+          (c.nip && normalizeSearchQuery(c.nip).includes(normalizedQuery));
         
         // Search in vehicles
         const customerVehicles = getVehiclesForCustomer(c.phone);
