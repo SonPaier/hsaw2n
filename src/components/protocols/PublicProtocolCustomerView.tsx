@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ProtocolHeader } from './ProtocolHeader';
 import { VehicleDiagram, type BodyType, type DamagePoint, type VehicleView } from './VehicleDiagram';
 import { DamageViewDrawer } from './DamageViewDrawer';
+import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 
 export type ProtocolType = 'reception' | 'pickup';
 
@@ -71,10 +72,19 @@ export const PublicProtocolCustomerView = ({
 }: PublicProtocolCustomerViewProps) => {
   const [selectedPoint, setSelectedPoint] = useState<DamagePoint | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  
+  // Photo fullscreen state
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
 
   const handleSelectPoint = (point: DamagePoint) => {
     setSelectedPoint(point);
     setViewerOpen(true);
+  };
+  
+  const handlePhotoClick = (url: string) => {
+    setFullscreenPhoto(url);
+    setPhotoDialogOpen(true);
   };
 
   // Check if there are any damage points
@@ -198,11 +208,15 @@ export const PublicProtocolCustomerView = ({
               <Label className="text-muted-foreground text-sm">Zdjęcia pojazdu</Label>
               <div className="grid grid-cols-4 gap-2">
                 {protocol.photo_urls!.map((url, index) => (
-                  <div key={index} className="relative aspect-square">
+                  <div 
+                    key={index} 
+                    className="relative aspect-square cursor-pointer"
+                    onClick={() => handlePhotoClick(url)}
+                  >
                     <img
                       src={url}
                       alt={`Zdjęcie ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                     />
                   </div>
                 ))}
@@ -230,11 +244,15 @@ export const PublicProtocolCustomerView = ({
               <Label className="text-muted-foreground text-sm">Zdjęcia usterek</Label>
               <div className="grid grid-cols-4 gap-2">
                 {allDamagePhotos.map((url, index) => (
-                  <div key={index} className="relative aspect-square">
+                  <div 
+                    key={index} 
+                    className="relative aspect-square cursor-pointer"
+                    onClick={() => handlePhotoClick(url)}
+                  >
                     <img
                       src={url}
                       alt={`Zdjęcie usterki ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                     />
                   </div>
                 ))}
@@ -302,6 +320,13 @@ export const PublicProtocolCustomerView = ({
         open={viewerOpen}
         onOpenChange={setViewerOpen}
         point={selectedPoint}
+      />
+      
+      {/* Photo fullscreen dialog */}
+      <PhotoFullscreenDialog
+        open={photoDialogOpen}
+        onOpenChange={setPhotoDialogOpen}
+        photoUrl={fullscreenPhoto}
       />
     </div>
   );
