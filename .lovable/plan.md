@@ -1,58 +1,58 @@
 
-# Plan: Utility do normalizacji wyszukiwania
+# Plan: Inline data obejrzenia oferty
 
 ## Cel
-Stworzenie jednej funkcji utility do usuwania spacji z zapytań wyszukiwania, którą będzie można używać we wszystkich komponentach wyszukiwania.
+Zamiana tooltipa z datą obejrzenia na tekst inline w badge, z relatywnym formatowaniem daty (dziś, wczoraj, pełna data).
 
-## Implementacja
+## Zmiany
 
-### 1. Dodanie funkcji do `src/lib/textUtils.ts`
+### 1. Dodanie funkcji formatującej datę (`src/lib/textUtils.ts`)
+
+Nowa funkcja `formatViewedDate` zwracająca:
+- `"HH:mm, dziś"` - dla dzisiejszej daty
+- `"HH:mm, wczoraj"` - dla wczorajszej daty  
+- `"HH:mm, d MMMM"` - dla starszych dat (np. "13:52, 26 stycznia")
 
 ```typescript
-/**
- * Normalizes a search query by removing all whitespace characters.
- * Used for space-agnostic searching of phone numbers, offer numbers, etc.
- * 
- * @param query - The search query string
- * @returns Query with all whitespace removed
- * 
- * @example
- * normalizeSearchQuery("511 042 123") // returns "511042123"
- * normalizeSearchQuery("+48 733 854 184") // returns "+48733854184"
- */
-export const normalizeSearchQuery = (query: string): string => {
-  if (!query) return '';
-  return query.replace(/\s/g, '');
+export const formatViewedDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const time = format(date, 'HH:mm', { locale: pl });
+  
+  if (date >= today) {
+    return `${time}, dziś`;
+  } else if (date >= yesterday) {
+    return `${time}, wczoraj`;
+  } else {
+    return `${time}, ${format(date, 'd MMMM', { locale: pl })}`;
+  }
 };
 ```
 
-### 2. Użycie w komponentach
+### 2. Modyfikacja `OffersView.tsx`
 
-Import we wszystkich plikach wyszukiwania:
-```typescript
-import { normalizeSearchQuery } from '@/lib/textUtils';
+**Linie 566-578 (desktop)** - usunięcie TooltipProvider/Tooltip, zastąpienie prostym Badge:
+```tsx
+{offer.status === 'viewed' && offer.viewed_at ? (
+  <Badge className={cn('text-xs', statusColors[offer.status])}>
+    Obejrzana {formatViewedDate(offer.viewed_at)}
+  </Badge>
+) : (
+  // ... pozostały kod dla innych statusów
+)}
 ```
 
-Przykład użycia:
-```typescript
-const normalizedQuery = normalizeSearchQuery(searchTerm);
-const matchesPhone = normalizeSearchQuery(customer.phone).includes(normalizedQuery);
-```
+**Linie 628-640 (mobile)** - analogiczna zmiana.
 
-### 3. Pliki do aktualizacji
+## Pliki do modyfikacji
+1. `src/lib/textUtils.ts` - dodanie `formatViewedDate`
+2. `src/components/admin/OffersView.tsx` - usunięcie tooltipów, inline data w 2 miejscach
 
-| Plik | Zmiana |
-|------|--------|
-| `src/lib/textUtils.ts` | Dodanie funkcji `normalizeSearchQuery` |
-| `src/components/admin/CustomersView.tsx` | Import + użycie dla telefonu |
-| `src/components/admin/OffersView.tsx` | Import + użycie dla telefonu i numeru oferty |
-| `src/components/admin/ReservationsView.tsx` | Import + użycie dla telefonu i kodu |
-| `src/components/protocols/ProtocolsView.tsx` | Import + użycie dla numeru oferty i rejestracji |
-| `src/components/ui/client-search-autocomplete.tsx` | Import + użycie w zapytaniu |
-| `src/components/protocols/OfferSearchAutocomplete.tsx` | Import + użycie w zapytaniu |
-
-## Korzyści
-- Jedna funkcja zamiast powtórzonego kodu w 6 miejscach
-- Łatwa modyfikacja logiki w przyszłości (np. usuwanie też myślników)
-- Czytelniejszy kod z jasną nazwą funkcji
-- Możliwość dodania testów jednostkowych w jednym miejscu
+## Przykładowe wyniki
+- Oferta obejrzana dziś o 13:52 → `Obejrzana 13:52, dziś`
+- Oferta obejrzana wczoraj o 10:30 → `Obejrzana 10:30, wczoraj`
+- Oferta obejrzana 26 stycznia o 14:15 → `Obejrzana 14:15, 26 stycznia`
