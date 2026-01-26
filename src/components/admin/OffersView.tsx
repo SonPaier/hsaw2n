@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -356,14 +357,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
+      const normalizedQuery = normalizeSearchQuery(query);
       result = result.filter(offer => {
-        if (offer.offer_number.toLowerCase().includes(query)) return true;
+        if (normalizeSearchQuery(offer.offer_number).toLowerCase().includes(normalizedQuery)) return true;
         
         const customer = offer.customer_data;
         if (customer?.name?.toLowerCase().includes(query)) return true;
         if (customer?.email?.toLowerCase().includes(query)) return true;
         if (customer?.company?.toLowerCase().includes(query)) return true;
-        if (customer?.phone?.toLowerCase().includes(query)) return true;
+        if (customer?.phone && normalizeSearchQuery(customer.phone).includes(normalizedQuery)) return true;
         
         const vehicle = offer.vehicle_data;
         if (vehicle?.brandModel?.toLowerCase().includes(query)) return true;

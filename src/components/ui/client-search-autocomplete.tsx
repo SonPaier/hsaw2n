@@ -4,6 +4,7 @@ import { Loader2, X, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 
 interface Customer {
   id: string;
@@ -88,11 +89,14 @@ const ClientSearchAutocomplete = ({
 
     setSearching(true);
     try {
+      // Normalize search value for space-agnostic phone matching
+      const normalizedSearch = normalizeSearchQuery(searchValue);
+      
       const { data, error } = await supabase
         .from('customers')
         .select('id, phone, name, email')
         .eq('instance_id', instanceId)
-        .or(`name.ilike.%${searchValue}%,phone.ilike.%${searchValue}%`)
+        .or(`name.ilike.%${searchValue}%,phone.ilike.%${normalizedSearch}%`)
         .order('updated_at', { ascending: false })
         .limit(8);
 

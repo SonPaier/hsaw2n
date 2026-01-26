@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, FileText, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { normalizeSearchQuery } from '@/lib/textUtils';
 
 interface OfferData {
   id: string;
@@ -53,11 +54,14 @@ export const OfferSearchAutocomplete = ({
 
       setIsLoading(true);
       try {
+        // Normalize search value for space-agnostic matching
+        const normalizedValue = normalizeSearchQuery(value);
+        
         const { data, error } = await supabase
           .from('offers')
           .select('id, offer_number, customer_data, vehicle_data')
           .eq('instance_id', instanceId)
-          .or(`offer_number.ilike.%${value}%,customer_data->>name.ilike.%${value}%`)
+          .or(`offer_number.ilike.%${normalizedValue}%,customer_data->>name.ilike.%${value}%`)
           .order('created_at', { ascending: false })
           .limit(10);
 
