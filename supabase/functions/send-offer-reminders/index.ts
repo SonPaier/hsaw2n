@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// TODO: Superadmin będzie mógł edytować szablony SMS w panelu superadmina
+// Na razie hardcoded templates
+const SMS_TEMPLATES: Record<string, string> = {
+  serwis: '{short_name}: Zapraszamy na serwis pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  kontrola: '{short_name}: Zapraszamy na bezplatna kontrole pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  serwis_gwarancyjny: '{short_name}: Zapraszamy na serwis gwarancyjny pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  odswiezenie: '{short_name}: Zapraszamy na odswiezenie pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -20,10 +29,10 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch due reminders (instance_id is directly on reminder, no need to join offers)
+    // Fetch due reminders from customer_reminders table
     const { data: reminders, error: fetchError } = await supabase
-      .from("offer_reminders")
-      .select("*")
+      .from("customer_reminders")
+      .select("*, instances(short_name, reservation_phone, timezone)")
       .lte("scheduled_date", today)
       .eq("status", "scheduled");
 
@@ -45,27 +54,22 @@ Deno.serve(async (req) => {
 
     for (const reminder of reminders) {
       try {
-        // Get instance data
-        const { data: instance } = await supabase
-          .from("instances")
-          .select("short_name, reservation_phone, name")
-          .eq("id", reminder.instance_id)
-          .single();
-
+        const instance = reminder.instances;
         if (!instance) {
           console.error(`Instance not found for reminder ${reminder.id}`);
           continue;
         }
 
-        // Build SMS message from template
-        let message = reminder.sms_template || "";
-        message = message.replace("{short_name}", instance.short_name || instance.name || "");
-        message = message.replace("{service_type}", reminder.service_type || "serwis");
-        message = message.replace("{vehicle_info}", reminder.vehicle_info || "");
-        message = message.replace("{paid_info}", reminder.is_paid ? "Serwis platny" : "Bezplatna kontrola");
+        // Get SMS template based on service_type (hardcoded for now)
+        const template = SMS_TEMPLATES[reminder.service_type] || SMS_TEMPLATES.serwis;
+        
+        // Build SMS message
+        let message = template;
+        message = message.replace("{short_name}", instance.short_name || "");
+        message = message.replace("{vehicle_plate}", reminder.vehicle_plate || "");
         message = message.replace("{reservation_phone}", (instance.reservation_phone || "").replace(/\s/g, ""));
 
-        // Normalize phone number using libphonenumber-js
+        // Normalize phone number
         const normalizedPhone = normalizePhoneOrFallback(reminder.customer_phone, "PL");
         console.log(`Normalized phone: ${reminder.customer_phone} -> ${normalizedPhone}`);
 
@@ -74,7 +78,7 @@ Deno.serve(async (req) => {
         if (digitsOnly.length < 11 || digitsOnly.length > 15) {
           console.error(`Invalid phone for reminder ${reminder.id}: ${normalizedPhone} (${digitsOnly.length} digits)`);
           await supabase
-            .from("offer_reminders")
+            .from("customer_reminders")
             .update({ status: "failed" })
             .eq("id", reminder.id);
           continue;
@@ -99,7 +103,7 @@ Deno.serve(async (req) => {
           if (!smsResponse.ok) {
             console.error(`SMS API error for reminder ${reminder.id}`);
             await supabase
-              .from("offer_reminders")
+              .from("customer_reminders")
               .update({ status: "failed" })
               .eq("id", reminder.id);
             continue;
@@ -110,7 +114,7 @@ Deno.serve(async (req) => {
 
         // Update reminder status
         await supabase
-          .from("offer_reminders")
+          .from("customer_reminders")
           .update({ status: "sent", sent_at: new Date().toISOString() })
           .eq("id", reminder.id);
 
@@ -120,7 +124,7 @@ Deno.serve(async (req) => {
           phone: normalizedPhone,
           message: message,
           status: "sent",
-          type: "offer_reminder",
+          type: "customer_reminder",
         });
 
         sentCount++;
@@ -128,7 +132,7 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error(`Error processing reminder ${reminder.id}:`, err);
         await supabase
-          .from("offer_reminders")
+          .from("customer_reminders")
           .update({ status: "failed" })
           .eq("id", reminder.id);
       }

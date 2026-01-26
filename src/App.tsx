@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CarModelsProvider } from "@/contexts/CarModelsContext";
+import { lazy, Suspense } from "react";
 import Rezerwacje from "./pages/Rezerwacje";
 import MojaRezerwacja from "./pages/MojaRezerwacja";
 import InstanceAuth from "./pages/InstanceAuth";
@@ -17,6 +18,10 @@ import PublicOfferView from "./pages/PublicOfferView";
 import PublicProtocolView from "./pages/PublicProtocolView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// Lazy loaded pages
+const RemindersListPage = lazy(() => import("./pages/RemindersListPage"));
+const ReminderTemplateEditPage = lazy(() => import("./pages/ReminderTemplateEditPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,6 +153,13 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
   </Routes>
 );
 
+// Loading fallback for lazy loaded pages
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
 // Development Routes - full access for local testing
 const DevRoutes = () => (
   <Routes>
@@ -182,6 +194,27 @@ const DevRoutes = () => (
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
+        </ProtectedRoute>
+      } 
+    />
+    {/* Reminders routes */}
+    <Route 
+      path="/admin/reminders" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <Suspense fallback={<PageLoader />}>
+            <RemindersListPage />
+          </Suspense>
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/admin/reminders/:shortId" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <Suspense fallback={<PageLoader />}>
+            <ReminderTemplateEditPage />
+          </Suspense>
         </ProtectedRoute>
       } 
     />

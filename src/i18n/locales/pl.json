@@ -1950,15 +1950,17 @@
     "noItemsYet": "Dodaj co najmniej jedno przypomnienie",
     "noItems": "Dodaj co najmniej jedno przypomnienie do szablonu",
     "nameRequired": "Nazwa szablonu jest wymagana",
+    "itemsRequired": "Dodaj co najmniej jedno przypomnienie",
     "smsTemplateRequired": "Szablon SMS jest wymagany",
     "created": "Szablon utworzony",
     "updated": "Szablon zaktualizowany",
+    "saveError": "Błąd zapisywania szablonu",
     "deleted": "Szablon usunięty",
     "fetchError": "Błąd pobierania szablonów",
     "createError": "Błąd tworzenia szablonu",
     "updateError": "Błąd aktualizacji szablonu",
     "deleteError": "Błąd usuwania szablonu",
-    "templateInUse": "Szablon jest używany w produktach i nie może zostać usunięty",
+    "templateInUse": "Szablon jest używany i nie może zostać usunięty",
     "deleteConfirmTitle": "Usuń szablon",
     "deleteConfirmDesc": "Czy na pewno chcesz usunąć szablon \"{{name}}\"?",
     "serviceTypes": {
@@ -1968,6 +1970,19 @@
       "odswiezenie": "Odświeżenie"
     },
     "noTemplate": "Brak"
+  },
+  "reminders": {
+    "title": "Przypomnienia",
+    "addTemplate": "Dodaj szablon",
+    "editTemplate": "Edytuj szablon",
+    "activeCustomers": "aktywnych",
+    "schedule": "Harmonogram przypomnień",
+    "reminderNumber": "Przypomnienie",
+    "monthsAfter": "mies. po",
+    "addReminder": "Dodaj przypomnienie",
+    "smsTemplate": "Szablon SMS",
+    "smsExample": "Przykład",
+    "smsTemplateReadonly": "Szablon SMS jest konfigurowany globalnie przez administratora systemu."
   },
   "offerReminders": {
     "markAsCompleted": "Oznacz jako zrealizowane",

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Plus, Loader2, Search, Settings2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Loader2, Search, Settings2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
@@ -272,6 +273,7 @@ const ServiceRow = ({
 
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -526,7 +528,11 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
             Usługi będą widoczne do wyboru w rezerwacjach i przy tworzeniu szablonów ofert. Kategorie są opcjonalne.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button onClick={() => navigate('/admin/reminders')} variant="outline" className="gap-2 bg-white">
+            <Bell className="w-4 h-4" />
+            {t('reminders.title')}
+          </Button>
           <Button onClick={() => setCategoryManagementOpen(true)} variant="outline" className="gap-2 bg-white">
             <Settings2 className="w-4 h-4" />
             {t('priceList.manageCategories')}
