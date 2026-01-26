@@ -2903,6 +2903,7 @@ export type Database = {
           offer_id: string | null
           offer_number: string | null
           phone: string | null
+          photo_urls: string[] | null
           protocol_date: string
           protocol_time: string | null
           protocol_type: string
@@ -2928,6 +2929,7 @@ export type Database = {
           offer_id?: string | null
           offer_number?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           protocol_date?: string
           protocol_time?: string | null
           protocol_type?: string
@@ -2953,6 +2955,7 @@ export type Database = {
           offer_id?: string | null
           offer_number?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           protocol_date?: string
           protocol_time?: string | null
           protocol_type?: string
