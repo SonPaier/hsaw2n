@@ -88,21 +88,16 @@ Jeśli nie ma żadnych informacji o uszkodzeniu, zwróć pusty string.`;
 
     } else if (body.type === 'analyze_image') {
       // Analyze image for damage detection
-      const systemPrompt = `Jesteś ekspertem od oceny uszkodzeń pojazdów.
+      const systemPrompt = `Opisz uszkodzenie pojazdu w JEDNYM KRÓTKIM ZDANIU (max 10-15 słów).
+Tylko typ i lokalizacja uszkodzenia.
 
-Przeanalizuj zdjęcie i zidentyfikuj widoczne uszkodzenia.
+Przykłady:
+- "Zarysowanie lakieru przedniego prawego błotnika."
+- "Wgniecenie drzwi przednich lewych."
+- "Odprysk lakieru na masce."
 
-Zwróć TYLKO JEDNO ZDANIE - krótki, profesjonalny opis uszkodzenia w stylu protokołu rzeczoznawcy.
-Użyj precyzyjnego, technicznego języka. Opisz typ uszkodzenia i jego lokalizację.
-
-Przykłady poprawnych odpowiedzi:
-- "Stwierdzono głębokie zarysowanie powłoki lakierniczej przedniego prawego błotnika."
-- "Widoczne wgniecenie blachy drzwi przednich lewych z uszkodzeniem lakieru."
-- "Odprysk lakieru na masce o średnicy około 3 cm z widocznym podkładem."
-- "Rozległe odkształcenie struktury blacharskiej zderzaka tylnego."
-
-Jeśli nie widzisz żadnych uszkodzeń, napisz TYLKO: "Brak widocznych uszkodzeń".
-Nie dodawaj żadnych wstępów, numeracji ani dodatkowych komentarzy.`;
+Jeśli brak uszkodzeń: "Brak widocznych uszkodzeń."
+Bez wstępów ani numeracji.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
