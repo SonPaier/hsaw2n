@@ -38,6 +38,7 @@ interface Protocol {
   customer_signature: string | null;
   instance_id: string;
   protocol_type?: ProtocolType;
+  photo_urls?: string[];
 }
 
 export default function PublicProtocolView() {

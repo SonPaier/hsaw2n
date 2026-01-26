@@ -41,6 +41,7 @@ interface Protocol {
   status: string;
   customer_signature: string | null;
   protocol_type?: ProtocolType;
+  photo_urls?: string[];
 }
 
 interface PublicProtocolCustomerViewProps {
@@ -78,6 +79,16 @@ export const PublicProtocolCustomerView = ({
 
   // Check if there are any damage points
   const hasDamagePoints = damagePoints.length > 0;
+  
+  // Check if there are general protocol photos
+  const hasProtocolPhotos = protocol.photo_urls && protocol.photo_urls.length > 0;
+  
+  // Collect all damage photos from damage points
+  const allDamagePhotos = useMemo(() => {
+    return damagePoints.flatMap(p => {
+      return p.photo_urls || (p.photo_url ? [p.photo_url] : []);
+    });
+  }, [damagePoints]);
 
   // Generate notes from damage points
   const generatedNotes = damagePoints.length > 0 
@@ -181,6 +192,24 @@ export const PublicProtocolCustomerView = ({
             )}
           </div>
 
+          {/* General protocol photos */}
+          {hasProtocolPhotos && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-sm">Zdjęcia pojazdu</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {protocol.photo_urls!.map((url, index) => (
+                  <div key={index} className="relative aspect-square">
+                    <img
+                      src={url}
+                      alt={`Zdjęcie ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Vehicle diagram - show if there are damage points */}
           {hasDamagePoints && (
             <div className="space-y-2">
@@ -192,6 +221,24 @@ export const PublicProtocolCustomerView = ({
                 readOnly
                 onSelectPoint={handleSelectPoint}
               />
+            </div>
+          )}
+
+          {/* Damage photos - collected from all damage points */}
+          {allDamagePhotos.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-sm">Zdjęcia usterek</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {allDamagePhotos.map((url, index) => (
+                  <div key={index} className="relative aspect-square">
+                    <img
+                      src={url}
+                      alt={`Zdjęcie usterki ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
