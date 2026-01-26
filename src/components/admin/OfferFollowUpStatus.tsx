@@ -59,7 +59,7 @@ export function OfferFollowUpStatus({
             )}
             onClick={handleStatusClick}
           >
-            {currentConfig ? currentConfig.label : 'Ustaw status'}
+            {currentConfig ? currentConfig.label : 'Status kontaktu'}
             <ChevronDown className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
