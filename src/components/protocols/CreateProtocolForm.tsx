@@ -755,7 +755,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             </Button>
           ) : (
             <div className="space-y-2">
-              <Label>Zdjęcia protokołu</Label>
+              <Label>Zdjęcia pojazdu</Label>
               <ProtocolPhotosUploader
                 photos={protocolPhotoUrls}
                 onPhotosChange={setProtocolPhotoUrls}
