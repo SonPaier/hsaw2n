@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers, Banknote } from 'lucide-react';
 import { normalizeSearchQuery, formatViewedDate } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ import { OfferSelectionDialog } from '@/components/offers/OfferSelectionDialog';
 import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
 import { OfferServicesListView } from '@/components/offers/services/OfferServicesListView';
 import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
+import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -69,6 +70,8 @@ interface Offer {
   status: string;
   total_net: number;
   total_gross: number;
+  admin_approved_net?: number | null;
+  admin_approved_gross?: number | null;
   created_at: string;
   valid_until?: string;
   public_token: string;
@@ -166,6 +169,13 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
 
   // Reminder templates dialog state
   const [showReminderTemplates, setShowReminderTemplates] = useState(false);
+
+  // Admin approval dialog state
+  const [approvalDialog, setApprovalDialog] = useState<{ 
+    open: boolean; 
+    offer: OfferWithOptions | null;
+    mode: 'approve' | 'edit';
+  }>({ open: false, offer: null, mode: 'approve' });
 
   // Services view state
   const [showServicesView, setShowServicesView] = useState(false);
@@ -325,6 +335,40 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       toast.success(t('offers.statusChanged'));
     } catch (error) {
       console.error('Error changing status:', error);
+      toast.error(t('offers.errors.statusChangeError'));
+    }
+  };
+
+  const handleApproveOffer = async (
+    offerId: string, 
+    netAmount: number, 
+    grossAmount: number,
+    changeStatus: boolean
+  ) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const updateData: Record<string, unknown> = {
+        admin_approved_net: netAmount,
+        admin_approved_gross: grossAmount,
+      };
+      
+      if (changeStatus) {
+        updateData.status = 'accepted';
+        updateData.approved_at = new Date().toISOString();
+        updateData.approved_by = userData?.user?.id;
+      }
+      
+      const { error } = await supabase
+        .from('offers')
+        .update(updateData)
+        .eq('id', offerId);
+      
+      if (error) throw error;
+      
+      await fetchOffers();
+      toast.success(changeStatus ? t('offers.statusChanged') : 'Kwota została zmieniona');
+    } catch (error) {
+      console.error('Error approving offer:', error);
       toast.error(t('offers.errors.statusChangeError'));
     }
   };
@@ -608,9 +652,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                             </button>
                           </div>
-                          {offer.approved_at && (
+                          {(offer.admin_approved_gross || offer.approved_at) && (
                             <span className="font-semibold text-sm whitespace-nowrap text-right ml-auto">
-                              {formatPrice(offer.total_gross)}
+                              {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
                             </span>
                           )}
                         </div>
@@ -652,7 +696,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden sm:block">
                         <div className="font-medium">
-                          {offer.approved_at ? formatPrice(offer.total_gross) : <span className="text-muted-foreground text-sm">—</span>}
+                          {(offer.admin_approved_gross || offer.approved_at) ? formatPrice(offer.admin_approved_gross ?? offer.total_gross) : <span className="text-muted-foreground text-sm">—</span>}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Utworzono: {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}
@@ -691,7 +735,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               {STATUS_OPTIONS.filter(s => s !== 'completed').map((status) => (
                                 <DropdownMenuItem
                                   key={status}
-                                  onClick={(e) => { e.stopPropagation(); handleChangeStatus(offer.id, status); }}
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    // For 'accepted' status, open approval dialog instead of direct change
+                                    if (status === 'accepted') {
+                                      setApprovalDialog({ open: true, offer, mode: 'approve' });
+                                    } else {
+                                      handleChangeStatus(offer.id, status);
+                                    }
+                                  }}
                                   disabled={offer.status === status}
                                 >
                                   <Badge className={cn('text-xs mr-2', statusColors[status])}>
@@ -746,6 +798,18 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             >
                               <Receipt className="w-4 h-4 mr-2" />
                               {t('offers.viewSelection', 'Zobacz wybór')}
+                            </DropdownMenuItem>
+                          )}
+                          {/* Change amount option for accepted/completed offers */}
+                          {(offer.status === 'accepted' || offer.status === 'completed') && (
+                            <DropdownMenuItem 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setApprovalDialog({ open: true, offer, mode: 'edit' }); 
+                              }}
+                            >
+                              <Banknote className="w-4 h-4 mr-2" />
+                              Zmień kwotę
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
@@ -887,6 +951,25 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
           open={showReminderTemplates}
           onOpenChange={setShowReminderTemplates}
           instanceId={instanceId}
+        />
+      )}
+
+      {/* Admin Offer Approval Dialog */}
+      {approvalDialog.offer && (
+        <AdminOfferApprovalDialog
+          open={approvalDialog.open}
+          onOpenChange={(open) => !open && setApprovalDialog({ open: false, offer: null, mode: 'approve' })}
+          offer={approvalDialog.offer}
+          mode={approvalDialog.mode}
+          onConfirm={async (netAmount, grossAmount) => {
+            await handleApproveOffer(
+              approvalDialog.offer!.id,
+              netAmount,
+              grossAmount,
+              approvalDialog.mode === 'approve'
+            );
+            setApprovalDialog({ open: false, offer: null, mode: 'approve' });
+          }}
         />
       )}
     </>
