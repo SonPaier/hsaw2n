@@ -1,148 +1,58 @@
 
+# Plan: Utility do normalizacji wyszukiwania
 
-# Plan: Rozszerzenie protokołu o zdjęcia i ukrywanie diagramu
+## Cel
+Stworzenie jednej funkcji utility do usuwania spacji z zapytań wyszukiwania, którą będzie można używać we wszystkich komponentach wyszukiwania.
 
-## Podsumowanie zmian
+## Implementacja
 
-### 1. Dwa typy zdjęć
-- **Zdjęcia protokołu** (ogólne) - niezwiązane z konkretną usterką, widoczne pod licznikiem
-- **Zdjęcia usterek** (per szkoda) - powiązane z punktami uszkodzeń na diagramie
+### 1. Dodanie funkcji do `src/lib/textUtils.ts`
 
-### 2. Ukrycie diagramu i typu nadwozia
-- Domyślnie przy tworzeniu nowego protokołu sekcja diagramu i typ nadwozia są ukryte
-- Pojawiają się dopiero po kliknięciu "Dodaj usterki"
-
-### 3. Nowy układ formularza
-Pod "Stan licznika":
-1. **Przycisk "Dodaj zdjęcia"** - rozwija sekcję zdjęć protokołu
-2. **Galeria zdjęć protokołu** - siatka 4 kolumny (1/4 szerokości każde)
-3. **Przycisk "Dodaj usterki"** - rozwija sekcję diagramu
-4. **Diagram z nagłówkiem** "Zaznacz ewentualne usterki na diagramie pojazdu"
-5. **Galeria zdjęć usterek** - pod diagramem, siatka 4 kolumny
-
-### 4. Automatyczne usuwanie niezapisanych usterek
-- Przy zapisie protokołu, punkty z flagą `isNew: true` są automatycznie usuwane ze stanu
-- Tylko usterki potwierdzone w drawer'ze trafiają do bazy
-
-### 5. Widok publiczny
-- Sekcja diagramu jest rozwinięta tylko jeśli istnieją jakiekolwiek usterki
-- Pod diagramem wyświetlane są zdjęcia powiązane z usterkami
-
----
-
-## Szczegóły techniczne
-
-### Baza danych
-
-Nowa kolumna w tabeli `vehicle_protocols`:
-```sql
-ALTER TABLE vehicle_protocols
-ADD COLUMN photo_urls TEXT[] DEFAULT '{}';
-```
-
-### Komponenty do utworzenia/modyfikacji
-
-#### 1. Nowy komponent: `ProtocolPhotosUploader.tsx`
-Odpowiada za:
-- Przycisk "Zrób zdjęcie lub wybierz z galerii"
-- Wyświetlanie siatki zdjęć (grid 4 kolumny)
-- Usuwanie zdjęć (przycisk X)
-- Kompresję i upload do storage `protocol-photos`
-
-#### 2. Modyfikacja: `CreateProtocolForm.tsx`
-
-**Nowe stany:**
-- `protocolPhotoUrls: string[]` - zdjęcia protokołu
-- `showPhotosSection: boolean` - czy sekcja zdjęć jest rozwinięta
-- `showDamageSection: boolean` - czy sekcja diagramu jest rozwinięta
-
-**Zmiany w układzie:**
-```text
-[Stan licznika]
-     ↓
-[Przycisk: Dodaj zdjęcia]
-     ↓ (po kliknięciu)
-[Sekcja zdjęć protokołu - galeria 4 kolumny]
-     ↓
-[Przycisk: Dodaj usterki]
-     ↓ (po kliknięciu)
-[Typ nadwozia - Select]
-[Nagłówek: "Zaznacz ewentualne usterki na diagramie pojazdu"]
-[VehicleDiagram]
-[Galeria zdjęć usterek - 4 kolumny]
-     ↓
-[Uwagi]
-```
-
-**Logika usuwania niezapisanych usterek:**
 ```typescript
-// W handleSave, przed zapisem:
-const savedPoints = damagePoints.filter(p => !p.isNew);
+/**
+ * Normalizes a search query by removing all whitespace characters.
+ * Used for space-agnostic searching of phone numbers, offer numbers, etc.
+ * 
+ * @param query - The search query string
+ * @returns Query with all whitespace removed
+ * 
+ * @example
+ * normalizeSearchQuery("511 042 123") // returns "511042123"
+ * normalizeSearchQuery("+48 733 854 184") // returns "+48733854184"
+ */
+export const normalizeSearchQuery = (query: string): string => {
+  if (!query) return '';
+  return query.replace(/\s/g, '');
+};
 ```
 
-**Payload rozszerzony o:**
+### 2. Użycie w komponentach
+
+Import we wszystkich plikach wyszukiwania:
 ```typescript
-photo_urls: protocolPhotoUrls,
+import { normalizeSearchQuery } from '@/lib/textUtils';
 ```
 
-#### 3. Modyfikacja: `PublicProtocolCustomerView.tsx`
-
-**Zmiany:**
-- Sekcja diagramu widoczna tylko gdy `damagePoints.length > 0`
-- Pod diagramem galeria zdjęć zebranych ze wszystkich usterek
-- Galeria zdjęć protokołu wyświetlana osobno (jeśli istnieją)
-
-### Styl galerii zdjęć
-
-```css
-/* Grid 4 kolumny */
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-}
-
-/* Każde zdjęcie kwadratowe z object-cover */
-.photo-item {
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 0.5rem;
-}
+Przykład użycia:
+```typescript
+const normalizedQuery = normalizeSearchQuery(searchTerm);
+const matchesPhone = normalizeSearchQuery(customer.phone).includes(normalizedQuery);
 ```
 
-### Przepływ UX
+### 3. Pliki do aktualizacji
 
-1. **Tworzenie protokołu:**
-   - Diagram i typ nadwozia ukryte
-   - Użytkownik klika "Dodaj zdjęcia" → pojawia się uploader
-   - Użytkownik klika "Dodaj usterki" → pojawia się typ nadwozia + diagram
-   - Kliknięcie na diagram dodaje punkt (isNew: true)
-   - Kliknięcie na punkt otwiera drawer
-   - Zapisanie w drawer usuwa flagę isNew
-   - Zapisanie protokołu: punkty z isNew są ignorowane
-
-2. **Edycja protokołu:**
-   - Jeśli są zdjęcia protokołu → sekcja rozwinięta
-   - Jeśli są usterki → sekcja diagramu rozwinięta
-   - Typ nadwozia zawsze widoczny w edycji jeśli są usterki
-
-3. **Widok publiczny:**
-   - Zdjęcia protokołu wyświetlane jako galeria
-   - Diagram widoczny tylko gdy są usterki
-   - Pod diagramem zdjęcia ze wszystkich usterek
-
-### Pliki do modyfikacji
-
-| Plik | Zmiany |
+| Plik | Zmiana |
 |------|--------|
-| `CreateProtocolForm.tsx` | Nowy układ, stany, logika sekcji |
-| `PublicProtocolCustomerView.tsx` | Galerie zdjęć, warunkowy diagram |
-| `types.ts` | Nowa kolumna `photo_urls` (auto-generowane po migracji) |
-| Migracja SQL | Dodanie kolumny `photo_urls` |
+| `src/lib/textUtils.ts` | Dodanie funkcji `normalizeSearchQuery` |
+| `src/components/admin/CustomersView.tsx` | Import + użycie dla telefonu |
+| `src/components/admin/OffersView.tsx` | Import + użycie dla telefonu i numeru oferty |
+| `src/components/admin/ReservationsView.tsx` | Import + użycie dla telefonu i kodu |
+| `src/components/protocols/ProtocolsView.tsx` | Import + użycie dla numeru oferty i rejestracji |
+| `src/components/ui/client-search-autocomplete.tsx` | Import + użycie w zapytaniu |
+| `src/components/protocols/OfferSearchAutocomplete.tsx` | Import + użycie w zapytaniu |
 
-### Nowy komponent
-
-| Plik | Opis |
-|------|------|
-| `ProtocolPhotosUploader.tsx` | Komponent uploadu i galerii zdjęć |
-
+## Korzyści
+- Jedna funkcja zamiast powtórzonego kodu w 6 miejscach
+- Łatwa modyfikacja logiki w przyszłości (np. usuwanie też myślników)
+- Czytelniejszy kod z jasną nazwą funkcji
+- Możliwość dodania testów jednostkowych w jednym miejscu
