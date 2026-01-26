@@ -168,19 +168,19 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     );
   }, [customerName, customerEmail, vehicleModel, registrationNumber, damagePoints.length, customerSignature, notes, uploadedPhotosInSession.length]);
 
-  // Update notes when damage points change (only auto-generate if notes field is empty or matches previous generated)
-  // IMPORTANT: use functional state update to avoid stale-closure overwrites when loading existing protocols.
-  const prevGeneratedNotesRef = useRef<string>('');
+  // Auto-generate notes from damage points ONLY during creation (not edit mode) and ONLY if notes are empty
   useEffect(() => {
+    // Skip auto-generation entirely in edit mode
+    if (isEditMode) return;
+    
+    // Only set notes if field is completely empty
     setNotes((current) => {
-      const shouldAutoUpdate = current.trim() === '' || current === prevGeneratedNotesRef.current;
-
-      // Always store the latest generated text for the next comparison.
-      prevGeneratedNotesRef.current = generatedNotes;
-
-      return shouldAutoUpdate ? generatedNotes : current;
+      if (current.trim() === '') {
+        return generatedNotes;
+      }
+      return current;
     });
-  }, [generatedNotes]);
+  }, [generatedNotes, isEditMode]);
 
   // Auto-resize notes textarea
   useEffect(() => {
