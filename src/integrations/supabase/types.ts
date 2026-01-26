@@ -2898,6 +2898,7 @@ export type Database = {
           id: string
           instance_id: string
           nip: string | null
+          notes: string | null
           odometer_reading: number | null
           offer_id: string | null
           offer_number: string | null
@@ -2922,6 +2923,7 @@ export type Database = {
           id?: string
           instance_id: string
           nip?: string | null
+          notes?: string | null
           odometer_reading?: number | null
           offer_id?: string | null
           offer_number?: string | null
@@ -2946,6 +2948,7 @@ export type Database = {
           id?: string
           instance_id?: string
           nip?: string | null
+          notes?: string | null
           odometer_reading?: number | null
           offer_id?: string | null
           offer_number?: string | null

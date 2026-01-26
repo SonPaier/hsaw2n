@@ -168,9 +168,16 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     );
   }, [customerName, customerEmail, vehicleModel, registrationNumber, damagePoints.length, customerSignature, notes, uploadedPhotosInSession.length]);
 
-  // Update notes when damage points change
+  // Update notes when damage points change (only auto-generate if notes field is empty or matches previous generated)
+  const prevGeneratedNotesRef = useRef('');
   useEffect(() => {
-    setNotes(generatedNotes);
+    // Only auto-update notes if:
+    // 1. Notes is empty (new protocol without manual edits)
+    // 2. Notes exactly matches what was previously auto-generated (no manual edits)
+    if (notes === '' || notes === prevGeneratedNotesRef.current) {
+      setNotes(generatedNotes);
+    }
+    prevGeneratedNotesRef.current = generatedNotes;
   }, [generatedNotes]);
 
   // Auto-resize notes textarea
@@ -273,6 +280,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           setBodyType((protocolData.body_type as BodyType) || 'sedan');
           setProtocolDate(new Date(protocolData.protocol_date));
           setReceivedBy(protocolData.received_by || '');
+          setNotes(protocolData.notes || '');
 
           // Fetch damage points
           const { data: pointsData, error: pointsError } = await supabase
@@ -452,6 +460,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         status: 'completed',
         protocol_type: protocolType,
         customer_signature: customerSignature,
+        notes: notes || null,
       };
 
       let savedProtocolId = protocolId;
