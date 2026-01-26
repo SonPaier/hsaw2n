@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Loader2, PenLine, Mail, Settings, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Loader2, PenLine, Mail, Settings, ArrowLeft, Camera, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import { DamagePointDrawer } from './DamagePointDrawer';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
 import { SignatureDialog } from './SignatureDialog';
 import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
+import { ProtocolPhotosUploader } from './ProtocolPhotosUploader';
 import ClientSearchAutocomplete, { type ClientSearchValue } from '@/components/ui/client-search-autocomplete';
 import { CarSearchAutocomplete, type CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import {
@@ -99,6 +100,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
   const [protocolType, setProtocolType] = useState<ProtocolType>('reception');
+  
+  // Protocol photos (general, not per-damage)
+  const [protocolPhotoUrls, setProtocolPhotoUrls] = useState<string[]>([]);
+  
+  // Collapsible sections
+  const [showPhotosSection, setShowPhotosSection] = useState(false);
+  const [showDamageSection, setShowDamageSection] = useState(false);
 
   // Damage points
   const [damagePoints, setDamagePoints] = useState<DamagePoint[]>([]);
@@ -135,6 +143,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     damagePointsCount: number;
     customerSignature: string | null;
     notes: string;
+    protocolPhotoUrls: string[];
   } | null>(null);
 
   // Track if form has been saved at least once
@@ -164,9 +173,10 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
       damagePoints.length !== initial.damagePointsCount ||
       customerSignature !== initial.customerSignature ||
       notes !== initial.notes ||
+      protocolPhotoUrls.length !== initial.protocolPhotoUrls.length ||
       uploadedPhotosInSession.length > 0
     );
-  }, [customerName, customerEmail, vehicleModel, registrationNumber, damagePoints.length, customerSignature, notes, uploadedPhotosInSession.length]);
+  }, [customerName, customerEmail, vehicleModel, registrationNumber, damagePoints.length, customerSignature, notes, protocolPhotoUrls.length, uploadedPhotosInSession.length]);
 
   // Auto-generate notes from damage points ONLY during creation (not edit mode) and ONLY if notes are empty
   useEffect(() => {
@@ -283,6 +293,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           setProtocolDate(new Date(protocolData.protocol_date));
           setReceivedBy(protocolData.received_by || '');
           setNotes(protocolData.notes || '');
+          
+          // Load protocol photos
+          const loadedPhotos = (protocolData as any).photo_urls || [];
+          setProtocolPhotoUrls(loadedPhotos);
+          if (loadedPhotos.length > 0) {
+            setShowPhotosSection(true);
+          }
 
           // Fetch damage points
           const { data: pointsData, error: pointsError } = await supabase
@@ -293,7 +310,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           if (pointsError) throw pointsError;
 
           if (pointsData) {
-            setDamagePoints(pointsData.map((p: any) => ({
+            const points = pointsData.map((p: any) => ({
               id: p.id,
               view: p.view as VehicleView,
               x_percent: p.x_percent,
@@ -302,7 +319,11 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               custom_note: p.custom_note || undefined,
               photo_url: p.photo_url || undefined,
               photo_urls: p.photo_urls || undefined,
-            })));
+            }));
+            setDamagePoints(points);
+            if (points.length > 0) {
+              setShowDamageSection(true);
+            }
           }
         }
         
@@ -316,6 +337,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             damagePointsCount: protocolId ? damagePoints.length : 0,
             customerSignature: protocolId ? customerSignature : null,
             notes: protocolId ? notes : '',
+            protocolPhotoUrls: protocolId ? protocolPhotoUrls : [],
           };
         }, 100);
       } catch (error) {
@@ -444,6 +466,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     }
 
     try {
+      // Filter out unsaved damage points (those with isNew flag)
+      const savedDamagePoints = damagePoints.filter(p => !p.isNew);
+      
       const protocolPayload = {
         instance_id: instanceId,
         offer_id: offerId,
@@ -463,6 +488,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         protocol_type: protocolType,
         customer_signature: customerSignature,
         notes: notes || null,
+        photo_urls: protocolPhotoUrls,
       };
 
       let savedProtocolId = protocolId;
@@ -510,9 +536,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         savedProtocolId = protocol.id;
       }
 
-      // Save damage points
-      if (damagePoints.length > 0 && savedProtocolId) {
-        const pointsToInsert = damagePoints.map(p => ({
+      // Save damage points (only the saved ones, not isNew)
+      if (savedDamagePoints.length > 0 && savedProtocolId) {
+        const pointsToInsert = savedDamagePoints.map(p => ({
           protocol_id: savedProtocolId,
           view: p.view,
           x_percent: p.x_percent,
@@ -714,35 +740,95 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 onChange={(e) => setOdometerReading(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Typ nadwozia</Label>
-              <Select value={bodyType} onValueChange={(v) => setBodyType(v as BodyType)}>
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BODY_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
-          {/* Vehicle diagram */}
-          <div className="space-y-2">
-            <Label>Diagram pojazdu</Label>
-            <VehicleDiagram
-              bodyType={bodyType}
-              damagePoints={damagePoints}
-              onAddPoint={handleAddPoint}
-              onSelectPoint={handleSelectPoint}
-              onUpdatePointPosition={handleUpdatePointPosition}
-              selectedPointId={selectedPoint?.id}
-            />
-          </div>
+          {/* Photos section - collapsible */}
+          {!showPhotosSection ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-dashed"
+              onClick={() => setShowPhotosSection(true)}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Dodaj zdjęcia
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <Label>Zdjęcia protokołu</Label>
+              <ProtocolPhotosUploader
+                photos={protocolPhotoUrls}
+                onPhotosChange={setProtocolPhotoUrls}
+                onPhotoUploaded={handlePhotoUploaded}
+              />
+            </div>
+          )}
+
+          {/* Damage section - collapsible */}
+          {!showDamageSection ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-dashed"
+              onClick={() => setShowDamageSection(true)}
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Dodaj usterki
+            </Button>
+          ) : (
+            <>
+              {/* Body type selector */}
+              <div className="space-y-2">
+                <Label>Typ nadwozia</Label>
+                <Select value={bodyType} onValueChange={(v) => setBodyType(v as BodyType)}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BODY_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Vehicle diagram */}
+              <div className="space-y-2">
+                <Label>Zaznacz ewentualne usterki na diagramie pojazdu</Label>
+                <VehicleDiagram
+                  bodyType={bodyType}
+                  damagePoints={damagePoints}
+                  onAddPoint={handleAddPoint}
+                  onSelectPoint={handleSelectPoint}
+                  onUpdatePointPosition={handleUpdatePointPosition}
+                  selectedPointId={selectedPoint?.id}
+                />
+              </div>
+
+              {/* Damage photos - collected from all damage points */}
+              {damagePoints.some(p => (p.photo_urls && p.photo_urls.length > 0) || p.photo_url) && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Zdjęcia usterek</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {damagePoints.flatMap(p => {
+                      const urls = p.photo_urls || (p.photo_url ? [p.photo_url] : []);
+                      return urls.map((url, idx) => (
+                        <div key={`${p.id}-${idx}`} className="relative aspect-square">
+                          <img
+                            src={url}
+                            alt={`Zdjęcie usterki`}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+                      ));
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Notes - auto-filled with damage points */}
           <div className="space-y-2">
