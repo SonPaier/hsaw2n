@@ -136,6 +136,79 @@ export type Database = {
           },
         ]
       }
+      customer_reminders: {
+        Row: {
+          created_at: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          instance_id: string
+          months_after: number
+          reminder_template_id: string
+          reservation_id: string | null
+          scheduled_date: string
+          sent_at: string | null
+          service_type: string
+          status: string
+          updated_at: string | null
+          vehicle_plate: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          instance_id: string
+          months_after: number
+          reminder_template_id: string
+          reservation_id?: string | null
+          scheduled_date: string
+          sent_at?: string | null
+          service_type: string
+          status?: string
+          updated_at?: string | null
+          vehicle_plate?: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          instance_id?: string
+          months_after?: number
+          reminder_template_id?: string
+          reservation_id?: string | null
+          scheduled_date?: string
+          sent_at?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string | null
+          vehicle_plate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_reminders_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_reminders_reminder_template_id_fkey"
+            columns: ["reminder_template_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_reminders_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_vehicles: {
         Row: {
           car_size: string | null
@@ -3084,6 +3157,10 @@ export type Database = {
       }
       create_offer_reminders: {
         Args: { p_completed_at: string; p_offer_id: string }
+        Returns: number
+      }
+      create_reservation_reminders: {
+        Args: { p_reservation_id: string }
         Returns: number
       }
       generate_offer_number: { Args: { _instance_id: string }; Returns: string }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Bell, Trash2, Loader2, Calendar, Plus, FileText } from 'lucide-react';
+import { Bell, Trash2, Loader2, Calendar, Plus, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,14 +12,13 @@ import { AddCustomerReminderDialog } from './AddCustomerReminderDialog';
 
 interface Reminder {
   id: string;
-  service_name: string;
   scheduled_date: string;
   months_after: number;
-  is_paid: boolean;
   service_type: string;
   status: string;
-  offer_id: string | null;
-  offer_number?: string | null;
+  sent_at: string | null;
+  vehicle_plate: string;
+  reminder_templates: { name: string } | null;
 }
 
 interface CustomerRemindersTabProps {
@@ -48,18 +47,18 @@ export function CustomerRemindersTab({
     
     setLoading(true);
     try {
+      // Query from new customer_reminders table
       const { data, error } = await supabase
-        .from('offer_reminders')
+        .from('customer_reminders')
         .select(`
           id, 
-          service_name, 
           scheduled_date, 
           months_after, 
-          is_paid, 
           service_type, 
           status,
-          offer_id,
-          offers(offer_number)
+          sent_at,
+          vehicle_plate,
+          reminder_templates(name)
         `)
         .eq('customer_phone', customerPhone)
         .eq('instance_id', instanceId)
@@ -67,10 +66,7 @@ export function CustomerRemindersTab({
 
       if (error) throw error;
       
-      setReminders((data || []).map(r => ({
-        ...r,
-        offer_number: r.offers ? (r.offers as any).offer_number : null
-      })));
+      setReminders((data || []) as Reminder[]);
     } catch (error) {
       console.error('Error loading reminders:', error);
       toast.error(t('offers.errors.loadRemindersError'));
@@ -82,7 +78,7 @@ export function CustomerRemindersTab({
   const handleDeleteReminder = async (reminderId: string) => {
     try {
       const { error } = await supabase
-        .from('offer_reminders')
+        .from('customer_reminders')
         .delete()
         .eq('id', reminderId);
 
@@ -141,7 +137,9 @@ export function CustomerRemindersTab({
                 className="flex items-start justify-between gap-3 p-3 border rounded-lg bg-white"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">{reminder.service_name}</div>
+                  <div className="font-medium">
+                    {reminder.reminder_templates?.name || t('customers.customReminder')}
+                  </div>
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     <Calendar className="w-3.5 h-3.5" />
                     {format(new Date(reminder.scheduled_date), 'dd MMMM yyyy', { locale: pl })}
@@ -150,25 +148,13 @@ export function CustomerRemindersTab({
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {/* Offer or Custom badge */}
-                    {reminder.offer_id && reminder.offer_number ? (
+                    {/* Vehicle plate */}
+                    {reminder.vehicle_plate && (
                       <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <FileText className="w-3 h-3" />
-                        {reminder.offer_number}
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs">
-                        {t('customers.customReminder')}
+                        <Car className="w-3 h-3" />
+                        {reminder.vehicle_plate}
                       </Badge>
                     )}
-                    
-                    {/* Paid/Free badge */}
-                    <Badge 
-                      variant={reminder.is_paid ? 'default' : 'outline'} 
-                      className={`text-xs ${!reminder.is_paid ? 'bg-green-50 text-green-700 border-green-200' : ''}`}
-                    >
-                      {reminder.is_paid ? t('offers.paid') : t('offers.free')}
-                    </Badge>
                     
                     {/* Service type badge */}
                     <Badge variant="secondary" className="text-xs">
@@ -179,12 +165,20 @@ export function CustomerRemindersTab({
                     <Badge 
                       variant="outline" 
                       className={`text-xs ${
-                        reminder.status === 'completed' ? 'bg-green-50 text-green-700' : 
-                        reminder.status === 'cancelled' ? 'bg-red-50 text-red-700' : ''
+                        reminder.status === 'sent' ? 'bg-green-50 text-green-700' : 
+                        reminder.status === 'cancelled' ? 'bg-red-50 text-red-700' :
+                        reminder.status === 'failed' ? 'bg-orange-50 text-orange-700' : ''
                       }`}
                     >
                       {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
                     </Badge>
+                    
+                    {/* Sent at info */}
+                    {reminder.sent_at && (
+                      <span className="text-xs text-muted-foreground">
+                        ({format(new Date(reminder.sent_at), 'dd.MM.yyyy HH:mm', { locale: pl })})
+                      </span>
+                    )}
                   </div>
                 </div>
                 

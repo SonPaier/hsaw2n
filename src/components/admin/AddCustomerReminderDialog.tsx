@@ -31,6 +31,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone } from '@/lib/phoneUtils';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { Json } from '@/integrations/supabase/types';
+import { cn } from '@/lib/utils';
 
 const SERVICE_TYPES = [
   { value: 'serwis', labelKey: 'serwis' },
