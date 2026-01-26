@@ -14,6 +14,31 @@ export const normalizeSearchQuery = (query: string): string => {
   return query.replace(/\s/g, '');
 };
 
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+
+/**
+ * Formats a viewed_at date with relative formatting (today, yesterday, or full date).
+ * Returns format: "HH:mm, dziś" / "HH:mm, wczoraj" / "HH:mm, d MMMM"
+ */
+export const formatViewedDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const time = format(date, 'HH:mm', { locale: pl });
+  
+  if (date >= today) {
+    return `${time}, dziś`;
+  } else if (date >= yesterday) {
+    return `${time}, wczoraj`;
+  } else {
+    return `${time}, ${format(date, 'd MMMM', { locale: pl })}`;
+  }
+};
+
 /**
  * Parses simple markdown-style lists into HTML.
  * Lines starting with "- " or "* " are converted to <ul><li> elements.
