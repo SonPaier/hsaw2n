@@ -37,6 +37,7 @@ import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplates
 import { OfferServicesListView } from '@/components/offers/services/OfferServicesListView';
 import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
 import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
+import { OfferFollowUpStatus } from './OfferFollowUpStatus';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -51,6 +52,8 @@ interface SelectedState {
   selectedScopeId?: string | null;
   selectedItemInOption?: Record<string, string>;
 }
+
+type FollowUpPhoneStatus = 'called_discussed' | 'call_later' | 'called_no_answer' | null;
 
 interface Offer {
   id: string;
@@ -78,6 +81,7 @@ interface Offer {
   approved_at?: string | null;
   viewed_at?: string | null;
   selected_state?: SelectedState | null;
+  follow_up_phone_status?: FollowUpPhoneStatus;
 }
 
 interface OfferWithOptions extends Offer {
@@ -382,6 +386,25 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
     setSendEmailDialogOpen(true);
   };
 
+  const handleFollowUpStatusChange = async (offerId: string, newStatus: FollowUpPhoneStatus) => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ follow_up_phone_status: newStatus })
+        .eq('id', offerId);
+      
+      if (error) throw error;
+      
+      setOffers(prev => prev.map(o => 
+        o.id === offerId ? { ...o, follow_up_phone_status: newStatus } : o
+      ));
+      toast.success('Status zaktualizowany');
+    } catch (error) {
+      console.error('Error updating follow-up status:', error);
+      toast.error('Błąd aktualizacji statusu');
+    }
+  };
+
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
@@ -636,6 +659,17 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             ))}
                           </div>
                         )}
+                        {/* Follow-up phone status - Desktop */}
+                        {offer.customer_data?.phone && (
+                          <div className="mt-2">
+                            <OfferFollowUpStatus
+                              offerId={offer.id}
+                              phone={offer.customer_data.phone}
+                              currentStatus={offer.follow_up_phone_status ?? null}
+                              onStatusChange={handleFollowUpStatusChange}
+                            />
+                          </div>
+                        )}
                       </div>
                       
                       {/* Mobile layout - 5 lines */}
@@ -692,6 +726,17 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             <div className="font-semibold text-sm">
                               {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
                             </div>
+                          </div>
+                        )}
+                        {/* Follow-up phone status - Mobile */}
+                        {offer.customer_data?.phone && (
+                          <div className="pt-2">
+                            <OfferFollowUpStatus
+                              offerId={offer.id}
+                              phone={offer.customer_data.phone}
+                              currentStatus={offer.follow_up_phone_status ?? null}
+                              onStatusChange={handleFollowUpStatusChange}
+                            />
                           </div>
                         )}
                       </div>

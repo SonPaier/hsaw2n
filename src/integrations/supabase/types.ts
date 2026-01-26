@@ -1602,6 +1602,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_data: Json
+          follow_up_phone_status: string | null
           has_unified_services: boolean | null
           hide_unit_prices: boolean
           id: string
@@ -1635,6 +1636,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          follow_up_phone_status?: string | null
           has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
@@ -1668,6 +1670,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_data?: Json
+          follow_up_phone_status?: string | null
           has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
