@@ -512,7 +512,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       <Helmet>
         <title>{t('offers.title')} - {t('common.adminPanel')}</title>
       </Helmet>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto pb-24">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
           <div className="flex items-center gap-2">
@@ -638,25 +638,18 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                         )}
                       </div>
                       
-                      {/* Mobile layout - 4 lines */}
+                      {/* Mobile layout - 5 lines */}
                       <div className="sm:hidden space-y-1">
-                        {/* Line 1: Offer number and price */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{offer.offer_number}</span>
-                            <button
-                              onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
-                              className="p-1 hover:bg-secondary/80 rounded transition-colors"
-                              title={t('offers.copyOfferNumber')}
-                            >
-                              <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                            </button>
-                          </div>
-                          {(offer.admin_approved_gross || offer.approved_at) && (
-                            <span className="font-semibold text-sm whitespace-nowrap text-right ml-auto">
-                              {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
-                            </span>
-                          )}
+                        {/* Line 1: Offer number */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{offer.offer_number}</span>
+                          <button
+                            onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
+                            className="p-1 hover:bg-secondary/80 rounded transition-colors"
+                            title={t('offers.copyOfferNumber')}
+                          >
+                            <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          </button>
                         </div>
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
@@ -688,6 +681,17 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                                 {scope.name}
                               </Badge>
                             ))}
+                          </div>
+                        )}
+                        {/* Line 5: Amount (Net + VAT / Gross) */}
+                        {(offer.admin_approved_gross || offer.approved_at) && (
+                          <div className="pt-2 border-t mt-2 text-right">
+                            <div className="text-xs text-muted-foreground">
+                              {formatPrice(offer.admin_approved_net ?? offer.total_net)} + 23% VAT
+                            </div>
+                            <div className="font-semibold text-sm">
+                              {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
+                            </div>
                           </div>
                         )}
                       </div>
