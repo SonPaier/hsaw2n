@@ -259,7 +259,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
           ...o,
           offer_scopes: [...new Set(o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || [])]
             .map(id => ({ id, name: scopesMap[id as string] || '' }))
-            .filter(s => s.name),
+            .filter(s => s.name && s.name !== 'Dodatki'),
           selectedOptionName
         };
       });
