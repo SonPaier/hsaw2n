@@ -1965,6 +1965,7 @@
     "saveError": "Błąd zapisywania szablonu",
     "deleted": "Szablon usunięty",
     "fetchError": "Błąd pobierania szablonów",
+    "notFound": "Nie znaleziono szablonu",
     "createError": "Błąd tworzenia szablonu",
     "updateError": "Błąd aktualizacji szablonu",
     "deleteError": "Błąd usuwania szablonu",

@@ -97,25 +97,30 @@ export default function ReminderTemplateEditPage() {
     
     setLoading(true);
     try {
-      // Find template by short ID prefix
+      // Find template by short ID prefix - fetch all and filter client-side
+      // because ilike doesn't work with UUID type directly
       const { data, error } = await supabase
         .from('reminder_templates')
         .select('*')
-        .eq('instance_id', instanceId)
-        .ilike('id', `${shortId}%`)
-        .single();
+        .eq('instance_id', instanceId);
 
       if (error) throw error;
       
-      if (data) {
-        setTemplateId(data.id);
-        setName(data.name);
-        setDescription(data.description || '');
+      // Find template where ID starts with shortId
+      const template = data?.find(t => t.id.startsWith(shortId));
+      
+      if (template) {
+        setTemplateId(template.id);
+        setName(template.name);
+        setDescription(template.description || '');
         // Safely parse items from JSONB
-        const parsedItems = Array.isArray(data.items) 
-          ? (data.items as unknown as ReminderItem[])
+        const parsedItems = Array.isArray(template.items) 
+          ? (template.items as unknown as ReminderItem[])
           : [];
         setItems(parsedItems.length > 0 ? parsedItems : [{ months: 12, service_type: 'serwis' }]);
+      } else {
+        toast.error(t('reminderTemplates.notFound'));
+        navigate('/admin/reminders');
       }
     } catch (error) {
       console.error('Error fetching template:', error);
