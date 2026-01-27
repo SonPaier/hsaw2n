@@ -1390,6 +1390,50 @@ const AddReservationDialogV2 = ({
                 {validationErrors.services && (
                   <p className="text-sm text-destructive">{validationErrors.services}</p>
                 )}
+
+                {/* Popular service shortcuts - quick add pills */}
+                {services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {services
+                      .filter((s) => s.is_popular && !selectedServices.includes(s.id))
+                      .map((service) => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => {
+                            markUserEditing();
+                            setSelectedServices((prev) => [...prev, service.id]);
+                            // Add to servicesWithCategory if not already there
+                            if (!servicesWithCategory.some(s => s.id === service.id)) {
+                              setServicesWithCategory(prev => [...prev, {
+                                id: service.id,
+                                name: service.name,
+                                short_name: service.short_name,
+                                category_id: service.category_id,
+                                category_name: null,
+                                duration_minutes: service.duration_minutes,
+                                duration_small: service.duration_small,
+                                duration_medium: service.duration_medium,
+                                duration_large: service.duration_large,
+                                price_from: service.price_from,
+                                price_small: service.price_small,
+                                price_medium: service.price_medium,
+                                price_large: service.price_large,
+                                station_type: service.station_type,
+                              }]);
+                            }
+                            // Initialize service item
+                            if (!serviceItems.some(si => si.service_id === service.id)) {
+                              setServiceItems(prev => [...prev, { service_id: service.id, custom_price: null }]);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          {service.short_name || service.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
                 
                 {/* Services list with inline price edit */}
                 <SelectedServicesList
