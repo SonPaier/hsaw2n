@@ -35,7 +35,7 @@ const SERVICE_TYPES = [
   { value: 'serwis', labelKey: 'serwis' },
   { value: 'kontrola', labelKey: 'kontrola' },
   { value: 'serwis_gwarancyjny', labelKey: 'serwis_gwarancyjny' },
-  { value: 'odswiezenie', labelKey: 'odswiezenie' },
+  { value: 'odswiezenie_powloki', labelKey: 'odswiezenie_powloki' },
 ];
 
 // TODO: Superadmin będzie mógł edytować szablony SMS w panelu superadmina
@@ -44,7 +44,7 @@ const SMS_TEMPLATES: Record<string, string> = {
   serwis: '{short_name}: Zapraszamy na serwis pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
   kontrola: '{short_name}: Zapraszamy na bezplatna kontrole pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
   serwis_gwarancyjny: '{short_name}: Zapraszamy na serwis gwarancyjny pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
-  odswiezenie: '{short_name}: Zapraszamy na odswiezenie pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  odswiezenie_powloki: '{short_name}: Zapraszamy na odswiezenie powloki pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
 };
 
 export default function ReminderTemplateEditPage() {

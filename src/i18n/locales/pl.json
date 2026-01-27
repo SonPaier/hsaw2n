@@ -507,7 +507,7 @@
       "serwis": "Serwis",
       "kontrola": "Kontrola",
       "serwis_gwarancyjny": "Serwis gwarancyjny",
-      "odswiezenie": "Odświeżenie"
+      "odswiezenie_powloki": "Odświeżenie powłoki"
     },
     "validUntil": "Ważna do",
     "totalNet": "Netto",
@@ -1985,7 +1985,7 @@
       "serwis": "Serwis",
       "kontrola": "Kontrola",
       "serwis_gwarancyjny": "Serwis gwarancyjny",
-      "odswiezenie": "Odświeżenie"
+      "odswiezenie_powloki": "Odświeżenie powłoki"
     },
     "noTemplate": "Brak"
   },
