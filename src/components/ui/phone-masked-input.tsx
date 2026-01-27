@@ -13,40 +13,56 @@ export interface PhoneMaskedInputProps
  */
 const PhoneMaskedInput = React.forwardRef<HTMLInputElement, PhoneMaskedInputProps>(
   ({ className, value, onChange, ...props }, ref) => {
-    // Strip Polish prefix for display (+48, 0048, or 48 followed by 9 digits)
-    const stripPolishPrefix = (digits: string): string => {
+    /**
+     * Format phone for display based on country code:
+     * - Polish (+48): show 9 digits without prefix (XXX XXX XXX)
+     * - International: show all digits with prefix (+XX XXX XXX XXX)
+     */
+    const formatPhoneForDisplay = (rawDigits: string): string => {
+      if (!rawDigits) return '';
+      
+      // Clean to digits only (remove +, spaces, etc.)
+      const digits = rawDigits.replace(/\D/g, '');
       if (!digits) return '';
-      // Remove +48 prefix
-      if (digits.startsWith('+48')) {
-        return digits.slice(3);
+      
+      // Check if Polish number: starts with 48 and total is 11 digits
+      const isPolish = digits.startsWith('48') && digits.length === 11;
+      
+      if (isPolish) {
+        // Strip 48 prefix, show 9 digits as XXX XXX XXX
+        const local = digits.slice(2);
+        return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6, 9)}`.trim();
       }
-      // Remove 0048 prefix
-      if (digits.startsWith('0048')) {
-        return digits.slice(4);
+      
+      // For exactly 9 digits without prefix, assume Polish - format as XXX XXX XXX
+      if (digits.length === 9) {
+        return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
       }
-      // Remove 48 only if followed by exactly 9 digits (total 11 digits)
-      if (digits.startsWith('48') && digits.length === 11) {
-        return digits.slice(2);
+      
+      // International number: show with + prefix
+      // Format: +XX XXX XXX XXX (groups of 3 after country code)
+      if (digits.length >= 10) {
+        // Assume 2-digit country code for display
+        const countryCode = digits.slice(0, 2);
+        const rest = digits.slice(2);
+        const parts: string[] = [];
+        for (let i = 0; i < rest.length; i += 3) {
+          parts.push(rest.slice(i, i + 3));
+        }
+        return `+${countryCode} ${parts.join(' ')}`.trim();
       }
-      return digits;
-    };
-
-    // Format for display: XXX XXX XXX
-    const formatPhone = (digits: string): string => {
-      if (!digits) return '';
-      const cleaned = digits.replace(/\D/g, '');
-      // Strip Polish prefix before formatting
-      const withoutPrefix = stripPolishPrefix(cleaned);
+      
+      // Fallback: just group by 3
       const parts: string[] = [];
-      for (let i = 0; i < withoutPrefix.length; i += 3) {
-        parts.push(withoutPrefix.slice(i, i + 3));
+      for (let i = 0; i < digits.length; i += 3) {
+        parts.push(digits.slice(i, i + 3));
       }
       return parts.join(' ');
     };
 
     // Extract raw digits from value (keep original for storage)
     const rawValue = value.replace(/\D/g, '');
-    const displayValue = formatPhone(rawValue);
+    const displayValue = formatPhoneForDisplay(rawValue);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
