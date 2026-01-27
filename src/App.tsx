@@ -16,6 +16,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
 import PublicOfferView from "./pages/PublicOfferView";
 import PublicProtocolView from "./pages/PublicProtocolView";
+import EmbedLeadForm from "./pages/EmbedLeadForm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -106,6 +107,7 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
     <Route path="/moja-rezerwacja" element={<Navigate to="/res" replace />} />
     <Route path="/offers/:token" element={<PublicOfferView />} />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
+    <Route path="/embed" element={<EmbedLeadForm />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

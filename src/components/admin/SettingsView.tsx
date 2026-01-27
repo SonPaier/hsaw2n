@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Building2, Clock, Grid2X2, Settings2, Users, MessageSquare, Loader2, Save, Upload, Trash2, Image as ImageIcon,
-  ChevronDown
+  ChevronDown, Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import WorkingHoursSettings from './WorkingHoursSettings';
 import SmsMessageSettings from './SmsMessageSettings';
 import { ReservationConfirmSettings } from './ReservationConfirmSettings';
 import InstanceUsersTab from './InstanceUsersTab';
+import WidgetSettings from './WidgetSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 
@@ -26,7 +27,7 @@ interface SettingsViewProps {
   onWorkingHoursUpdate?: () => void;
 }
 
-type SettingsTab = 'company' | 'stations' | 'hours' | 'app' | 'sms' | 'users';
+type SettingsTab = 'company' | 'stations' | 'hours' | 'app' | 'sms' | 'users' | 'widget';
 
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
@@ -86,6 +87,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     { key: 'app', label: t('settings.tabs.app'), icon: <Settings2 className="w-4 h-4" /> },
     { key: 'sms', label: t('settings.tabs.sms'), icon: <MessageSquare className="w-4 h-4" /> },
     { key: 'users', label: t('settings.tabs.users'), icon: <Users className="w-4 h-4" /> },
+    { key: 'widget', label: t('settings.tabs.widget'), icon: <Code className="w-4 h-4" /> },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -427,6 +429,9 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
 
       case 'users':
         return instanceId ? <InstanceUsersTab instanceId={instanceId} /> : null;
+
+      case 'widget':
+        return <WidgetSettings instanceSlug={instanceData?.slug} />;
 
       default:
         return null;

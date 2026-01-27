@@ -747,7 +747,47 @@
       "hours": "Godziny pracy",
       "app": "Ustawienia aplikacji",
       "sms": "Wiadomości SMS",
-      "users": "Użytkownicy"
+      "users": "Użytkownicy",
+      "widget": "Widget"
+    }
+  },
+  "widget": {
+    "title": "Widget na stronę",
+    "description": "Osadź formularz zapytań ofertowych na swojej stronie WWW",
+    "previewUrl": "Podgląd formularza",
+    "iframeCode": "Kod do osadzenia",
+    "copyCode": "Kopiuj kod",
+    "codeCopied": "Skopiowano kod!"
+  },
+  "embed": {
+    "title": "Zapytaj o wycenę",
+    "subtitle": "Wypełnij formularz, a przygotujemy dla Ciebie indywidualną ofertę",
+    "customerSection": "Twoje dane",
+    "vehicleSection": "Pojazd",
+    "packagesSection": "Wybierz pakiety",
+    "packagesHint": "Możesz wybrać kilka",
+    "mileageLabel": "Przebieg (km)",
+    "mileagePlaceholder": "np. 15000",
+    "budgetSection": "Budżet i notatki",
+    "budgetLabel": "Orientacyjny budżet (PLN)",
+    "budgetPlaceholder": "np. 5000",
+    "budgetHint": "Opcjonalne - pomoże nam dopasować ofertę",
+    "notesLabel": "Dodatkowe informacje",
+    "notesPlaceholder": "Co jeszcze chciałbyś nam przekazać?",
+    "gdprLabel": "Wyrażam zgodę na przetwarzanie moich danych osobowych przez {{companyName}} (NIP: {{nip}}) w celu przygotowania i przedstawienia oferty handlowej.",
+    "gdprRequired": "Zgoda jest wymagana do wysłania zapytania",
+    "submit": "Wyślij zapytanie",
+    "submitting": "Wysyłanie...",
+    "successTitle": "Dziękujemy!",
+    "successMessage": "Twoje zapytanie zostało wysłane. Skontaktujemy się z Tobą wkrótce.",
+    "errorGeneric": "Wystąpił błąd. Spróbuj ponownie.",
+    "validation": {
+      "nameRequired": "Podaj imię i nazwisko",
+      "emailRequired": "Podaj adres email",
+      "emailInvalid": "Nieprawidłowy adres email",
+      "phoneRequired": "Podaj numer telefonu",
+      "vehicleRequired": "Wybierz pojazd",
+      "packageRequired": "Wybierz co najmniej jeden pakiet"
     }
   },
   "users": {
