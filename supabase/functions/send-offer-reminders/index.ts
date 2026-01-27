@@ -13,6 +13,7 @@ const SMS_TEMPLATES: Record<string, string> = {
   kontrola: '{short_name}: Zapraszamy na bezplatna kontrole pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
   serwis_gwarancyjny: '{short_name}: Zapraszamy na serwis gwarancyjny pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
   odswiezenie: '{short_name}: Zapraszamy na odswiezenie pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  odswiezenie_powloki: '{short_name}: Zapraszamy na odswiezenie powloki pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
 };
 
 Deno.serve(async (req) => {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
             body: new URLSearchParams({
               to: normalizedPhone.replace("+", ""),
               message: message,
-              from: "Info",
+              from: "N2Wash.com",
               format: "json",
             }),
           });
