@@ -1601,15 +1601,12 @@ const AddReservationDialogV2 = ({
         </SheetContent>
       </Sheet>
 
-      {/* Mobile FAB to toggle drawer visibility */}
+      {/* Mobile FAB to toggle drawer visibility - always on the right */}
       {isMobile && open && (
         <button
           type="button"
           onClick={() => setIsDrawerHidden(!isDrawerHidden)}
-          className={cn(
-            "fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center transition-all",
-            isDrawerHidden ? "bottom-20 right-4" : "bottom-20 left-4"
-          )}
+          className="fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center bottom-20 right-4"
         >
           {isDrawerHidden ? (
             <ClipboardPaste className="w-6 h-6" />
