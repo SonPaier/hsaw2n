@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { normalizePhone } from '@/lib/phoneUtils';
 import SendSmsDialog from './SendSmsDialog';
 import { CustomerRemindersTab } from './CustomerRemindersTab';
+import { CustomerVehiclesEditor, VehicleChip } from './CustomerVehiclesEditor';
 
 interface Customer {
   id: string;
@@ -75,6 +76,7 @@ const CustomerEditDrawer = ({
   const [editCompany, setEditCompany] = useState('');
   const [editNip, setEditNip] = useState('');
   const [editDiscountPercent, setEditDiscountPercent] = useState('');
+  const [editVehicles, setEditVehicles] = useState<VehicleChip[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -89,10 +91,12 @@ const CustomerEditDrawer = ({
         setEditCompany('');
         setEditNip('');
         setEditDiscountPercent('');
+        setEditVehicles([]);
         setVisits([]);
         setActiveTab('info');
       } else if (customer && instanceId) {
         fetchVisitHistory();
+        fetchCustomerVehicles();
         setIsEditing(false);
         setEditName(customer.name);
         setEditPhone(customer.phone);
@@ -105,6 +109,27 @@ const CustomerEditDrawer = ({
       }
     }
   }, [customer, instanceId, open, isAddMode]);
+
+  const fetchCustomerVehicles = async () => {
+    if (!customer || !instanceId) return;
+
+    const { data } = await supabase
+      .from('customer_vehicles')
+      .select('id, model, car_size')
+      .eq('instance_id', instanceId)
+      .eq('customer_id', customer.id)
+      .order('last_used_at', { ascending: false });
+
+    if (data) {
+      setEditVehicles(
+        data.map((v) => ({
+          id: v.id,
+          model: v.model,
+          carSize: (v.car_size as 'S' | 'M' | 'L') || 'M',
+        }))
+      );
+    }
+  };
 
   const fetchVisitHistory = async () => {
     if (!customer || !instanceId) return;
@@ -165,9 +190,11 @@ const CustomerEditDrawer = ({
 
     setSaving(true);
     try {
+      let customerId: string | undefined;
+
       if (isAddMode) {
         // Create new customer
-        const { error } = await supabase
+        const { data: newCustomer, error } = await supabase
           .from('customers')
           .insert({
             instance_id: instanceId,
@@ -179,10 +206,12 @@ const CustomerEditDrawer = ({
             nip: editNip.trim() || null,
             discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
             source: 'myjnia',
-          });
+          })
+          .select('id')
+          .single();
         
         if (error) throw error;
-        toast.success(t('customers.saved'));
+        customerId = newCustomer?.id;
       } else if (customer) {
         // Update existing customer
         const { error } = await supabase
@@ -199,9 +228,15 @@ const CustomerEditDrawer = ({
           .eq('id', customer.id);
         
         if (error) throw error;
-        toast.success(t('customers.saved'));
+        customerId = customer.id;
       }
-      
+
+      // Sync vehicles
+      if (customerId) {
+        await syncCustomerVehicles(customerId);
+      }
+
+      toast.success(t('customers.saved'));
       onCustomerUpdated?.();
       onClose();
     } catch (error) {
@@ -209,6 +244,45 @@ const CustomerEditDrawer = ({
       toast.error(t('errors.generic'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const syncCustomerVehicles = async (customerId: string) => {
+    if (!instanceId) return;
+
+    // Get current vehicles from DB
+    const { data: existingVehicles } = await supabase
+      .from('customer_vehicles')
+      .select('id, model')
+      .eq('customer_id', customerId);
+
+    const existingIds = existingVehicles?.map((v) => v.id) || [];
+    const existingModels = existingVehicles?.map((v) => v.model) || [];
+
+    // Delete vehicles that were removed
+    const currentIds = editVehicles.filter((v) => v.id).map((v) => v.id!);
+    const toDelete = existingIds.filter((id) => !currentIds.includes(id));
+
+    if (toDelete.length > 0) {
+      await supabase.from('customer_vehicles').delete().in('id', toDelete);
+    }
+
+    // Add new vehicles
+    const toAdd = editVehicles.filter(
+      (v) => v.isNew && !existingModels.includes(v.model)
+    );
+
+    if (toAdd.length > 0) {
+      const normalizedPhone = normalizePhone(editPhone.trim());
+      await supabase.from('customer_vehicles').insert(
+        toAdd.map((v) => ({
+          instance_id: instanceId,
+          customer_id: customerId,
+          phone: normalizedPhone,
+          model: v.model,
+          car_size: v.carSize,
+        }))
+      );
     }
   };
 
@@ -224,6 +298,8 @@ const CustomerEditDrawer = ({
       setEditCompany(customer?.company || '');
       setEditNip(customer?.nip || '');
       setEditDiscountPercent((customer as any)?.discount_percent?.toString() || '');
+      // Re-fetch vehicles to restore original state
+      fetchCustomerVehicles();
     }
   };
 
@@ -377,6 +453,13 @@ const CustomerEditDrawer = ({
                     <span className="text-muted-foreground">%</span>
                   </div>
                 </div>
+                
+                {/* Vehicles editor */}
+                <CustomerVehiclesEditor
+                  vehicles={editVehicles}
+                  onChange={setEditVehicles}
+                  disabled={saving}
+                />
               </div>
             ) : (
               // View mode with tabs
