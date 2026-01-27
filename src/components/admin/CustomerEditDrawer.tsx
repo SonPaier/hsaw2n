@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Phone, MessageSquare, Mail, Car, Clock, X } from 'lucide-react';
@@ -326,11 +326,6 @@ const CustomerEditDrawer = ({
     }
   };
 
-  // Get unique vehicles from visits
-  const uniqueVehicles = useMemo(() => {
-    return [...new Set(visits.map(v => v.vehicle_plate))];
-  }, [visits]);
-
   const handleClose = () => {
     setIsEditing(isAddMode);
     onClose();
@@ -498,19 +493,19 @@ const CustomerEditDrawer = ({
                   </div>
 
                   {/* Vehicles */}
-                  {uniqueVehicles.length > 0 && (
+                  {editVehicles.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                         <Car className="w-4 h-4" />
                         {t('customers.vehicles')}
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {uniqueVehicles.map((plate) => (
+                        {editVehicles.map((vehicle, idx) => (
                           <div
-                            key={plate}
-                            className="px-3 py-1.5 bg-slate-700/90 text-white rounded-full text-sm font-mono"
+                            key={vehicle.id || `v-${idx}`}
+                            className="px-3 py-1.5 bg-slate-700/90 text-white rounded-full text-sm"
                           >
-                            {plate}
+                            {vehicle.model}
                           </div>
                         ))}
                       </div>
