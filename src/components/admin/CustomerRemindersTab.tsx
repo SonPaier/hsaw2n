@@ -274,7 +274,10 @@ export function CustomerRemindersTab({
                                 })}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="text-xs font-semibold">
+                              {t(`offers.serviceTypes.${reminder.service_type}`, reminder.service_type)}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
                               <Badge 
                                 variant="outline" 
                                 className={`text-xs ${getStatusBadgeClass(reminder.status)}`}
