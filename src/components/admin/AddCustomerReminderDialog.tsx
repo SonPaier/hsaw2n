@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -6,7 +6,6 @@ import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +38,10 @@ const SERVICE_TYPES = [
   { value: 'odswiezenie', labelKey: 'odswiezenie' },
 ];
 
-const DEFAULT_SMS_TEMPLATE = '{short_name}: Przypominamy o {service_type} dla {vehicle_info}. {paid_info}. Zadzwon: {reservation_phone}';
+interface ReminderTemplate {
+  id: string;
+  name: string;
+}
 
 interface AddCustomerReminderDialogProps {
   open: boolean;
@@ -60,16 +62,47 @@ export function AddCustomerReminderDialog({
 }: AddCustomerReminderDialogProps) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
-  const [serviceName, setServiceName] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
   const [serviceType, setServiceType] = useState('serwis');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
-  const [isPaid, setIsPaid] = useState(false);
+  const [reminderTemplateId, setReminderTemplateId] = useState<string>('');
+  const [templates, setTemplates] = useState<ReminderTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  useEffect(() => {
+    if (open && instanceId) {
+      loadTemplates();
+    }
+  }, [open, instanceId]);
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const { data, error } = await supabase
+        .from('reminder_templates')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .order('name');
+      
+      if (error) throw error;
+      setTemplates(data || []);
+      
+      // Auto-select first template if available
+      if (data && data.length > 0 && !reminderTemplateId) {
+        setReminderTemplateId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const resetForm = () => {
-    setServiceName('');
+    setVehiclePlate('');
     setServiceType('serwis');
     setScheduledDate(undefined);
-    setIsPaid(false);
+    setReminderTemplateId('');
   };
 
   const handleClose = () => {
@@ -80,8 +113,8 @@ export function AddCustomerReminderDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!serviceName.trim()) {
-      toast.error(t('customers.serviceNameRequired'));
+    if (!vehiclePlate.trim()) {
+      toast.error(t('customers.vehiclePlateRequired'));
       return;
     }
 
@@ -90,22 +123,25 @@ export function AddCustomerReminderDialog({
       return;
     }
 
+    if (!reminderTemplateId) {
+      toast.error(t('customers.templateRequired'));
+      return;
+    }
+
     setSaving(true);
 
     try {
       const { error } = await supabase
-        .from('offer_reminders')
+        .from('customer_reminders')
         .insert({
           instance_id: instanceId,
-          offer_id: null, // Custom reminder - not linked to offer
+          reminder_template_id: reminderTemplateId,
           customer_name: customerName,
           customer_phone: normalizePhone(customerPhone),
-          service_name: serviceName.trim(),
+          vehicle_plate: vehiclePlate.trim().toUpperCase(),
           service_type: serviceType,
           scheduled_date: format(scheduledDate, 'yyyy-MM-dd'),
           months_after: 0, // Custom date, not calculated from months
-          is_paid: isPaid,
-          sms_template: DEFAULT_SMS_TEMPLATE,
           status: 'scheduled',
         });
 
@@ -130,14 +166,38 @@ export function AddCustomerReminderDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Service Name */}
+          {/* Reminder Template */}
           <div className="space-y-2">
-            <Label htmlFor="serviceName">{t('customers.reminderServiceName')} *</Label>
+            <Label>{t('customers.reminderTemplate')} *</Label>
+            <Select 
+              value={reminderTemplateId} 
+              onValueChange={setReminderTemplateId}
+              disabled={loadingTemplates}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('customers.selectTemplate')} />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map(template => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {templates.length === 0 && !loadingTemplates && (
+              <p className="text-xs text-muted-foreground">{t('customers.noTemplatesAvailable')}</p>
+            )}
+          </div>
+
+          {/* Vehicle Plate */}
+          <div className="space-y-2">
+            <Label htmlFor="vehiclePlate">{t('customers.vehiclePlate')} *</Label>
             <Input
-              id="serviceName"
-              value={serviceName}
-              onChange={(e) => setServiceName(e.target.value)}
-              placeholder={t('customers.reminderServiceNamePlaceholder')}
+              id="vehiclePlate"
+              value={vehiclePlate}
+              onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
+              placeholder="WA12345"
               required
             />
           </div>
@@ -159,7 +219,7 @@ export function AddCustomerReminderDialog({
             </Select>
           </div>
 
-          {/* Scheduled Date - Reminder will be sent at 14:00 on the scheduled date (configured in CRON) */}
+          {/* Scheduled Date */}
           <div className="space-y-2">
             <Label>{t('customers.reminderDate')} *</Label>
             <p className="text-xs text-muted-foreground">{t('customers.reminderTimeInfo')}</p>
@@ -193,26 +253,11 @@ export function AddCustomerReminderDialog({
             </Popover>
           </div>
 
-          {/* Is Paid */}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="isPaid">{t('customers.reminderIsPaid')}</Label>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="isPaid"
-                checked={isPaid}
-                onCheckedChange={setIsPaid}
-              />
-              <span className="text-sm text-muted-foreground">
-                {isPaid ? t('offers.paid') : t('offers.free')}
-              </span>
-            </div>
-          </div>
-
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || templates.length === 0}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('common.add')}
             </Button>
