@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from '@/components/admin/AdminTabsList';
 import {
   Select,
   SelectContent,
@@ -16,6 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { TemplateAssignedCustomers } from '@/components/admin/TemplateAssignedCustomers';
 import type { Json } from '@/integrations/supabase/types';
 
 interface ReminderItem {
@@ -59,6 +62,7 @@ export default function ReminderTemplateEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'template' | 'customers'>('template');
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -243,134 +247,167 @@ export default function ReminderTemplateEditPage() {
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Template Name */}
-        <div className="space-y-2">
-          <Label htmlFor="name">{t('reminderTemplates.name')} *</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t('reminderTemplates.namePlaceholder')}
-          />
+      {/* Tabs - only for existing templates */}
+      {!isNew && (
+        <div className="container max-w-2xl mx-auto px-4 pt-4">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'template' | 'customers')}>
+            <AdminTabsList columns={2}>
+              <AdminTabsTrigger value="template">
+                {t('reminders.tabs.template')}
+              </AdminTabsTrigger>
+              <AdminTabsTrigger value="customers">
+                {t('reminders.tabs.assignedCustomers')}
+              </AdminTabsTrigger>
+            </AdminTabsList>
+          </Tabs>
         </div>
+      )}
 
-        {/* Description */}
-        <div className="space-y-2">
-          <Label htmlFor="description">{t('reminderTemplates.description')}</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t('reminderTemplates.descriptionPlaceholder')}
-            rows={2}
-          />
-        </div>
+      {/* Tab Content */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'template' | 'customers')}>
+        {/* Template Form Tab */}
+        <TabsContent value="template" className="mt-0">
+          <div className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+            {/* Template Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">{t('reminderTemplates.name')} *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('reminderTemplates.namePlaceholder')}
+              />
+            </div>
 
-        {/* Reminder Schedule */}
-        <div className="space-y-3">
-          <Label>{t('reminders.schedule')}</Label>
-          
-          {items.map((item, index) => (
-            <div key={index} className="flex items-center gap-3 p-4 border rounded-lg bg-card">
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-muted-foreground mb-2">
-                  {t('reminders.reminderNumber')} #{index + 1}
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Months input */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={item.months}
-                      onChange={(e) => updateItem(index, 'months', parseInt(e.target.value) || 1)}
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">{t('reminders.monthsAfter')}</span>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">{t('reminderTemplates.description')}</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('reminderTemplates.descriptionPlaceholder')}
+                rows={2}
+              />
+            </div>
+
+            {/* Reminder Schedule */}
+            <div className="space-y-3">
+              <Label>{t('reminders.schedule')}</Label>
+              
+              {items.map((item, index) => (
+                <div key={index} className="flex items-center gap-3 p-4 border rounded-lg bg-card">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-muted-foreground mb-2">
+                      {t('reminders.reminderNumber')} #{index + 1}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Months input */}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={item.months}
+                          onChange={(e) => updateItem(index, 'months', parseInt(e.target.value) || 1)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">{t('reminders.monthsAfter')}</span>
+                      </div>
+                      
+                      {/* Service type dropdown */}
+                      <Select
+                        value={item.service_type}
+                        onValueChange={(value) => updateItem(index, 'service_type', value)}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SERVICE_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {t(`offers.serviceTypes.${type.labelKey}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   
-                  {/* Service type dropdown */}
-                  <Select
-                    value={item.service_type}
-                    onValueChange={(value) => updateItem(index, 'service_type', value)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SERVICE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {t(`offers.serviceTypes.${type.labelKey}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {items.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              </div>
-              
-              {items.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeItem(index)}
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+              ))}
+
+              <Button
+                variant="outline"
+                onClick={addItem}
+                className="w-full gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {t('reminders.addReminder')}
+              </Button>
             </div>
-          ))}
 
-          <Button
-            variant="outline"
-            onClick={addItem}
-            className="w-full gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {t('reminders.addReminder')}
-          </Button>
-        </div>
-
-        {/* SMS Template Preview (readonly for admin) */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            {t('reminders.smsTemplate')}
-          </Label>
-          <div className="p-3 bg-white rounded-lg border">
-            <p className="text-sm text-muted-foreground mb-1">{t('reminders.smsExample')}:</p>
-            <p className="text-sm font-mono">{getSmsExample()}</p>
+            {/* SMS Template Preview (readonly for admin) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                {t('reminders.smsTemplate')}
+              </Label>
+              <div className="p-3 bg-card rounded-lg border">
+                <p className="text-sm text-muted-foreground mb-1">{t('reminders.smsExample')}:</p>
+                <p className="text-sm font-mono">{getSmsExample()}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('reminders.smsTemplateReadonly')}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t('reminders.smsTemplateReadonly')}
-          </p>
-        </div>
-      </div>
+        </TabsContent>
 
-      {/* Sticky Footer Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-20">
-        <div className="container max-w-2xl mx-auto flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin/pricelist')}
-            className="flex-1"
-            disabled={saving}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="flex-1"
-            disabled={saving}
-          >
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t('common.save')}
-          </Button>
+        {/* Assigned Customers Tab */}
+        <TabsContent value="customers" className="mt-0">
+          <div className="container max-w-2xl mx-auto px-4 py-6">
+            <TemplateAssignedCustomers
+              templateId={templateId}
+              instanceId={instanceId}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Sticky Footer Buttons - only show in template tab */}
+      {activeTab === 'template' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-20">
+          <div className="container max-w-2xl mx-auto flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/admin/pricelist')}
+              className="flex-1"
+              disabled={saving}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="flex-1"
+              disabled={saving}
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('common.save')}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
