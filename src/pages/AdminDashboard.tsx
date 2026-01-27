@@ -34,6 +34,7 @@ import NotificationsView from '@/components/admin/NotificationsView';
 import SettingsView from '@/components/admin/SettingsView';
 import PriceListSettings from '@/components/admin/PriceListSettings';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
+import RemindersView from '@/components/admin/RemindersView';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
@@ -109,8 +110,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols' | 'reminders';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols', 'reminders'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -2458,6 +2459,8 @@ const AdminDashboard = () => {
             {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
 
             {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} onEditModeChange={setProtocolEditMode} />}
+
+            {currentView === 'reminders' && instanceId && <RemindersView instanceId={instanceId} onNavigateBack={() => setCurrentView('pricelist')} />}
           </div>
         </main>
       </div>

@@ -120,12 +120,12 @@ export default function ReminderTemplateEditPage() {
         setItems(parsedItems.length > 0 ? parsedItems : [{ months: 12, service_type: 'serwis' }]);
       } else {
         toast.error(t('reminderTemplates.notFound'));
-        navigate('/admin/pricelist');
+        navigate('/admin/reminders');
       }
     } catch (error) {
       console.error('Error fetching template:', error);
       toast.error(t('reminderTemplates.fetchError'));
-      navigate('/admin/pricelist');
+      navigate('/admin/reminders');
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export default function ReminderTemplateEditPage() {
         toast.success(t('reminderTemplates.updated'));
       }
 
-      navigate('/admin/pricelist');
+      navigate('/admin/reminders');
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error(t('reminderTemplates.saveError'));
@@ -231,7 +231,7 @@ export default function ReminderTemplateEditPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/admin/pricelist')}
+              onClick={() => navigate('/admin/reminders')}
               className="shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -355,7 +355,7 @@ export default function ReminderTemplateEditPage() {
         <div className="container max-w-2xl mx-auto flex gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/admin/pricelist')}
+            onClick={() => navigate('/admin/reminders')}
             className="flex-1"
             disabled={saving}
           >
