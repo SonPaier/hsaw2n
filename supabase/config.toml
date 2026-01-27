@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.seed-e2e-scenario]
 verify_jwt = false
+
+[functions.get-embed-config]
+verify_jwt = false
+
+[functions.submit-lead]
+verify_jwt = false

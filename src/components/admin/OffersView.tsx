@@ -72,6 +72,7 @@ interface Offer {
     plate?: string;
   };
   status: string;
+  source?: string;
   total_net: number;
   total_gross: number;
   admin_approved_net?: number | null;
@@ -683,6 +684,11 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                         </div>
                         {/* Line 2: Status and selected option */}
                         <div className="flex flex-wrap gap-1">
+                          {offer.source === 'website' && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              WWW
+                            </Badge>
+                          )}
                           {offer.status === 'viewed' && offer.viewed_at ? (
                             <Badge className={cn('text-xs', statusColors[offer.status])}>
                               Obejrzana {formatViewedDate(offer.viewed_at)}
