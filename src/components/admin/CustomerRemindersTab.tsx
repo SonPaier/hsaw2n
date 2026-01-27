@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -19,7 +19,16 @@ interface Reminder {
   status: string;
   sent_at: string | null;
   vehicle_plate: string;
+  reminder_template_id: string;
   reminder_templates: { name: string } | null;
+}
+
+interface GroupedReminder {
+  templateId: string;
+  templateName: string;
+  vehiclePlate: string;
+  reminders: Reminder[];
+  nextReminder: Reminder;
 }
 
 interface CustomerRemindersTabProps {
@@ -40,12 +49,48 @@ export function CustomerRemindersTab({
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
-  const toggleCardExpansion = (reminderId: string) => {
+  const toggleCardExpansion = (groupKey: string) => {
     setExpandedCards(prev => ({
       ...prev,
-      [reminderId]: !prev[reminderId]
+      [groupKey]: !prev[groupKey]
     }));
   };
+
+  // Group reminders by template + vehicle
+  const groupedReminders = useMemo(() => {
+    const groups: Record<string, GroupedReminder> = {};
+    
+    for (const reminder of reminders) {
+      const key = `${reminder.reminder_template_id}_${reminder.vehicle_plate}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          templateId: reminder.reminder_template_id,
+          templateName: reminder.reminder_templates?.name || t('customers.customReminder'),
+          vehiclePlate: reminder.vehicle_plate,
+          reminders: [],
+          nextReminder: reminder
+        };
+      }
+      
+      groups[key].reminders.push(reminder);
+      
+      // Update next reminder (earliest scheduled, not sent)
+      if (reminder.status !== 'sent' && 
+          new Date(reminder.scheduled_date) < new Date(groups[key].nextReminder.scheduled_date)) {
+        groups[key].nextReminder = reminder;
+      }
+    }
+    
+    // Sort reminders within each group by date
+    Object.values(groups).forEach(group => {
+      group.reminders.sort((a, b) => 
+        new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+      );
+    });
+    
+    return Object.values(groups);
+  }, [reminders, t]);
 
   useEffect(() => {
     loadReminders();
@@ -56,7 +101,6 @@ export function CustomerRemindersTab({
     
     setLoading(true);
     try {
-      // Query from new customer_reminders table
       const { data, error } = await supabase
         .from('customer_reminders')
         .select(`
@@ -67,6 +111,7 @@ export function CustomerRemindersTab({
           status,
           sent_at,
           vehicle_plate,
+          reminder_template_id,
           reminder_templates(name)
         `)
         .eq('customer_phone', customerPhone)
@@ -104,6 +149,15 @@ export function CustomerRemindersTab({
     loadReminders();
   };
 
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case 'sent': return 'bg-green-50 text-green-700';
+      case 'cancelled': return 'bg-red-50 text-red-700';
+      case 'failed': return 'bg-orange-50 text-orange-700';
+      default: return '';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -132,124 +186,122 @@ export function CustomerRemindersTab({
           </Button>
         </div>
 
-        {/* Reminders list */}
-        {reminders.length === 0 ? (
+        {/* Reminders list - grouped by template */}
+        {groupedReminders.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Bell className="w-10 h-10 mx-auto mb-2 opacity-30" />
             <p>{t('customers.noReminders')}</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {reminders.map((reminder) => (
-              <div 
-                key={reminder.id} 
-                className="flex items-start justify-between gap-3 p-3 border rounded-lg bg-white"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">
-                    {reminder.reminder_templates?.name || t('customers.customReminder')}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {format(new Date(reminder.scheduled_date), 'dd MMMM yyyy', { locale: pl })}
-                    {reminder.months_after > 0 && (
-                      <span className="text-xs">({reminder.months_after} mies.)</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {/* Vehicle plate */}
-                    {reminder.vehicle_plate && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <Car className="w-3 h-3" />
-                        {reminder.vehicle_plate}
-                      </Badge>
-                    )}
-                    
-                    {/* Service type badge */}
-                    <Badge variant="secondary" className="text-xs">
-                      {t(`offers.serviceTypes.${reminder.service_type}`, reminder.service_type)}
-                    </Badge>
-                    
-                    {/* Status badge */}
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${
-                        reminder.status === 'sent' ? 'bg-green-50 text-green-700' : 
-                        reminder.status === 'cancelled' ? 'bg-red-50 text-red-700' :
-                        reminder.status === 'failed' ? 'bg-orange-50 text-orange-700' : ''
-                      }`}
-                    >
-                      {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
-                    </Badge>
-                    
-                    {/* Sent at info */}
-                    {reminder.sent_at && (
-                      <span className="text-xs text-muted-foreground">
-                        ({format(new Date(reminder.sent_at), 'dd.MM.yyyy HH:mm', { locale: pl })})
-                      </span>
-                    )}
+            {groupedReminders.map((group) => {
+              const groupKey = `${group.templateId}_${group.vehiclePlate}`;
+              const nextReminder = group.nextReminder;
+              
+              return (
+                <div 
+                  key={groupKey} 
+                  className="p-3 border rounded-lg bg-white"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">
+                        {group.templateName}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {format(new Date(nextReminder.scheduled_date), 'dd MMMM yyyy', { locale: pl })}
+                        {nextReminder.months_after > 0 && (
+                          <span className="text-xs">({nextReminder.months_after} mies.)</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {/* Vehicle plate */}
+                        {group.vehiclePlate && (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Car className="w-3 h-3" />
+                            {group.vehiclePlate}
+                          </Badge>
+                        )}
+                        
+                        {/* Service type badge */}
+                        <Badge variant="secondary" className="text-xs">
+                          {t(`offers.serviceTypes.${nextReminder.service_type}`, nextReminder.service_type)}
+                        </Badge>
+                        
+                        {/* Status badge */}
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${getStatusBadgeClass(nextReminder.status)}`}
+                        >
+                          {t(`offers.reminderStatus.${nextReminder.status}`, nextReminder.status)}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Collapsible SMS details */}
+                  {/* Collapsible SMS list */}
                   <Collapsible 
-                    open={expandedCards[reminder.id]} 
-                    onOpenChange={() => toggleCardExpansion(reminder.id)}
+                    open={expandedCards[groupKey]} 
+                    onOpenChange={() => toggleCardExpansion(groupKey)}
                   >
                     <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline mt-3">
-                      {expandedCards[reminder.id] ? (
+                      {expandedCards[groupKey] ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
                         <ChevronDown className="w-4 h-4" />
                       )}
                       <MessageSquare className="w-4 h-4" />
-                      <span>{t('customers.viewRemindersList')}</span>
+                      <span>{t('customers.viewRemindersList')} ({group.reminders.length})</span>
                     </CollapsibleTrigger>
                     
                     <CollapsibleContent className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border w-full text-sm">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span>
-                              {t('customers.smsScheduledAt', { 
-                                date: format(new Date(reminder.scheduled_date), 'dd.MM.yyyy', { locale: pl }) 
-                              })}
-                            </span>
-                          </div>
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${
-                              reminder.status === 'sent' ? 'bg-green-50 text-green-700' : 
-                              reminder.status === 'cancelled' ? 'bg-red-50 text-red-700' :
-                              reminder.status === 'failed' ? 'bg-orange-50 text-orange-700' : ''
-                            }`}
-                          >
-                            {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
-                          </Badge>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeleteReminderDialog(reminder.id)}
+                      {group.reminders.map((reminder) => (
+                        <div 
+                          key={reminder.id}
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border w-full text-sm"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span>
+                                {t('customers.smsScheduledAt', { 
+                                  date: format(new Date(reminder.scheduled_date), 'dd.MM.yyyy', { locale: pl }) 
+                                })}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({reminder.months_after} mies.)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${getStatusBadgeClass(reminder.status)}`}
+                              >
+                                {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
+                              </Badge>
+                              {reminder.sent_at && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({format(new Date(reminder.sent_at), 'dd.MM.yyyy HH:mm', { locale: pl })})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleteReminderDialog(reminder.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </CollapsibleContent>
                   </Collapsible>
                 </div>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => setDeleteReminderDialog(reminder.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
