@@ -1,169 +1,100 @@
 
-# Plan: Dodanie zakładki "Przypisani Klienci" do widoku edycji szablonu przypomnienia
+# Plan: Checkbox "is_popular" w formularzu usługi i pills w formularzu rezerwacji
 
 ## Cel
 
-Rozbudować widok edycji szablonu przypomnienia (`ReminderTemplateEditPage.tsx`) o dwie zakładki:
-1. **Szablon** - obecny formularz edycji
-2. **Przypisani Klienci** - lista klientów przypisanych do tego szablonu z możliwością otwarcia drawera klienta
-
-Dodatkowo wyodrębnić reużywalny komponent listy klientów.
+1. Dodać checkbox w sekcji zaawansowanej formularza usługi (`ServiceFormDialog.tsx`) z etykietą "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji" i ikoną info
+2. Zapisywać pole `is_popular` do bazy danych
+3. Zmienić wygląd pills w formularzu rezerwacji na niebieski z białym tekstem
+4. Wyświetlać pills dla usług `is_popular` we WSZYSTKICH trybach rezerwacji (nie tylko yard mode)
 
 ## Struktura zmian
 
-### 1. Nowy komponent: `src/components/admin/CustomersList.tsx`
+### 1. Modyfikacja: `src/components/admin/ServiceFormDialog.tsx`
 
-Reużywalny komponent listy klientów wyodrębniony z `CustomersView.tsx`:
+**Zmiany w interfejsie `ServiceData`:**
+- Dodanie pola `is_popular?: boolean | null`
 
-**Props:**
-```typescript
-interface CustomersListProps {
-  customers: Customer[];
-  vehicles: CustomerVehicle[];
-  instanceId: string | null;
-  onCustomerClick: (customer: Customer) => void;
-  emptyMessage?: string;
-  showActions?: boolean; // Phone, SMS, Delete buttons
-}
+**Zmiany w stanie formularza:**
+- Dodanie `is_popular: service?.is_popular ?? false` do `formData`
+
+**Zmiany w `handleSave`:**
+- Dodanie `is_popular: formData.is_popular` do obiektu `serviceData`
+
+**Nowy element UI w sekcji zaawansowanej (pod "Widoczność usługi"):**
+```tsx
+<div className="flex items-center gap-3">
+  <Checkbox
+    id="is_popular"
+    checked={formData.is_popular}
+    onCheckedChange={(checked) => 
+      setFormData(prev => ({ ...prev, is_popular: !!checked }))
+    }
+  />
+  <div className="flex items-center gap-1.5">
+    <Label htmlFor="is_popular" className="text-sm cursor-pointer">
+      {t('priceList.form.isPopularLabel')}
+    </Label>
+    <FieldInfo tooltip="..." />
+  </div>
+</div>
 ```
 
-**Zawartość:**
-- Renderowanie listy klientów (name, phone, vehicle chips)
-- Obsługa pustego stanu
-- Klikalne wiersze wywołujące `onCustomerClick`
-- Opcjonalne przyciski akcji (telefon, SMS, usuń)
-
-### 2. Nowy komponent: `src/components/admin/TemplateAssignedCustomers.tsx`
-
-Zakładka "Przypisani Klienci" dla szablonu przypomnienia:
-
-**Logika:**
-- Pobiera unikalnych klientów z tabeli `customer_reminders` przez `reminder_template_id`
-- Grupuje po `customer_phone` (jeden klient może mieć wiele przypomnień)
-- Wykorzystuje `CustomersList` do renderowania
-
-**Zapytanie SQL:**
-```sql
-SELECT DISTINCT customer_name, customer_phone 
-FROM customer_reminders 
-WHERE reminder_template_id = ? AND instance_id = ?
-```
-
-### 3. Modyfikacja: `src/pages/ReminderTemplateEditPage.tsx`
+### 2. Modyfikacja: `src/components/admin/reservation-form/ServicesSection.tsx`
 
 **Zmiany:**
-- Import Tabs z `@/components/ui/tabs` i `AdminTabsList`/`AdminTabsTrigger`
-- Dodanie stanu `activeTab` ("template" | "customers")
-- Owinięcie formularza w `<TabsContent value="template">`
-- Dodanie `<TabsContent value="customers">` z komponentem `TemplateAssignedCustomers`
-- Ukrycie zakładek dla nowego szablonu (`isNew`)
+1. Usunięcie warunku `isYardMode` - pills dla popularnych usług będą widoczne we wszystkich trybach
+2. Zmiana stylów pills na niebieski z białym tekstem:
+   - z: `bg-muted hover:bg-muted/80 text-foreground border border-border`
+   - na: `bg-primary hover:bg-primary/90 text-primary-foreground`
 
-**Struktura UI:**
+**Kod przed:**
 ```tsx
-<Tabs value={activeTab} onValueChange={setActiveTab}>
-  <AdminTabsList columns={2}>
-    <AdminTabsTrigger value="template">Szablon</AdminTabsTrigger>
-    <AdminTabsTrigger value="customers">Przypisani Klienci</AdminTabsTrigger>
-  </AdminTabsList>
-  
-  <TabsContent value="template">
-    {/* Obecny formularz */}
-  </TabsContent>
-  
-  <TabsContent value="customers">
-    <TemplateAssignedCustomers 
-      templateId={templateId}
-      instanceId={instanceId}
-    />
-  </TabsContent>
-</Tabs>
+{isYardMode &&
+  services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
 ```
 
-### 4. Nowe tłumaczenia w `src/i18n/locales/pl.json`
+**Kod po:**
+```tsx
+{services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+```
+
+### 3. Nowe tłumaczenia w `src/i18n/locales/pl.json`
 
 ```json
-"reminders": {
-  ...
-  "tabs": {
-    "template": "Szablon",
-    "assignedCustomers": "Przypisani Klienci"
-  },
-  "noAssignedCustomers": "Brak klientów przypisanych do tego szablonu"
+"priceList": {
+  "form": {
+    "isPopularLabel": "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji"
+  }
 }
+```
+
+### 4. Import Checkbox w ServiceFormDialog
+
+Dodanie importu:
+```tsx
+import { Checkbox } from '@/components/ui/checkbox';
 ```
 
 ## Sekcja techniczna
 
-### Struktura danych klientów z customer_reminders
+### Przepływ danych is_popular
 
-Tabela `customer_reminders` zawiera:
-- `reminder_template_id` - FK do szablonu
-- `customer_name`, `customer_phone` - dane klienta
-- `vehicle_plate` - pojazd
+1. **Odczyt:** Pole `is_popular` jest już pobierane w `AddReservationDialogV2.tsx` w zapytaniu do `unified_services`
+2. **Zapis:** Dodanie pola do obiektu zapisywanego w `handleSave()` w `ServiceFormDialog.tsx`
+3. **Wyświetlanie:** Pills renderowane w `ServicesSection.tsx` bazując na `service.is_popular`
 
-Zapytanie do pobrania unikalnych klientów:
-```typescript
-const { data } = await supabase
-  .from('customer_reminders')
-  .select('customer_name, customer_phone')
-  .eq('reminder_template_id', templateId)
-  .eq('instance_id', instanceId);
+### Zachowanie UX pills
 
-// Deduplikacja po phone
-const uniqueCustomers = [...new Map(
-  data.map(c => [c.customer_phone, c])
-).values()];
-```
+Gdy użytkownik kliknie pill:
+1. Pill znika z widoku (usługa jest dodana do `selectedServices`)
+2. Usługa pojawia się na liście wybranych usług (`SelectedServicesList`)
+3. Drawer usług NIE otwiera się - to szybki skrót
 
-### Integracja z CustomerEditDrawer
+### Pliki do modyfikacji
 
-Wykorzystamy istniejący `CustomerEditDrawer`:
-```tsx
-<CustomerEditDrawer
-  customer={selectedCustomer} // lub tymczasowy obiekt z phone/name
-  instanceId={instanceId}
-  open={!!selectedCustomer}
-  onClose={() => setSelectedCustomer(null)}
-/>
-```
-
-Jeśli klient nie istnieje w `customers` (tylko w `customer_reminders`), tworzymy tymczasowy obiekt jak w `ReservationDetailsDrawer`:
-```typescript
-const tempCustomer = {
-  id: '',
-  name: reminder.customer_name,
-  phone: reminder.customer_phone,
-  email: null,
-  notes: null,
-  source: 'myjnia'
-};
-```
-
-### Pliki do utworzenia/modyfikacji
-
-| Plik | Akcja |
-|------|-------|
-| `src/components/admin/CustomersList.tsx` | Nowy |
-| `src/components/admin/TemplateAssignedCustomers.tsx` | Nowy |
-| `src/pages/ReminderTemplateEditPage.tsx` | Modyfikacja |
-| `src/i18n/locales/pl.json` | Modyfikacja |
-
-### Refaktoryzacja CustomersView
-
-Po utworzeniu `CustomersList.tsx`, `CustomersView.tsx` może go wykorzystać:
-```tsx
-// CustomersView.tsx
-import { CustomersList } from './CustomersList';
-
-const renderCustomerList = () => (
-  <CustomersList
-    customers={paginatedCustomers}
-    vehicles={vehicles}
-    instanceId={instanceId}
-    onCustomerClick={(c) => setSelectedCustomer(c)}
-    showActions
-  />
-);
-```
-
-To jest opcjonalna refaktoryzacja - można zachować obecny kod w CustomersView i tylko nowy komponent używać w TemplateAssignedCustomers.
+| Plik | Typ zmiany |
+|------|------------|
+| `src/components/admin/ServiceFormDialog.tsx` | Dodanie checkbox i logiki zapisu |
+| `src/components/admin/reservation-form/ServicesSection.tsx` | Zmiana stylów i usunięcie ograniczenia isYardMode |
+| `src/i18n/locales/pl.json` | Nowe tłumaczenie |
