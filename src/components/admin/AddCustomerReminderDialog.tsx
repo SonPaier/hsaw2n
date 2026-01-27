@@ -30,12 +30,6 @@ import { normalizePhone } from '@/lib/phoneUtils';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const SERVICE_TYPES = [
-  { value: 'serwis', labelKey: 'serwis' },
-  { value: 'kontrola', labelKey: 'kontrola' },
-  { value: 'serwis_gwarancyjny', labelKey: 'serwis_gwarancyjny' },
-  { value: 'odswiezenie', labelKey: 'odswiezenie' },
-];
 
 interface ReminderTemplateItem {
   months: number;
@@ -75,7 +69,7 @@ export function AddCustomerReminderDialog({
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [serviceType, setServiceType] = useState('serwis');
+  
   const [serviceDate, setServiceDate] = useState<Date | undefined>(undefined);
   const [reminderTemplateId, setReminderTemplateId] = useState<string>('');
   const [templates, setTemplates] = useState<ReminderTemplate[]>([]);
@@ -148,7 +142,6 @@ export function AddCustomerReminderDialog({
 
   const resetForm = () => {
     setSelectedVehicleId(null);
-    setServiceType('serwis');
     setServiceDate(undefined);
     setReminderTemplateId('');
   };
@@ -195,7 +188,7 @@ export function AddCustomerReminderDialog({
           customer_name: customerName,
           customer_phone: normalizePhone(customerPhone),
           vehicle_plate: selectedVehicle.plate || selectedVehicle.model,
-          service_type: item.service_type || serviceType,
+          service_type: item.service_type,
           scheduled_date: format(scheduledDate, 'yyyy-MM-dd'),
           months_after: item.months,
           status: 'scheduled',
@@ -284,22 +277,6 @@ export function AddCustomerReminderDialog({
             )}
           </div>
 
-          {/* Service Type */}
-          <div className="space-y-2">
-            <Label>{t('reminderTemplates.serviceType')} *</Label>
-            <Select value={serviceType} onValueChange={setServiceType}>
-              <SelectTrigger className="bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {SERVICE_TYPES.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {t(`offers.serviceTypes.${type.labelKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Service Date - base date for reminder calculation */}
           <div className="space-y-2">
