@@ -106,5 +106,39 @@ describe('phoneUtils', () => {
     it('PU-U-024: formats number with 48 prefix (without +)', () => {
       expect(formatPhoneDisplay('48733854184')).toBe('733 854 184');
     });
+
+    // Additional edge cases
+    it('PU-U-025: formats Romek blade number correctly (504 starting)', () => {
+      expect(formatPhoneDisplay('+48504478048')).toBe('504 478 048');
+    });
+
+    it('PU-U-026: handles Ukrainian number +380', () => {
+      expect(formatPhoneDisplay('+380501234567')).toBe('+38 050 123 456 7');
+    });
+
+    it('PU-U-027: handles Czech number +420', () => {
+      expect(formatPhoneDisplay('+420123456789')).toBe('+42 012 345 678 9');
+    });
+
+    it('PU-U-028: handles shorter international number', () => {
+      expect(formatPhoneDisplay('+4712345678')).toBe('+47 123 456 78');
+    });
+
+    it('PU-U-029: handles number with dashes', () => {
+      expect(formatPhoneDisplay('+48-733-854-184')).toBe('733 854 184');
+    });
+
+    it('PU-U-030: handles number with parentheses', () => {
+      expect(formatPhoneDisplay('(+48) 733 854 184')).toBe('733 854 184');
+    });
+
+    it('PU-U-031: handles 10-digit number without prefix (ambiguous)', () => {
+      // 10 digits without + - should format as groups of 3
+      expect(formatPhoneDisplay('4868692003')).toBe('486 869 200 3');
+    });
+
+    it('PU-U-032: returns original for unparseable input', () => {
+      expect(formatPhoneDisplay('abc')).toBe('abc');
+    });
   });
 });
