@@ -437,7 +437,9 @@
     "reminderTemplate": "Szablon przypomnienia",
     "selectTemplate": "Wybierz szablon",
     "templateRequired": "Wybierz szablon przypomnienia",
-    "noTemplatesAvailable": "Brak szablonów. Najpierw utwórz szablon w ustawieniach."
+    "noTemplatesAvailable": "Brak szablonów. Najpierw utwórz szablon w ustawieniach.",
+    "viewRemindersList": "Zobacz pełną listę przypomnień SMS",
+    "smsScheduledAt": "SMS zaplanowany: {{date}} o 14:00"
   },
   "services": {
     "title": "Usługi",
