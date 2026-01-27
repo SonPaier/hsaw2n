@@ -1693,6 +1693,7 @@ export type Database = {
           selected_state: Json | null
           sent_at: string | null
           service_info: string | null
+          source: string | null
           status: string
           total_gross: number
           total_net: number
@@ -1728,6 +1729,7 @@ export type Database = {
           selected_state?: Json | null
           sent_at?: string | null
           service_info?: string | null
+          source?: string | null
           status?: string
           total_gross?: number
           total_net?: number
@@ -1763,6 +1765,7 @@ export type Database = {
           selected_state?: Json | null
           sent_at?: string | null
           service_info?: string | null
+          source?: string | null
           status?: string
           total_gross?: number
           total_net?: number
