@@ -431,7 +431,13 @@
     "serviceNameRequired": "Podaj nazwę usługi",
     "reminderDate": "Data przypomnienia",
     "reminderTimeInfo": "SMS zostanie wysłany o godzinie 14:00",
-    "reminderIsPaid": "Płatne"
+    "reminderIsPaid": "Płatne",
+    "vehiclePlate": "Numer rejestracyjny",
+    "vehiclePlateRequired": "Podaj numer rejestracyjny",
+    "reminderTemplate": "Szablon przypomnienia",
+    "selectTemplate": "Wybierz szablon",
+    "templateRequired": "Wybierz szablon przypomnienia",
+    "noTemplatesAvailable": "Brak szablonów. Najpierw utwórz szablon w ustawieniach."
   },
   "services": {
     "title": "Usługi",
@@ -602,7 +608,9 @@
       "pending": "Oczekujące",
       "sent": "Wysłane",
       "completed": "Zrealizowane",
-      "cancelled": "Anulowane"
+      "cancelled": "Anulowane",
+      "scheduled": "Zaplanowane",
+      "failed": "Nieudane"
     },
     "selectedOption": "Wybrano"
   },
