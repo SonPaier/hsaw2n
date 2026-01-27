@@ -252,11 +252,14 @@ const CustomerEditDrawer = ({
   const syncCustomerVehicles = async (customerId: string) => {
     if (!instanceId) return;
 
-    // Get current vehicles from DB
+    const normalizedPhone = normalizePhone(editPhone.trim());
+
+    // Get current vehicles from DB by phone (same as fetch) for consistency
     const { data: existingVehicles } = await supabase
       .from('customer_vehicles')
       .select('id, model')
-      .eq('customer_id', customerId);
+      .eq('instance_id', instanceId)
+      .eq('phone', normalizedPhone);
 
     const existingIds = existingVehicles?.map((v) => v.id) || [];
     const existingModels = existingVehicles?.map((v) => v.model) || [];
@@ -275,7 +278,6 @@ const CustomerEditDrawer = ({
     );
 
     if (toAdd.length > 0) {
-      const normalizedPhone = normalizePhone(editPhone.trim());
       await supabase.from('customer_vehicles').insert(
         toAdd.map((v) => ({
           instance_id: instanceId,
