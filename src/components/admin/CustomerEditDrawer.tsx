@@ -113,11 +113,13 @@ const CustomerEditDrawer = ({
   const fetchCustomerVehicles = async () => {
     if (!customer || !instanceId) return;
 
+    // Fetch by phone (same as customer list) to ensure consistency
+    const normalizedPhone = normalizePhone(customer.phone);
     const { data } = await supabase
       .from('customer_vehicles')
       .select('id, model, car_size')
       .eq('instance_id', instanceId)
-      .eq('customer_id', customer.id)
+      .eq('phone', normalizedPhone)
       .order('last_used_at', { ascending: false });
 
     if (data) {
