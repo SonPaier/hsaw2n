@@ -1,71 +1,169 @@
 
-# Plan: Usunięcie pola "Typ serwisu" z dialogu dodawania przypomnienia
+# Plan: Dodanie zakładki "Przypisani Klienci" do widoku edycji szablonu przypomnienia
 
-## Problem
+## Cel
 
-Pole "Typ serwisu" w dialogu "Dodaj przypomnienie" jest zbędne, ponieważ wybrany szablon przypomnienia już zawiera typy serwisów dla każdego zaplanowanego przypomnienia (w tablicy `items`).
+Rozbudować widok edycji szablonu przypomnienia (`ReminderTemplateEditPage.tsx`) o dwie zakładki:
+1. **Szablon** - obecny formularz edycji
+2. **Przypisani Klienci** - lista klientów przypisanych do tego szablonu z możliwością otwarcia drawera klienta
 
-Aktualny flow:
-- Użytkownik wybiera szablon (np. "Ceramika 48 miesięcy")
-- Szablon ma zdefiniowane elementy, np:
-  - 12 miesięcy: "odswiezenie_powloki"
-  - 24 miesiące: "serwis"
-  - 36 miesięcy: "kontrola"
-- Pole "Typ serwisu" w formularzu jest ignorowane (używane tylko jako fallback gdy szablon nie ma typu)
+Dodatkowo wyodrębnić reużywalny komponent listy klientów.
 
-## Dodatkowy bug
+## Struktura zmian
 
-Na screenshocie widać błąd tłumaczenia - wyświetla się surowy klucz `offers.serviceTypes.odswiezenie` zamiast przetłumaczonego tekstu. W bazie wartość to `odswiezenie` ale klucz tłumaczenia w SERVICE_TYPES używa tego samego `labelKey`.
+### 1. Nowy komponent: `src/components/admin/CustomersList.tsx`
 
-## Pliki do modyfikacji
+Reużywalny komponent listy klientów wyodrębniony z `CustomersView.tsx`:
 
-### 1. `src/components/admin/AddCustomerReminderDialog.tsx`
-
-**Zmiany:**
-
-1. Usunąć stałą `SERVICE_TYPES` (linie 33-38) - niepotrzebna
-2. Usunąć stan `serviceType` (linia 78) - niepotrzebny
-3. Usunąć reset `serviceType` w `resetForm()` (linia 151)
-4. Usunąć całą sekcję "Service Type" z JSX (linie 287-302)
-5. Uprościć tworzenie przypomnienia - używać tylko `item.service_type` bez fallbacku (linia 198)
-
-### Przed (zbędny kod):
-
+**Props:**
 ```typescript
-const SERVICE_TYPES = [
-  { value: 'serwis', labelKey: 'serwis' },
-  { value: 'kontrola', labelKey: 'kontrola' },
-  // ...
-];
-
-const [serviceType, setServiceType] = useState('serwis');
-
-// W handleSubmit:
-service_type: item.service_type || serviceType,
-
-// W JSX - cała sekcja Select dla typu serwisu
+interface CustomersListProps {
+  customers: Customer[];
+  vehicles: CustomerVehicle[];
+  instanceId: string | null;
+  onCustomerClick: (customer: Customer) => void;
+  emptyMessage?: string;
+  showActions?: boolean; // Phone, SMS, Delete buttons
+}
 ```
 
-### Po (uproszczony kod):
+**Zawartość:**
+- Renderowanie listy klientów (name, phone, vehicle chips)
+- Obsługa pustego stanu
+- Klikalne wiersze wywołujące `onCustomerClick`
+- Opcjonalne przyciski akcji (telefon, SMS, usuń)
 
-```typescript
-// Usunięta stała SERVICE_TYPES
-// Usunięty stan serviceType
+### 2. Nowy komponent: `src/components/admin/TemplateAssignedCustomers.tsx`
 
-// W handleSubmit:
-service_type: item.service_type,
+Zakładka "Przypisani Klienci" dla szablonu przypomnienia:
 
-// Usunięta sekcja Select z formularza
+**Logika:**
+- Pobiera unikalnych klientów z tabeli `customer_reminders` przez `reminder_template_id`
+- Grupuje po `customer_phone` (jeden klient może mieć wiele przypomnień)
+- Wykorzystuje `CustomersList` do renderowania
+
+**Zapytanie SQL:**
+```sql
+SELECT DISTINCT customer_name, customer_phone 
+FROM customer_reminders 
+WHERE reminder_template_id = ? AND instance_id = ?
+```
+
+### 3. Modyfikacja: `src/pages/ReminderTemplateEditPage.tsx`
+
+**Zmiany:**
+- Import Tabs z `@/components/ui/tabs` i `AdminTabsList`/`AdminTabsTrigger`
+- Dodanie stanu `activeTab` ("template" | "customers")
+- Owinięcie formularza w `<TabsContent value="template">`
+- Dodanie `<TabsContent value="customers">` z komponentem `TemplateAssignedCustomers`
+- Ukrycie zakładek dla nowego szablonu (`isNew`)
+
+**Struktura UI:**
+```tsx
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <AdminTabsList columns={2}>
+    <AdminTabsTrigger value="template">Szablon</AdminTabsTrigger>
+    <AdminTabsTrigger value="customers">Przypisani Klienci</AdminTabsTrigger>
+  </AdminTabsList>
+  
+  <TabsContent value="template">
+    {/* Obecny formularz */}
+  </TabsContent>
+  
+  <TabsContent value="customers">
+    <TemplateAssignedCustomers 
+      templateId={templateId}
+      instanceId={instanceId}
+    />
+  </TabsContent>
+</Tabs>
+```
+
+### 4. Nowe tłumaczenia w `src/i18n/locales/pl.json`
+
+```json
+"reminders": {
+  ...
+  "tabs": {
+    "template": "Szablon",
+    "assignedCustomers": "Przypisani Klienci"
+  },
+  "noAssignedCustomers": "Brak klientów przypisanych do tego szablonu"
+}
 ```
 
 ## Sekcja techniczna
 
-### Walidacja
+### Struktura danych klientów z customer_reminders
 
-Każdy element szablonu (`ReminderTemplateItem`) ma wymagane pole `service_type`, więc nie ma potrzeby fallbacku. Edytor szablonów (`AddReminderTemplateDialog.tsx`) wymusza wybór typu dla każdego elementu.
+Tabela `customer_reminders` zawiera:
+- `reminder_template_id` - FK do szablonu
+- `customer_name`, `customer_phone` - dane klienta
+- `vehicle_plate` - pojazd
 
-### Wpływ na UX
+Zapytanie do pobrania unikalnych klientów:
+```typescript
+const { data } = await supabase
+  .from('customer_reminders')
+  .select('customer_name, customer_phone')
+  .eq('reminder_template_id', templateId)
+  .eq('instance_id', instanceId);
 
-- Dialog będzie prostszy (3 pola zamiast 4)
-- Mniej miejsca na błąd użytkownika
-- Jasna logika: szablon = kompletny harmonogram przypomnień
+// Deduplikacja po phone
+const uniqueCustomers = [...new Map(
+  data.map(c => [c.customer_phone, c])
+).values()];
+```
+
+### Integracja z CustomerEditDrawer
+
+Wykorzystamy istniejący `CustomerEditDrawer`:
+```tsx
+<CustomerEditDrawer
+  customer={selectedCustomer} // lub tymczasowy obiekt z phone/name
+  instanceId={instanceId}
+  open={!!selectedCustomer}
+  onClose={() => setSelectedCustomer(null)}
+/>
+```
+
+Jeśli klient nie istnieje w `customers` (tylko w `customer_reminders`), tworzymy tymczasowy obiekt jak w `ReservationDetailsDrawer`:
+```typescript
+const tempCustomer = {
+  id: '',
+  name: reminder.customer_name,
+  phone: reminder.customer_phone,
+  email: null,
+  notes: null,
+  source: 'myjnia'
+};
+```
+
+### Pliki do utworzenia/modyfikacji
+
+| Plik | Akcja |
+|------|-------|
+| `src/components/admin/CustomersList.tsx` | Nowy |
+| `src/components/admin/TemplateAssignedCustomers.tsx` | Nowy |
+| `src/pages/ReminderTemplateEditPage.tsx` | Modyfikacja |
+| `src/i18n/locales/pl.json` | Modyfikacja |
+
+### Refaktoryzacja CustomersView
+
+Po utworzeniu `CustomersList.tsx`, `CustomersView.tsx` może go wykorzystać:
+```tsx
+// CustomersView.tsx
+import { CustomersList } from './CustomersList';
+
+const renderCustomerList = () => (
+  <CustomersList
+    customers={paginatedCustomers}
+    vehicles={vehicles}
+    instanceId={instanceId}
+    onCustomerClick={(c) => setSelectedCustomer(c)}
+    showActions
+  />
+);
+```
+
+To jest opcjonalna refaktoryzacja - można zachować obecny kod w CustomersView i tylko nowy komponent używać w TemplateAssignedCustomers.
