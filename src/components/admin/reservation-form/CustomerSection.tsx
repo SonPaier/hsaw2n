@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { PhoneMaskedInput } from '@/components/ui/phone-masked-input';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
 import { supabase } from '@/integrations/supabase/client';
+import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { CustomerVehicle, CarSize } from './types';
 import { RefObject } from 'react';
 
@@ -45,16 +46,6 @@ export const CustomerSection = ({
   setCarSize,
 }: CustomerSectionProps) => {
   const { t } = useTranslation();
-
-  // Normalize phone for display (remove +48 prefix, add spaces)
-  const formatDisplayPhone = (phoneNumber: string) => {
-    let display = phoneNumber.replace(/^\+48\s*/, '');
-    const digits = display.replace(/\D/g, '');
-    if (digits.length === 9) {
-      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-    }
-    return display;
-  };
 
   // Normalize phone: remove spaces and country code (+48, 0048, 48 at start)
   const normalizePhone = (phoneValue: string): string => {
@@ -154,10 +145,10 @@ export const CustomerSection = ({
                 onClick={() => onSelectVehicle(vehicle)}
               >
                 <div className="font-medium text-base">
-                  {vehicle.customer_name || formatDisplayPhone(vehicle.phone)}
+                  {vehicle.customer_name || formatPhoneDisplay(vehicle.phone)}
                 </div>
                 <div className="text-sm">
-                  <span className="text-primary">{formatDisplayPhone(vehicle.phone)}</span>
+                  <span className="text-primary">{formatPhoneDisplay(vehicle.phone)}</span>
                   {vehicle.model && <span className="text-muted-foreground"> • {vehicle.model}</span>}
                 </div>
               </button>
