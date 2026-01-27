@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Plus, Loader2, MoreHorizontal, Trash2, Bell, Users } from 'lucide-react';
+import { Plus, Loader2, MoreHorizontal, Trash2, Bell, Users, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface ReminderTemplate {
@@ -26,35 +25,20 @@ interface TemplateWithCount extends ReminderTemplate {
   activeCustomersCount: number;
 }
 
-export default function RemindersListPage() {
+interface RemindersViewProps {
+  instanceId: string | null;
+  onNavigateBack?: () => void;
+}
+
+export default function RemindersView({ instanceId, onNavigateBack }: RemindersViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [instanceId, setInstanceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<TemplateWithCount[]>([]);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; template: ReminderTemplate | null }>({
     open: false,
     template: null,
   });
-
-  // Fetch instanceId from user_roles
-  useEffect(() => {
-    const fetchInstanceId = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('user_roles')
-        .select('instance_id')
-        .eq('user_id', user.id)
-        .not('instance_id', 'is', null)
-        .limit(1)
-        .maybeSingle();
-      if (data?.instance_id) {
-        setInstanceId(data.instance_id);
-      }
-    };
-    fetchInstanceId();
-  }, [user]);
 
   useEffect(() => {
     if (instanceId) {
@@ -157,101 +141,97 @@ export default function RemindersListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="container max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/admin/products')}
-                className="shrink-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  {t('reminders.title')}
-                </h1>
-              </div>
-            </div>
-            <Button onClick={handleAddNew} className="gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('reminders.addTemplate')}</span>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          {onNavigateBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNavigateBack}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
             </Button>
+          )}
+          <div>
+            <h1 className="text-xl font-semibold flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              {t('reminders.title')}
+            </h1>
           </div>
         </div>
+        <Button onClick={handleAddNew} className="gap-2">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">{t('reminders.addTemplate')}</span>
+        </Button>
       </div>
 
       {/* Content */}
-      <div className="container max-w-3xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Bell className="h-16 w-16 text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground mb-4">{t('reminderTemplates.empty')}</p>
-            <Button onClick={handleAddNew} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t('reminders.addTemplate')}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {templates.map((template) => (
-              <div
-                key={template.id}
-                onClick={() => handleTemplateClick(template)}
-                className="flex items-center justify-between gap-3 p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{template.name}</div>
-                  {template.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                      {template.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="text-xs">
-                      {template.items.length} {t('reminderTemplates.remindersCount')}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : templates.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Bell className="h-16 w-16 text-muted-foreground/30 mb-4" />
+          <p className="text-muted-foreground mb-4">{t('reminderTemplates.empty')}</p>
+          <Button onClick={handleAddNew} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {t('reminders.addTemplate')}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {templates.map((template) => (
+            <div
+              key={template.id}
+              onClick={() => handleTemplateClick(template)}
+              className="flex items-center justify-between gap-3 p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">{template.name}</div>
+                {template.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                    {template.description}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    {template.items.length} {t('reminderTemplates.remindersCount')}
+                  </Badge>
+                  {template.activeCustomersCount > 0 && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {template.activeCustomersCount} {t('reminders.activeCustomers')}
                     </Badge>
-                    {template.activeCustomersCount > 0 && (
-                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {template.activeCustomersCount} {t('reminders.activeCustomers')}
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteDialog({ open: true, template });
-                      }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('common.delete')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteDialog({ open: true, template });
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('common.delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmDialog

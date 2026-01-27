@@ -20,7 +20,6 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Lazy loaded pages
-const RemindersListPage = lazy(() => import("./pages/RemindersListPage"));
 const ReminderTemplateEditPage = lazy(() => import("./pages/ReminderTemplateEditPage"));
 
 const queryClient = new QueryClient({
@@ -197,17 +196,7 @@ const DevRoutes = () => (
         </ProtectedRoute>
       } 
     />
-    {/* Reminders routes */}
-    <Route 
-      path="/admin/reminders" 
-      element={
-        <ProtectedRoute requiredRole="admin">
-          <Suspense fallback={<PageLoader />}>
-            <RemindersListPage />
-          </Suspense>
-        </ProtectedRoute>
-      } 
-    />
+    {/* Reminder template edit route - must be before /admin/:view to avoid conflict */}
     <Route 
       path="/admin/reminders/:shortId" 
       element={
