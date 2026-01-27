@@ -266,10 +266,11 @@ const CustomerEditDrawer = ({
     <>
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent 
-          className="w-full sm:max-w-md overflow-y-auto p-6"
+          className="w-full sm:max-w-md p-0 flex flex-col"
           hideCloseButton
           onFocusOutside={(e) => e.preventDefault()}
         >
+          <div className="p-6 flex-1 overflow-y-auto">
           <SheetHeader>
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 flex-1 min-w-0">
@@ -307,7 +308,7 @@ const CustomerEditDrawer = ({
             </div>
           </SheetHeader>
 
-          <div className="mt-6 pb-20">
+          <div className="mt-6">
             {isAddMode || isEditing ? (
               // Edit/Add Form
               <div className="space-y-4">
@@ -500,9 +501,9 @@ const CustomerEditDrawer = ({
               </Tabs>
             )}
           </div>
-          
+          </div>
           {/* Sticky footer buttons */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t sm:absolute sm:left-auto sm:w-full sm:max-w-md">
+          <div className="p-4 bg-background border-t shrink-0">
             {isAddMode || isEditing ? (
               <div className="flex gap-2">
                 <Button

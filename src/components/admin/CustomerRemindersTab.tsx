@@ -211,9 +211,6 @@ export function CustomerRemindersTab({
                       <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                         <Calendar className="w-3.5 h-3.5" />
                         {format(new Date(nextReminder.scheduled_date), 'dd MMMM yyyy', { locale: pl })}
-                        {nextReminder.months_after > 0 && (
-                          <span className="text-xs">({nextReminder.months_after} mies.)</span>
-                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         {/* Vehicle plate */}
@@ -236,6 +233,13 @@ export function CustomerRemindersTab({
                         >
                           {t(`offers.reminderStatus.${nextReminder.status}`, nextReminder.status)}
                         </Badge>
+                        
+                        {/* Months badge */}
+                        {nextReminder.months_after > 0 && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            {nextReminder.months_after} mies.
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -269,9 +273,6 @@ export function CustomerRemindersTab({
                                   date: format(new Date(reminder.scheduled_date), 'dd.MM.yyyy', { locale: pl }) 
                                 })}
                               </span>
-                              <span className="text-xs text-muted-foreground">
-                                ({reminder.months_after} mies.)
-                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge 
@@ -279,6 +280,9 @@ export function CustomerRemindersTab({
                                 className={`text-xs ${getStatusBadgeClass(reminder.status)}`}
                               >
                                 {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs text-muted-foreground">
+                                {reminder.months_after} mies.
                               </Badge>
                               {reminder.sent_at && (
                                 <span className="text-xs text-muted-foreground">
@@ -290,7 +294,7 @@ export function CustomerRemindersTab({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                            className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => setDeleteReminderDialog(reminder.id)}
                           >
                             <Trash2 className="w-4 h-4" />
