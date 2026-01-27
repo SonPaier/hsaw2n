@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Bell, Trash2, Loader2, Calendar, Plus, Car } from 'lucide-react';
+import { Bell, Trash2, Loader2, Calendar, Plus, Car, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +38,14 @@ export function CustomerRemindersTab({
   const [loading, setLoading] = useState(true);
   const [deleteReminderDialog, setDeleteReminderDialog] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const toggleCardExpansion = (reminderId: string) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [reminderId]: !prev[reminderId]
+    }));
+  };
 
   useEffect(() => {
     loadReminders();
@@ -180,6 +189,55 @@ export function CustomerRemindersTab({
                       </span>
                     )}
                   </div>
+
+                  {/* Collapsible SMS details */}
+                  <Collapsible 
+                    open={expandedCards[reminder.id]} 
+                    onOpenChange={() => toggleCardExpansion(reminder.id)}
+                  >
+                    <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline mt-3">
+                      {expandedCards[reminder.id] ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{t('customers.viewRemindersList')}</span>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span>
+                              {t('customers.smsScheduledAt', { 
+                                date: format(new Date(reminder.scheduled_date), 'dd.MM.yyyy', { locale: pl }) 
+                              })}
+                            </span>
+                          </div>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${
+                              reminder.status === 'sent' ? 'bg-green-50 text-green-700' : 
+                              reminder.status === 'cancelled' ? 'bg-red-50 text-red-700' :
+                              reminder.status === 'failed' ? 'bg-orange-50 text-orange-700' : ''
+                            }`}
+                          >
+                            {t(`offers.reminderStatus.${reminder.status}`, reminder.status)}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteReminderDialog(reminder.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
                 
                 <Button
