@@ -33,7 +33,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MarkOfferCompletedDialog } from '@/components/offers/MarkOfferCompletedDialog';
 import { OfferRemindersDialog } from '@/components/offers/OfferRemindersDialog';
 import { OfferSelectionDialog } from '@/components/offers/OfferSelectionDialog';
-import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
+
 import { OfferServicesListView } from '@/components/offers/services/OfferServicesListView';
 import { OfferServiceEditView } from '@/components/offers/services/OfferServiceEditView';
 import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
@@ -172,8 +172,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // Selection dialog state
   const [selectionDialog, setSelectionDialog] = useState<{ open: boolean; offer: OfferWithOptions | null }>({ open: false, offer: null });
 
-  // Reminder templates dialog state
-  const [showReminderTemplates, setShowReminderTemplates] = useState(false);
 
   // Admin approval dialog state
   const [approvalDialog, setApprovalDialog] = useState<{ 
@@ -545,10 +543,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
             <Button variant="outline" size="icon" onClick={() => setShowServicesView(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Layers className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">Twoje Szablony</span>
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setShowReminderTemplates(true)} className="sm:w-auto sm:px-4 w-10 h-10">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline ml-2">{t('reminderTemplates.title')}</span>
             </Button>
             <Button variant="outline" size="icon" onClick={() => setShowScopesSettings(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Settings className="w-4 h-4" />
@@ -1001,14 +995,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
         />
       )}
 
-      {/* Reminder Templates Dialog */}
-      {instanceId && (
-        <ReminderTemplatesDialog
-          open={showReminderTemplates}
-          onOpenChange={setShowReminderTemplates}
-          instanceId={instanceId}
-        />
-      )}
 
       {/* Admin Offer Approval Dialog */}
       {approvalDialog.offer && (

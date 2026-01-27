@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { CalendarIcon, Bell, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -18,28 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-
-interface ReminderPreview {
-  productName: string;
-  reminders: {
-    months: number;
-    isPaid: boolean;
-    serviceType: string;
-    scheduledDate: Date;
-  }[];
-}
-
-interface SelectedState {
-  selectedVariants: Record<string, string>;
-  selectedUpsells: Record<string, boolean>;
-  selectedOptionalItems: Record<string, boolean>;
-  selectedScopeId?: string | null;
-  selectedItemInOption?: Record<string, string>;
-}
 
 interface MarkOfferCompletedDialogProps {
   open: boolean;
@@ -59,138 +39,10 @@ export function MarkOfferCompletedDialog({
   const { t } = useTranslation();
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
-  const [previews, setPreviews] = useState<ReminderPreview[]>([]);
-  const [loadingPreviews, setLoadingPreviews] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      loadReminderPreviews();
-    }
-  }, [open, offerId, completionDate]);
-
-  const loadReminderPreviews = async () => {
-    setLoadingPreviews(true);
-    try {
-      // First fetch the offer to get selected_state
-      const { data: offerData, error: offerError } = await supabase
-        .from('offers')
-        .select('selected_state')
-        .eq('id', offerId)
-        .single();
-
-      if (offerError) throw offerError;
-
-      const selectedState = offerData?.selected_state as unknown as SelectedState | null;
-      
-      // Collect IDs of selected options from selected_state
-      const selectedOptionIds = new Set<string>();
-      
-      if (selectedState?.selectedVariants) {
-        Object.values(selectedState.selectedVariants).forEach(optionId => {
-          if (optionId) selectedOptionIds.add(optionId);
-        });
-      }
-      
-      if (selectedState?.selectedUpsells) {
-        Object.entries(selectedState.selectedUpsells).forEach(([optionId, isSelected]) => {
-          if (isSelected) selectedOptionIds.add(optionId);
-        });
-      }
-
-      // Fetch options that were selected by the customer
-      const { data: options, error } = await supabase
-        .from('offer_options')
-        .select(`
-          id,
-          offer_option_items (
-            id,
-            product_id,
-            custom_name,
-            unified_services:product_id (
-              id,
-              name,
-              reminder_template_id,
-              reminder_templates (
-                id,
-                name,
-                items
-              )
-            )
-          )
-        `)
-        .eq('offer_id', offerId)
-        .in('id', Array.from(selectedOptionIds).length > 0 ? Array.from(selectedOptionIds) : ['00000000-0000-0000-0000-000000000000']);
-
-      if (error) throw error;
-
-      const previewsMap = new Map<string, ReminderPreview>();
-
-      // Build a set of explicitly selected optional item IDs
-      const selectedOptionalItemIds = new Set<string>();
-      if (selectedState?.selectedOptionalItems) {
-        Object.entries(selectedState.selectedOptionalItems).forEach(([itemId, isSelected]) => {
-          if (isSelected) selectedOptionalItemIds.add(itemId);
-        });
-      }
-
-      for (const option of options || []) {
-        // Check if this is an upsell option
-        const isUpsellOption = selectedState?.selectedUpsells?.[option.id] === true;
-        
-        for (const item of option.offer_option_items || []) {
-          // For variant options with item selection, check selectedItemInOption
-          if (selectedState?.selectedItemInOption) {
-            const selectedItemId = selectedState.selectedItemInOption[option.id];
-            if (selectedItemId && selectedItemId !== item.id) {
-              continue; // Skip items not selected within the variant option
-            }
-          }
-          
-          // For upsell options: only include items that were explicitly selected in selectedOptionalItems
-          // If this is an upsell and selectedOptionalItems has entries, filter by them
-          if (isUpsellOption && selectedOptionalItemIds.size > 0) {
-            if (!selectedOptionalItemIds.has(item.id)) {
-              continue; // Skip items not explicitly selected in this upsell
-            }
-          }
-          
-          const product = (item as any).unified_services;
-          if (!product?.reminder_template_id || !product.reminder_templates) continue;
-
-          const template = product.reminder_templates;
-          const items = (template.items as { months: number; is_paid: boolean; service_type: string }[]) || [];
-
-          if (items.length === 0) continue;
-
-          const productName = item.custom_name || product.name;
-          const existing = previewsMap.get(product.id);
-
-          if (!existing) {
-            previewsMap.set(product.id, {
-              productName,
-              reminders: items.map(i => ({
-                months: i.months,
-                isPaid: i.is_paid,
-                serviceType: i.service_type,
-                scheduledDate: new Date(completionDate.getTime() + i.months * 30.44 * 24 * 60 * 60 * 1000),
-              })),
-            });
-          }
-        }
-      }
-
-      setPreviews(Array.from(previewsMap.values()));
-    } catch (error) {
-      console.error('Error loading reminder previews:', error);
-    } finally {
-      setLoadingPreviews(false);
-    }
-  };
 
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      // Update offer status to completed
       const { error: updateError } = await supabase
         .from('offers')
         .update({
@@ -202,18 +54,7 @@ export function MarkOfferCompletedDialog({
 
       if (updateError) throw updateError;
 
-      // Call the database function to create reminders
-      const { data: reminderCount, error: rpcError } = await supabase.rpc('create_offer_reminders', {
-        p_offer_id: offerId,
-        p_completed_at: completionDate.toISOString(),
-      });
-
-      if (rpcError) {
-        console.error('Error creating reminders:', rpcError);
-        // Don't throw - offer is still completed even if reminders fail
-      }
-
-      toast.success(t('offers.markedAsCompleted', { count: reminderCount || 0 }));
+      toast.success(t('offers.markedAsCompleted', { count: 0 }));
       onCompleted();
       onOpenChange(false);
     } catch (error) {
@@ -223,8 +64,6 @@ export function MarkOfferCompletedDialog({
       setLoading(false);
     }
   };
-
-  const totalReminders = previews.reduce((sum, p) => sum + p.reminders.length, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -237,7 +76,6 @@ export function MarkOfferCompletedDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Date picker */}
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('offers.completionDate')}</label>
             <Popover>
@@ -259,48 +97,6 @@ export function MarkOfferCompletedDialog({
                 />
               </PopoverContent>
             </Popover>
-          </div>
-
-          {/* Reminders preview */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{t('offers.remindersToCreate')}</span>
-              <Badge variant="secondary">{totalReminders}</Badge>
-            </div>
-
-            {loadingPreviews ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : previews.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">
-                {t('offers.noRemindersToCreate')}
-              </p>
-            ) : (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {previews.map((preview, idx) => (
-                  <div key={idx} className="text-sm border rounded-lg p-3 bg-white">
-                    <div className="font-medium mb-2">{preview.productName}</div>
-                    <div className="space-y-1">
-                      {preview.reminders.map((r, rIdx) => (
-                        <div key={rIdx} className="flex items-center justify-between text-muted-foreground">
-                          <span>
-                            {r.months} mies. - {t(`offers.serviceTypes.${r.serviceType}`, r.serviceType)}
-                          </span>
-                          <Badge 
-                            variant={r.isPaid ? 'default' : 'outline'} 
-                            className={cn('text-xs', r.isPaid ? '' : 'bg-green-50 text-green-700 border-green-200')}
-                          >
-                            {r.isPaid ? t('offers.paid') : t('offers.free')}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
