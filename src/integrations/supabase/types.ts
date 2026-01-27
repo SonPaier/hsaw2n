@@ -717,6 +717,7 @@ export type Database = {
           phone: string | null
           primary_color: string | null
           protocol_email_template: string | null
+          public_api_key: string | null
           reservation_phone: string | null
           secondary_color: string | null
           short_name: string | null
@@ -773,6 +774,7 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           protocol_email_template?: string | null
+          public_api_key?: string | null
           reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
@@ -829,6 +831,7 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           protocol_email_template?: string | null
+          public_api_key?: string | null
           reservation_phone?: string | null
           secondary_color?: string | null
           short_name?: string | null
@@ -1670,6 +1673,7 @@ export type Database = {
           admin_approved_net: number | null
           approved_at: string | null
           approved_by: string | null
+          budget_suggestion: number | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -1704,6 +1708,7 @@ export type Database = {
           admin_approved_net?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          budget_suggestion?: number | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -1738,6 +1743,7 @@ export type Database = {
           admin_approved_net?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          budget_suggestion?: number | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
