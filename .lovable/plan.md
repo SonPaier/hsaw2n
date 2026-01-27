@@ -1,125 +1,95 @@
 
-# Plan: Rozwijana lista przypomnień SMS w karcie klienta
+# Plan: Komponent zarządzania pojazdami klienta
 
 ## Cel
-Dodać pod każdą kartą przypomnienia (w `CustomerRemindersTab.tsx`) rozwijalną sekcję "Zobacz pełną listę przypomnień SMS", która wyświetli szczegóły zaplanowanych wiadomości z możliwością usuwania pojedynczych pozycji.
+Wydzielenie logiki zarządzania pojazdami (wyszukiwarka + chips) do osobnego komponentu `CustomerVehiclesEditor`, który będzie używany w `CustomerEditDrawer` w trybie edycji.
 
----
+## Nowy komponent
 
-## Zmiany w UI
-
-### 1. Struktura karty przypomnienia (rozszerzona)
-Każda karta będzie miała dodatkową rozwijalną sekcję:
+### `src/components/admin/CustomerVehiclesEditor.tsx`
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ PPF Folia                                                 🗑 │
-│ 📅 27 lutego 2026 (1 mies.)                                  │
-│ [🚗 Porsche Panamera] [Kontrola] [Zaplanowane]              │
-│                                                             │
-│ ▼ Zobacz pełną listę przypomnień SMS                       │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 📱 SMS zaplanowany: 27.02.2026 o 14:00              🗑  │ │
-│ │    Status: Zaplanowane                                 │ │
-│ └─────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│ Pojazdy                                         │
+├─────────────────────────────────────────────────┤
+│ ┌────────────────────────────────────┐ ┌──────┐ │
+│ │ [Wyszukaj model auta...]           │ │ Dodaj│ │
+│ └────────────────────────────────────┘ └──────┘ │
+├─────────────────────────────────────────────────┤
+│ ┌──────────────────┐ ┌──────────────────┐       │
+│ │ Audi SQ8    [X]  │ │ BMW Seria 3  [X] │       │
+│ └──────────────────┘ └──────────────────┘       │
+└─────────────────────────────────────────────────┘
 ```
 
-### 2. Collapsible z labelem
-- Trigger: tekst "Zobacz pełną listę przypomnień SMS" + ikona chevron
-- Stan: domyślnie zwinięte
-- Po rozwinięciu: lista pojedynczych SMS-ów z datą wysyłki (godzina 14:00)
+### Interfejs komponentu
 
-### 3. Elementy listy SMS
-Dla każdego przypomnienia pokażemy:
-- Data wysyłki: `DD.MM.YYYY o 14:00` (hardcoded godzina zgodnie z logiką edge function)
-- Status: badge (Zaplanowane/Wysłane/Anulowane/Błąd)
-- Przycisk usuwania (ikona kosza)
+```typescript
+interface VehicleChip {
+  id?: string;           // ID z bazy (jeśli istnieje)
+  model: string;         // Nazwa modelu
+  carSize: 'S' | 'M' | 'L';
+  isNew?: boolean;       // Czy nowo dodany
+}
+
+interface CustomerVehiclesEditorProps {
+  vehicles: VehicleChip[];
+  onChange: (vehicles: VehicleChip[]) => void;
+  disabled?: boolean;
+}
+```
+
+### Logika komponentu
+1. **Stan wewnętrzny**: `vehicleSearchValue` (string), `pendingVehicle` (CarSearchValue)
+2. **Wyszukiwarka**: Używa istniejącego `CarSearchAutocomplete`
+3. **Dodawanie**: Po wybraniu modelu i kliknięciu "Dodaj":
+   - Sprawdza duplikaty (po `model`)
+   - Dodaje do listy z `isNew: true`
+   - Czyści input
+4. **Usuwanie**: Kliknięcie X na chipsie usuwa pojazd z listy
+5. **Styl chips**: Biały, `rounded-full`, border, identyczny jak w VehicleSection
 
 ---
 
-## Szczegóły techniczne
+## Zmiany w CustomerEditDrawer.tsx
 
-### Plik: `src/components/admin/CustomerRemindersTab.tsx`
-
-**Importy do dodania:**
+### Nowy stan
 ```typescript
-import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+const [editVehicles, setEditVehicles] = useState<VehicleChip[]>([]);
 ```
 
-**Stan do dodania:**
-```typescript
-const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-```
+### Pobieranie pojazdów przy otwarciu (tryb edycji)
+Dodanie fetcha do `customer_vehicles` przy otwieraniu drawera z istniejącym klientem.
 
-**Logika toggle:**
-```typescript
-const toggleCardExpansion = (reminderId: string) => {
-  setExpandedCards(prev => ({
-    ...prev,
-    [reminderId]: !prev[reminderId]
-  }));
-};
-```
+### Dodanie komponentu do formularza edycji
+Wstawienie `<CustomerVehiclesEditor>` pod polem "Rabat %".
 
-**Rozwinięcie karty (wewnątrz pętli `reminders.map`):**
-```tsx
-<Collapsible 
-  open={expandedCards[reminder.id]} 
-  onOpenChange={() => toggleCardExpansion(reminder.id)}
->
-  <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline mt-3 w-full">
-    {expandedCards[reminder.id] ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
-    )}
-    <MessageSquare className="w-4 h-4" />
-    <span>Zobacz pełną listę przypomnień SMS</span>
-  </CollapsibleTrigger>
-  
-  <CollapsibleContent className="mt-3 space-y-2">
-    <div className="flex items-center justify-between p-2 bg-gray-50 rounded border text-sm">
-      <div>
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>SMS zaplanowany: {format(new Date(reminder.scheduled_date), 'dd.MM.yyyy', { locale: pl })} o 14:00</span>
-        </div>
-        <Badge ...>{status}</Badge>
-      </div>
-      <Button variant="ghost" size="icon" onClick={() => setDeleteReminderDialog(reminder.id)}>
-        <Trash2 className="w-4 h-4" />
-      </Button>
-    </div>
-  </CollapsibleContent>
-</Collapsible>
-```
+### Zapisywanie pojazdów
+W `handleSaveCustomer`:
+1. Pobierz aktualne pojazdy klienta z bazy
+2. Usuń pojazdy które zostały usunięte (porównanie po `id`)
+3. Dodaj nowe pojazdy (`isNew: true`)
 
-### Plik: `src/i18n/locales/pl.json`
+---
 
-Dodać klucze tłumaczeń:
+## Nowe tłumaczenia (pl.json)
+
 ```json
 {
   "customers": {
-    "viewRemindersList": "Zobacz pełną listę przypomnień SMS",
-    "smsScheduledAt": "SMS zaplanowany: {{date}} o 14:00"
+    "addVehicle": "Dodaj",
+    "searchVehicle": "Wyszukaj model auta..."
   }
 }
 ```
 
 ---
 
-## Podsumowanie zmian
+## Pliki do utworzenia/modyfikacji
 
-| Plik | Zmiana |
-|------|--------|
-| `src/components/admin/CustomerRemindersTab.tsx` | Dodanie Collapsible z listą SMS-ów, stan `expandedCards`, importy |
-| `src/i18n/locales/pl.json` | Nowe klucze tłumaczeń |
+| Plik | Operacja |
+|------|----------|
+| `src/components/admin/CustomerVehiclesEditor.tsx` | Nowy |
+| `src/components/admin/CustomerEditDrawer.tsx` | Modyfikacja |
+| `src/i18n/locales/pl.json` | Dodanie tłumaczeń |
 
----
-
-## Uwagi
-- Godzina 14:00 jest hardcoded zgodnie z logiką w edge function `send-offer-reminders`
-- Usuwanie pojedynczego SMS-a korzysta z istniejącej logiki `handleDeleteReminder`
-- Każda karta ma niezależny stan rozwinięcia
