@@ -23,7 +23,23 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ReminderTemplate, ReminderTemplateItem } from './ReminderTemplatesDialog';
+
+export interface ReminderTemplateItem {
+  months: number;
+  is_paid: boolean;
+  service_type: string;
+}
+
+export interface ReminderTemplate {
+  id: string;
+  instance_id: string;
+  name: string;
+  description: string | null;
+  sms_template: string;
+  items: ReminderTemplateItem[];
+  created_at: string;
+  updated_at: string;
+}
 
 interface AddReminderTemplateDialogProps {
   open: boolean;

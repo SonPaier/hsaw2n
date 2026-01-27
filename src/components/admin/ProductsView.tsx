@@ -47,7 +47,6 @@ import {
 import { PriceListUploadDialog } from '@/components/products/PriceListUploadDialog';
 import { ProductDetailsDialog } from '@/components/products/ProductDetailsDialog';
 import { ServiceFormDialog, ServiceData } from '@/components/admin/ServiceFormDialog';
-import { ReminderTemplatesDialog } from '@/components/products/ReminderTemplatesDialog';
 import { ProductCategoriesDialog } from '@/components/products/ProductCategoriesDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
@@ -142,7 +141,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
   const [activeTab, setActiveTab] = useState('products');
   const [deleteProductDialog, setDeleteProductDialog] = useState<{ open: boolean; product: Product | null }>({ open: false, product: null });
   const [checkingProductUsage, setCheckingProductUsage] = useState(false);
-  const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
   const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
   
   // Read initial pagination from URL
@@ -378,10 +376,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
             <Button variant="outline" size="icon" onClick={() => setShowCategoriesDialog(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <FolderOpen className="h-4 w-4" />
               <span className="hidden sm:inline ml-2">Kategorie usług</span>
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setShowTemplatesDialog(true)} className="sm:w-auto sm:px-4 w-10 h-10">
-              <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">{t('reminderTemplates.title')}</span>
             </Button>
             <Button size="icon" onClick={() => setShowAddProductDialog(true)} className="sm:w-auto sm:px-4 w-10 h-10">
               <Plus className="h-4 w-4" />
@@ -736,14 +730,6 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
         />
       )}
 
-      {/* Reminder Templates Dialog */}
-      {instanceId && (
-        <ReminderTemplatesDialog
-          open={showTemplatesDialog}
-          onOpenChange={setShowTemplatesDialog}
-          instanceId={instanceId}
-        />
-      )}
 
       {/* Product Categories Dialog */}
       {instanceId && (
