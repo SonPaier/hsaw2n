@@ -1898,6 +1898,8 @@
       "priceType": "Cena",
       "serviceActive": "Usługa aktywna",
       "popularService": "Popularna usługa (pokazuj jako pierwszą)",
+      "isPopularLabel": "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji",
+      "isPopularTooltip": "Usługa pojawi się jako niebieska 'pigułka' na formularzu rezerwacji, umożliwiając szybkie dodanie bez otwierania listy usług",
       "editDescription": "Zmień dane usługi",
       "addDescription": "Dodaj nową usługę do cennika"
     },

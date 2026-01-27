@@ -55,27 +55,26 @@ export const ServicesSection = ({
       <Label>{t('navigation.products')}</Label>
       {servicesError && <p className="text-sm text-destructive">{servicesError}</p>}
 
-      {/* Popular service shortcuts - only for yard mode */}
-      {isYardMode &&
-        services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {services
-              .filter((s) => s.is_popular && !selectedServices.includes(s.id))
-              .map((service) => (
-                <button
-                  key={service.id}
-                  type="button"
-                  onClick={() => {
-                    markUserEditing();
-                    setSelectedServices((prev) => [...prev, service.id]);
-                  }}
-                  className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/80 text-foreground border border-border"
-                >
-                  {service.short_name || service.name}
-                </button>
-              ))}
-          </div>
-        )}
+      {/* Popular service shortcuts - shown in all modes */}
+      {services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {services
+            .filter((s) => s.is_popular && !selectedServices.includes(s.id))
+            .map((service) => (
+              <button
+                key={service.id}
+                type="button"
+                onClick={() => {
+                  markUserEditing();
+                  setSelectedServices((prev) => [...prev, service.id]);
+                }}
+                className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {service.short_name || service.name}
+              </button>
+            ))}
+        </div>
+      )}
 
       {/* Services list with inline price edit */}
       <SelectedServicesList

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Loader2, Sparkles, ChevronDown, Info, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,6 +80,7 @@ export interface ServiceData {
   visibility?: 'everywhere' | 'only_reservations' | 'only_offers';
   sort_order?: number | null;
   reminder_template_id?: string | null;
+  is_popular?: boolean | null;
 }
 
 interface ExistingService {
@@ -168,7 +170,8 @@ const ServiceFormContent = ({
           service?.duration_medium || 
           service?.duration_large ||
           (service?.service_type && service.service_type !== 'both') ||
-          service?.reminder_template_id
+          service?.reminder_template_id ||
+          service?.is_popular
         );
         const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
         
@@ -195,6 +198,7 @@ const ServiceFormContent = ({
           service_type: service?.service_type || 'both',
           visibility: (service?.service_type || 'both') === 'both' ? (service?.visibility || 'everywhere') : 'everywhere',
           reminder_template_id: service?.reminder_template_id || '__none__',
+          is_popular: service?.is_popular ?? false,
         });
 
   // Fetch reminder templates
@@ -260,6 +264,7 @@ const ServiceFormContent = ({
         service_type: service.service_type || 'both',
         visibility: (service.service_type || 'both') === 'both' ? (service.visibility || 'everywhere') : 'everywhere',
         reminder_template_id: service.reminder_template_id || '__none__',
+        is_popular: service.is_popular ?? false,
       });
     }
   }, [service, defaultCategoryId]);
@@ -324,6 +329,7 @@ const ServiceFormContent = ({
         visibility: formData.service_type === 'both' ? formData.visibility : 'everywhere',
         requires_size: showSizePrices || showSizeDurations,
         reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
+        is_popular: formData.is_popular,
         active: true,
       };
 
@@ -710,6 +716,23 @@ const ServiceFormContent = ({
                   <SelectItem value="only_offers">{t('priceList.form.visibilityOffers', 'Tylko oferty')}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Is Popular - shortcut in reservation form */}
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="is_popular"
+                checked={formData.is_popular}
+                onCheckedChange={(checked) => 
+                  setFormData(prev => ({ ...prev, is_popular: !!checked }))
+                }
+              />
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="is_popular" className="text-sm cursor-pointer">
+                  {t('priceList.form.isPopularLabel')}
+                </Label>
+                <FieldInfo tooltip={t('priceList.form.isPopularTooltip')} />
+              </div>
             </div>
 
             {/* Reminder Template */}
