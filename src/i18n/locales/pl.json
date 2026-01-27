@@ -1995,6 +1995,8 @@
     "addTemplate": "Dodaj szablon",
     "editTemplate": "Edytuj szablon",
     "activeCustomers": "aktywnych",
+    "customerSingular": "klient",
+    "customerPlural": "klientów",
     "schedule": "Harmonogram przypomnień",
     "reminderNumber": "Przypomnienie",
     "monthsAfter": "miesięcy od wykonania usługi",

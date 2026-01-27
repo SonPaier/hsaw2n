@@ -204,7 +204,7 @@ export default function RemindersView({ instanceId, onNavigateBack }: RemindersV
                   {template.activeCustomersCount > 0 && (
                     <Badge variant="secondary" className="text-xs flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {template.activeCustomersCount} {t('reminders.activeCustomers')}
+                      {template.activeCustomersCount} {template.activeCustomersCount === 1 ? t('reminders.customerSingular') : t('reminders.customerPlural')}
                     </Badge>
                   )}
                 </div>
