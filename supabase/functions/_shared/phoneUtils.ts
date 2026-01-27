@@ -40,9 +40,9 @@ export function normalizePhone(
     cleaned = "+" + cleaned.slice(3);
   }
 
-  // 4. Remove trunk zero after country code: +48 (0) -> +48, +49 (0) -> +49
-  // Pattern: +XX0... where XX is 2-3 digit country code followed by 0
-  cleaned = cleaned.replace(/^(\+\d{1,3})0(\d)/, "$1$2");
+  // 4. Remove trunk zero ONLY for countries that use it: DE, AT, CH, IT
+  // Polish numbers (+48) do NOT use trunk zero
+  cleaned = cleaned.replace(/^\+(49|43|41|39)0(\d)/, "+$1$2");
 
   try {
     // 5. Try parsing with libphonenumber-js

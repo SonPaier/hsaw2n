@@ -44,6 +44,18 @@ describe('phoneUtils', () => {
       expect(normalizePhone('733-854-184')).toBe('+48733854184');
       expect(normalizePhone('(733) 854 184')).toBe('+48733854184');
     });
+
+    it('PU-U-033: handles 0048 prefix with number starting with 5 (no trunk zero loss)', () => {
+      expect(normalizePhone('0048504504504')).toBe('+48504504504');
+    });
+
+    it('PU-U-034: handles 0048 prefix with number starting with 0 (edge case)', () => {
+      expect(normalizePhone('0048012345678')).toBe('+48012345678');
+    });
+
+    it('PU-U-035: German trunk zero is correctly removed', () => {
+      expect(normalizePhone('+49 0 171 1234567')).toBe('+491711234567');
+    });
   });
 
   describe('stripPhone', () => {
