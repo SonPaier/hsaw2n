@@ -41,10 +41,10 @@ const SERVICE_TYPES = [
 // TODO: Superadmin będzie mógł edytować szablony SMS w panelu superadmina
 // Na razie hardcoded templates - admin widzi readonly
 const SMS_TEMPLATES: Record<string, string> = {
-  serwis: '{short_name}: Zapraszamy na serwis pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
-  kontrola: '{short_name}: Zapraszamy na bezplatna kontrole pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
-  serwis_gwarancyjny: '{short_name}: Zapraszamy na serwis gwarancyjny pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
-  odswiezenie_powloki: '{short_name}: Zapraszamy na odswiezenie powloki pojazdu {vehicle_plate}. Kontakt: {reservation_phone}',
+  serwis: '{short_name}: Zapraszamy na serwis folii PPF pojazdu {vehicle_model}. Kontakt: {reservation_phone}',
+  kontrola: '{short_name}: Zapraszamy na bezplatna kontrole folii PPF pojazdu {vehicle_model}. Kontakt: {reservation_phone}',
+  serwis_gwarancyjny: '{short_name}: Zapraszamy na serwis gwarancyjny pojazdu {vehicle_model}. Kontakt: {reservation_phone}',
+  odswiezenie_powloki: '{short_name}: Zapraszamy na odswiezenie powloki pojazdu {vehicle_model}. Kontakt: {reservation_phone}',
 };
 
 export default function ReminderTemplateEditPage() {
@@ -210,7 +210,7 @@ export default function ReminderTemplateEditPage() {
     const template = SMS_TEMPLATES[serviceType] || SMS_TEMPLATES.serwis;
     return template
       .replace('{short_name}', 'Armcar')
-      .replace('{vehicle_plate}', 'WA12345')
+      .replace('{vehicle_model}', 'Porsche 911')
       .replace('{reservation_phone}', '123456789');
   };
 
@@ -340,7 +340,7 @@ export default function ReminderTemplateEditPage() {
             <Bell className="h-4 w-4" />
             {t('reminders.smsTemplate')}
           </Label>
-          <div className="p-3 bg-muted/50 rounded-lg border">
+          <div className="p-3 bg-white rounded-lg border">
             <p className="text-sm text-muted-foreground mb-1">{t('reminders.smsExample')}:</p>
             <p className="text-sm font-mono">{getSmsExample()}</p>
           </div>
