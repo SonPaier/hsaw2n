@@ -34,10 +34,9 @@ export function normalizePhone(phone: string, defaultCountry: string = 'PL'): st
 
   // Step 3: If already has + prefix, just clean it
   if (cleaned.startsWith('+')) {
-    // Remove any trunk zeros after country code (e.g., +49 0 171 -> +49171)
-    // Pattern: +XX 0 YYY -> +XX YYY (for 2-digit country codes)
-    // Pattern: +XXX 0 YYY -> +XXX YYY (for 3-digit country codes)
-    cleaned = cleaned.replace(/^\+(\d{2,3})0/, '+$1');
+    // Remove trunk zeros ONLY for countries that use them: DE, AT, CH, IT
+    // Polish numbers (+48) do NOT use trunk zero
+    cleaned = cleaned.replace(/^\+(49|43|41|39)0(\d)/, '+$1$2');
     return cleaned;
   }
 
