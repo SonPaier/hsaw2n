@@ -206,7 +206,7 @@ export function CustomerRemindersTab({
                     </CollapsibleTrigger>
                     
                     <CollapsibleContent className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border w-full text-sm">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
