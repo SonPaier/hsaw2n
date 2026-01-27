@@ -1,95 +1,112 @@
 
-# Plan: Komponent zarządzania pojazdami klienta
+# Plan: Naprawa normalizacji numerów telefonów - utrata cyfry "0"
 
-## Cel
-Wydzielenie logiki zarządzania pojazdami (wyszukiwarka + chips) do osobnego komponentu `CustomerVehiclesEditor`, który będzie używany w `CustomerEditDrawer` w trybie edycji.
+## Znaleziony bug
 
-## Nowy komponent
+Regex usuwający "trunk zero" jest zbyt zachłanny:
 
-### `src/components/admin/CustomerVehiclesEditor.tsx`
-
-```text
-┌─────────────────────────────────────────────────┐
-│ Pojazdy                                         │
-├─────────────────────────────────────────────────┤
-│ ┌────────────────────────────────────┐ ┌──────┐ │
-│ │ [Wyszukaj model auta...]           │ │ Dodaj│ │
-│ └────────────────────────────────────┘ └──────┘ │
-├─────────────────────────────────────────────────┤
-│ ┌──────────────────┐ ┌──────────────────┐       │
-│ │ Audi SQ8    [X]  │ │ BMW Seria 3  [X] │       │
-│ └──────────────────┘ └──────────────────┘       │
-└─────────────────────────────────────────────────┘
+```javascript
+// Błędny regex (frontend linia 40, backend linia 45):
+cleaned.replace(/^\+(\d{2,3})0/, '+$1')
 ```
 
-### Interfejs komponentu
+### Przykład błędu
+
+| Krok | Wartość | Opis |
+|------|---------|------|
+| Input | `0048504504504` | Użytkownik wpisuje numer |
+| Po `00 → +` | `+48504504504` | Zamiana prefiksu ✓ |
+| Regex `(\d{2,3})` | `485` | Zachłanne dopasowanie 3 cyfr zamiast 2! |
+| Regex `0` | `0` | Dopasowuje pierwszą cyfrę z "04504504" |
+| Wynik | `+4854504504` | Utracono "0" ❌ |
+
+## Przyczyna
+
+Regex `(\d{2,3})` dopasowuje zachłannie maksymalną liczbę cyfr (3), przez co "zjada" pierwszą cyfrę numeru lokalnego.
+
+## Rozwiązanie
+
+Ograniczyć trunk-zero removal tylko do **znanych krajów z trunk-zero** (Niemcy, Austria, Szwajcaria, Włochy) i używać precyzyjnego dopasowania:
+
+```javascript
+// Poprawny regex - tylko dla znanych krajów z trunk-zero:
+cleaned.replace(/^\+(?:49|43|41|39)0/, match => match.slice(0, -1))
+// lub lepiej:
+cleaned.replace(/^\+(49|43|41|39)0(\d)/, '+$1$2')
+```
+
+Polskie numery (`+48`) **NIE** używają trunk-zero, więc nie powinny być w ogóle przetwarzane przez ten regex.
+
+## Pliki do modyfikacji
+
+### 1. `src/lib/phoneUtils.ts` (frontend)
+
+**Linia 40 - zmiana:**
+```typescript
+// PRZED (błędne):
+cleaned = cleaned.replace(/^\+(\d{2,3})0/, '+$1');
+
+// PO (poprawne):
+// Trunk zero removal TYLKO dla krajów które go używają: DE, AT, CH, IT
+cleaned = cleaned.replace(/^\+(49|43|41|39)0(\d)/, '+$1$2');
+```
+
+### 2. `supabase/functions/_shared/phoneUtils.ts` (backend)
+
+**Linia 45 - zmiana:**
+```typescript
+// PRZED (błędne):
+cleaned = cleaned.replace(/^(\+\d{1,3})0(\d)/, "$1$2");
+
+// PO (poprawne):
+// Trunk zero removal TYLKO dla krajów które go używają: DE, AT, CH, IT
+cleaned = cleaned.replace(/^\+(49|43|41|39)0(\d)/, "+$1$2");
+```
+
+### 3. `src/lib/phoneUtils.test.ts` (nowe testy)
+
+Dodanie testów dla scenariusza `0048504504504`:
 
 ```typescript
-interface VehicleChip {
-  id?: string;           // ID z bazy (jeśli istnieje)
-  model: string;         // Nazwa modelu
-  carSize: 'S' | 'M' | 'L';
-  isNew?: boolean;       // Czy nowo dodany
-}
+it('PU-U-033: handles 0048 prefix with number starting with 5', () => {
+  expect(normalizePhone('0048504504504')).toBe('+48504504504');
+});
 
-interface CustomerVehiclesEditorProps {
-  vehicles: VehicleChip[];
-  onChange: (vehicles: VehicleChip[]) => void;
-  disabled?: boolean;
-}
+it('PU-U-034: handles 0048 prefix with number starting with 0 (edge case)', () => {
+  // Numer zaczynający się od 0 po prefiksie 48 - nie istnieje w PL
+  expect(normalizePhone('0048012345678')).toBe('+48012345678');
+});
 ```
 
-### Logika komponentu
-1. **Stan wewnętrzny**: `vehicleSearchValue` (string), `pendingVehicle` (CarSearchValue)
-2. **Wyszukiwarka**: Używa istniejącego `CarSearchAutocomplete`
-3. **Dodawanie**: Po wybraniu modelu i kliknięciu "Dodaj":
-   - Sprawdza duplikaty (po `model`)
-   - Dodaje do listy z `isNew: true`
-   - Czyści input
-4. **Usuwanie**: Kliknięcie X na chipsie usuwa pojazd z listy
-5. **Styl chips**: Biały, `rounded-full`, border, identyczny jak w VehicleSection
+## Sekcja techniczna
 
----
+### Dlaczego regex był błędny
 
-## Zmiany w CustomerEditDrawer.tsx
+| Regex | Problem |
+|-------|---------|
+| `(\d{2,3})` | Zachłannie dopasowuje 2 LUB 3 cyfry |
+| `+48504...` | Dopasowuje `485` (3 cyfry) zamiast `48` (2 cyfry) |
+| Następne `0` | Dopasowuje `0` z `04504...` |
+| Wynik | `+485` + `4504504` = `+4854504504` |
 
-### Nowy stan
-```typescript
-const [editVehicles, setEditVehicles] = useState<VehicleChip[]>([]);
+### Które kraje używają trunk-zero
+
+| Kraj | Kod | Trunk zero? |
+|------|-----|-------------|
+| Niemcy | +49 | TAK (np. +49 0 171...) |
+| Austria | +43 | TAK |
+| Szwajcaria | +41 | TAK |
+| Włochy | +39 | TAK |
+| Polska | +48 | NIE |
+| Ukraina | +380 | NIE |
+| Czechy | +420 | NIE |
+
+### Naprawa danych w bazie
+
+Po wdrożeniu poprawki, istniejący rekord wymaga ręcznej korekty:
+
+```sql
+UPDATE reservations 
+SET customer_phone = '+48504504504' 
+WHERE confirmation_code = '7757872';
 ```
-
-### Pobieranie pojazdów przy otwarciu (tryb edycji)
-Dodanie fetcha do `customer_vehicles` przy otwieraniu drawera z istniejącym klientem.
-
-### Dodanie komponentu do formularza edycji
-Wstawienie `<CustomerVehiclesEditor>` pod polem "Rabat %".
-
-### Zapisywanie pojazdów
-W `handleSaveCustomer`:
-1. Pobierz aktualne pojazdy klienta z bazy
-2. Usuń pojazdy które zostały usunięte (porównanie po `id`)
-3. Dodaj nowe pojazdy (`isNew: true`)
-
----
-
-## Nowe tłumaczenia (pl.json)
-
-```json
-{
-  "customers": {
-    "addVehicle": "Dodaj",
-    "searchVehicle": "Wyszukaj model auta..."
-  }
-}
-```
-
----
-
-## Pliki do utworzenia/modyfikacji
-
-| Plik | Operacja |
-|------|----------|
-| `src/components/admin/CustomerVehiclesEditor.tsx` | Nowy |
-| `src/components/admin/CustomerEditDrawer.tsx` | Modyfikacja |
-| `src/i18n/locales/pl.json` | Dodanie tłumaczeń |
-
