@@ -2001,7 +2001,12 @@
     "addReminder": "Dodaj przypomnienie",
     "smsTemplate": "Szablon SMS",
     "smsExample": "Przykład",
-    "smsTemplateReadonly": "Szablon SMS jest konfigurowany globalnie przez administratora systemu."
+    "smsTemplateReadonly": "Szablon SMS jest konfigurowany globalnie przez administratora systemu.",
+    "tabs": {
+      "template": "Szablon",
+      "assignedCustomers": "Przypisani Klienci"
+    },
+    "noAssignedCustomers": "Brak klientów przypisanych do tego szablonu"
   },
   "offerReminders": {
     "markAsCompleted": "Oznacz jako zrealizowane",
