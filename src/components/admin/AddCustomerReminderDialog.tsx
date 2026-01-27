@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -38,9 +37,22 @@ const SERVICE_TYPES = [
   { value: 'odswiezenie', labelKey: 'odswiezenie' },
 ];
 
+interface ReminderTemplateItem {
+  months: number;
+  is_paid: boolean;
+  service_type: string;
+}
+
 interface ReminderTemplate {
   id: string;
   name: string;
+  items: ReminderTemplateItem[] | null;
+}
+
+interface CustomerVehicle {
+  id: string;
+  model: string;
+  plate: string | null;
 }
 
 interface AddCustomerReminderDialogProps {
@@ -62,34 +74,45 @@ export function AddCustomerReminderDialog({
 }: AddCustomerReminderDialogProps) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
-  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState('serwis');
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
+  const [serviceDate, setServiceDate] = useState<Date | undefined>(undefined);
   const [reminderTemplateId, setReminderTemplateId] = useState<string>('');
   const [templates, setTemplates] = useState<ReminderTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
 
   useEffect(() => {
     if (open && instanceId) {
       loadTemplates();
+      loadCustomerVehicles();
     }
-  }, [open, instanceId]);
+  }, [open, instanceId, customerPhone]);
 
   const loadTemplates = async () => {
     setLoadingTemplates(true);
     try {
       const { data, error } = await supabase
         .from('reminder_templates')
-        .select('id, name')
+        .select('id, name, items')
         .eq('instance_id', instanceId)
         .order('name');
       
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Cast items from Json to proper type
+      const typedTemplates: ReminderTemplate[] = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        items: (t.items as unknown) as ReminderTemplateItem[] | null,
+      }));
+      
+      setTemplates(typedTemplates);
       
       // Auto-select first template if available
-      if (data && data.length > 0 && !reminderTemplateId) {
-        setReminderTemplateId(data[0].id);
+      if (typedTemplates.length > 0 && !reminderTemplateId) {
+        setReminderTemplateId(typedTemplates[0].id);
       }
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -98,10 +121,35 @@ export function AddCustomerReminderDialog({
     }
   };
 
+  const loadCustomerVehicles = async () => {
+    setLoadingVehicles(true);
+    try {
+      const normalizedPhone = normalizePhone(customerPhone);
+      const { data, error } = await supabase
+        .from('customer_vehicles')
+        .select('id, model, plate')
+        .eq('instance_id', instanceId)
+        .eq('phone', normalizedPhone)
+        .order('last_used_at', { ascending: false });
+      
+      if (error) throw error;
+      setCustomerVehicles(data || []);
+      
+      // Auto-select first vehicle if available
+      if (data && data.length > 0) {
+        setSelectedVehicleId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading customer vehicles:', error);
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
+
   const resetForm = () => {
-    setVehiclePlate('');
+    setSelectedVehicleId(null);
     setServiceType('serwis');
-    setScheduledDate(undefined);
+    setServiceDate(undefined);
     setReminderTemplateId('');
   };
 
@@ -113,13 +161,14 @@ export function AddCustomerReminderDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!vehiclePlate.trim()) {
-      toast.error(t('customers.vehiclePlateRequired'));
+    const selectedVehicle = customerVehicles.find(v => v.id === selectedVehicleId);
+    if (!selectedVehicle) {
+      toast.error(t('customers.vehicleRequired'));
       return;
     }
 
-    if (!scheduledDate) {
-      toast.error(t('customers.scheduledDateRequired'));
+    if (!serviceDate) {
+      toast.error(t('customers.serviceDateRequired'));
       return;
     }
 
@@ -128,22 +177,34 @@ export function AddCustomerReminderDialog({
       return;
     }
 
+    const selectedTemplate = templates.find(t => t.id === reminderTemplateId);
+    if (!selectedTemplate || !selectedTemplate.items || selectedTemplate.items.length === 0) {
+      toast.error(t('customers.templateHasNoItems'));
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('customer_reminders')
-        .insert({
+      // Create a reminder for each item in the template
+      const remindersToInsert = selectedTemplate.items.map(item => {
+        const scheduledDate = addMonths(serviceDate, item.months);
+        return {
           instance_id: instanceId,
           reminder_template_id: reminderTemplateId,
           customer_name: customerName,
           customer_phone: normalizePhone(customerPhone),
-          vehicle_plate: vehiclePlate.trim().toUpperCase(),
-          service_type: serviceType,
+          vehicle_plate: selectedVehicle.plate || selectedVehicle.model,
+          service_type: item.service_type || serviceType,
           scheduled_date: format(scheduledDate, 'yyyy-MM-dd'),
-          months_after: 0, // Custom date, not calculated from months
+          months_after: item.months,
           status: 'scheduled',
-        });
+        };
+      });
+
+      const { error } = await supabase
+        .from('customer_reminders')
+        .insert(remindersToInsert);
 
       if (error) throw error;
       
@@ -157,6 +218,8 @@ export function AddCustomerReminderDialog({
       setSaving(false);
     }
   };
+
+  const selectedVehicle = customerVehicles.find(v => v.id === selectedVehicleId);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -174,10 +237,10 @@ export function AddCustomerReminderDialog({
               onValueChange={setReminderTemplateId}
               disabled={loadingTemplates}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue placeholder={t('customers.selectTemplate')} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {templates.map(template => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}
@@ -190,26 +253,45 @@ export function AddCustomerReminderDialog({
             )}
           </div>
 
-          {/* Vehicle Plate */}
+          {/* Vehicle Selection */}
           <div className="space-y-2">
-            <Label htmlFor="vehiclePlate">{t('customers.vehiclePlate')} *</Label>
-            <Input
-              id="vehiclePlate"
-              value={vehiclePlate}
-              onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-              placeholder="WA12345"
-              required
-            />
+            <Label>{t('customers.vehicle')} *</Label>
+            {loadingVehicles ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('common.loading')}
+              </div>
+            ) : customerVehicles.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {customerVehicles.map((vehicle) => (
+                  <button
+                    key={vehicle.id}
+                    type="button"
+                    onClick={() => setSelectedVehicleId(vehicle.id)}
+                    className={cn(
+                      'px-3 py-1.5 text-sm rounded-full transition-colors font-medium',
+                      selectedVehicleId === vehicle.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-white hover:bg-muted/50 text-foreground border border-border'
+                    )}
+                  >
+                    {vehicle.plate ? `${vehicle.model} (${vehicle.plate})` : vehicle.model}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('customers.noVehiclesFound')}</p>
+            )}
           </div>
 
           {/* Service Type */}
           <div className="space-y-2">
             <Label>{t('reminderTemplates.serviceType')} *</Label>
             <Select value={serviceType} onValueChange={setServiceType}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {SERVICE_TYPES.map(type => (
                   <SelectItem key={type.value} value={type.value}>
                     {t(`offers.serviceTypes.${type.labelKey}`)}
@@ -219,22 +301,22 @@ export function AddCustomerReminderDialog({
             </Select>
           </div>
 
-          {/* Scheduled Date */}
+          {/* Service Date - base date for reminder calculation */}
           <div className="space-y-2">
-            <Label>{t('customers.reminderDate')} *</Label>
-            <p className="text-xs text-muted-foreground">{t('customers.reminderTimeInfo')}</p>
+            <Label>{t('customers.serviceDate')} *</Label>
+            <p className="text-xs text-muted-foreground">{t('customers.serviceDateInfo')}</p>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !scheduledDate && "text-muted-foreground"
+                    "w-full justify-start text-left font-normal bg-white",
+                    !serviceDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {scheduledDate ? (
-                    format(scheduledDate, 'd MMMM yyyy', { locale: pl })
+                  {serviceDate ? (
+                    format(serviceDate, 'd MMMM yyyy', { locale: pl })
                   ) : (
                     t('common.selectDate')
                   )}
@@ -243,11 +325,11 @@ export function AddCustomerReminderDialog({
               <PopoverContent className="w-auto p-0 bg-white" align="start">
                 <Calendar
                   mode="single"
-                  selected={scheduledDate}
-                  onSelect={setScheduledDate}
-                  disabled={(date) => date < new Date()}
+                  selected={serviceDate}
+                  onSelect={setServiceDate}
                   initialFocus
                   locale={pl}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -257,7 +339,7 @@ export function AddCustomerReminderDialog({
             <Button type="button" variant="outline" onClick={handleClose}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={saving || templates.length === 0}>
+            <Button type="submit" disabled={saving || templates.length === 0 || customerVehicles.length === 0}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('common.add')}
             </Button>
