@@ -4,10 +4,11 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatPhoneDisplay } from '@/lib/phoneUtils';
+import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { ReservationHistoryDrawer } from './history/ReservationHistoryDrawer';
+import CustomerEditDrawer from './CustomerEditDrawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -185,6 +186,17 @@ const ReservationDetailsDrawer = ({
   const [sendingConfirmationSms, setSendingConfirmationSms] = useState(false);
   const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string | null;
+    notes: string | null;
+    company?: string | null;
+    nip?: string | null;
+    source?: string;
+  } | null>(null);
   const isMobile = useIsMobile();
 
   const [customerName, setCustomerName] = useState('');
@@ -317,6 +329,37 @@ const ReservationDetailsDrawer = ({
     }
   };
 
+  const handleOpenCustomerDrawer = async () => {
+    if (!reservation?.instance_id || !customerPhone) return;
+    
+    const normalizedPhone = normalizePhone(customerPhone);
+    
+    // Search for customer by phone
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id, name, phone, email, notes, company, nip, source, discount_percent')
+      .eq('instance_id', reservation.instance_id)
+      .or(`phone.eq.${normalizedPhone},phone.eq.+48${normalizedPhone}`)
+      .maybeSingle();
+    
+    if (customer) {
+      setSelectedCustomer(customer);
+    } else {
+      // Create minimal customer object from reservation data
+      setSelectedCustomer({
+        id: '',
+        name: customerName || '',
+        phone: normalizedPhone,
+        email: reservation.customer_email || null,
+        notes: null,
+        company: null,
+        nip: null,
+        source: 'reservation',
+      });
+    }
+    setCustomerDrawerOpen(true);
+  };
+
   if (!reservation) return null;
 
   const formatTime = (time: string) => {
@@ -372,7 +415,13 @@ const ReservationDetailsDrawer = ({
                   <User className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <div className="text-xs text-muted-foreground">{t('reservations.customer')}</div>
-                    <div className="font-medium">{customerName}</div>
+                    <button
+                      type="button"
+                      onClick={handleOpenCustomerDrawer}
+                      className="font-medium text-left hover:text-primary hover:underline transition-colors cursor-pointer"
+                    >
+                      {customerName}
+                    </button>
                   </div>
                 </div>
                 {/* Contact buttons - hide in hall mode if phone not visible */}
@@ -1164,6 +1213,14 @@ const ReservationDetailsDrawer = ({
         open={historyDrawerOpen}
         onClose={() => setHistoryDrawerOpen(false)}
         hasUnifiedServices={reservation?.has_unified_services ?? true}
+      />
+      
+      {/* Customer Details Drawer */}
+      <CustomerEditDrawer
+        customer={selectedCustomer}
+        instanceId={reservation?.instance_id || null}
+        open={customerDrawerOpen}
+        onClose={() => setCustomerDrawerOpen(false)}
       />
     </>
   );
