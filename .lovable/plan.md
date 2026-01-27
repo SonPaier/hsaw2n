@@ -1,100 +1,209 @@
 
-# Plan: Checkbox "is_popular" w formularzu usługi i pills w formularzu rezerwacji
+
+# Plan: Widget na stronę (Publiczne API Iframe) - MVP Uproszczony
 
 ## Cel
 
-1. Dodać checkbox w sekcji zaawansowanej formularza usługi (`ServiceFormDialog.tsx`) z etykietą "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji" i ikoną info
-2. Zapisywać pole `is_popular` do bazy danych
-3. Zmienić wygląd pills w formularzu rezerwacji na niebieski z białym tekstem
-4. Wyświetlać pills dla usług `is_popular` we WSZYSTKICH trybach rezerwacji (nie tylko yard mode)
+Umożliwić osadzenie formularza zapytania ofertowego na stronie studia detailingowego. Formularz pozwala klientowi wybrać szablony (multi-select checkboxy), wprowadzić dane kontaktowe i pojazd, a następnie tworzy draft oferty w panelu admina.
+
+## Architektura
+
+```text
+┌─────────────────────────────┐
+│   Strona studia             │
+│   <iframe src="             │
+│     armcar.n2wash.com/embed │
+│   "/>                       │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────────────────┐
+│  /embed route (EmbedLeadForm.tsx)                            │
+│  - Standalone page z własnym layoutem                        │
+│  - CSS variables z brandingu instancji                       │
+│  - Multi-select szablonów (checkboxy)                        │
+└──────────────────────────────────────────────────────────────┘
+               │
+      ┌────────┴────────┐
+      ▼                 ▼
+GET /get-embed-config   POST /submit-lead
+(config + szablony)     (tworzy draft oferty)
+```
+
+## Sekcje formularza (uproszczone)
+
+1. **Header** - logo studia, nazwa
+2. **Dane klienta**: imię, email, telefon
+3. **Pojazd**: CarSearchAutocomplete + przebieg
+4. **Pakiety**: multi-select checkboxy (szablony z has_unified_services=true)
+5. **Budżet**: input numeric (opcjonalne)
+6. **Notatki**: textarea (opcjonalne)
+7. **RODO**: checkbox (wymagane)
+8. **Submit button**
 
 ## Struktura zmian
 
-### 1. Modyfikacja: `src/components/admin/ServiceFormDialog.tsx`
+### ETAP 1: Migracja bazy danych
 
-**Zmiany w interfejsie `ServiceData`:**
-- Dodanie pola `is_popular?: boolean | null`
+**SQL migracji:**
+```sql
+-- Dodaj public_api_key do instances (auto-generowany)
+ALTER TABLE public.instances 
+ADD COLUMN IF NOT EXISTS public_api_key text UNIQUE;
 
-**Zmiany w stanie formularza:**
-- Dodanie `is_popular: service?.is_popular ?? false` do `formData`
+-- Wygeneruj klucze dla istniejących instancji
+UPDATE public.instances 
+SET public_api_key = encode(gen_random_bytes(12), 'hex')
+WHERE public_api_key IS NULL;
 
-**Zmiany w `handleSave`:**
-- Dodanie `is_popular: formData.is_popular` do obiektu `serviceData`
+-- Trigger: auto-generuj przy INSERT
+CREATE OR REPLACE FUNCTION generate_public_api_key()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.public_api_key IS NULL THEN
+    NEW.public_api_key := encode(gen_random_bytes(12), 'hex');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-**Nowy element UI w sekcji zaawansowanej (pod "Widoczność usługi"):**
-```tsx
-<div className="flex items-center gap-3">
-  <Checkbox
-    id="is_popular"
-    checked={formData.is_popular}
-    onCheckedChange={(checked) => 
-      setFormData(prev => ({ ...prev, is_popular: !!checked }))
-    }
-  />
-  <div className="flex items-center gap-1.5">
-    <Label htmlFor="is_popular" className="text-sm cursor-pointer">
-      {t('priceList.form.isPopularLabel')}
-    </Label>
-    <FieldInfo tooltip="..." />
-  </div>
-</div>
+CREATE TRIGGER trigger_generate_public_api_key
+BEFORE INSERT ON public.instances
+FOR EACH ROW EXECUTE FUNCTION generate_public_api_key();
+
+-- Dodaj budget_suggestion do offers
+ALTER TABLE public.offers 
+ADD COLUMN IF NOT EXISTS budget_suggestion numeric;
+
+-- Indeks dla szybkiego lookup
+CREATE UNIQUE INDEX IF NOT EXISTS idx_instances_public_api_key 
+ON public.instances(public_api_key) WHERE public_api_key IS NOT NULL;
 ```
 
-### 2. Modyfikacja: `src/components/admin/reservation-form/ServicesSection.tsx`
+### ETAP 2: Edge Functions
 
-**Zmiany:**
-1. Usunięcie warunku `isYardMode` - pills dla popularnych usług będą widoczne we wszystkich trybach
-2. Zmiana stylów pills na niebieski z białym tekstem:
-   - z: `bg-muted hover:bg-muted/80 text-foreground border border-border`
-   - na: `bg-primary hover:bg-primary/90 text-primary-foreground`
+#### 2.1 `get-embed-config`
 
-**Kod przed:**
-```tsx
-{isYardMode &&
-  services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-```
-
-**Kod po:**
-```tsx
-{services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-```
-
-### 3. Nowe tłumaczenia w `src/i18n/locales/pl.json`
-
+**Response (uproszczony):**
 ```json
-"priceList": {
-  "form": {
-    "isPopularLabel": "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji"
+{
+  "branding": {
+    "bg_color": "#f8fafc",
+    "primary_color": "#2563eb",
+    "logo_url": "https://..."
+  },
+  "instance_info": {
+    "name": "ARM CAR AUTO SPA",
+    "address": "ul. Obrońców Wybrzeża 10B/67",
+    "nip": "5842814958"
+  },
+  "templates": [
+    { 
+      "id": "uuid", 
+      "name": "PPF Full Body", 
+      "short_name": "Full Body",
+      "description": "Pełne zabezpieczenie karoserii..."
+    },
+    { 
+      "id": "uuid2", 
+      "name": "Powłoka ceramiczna 5 lat", 
+      "short_name": "Ceramika 5Y"
+    }
+  ]
+}
+```
+
+#### 2.2 `submit-lead`
+
+**Request (uproszczony):**
+```json
+{
+  "customer_data": {
+    "name": "Jan Kowalski",
+    "email": "jan@example.com",
+    "phone": "123456789",
+    "gdpr_accepted": true
+  },
+  "vehicle_data": {
+    "model_id": "uuid lub null",
+    "custom_model_name": "Audi A6",
+    "car_size": "L",
+    "mileage": "15000"
+  },
+  "offer_details": {
+    "template_ids": ["uuid1", "uuid2"],
+    "budget_suggestion": 7000,
+    "additional_notes": "Interesuje mnie też..."
   }
 }
 ```
 
-### 4. Import Checkbox w ServiceFormDialog
+**Logika:**
+1. Pobierz `instance_id` z hostname
+2. Waliduj: `gdpr_accepted=true`, wymagane pola
+3. Wygeneruj `offer_number`
+4. Utwórz rekord `offers` z `status='draft'`, `source='website'`
+5. Dla każdego `template_id` utwórz `offer_options` (bez cen)
+6. Zwróć sukces
 
-Dodanie importu:
-```tsx
-import { Checkbox } from '@/components/ui/checkbox';
-```
+### ETAP 3: Frontend - Strona Embed
+
+#### 3.1 `src/pages/EmbedLeadForm.tsx`
+
+Standalone strona z prostym formularzem:
+- Pobiera config z `get-embed-config`
+- Styluje się CSS variables z brandingu
+- Multi-select szablonów jako checkboxy/karty
+- Submit do `submit-lead`
+- Ekran sukcesu po wysłaniu
+
+#### 3.2 Routing
+
+W `App.tsx` dodaj route `/embed` w sekcji publicznych route'ów instancji.
+
+### ETAP 4: Panel Admina
+
+#### 4.1 Nowa zakładka: Widget w SettingsView
+
+**Zawartość:**
+- Nagłówek "Widget na stronę"
+- Podgląd URL: `https://{slug}.n2wash.com/embed`
+- Kod iframe do skopiowania
+- Przycisk "Kopiuj kod"
+
+#### 4.2 Badge "WWW" w OffersView
+
+Dla ofert z `source='website'` wyświetl badge.
+
+### ETAP 5: Tłumaczenia
+
+Dodaj klucze dla zakładki widget i formularza embed w `pl.json`.
 
 ## Sekcja techniczna
 
-### Przepływ danych is_popular
+### Pliki do utworzenia
 
-1. **Odczyt:** Pole `is_popular` jest już pobierane w `AddReservationDialogV2.tsx` w zapytaniu do `unified_services`
-2. **Zapis:** Dodanie pola do obiektu zapisywanego w `handleSave()` w `ServiceFormDialog.tsx`
-3. **Wyświetlanie:** Pills renderowane w `ServicesSection.tsx` bazując na `service.is_popular`
-
-### Zachowanie UX pills
-
-Gdy użytkownik kliknie pill:
-1. Pill znika z widoku (usługa jest dodana do `selectedServices`)
-2. Usługa pojawia się na liście wybranych usług (`SelectedServicesList`)
-3. Drawer usług NIE otwiera się - to szybki skrót
+| Plik | Opis |
+|------|------|
+| `supabase/functions/get-embed-config/index.ts` | Endpoint konfiguracyjny |
+| `supabase/functions/submit-lead/index.ts` | Endpoint zapisu leada |
+| `src/pages/EmbedLeadForm.tsx` | Strona formularza embed |
+| `src/components/admin/WidgetSettings.tsx` | Zakładka widget |
 
 ### Pliki do modyfikacji
 
-| Plik | Typ zmiany |
-|------|------------|
-| `src/components/admin/ServiceFormDialog.tsx` | Dodanie checkbox i logiki zapisu |
-| `src/components/admin/reservation-form/ServicesSection.tsx` | Zmiana stylów i usunięcie ograniczenia isYardMode |
-| `src/i18n/locales/pl.json` | Nowe tłumaczenie |
+| Plik | Zmiana |
+|------|--------|
+| `src/App.tsx` | Route `/embed` |
+| `src/components/admin/SettingsView.tsx` | Tab `widget` |
+| `src/components/admin/OffersView.tsx` | Badge "WWW" |
+| `src/i18n/locales/pl.json` | Tłumaczenia |
+| `supabase/config.toml` | verify_jwt = false dla nowych funkcji |
+
+### Bezpieczeństwo
+
+- Identyfikacja instancji przez hostname (subdomain)
+- CORS: zezwól na wszystkie originy (iframe musi działać wszędzie)
+- Walidacja `gdpr_accepted=true` przed zapisem
+- Edge Functions z service role (bez RLS)
+
