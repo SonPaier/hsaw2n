@@ -1941,7 +1941,14 @@
       "isPopularLabel": "Dodaj szybki skrót do tej usługi przy tworzeniu nowej rezerwacji",
       "isPopularTooltip": "Usługa pojawi się jako niebieska 'pigułka' na formularzu rezerwacji, umożliwiając szybkie dodanie bez otwierania listy usług",
       "editDescription": "Zmień dane usługi",
-      "addDescription": "Dodaj nową usługę do cennika"
+      "addDescription": "Dodaj nową usługę do cennika",
+      "additionalProperties": "Dodatkowe właściwości usługi",
+      "productDurability": "Trwałość produktu",
+      "productDurabilityMonths": "miesięcy",
+      "productForPaints": "Produkt do lakierów",
+      "paintTypeAny": "Dowolny lakier",
+      "paintTypeMatte": "Lakierów matowych",
+      "paintTypeDark": "Lakierów ciemnych"
     },
     "errors": {
       "fetchError": "Błąd podczas pobierania usług",
