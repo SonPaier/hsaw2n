@@ -29,6 +29,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface ServiceMetadata {
+  trwalosc_produktu_w_mesiacach?: number | null;
+  produkt_do_lakierow?: 'matowe' | 'ciemne' | 'dowolny' | null;
+  [key: string]: unknown;
+}
+
 interface Service {
   id: string;
   name: string;
@@ -53,6 +59,7 @@ interface Service {
   service_type: string | null;
   visibility: string | null;
   reminder_template_id: string | null;
+  metadata: ServiceMetadata | null;
 }
 
 interface ServiceCategory {
