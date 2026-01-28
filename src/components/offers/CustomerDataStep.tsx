@@ -1,9 +1,10 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { User, Building2, Car, Search, Loader2 } from 'lucide-react';
 import { CustomerData, VehicleData } from '@/hooks/useOffer';
@@ -50,6 +51,34 @@ const paintTypes = [
   { value: 'gloss', label: 'Połysk' },
   { value: 'matte', label: 'Mat' },
 ];
+
+// Auto-resizing textarea component
+interface AutoResizeTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  minRows?: number;
+}
+
+const AutoResizeTextarea = ({ value, minRows = 3, className, ...props }: AutoResizeTextareaProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+      const minHeight = lineHeight * minRows;
+      textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
+    }
+  }, [value, minRows]);
+
+  return (
+    <Textarea
+      ref={textareaRef}
+      value={value}
+      className={cn('resize-none overflow-hidden', className)}
+      {...props}
+    />
+  );
+};
 
 export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataStepProps>(
   ({ customerData, vehicleData, onCustomerChange, onVehicleChange, validationErrors }, ref) => {
@@ -239,28 +268,16 @@ export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataS
           </div>
         </div>
         
-        {/* Notes and Inquiry Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerNotes">Notatki</Label>
-            <Textarea
-              id="customerNotes"
-              value={customerData.notes || ''}
-              onChange={(e) => onCustomerChange({ notes: e.target.value })}
-              rows={3}
-              placeholder="Notatki wewnętrzne..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="inquiryContent">Treść zapytania</Label>
-            <Textarea
-              id="inquiryContent"
-              value={customerData.inquiryContent || ''}
-              onChange={(e) => onCustomerChange({ inquiryContent: e.target.value })}
-              rows={3}
-              placeholder="Treść zapytania od klienta..."
-            />
-          </div>
+        {/* Inquiry Content - auto-sizing textarea */}
+        <div className="md:w-1/2 space-y-2">
+          <Label htmlFor="inquiryContent">Treść zapytania</Label>
+          <AutoResizeTextarea
+            id="inquiryContent"
+            value={customerData.inquiryContent || ''}
+            onChange={(e) => onCustomerChange({ inquiryContent: e.target.value })}
+            placeholder="Treść zapytania od klienta..."
+            minRows={3}
+          />
         </div>
       </div>
 
