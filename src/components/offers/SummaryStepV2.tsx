@@ -773,6 +773,13 @@ export const SummaryStepV2 = ({
               {offer.customerData.phone && (
                 <p className="text-muted-foreground">{offer.customerData.phone}</p>
               )}
+              {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
+                <p className="font-bold">
+                  {offer.vehicleData.paintColor}
+                  {offer.vehicleData.paintColor && offer.vehicleData.paintType && ' • '}
+                  {offer.vehicleData.paintType === 'gloss' ? 'Połysk' : offer.vehicleData.paintType === 'matte' ? 'Mat' : getPaintTypeLabel(offer.vehicleData.paintType || '')}
+                </p>
+              )}
             </div>
           </div>
           
