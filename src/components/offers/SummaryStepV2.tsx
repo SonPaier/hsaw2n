@@ -52,6 +52,7 @@ interface ProductPricing {
   price_medium: number | null;
   price_large: number | null;
   category: string | null;
+  metadata?: { trwalosc_produktu_w_mesiacach?: number } | null;
 }
 
 interface ScopeProduct {
@@ -60,6 +61,7 @@ interface ScopeProduct {
   variant_name: string | null;
   is_default: boolean;
   product: ProductPricing | null;
+  durabilityMonths?: number | null; // from metadata.trwalosc_produktu_w_mesiacach
 }
 
 // Get the lowest available price for display (price_from -> min(S/M/L) -> default_price)
@@ -186,7 +188,7 @@ export const SummaryStepV2 = ({
           variant_name,
           is_default,
           sort_order,
-          product:unified_services!product_id(id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id)
+          product:unified_services!product_id(id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, metadata)
         `)
         .in('scope_id', nonExtrasScopeIds.length > 0 ? nonExtrasScopeIds : ['__none__'])
         .order('sort_order');
@@ -196,7 +198,7 @@ export const SummaryStepV2 = ({
       // Also filter out visibility='only_reservations' as those should not appear in offer drawers
       const { data: allProductsData } = await supabase
         .from('unified_services')
-        .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type, visibility')
+        .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id, service_type, visibility, metadata')
         .eq('instance_id', instanceId)
         .eq('service_type', 'both')
         .eq('active', true)
@@ -249,8 +251,10 @@ export const SummaryStepV2 = ({
               price_small: product.price_small,
               price_medium: product.price_medium,
               price_large: product.price_large,
-              category: product.category_id ? categoryIdToNameMap[product.category_id] || null : null
-            }
+              category: product.category_id ? categoryIdToNameMap[product.category_id] || null : null,
+              metadata: (product as any).metadata || null
+            },
+            durabilityMonths: (product as any).metadata?.trwalosc_produktu_w_mesiacach || null
           }));
         } else {
           scopeProducts = (scopeProductsData || [])
@@ -271,8 +275,10 @@ export const SummaryStepV2 = ({
                   price_small: prod.price_small,
                   price_medium: prod.price_medium,
                   price_large: prod.price_large,
-                  category: prod.category_id ? categoryIdToNameMap[prod.category_id] || null : null
-                } : null
+                  category: prod.category_id ? categoryIdToNameMap[prod.category_id] || null : null,
+                  metadata: prod.metadata || null
+                } : null,
+                durabilityMonths: prod?.metadata?.trwalosc_produktu_w_mesiacach || null
               };
             });
         }
@@ -367,6 +373,38 @@ export const SummaryStepV2 = ({
           // NEW OFFER: use ONLY is_default products from the scope template
           // This ignores whatever generateOptionsFromScopes put in offer.options
           selectedProducts = buildDefaultSelected();
+          
+          // For NEW offers from widget: auto-add widget-selected extras
+          if (scope.is_extras_scope && offer.widgetSelectedExtras?.length) {
+            const widgetExtrasProducts = scopeProducts.filter(
+              p => offer.widgetSelectedExtras?.includes(p.product_id) && p.product
+            );
+            const widgetPreselected = widgetExtrasProducts.map(p => toSelectedProduct(p, true));
+            // Add to selectedProducts (avoid duplicates)
+            const existingIds = new Set(selectedProducts.map(sp => sp.productId));
+            widgetPreselected.forEach(wp => {
+              if (!existingIds.has(wp.productId)) {
+                selectedProducts.push(wp);
+              }
+            });
+          }
+          
+          // For NEW offers from widget with duration selection: auto-preselect matching products
+          if (!scope.is_extras_scope && offer.widgetDurationSelections) {
+            const selectedDuration = offer.widgetDurationSelections[scope.id];
+            
+            if (selectedDuration !== undefined && selectedDuration !== null) {
+              // Filter products matching the selected duration
+              const durationMatchingProducts = scopeProducts.filter(
+                p => p.durabilityMonths === selectedDuration && p.product
+              );
+              
+              if (durationMatchingProducts.length > 0) {
+                // Replace default selection with duration-matched product(s)
+                selectedProducts = durationMatchingProducts.map(p => toSelectedProduct(p, true));
+              }
+            }
+          }
           
           // For extras scopes: start with empty suggested list (admin adds manually)
           // suggestedProducts remains empty []
@@ -801,15 +839,15 @@ export const SummaryStepV2 = ({
               </div>
               <div className="text-sm space-y-0.5 pl-6">
                 <p className="font-medium">{offer.vehicleData.brandModel}</p>
-                {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
+              {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
                   <div className="flex flex-wrap gap-2 mt-1">
                     {offer.vehicleData.paintColor && (
-                      <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium">
+                      <span className="px-4 py-1 bg-slate-600 text-white rounded-full text-sm font-medium">
                         {offer.vehicleData.paintColor}
                       </span>
                     )}
                     {offer.vehicleData.paintType && (
-                      <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium">
+                      <span className="px-4 py-1 bg-slate-600 text-white rounded-full text-sm font-medium">
                         {offer.vehicleData.paintType === 'gloss' ? 'Połysk' : offer.vehicleData.paintType === 'matte' ? 'Mat' : getPaintTypeLabel(offer.vehicleData.paintType)}
                       </span>
                     )}
