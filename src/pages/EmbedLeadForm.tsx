@@ -35,6 +35,7 @@ interface EmbedConfig {
     short_name: string | null;
     description: string | null;
     price_from: number | null;
+    available_durations: number[];
   }[];
   extras: {
     id: string;
@@ -55,10 +56,19 @@ interface FormData {
   plannedDate: Date | null;
   selectedTemplates: string[];
   selectedExtras: string[];
+  durationSelections: Record<string, number | null>;
   budget: string;
   notes: string;
   gdprAccepted: boolean;
 }
+
+// Helper to format duration in Polish
+const formatDuration = (months: number): string => {
+  const years = months / 12;
+  if (years === 1) return '1 rok';
+  if (years < 5) return `${years} lata`;
+  return `${years} lat`;
+};
 
 function EmbedLeadFormContent() {
   const { t } = useTranslation();
@@ -84,6 +94,7 @@ function EmbedLeadFormContent() {
     plannedDate: null,
     selectedTemplates: [],
     selectedExtras: [],
+    durationSelections: {},
     budget: '',
     notes: '',
     gdprAccepted: false,
@@ -203,6 +214,7 @@ function EmbedLeadFormContent() {
           offer_details: {
             template_ids: formData.selectedTemplates,
             extra_service_ids: formData.selectedExtras,
+            duration_selections: formData.durationSelections,
             budget_suggestion: formData.budget ? parseFloat(formData.budget) : null,
             additional_notes: formData.notes,
             planned_date: formData.plannedDate ? format(formData.plannedDate, 'yyyy-MM-dd') : null,
@@ -223,15 +235,37 @@ function EmbedLeadFormContent() {
   };
 
   const toggleTemplate = (templateId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTemplates: prev.selectedTemplates.includes(templateId)
+    setFormData(prev => {
+      const isCurrentlySelected = prev.selectedTemplates.includes(templateId);
+      const newSelectedTemplates = isCurrentlySelected
         ? prev.selectedTemplates.filter(id => id !== templateId)
-        : [...prev.selectedTemplates, templateId],
-    }));
+        : [...prev.selectedTemplates, templateId];
+      
+      // Clear duration selection if template is deselected
+      const newDurationSelections = { ...prev.durationSelections };
+      if (isCurrentlySelected) {
+        delete newDurationSelections[templateId];
+      }
+      
+      return {
+        ...prev,
+        selectedTemplates: newSelectedTemplates,
+        durationSelections: newDurationSelections,
+      };
+    });
     if (validationErrors.templates) {
       setValidationErrors(prev => ({ ...prev, templates: '' }));
     }
+  };
+
+  const setDurationSelection = (templateId: string, duration: number | null) => {
+    setFormData(prev => ({
+      ...prev,
+      durationSelections: {
+        ...prev.durationSelections,
+        [templateId]: duration,
+      },
+    }));
   };
 
   const toggleExtra = (extraId: string) => {
@@ -502,7 +536,7 @@ function EmbedLeadFormContent() {
                 const isSelected = formData.selectedTemplates.includes(template.id);
                 const isExpanded = expandedDescriptions.has(template.id);
                 return (
-                  <div key={template.id}>
+                  <div key={template.id} className="space-y-2">
                     <button
                       type="button"
                       onClick={() => toggleTemplate(template.id)}
@@ -536,6 +570,89 @@ function EmbedLeadFormContent() {
                         </div>
                       </div>
                     </button>
+                    
+                    {/* Duration selection - only show if template is selected and has durations */}
+                    {isSelected && template.available_durations && template.available_durations.length > 0 && (
+                      <div className="ml-8 p-3 bg-muted/30 rounded-lg space-y-2">
+                        <p className="text-sm font-medium">Pakiet powłoki:</p>
+                        <div className="grid gap-1.5">
+                          {template.available_durations.map((months) => (
+                            <label
+                              key={months}
+                              className={cn(
+                                "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors",
+                                formData.durationSelections[template.id] === months
+                                  ? "bg-primary/10"
+                                  : "hover:bg-muted/50"
+                              )}
+                              style={formData.durationSelections[template.id] === months ? { backgroundColor: `${primaryColor}15` } : {}}
+                            >
+                              <div
+                                className={cn(
+                                  "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                  formData.durationSelections[template.id] === months
+                                    ? "border-primary"
+                                    : "border-muted-foreground"
+                                )}
+                                style={formData.durationSelections[template.id] === months ? { borderColor: primaryColor } : {}}
+                              >
+                                {formData.durationSelections[template.id] === months && (
+                                  <div
+                                    className="w-2 h-2 rounded-full bg-primary"
+                                    style={{ backgroundColor: primaryColor }}
+                                  />
+                                )}
+                              </div>
+                              <span className="text-sm">{formatDuration(months)}</span>
+                              <input
+                                type="radio"
+                                name={`duration-${template.id}`}
+                                value={months}
+                                checked={formData.durationSelections[template.id] === months}
+                                onChange={() => setDurationSelection(template.id, months)}
+                                className="sr-only"
+                              />
+                            </label>
+                          ))}
+                          {/* "Nie wiem" option */}
+                          <label
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors",
+                              formData.durationSelections[template.id] === null && template.id in formData.durationSelections
+                                ? "bg-primary/10"
+                                : "hover:bg-muted/50"
+                            )}
+                            style={formData.durationSelections[template.id] === null && template.id in formData.durationSelections ? { backgroundColor: `${primaryColor}15` } : {}}
+                          >
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                formData.durationSelections[template.id] === null && template.id in formData.durationSelections
+                                  ? "border-primary"
+                                  : "border-muted-foreground"
+                              )}
+                              style={formData.durationSelections[template.id] === null && template.id in formData.durationSelections ? { borderColor: primaryColor } : {}}
+                            >
+                              {formData.durationSelections[template.id] === null && template.id in formData.durationSelections && (
+                                <div
+                                  className="w-2 h-2 rounded-full bg-primary"
+                                  style={{ backgroundColor: primaryColor }}
+                                />
+                              )}
+                            </div>
+                            <span className="text-sm">Nie wiem, proszę o propozycję</span>
+                            <input
+                              type="radio"
+                              name={`duration-${template.id}`}
+                              value="null"
+                              checked={formData.durationSelections[template.id] === null && template.id in formData.durationSelections}
+                              onChange={() => setDurationSelection(template.id, null)}
+                              className="sr-only"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
                     
                     {template.description && (
                       <div className="mt-1 ml-8">

@@ -27,6 +27,7 @@ interface Template {
   short_name: string | null;
   description: string | null;
   price_from: number | null;
+  available_durations?: number[];
 }
 
 interface Service {
@@ -95,9 +96,66 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
           .eq('has_unified_services', true)
           .order('sort_order');
 
-        if (templatesData) {
-          setTemplates(templatesData);
+        let templatesWithDurations: Template[] = templatesData || [];
+
+        // Fetch available durations for each template from products metadata
+        if (templatesData && templatesData.length > 0) {
+          const templateIds = templatesData.map(t => t.id);
+          
+          // Fetch scope products
+          const { data: scopeProducts } = await supabase
+            .from('offer_scope_products')
+            .select('scope_id, product_id')
+            .in('scope_id', templateIds);
+
+          if (scopeProducts && scopeProducts.length > 0) {
+            const productIds = [...new Set(scopeProducts.map(sp => sp.product_id))];
+            
+            // Fetch product metadata
+            const { data: products } = await supabase
+              .from('unified_services')
+              .select('id, metadata')
+              .in('id', productIds)
+              .eq('active', true)
+              .is('deleted_at', null);
+
+            if (products) {
+              // Build product_id -> durability map
+              const productDurability: Record<string, number | null> = {};
+              for (const p of products) {
+                const meta = p.metadata as { trwalosc_produktu_w_mesiacach?: number } | null;
+                productDurability[p.id] = meta?.trwalosc_produktu_w_mesiacach || null;
+              }
+
+              // Build scope -> durations map
+              const templateDurations: Record<string, number[]> = {};
+              for (const sp of scopeProducts) {
+                const durability = productDurability[sp.product_id];
+                if (durability && durability > 0) {
+                  if (!templateDurations[sp.scope_id]) {
+                    templateDurations[sp.scope_id] = [];
+                  }
+                  if (!templateDurations[sp.scope_id].includes(durability)) {
+                    templateDurations[sp.scope_id].push(durability);
+                  }
+                }
+              }
+
+              // Sort durations
+              for (const scopeId of Object.keys(templateDurations)) {
+                templateDurations[scopeId].sort((a, b) => a - b);
+              }
+
+              // Merge durations into templates
+              templatesWithDurations = templatesData.map(t => ({
+                ...t,
+                available_durations: templateDurations[t.id] || [],
+              }));
+            }
+          }
         }
+
+        setTemplates(templatesWithDurations);
 
         // Fetch services for extras selection
         const { data: servicesData } = await supabase

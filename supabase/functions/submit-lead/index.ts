@@ -28,6 +28,7 @@ interface OfferDetails {
   budget_suggestion?: number | null;
   additional_notes?: string;
   planned_date?: string | null;
+  duration_selections?: Record<string, number | null>;
 }
 
 interface SubmitLeadRequest {
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Instance slug required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    );
     }
 
     // Parse request body
@@ -147,7 +148,7 @@ Deno.serve(async (req) => {
       inquiryNotes = offer_details.additional_notes;
     }
 
-    // Create offer draft
+    // Create offer draft with widget extras and duration selections
     const { data: offer, error: offerError } = await supabase
       .from('offers')
       .insert({
@@ -165,6 +166,8 @@ Deno.serve(async (req) => {
         total_net: 0,
         total_gross: 0,
         has_unified_services: true,
+        widget_selected_extras: offer_details.extra_service_ids || [],
+        widget_duration_selections: offer_details.duration_selections || null,
       })
       .select('id, public_token')
       .single();
