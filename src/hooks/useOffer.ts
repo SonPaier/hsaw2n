@@ -1027,8 +1027,9 @@ export const useOffer = (instanceId: string) => {
           
           if (months !== undefined && months !== null && typeof months === 'number') {
             parts.push(`• ${scopeName} (${formatDuration(months)})`);
-          } else if (months === null) {
-            parts.push(`• ${scopeName} (okres do ustalenia)`);
+          } else if (scopeId in widgetDurationSelections && months === null) {
+            // Customer explicitly chose "Nie wiem, proszę o propozycję"
+            parts.push(`• ${scopeName} – Nie wiem, proszę o propozycję`);
           } else {
             parts.push(`• ${scopeName}`);
           }
