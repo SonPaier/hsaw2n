@@ -96,6 +96,57 @@ Deno.serve(async (req) => {
       );
     }
 
+    // For each template, fetch products to find unique durability values
+    const templateIds = (templates || []).map(t => t.id);
+    let templateDurations: Record<string, number[]> = {};
+    
+    if (templateIds.length > 0) {
+      // Fetch scope products to get product IDs
+      const { data: scopeProducts } = await supabase
+        .from('offer_scope_products')
+        .select('scope_id, product_id')
+        .in('scope_id', templateIds);
+
+      if (scopeProducts && scopeProducts.length > 0) {
+        const productIds = [...new Set(scopeProducts.map(sp => sp.product_id))];
+        
+        // Fetch product metadata to get durability
+        const { data: products } = await supabase
+          .from('unified_services')
+          .select('id, metadata')
+          .in('id', productIds)
+          .eq('active', true)
+          .is('deleted_at', null);
+
+        if (products) {
+          // Build a map of product_id -> durability
+          const productDurability: Record<string, number | null> = {};
+          for (const p of products) {
+            const meta = p.metadata as { trwalosc_produktu_w_mesiacach?: number } | null;
+            productDurability[p.id] = meta?.trwalosc_produktu_w_mesiacach || null;
+          }
+
+          // Build scope -> durations mapping
+          for (const sp of scopeProducts) {
+            const durability = productDurability[sp.product_id];
+            if (durability && durability > 0) {
+              if (!templateDurations[sp.scope_id]) {
+                templateDurations[sp.scope_id] = [];
+              }
+              if (!templateDurations[sp.scope_id].includes(durability)) {
+                templateDurations[sp.scope_id].push(durability);
+              }
+            }
+          }
+
+          // Sort durations for each scope
+          for (const scopeId of Object.keys(templateDurations)) {
+            templateDurations[scopeId].sort((a, b) => a - b);
+          }
+        }
+      }
+    }
+
     // Fetch extras (services with custom labels)
     let extras: { id: string; name: string }[] = [];
     if (widgetConfig?.extras && widgetConfig.extras.length > 0) {
@@ -140,6 +191,7 @@ Deno.serve(async (req) => {
         short_name: t.short_name,
         description: t.description,
         price_from: t.price_from,
+        available_durations: templateDurations[t.id] || [],
       })),
       extras,
     };

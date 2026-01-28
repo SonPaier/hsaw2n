@@ -773,13 +773,6 @@ export const SummaryStepV2 = ({
               {offer.customerData.phone && (
                 <p className="text-muted-foreground">{offer.customerData.phone}</p>
               )}
-              {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
-                <p className="font-bold">
-                  {offer.vehicleData.paintColor}
-                  {offer.vehicleData.paintColor && offer.vehicleData.paintType && ' • '}
-                  {offer.vehicleData.paintType === 'gloss' ? 'Połysk' : offer.vehicleData.paintType === 'matte' ? 'Mat' : getPaintTypeLabel(offer.vehicleData.paintType || '')}
-                </p>
-              )}
             </div>
           </div>
           
@@ -809,11 +802,18 @@ export const SummaryStepV2 = ({
               <div className="text-sm space-y-0.5 pl-6">
                 <p className="font-medium">{offer.vehicleData.brandModel}</p>
                 {(offer.vehicleData.paintColor || offer.vehicleData.paintType) && (
-                  <p className="text-muted-foreground">
-                    {offer.vehicleData.paintColor}
-                    {offer.vehicleData.paintColor && offer.vehicleData.paintType && ' • '}
-                    {offer.vehicleData.paintType && getPaintTypeLabel(offer.vehicleData.paintType)}
-                  </p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {offer.vehicleData.paintColor && (
+                      <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium">
+                        {offer.vehicleData.paintColor}
+                      </span>
+                    )}
+                    {offer.vehicleData.paintType && (
+                      <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium">
+                        {offer.vehicleData.paintType === 'gloss' ? 'Połysk' : offer.vehicleData.paintType === 'matte' ? 'Mat' : getPaintTypeLabel(offer.vehicleData.paintType)}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

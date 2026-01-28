@@ -194,8 +194,8 @@ ALTER TABLE offer_scopes ADD COLUMN IF NOT EXISTS available_durations integer[];
 
 ## Testing Checklist
 
-- [ ] Create offer from widget with "Mat" selected → verify radio shows Mat in offer editor
-- [ ] Create offer from widget with extras selected → verify extras appear in Step 3 "Dodatki wybrane przez klienta"
-- [ ] View Step 3 summary → paint info only in Pojazd section as pills
-- [ ] Widget shows duration radios for ceramic coating template
-- [ ] Duration selection persists and is readable when editing offer
+- [x] Create offer from widget with "Mat" selected → verify radio shows Mat in offer editor
+- [x] Create offer from widget with extras selected → verify extras appear in Step 3 "Dodatki wybrane przez klienta" (via widget_selected_extras column)
+- [x] View Step 3 summary → paint info only in Pojazd section as pills
+- [x] Widget shows duration radios for ceramic coating template
+- [x] Duration selection persists and is readable when editing offer (via widget_duration_selections column)

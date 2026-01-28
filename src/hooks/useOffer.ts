@@ -946,11 +946,14 @@ export const useOffer = (instanceId: string) => {
         : [];
 
       // Handle legacy vehicle data format
+      // Merge separate paint_color/paint_finish columns with vehicle_data JSONB
       const vehicleDataRaw = offerData.vehicle_data as any || defaultVehicleData;
       const vehicleData: VehicleData = {
         brandModel: vehicleDataRaw.brandModel || 
           [vehicleDataRaw.brand, vehicleDataRaw.model].filter(Boolean).join(' ') || '',
         plate: vehicleDataRaw.plate || '',
+        paintColor: vehicleDataRaw.paintColor || (offerData as any).paint_color || '',
+        paintType: vehicleDataRaw.paintType || (offerData as any).paint_finish || '',
       };
 
       // Parse defaultSelectedState from selected_state if it has isDefault marker

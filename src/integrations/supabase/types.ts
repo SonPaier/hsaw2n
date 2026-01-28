@@ -1519,6 +1519,7 @@ export type Database = {
       offer_scopes: {
         Row: {
           active: boolean
+          available_durations: number[] | null
           created_at: string
           default_notes: string | null
           default_payment_terms: string | null
@@ -1539,6 +1540,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          available_durations?: number[] | null
           created_at?: string
           default_notes?: string | null
           default_payment_terms?: string | null
@@ -1559,6 +1561,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          available_durations?: number[] | null
           created_at?: string
           default_notes?: string | null
           default_payment_terms?: string | null
@@ -1713,6 +1716,8 @@ export type Database = {
           vehicle_data: Json | null
           viewed_at: string | null
           warranty: string | null
+          widget_duration_selections: Json | null
+          widget_selected_extras: string[] | null
         }
         Insert: {
           admin_approved_gross?: number | null
@@ -1753,6 +1758,8 @@ export type Database = {
           vehicle_data?: Json | null
           viewed_at?: string | null
           warranty?: string | null
+          widget_duration_selections?: Json | null
+          widget_selected_extras?: string[] | null
         }
         Update: {
           admin_approved_gross?: number | null
@@ -1793,6 +1800,8 @@ export type Database = {
           vehicle_data?: Json | null
           viewed_at?: string | null
           warranty?: string | null
+          widget_duration_selections?: Json | null
+          widget_selected_extras?: string[] | null
         }
         Relationships: [
           {
