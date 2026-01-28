@@ -963,6 +963,103 @@ export const useOffer = (instanceId: string) => {
       const widgetSelectedExtras = (offerData as any).widget_selected_extras || [];
       const widgetDurationSelections = (offerData as any).widget_duration_selections || {};
 
+      // Auto-generate inquiry content for website leads
+      let generatedInquiryContent: string | undefined;
+      const offerSource = (offerData as any).source;
+      const customerDataRaw = offerData.customer_data as any || {};
+      const existingInquiryContent = customerDataRaw.inquiryContent || '';
+      
+      if (offerSource === 'website' && !existingInquiryContent) {
+        // Get all scope IDs from the offer (both from duration selections and from options)
+        const durationScopeIds = Object.keys(widgetDurationSelections);
+        const optionScopeIds = regularOptions
+          .filter((opt: any) => opt.scope_id)
+          .map((opt: any) => opt.scope_id);
+        const allScopeIds = [...new Set([...durationScopeIds, ...optionScopeIds])];
+        
+        let scopeNamesMap: Record<string, string> = {};
+        
+        if (allScopeIds.length > 0) {
+          const { data: scopesData } = await supabase
+            .from('offer_scopes')
+            .select('id, name, short_name, is_extras_scope')
+            .in('id', allScopeIds);
+          
+          if (scopesData) {
+            scopesData
+              .filter(s => !s.is_extras_scope) // Exclude extras scope from template list
+              .forEach(s => {
+                scopeNamesMap[s.id] = s.short_name || s.name;
+              });
+          }
+        }
+        
+        // Fetch service names for widget_selected_extras
+        let extrasNames: string[] = [];
+        if (widgetSelectedExtras.length > 0) {
+          const { data: extrasData } = await supabase
+            .from('unified_services')
+            .select('id, name, short_name')
+            .in('id', widgetSelectedExtras);
+          
+          if (extrasData) {
+            extrasNames = extrasData.map(e => e.short_name || e.name);
+          }
+        }
+        
+        // Helper to format duration in Polish
+        const formatDuration = (months: number): string => {
+          const years = months / 12;
+          if (years === 1) return '1 rok';
+          if (years <= 4) return `${years} lata`;
+          return `${years} lat`;
+        };
+        
+        // Build inquiry content
+        const parts: string[] = [];
+        const customerName = customerDataRaw.name || 'Klient';
+        parts.push(`Klient ${customerName} chce:`);
+        
+        // Add selected templates - use scopeNamesMap keys to get all templates
+        for (const scopeId of Object.keys(scopeNamesMap)) {
+          const scopeName = scopeNamesMap[scopeId];
+          const months = widgetDurationSelections[scopeId];
+          
+          if (months !== undefined && months !== null && typeof months === 'number') {
+            parts.push(`• ${scopeName} (${formatDuration(months)})`);
+          } else if (months === null) {
+            parts.push(`• ${scopeName} (okres do ustalenia)`);
+          } else {
+            parts.push(`• ${scopeName}`);
+          }
+        }
+        
+        // Add selected extras
+        if (extrasNames.length > 0) {
+          parts.push('');
+          parts.push('Dodatki:');
+          extrasNames.forEach(name => {
+            parts.push(`• ${name}`);
+          });
+        }
+        
+        // Add budget if provided
+        const budgetSuggestion = (offerData as any).budget_suggestion;
+        if (budgetSuggestion) {
+          parts.push('');
+          parts.push(`Budżet: ${budgetSuggestion.toLocaleString('pl-PL')} zł`);
+        }
+        
+        // Add customer notes if provided
+        const inquiryNotes = (offerData as any).inquiry_notes;
+        if (inquiryNotes) {
+          parts.push('');
+          parts.push(`Notatki klienta: ${inquiryNotes}`);
+        }
+        
+        generatedInquiryContent = parts.join('\n');
+      }
+
       // Parse defaultSelectedState from selected_state if it has isDefault marker
       const loadedOptionIds = options.map((o: any) => o.id);
       const loadedItemIds = options.flatMap((o: any) => o.items.map((i: any) => i.id));
@@ -1039,10 +1136,16 @@ export const useOffer = (instanceId: string) => {
         }
       }
 
+      // Merge generated inquiry content into customer data if available
+      const finalCustomerData: CustomerData = {
+        ...((offerData.customer_data || defaultCustomerData) as unknown as CustomerData),
+        ...(generatedInquiryContent && { inquiryContent: generatedInquiryContent }),
+      };
+
       setOffer({
         id: isDuplicate ? undefined : offerData.id, // Clear ID for duplicates
         instanceId: offerData.instance_id,
-        customerData: (offerData.customer_data || defaultCustomerData) as unknown as CustomerData,
+        customerData: finalCustomerData,
         vehicleData,
         selectedScopeIds: scopeIdsFromOptions,
         options,
