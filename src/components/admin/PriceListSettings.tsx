@@ -689,6 +689,8 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           service_type: (editingService.service_type || 'both') as 'both' | 'offer' | 'reservation',
           visibility: (editingService.visibility ?? 'everywhere') as 'everywhere' | 'only_reservations' | 'only_offers',
           reminder_template_id: editingService.reminder_template_id || null,
+          is_popular: editingService.is_popular ?? false,
+          metadata: editingService.metadata ?? null,
         } : null}
         categories={categories}
         onSaved={fetchServices}
