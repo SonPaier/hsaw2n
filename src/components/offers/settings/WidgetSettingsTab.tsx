@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, Trash2, ExternalLink, Copy, Check, GripVertical } from 'lucide-react';
+import { Loader2, Plus, Trash2, ExternalLink, Copy, Check, GripVertical, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import EmbedLeadFormPreview from './EmbedLeadFormPreview';
+import { ScopeProductSelectionDrawer } from '../services/ScopeProductSelectionDrawer';
 
 interface WidgetConfig {
   visible_templates: string[];
@@ -33,6 +34,13 @@ interface Service {
   name: string;
   short_name: string | null;
   default_price: number | null;
+  category_id: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  sort_order: number | null;
 }
 
 interface WidgetSettingsTabProps {
@@ -45,6 +53,8 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [extrasDrawerOpen, setExtrasDrawerOpen] = useState(false);
   const [config, setConfig] = useState<WidgetConfig>({
     visible_templates: [],
     extras: [],
@@ -92,7 +102,7 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
         // Fetch services for extras selection
         const { data: servicesData } = await supabase
           .from('unified_services')
-          .select('id, name, short_name, default_price')
+          .select('id, name, short_name, default_price, category_id')
           .eq('instance_id', instanceId)
           .eq('service_type', 'both')
           .eq('active', true)
@@ -102,6 +112,18 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
 
         if (servicesData) {
           setServices(servicesData);
+        }
+
+        // Fetch categories for drawer
+        const { data: categoriesData } = await supabase
+          .from('unified_categories')
+          .select('id, name, sort_order')
+          .eq('instance_id', instanceId)
+          .eq('category_type', 'both')
+          .eq('active', true);
+
+        if (categoriesData) {
+          setCategories(categoriesData);
         }
       } catch (error) {
         console.error('Error fetching widget config:', error);
@@ -172,10 +194,50 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
     return services.find(s => s.id === serviceId)?.name || 'Nieznana usługa';
   };
 
-  // Get available services (not already added as extras)
-  const availableServices = services.filter(
-    s => !config.extras.some(e => e.service_id === s.id)
-  );
+  // Build products for drawer (use service ID as the main ID)
+  const drawerProducts = useMemo(() => {
+    // Build category name map
+    const categoryNameMap: Record<string, string> = {};
+    categories.forEach(c => {
+      categoryNameMap[c.id] = c.name;
+    });
+
+    return services.map(s => ({
+      id: s.id,
+      productId: s.id,
+      productName: s.name,
+      productShortName: s.short_name,
+      variantName: null,
+      price: s.default_price ?? 0,
+      category: s.category_id ? categoryNameMap[s.category_id] || null : null,
+    }));
+  }, [services, categories]);
+
+  // Build category order map
+  const categoryOrder = useMemo(() => {
+    const order: Record<string, number> = {};
+    categories.forEach(c => {
+      order[c.name] = c.sort_order ?? 999;
+    });
+    return order;
+  }, [categories]);
+
+  // Handle extras selection from drawer
+  const handleExtrasSelected = (products: { id: string; productId: string; productName: string }[]) => {
+    // Keep existing custom labels where possible
+    const existingLabels = new Map(config.extras.map(e => [e.service_id, e.custom_label]));
+    
+    const newExtras = products.map(p => ({
+      service_id: p.id,
+      custom_label: existingLabels.get(p.id) || null,
+    }));
+    
+    setConfig(prev => ({ ...prev, extras: newExtras }));
+    onChange();
+  };
+
+  // Get already selected service IDs for drawer
+  const selectedExtrasIds = config.extras.map(e => e.service_id);
 
   const embedUrl = `https://${instanceSlug}.n2wash.com/embed`;
   const iframeCode = `<iframe 
@@ -316,28 +378,26 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
               </div>
             ))}
 
-            {availableServices.length > 0 && (
-              <div className="pt-2">
-                <select
-                  className="w-full h-9 px-3 border rounded-md text-sm bg-background"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleAddExtra(e.target.value);
-                    }
-                  }}
-                >
-                  <option value="">+ Dodaj usługę...</option>
-                  {availableServices.map(service => (
-                    <option key={service.id} value={service.id}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <Button
+              variant="outline"
+              onClick={() => setExtrasDrawerOpen(true)}
+              className="w-full justify-start gap-2 h-11"
+            >
+              <Plus className="w-4 h-4" />
+              Wybierz usługi...
+            </Button>
           </div>
         </div>
+
+        {/* Extras Selection Drawer */}
+        <ScopeProductSelectionDrawer
+          open={extrasDrawerOpen}
+          onClose={() => setExtrasDrawerOpen(false)}
+          availableProducts={drawerProducts}
+          alreadySelectedIds={selectedExtrasIds}
+          categoryOrder={categoryOrder}
+          onConfirm={handleExtrasSelected}
+        />
 
         <Separator />
 
@@ -384,8 +444,8 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
       </div>
 
       {/* Right side - Preview */}
-      <div className="border rounded-lg bg-slate-100 overflow-hidden">
-        <div className="p-2 bg-slate-200 border-b">
+      <div className="border rounded-lg bg-muted/50 overflow-hidden">
+        <div className="p-2 bg-muted border-b">
           <p className="text-xs text-center text-muted-foreground">Podgląd widgetu</p>
         </div>
         <ScrollArea className="h-[600px]">
