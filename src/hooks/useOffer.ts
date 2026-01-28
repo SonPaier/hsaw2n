@@ -74,6 +74,9 @@ export interface OfferState {
   hideUnitPrices: boolean;
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
   defaultSelectedState?: DefaultSelectedState;
+  // Widget selections for auto-preselection in Step 3
+  widgetSelectedExtras?: string[];          // uuid[] from widget
+  widgetDurationSelections?: Record<string, number | null>; // templateId → months
 }
 
 const defaultCustomerData: CustomerData = {
@@ -956,6 +959,10 @@ export const useOffer = (instanceId: string) => {
         paintType: vehicleDataRaw.paintType || (offerData as any).paint_finish || '',
       };
 
+      // Load widget selections for offer hydration in Step 3
+      const widgetSelectedExtras = (offerData as any).widget_selected_extras || [];
+      const widgetDurationSelections = (offerData as any).widget_duration_selections || {};
+
       // Parse defaultSelectedState from selected_state if it has isDefault marker
       const loadedOptionIds = options.map((o: any) => o.id);
       const loadedItemIds = options.flatMap((o: any) => o.items.map((i: any) => i.id));
@@ -1049,6 +1056,8 @@ export const useOffer = (instanceId: string) => {
         hideUnitPrices: offerData.hide_unit_prices || false,
         status: isDuplicate ? 'draft' : offerData.status as OfferState['status'], // Reset status for duplicates
         defaultSelectedState,
+        widgetSelectedExtras,
+        widgetDurationSelections,
       });
     } catch (error) {
       console.error('Error loading offer:', error);
