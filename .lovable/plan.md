@@ -1,166 +1,41 @@
-
-# Rozbudowa metadanych usług - "Dodatkowe właściwości usługi"
+# Rozbudowa Widgetu Lead Form
 
 ✅ **STATUS: ZAIMPLEMENTOWANE**
 
-## Cel
+## Zmiany w bazie danych (migracja)
 
-Dodanie dwóch nowych pól do sekcji "Zaawansowane właściwości usługi" w formularzu edycji usługi:
-1. **Trwałość produktu w miesiącach** - pole liczbowe
-2. **Produkt do lakierów** - dropdown z 3 opcjami
+- `offer_scopes.price_from` - cena "od" wyświetlana w widgecie
+- `instances.widget_config` (jsonb) - konfiguracja widgetu
+- `offers.paint_color` - kolor lakieru od klienta
+- `offers.paint_finish` - rodzaj lakieru (gloss/matte)
+- `offers.planned_date` - planowany termin realizacji
+- `offers.inquiry_notes` - treść zapytania klienta
+- `paint_colors` - tabela referencyjna kolorów lakierów
 
-Następnie aktualizacja metadanych dla wszystkich produktów w kategorii POWŁOKI OCHRONNE dla instancji ARMCAR.
+## Nowe komponenty
 
----
+1. **WidgetSettingsTab** - zakładka "Wtyczka" w ustawieniach ofert
+   - Lewa strona: konfiguracja (szablony, ceny od, dodatki)
+   - Prawa strona: podgląd widgetu
 
-## Zmiany w bazie danych
+2. **EmbedLeadFormPreview** - podgląd widgetu w ustawieniach
 
-Nie są wymagane zmiany schemy - wykorzystujemy istniejącą kolumnę `metadata` (jsonb) w tabeli `unified_services`.
+3. **Rozbudowany EmbedLeadForm**:
+   - Planowany termin realizacji (DatePicker)
+   - Kolor lakieru (input tekstowy)
+   - Rodzaj lakieru (Połysk/Mat toggle)
+   - Walidacja email i telefonu (min 9 cyfr)
+   - Przycisk zawsze aktywny, błędy na submit + scroll do góry
+   - Opisy pod "Czytaj więcej..."
+   - Sekcja dodatków
 
-### Nowa struktura metadata:
+## Zmiany w OfferSettingsDialog
 
-```text
-{
-  "trwalosc_produktu_w_mesiacach": 24,
-  "produkt_do_lakierow": "dowolny" | "matowe" | "ciemne",
-  // ...inne istniejące pola
-}
-```
+- 4 zakładki: Ogólne, Branding, Nagłówek, Wtyczka
+- Fixed header i footer
+- Scrollable content
 
----
+## Edge Functions
 
-## Zmiany w UI - ServiceFormDialog.tsx
-
-### Lokalizacja w formularzu:
-
-Nowe pola zostaną dodane w sekcji "Zaawansowane właściwości usługi" (Collapsible), **przed szablonem przypomnień** (linia ~738).
-
-### Nowe pola:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Zobacz zaawansowane właściwości usługi  ▼                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Czas trwania:  [___] min                                   │
-│  ─ lub ─ Czas zależny od wielkości samochodu                │
-│                                                             │
-│  Widoczność usługi: [Wszędzie ▼]                            │
-│                                                             │
-│  ☐ Popularna usługa (skrót w formularzu rezerwacji)         │
-│                                                             │
-│  ──── Dodatkowe właściwości usługi ────                     │  ← NOWA SEKCJA
-│                                                             │
-│  Trwałość produktu:  [___] miesięcy                         │  ← NOWE
-│                                                             │
-│  Produkt do lakierów: [Dowolny lakier ▼]                    │  ← NOWE
-│    - Lakierów matowych                                      │
-│    - Lakierów ciemnych                                      │
-│    - Dowolny lakier                                         │
-│                                                             │
-│  ────────────────────────────────────────                   │
-│                                                             │
-│  Szablon przypomnień: [Brak ▼]                              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Szczegóły implementacji
-
-### 1. Rozszerzenie interfejsu ServiceData:
-
-```typescript
-interface ServiceData {
-  // ...istniejące pola
-  metadata?: {
-    trwalosc_produktu_w_mesiacach?: number | null;
-    produkt_do_lakierow?: 'matowe' | 'ciemne' | 'dowolny' | null;
-    // zachowaj kompatybilność z innymi polami
-    [key: string]: unknown;
-  };
-}
-```
-
-### 2. Nowe pola w formData:
-
-```typescript
-const [formData, setFormData] = useState({
-  // ...istniejące pola
-  trwalosc_produktu_w_mesiacach: service?.metadata?.trwalosc_produktu_w_mesiacach ?? null,
-  produkt_do_lakierow: service?.metadata?.produkt_do_lakierow ?? 'dowolny',
-});
-```
-
-### 3. Zapisywanie metadata przy save:
-
-```typescript
-const serviceData = {
-  // ...istniejące pola
-  metadata: {
-    ...(service?.metadata || {}),
-    trwalosc_produktu_w_mesiacach: formData.trwalosc_produktu_w_mesiacach,
-    produkt_do_lakierow: formData.produkt_do_lakierow === 'dowolny' ? null : formData.produkt_do_lakierow,
-  }
-};
-```
-
----
-
-## Aktualizacja danych ARMCAR
-
-### Usługi w kategorii POWŁOKI OCHRONNE do zaktualizowania:
-
-| Usługa | Trwałość (mies.) | Produkt do lakierów |
-|--------|------------------|---------------------|
-| Elastomer 12 miesięcy | 12 | dowolny |
-| Elastomer 24 miesiące | 24 | dowolny |
-| Elastomer 36 miesięcy | 36 | dowolny |
-| Elastomer 48 miesięcy | 48 | dowolny |
-| Elastomer 60 miesięcy | 60 | dowolny |
-| Gyeon Q² CanCoat EVO | 12 | dowolny |
-| Gyeon Q² One EVO | 24 | dowolny |
-| Gyeon Q² Mohs EVO | 36 | dowolny |
-| Gyeon Q² Pure EVO | 36 | dowolny |
-| Gyeon Q² Syncro EVO | 48 | dowolny |
-| Gyeon Q² Pure EVO x2 | 60 | dowolny |
-| Gyeon Q² Matte EVO | 24 | **matowe** |
-| Gyeon Q² Tire | null | dowolny |
-| Gyeon Q² View EVO | null | dowolny |
-| Gyeon Quick View | null | dowolny |
-| Gyeon Q² Rim EVO | null | dowolny |
-| Gyeon Q² LeatherShield | null | dowolny |
-| Serwis powłoki ceramicznej | null | dowolny |
-
----
-
-## Pliki do modyfikacji
-
-1. **src/components/admin/ServiceFormDialog.tsx**
-   - Dodanie nowych pól w sekcji zaawansowanej
-   - Rozszerzenie formData o metadata
-   - Zapisywanie metadata przy upsert
-
-2. **Aktualizacja danych w bazie** (przez narzędzie insert/update)
-   - UPDATE unified_services SET metadata dla produktów POWŁOKI OCHRONNE
-
----
-
-## Tłumaczenia (pl.json)
-
-```json
-{
-  "priceList": {
-    "form": {
-      "additionalProperties": "Dodatkowe właściwości usługi",
-      "productDurability": "Trwałość produktu",
-      "productDurabilityMonths": "miesięcy",
-      "productForPaints": "Produkt do lakierów",
-      "paintTypeAny": "Dowolny lakier",
-      "paintTypeMatte": "Lakierów matowych",
-      "paintTypeDark": "Lakierów ciemnych"
-    }
-  }
-}
-```
+- `get-embed-config` - zwraca extras i price_from z widget_config
+- `submit-lead` - zapisuje paint_color, paint_finish, planned_date, inquiry_notes

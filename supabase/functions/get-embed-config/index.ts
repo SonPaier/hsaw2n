@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     // Fetch instance data
     const { data: instance, error: instanceError } = await supabase
       .from('instances')
-      .select('id, name, short_name, address, nip, logo_url, offer_bg_color, offer_primary_color, contact_person, phone')
+      .select('id, name, short_name, address, nip, logo_url, offer_bg_color, offer_primary_color, contact_person, phone, widget_config')
       .eq('slug', instanceSlug)
       .eq('active', true)
       .maybeSingle();
@@ -62,15 +62,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Parse widget config
+    const widgetConfig = instance.widget_config as {
+      visible_templates?: string[];
+      extras?: { service_id: string; custom_label: string | null }[];
+    } | null;
+
+    const visibleTemplateIds = widgetConfig?.visible_templates || [];
+
     // Fetch active offer templates (scopes) with has_unified_services=true
-    const { data: templates, error: templatesError } = await supabase
+    // Filter by visible_templates if configured
+    let templatesQuery = supabase
       .from('offer_scopes')
-      .select('id, name, short_name, description')
+      .select('id, name, short_name, description, price_from')
       .eq('instance_id', instance.id)
       .eq('active', true)
       .eq('has_unified_services', true)
       .eq('is_extras_scope', false)
       .order('sort_order', { ascending: true });
+
+    // If visible_templates is configured, filter by those IDs
+    if (visibleTemplateIds.length > 0) {
+      templatesQuery = templatesQuery.in('id', visibleTemplateIds);
+    }
+
+    const { data: templates, error: templatesError } = await templatesQuery;
 
     if (templatesError) {
       console.error('Templates fetch error:', templatesError);
@@ -78,6 +94,30 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Failed to fetch templates' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Fetch extras (services with custom labels)
+    let extras: { id: string; name: string }[] = [];
+    if (widgetConfig?.extras && widgetConfig.extras.length > 0) {
+      const serviceIds = widgetConfig.extras.map(e => e.service_id);
+      
+      const { data: services } = await supabase
+        .from('unified_services')
+        .select('id, name')
+        .in('id', serviceIds)
+        .eq('active', true)
+        .is('deleted_at', null);
+
+      if (services) {
+        // Map services with custom labels
+        extras = widgetConfig.extras.map(extra => {
+          const service = services.find(s => s.id === extra.service_id);
+          return {
+            id: extra.service_id,
+            name: extra.custom_label || service?.name || 'Usługa',
+          };
+        });
+      }
     }
 
     const response = {
@@ -99,7 +139,9 @@ Deno.serve(async (req) => {
         name: t.name,
         short_name: t.short_name,
         description: t.description,
+        price_from: t.price_from,
       })),
+      extras,
     };
 
     return new Response(
