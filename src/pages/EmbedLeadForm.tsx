@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Loader2, CheckCircle2 } from 'lucide-react';
+import { Check, Loader2, CheckCircle2, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { CarModelsProvider } from '@/contexts/CarModelsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 interface EmbedConfig {
   branding: {
@@ -30,6 +34,11 @@ interface EmbedConfig {
     name: string;
     short_name: string | null;
     description: string | null;
+    price_from: number | null;
+  }[];
+  extras: {
+    id: string;
+    name: string;
   }[];
 }
 
@@ -41,7 +50,11 @@ interface FormData {
   vehicleModelId: string | null;
   carSize: string;
   mileage: string;
+  paintColor: string;
+  paintFinish: 'gloss' | 'matte' | null;
+  plannedDate: Date | null;
   selectedTemplates: string[];
+  selectedExtras: string[];
   budget: string;
   notes: string;
   gdprAccepted: boolean;
@@ -49,11 +62,14 @@ interface FormData {
 
 function EmbedLeadFormContent() {
   const { t } = useTranslation();
+  const formRef = useRef<HTMLFormElement>(null);
   const [config, setConfig] = useState<EmbedConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -63,7 +79,11 @@ function EmbedLeadFormContent() {
     vehicleModelId: null,
     carSize: '',
     mileage: '',
+    paintColor: '',
+    paintFinish: null,
+    plannedDate: null,
     selectedTemplates: [],
+    selectedExtras: [],
     budget: '',
     notes: '',
     gdprAccepted: false,
@@ -108,25 +128,48 @@ function EmbedLeadFormContent() {
     if (!formData.name.trim()) {
       errors.name = t('embed.validation.nameRequired');
     }
+    
     if (!formData.email.trim()) {
       errors.email = t('embed.validation.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = t('embed.validation.emailInvalid');
     }
+    
+    // Phone validation - minimum 9 digits
+    const phoneDigits = formData.phone.replace(/\D/g, '');
     if (!formData.phone.trim()) {
       errors.phone = t('embed.validation.phoneRequired');
+    } else if (phoneDigits.length < 9) {
+      errors.phone = 'Numer telefonu musi mieć minimum 9 cyfr';
     }
+    
     if (!formData.vehicleModel.trim()) {
       errors.vehicle = t('embed.validation.vehicleRequired');
     }
+    
+    if (!formData.paintColor.trim()) {
+      errors.paintColor = 'Kolor lakieru jest wymagany';
+    }
+    
+    if (!formData.paintFinish) {
+      errors.paintFinish = 'Wybierz rodzaj lakieru';
+    }
+    
     if (formData.selectedTemplates.length === 0) {
       errors.templates = t('embed.validation.packageRequired');
     }
+    
     if (!formData.gdprAccepted) {
       errors.gdpr = t('embed.gdprRequired');
     }
 
     setValidationErrors(errors);
+    
+    // Scroll to top if there are errors
+    if (Object.keys(errors).length > 0) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
     return Object.keys(errors).length === 0;
   };
 
@@ -154,11 +197,15 @@ function EmbedLeadFormContent() {
             custom_model_name: formData.vehicleModel,
             car_size: formData.carSize,
             mileage: formData.mileage,
+            paint_color: formData.paintColor,
+            paint_finish: formData.paintFinish,
           },
           offer_details: {
             template_ids: formData.selectedTemplates,
+            extra_service_ids: formData.selectedExtras,
             budget_suggestion: formData.budget ? parseFloat(formData.budget) : null,
             additional_notes: formData.notes,
+            planned_date: formData.plannedDate ? format(formData.plannedDate, 'yyyy-MM-dd') : null,
           },
         },
       });
@@ -168,6 +215,8 @@ function EmbedLeadFormContent() {
     } catch (err) {
       console.error('Error submitting lead:', err);
       setError(t('embed.errorGeneric'));
+      // Scroll to top on error
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } finally {
       setSubmitting(false);
     }
@@ -180,10 +229,30 @@ function EmbedLeadFormContent() {
         ? prev.selectedTemplates.filter(id => id !== templateId)
         : [...prev.selectedTemplates, templateId],
     }));
-    // Clear validation error when user selects a template
     if (validationErrors.templates) {
       setValidationErrors(prev => ({ ...prev, templates: '' }));
     }
+  };
+
+  const toggleExtra = (extraId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedExtras: prev.selectedExtras.includes(extraId)
+        ? prev.selectedExtras.filter(id => id !== extraId)
+        : [...prev.selectedExtras, extraId],
+    }));
+  };
+
+  const toggleDescription = (templateId: string) => {
+    setExpandedDescriptions(prev => {
+      const next = new Set(prev);
+      if (next.has(templateId)) {
+        next.delete(templateId);
+      } else {
+        next.add(templateId);
+      }
+      return next;
+    });
   };
 
   const handleCarSelect = (value: CarSearchValue) => {
@@ -215,7 +284,7 @@ function EmbedLeadFormContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f8fafc' }}>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -223,7 +292,7 @@ function EmbedLeadFormContent() {
 
   if (error && !config) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#f8fafc' }}>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="text-center">
           <p className="text-destructive">{error}</p>
         </div>
@@ -270,7 +339,14 @@ function EmbedLeadFormContent() {
           <p className="text-muted-foreground mt-1">{t('embed.subtitle')}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Error display at top */}
+        {error && (
+          <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           {/* Customer Data Section */}
           <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
             <h2 className="font-semibold text-lg">{t('embed.customerSection')}</h2>
@@ -295,7 +371,12 @@ function EmbedLeadFormContent() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                  if (validationErrors.email) {
+                    setValidationErrors(prev => ({ ...prev, email: '' }));
+                  }
+                }}
                 placeholder="jan@example.com"
                 className={validationErrors.email ? 'border-destructive' : ''}
               />
@@ -310,7 +391,12 @@ function EmbedLeadFormContent() {
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, phone: e.target.value }));
+                  if (validationErrors.phone) {
+                    setValidationErrors(prev => ({ ...prev, phone: '' }));
+                  }
+                }}
                 placeholder="+48 123 456 789"
                 className={validationErrors.phone ? 'border-destructive' : ''}
               />
@@ -337,6 +423,62 @@ function EmbedLeadFormContent() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="paintColor">Kolor lakieru *</Label>
+              <Input
+                id="paintColor"
+                value={formData.paintColor}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, paintColor: e.target.value }));
+                  if (validationErrors.paintColor) {
+                    setValidationErrors(prev => ({ ...prev, paintColor: '' }));
+                  }
+                }}
+                placeholder="np. Czarny metalik, Biały perłowy"
+                className={validationErrors.paintColor ? 'border-destructive' : ''}
+              />
+              {validationErrors.paintColor && (
+                <p className="text-sm text-destructive">{validationErrors.paintColor}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Rodzaj lakieru *</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={formData.paintFinish === 'gloss' ? 'default' : 'outline'}
+                  className="flex-1"
+                  style={formData.paintFinish === 'gloss' ? { backgroundColor: primaryColor } : {}}
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, paintFinish: 'gloss' }));
+                    if (validationErrors.paintFinish) {
+                      setValidationErrors(prev => ({ ...prev, paintFinish: '' }));
+                    }
+                  }}
+                >
+                  Połysk
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.paintFinish === 'matte' ? 'default' : 'outline'}
+                  className="flex-1"
+                  style={formData.paintFinish === 'matte' ? { backgroundColor: primaryColor } : {}}
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, paintFinish: 'matte' }));
+                    if (validationErrors.paintFinish) {
+                      setValidationErrors(prev => ({ ...prev, paintFinish: '' }));
+                    }
+                  }}
+                >
+                  Mat
+                </Button>
+              </div>
+              {validationErrors.paintFinish && (
+                <p className="text-sm text-destructive">{validationErrors.paintFinish}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="mileage">{t('embed.mileageLabel')}</Label>
               <Input
                 id="mileage"
@@ -358,45 +500,154 @@ function EmbedLeadFormContent() {
             <div className="grid gap-3">
               {config?.templates.map((template) => {
                 const isSelected = formData.selectedTemplates.includes(template.id);
+                const isExpanded = expandedDescriptions.has(template.id);
                 return (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => toggleTemplate(template.id)}
-                    className={cn(
-                      "w-full text-left p-4 rounded-lg border-2 transition-all",
-                      isSelected 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:border-primary/50"
-                    )}
-                    style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div 
-                        className={cn(
-                          "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
-                          isSelected ? "border-primary bg-primary" : "border-muted-foreground"
-                        )}
-                        style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}}
-                      >
-                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                  <div key={template.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleTemplate(template.id)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-lg border-2 transition-all",
+                        isSelected 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border hover:border-primary/50"
+                      )}
+                      style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div 
+                          className={cn(
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                            isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                          )}
+                          style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}}
+                        >
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium">{template.name}</p>
+                            {template.price_from && (
+                              <span className="text-sm font-medium whitespace-nowrap" style={{ color: primaryColor }}>
+                                od {template.price_from} zł
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{template.name}</p>
-                        {template.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                    </button>
+                    
+                    {template.description && (
+                      <div className="mt-1 ml-8">
+                        <button
+                          type="button"
+                          onClick={() => toggleDescription(template.id)}
+                          className="text-sm hover:underline flex items-center gap-1"
+                          style={{ color: primaryColor }}
+                        >
+                          Czytaj więcej...
+                          {isExpanded ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
+                        {isExpanded && (
+                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
                             {template.description}
                           </p>
                         )}
                       </div>
-                    </div>
-                  </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
             {validationErrors.templates && (
               <p className="text-sm text-destructive">{validationErrors.templates}</p>
             )}
+          </div>
+
+          {/* Extras Section */}
+          {config?.extras && config.extras.length > 0 && (
+            <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
+              <div>
+                <h2 className="font-semibold text-lg">Dodatki</h2>
+                <p className="text-sm text-muted-foreground">Opcjonalne usługi dodatkowe</p>
+              </div>
+              
+              <div className="grid gap-2">
+                {config.extras.map((extra) => {
+                  const isSelected = formData.selectedExtras.includes(extra.id);
+                  return (
+                    <button
+                      key={extra.id}
+                      type="button"
+                      onClick={() => toggleExtra(extra.id)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3",
+                        isSelected 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border hover:border-primary/50"
+                      )}
+                      style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
+                    >
+                      <div 
+                        className={cn(
+                          "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                          isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                        )}
+                        style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                      <span className="font-medium">{extra.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Planned Date Section */}
+          <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
+            <div>
+              <h2 className="font-semibold text-lg">Planowany termin realizacji</h2>
+              <p className="text-sm text-muted-foreground">Kiedy chciałbyś zrealizować usługę?</p>
+            </div>
+            
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.plannedDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {formData.plannedDate ? (
+                    format(formData.plannedDate, 'd MMMM yyyy', { locale: pl })
+                  ) : (
+                    'Wybierz datę (opcjonalne)'
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={formData.plannedDate || undefined}
+                  onSelect={(date) => {
+                    setFormData(prev => ({ ...prev, plannedDate: date || null }));
+                    setDatePickerOpen(false);
+                  }}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Budget Section */}
@@ -458,14 +709,7 @@ function EmbedLeadFormContent() {
             )}
           </div>
 
-          {/* Error display */}
-          {error && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Submit Button */}
+          {/* Submit Button - always enabled */}
           <Button
             type="submit"
             className="w-full h-12 text-base"

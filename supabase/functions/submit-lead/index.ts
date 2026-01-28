@@ -18,12 +18,16 @@ interface VehicleData {
   custom_model_name?: string;
   car_size?: string;
   mileage?: string;
+  paint_color?: string;
+  paint_finish?: 'gloss' | 'matte' | null;
 }
 
 interface OfferDetails {
   template_ids: string[];
+  extra_service_ids?: string[];
   budget_suggestion?: number | null;
   additional_notes?: string;
+  planned_date?: string | null;
 }
 
 interface SubmitLeadRequest {
@@ -137,10 +141,10 @@ Deno.serve(async (req) => {
       car_size: vehicle_data.car_size || '',
     } : null;
 
-    // Prepare notes
-    let notes = '';
+    // Prepare notes - save additional_notes as "Treść zapytania"
+    let inquiryNotes = '';
     if (offer_details.additional_notes) {
-      notes = offer_details.additional_notes;
+      inquiryNotes = offer_details.additional_notes;
     }
 
     // Create offer draft
@@ -154,7 +158,10 @@ Deno.serve(async (req) => {
         customer_data: customerDataJson,
         vehicle_data: vehicleDataJson,
         budget_suggestion: offer_details.budget_suggestion || null,
-        notes: notes || null,
+        inquiry_notes: inquiryNotes || null,
+        paint_color: vehicle_data?.paint_color || null,
+        paint_finish: vehicle_data?.paint_finish || null,
+        planned_date: offer_details.planned_date || null,
         total_net: 0,
         total_gross: 0,
         has_unified_services: true,

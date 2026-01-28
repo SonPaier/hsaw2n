@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { OfferBrandingSettings, OfferBrandingSettingsRef } from './OfferBrandingSettings';
 import { OfferTrustHeaderSettings, OfferTrustHeaderSettingsRef } from './OfferTrustHeaderSettings';
-import { Settings, Save, Loader2, FileText, Palette, Award } from 'lucide-react';
+import { WidgetSettingsTab } from './WidgetSettingsTab';
+import { Settings, Save, Loader2, FileText, Palette, Award, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -110,109 +112,126 @@ export function OfferSettingsDialog({ open, onOpenChange, instanceId }: OfferSet
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             {t('offerSettings.title')}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <AdminTabsList columns={3}>
-            <AdminTabsTrigger value="general">
-              <FileText className="h-4 w-4" />
-              {t('offerSettings.general')}
-            </AdminTabsTrigger>
-            <AdminTabsTrigger value="branding">
-              <Palette className="h-4 w-4" />
-              {t('offerSettings.brandingTab')}
-            </AdminTabsTrigger>
-            <AdminTabsTrigger value="trustHeader">
-              <Award className="h-4 w-4" />
-              Nagłówek oferty
-            </AdminTabsTrigger>
-          </AdminTabsList>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <div className="px-6 pt-4 flex-shrink-0">
+              <AdminTabsList columns={4}>
+                <AdminTabsTrigger value="general">
+                  <FileText className="h-4 w-4" />
+                  {t('offerSettings.general')}
+                </AdminTabsTrigger>
+                <AdminTabsTrigger value="branding">
+                  <Palette className="h-4 w-4" />
+                  {t('offerSettings.brandingTab')}
+                </AdminTabsTrigger>
+                <AdminTabsTrigger value="trustHeader">
+                  <Award className="h-4 w-4" />
+                  Nagłówek
+                </AdminTabsTrigger>
+                <AdminTabsTrigger value="widget">
+                  <Code className="h-4 w-4" />
+                  Wtyczka
+                </AdminTabsTrigger>
+              </AdminTabsList>
+            </div>
 
-          <TabsContent value="general" className="mt-6">
-            {loadingSettings ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t('common.loading')}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Bank payment details */}
-                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
-                  <h4 className="font-medium">Dane do płatności</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Te dane będą widoczne w sekcji płatności na ofercie.
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <Label>Nazwa firmy na fakturę</Label>
-                    <Input
-                      value={bankCompanyName}
-                      onChange={(e) => { setBankCompanyName(e.target.value); handleChange(); }}
-                      disabled={saving}
-                      placeholder="ARM-INVEST Sp. z o.o."
-                    />
+            <ScrollArea className="flex-1 px-6">
+              <TabsContent value="general" className="mt-6 mb-6">
+                {loadingSettings ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t('common.loading')}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Nazwa banku</Label>
-                    <Input
-                      value={bankName}
-                      onChange={(e) => { setBankName(e.target.value); handleChange(); }}
-                      disabled={saving}
-                      placeholder="ING Bank Śląski S.A."
-                    />
+                ) : (
+                  <div className="space-y-6">
+                    {/* Bank payment details */}
+                    <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                      <h4 className="font-medium">Dane do płatności</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Te dane będą widoczne w sekcji płatności na ofercie.
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <Label>Nazwa firmy na fakturę</Label>
+                        <Input
+                          value={bankCompanyName}
+                          onChange={(e) => { setBankCompanyName(e.target.value); handleChange(); }}
+                          disabled={saving}
+                          placeholder="ARM-INVEST Sp. z o.o."
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Nazwa banku</Label>
+                        <Input
+                          value={bankName}
+                          onChange={(e) => { setBankName(e.target.value); handleChange(); }}
+                          disabled={saving}
+                          placeholder="ING Bank Śląski S.A."
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Numer konta</Label>
+                        <Input
+                          value={bankAccountNumber}
+                          onChange={(e) => { setBankAccountNumber(e.target.value); handleChange(); }}
+                          disabled={saving}
+                          placeholder="44 1050 1764 1000 0090 8170 0214"
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Default payment terms */}
+                    <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                      <h4 className="font-medium">{t('offerSettings.defaultValues')}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Te ustawienia będą dziedziczone przez każdą nowo utworzoną usługę.
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <Label>{t('offerSettings.defaultPaymentTerms')}</Label>
+                        <Textarea
+                          value={defaultPaymentTerms}
+                          onChange={(e) => { setDefaultPaymentTerms(e.target.value); handleChange(); }}
+                          rows={5}
+                          disabled={saving}
+                          placeholder={t('offerSettings.defaultPaymentTermsPlaceholder')}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Numer konta</Label>
-                    <Input
-                      value={bankAccountNumber}
-                      onChange={(e) => { setBankAccountNumber(e.target.value); handleChange(); }}
-                      disabled={saving}
-                      placeholder="44 1050 1764 1000 0090 8170 0214"
-                      className="font-mono"
-                    />
-                  </div>
-                </div>
-                
-                {/* Default payment terms */}
-                <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
-                  <h4 className="font-medium">{t('offerSettings.defaultValues')}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Te ustawienia będą dziedziczone przez każdą nowo utworzoną usługę.
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <Label>{t('offerSettings.defaultPaymentTerms')}</Label>
-                    <Textarea
-                      value={defaultPaymentTerms}
-                      onChange={(e) => { setDefaultPaymentTerms(e.target.value); handleChange(); }}
-                      rows={5}
-                      disabled={saving}
-                      placeholder={t('offerSettings.defaultPaymentTermsPlaceholder')}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
+                )}
+              </TabsContent>
 
-          <TabsContent value="branding" className="mt-6">
-            <OfferBrandingSettings ref={brandingRef} instanceId={instanceId} onChange={handleChange} />
-          </TabsContent>
+              <TabsContent value="branding" className="mt-6 mb-6">
+                <OfferBrandingSettings ref={brandingRef} instanceId={instanceId} onChange={handleChange} />
+              </TabsContent>
 
-          <TabsContent value="trustHeader" className="mt-6">
-            <OfferTrustHeaderSettings ref={trustHeaderRef} instanceId={instanceId} onChange={handleChange} />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="trustHeader" className="mt-6 mb-6">
+                <OfferTrustHeaderSettings ref={trustHeaderRef} instanceId={instanceId} onChange={handleChange} />
+              </TabsContent>
 
-        <DialogFooter className="mt-6">
+              <TabsContent value="widget" className="mt-6 mb-6">
+                <WidgetSettingsTab instanceId={instanceId} onChange={handleChange} />
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
+        </div>
+
+        {/* Fixed Footer */}
+        <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
           <Button variant="outline" onClick={() => handleClose(false)}>
             {t('common.cancel')}
           </Button>

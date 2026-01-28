@@ -732,6 +732,7 @@ export type Database = {
           updated_at: string | null
           use_global_products: boolean
           website: string | null
+          widget_config: Json | null
           working_hours: Json | null
         }
         Insert: {
@@ -789,6 +790,7 @@ export type Database = {
           updated_at?: string | null
           use_global_products?: boolean
           website?: string | null
+          widget_config?: Json | null
           working_hours?: Json | null
         }
         Update: {
@@ -846,6 +848,7 @@ export type Database = {
           updated_at?: string | null
           use_global_products?: boolean
           website?: string | null
+          widget_config?: Json | null
           working_hours?: Json | null
         }
         Relationships: []
@@ -1528,6 +1531,7 @@ export type Database = {
           instance_id: string | null
           is_extras_scope: boolean
           name: string
+          price_from: number | null
           short_name: string | null
           sort_order: number | null
           source: string
@@ -1547,6 +1551,7 @@ export type Database = {
           instance_id?: string | null
           is_extras_scope?: boolean
           name: string
+          price_from?: number | null
           short_name?: string | null
           sort_order?: number | null
           source?: string
@@ -1566,6 +1571,7 @@ export type Database = {
           instance_id?: string | null
           is_extras_scope?: boolean
           name?: string
+          price_from?: number | null
           short_name?: string | null
           sort_order?: number | null
           source?: string
@@ -1683,10 +1689,14 @@ export type Database = {
           has_unified_services: boolean | null
           hide_unit_prices: boolean
           id: string
+          inquiry_notes: string | null
           instance_id: string
           notes: string | null
           offer_number: string
+          paint_color: string | null
+          paint_finish: string | null
           payment_terms: string | null
+          planned_date: string | null
           public_token: string
           rejected_at: string | null
           responded_at: string | null
@@ -1719,10 +1729,14 @@ export type Database = {
           has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
+          inquiry_notes?: string | null
           instance_id: string
           notes?: string | null
           offer_number: string
+          paint_color?: string | null
+          paint_finish?: string | null
           payment_terms?: string | null
+          planned_date?: string | null
           public_token?: string
           rejected_at?: string | null
           responded_at?: string | null
@@ -1755,10 +1769,14 @@ export type Database = {
           has_unified_services?: boolean | null
           hide_unit_prices?: boolean
           id?: string
+          inquiry_notes?: string | null
           instance_id?: string
           notes?: string | null
           offer_number?: string
+          paint_color?: string | null
+          paint_finish?: string | null
           payment_terms?: string | null
+          planned_date?: string | null
           public_token?: string
           rejected_at?: string | null
           responded_at?: string | null
@@ -1785,6 +1803,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      paint_colors: {
+        Row: {
+          active: boolean | null
+          brand: string | null
+          color_code: string | null
+          color_family: string | null
+          created_at: string | null
+          id: string
+          name: string
+          paint_type: string
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          brand?: string | null
+          color_code?: string | null
+          color_family?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          paint_type?: string
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string | null
+          color_code?: string | null
+          color_family?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          paint_type?: string
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       price_lists: {
         Row: {
