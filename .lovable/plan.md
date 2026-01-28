@@ -1,6 +1,8 @@
 
 # Rozbudowa metadanych usług - "Dodatkowe właściwości usługi"
 
+✅ **STATUS: ZAIMPLEMENTOWANE**
+
 ## Cel
 
 Dodanie dwóch nowych pól do sekcji "Zaawansowane właściwości usługi" w formularzu edycji usługi:

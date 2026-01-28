@@ -61,6 +61,12 @@ interface ReminderTemplateOption {
   items?: ReminderTemplateItem[];
 }
 
+export interface ServiceMetadata {
+  trwalosc_produktu_w_mesiacach?: number | null;
+  produkt_do_lakierow?: 'matowe' | 'ciemne' | 'dowolny' | null;
+  [key: string]: unknown;
+}
+
 export interface ServiceData {
   id?: string;
   name: string;
@@ -81,6 +87,7 @@ export interface ServiceData {
   sort_order?: number | null;
   reminder_template_id?: string | null;
   is_popular?: boolean | null;
+  metadata?: ServiceMetadata | null;
 }
 
 interface ExistingService {
@@ -199,6 +206,8 @@ const ServiceFormContent = ({
           visibility: (service?.service_type || 'both') === 'both' ? (service?.visibility || 'everywhere') : 'everywhere',
           reminder_template_id: service?.reminder_template_id || '__none__',
           is_popular: service?.is_popular ?? false,
+          trwalosc_produktu_w_mesiacach: service?.metadata?.trwalosc_produktu_w_mesiacach ?? null,
+          produkt_do_lakierow: (service?.metadata?.produkt_do_lakierow as 'matowe' | 'ciemne' | 'dowolny' | null) ?? null,
         });
 
   // Fetch reminder templates
@@ -265,6 +274,8 @@ const ServiceFormContent = ({
         visibility: (service.service_type || 'both') === 'both' ? (service.visibility || 'everywhere') : 'everywhere',
         reminder_template_id: service.reminder_template_id || '__none__',
         is_popular: service.is_popular ?? false,
+        trwalosc_produktu_w_mesiacach: service.metadata?.trwalosc_produktu_w_mesiacach ?? null,
+        produkt_do_lakierow: (service.metadata?.produkt_do_lakierow as 'matowe' | 'ciemne' | 'dowolny' | null) ?? null,
       });
     }
   }, [service, defaultCategoryId]);
@@ -309,6 +320,14 @@ const ServiceFormContent = ({
 
     setSaving(true);
     try {
+      // Build metadata preserving existing fields
+      const existingMetadata = service?.metadata || {};
+      const updatedMetadata = {
+        ...existingMetadata,
+        trwalosc_produktu_w_mesiacach: formData.trwalosc_produktu_w_mesiacach,
+        produkt_do_lakierow: formData.produkt_do_lakierow,
+      };
+      
       const serviceData = {
         instance_id: instanceId,
         name: formData.name.trim(),
@@ -331,6 +350,7 @@ const ServiceFormContent = ({
         reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
         is_popular: formData.is_popular,
         active: true,
+        metadata: updatedMetadata,
       };
 
       if (service?.id) {
@@ -732,6 +752,58 @@ const ServiceFormContent = ({
                   {t('priceList.form.isPopularLabel')}
                 </Label>
                 <FieldInfo tooltip={t('priceList.form.isPopularTooltip')} />
+              </div>
+            </div>
+
+            {/* Additional Properties Section */}
+            <div className="space-y-4 pt-2 border-t border-border">
+              <Label className="text-sm font-medium text-muted-foreground">
+                {t('priceList.form.additionalProperties', 'Dodatkowe właściwości usługi')}
+              </Label>
+              
+              {/* Product Durability */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-sm">{t('priceList.form.productDurability', 'Trwałość produktu')}</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.trwalosc_produktu_w_mesiacach ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value === '' ? null : parseInt(e.target.value);
+                      setFormData(prev => ({ ...prev, trwalosc_produktu_w_mesiacach: value }));
+                    }}
+                    min="0"
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {t('priceList.form.productDurabilityMonths', 'miesięcy')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Product for Paint Types */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-sm">{t('priceList.form.productForPaints', 'Produkt do lakierów')}</Label>
+                </div>
+                <Select
+                  value={formData.produkt_do_lakierow || '__any__'}
+                  onValueChange={(v) => setFormData(prev => ({ 
+                    ...prev, 
+                    produkt_do_lakierow: v === '__any__' ? null : v as 'matowe' | 'ciemne' | 'dowolny'
+                  }))}
+                >
+                  <SelectTrigger className="bg-white w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="__any__">{t('priceList.form.paintTypeAny', 'Dowolny lakier')}</SelectItem>
+                    <SelectItem value="matowe">{t('priceList.form.paintTypeMatte', 'Lakierów matowych')}</SelectItem>
+                    <SelectItem value="ciemne">{t('priceList.form.paintTypeDark', 'Lakierów ciemnych')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
