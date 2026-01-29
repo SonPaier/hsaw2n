@@ -67,12 +67,12 @@ const HallCard = ({ hall, hallNumber, instanceSlug, stations, onEdit, onDelete }
 
   // Generate full URL for this hall - use simple number for user-friendly URLs
   const getHallUrl = () => {
-    return `https://${instanceSlug}.admin.n2wash.com/hall/${hallNumber}`;
+    return `https://${instanceSlug}.admin.n2wash.com/halls/${hallNumber}`;
   };
 
   // Get dev/preview URL for this hall
   const getDevHallUrl = () => {
-    return `/admin/hall/${hallNumber}`;
+    return `/admin/halls/${hallNumber}`;
   };
 
   const handleCopyUrl = async () => {

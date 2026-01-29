@@ -136,7 +136,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     <Route 
-      path="/hall/:hallId" 
+      path="/halls/:hallId" 
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
