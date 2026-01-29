@@ -294,6 +294,7 @@ const ReservationDetailsDrawer = ({
     const email = await findCustomerEmail(reservation.customer_phone, reservation.instance_id);
     
     const params = new URLSearchParams({
+      action: 'new',
       reservationId: reservation.id,
       customerName: reservation.customer_name || '',
       customerPhone: reservation.customer_phone || '',
@@ -304,7 +305,7 @@ const ReservationDetailsDrawer = ({
       params.set('email', email);
     }
     
-    navigate(`/admin/protocols/new?${params.toString()}`);
+    navigate(`/admin/protocols?${params.toString()}`);
     onClose();
   };
 
