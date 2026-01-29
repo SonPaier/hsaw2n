@@ -2291,6 +2291,7 @@ export type Database = {
           no_show_at: string | null
           offer_number: string | null
           original_reservation_id: string | null
+          photo_urls: string[] | null
           pickup_sms_sent_at: string | null
           price: number | null
           released_at: string | null
@@ -2339,6 +2340,7 @@ export type Database = {
           no_show_at?: string | null
           offer_number?: string | null
           original_reservation_id?: string | null
+          photo_urls?: string[] | null
           pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
@@ -2387,6 +2389,7 @@ export type Database = {
           no_show_at?: string | null
           offer_number?: string | null
           original_reservation_id?: string | null
+          photo_urls?: string[] | null
           pickup_sms_sent_at?: string | null
           price?: number | null
           released_at?: string | null
@@ -3074,6 +3077,7 @@ export type Database = {
           public_token: string
           received_by: string | null
           registration_number: string | null
+          reservation_id: string | null
           status: string
           updated_at: string
           vehicle_model: string | null
@@ -3100,6 +3104,7 @@ export type Database = {
           public_token: string
           received_by?: string | null
           registration_number?: string | null
+          reservation_id?: string | null
           status?: string
           updated_at?: string
           vehicle_model?: string | null
@@ -3126,6 +3131,7 @@ export type Database = {
           public_token?: string
           received_by?: string | null
           registration_number?: string | null
+          reservation_id?: string | null
           status?: string
           updated_at?: string
           vehicle_model?: string | null
@@ -3143,6 +3149,13 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_protocols_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
             referencedColumns: ["id"]
           },
         ]

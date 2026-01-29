@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, FileText, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,8 @@ interface HallReservationCardProps {
   onEndWork: (id: string) => Promise<void>;
   onRelease: (id: string) => Promise<void>;
   onSendPickupSms: (id: string) => Promise<void>;
+  onAddProtocol?: (reservation: HallReservationCardProps['reservation']) => void;
+  onAddPhotos?: (reservation: HallReservationCardProps['reservation']) => void;
 }
 
 const HallReservationCard = ({
@@ -37,6 +39,8 @@ const HallReservationCard = ({
   onEndWork,
   onRelease,
   onSendPickupSms,
+  onAddProtocol,
+  onAddPhotos,
 }: HallReservationCardProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | 'release' | null>(null);
@@ -123,17 +127,44 @@ const HallReservationCard = ({
 
     if (isPendingOrConfirmed) {
       return (
-        <Button
-          onClick={handleStart}
-          disabled={loading === 'start'}
-          className="w-full py-7 text-2xl font-bold rounded-lg bg-success text-success-foreground hover:bg-success/90"
-        >
-          {loading === 'start' ? (
-            <Loader2 className="w-6 h-6 animate-spin" />
-          ) : (
-            t('hallCard.start', { defaultValue: 'START' })
+        <div className="space-y-3">
+          {/* Protocol and Photos buttons */}
+          {(onAddProtocol || onAddPhotos) && (
+            <div className="flex gap-2">
+              {onAddProtocol && (
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={() => onAddProtocol(reservation)}
+                >
+                  <FileText className="w-5 h-5" />
+                  {t('hallCard.protocol', { defaultValue: 'Protokół' })}
+                </Button>
+              )}
+              {onAddPhotos && (
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2"
+                  onClick={() => onAddPhotos(reservation)}
+                >
+                  <Camera className="w-5 h-5" />
+                  {t('hallCard.photos', { defaultValue: 'Zdjęcia' })}
+                </Button>
+              )}
+            </div>
           )}
-        </Button>
+          <Button
+            onClick={handleStart}
+            disabled={loading === 'start'}
+            className="w-full py-7 text-2xl font-bold rounded-lg bg-success text-success-foreground hover:bg-success/90"
+          >
+            {loading === 'start' ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              t('hallCard.start', { defaultValue: 'START' })
+            )}
+          </Button>
+        </div>
       );
     }
 
