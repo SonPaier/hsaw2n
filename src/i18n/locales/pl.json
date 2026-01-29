@@ -389,7 +389,9 @@
       "fri": "PT.",
       "sat": "SOB.",
       "sun": "NIEDZ."
-    }
+    },
+    "enterFullscreen": "Pełny ekran",
+    "exitFullscreen": "Zamknij pełny ekran"
   },
   "customers": {
     "title": "Klienci",

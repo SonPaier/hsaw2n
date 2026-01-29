@@ -2,7 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2, ClipboardCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2, ClipboardCheck, Maximize2, Minimize2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
@@ -266,7 +266,33 @@ const AdminCalendar = ({
     customerName: string;
   } | null>(null);
   const [closeDayDialogOpen, setCloseDayDialogOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Listen for fullscreen changes (e.g., user presses ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement !== null);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Toggle fullscreen mode
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  }, []);
 
   // Notify parent when currentDate changes
   useEffect(() => {
@@ -1231,6 +1257,23 @@ const AdminCalendar = ({
               <Button variant="outline" size="sm" onClick={onProtocolsClick} className="gap-1">
                 <ClipboardCheck className="w-4 h-4" />
                 <span className="hidden md:inline">Protokół</span>
+              </Button>
+            )}
+            
+            {/* Fullscreen button - in hall mode */}
+            {hallMode && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleFullscreen} 
+                className="gap-1"
+                title={isFullscreen ? t('calendar.exitFullscreen') : t('calendar.enterFullscreen')}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="w-4 h-4" />
+                ) : (
+                  <Maximize2 className="w-4 h-4" />
+                )}
               </Button>
             )}
           </div>
