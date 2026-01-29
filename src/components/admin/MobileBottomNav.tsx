@@ -70,8 +70,8 @@ const MobileBottomNav = ({
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
     // 6. Hale (when enabled, including employees)
     ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-    // 7. Protokoły (when enabled and admin)
-    ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
+    // 7. Protokoły (when enabled, including employees)
+    ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
     // 8. Powiadomienia (second to last)
     { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
     // 9. Ustawienia (always last, admin only)
