@@ -8,6 +8,7 @@ type AppRole = 'super_admin' | 'admin' | 'user' | 'employee' | 'hall';
 interface UserRole {
   role: AppRole;
   instance_id: string | null;
+  hall_id: string | null;
 }
 
 interface AuthContextType {
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('role, instance_id')
+        .select('role, instance_id, hall_id')
         .eq('user_id', userId);
 
       if (error) {
@@ -109,7 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userRoles = data?.map(r => ({
         role: r.role as AppRole,
-        instance_id: r.instance_id
+        instance_id: r.instance_id,
+        hall_id: r.hall_id
       })) || [];
       
       setRoles(userRoles);
