@@ -2247,7 +2247,13 @@ const AdminDashboard = () => {
             {/* Logo */}
             <div className={cn("border-b border-border/50 flex items-center justify-between", (sidebarCollapsed || userRole === 'hall') ? "p-3" : "p-6")}>
               <button 
-                onClick={() => setCurrentView(userRole === 'hall' ? 'halls' : 'calendar')} 
+                onClick={() => {
+                  if (userRole === 'hall') {
+                    navigate(adminBasePath ? '/admin/halls/1' : '/halls/1');
+                  } else {
+                    setCurrentView('calendar');
+                  }
+                }} 
                 className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", (sidebarCollapsed || userRole === 'hall') ? "justify-center" : "gap-3")}
               >
                 {instanceData?.logo_url ? (
@@ -2273,7 +2279,7 @@ const AdminDashboard = () => {
               {userRole === 'hall' ? (
                 <>
                   {/* Halls - always visible for hall role */}
-                  <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('halls'), 50); }} title={t('navigation.halls')}>
+                  <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => { setSidebarOpen(false); setTimeout(() => navigate(adminBasePath ? '/admin/halls/1' : '/halls/1'), 50); }} title={t('navigation.halls')}>
                     <Building2 className="w-4 h-4 shrink-0" />
                   </Button>
                   {/* Protocols */}
