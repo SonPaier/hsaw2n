@@ -87,6 +87,9 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   const vehiclePlateFromUrl = searchParams.get('vehiclePlate');
   const emailFromUrl = searchParams.get('email');
   
+  // Suppress auto-search when pre-filled from reservation URL
+  const hasPrefilledData = !!(customerNameFromUrl || customerPhoneFromUrl);
+  
   // Refs for scroll-to-error
   const customerNameRef = useRef<HTMLDivElement>(null);
   const customerEmailRef = useRef<HTMLInputElement>(null);
@@ -674,7 +677,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 onClear={handleCustomerClear}
                 placeholder="Wyszukaj klienta lub wpisz nowe dane"
                 className={cn("bg-white", validationErrors.customerName && "border-destructive")}
-                suppressAutoSearch={isEditMode}
+                suppressAutoSearch={isEditMode || hasPrefilledData}
               />
               {validationErrors.customerName && (
                 <p className="text-xs text-destructive">Imię i nazwisko Klienta jest wymagane</p>
@@ -685,7 +688,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               <ClientSearchAutocomplete
                 instanceId={instanceId}
                 value={phone}
-                suppressAutoSearch={isEditMode}
+                suppressAutoSearch={isEditMode || hasPrefilledData}
                 onChange={setPhone}
                 onSelect={handleCustomerSelect}
                 onClear={handleCustomerClear}
