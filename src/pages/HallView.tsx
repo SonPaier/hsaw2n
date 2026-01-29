@@ -57,11 +57,15 @@ interface Break {
   note: string | null;
 }
 
-const HallView = () => {
+interface HallViewProps {
+  isKioskMode?: boolean;
+}
+
+const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { hallId } = useParams<{ hallId: string }>();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [hall, setHall] = useState<Hall | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
@@ -74,6 +78,10 @@ const HallView = () => {
   const [hallDataVisible, setHallDataVisible] = useState(true); // Toggle for sensitive data visibility
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [showProtocolsList, setShowProtocolsList] = useState(false);
+
+  // Check if user has hall role (kiosk mode)
+  const hasHallRole = roles.some(r => r.role === 'hall');
+  const effectiveKioskMode = isKioskMode || hasHallRole;
 
   // Check subscription plan for protocols access
   const { hasFeature, planSlug } = useInstancePlan(instanceId);
@@ -89,7 +97,7 @@ const HallView = () => {
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault();
       // Push the current state back to prevent navigation
-      window.history.pushState(null, '', '/admin/hall');
+      window.history.pushState(null, '', window.location.pathname);
     };
 
     // Add event listeners
@@ -97,7 +105,7 @@ const HallView = () => {
     window.addEventListener('popstate', handlePopState);
 
     // Push initial state to prevent back navigation
-    window.history.pushState(null, '', '/admin/hall');
+    window.history.pushState(null, '', window.location.pathname);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -127,6 +135,13 @@ const HallView = () => {
       const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
       if (employeeRole?.instance_id) {
         setInstanceId(employeeRole.instance_id);
+        return;
+      }
+
+      // Support hall role access (kiosk mode)
+      const hallRole = rolesData.find(r => r.role === 'hall' && r.instance_id);
+      if (hallRole?.instance_id) {
+        setInstanceId(hallRole.instance_id);
         return;
       }
 

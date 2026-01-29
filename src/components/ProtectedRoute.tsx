@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-type AppRole = 'super_admin' | 'admin' | 'user';
+type AppRole = 'super_admin' | 'admin' | 'user' | 'employee' | 'hall';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -44,6 +44,11 @@ const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: Protecte
       if (requiredRole === 'admin') {
         const hasAccess = hasRole('admin') || hasRole('super_admin') || hasRole('employee');
         if (!hasAccess) {
+          return <Navigate to="/" replace />;
+        }
+      } else if (requiredRole === 'hall') {
+        // Hall role only - dedicated kiosk view
+        if (!hasRole('hall')) {
           return <Navigate to="/" replace />;
         }
       } else if (!hasRole(requiredRole)) {

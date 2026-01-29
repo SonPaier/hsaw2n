@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { setSentryUser, clearSentryUser } from '@/lib/sentry';
 
-type AppRole = 'super_admin' | 'admin' | 'user' | 'employee';
+type AppRole = 'super_admin' | 'admin' | 'user' | 'employee' | 'hall';
 
 interface UserRole {
   role: AppRole;

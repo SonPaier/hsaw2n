@@ -49,7 +49,7 @@ const AddInstanceUserDialog = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'employee' | 'admin'>('employee');
+  const [role, setRole] = useState<'employee' | 'admin' | 'hall'>('employee');
   const [loading, setLoading] = useState(false);
   const [showAdminConfirm, setShowAdminConfirm] = useState(false);
   const [pendingRole, setPendingRole] = useState<'admin' | null>(null);
@@ -62,7 +62,7 @@ const AddInstanceUserDialog = ({
     setPendingRole(null);
   };
 
-  const handleRoleChange = (newRole: 'employee' | 'admin') => {
+  const handleRoleChange = (newRole: 'employee' | 'admin' | 'hall') => {
     if (newRole === 'admin') {
       setPendingRole('admin');
       setShowAdminConfirm(true);
@@ -209,12 +209,15 @@ const AddInstanceUserDialog = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="employee">Pracownik</SelectItem>
+                  <SelectItem value="hall">Widok Hali (Kiosk)</SelectItem>
                   <SelectItem value="admin">Admin Instancji</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {role === 'admin' 
                   ? 'Admin ma pełny dostęp do ustawień i zarządzania użytkownikami'
+                  : role === 'hall'
+                  ? 'Widok Hali wyświetla tylko kalendarz bez sidebara (tryb kiosk)'
                   : 'Pracownik ma ograniczony dostęp do wybranych modułów'}
               </p>
             </div>

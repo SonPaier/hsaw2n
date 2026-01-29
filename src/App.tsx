@@ -135,6 +135,15 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       } 
     />
+    {/* Hall-only route - for hall role users (kiosk mode) */}
+    <Route 
+      path="/kiosk/:hallId" 
+      element={
+        <ProtectedRoute requiredRole="hall">
+          <HallView isKioskMode />
+        </ProtectedRoute>
+      } 
+    />
     <Route
       path="/:view" 
       element={
@@ -195,6 +204,15 @@ const DevRoutes = () => (
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
+        </ProtectedRoute>
+      } 
+    />
+    {/* Hall-only route - for hall role users (kiosk mode) */}
+    <Route 
+      path="/hall/:hallId" 
+      element={
+        <ProtectedRoute requiredRole="hall">
+          <HallView isKioskMode />
         </ProtectedRoute>
       } 
     />

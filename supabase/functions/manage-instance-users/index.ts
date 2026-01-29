@@ -12,7 +12,7 @@ interface ManageUserRequest {
   userId?: string; // Required for update, delete, block, unblock, reset-password
   username?: string;
   password?: string;
-  role?: 'admin' | 'employee';
+  role?: 'admin' | 'employee' | 'hall';
 }
 
 Deno.serve(async (req) => {
@@ -115,13 +115,20 @@ Deno.serve(async (req) => {
 
         const users = (profiles || []).map((profile: any) => {
           const userRoles = (roles || []).filter((r: any) => r.user_id === profile.id).map((r: any) => r.role);
+          // Determine role priority: admin > hall > employee
+          let userRole = 'employee';
+          if (userRoles.includes('admin')) {
+            userRole = 'admin';
+          } else if (userRoles.includes('hall')) {
+            userRole = 'hall';
+          }
           return {
             id: profile.id,
             username: profile.username || '',
             email: profile.email || '',
             is_blocked: !!profile.is_blocked,
             created_at: profile.created_at || new Date().toISOString(),
-            role: userRoles.includes('admin') ? 'admin' : 'employee',
+            role: userRole,
           };
         });
 
@@ -140,9 +147,9 @@ Deno.serve(async (req) => {
         }
 
         // Validate role
-        if (role !== 'admin' && role !== 'employee') {
+        if (role !== 'admin' && role !== 'employee' && role !== 'hall') {
           return new Response(
-            JSON.stringify({ error: 'Nieprawidłowa rola. Dozwolone: admin, employee' }),
+            JSON.stringify({ error: 'Nieprawidłowa rola. Dozwolone: admin, employee, hall' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -287,9 +294,9 @@ Deno.serve(async (req) => {
 
         // Update role if provided
         if (role) {
-          if (role !== 'admin' && role !== 'employee') {
+          if (role !== 'admin' && role !== 'employee' && role !== 'hall') {
             return new Response(
-              JSON.stringify({ error: 'Nieprawidłowa rola. Dozwolone: admin, employee' }),
+              JSON.stringify({ error: 'Nieprawidłowa rola. Dozwolone: admin, employee, hall' }),
               { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
