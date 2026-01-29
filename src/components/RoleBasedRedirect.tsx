@@ -24,10 +24,15 @@ const RoleBasedRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check for hall role first - redirect to halls list in AdminDashboard
-  const hasHallRole = roles.some(r => r.role === 'hall');
-  if (hasHallRole) {
-    return <Navigate to="/halls" replace />;
+  // Check for hall role first - redirect to specific hall calendar
+  const hallRole = roles.find(r => r.role === 'hall');
+  if (hallRole) {
+    // If hall_id is assigned, redirect to that specific hall
+    if (hallRole.hall_id) {
+      return <Navigate to={`/halls/${hallRole.hall_id}`} replace />;
+    }
+    // Fallback: first active hall
+    return <Navigate to="/halls/1" replace />;
   }
 
   // Check for super_admin

@@ -3014,24 +3014,34 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          hall_id: string | null
           id: string
           instance_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          hall_id?: string | null
           id?: string
           instance_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          hall_id?: string | null
           id?: string
           instance_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_roles_hall_id_fkey"
+            columns: ["hall_id"]
+            isOneToOne: false
+            referencedRelation: "halls"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_roles_instance_id_fkey"
             columns: ["instance_id"]
