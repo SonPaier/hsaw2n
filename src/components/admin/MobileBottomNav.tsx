@@ -68,8 +68,8 @@ const MobileBottomNav = ({
     ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Cennik' }] : []),
     // 5. Oferty (when enabled)
     ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    // 6. Hale (when enabled and admin)
-    ...(hallViewEnabled && userRole !== 'employee' ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
+    // 6. Hale (when enabled, including employees)
+    ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
     // 7. Protokoły (when enabled and admin)
     ...(protocolsEnabled && userRole !== 'employee' ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
     // 8. Powiadomienia (second to last)

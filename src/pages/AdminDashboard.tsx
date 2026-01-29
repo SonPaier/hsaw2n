@@ -2300,8 +2300,8 @@ const AdminDashboard = () => {
                   <CalendarClock className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && "Follow-up"}
                 </Button>} */}
-              {/* Halls - visible when feature is enabled and user is admin */}
-              {hasFeature('hall_view') && userRole !== 'employee' && <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('halls'), 50); }} title={t('navigation.halls')}>
+              {/* Halls - visible when feature is enabled (including employees) */}
+              {hasFeature('hall_view') && <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('halls'), 50); }} title={t('navigation.halls')}>
                 <Building2 className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && t('navigation.halls')}
               </Button>}

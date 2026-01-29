@@ -123,6 +123,13 @@ const HallView = () => {
         return;
       }
 
+      // Support employee role access to halls
+      const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
+      if (employeeRole?.instance_id) {
+        setInstanceId(employeeRole.instance_id);
+        return;
+      }
+
       const isSuperAdmin = rolesData.some(r => r.role === 'super_admin');
       if (isSuperAdmin) {
         const { data: instances } = await supabase
