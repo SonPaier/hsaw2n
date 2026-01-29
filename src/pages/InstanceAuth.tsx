@@ -50,7 +50,7 @@ const InstanceAuth = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const returnTo = '/admin';
+  const returnTo = '/dashboard';
 
   // Fetch instance by slug
   useEffect(() => {
@@ -88,7 +88,7 @@ const InstanceAuth = ({
   // Redirect if already logged in with proper role
   useEffect(() => {
     if (authLoading || instanceLoading || !user || !instance) return;
-    const hasAccess = hasRole('super_admin') || hasInstanceRole('admin', instance.id) || hasInstanceRole('employee', instance.id);
+    const hasAccess = hasRole('super_admin') || hasInstanceRole('admin', instance.id) || hasInstanceRole('employee', instance.id) || hasInstanceRole('hall', instance.id);
     if (hasAccess) {
       supabase.from('profiles').select('is_blocked').eq('id', user.id).single().then(({
         data

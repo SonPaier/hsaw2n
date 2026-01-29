@@ -19,6 +19,7 @@ import PublicProtocolView from "./pages/PublicProtocolView";
 import EmbedLeadForm from "./pages/EmbedLeadForm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleBasedRedirect from "./components/RoleBasedRedirect";
 
 // Lazy loaded pages
 const ReminderTemplateEditPage = lazy(() => import("./pages/ReminderTemplateEditPage"));
@@ -118,9 +119,16 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
     {/* Login page */}
     <Route path="/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
     
+    {/* Role-based redirect after login */}
+    <Route path="/dashboard" element={<RoleBasedRedirect />} />
+    
     {/* Protected admin routes */}
     <Route 
       path="/" 
+      element={<RoleBasedRedirect />} 
+    />
+    <Route 
+      path="/admin" 
       element={
         <ProtectedRoute requiredRole="admin">
           <AdminDashboard />
@@ -183,6 +191,8 @@ const DevRoutes = () => (
     <Route path="/:slug/login" element={<InstanceAuth />} />
     {/* Default login without slug - use demo instance for dev */}
     <Route path="/login" element={<InstanceAuth subdomainSlug="demo" />} />
+    {/* Role-based redirect after login */}
+    <Route path="/dashboard" element={<RoleBasedRedirect />} />
     <Route 
       path="/admin" 
       element={
