@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,11 +9,12 @@ import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawe
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar, FileText, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Hall } from '@/components/admin/halls/HallCard';
-
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 interface Station {
   id: string;
   name: string;
@@ -64,8 +65,9 @@ interface HallViewProps {
 const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { hallId } = useParams<{ hallId: string }>();
-  const { user, roles } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [hall, setHall] = useState<Hall | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
@@ -81,11 +83,34 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
+  const hasAdminOrEmployeeRole = roles.some(r => r.role === 'admin' || r.role === 'employee');
   const effectiveKioskMode = isKioskMode || hasHallRole;
+
+  // Check if we're on /admin/... path
+  const isAdminPath = location.pathname.startsWith('/admin');
 
   // Check subscription plan for protocols access
   const { hasFeature, planSlug } = useInstancePlan(instanceId);
   const canAccessProtocols = hasFeature('vehicle_reception_protocol') || planSlug === 'detailing';
+
+  // Handle navigation based on role
+  const handleCalendarNavigation = () => {
+    if (hasHallRole && !hasAdminOrEmployeeRole) {
+      // Hall role stays on current hall view
+      navigate(isAdminPath ? `/admin/halls/${hallId || '1'}` : `/halls/${hallId || '1'}`);
+    } else {
+      // Admin/employee goes to main calendar
+      navigate(isAdminPath ? '/admin' : '/admin');
+    }
+  };
+
+  const handleProtocolsNavigation = () => {
+    setShowProtocolsList(true);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   // Prevent navigation away - capture back button and history manipulation
   useEffect(() => {
@@ -564,26 +589,76 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         <title>{hall?.name || t('hall.title')} | {t('hall.employeePanel')}</title>
       </Helmet>
 
-      <div className="h-screen w-screen overflow-hidden bg-background">
-        <AdminCalendar
-          stations={stations}
-          reservations={reservations}
-          breaks={breaks}
-          workingHours={workingHours}
-          onReservationClick={handleReservationClick}
-          allowedViews={['day', 'two-days']}
-          readOnly={true}
-          showStationFilter={false}
-          showWeekView={false}
-          hallMode={true}
-          hallConfig={hallConfig}
-          hallDataVisible={hallDataVisible}
-          onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
-          instanceId={instanceId || undefined}
-          yardVehicleCount={yardVehicleCount}
-          showProtocolsButton={canAccessProtocols}
-          onProtocolsClick={() => setShowProtocolsList(true)}
-        />
+      <div className="h-screen w-screen overflow-hidden bg-background flex">
+        {/* Mini Sidebar for hall view */}
+        <div className="w-12 h-full bg-sidebar border-r border-border flex flex-col items-center py-4 gap-2 shrink-0">
+          {/* Calendar icon */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "w-9 h-9",
+              !showProtocolsList && "bg-sidebar-accent text-sidebar-accent-foreground"
+            )}
+            onClick={handleCalendarNavigation}
+            title={t('navigation.calendar')}
+          >
+            <Calendar className="w-5 h-5" />
+          </Button>
+
+          {/* Protocols icon */}
+          {canAccessProtocols && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "w-9 h-9",
+                showProtocolsList && "bg-sidebar-accent text-sidebar-accent-foreground"
+              )}
+              onClick={handleProtocolsNavigation}
+              title={t('navigation.protocols')}
+            >
+              <FileText className="w-5 h-5" />
+            </Button>
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Logout button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-9 h-9 text-muted-foreground hover:text-foreground"
+            onClick={handleLogout}
+            title={t('auth.logout')}
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 h-full overflow-hidden">
+          <AdminCalendar
+            stations={stations}
+            reservations={reservations}
+            breaks={breaks}
+            workingHours={workingHours}
+            onReservationClick={handleReservationClick}
+            allowedViews={['day', 'two-days']}
+            readOnly={true}
+            showStationFilter={false}
+            showWeekView={false}
+            hallMode={true}
+            hallConfig={hallConfig}
+            hallDataVisible={hallDataVisible}
+            onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
+            instanceId={instanceId || undefined}
+            yardVehicleCount={yardVehicleCount}
+            showProtocolsButton={canAccessProtocols}
+            onProtocolsClick={() => setShowProtocolsList(true)}
+          />
+        </div>
       </div>
 
       <ReservationDetailsDrawer
