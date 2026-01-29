@@ -136,6 +136,18 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     
+    {/* Reminder template edit route - must be before /:view? to avoid conflict */}
+    <Route 
+      path="/reminders/:shortId" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <Suspense fallback={<PageLoader />}>
+            <ReminderTemplateEditPage />
+          </Suspense>
+        </ProtectedRoute>
+      } 
+    />
+    
     {/* Admin dashboard with optional view param - handles both / and /:view */}
     <Route 
       path="/:view?" 
