@@ -57,6 +57,8 @@ const HallReservationCard = ({
     admin_notes,
   } = reservation;
 
+  const normalizedStatus = (status ?? '').toLowerCase().trim();
+
   // Format time range
   const formatTimeRange = () => {
     return `${start_time.slice(0, 5)} - ${end_time.slice(0, 5)}`;
@@ -112,21 +114,23 @@ const HallReservationCard = ({
 
   // Render action buttons based on status
   const renderActionButtons = () => {
-    const isPendingOrConfirmed = status === 'pending' || status === 'confirmed';
-    const isInProgress = status === 'in_progress';
-    const isCompleted = status === 'completed';
+    const isPendingOrConfirmed = normalizedStatus === 'pending' || normalizedStatus === 'confirmed';
+    const isInProgress = normalizedStatus === 'in_progress';
+    const isCompleted = normalizedStatus === 'completed';
+    const isCancelled = normalizedStatus === 'cancelled';
+    const isReleased = normalizedStatus === 'released';
 
     if (isPendingOrConfirmed) {
       return (
         <Button
           onClick={handleStart}
           disabled={loading === 'start'}
-          className="w-full py-7 text-2xl font-bold bg-green-500 hover:bg-green-600 text-white rounded-lg"
+          className="w-full py-7 text-2xl font-bold rounded-lg bg-success text-success-foreground hover:bg-success/90"
         >
           {loading === 'start' ? (
             <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            t('hallCard.start')
+            t('hallCard.start', { defaultValue: 'START' })
           )}
         </Button>
       );
@@ -137,12 +141,12 @@ const HallReservationCard = ({
         <Button
           onClick={handleStop}
           disabled={loading === 'stop'}
-          className="w-full py-7 text-2xl font-bold bg-red-500 hover:bg-red-600 text-white rounded-lg"
+          className="w-full py-7 text-2xl font-bold rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
           {loading === 'stop' ? (
             <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            t('hallCard.stop')
+            t('hallCard.stop', { defaultValue: 'STOP' })
           )}
         </Button>
       );
@@ -154,48 +158,77 @@ const HallReservationCard = ({
           <Button
             onClick={handleSendSms}
             disabled={loading === 'sms'}
-            className="w-full py-6 text-xl font-semibold bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
+            className="w-full py-6 text-xl font-semibold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90"
           >
             {loading === 'sms' ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              t('hallCard.sendPickupSms')
+              t('hallCard.sendPickupSms', { defaultValue: 'Wyślij SMS: auto do odbioru' })
             )}
           </Button>
           <Button
             onClick={handleRelease}
             disabled={loading === 'release'}
-            className="w-full py-7 text-2xl font-bold bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+            className="w-full py-7 text-2xl font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {loading === 'release' ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              t('hallCard.release')
+              t('hallCard.release', { defaultValue: 'WYDAJ' })
             )}
           </Button>
         </div>
       );
     }
 
+    // For released / cancelled (and any other status), show a short explanation instead of empty space
+    if (isReleased || isCancelled) {
+      return (
+        <div className="space-y-3">
+          <div className="text-lg text-muted-foreground">
+            {t('hallCard.noActions', { defaultValue: 'Brak akcji dla tego statusu' })}
+            {normalizedStatus ? `: ${normalizedStatus}` : ''}
+          </div>
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            className="w-full py-6 text-xl font-semibold rounded-lg"
+          >
+            {t('common.close', { defaultValue: 'Zamknij' })}
+          </Button>
+        </div>
+      );
+    }
+
     // For released or other statuses, no action buttons
-    return null;
+    return (
+      <div className="text-lg text-muted-foreground">
+        {t('hallCard.noActions', { defaultValue: 'Brak akcji dla tego statusu' })}
+        {normalizedStatus ? `: ${normalizedStatus}` : ''}
+      </div>
+    );
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl p-8 w-[70%] max-w-4xl min-w-[500px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-sm">
+      <div className="relative bg-card text-card-foreground rounded-xl shadow-2xl p-8 w-[70%] max-w-4xl min-w-[500px]">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="absolute top-4 right-4 p-2 hover:bg-muted rounded-lg transition-colors"
         >
-          <X className="w-6 h-6 text-gray-500" />
+          <X className="w-6 h-6 text-muted-foreground" />
         </button>
 
         <div className="space-y-6">
-          {/* Time and date - italic, gray, NOT bold */}
-          <div className="text-[28px] italic text-gray-500">
-            {formatTimeRange()} · {formatDateRange()}
+          {/* Time and date - italic, black (foreground), NOT bold */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-[28px] italic text-foreground">
+              {formatTimeRange()} · {formatDateRange()}
+            </div>
+            <div className="rounded-full bg-muted px-3 py-1 text-base font-medium text-muted-foreground">
+              status: {normalizedStatus || '-'}
+            </div>
           </div>
 
           {/* Customer name with phone AND vehicle on same line */}
@@ -203,7 +236,7 @@ const HallReservationCard = ({
             <span className="text-xl font-bold">
               {customer_name} ({formatPhoneDisplay(customer_phone)})
             </span>
-            <span className="text-xl text-gray-700">
+            <span className="text-lg font-semibold text-muted-foreground">
               {vehicle_plate}
             </span>
           </div>
@@ -221,7 +254,7 @@ const HallReservationCard = ({
 
           {/* Admin notes - yellow background, red text */}
           {admin_notes && (
-            <div className="text-xl bg-yellow-100 text-red-600 rounded-lg p-4">
+            <div className="text-xl bg-warning/20 text-destructive rounded-lg p-4">
               {admin_notes}
             </div>
           )}
