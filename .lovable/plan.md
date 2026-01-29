@@ -1,121 +1,74 @@
 
 
-# Plan: Przycisk Fullscreen w nagłówku kalendarza
+# Plan: Aktualizacja legendy kalendarza
 
 ## Podsumowanie
-Dodanie przycisku fullscreen (ikona `Maximize2`/`Minimize2`) obok przycisku "Protokół" w nagłówku kalendarza. Po kliknięciu uruchamia tryb pełnoekranowy przeglądarki (jak F11), ukrywając całe okno przeglądarki.
+Legenda pod kalendarzem wymaga aktualizacji aby odzwierciedlić nowe kolory statusów:
+1. **Prośba o zmianę** (`change_requested`) → zmiana z pomarańczowego na **jasny czerwony**
+2. **W trakcie** (`in_progress`) → **nowa pozycja** z kolorem **pomarańczowym**
 
-## Jak działa Fullscreen API
+## Obecny stan legendy
 
-Browser Fullscreen API pozwala ukryć całkowicie ramkę przeglądarki (pasek adresu, zakładki, menu):
+| Status | Kolor | Etykieta |
+|--------|-------|----------|
+| Do potwierdzenia | amber | Do potwierdzenia |
+| Prośba o zmianę | orange ❌ | Prośba o zmianę |
+| Potwierdzony | green | Potwierdzony |
+| Gotowy do wydania | sky | Gotowy do wydania |
+| Wydany | slate | Wydany |
 
-```typescript
-// Wejście w fullscreen
-document.documentElement.requestFullscreen();
+## Docelowy stan legendy
 
-// Wyjście z fullscreen
-document.exitFullscreen();
-
-// Sprawdzenie stanu
-document.fullscreenElement !== null;
-```
+| Status | Kolor | Etykieta |
+|--------|-------|----------|
+| Do potwierdzenia | amber | Do potwierdzenia |
+| Prośba o zmianę | **red** ✓ | Prośba o zmianę |
+| W trakcie | **orange** ✓ | W trakcie |
+| Potwierdzony | green | Potwierdzony |
+| Gotowy do wydania | sky | Gotowy do wydania |
+| Wydany | slate | Wydany |
 
 ---
 
-## Implementacja
+## Zmiany w kodzie
 
-### 1. Stan i logika fullscreen
-
-W `AdminCalendar.tsx` dodamy:
-
-```typescript
-const [isFullscreen, setIsFullscreen] = useState(false);
-
-// Nasłuchiwanie zmian stanu fullscreen (np. user naciśnie ESC)
-useEffect(() => {
-  const handleFullscreenChange = () => {
-    setIsFullscreen(document.fullscreenElement !== null);
-  };
-  
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
-  return () => {
-    document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  };
-}, []);
-
-// Funkcja toggle
-const toggleFullscreen = useCallback(async () => {
-  if (!document.fullscreenElement) {
-    await document.documentElement.requestFullscreen();
-  } else {
-    await document.exitFullscreen();
-  }
-}, []);
-```
-
-### 2. Przycisk w nagłówku
-
-Dodanie przycisku obok "Protokół" (linia ~1235):
+**Plik:** `src/components/admin/AdminCalendar.tsx` (linie 2254-2275)
 
 ```tsx
-{/* Fullscreen button - in hall mode */}
-{hallMode && (
-  <Button 
-    variant="outline" 
-    size="sm" 
-    onClick={toggleFullscreen} 
-    className="gap-1"
-    title={isFullscreen ? t('calendar.exitFullscreen') : t('calendar.enterFullscreen')}
-  >
-    {isFullscreen ? (
-      <Minimize2 className="w-4 h-4" />
-    ) : (
-      <Maximize2 className="w-4 h-4" />
-    )}
-  </Button>
-)}
+{/* Color Legend */}
+<div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-2 border-t border-border/50 mt-4">
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-amber-400/80 border border-amber-500/70" />
+    <span className="text-xs text-muted-foreground">Do potwierdzenia</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-red-300/80 border border-red-400/70" />
+    <span className="text-xs text-muted-foreground">Prośba o zmianę</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-orange-400/80 border border-orange-500/70" />
+    <span className="text-xs text-muted-foreground">W trakcie</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-green-400/80 border border-green-500/70" />
+    <span className="text-xs text-muted-foreground">Potwierdzony</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-sky-300/80 border border-sky-400/70" />
+    <span className="text-xs text-muted-foreground">Gotowy do wydania</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded bg-slate-400/80 border border-slate-500/70" />
+    <span className="text-xs text-muted-foreground">Wydany</span>
+  </div>
+</div>
 ```
 
 ---
 
-## Struktura nagłówka po zmianach
-
-```text
-[< poprzedni] [Dziś] [następny >]  |  [Dzień] [2-Dni]  |  [Plac] [Protokół] [⛶]
-                                                                             ↑
-                                                              przycisk fullscreen
-```
-
----
-
-## Tłumaczenia
-
-**Plik:** `src/i18n/locales/pl.json`
-
-```json
-{
-  "calendar": {
-    "enterFullscreen": "Pełny ekran",
-    "exitFullscreen": "Zamknij pełny ekran"
-  }
-}
-```
-
----
-
-## Pliki do zmodyfikowania
+## Pliki do edycji
 
 | Plik | Zmiana |
 |------|--------|
-| `src/components/admin/AdminCalendar.tsx` | State, useEffect, toggle function, przycisk z ikoną |
-| `src/i18n/locales/pl.json` | Tłumaczenia dla tooltip |
-
----
-
-## Uwagi techniczne
-
-- Fullscreen API jest wspierany we wszystkich nowoczesnych przeglądarkach
-- User może wyjść z fullscreen naciskając **ESC** - useEffect nasłuchuje `fullscreenchange` i aktualizuje ikonę
-- Przycisk będzie widoczny tylko w `hallMode` (widok hali)
-- Import ikon: `Maximize2`, `Minimize2` z `lucide-react`
+| `src/components/admin/AdminCalendar.tsx` | Aktualizacja kolorów legendy + dodanie pozycji "W trakcie" |
 
