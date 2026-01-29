@@ -1,36 +1,56 @@
 
-# Plan: Udostępnienie modułu "Protokoły" dla pracowników
+# Plan naprawy routingu
 
-## Cel
-Umożliwić użytkownikom z rolą `employee` dostęp do modułu "Protokoły" (protokoły przyjęcia/wydania pojazdu).
+## Problem
+Route `/hall/:hallId` w `InstanceAdminRoutes` przechwytuje ścieżkę `/halls` zanim ta dotrze do `/:view`. React Router traktuje `/halls` jako `/hall/:hallId` gdzie `hallId = "s"`.
 
-## Zakres zmian
+## Rozwiązanie
 
-### 1. Sidebar w AdminDashboard.tsx
-**Plik:** `src/pages/AdminDashboard.tsx`
+### 1. Zmiana nazwy route dla pojedynczej hali
+Zmienić `/hall/:hallId` na `/halls/:hallId` aby uniknąć kolizji:
 
-Zmiana warunku wyświetlania przycisku "Protokoły" w sidebarze:
-- **Przed:** `hasFeature('vehicle_reception_protocol') && userRole !== 'employee'`
-- **Po:** `hasFeature('vehicle_reception_protocol')` (bez ograniczenia dla pracowników)
+**Przed:**
+```
+/hall/:hallId  ← przechwytuje /halls!
+/:view
+```
 
-**Lokalizacja:** Linia ~2309
+**Po:**
+```
+/halls/:hallId  ← teraz /halls NIE pasuje (brak :hallId)
+/:view          ← /halls dopasuje się tutaj poprawnie
+```
 
-### 2. Mobile Bottom Navigation
-**Plik:** `src/components/admin/MobileBottomNav.tsx`
+### 2. Zmiany w plikach
 
-Zmiana warunku w tablicy `moreMenuItems`:
-- **Przed:** `protocolsEnabled && userRole !== 'employee'`
-- **Po:** `protocolsEnabled` (bez ograniczenia dla pracowników)
+#### `src/App.tsx` - InstanceAdminRoutes
+- Linia 139: zmienić `/hall/:hallId` → `/halls/:hallId`
 
-**Lokalizacja:** Linia ~74
+#### `src/App.tsx` - DevRoutes  
+- Już poprawne: używa `/admin/hall/:hallId` i `/admin/halls/:hallId`
 
-## Podsumowanie zmian
+#### Linki w aplikacji (jeśli istnieją)
+- Sprawdzić czy jakieś komponenty linkują do `/hall/:hallId` i zaktualizować
 
-| Plik | Zmiana |
-|------|--------|
-| `AdminDashboard.tsx` | Usunięcie `userRole !== 'employee'` z warunku dla protocols |
-| `MobileBottomNav.tsx` | Usunięcie `userRole !== 'employee'` z warunku dla protocols |
+## Szczegóły techniczne
 
-## Uwagi
-- ProtocolsView nie wymaga zmian - przyjmuje `instanceId` jako props z AdminDashboard
-- Uprawnienia do funkcji (ustawienia, usuwanie) mogą zostać dodatkowo ograniczone w przyszłości jeśli potrzeba
+### Kolejność routes w InstanceAdminRoutes (po zmianach):
+```
+/login            → InstanceAuth
+/dashboard        → RoleBasedRedirect
+/                 → RoleBasedRedirect
+/admin            → AdminDashboard
+/halls/:hallId    → HallView (specyficzny route)
+/:view            → AdminDashboard (catch-all dla widoków)
+```
+
+### Dlaczego to zadziała:
+1. `/halls` nie pasuje do `/halls/:hallId` (brak segmentu po `/halls/`)
+2. `/halls` dopasuje się do `/:view` gdzie `view = "halls"`
+3. `/halls/abc123` dopasuje się do `/halls/:hallId` gdzie `hallId = "abc123"`
+
+### Weryfikacja po zmianach:
+- Niezalogowany → `/login`
+- Zalogowany z rolą `hall` → `/halls` (lista hal)
+- Zalogowany z rolą `admin` → `/admin` (kalendarz)
+- Kliknięcie na halę → `/halls/:hallId` (widok hali)
