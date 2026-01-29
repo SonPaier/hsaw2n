@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ interface ProtocolsViewProps {
 const ITEMS_PER_PAGE = 20;
 
 export const ProtocolsView = ({ instanceId, kioskMode = false, onBack, onEditModeChange }: ProtocolsViewProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +65,13 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack, onEditMod
   const [protocolToEmail, setProtocolToEmail] = useState<Protocol | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+
+  // Handle URL params for opening create form from reservation
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      setShowCreateForm(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProtocols();
@@ -206,6 +215,8 @@ export const ProtocolsView = ({ instanceId, kioskMode = false, onBack, onEditMod
         onBack={() => {
           setShowCreateForm(false);
           setEditingProtocolId(null);
+          // Clear URL params when closing form
+          setSearchParams({});
           fetchProtocols();
         }}
       />
