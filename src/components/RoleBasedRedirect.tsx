@@ -3,11 +3,11 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * Redirects users based on their role:
- * - hall role → /hall/1 (kiosk mode)
+ * Redirects authenticated users based on their role:
+ * - hall role → /halls (halls list in AdminDashboard)
  * - admin/employee → /admin (dashboard)
  * - super_admin → /super-admin
- * - no role → /login
+ * - unauthenticated → /login
  */
 const RoleBasedRedirect = () => {
   const { user, roles, loading } = useAuth();
