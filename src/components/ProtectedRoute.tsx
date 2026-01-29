@@ -40,15 +40,10 @@ const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: Protecte
         return <Navigate to="/" replace />;
       }
     } else {
-      // For admin role, also allow employee role (they have limited access but can see calendar)
+      // For admin role, also allow employee and hall roles (they have limited access)
       if (requiredRole === 'admin') {
-        const hasAccess = hasRole('admin') || hasRole('super_admin') || hasRole('employee');
+        const hasAccess = hasRole('admin') || hasRole('super_admin') || hasRole('employee') || hasRole('hall');
         if (!hasAccess) {
-          return <Navigate to="/" replace />;
-        }
-      } else if (requiredRole === 'hall') {
-        // Hall role only - dedicated kiosk view
-        if (!hasRole('hall')) {
           return <Navigate to="/" replace />;
         }
       } else if (!hasRole(requiredRole)) {

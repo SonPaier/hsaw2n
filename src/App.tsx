@@ -143,23 +143,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       } 
     />
-    {/* Hall role routes - uses AdminDashboard with simplified sidebar */}
-    <Route 
-      path="/halls" 
-      element={
-        <ProtectedRoute requiredRole="hall">
-          <AdminDashboard />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/protocols" 
-      element={
-        <ProtectedRoute requiredRole="hall">
-          <AdminDashboard />
-        </ProtectedRoute>
-      } 
-    />
+    {/* All dashboard views - admin gets full access, hall gets limited views */}
     <Route
       path="/:view" 
       element={
@@ -222,23 +206,6 @@ const DevRoutes = () => (
       element={
         <ProtectedRoute requiredRole="admin">
           <HallView />
-        </ProtectedRoute>
-      } 
-    />
-    {/* Hall role routes - uses AdminDashboard with simplified sidebar */}
-    <Route 
-      path="/halls" 
-      element={
-        <ProtectedRoute requiredRole="hall">
-          <AdminDashboard />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/protocols" 
-      element={
-        <ProtectedRoute requiredRole="hall">
-          <AdminDashboard />
         </ProtectedRoute>
       } 
     />
