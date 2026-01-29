@@ -23,7 +23,7 @@ interface MobileBottomNavProps {
   followupEnabled?: boolean;
   hallViewEnabled?: boolean;
   protocolsEnabled?: boolean;
-  userRole?: 'admin' | 'employee' | null;
+  userRole?: 'admin' | 'employee' | 'hall' | null;
   currentVersion?: string;
 }
 
@@ -56,27 +56,34 @@ const MobileBottomNav = ({
     onLogout?.();
   };
 
-  // Menu items in EXACT same order as desktop sidebar
-  const moreMenuItems = [
-    // 1. Kalendarz
-    { id: 'calendar' as ViewType, icon: Calendar, label: 'Kalendarz' },
-    // 2. Rezerwacje
-    { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
-    // 3. Klienci
-    { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
-    // 4. Cennik (admin only)
-    ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Cennik' }] : []),
-    // 5. Oferty (when enabled)
-    ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-    // 6. Hale (when enabled, including employees)
-    ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-    // 7. Protokoły (when enabled, including employees)
-    ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-    // 8. Powiadomienia (second to last)
-    { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
-    // 9. Ustawienia (always last, admin only)
-    ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
-  ];
+  // Menu items - simplified for hall role (only halls and protocols)
+  const moreMenuItems = userRole === 'hall' 
+    ? [
+        // Hall role: only Hale and Protokoły
+        ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
+        ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
+      ]
+    : [
+        // Full menu for admin/employee - EXACT same order as desktop sidebar
+        // 1. Kalendarz
+        { id: 'calendar' as ViewType, icon: Calendar, label: 'Kalendarz' },
+        // 2. Rezerwacje
+        { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
+        // 3. Klienci
+        { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
+        // 4. Cennik (admin only)
+        ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Cennik' }] : []),
+        // 5. Oferty (when enabled)
+        ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
+        // 6. Hale (when enabled, including employees)
+        ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
+        // 7. Protokoły (when enabled, including employees)
+        ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
+        // 8. Powiadomienia (second to last)
+        { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
+        // 9. Ustawienia (always last, admin only)
+        ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
+      ];
 
   return (
     <>

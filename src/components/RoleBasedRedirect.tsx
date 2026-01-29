@@ -24,10 +24,10 @@ const RoleBasedRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check for hall role first (kiosk mode)
+  // Check for hall role first - redirect to halls list in AdminDashboard
   const hasHallRole = roles.some(r => r.role === 'hall');
   if (hasHallRole) {
-    return <Navigate to="/kiosk/1" replace />;
+    return <Navigate to="/halls" replace />;
   }
 
   // Check for super_admin
