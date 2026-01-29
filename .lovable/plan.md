@@ -1,93 +1,137 @@
 
-# Plan: Naprawienie skakania sidebara dla admina ✅ DONE
 
-## Zaimplementowane zmiany
+# Plan: Naprawa skakania sidebara dla admin/employee + separacja komponentów per rola
 
-### 1. Konflikt routingu w `InstanceAdminRoutes`
-Route `/:view` jest zbyt ogólny i koliduje z `/halls/:hallId`. Gdy użytkownik nawiguje do widoku np. "offers", może być błędnie dopasowany.
+## Zidentyfikowane przyczyny problemów
 
-### 2. Logika `setCurrentView` z pustym `adminBasePath`
-W `AdminDashboard.tsx` (linia 154-158):
+### 1. setTimeout w MobileBottomNav (wciąż obecny!)
+**Lokalizacja:** `src/components/admin/MobileBottomNav.tsx` linie 47-51
 ```typescript
-const setCurrentView = (newView: ViewType) => {
-  const target =
-    newView === 'calendar' ? adminBasePath || '/' : `${adminBasePath}/${newView}`;
-  navigate(target);
+const handleMoreMenuItemClick = (view: ViewType) => {
+  setMoreMenuOpen(false);
+  // Delay view change to allow sheet to close first
+  setTimeout(() => {
+    onViewChange(view);
+  }, 100);
 };
 ```
-Gdy `adminBasePath` jest pusty (na subdomenach instancji jak `armcar.admin.n2wash.com`), nawigacja do kalendarza prowadzi do `/`, co może być niepoprawnie interpretowane przez router.
+**Problem:** Race condition - sheet może nie zdążyć się zamknąć zanim nastąpi nawigacja, lub nawigacja może być opóźniona powodując niespójny stan.
 
-### 3. `setTimeout` w przyciskach sidebara
-Przyciski używają `setTimeout(() => setCurrentView(...), 50)` co może powodować race conditions i niespójne stany podczas szybkiego klikania.
+### 2. Konflikt routingu na subdomenach admin
+**Lokalizacja:** `src/App.tsx` linie 126-154
+```typescript
+// Problem: oba te route'y prowadzą do różnych komponentów na tym samym URL!
+<Route path="/" element={<RoleBasedRedirect />} />
+<Route path="/:view" element={<AdminDashboard />} />
+```
+**Problem:** 
+- Dla admin/employee po nawigacji do `/` → `RoleBasedRedirect` przekierowuje na `/admin`
+- Ale `/admin` znowu renderuje `AdminDashboard` który ma `currentView = 'calendar'`
+- `setCurrentView('calendar')` nawiguje do `/` → cykl!
 
-### 4. Brak wczesnego guardu dla roli `hall` na `/admin`
-Użytkownik `hall` wchodzący na `/admin` powinien być natychmiast przekierowany do `/halls/:hallId`, ale obecnie renderuje `AdminDashboard` z ograniczonym UI.
+### 3. Brak wspólnego Layout wrappera
+**Problem:** `AdminDashboard` jest montowany na nowo przy każdej zmianie route'a, co resetuje lokalny stan (sidebar, loading states).
 
 ---
 
 ## Rozwiązanie
 
-### Zmiana 1: Usunięcie `setTimeout` z przycisków sidebara (AdminDashboard.tsx)
+### Faza 1: Usunięcie setTimeout z MobileBottomNav
 
-Obecny kod:
+**Plik:** `src/components/admin/MobileBottomNav.tsx`
+
+Zamiana:
 ```typescript
-onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('calendar'), 50); }}
-```
+// PRZED:
+const handleMoreMenuItemClick = (view: ViewType) => {
+  setMoreMenuOpen(false);
+  setTimeout(() => {
+    onViewChange(view);
+  }, 100);
+};
 
-Nowy kod:
-```typescript
-onClick={() => { setSidebarOpen(false); setCurrentView('calendar'); }}
-```
-
-**Dotyczy wszystkich przycisków nawigacji w sidebarze** (linie ~2293-2353).
-
-### Zmiana 2: Poprawienie `setCurrentView` dla pustego `adminBasePath`
-
-Obecny kod (linia 154-158):
-```typescript
-const setCurrentView = (newView: ViewType) => {
-  const target =
-    newView === 'calendar' ? adminBasePath || '/' : `${adminBasePath}/${newView}`;
-  navigate(target);
+// PO:
+const handleMoreMenuItemClick = (view: ViewType) => {
+  setMoreMenuOpen(false);
+  onViewChange(view);
 };
 ```
 
-Nowy kod:
+### Faza 2: Naprawa routingu subdomen admin
+
+**Plik:** `src/App.tsx` - `InstanceAdminRoutes`
+
+Zmiana struktury:
 ```typescript
-const setCurrentView = (newView: ViewType) => {
-  // For subdomain mode (empty adminBasePath), calendar is at root '/'
-  // For /admin prefix mode, calendar is at '/admin'
-  const calendarPath = adminBasePath || '/';
-  const target = newView === 'calendar' ? calendarPath : `${adminBasePath}/${newView}`;
-  navigate(target, { replace: true }); // replace: true prevents history stack buildup
-};
+const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
+  <Routes>
+    {/* Login page - must be first */}
+    <Route path="/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
+    
+    {/* Public routes - BEFORE catch-all */}
+    <Route path="/offers/:token" element={<PublicOfferView />} />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
+    
+    {/* Role-based redirect - ONLY for /dashboard */}
+    <Route path="/dashboard" element={<RoleBasedRedirect />} />
+    
+    {/* Hall view - specific route BEFORE catch-all */}
+    <Route path="/halls/:hallId" element={
+      <ProtectedRoute requiredRole="admin">
+        <HallView />
+      </ProtectedRoute>
+    } />
+    
+    {/* Admin dashboard with optional view param */}
+    <Route path="/:view?" element={
+      <ProtectedRoute requiredRole="admin">
+        <AdminDashboard />
+      </ProtectedRoute>
+    } />
+    
+    {/* Catch-all */}
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
 ```
 
-### Zmiana 3: Dodanie przekierowania roli `hall` do HallView
+**Kluczowe zmiany:**
+1. Usunięcie osobnego `/admin` route (nie potrzebny na subdomenach)
+2. Użycie `/:view?` (opcjonalny param) zamiast osobnych `/` i `/:view`
+3. Przeniesienie public routes PRZED catch-all
 
-Dodać nowy `useEffect` po `fetchUserInstanceId`:
+### Faza 3: Poprawka setCurrentView w AdminDashboard
 
+**Plik:** `src/pages/AdminDashboard.tsx`
+
+Zmiana logiki nawigacji aby działała poprawnie na subdomenach:
 ```typescript
-// Redirect hall role to HallView - they shouldn't be on AdminDashboard
-useEffect(() => {
-  if (userRole === 'hall' && instanceId) {
-    const hallPath = adminBasePath ? '/admin/halls/1' : '/halls/1';
-    navigate(hallPath, { replace: true });
+const setCurrentView = (newView: ViewType) => {
+  // For subdomain mode: empty adminBasePath means we're on *.admin.n2wash.com
+  // Calendar should be at '/' and views at '/:view'
+  if (!adminBasePath) {
+    // Subdomain mode
+    const target = newView === 'calendar' ? '/' : `/${newView}`;
+    navigate(target, { replace: true });
+  } else {
+    // Dev mode with /admin prefix
+    const target = newView === 'calendar' ? adminBasePath : `${adminBasePath}/${newView}`;
+    navigate(target, { replace: true });
   }
-}, [userRole, instanceId, navigate, adminBasePath]);
+};
 ```
 
-I wczesny guard przed głównym renderem:
-```typescript
-// If hall role detected, show loader while redirecting
-if (userRole === 'hall') {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-    </div>
-  );
-}
-```
+### Faza 4 (opcjonalna): Separacja sidebar komponentów per rola
+
+**Nowe pliki:**
+- `src/components/admin/sidebar/AdminSidebar.tsx` - sidebar dla admin/employee
+- `src/components/admin/sidebar/HallSidebar.tsx` - uproszczony sidebar dla hall
+
+**Korzyści:**
+- Czytelniejszy kod
+- Łatwiejsze testowanie per rola
+- Eliminacja warunkowych renderów w jednym komponencie
+- Mniejsze ryzyko regresji przy zmianach
 
 ---
 
@@ -95,13 +139,18 @@ if (userRole === 'hall') {
 
 | Plik | Zmiany |
 |------|--------|
-| `src/pages/AdminDashboard.tsx` | 1. Usunięcie `setTimeout` z ~10 przycisków sidebara<br>2. Poprawienie `setCurrentView` z `replace: true`<br>3. Dodanie `useEffect` przekierowującego rolę `hall`<br>4. Dodanie wczesnego guardu przed renderem dla roli `hall`<br>5. Import `Loader2` |
+| `src/components/admin/MobileBottomNav.tsx` | Usunięcie `setTimeout` z `handleMoreMenuItemClick` |
+| `src/App.tsx` | Refaktor `InstanceAdminRoutes`: użycie `/:view?`, kolejność routes |
+| `src/pages/AdminDashboard.tsx` | Poprawka `setCurrentView` dla pustego `adminBasePath` |
 
 ---
 
 ## Oczekiwane rezultaty
 
-1. **Admin/Employee**: Sidebar działa płynnie bez skakania, nawigacja między widokami jest natychmiastowa
-2. **Hall**: Automatyczne przekierowanie do `/halls/1` gdy wejdą na `/admin`
-3. **Historia przeglądarki**: Brak nadmiarowych wpisów dzięki `replace: true`
-4. **Nagłówek**: Prawidłowo wyświetla logo i nazwę instancji (nie "Panel admina")
+1. **Admin/Employee**: Płynna nawigacja między widokami bez skakania
+2. **Hall**: Działa jak dotychczas (bez zmian)
+3. **Mobile**: Menu "Więcej" działa natychmiast bez opóźnień
+4. **URL**: Poprawne ścieżki:
+   - Subdomena: `/` (kalendarz), `/customers`, `/offers`, `/halls/1`
+   - Dev: `/admin` (kalendarz), `/admin/customers`, `/admin/offers`
+
