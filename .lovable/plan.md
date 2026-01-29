@@ -1,7 +1,7 @@
 
-# Plan: Naprawienie skakania sidebara dla admina
+# Plan: Naprawienie skakania sidebara dla admina ✅ DONE
 
-## Zdiagnozowane problemy
+## Zaimplementowane zmiany
 
 ### 1. Konflikt routingu w `InstanceAdminRoutes`
 Route `/:view` jest zbyt ogólny i koliduje z `/halls/:hallId`. Gdy użytkownik nawiguje do widoku np. "offers", może być błędnie dopasowany.
