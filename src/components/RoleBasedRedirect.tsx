@@ -27,7 +27,7 @@ const RoleBasedRedirect = () => {
   // Check for hall role first (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
   if (hasHallRole) {
-    return <Navigate to="/hall/1" replace />;
+    return <Navigate to="/kiosk/1" replace />;
   }
 
   // Check for super_admin
