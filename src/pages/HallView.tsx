@@ -569,6 +569,16 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
   };
 
+  // Map all reservations with services_data for calendar display
+  const reservationsWithServices = useMemo(() => {
+    return reservations.map(reservation => ({
+      ...reservation,
+      services_data: reservation.service_ids?.map(id => ({
+        name: servicesMap.get(id) || id,
+      })) || [],
+    }));
+  }, [reservations, servicesMap]);
+
   // Map selected reservation with services_data
   const selectedReservationWithServices = useMemo(() => {
     if (!selectedReservation) return null;
@@ -745,7 +755,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         <div className="flex-1 h-full overflow-hidden">
           <AdminCalendar
             stations={stations}
-            reservations={reservations}
+            reservations={reservationsWithServices}
             breaks={breaks}
             workingHours={workingHours}
             onReservationClick={handleReservationClick}
