@@ -182,31 +182,15 @@ const HallReservationCard = ({
       );
     }
 
-    // For released / cancelled (and any other status), show a short explanation instead of empty space
-    if (isReleased || isCancelled) {
-      return (
-        <div className="space-y-3">
-          <div className="text-lg text-muted-foreground">
-            {t('hallCard.noActions', { defaultValue: 'Brak akcji dla tego statusu' })}
-            {normalizedStatus ? `: ${normalizedStatus}` : ''}
-          </div>
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            className="w-full py-6 text-xl font-semibold rounded-lg"
-          >
-            {t('common.close', { defaultValue: 'Zamknij' })}
-          </Button>
-        </div>
-      );
-    }
-
-    // For released or other statuses, no action buttons
+    // For released / cancelled (and any other status), just show close button
     return (
-      <div className="text-lg text-muted-foreground">
-        {t('hallCard.noActions', { defaultValue: 'Brak akcji dla tego statusu' })}
-        {normalizedStatus ? `: ${normalizedStatus}` : ''}
-      </div>
+      <Button
+        variant="secondary"
+        onClick={onClose}
+        className="w-full py-6 text-xl font-semibold rounded-lg"
+      >
+        {t('common.close', { defaultValue: 'Zamknij' })}
+      </Button>
     );
   };
 
