@@ -138,6 +138,12 @@
     "notFound": "Nie znaleziono hali",
     "editNotAvailable": "Edycja rezerwacji wymaga panelu admina"
   },
+  "hallCard": {
+    "start": "START",
+    "stop": "STOP",
+    "release": "WYDAJ",
+    "sendPickupSms": "Wyślij SMS: auto do odbioru"
+  },
   "reservations": {
     "title": "Rezerwacje",
     "newReservation": "Nowa rezerwacja",

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
-import ReservationDetailsDrawer from '@/components/admin/ReservationDetailsDrawer';
+import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
@@ -77,9 +77,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
-  const [hallDataVisible, setHallDataVisible] = useState(true); // Toggle for sensitive data visibility
+  const [hallDataVisible, setHallDataVisible] = useState(true);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [showProtocolsList, setShowProtocolsList] = useState(false);
+  const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
+  const [instanceShortName, setInstanceShortName] = useState<string>('');
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -293,15 +295,28 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       // Fetch working hours
       const { data: instanceData } = await supabase
         .from('instances')
-        .select('working_hours')
+        .select('working_hours, short_name, reservation_phone')
         .eq('id', instanceId)
         .maybeSingle();
 
       if (instanceData?.working_hours) {
         setWorkingHours(instanceData.working_hours as unknown as Record<string, { open: string; close: string } | null>);
       }
+      if (instanceData?.short_name) {
+        setInstanceShortName(instanceData.short_name);
+      }
 
-      // Fetch reservations
+      // Fetch unified services for mapping
+      const { data: servicesData } = await supabase
+        .from('unified_services')
+        .select('id, name')
+        .eq('instance_id', instanceId);
+
+      if (servicesData) {
+        const map = new Map<string, string>();
+        servicesData.forEach(s => map.set(s.id, s.name));
+        setServicesMap(map);
+      }
       const { data: reservationsData } = await supabase
         .from('reservations')
         .select(`
@@ -504,6 +519,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     setReservations(prev => prev.map(r => 
       r.id === reservationId ? { ...r, status: newStatus } : r
     ));
+    // Also update selectedReservation if it's the same
+    setSelectedReservation(prev => 
+      prev?.id === reservationId ? { ...prev, status: newStatus } : prev
+    );
   };
 
   const handleDeleteReservation = async (reservationId: string) => {
@@ -517,6 +536,43 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     setSelectedReservation(null);
     setEditingReservation(reservation);
   };
+
+  // Send pickup SMS handler for hall view
+  const handleSendPickupSms = async (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation || !instanceId) return;
+
+    const message = `${instanceShortName || 'Serwis'}: Twoje auto jest gotowe do odbioru. Zapraszamy!`;
+
+    const { error } = await supabase.functions.invoke('send-sms-message', {
+      body: {
+        phone: reservation.customer_phone,
+        message,
+        instanceId,
+      },
+    });
+
+    if (error) {
+      toast.error(t('common.error'));
+      return;
+    }
+
+    toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
+  };
+
+  // Map selected reservation with services_data
+  const selectedReservationWithServices = useMemo(() => {
+    if (!selectedReservation) return null;
+    
+    const services_data = selectedReservation.service_ids?.map(id => ({
+      name: servicesMap.get(id) || id,
+    })) || [];
+
+    return {
+      ...selectedReservation,
+      services_data,
+    };
+  }, [selectedReservation, servicesMap]);
 
   const handleReservationSaved = async () => {
     // Refresh reservations after edit
@@ -700,35 +756,26 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         </div>
       </div>
 
-      <ReservationDetailsDrawer
-        reservation={selectedReservation}
-        open={!!selectedReservation}
-        onClose={() => setSelectedReservation(null)}
-        mode="hall"
-        hallConfig={hallConfig}
-        onEdit={hallConfig?.allowed_actions.edit_reservation ? handleEditReservation : undefined}
-        onDelete={hallConfig?.allowed_actions.delete_reservation ? (id) => handleDeleteReservation(id) : undefined}
-        onStartWork={async (id) => {
-          await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
-          handleStatusChange(id, 'in_progress');
-        }}
-        onEndWork={async (id) => {
-          await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
-          handleStatusChange(id, 'completed');
-        }}
-        onRelease={async (id) => {
-          await supabase.from('reservations').update({ status: 'released', released_at: new Date().toISOString() }).eq('id', id);
-          handleStatusChange(id, 'released');
-        }}
-        onRevertToConfirmed={async (id) => {
-          await supabase.from('reservations').update({ status: 'confirmed', started_at: null }).eq('id', id);
-          handleStatusChange(id, 'confirmed');
-        }}
-        onRevertToInProgress={async (id) => {
-          await supabase.from('reservations').update({ status: 'in_progress', completed_at: null }).eq('id', id);
-          handleStatusChange(id, 'in_progress');
-        }}
-      />
+      {selectedReservationWithServices && (
+        <HallReservationCard
+          reservation={selectedReservationWithServices}
+          open={!!selectedReservation}
+          onClose={() => setSelectedReservation(null)}
+          onStartWork={async (id) => {
+            await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
+            handleStatusChange(id, 'in_progress');
+          }}
+          onEndWork={async (id) => {
+            await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+            handleStatusChange(id, 'completed');
+          }}
+          onRelease={async (id) => {
+            await supabase.from('reservations').update({ status: 'released', released_at: new Date().toISOString() }).eq('id', id);
+            handleStatusChange(id, 'released');
+          }}
+          onSendPickupSms={handleSendPickupSms}
+        />
+      )}
 
       {/* Edit reservation drawer - only shown when hall allows editing */}
       {editingReservation && instanceId && (
