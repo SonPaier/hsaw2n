@@ -79,6 +79,7 @@ const HallReservationCard = ({
     setLoading('start');
     try {
       await onStartWork(id);
+      onClose();
     } finally {
       setLoading(null);
     }
