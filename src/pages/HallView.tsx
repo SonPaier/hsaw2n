@@ -8,6 +8,7 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
+import ReservationPhotosDialog from '@/components/admin/ReservationPhotosDialog';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
 import { Loader2, Calendar, FileText, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import type { Hall } from '@/components/admin/halls/HallCard';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { normalizePhone } from '@/lib/phoneUtils';
 interface Station {
   id: string;
   name: string;
@@ -83,6 +85,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [showProtocolsList, setShowProtocolsList] = useState(false);
   const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [instanceShortName, setInstanceShortName] = useState<string>('');
+  const [photosDialogReservation, setPhotosDialogReservation] = useState<Reservation | null>(null);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -113,6 +116,63 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  // Helper to find customer email for protocol
+  const findCustomerEmail = async (phone: string): Promise<string | null> => {
+    if (!instanceId || !phone) return null;
+    
+    const normalized = normalizePhone(phone);
+    
+    // Check customers table
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('email')
+      .eq('instance_id', instanceId)
+      .or(`phone.eq.${normalized},phone.eq.+48${normalized}`)
+      .maybeSingle();
+    
+    if (customer?.email) return customer.email;
+    
+    // Check offers table
+    const { data: offers } = await supabase
+      .from('offers')
+      .select('customer_data')
+      .eq('instance_id', instanceId)
+      .not('customer_data', 'is', null)
+      .limit(10);
+    
+    for (const offer of offers || []) {
+      const customerData = offer.customer_data as any;
+      if (normalizePhone(customerData?.phone) === normalized && customerData?.email) {
+        return customerData.email;
+      }
+    }
+    
+    return null;
+  };
+
+  // Handle adding protocol from reservation
+  const handleAddProtocol = async (reservation: Reservation) => {
+    const email = await findCustomerEmail(reservation.customer_phone);
+    
+    const params = new URLSearchParams({
+      action: 'new',
+      reservationId: reservation.id,
+      customerName: reservation.customer_name || '',
+      customerPhone: reservation.customer_phone || '',
+      vehiclePlate: reservation.vehicle_plate || '',
+    });
+    if (email) params.set('email', email);
+    
+    setSelectedReservation(null);
+    navigate(isAdminPath ? `/admin/protocols?${params.toString()}` : `/protocols?${params.toString()}`);
+  };
+
+  // Handle adding photos to reservation
+  const handleAddPhotos = (reservation: Reservation) => {
+    setPhotosDialogReservation(reservation);
+    setSelectedReservation(null);
   };
 
   // Prevent navigation away - capture back button and history manipulation
@@ -793,6 +853,21 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             handleStatusChange(id, 'released');
           }}
           onSendPickupSms={handleSendPickupSms}
+          onAddProtocol={canAccessProtocols ? handleAddProtocol : undefined}
+          onAddPhotos={handleAddPhotos}
+        />
+      )}
+
+      {/* Photos dialog */}
+      {photosDialogReservation && (
+        <ReservationPhotosDialog
+          open={!!photosDialogReservation}
+          onClose={() => setPhotosDialogReservation(null)}
+          reservationId={photosDialogReservation.id}
+          currentPhotos={[]}
+          onPhotosUpdated={() => {
+            toast.success('Zdjęcia zostały zapisane');
+          }}
         />
       )}
 
