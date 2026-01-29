@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,11 +73,19 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
 };
 
 export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSettings }: CreateProtocolFormProps) => {
+  const [searchParams] = useSearchParams();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAndSending, setSavingAndSending] = useState(false);
   const isEditMode = !!protocolId;
+  
+  // URL params for reservation pre-fill
+  const reservationIdFromUrl = searchParams.get('reservationId');
+  const customerNameFromUrl = searchParams.get('customerName');
+  const customerPhoneFromUrl = searchParams.get('customerPhone');
+  const vehiclePlateFromUrl = searchParams.get('vehiclePlate');
+  const emailFromUrl = searchParams.get('email');
   
   // Refs for scroll-to-error
   const customerNameRef = useRef<HTMLDivElement>(null);
@@ -86,12 +95,13 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   // Form state
   const [offerNumber, setOfferNumber] = useState('');
   const [offerId, setOfferId] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
+  const [customerName, setCustomerName] = useState(customerNameFromUrl || '');
+  const [customerEmail, setCustomerEmail] = useState(emailFromUrl || '');
+  const [vehicleModel, setVehicleModel] = useState(vehiclePlateFromUrl || '');
   const [nip, setNip] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(customerPhoneFromUrl || '');
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [reservationId, setReservationId] = useState<string | null>(reservationIdFromUrl);
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [fuelLevel, setFuelLevel] = useState('');
   const [odometerReading, setOdometerReading] = useState('');
@@ -489,6 +499,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         customer_signature: customerSignature,
         notes: notes || null,
         photo_urls: protocolPhotoUrls,
+        reservation_id: reservationId || null,
       };
 
       let savedProtocolId = protocolId;

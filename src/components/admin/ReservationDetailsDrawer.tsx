@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink, MoreVertical, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SendSmsDialog from '@/components/admin/SendSmsDialog';
 import { ReservationHistoryDrawer } from './history/ReservationHistoryDrawer';
 import CustomerEditDrawer from './CustomerEditDrawer';
+import ReservationPhotosDialog from './ReservationPhotosDialog';
+import ReservationPhotosSection from './ReservationPhotosSection';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -24,6 +27,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +72,7 @@ interface Reservation {
   service_items?: Array<{ service_id: string; custom_price: number | null }> | null;
   offer_number?: string | null;
   has_unified_services?: boolean | null;
+  photo_urls?: string[] | null;
   service?: {
     name: string;
   };
@@ -187,6 +198,9 @@ const ReservationDetailsDrawer = ({
   const [priceDetailsOpen, setPriceDetailsOpen] = useState(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
+  const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
+  const [reservationPhotos, setReservationPhotos] = useState<string[]>([]);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<{
     id: string;
     name: string;
@@ -198,6 +212,7 @@ const ReservationDetailsDrawer = ({
     source?: string;
   } | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -221,6 +236,7 @@ const ReservationDetailsDrawer = ({
       setPrice(reservation.price?.toString() || '');
       setStartTime(reservation.start_time || '');
       setEndTime(reservation.end_time || '');
+      setReservationPhotos(reservation.photo_urls || []);
       
       // Fetch offer public_token if offer_number exists
       if (reservation.offer_number) {
@@ -238,6 +254,59 @@ const ReservationDetailsDrawer = ({
       }
     }
   }, [reservation]);
+
+  // Find customer email for protocol navigation
+  const findCustomerEmail = async (phone: string, instanceId: string): Promise<string | null> => {
+    const normalizedPhone = normalizePhone(phone);
+    
+    // 1. Check customers table
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('email')
+      .eq('instance_id', instanceId)
+      .or(`phone.eq.${normalizedPhone},phone.eq.+48${normalizedPhone}`)
+      .maybeSingle();
+    
+    if (customer?.email) return customer.email;
+    
+    // 2. Check offers table
+    const { data: offers } = await supabase
+      .from('offers')
+      .select('customer_data')
+      .eq('instance_id', instanceId)
+      .not('customer_data', 'is', null)
+      .limit(10);
+    
+    for (const offer of offers || []) {
+      const customerData = offer.customer_data as any;
+      if (normalizePhone(customerData?.phone) === normalizedPhone && customerData?.email) {
+        return customerData.email;
+      }
+    }
+    
+    return null;
+  };
+
+  // Navigate to protocol form with reservation data
+  const handleAddProtocol = async () => {
+    if (!reservation) return;
+    
+    const email = await findCustomerEmail(reservation.customer_phone, reservation.instance_id);
+    
+    const params = new URLSearchParams({
+      reservationId: reservation.id,
+      customerName: reservation.customer_name || '',
+      customerPhone: reservation.customer_phone || '',
+      vehiclePlate: reservation.vehicle_plate || '',
+    });
+    
+    if (email) {
+      params.set('email', email);
+    }
+    
+    navigate(`/admin/protocols/new?${params.toString()}`);
+    onClose();
+  };
 
   const getSourceLabel = (source?: string | null, createdByUsername?: string | null) => {
     if (!source || source === 'admin') {
@@ -773,25 +842,22 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Row 1: History, Edit and Delete for confirmed, in_progress, completed, released */}
+            {/* Photos section - only in admin mode */}
+            {!isHallMode && reservationPhotos.length > 0 && (
+              <ReservationPhotosSection
+                photos={reservationPhotos}
+                reservationId={reservation.id}
+                onPhotosUpdated={setReservationPhotos}
+              />
+            )}
+
+            {/* Row 1: Edit and Actions Menu for confirmed, in_progress, completed, released */}
             {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (showEdit || showDelete) && (
               <div className="flex gap-2">
-                {/* History button - always visible in admin mode */}
-                {!isHallMode && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 bg-white"
-                    onClick={() => setHistoryDrawerOpen(true)}
-                    title={t('reservations.changeHistory')}
-                  >
-                    <History className="w-5 h-5" />
-                  </Button>
-                )}
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2 bg-white"
+                    className="flex-1 gap-2 bg-background"
                     onClick={handleEdit}
                   >
                     <Pencil className="w-4 h-4" />
@@ -799,87 +865,133 @@ const ReservationDetailsDrawer = ({
                   </Button>
                 )}
                 
-                {/* Delete only for confirmed */}
-                {showDelete && reservation.status === 'confirmed' && onDelete && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 bg-white"
-                      disabled={deleting || markingNoShow}
-                      onClick={() => setDeleteDialogOpen(true)}
-                    >
-                      {deleting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
+                {/* Actions dropdown menu - only in admin mode */}
+                {!isHallMode && (
+                  <DropdownMenu open={actionsMenuOpen} onOpenChange={setActionsMenuOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-10 w-10">
+                        <MoreVertical className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => {
+                        setActionsMenuOpen(false);
+                        setPhotosDialogOpen(true);
+                      }}>
+                        <Camera className="w-4 h-4 mr-2" />
+                        Dodaj zdjęcia
+                      </DropdownMenuItem>
+                      
+                      {/* Protocol option only for confirmed/in_progress */}
+                      {(reservation.status === 'confirmed' || reservation.status === 'in_progress') && (
+                        <DropdownMenuItem onClick={() => {
+                          setActionsMenuOpen(false);
+                          handleAddProtocol();
+                        }}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Dodaj protokół
+                        </DropdownMenuItem>
                       )}
-                      {t('common.delete')}
-                    </Button>
-                    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('reservations.confirmDeleteTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                          <AlertDialogCancel className="sm:order-1">{t('common.cancel')}</AlertDialogCancel>
-                          {onNoShow && (
-                            <Button
-                              variant="outline"
-                              className="sm:order-2 border-orange-500/30 text-orange-600 hover:bg-orange-500/10"
-                              onClick={handleNoShow}
-                              disabled={markingNoShow || deleting}
-                            >
-                              {markingNoShow ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              ) : null}
-                              {t('reservations.markAsNoShow')}
-                            </Button>
-                          )}
-                          <AlertDialogAction 
-                            onClick={handleDelete} 
-                            className="sm:order-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deleting || markingNoShow}
+                      
+                      <DropdownMenuItem onClick={() => {
+                        setActionsMenuOpen(false);
+                        setHistoryDrawerOpen(true);
+                      }}>
+                        <History className="w-4 h-4 mr-2" />
+                        Zobacz historię
+                      </DropdownMenuItem>
+                      
+                      {showDelete && reservation.status === 'confirmed' && onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setActionsMenuOpen(false);
+                              setDeleteDialogOpen(true);
+                            }}
                           >
-                            {deleting ? (
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : null}
-                            {t('reservations.yesDelete')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Usuń
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             )}
 
-            {/* Pending: Edit and Reject/Confirm actions */}
+            {/* Delete dialog for confirmed - moved outside actions menu */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('reservations.confirmDeleteTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                  <AlertDialogCancel className="sm:order-1">{t('common.cancel')}</AlertDialogCancel>
+                  {onNoShow && (
+                    <Button
+                      variant="outline"
+                      className="sm:order-2 border-warning text-warning-foreground hover:bg-warning/10"
+                      onClick={handleNoShow}
+                      disabled={markingNoShow || deleting}
+                    >
+                      {markingNoShow ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      {t('reservations.markAsNoShow')}
+                    </Button>
+                  )}
+                  <AlertDialogAction 
+                    onClick={handleDelete} 
+                    className="sm:order-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleting || markingNoShow}
+                  >
+                    {deleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    {t('reservations.yesDelete')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Pending: Edit and Actions Menu */}
             {reservation.status === 'pending' && showEdit && (
               <div className="flex gap-2">
-                {/* History button - always visible in admin mode */}
-                {!isHallMode && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 bg-white"
-                    onClick={() => setHistoryDrawerOpen(true)}
-                    title={t('reservations.changeHistory')}
-                  >
-                    <History className="w-5 h-5" />
-                  </Button>
-                )}
                 {showEdit && onEdit && (
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2 bg-white"
+                    className="flex-1 gap-2 bg-background"
                     onClick={handleEdit}
                   >
                     <Pencil className="w-4 h-4" />
                     {t('common.edit')}
                   </Button>
+                )}
+                {/* Actions dropdown menu for pending - only in admin mode */}
+                {!isHallMode && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-10 w-10">
+                        <MoreVertical className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => setPhotosDialogOpen(true)}>
+                        <Camera className="w-4 h-4 mr-2" />
+                        Dodaj zdjęcia
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setHistoryDrawerOpen(true)}>
+                        <History className="w-4 h-4 mr-2" />
+                        Zobacz historię
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             )}
@@ -1222,6 +1334,17 @@ const ReservationDetailsDrawer = ({
         open={customerDrawerOpen}
         onClose={() => setCustomerDrawerOpen(false)}
       />
+      
+      {/* Reservation Photos Dialog */}
+      {reservation && (
+        <ReservationPhotosDialog
+          open={photosDialogOpen}
+          onClose={() => setPhotosDialogOpen(false)}
+          reservationId={reservation.id}
+          currentPhotos={reservationPhotos}
+          onPhotosUpdated={setReservationPhotos}
+        />
+      )}
     </>
   );
 };
