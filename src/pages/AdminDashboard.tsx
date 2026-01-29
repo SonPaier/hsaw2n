@@ -2305,8 +2305,8 @@ const AdminDashboard = () => {
                 <Building2 className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && t('navigation.halls')}
               </Button>}
-              {/* Protocols - visible when feature is enabled */}
-              {hasFeature('vehicle_reception_protocol') && userRole !== 'employee' && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('protocols'), 50); }} title="Protokoły">
+              {/* Protocols - visible when feature is enabled (including employees) */}
+              {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setTimeout(() => setCurrentView('protocols'), 50); }} title="Protokoły">
                 <ClipboardCheck className="w-4 h-4 shrink-0" />
                 {!sidebarCollapsed && "Protokoły"}
               </Button>}
