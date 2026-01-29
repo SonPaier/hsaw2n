@@ -590,52 +590,47 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       </Helmet>
 
       <div className="h-screen w-screen overflow-hidden bg-background flex">
-        {/* Mini Sidebar for hall view */}
-        <div className="w-12 h-full bg-sidebar border-r border-border flex flex-col items-center py-4 gap-2 shrink-0">
-          {/* Calendar icon */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "w-9 h-9",
-              !showProtocolsList && "bg-sidebar-accent text-sidebar-accent-foreground"
-            )}
-            onClick={handleCalendarNavigation}
-            title={t('navigation.calendar')}
-          >
-            <Calendar className="w-5 h-5" />
-          </Button>
+        {/* Mini Sidebar for hall view - matching AdminDashboard sidebar styles */}
+        <aside className="sticky top-0 inset-y-0 left-0 z-50 h-screen w-16 bg-card border-r border-border/50 flex-shrink-0">
+          <div className="flex flex-col h-full overflow-hidden">
+            {/* Navigation */}
+            <nav className="flex-1 space-y-2 p-2">
+              {/* Calendar/Halls icon */}
+              <Button
+                variant={!showProtocolsList ? 'secondary' : 'ghost'}
+                className="w-full justify-center px-2"
+                onClick={handleCalendarNavigation}
+                title={t('navigation.calendar')}
+              >
+                <Calendar className="w-4 h-4 shrink-0" />
+              </Button>
 
-          {/* Protocols icon */}
-          {canAccessProtocols && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "w-9 h-9",
-                showProtocolsList && "bg-sidebar-accent text-sidebar-accent-foreground"
+              {/* Protocols icon */}
+              {canAccessProtocols && (
+                <Button
+                  variant={showProtocolsList ? 'secondary' : 'ghost'}
+                  className="w-full justify-center px-2"
+                  onClick={handleProtocolsNavigation}
+                  title={t('navigation.protocols')}
+                >
+                  <FileText className="w-4 h-4 shrink-0" />
+                </Button>
               )}
-              onClick={handleProtocolsNavigation}
-              title={t('navigation.protocols')}
-            >
-              <FileText className="w-5 h-5" />
-            </Button>
-          )}
+            </nav>
 
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Logout button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-9 h-9 text-muted-foreground hover:text-foreground"
-            onClick={handleLogout}
-            title={t('auth.logout')}
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
+            {/* Logout button at bottom */}
+            <div className="p-2 border-t border-border/50">
+              <Button
+                variant="ghost"
+                className="w-full justify-center px-2 text-muted-foreground hover:text-foreground"
+                onClick={handleLogout}
+                title={t('auth.logout')}
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+              </Button>
+            </div>
+          </div>
+        </aside>
 
         {/* Main content */}
         <div className="flex-1 h-full overflow-hidden">
