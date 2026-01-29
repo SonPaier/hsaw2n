@@ -152,8 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear local state immediately to prevent redirects before onAuthStateChange fires
+    setUser(null);
+    setSession(null);
     setRoles([]);
+    previousUserIdRef.current = null;
+    clearSentryUser();
+    // Then sign out from Supabase (will also trigger onAuthStateChange)
+    await supabase.auth.signOut();
   };
 
   const hasRole = (role: AppRole) => {
