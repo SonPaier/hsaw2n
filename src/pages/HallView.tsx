@@ -176,16 +176,20 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       const isNumeric = !isNaN(hallNumber) && hallNumber > 0;
 
       if (isNumeric) {
-        // Fetch halls ordered by sort_order and get the Nth one
+        // Fetch active halls ordered by sort_order and get the Nth one
         const { data: hallsData, error } = await supabase
           .from('halls')
           .select('*')
           .eq('instance_id', instanceId)
           .eq('active', true)
-          .order('sort_order', { ascending: true });
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true });
 
         if (!error && hallsData && hallsData.length >= hallNumber) {
           hallData = hallsData[hallNumber - 1]; // 1-indexed
+        } else if (!error && hallsData && hallsData.length > 0 && hallNumber === 1) {
+          // Fallback: if requesting hall/1 and there's at least one active hall, use it
+          hallData = hallsData[0];
         }
       } else {
         // UUID-based lookup
