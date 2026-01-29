@@ -193,27 +193,27 @@ const HallReservationCard = ({
         </button>
 
         <div className="space-y-6">
-          {/* Time and date */}
+          {/* Time and date - italic, gray, NOT bold */}
           <div className="text-[28px] italic text-gray-500">
             {formatTimeRange()} · {formatDateRange()}
           </div>
 
-          {/* Customer name with phone */}
-          <div className="text-xl font-bold">
-            {customer_name} ({formatPhoneDisplay(customer_phone)})
+          {/* Customer name with phone AND vehicle on same line */}
+          <div className="flex items-baseline gap-4 flex-wrap">
+            <span className="text-xl font-bold">
+              {customer_name} ({formatPhoneDisplay(customer_phone)})
+            </span>
+            <span className="text-xl text-gray-700">
+              {vehicle_plate}
+            </span>
           </div>
 
-          {/* Vehicle plate / model */}
-          <div className="text-[38px] font-bold">
-            {vehicle_plate}
-          </div>
-
-          {/* Services list - vertical, bold */}
+          {/* Services list - numbered, vertical, bold */}
           {services_data && services_data.length > 0 && (
             <div className="space-y-1">
               {services_data.map((service, idx) => (
                 <div key={idx} className="text-2xl font-bold">
-                  {service.name}
+                  {idx + 1}. {service.name}
                 </div>
               ))}
             </div>
