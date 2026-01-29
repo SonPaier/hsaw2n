@@ -166,7 +166,8 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     if (email) params.set('email', email);
     
     setSelectedReservation(null);
-    navigate(isAdminPath ? `/admin/protocols?${params.toString()}` : `/protocols?${params.toString()}`);
+    // Always navigate to /admin/protocols - protocols view is only in admin area
+    navigate(`/admin/protocols?${params.toString()}`);
   };
 
   // Handle adding photos to reservation
