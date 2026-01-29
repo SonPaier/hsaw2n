@@ -143,13 +143,17 @@ const getStatusColor = (status: string, stationType?: string) => {
       case 'pending':
         return 'bg-amber-100 border-amber-300 text-amber-900';
       case 'in_progress':
-        return 'bg-emerald-200 border-emerald-400 text-emerald-900';
+        // Pomarańczowy - w trakcie realizacji
+        return 'bg-orange-200 border-orange-400 text-orange-900';
       case 'completed':
         return 'bg-sky-200 border-sky-400 text-sky-900';
       case 'released':
         return 'bg-slate-200 border-slate-400 text-slate-700';
       case 'cancelled':
         return 'bg-slate-100/40 border-slate-200 text-slate-500 line-through opacity-60';
+      case 'change_requested':
+        // Jasny czerwony - prośba o przeniesienie
+        return 'bg-red-200 border-red-400 text-red-900';
       default:
         return 'bg-amber-100 border-amber-300 text-amber-900';
     }
@@ -164,8 +168,8 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Zielony pastelowy - potwierdzona
       return 'bg-emerald-200 border-emerald-400 text-emerald-900';
     case 'in_progress':
-      // Taki sam jak confirmed - z pulsującą kropką przy godzinach
-      return 'bg-emerald-200 border-emerald-400 text-emerald-900';
+      // Pomarańczowy - w trakcie realizacji
+      return 'bg-orange-200 border-orange-400 text-orange-900';
     case 'completed':
       // Niebieski pastelowy - gotowy do wydania
       return 'bg-sky-200 border-sky-400 text-sky-900';
@@ -176,8 +180,8 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Czerwony - anulowana
       return 'bg-red-100/60 border-red-300 text-red-700 line-through opacity-60';
     case 'change_requested':
-      // Pomarańczowy - prośba o zmianę terminu
-      return 'bg-orange-200 border-orange-400 text-orange-900';
+      // Jasny czerwony - prośba o przeniesienie
+      return 'bg-red-200 border-red-400 text-red-900';
     default:
       return 'bg-amber-100 border-amber-300 text-amber-900';
   }
@@ -1545,11 +1549,9 @@ const AdminCalendar = ({
                           <div className="flex items-center justify-between gap-0.5">
                           {hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5 flex items-center gap-1">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
-                                {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
                               </div> : <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
-                                {reservation.status === 'in_progress' && <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse-dot" />}
-                                {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-orange-600" />}
+                                {reservation.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-red-600" />}
                               </span>}
                             {/* Action buttons: Phone, SMS, Notes indicator */}
                             {!hallMode && <div className="flex items-center gap-0.5 shrink-0">
@@ -1905,8 +1907,7 @@ const AdminCalendar = ({
                                 {/* Hide time row in hallMode */}
                                 {!hallMode && <div className="text-[10px] truncate mt-0.5 pb-0.5 hidden md:block flex items-center gap-1">
                                     {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
-                                    {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot shrink-0" />}
-                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600 shrink-0" />}
+                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-red-600 shrink-0" />}
                                   </div>}
                               </div>
                             </div>;
@@ -2157,8 +2158,7 @@ const AdminCalendar = ({
                                 <span className="truncate">{reservation.vehicle_plate}</span>
                                 {!hallMode && <span className="shrink-0 ml-0.5 flex items-center gap-0.5">
                                     {isMultiDay ? `${displayStart.slice(0, 5)}` : reservation.start_time.slice(0, 5)}
-                                    {reservation.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse-dot" />}
-                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-orange-600" />}
+                                    {reservation.status === 'change_requested' && <RefreshCw className="w-2.5 h-2.5 text-red-600" />}
                                   </span>}
                               </div>}
                             {reservation.service && <div className="text-[8px] md:text-[9px] truncate">
