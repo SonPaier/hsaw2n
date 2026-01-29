@@ -127,6 +127,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const forceClearAuthStorage = () => {
+    // Supabase Auth stores session tokens in localStorage under keys like:
+    // `sb-<project-ref>-auth-token` and `sb-<project-ref>-auth-token-code-verifier`
+    // If signOut fails (network/backend), auth-js may keep the session.
+    // This is a best-effort local fallback to prevent being "stuck logged in".
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (!key.startsWith('sb-')) continue;
+        if (key.includes('auth-token') || key.includes('code-verifier')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // ignore
+    }
+
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (!key) continue;
+        if (!key.startsWith('sb-')) continue;
+        if (key.includes('auth-token') || key.includes('code-verifier')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+    } catch {
+      // ignore
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -159,7 +195,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     previousUserIdRef.current = null;
     clearSentryUser();
     // Then sign out from Supabase (will also trigger onAuthStateChange)
-    await supabase.auth.signOut();
+    // IMPORTANT: auth-js will NOT clear the local session if the API call fails with some errors.
+    // We add a local fallback to avoid being stuck in a logged-in state.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('[Auth] signOut error (forcing local cleanup):', error);
+      forceClearAuthStorage();
+      // Full reload ensures the auth client doesn't keep an in-memory token.
+      window.location.replace('/login');
+    }
   };
 
   const hasRole = (role: AppRole) => {
