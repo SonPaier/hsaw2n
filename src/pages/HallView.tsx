@@ -86,6 +86,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [instanceShortName, setInstanceShortName] = useState<string>('');
   const [photosDialogReservation, setPhotosDialogReservation] = useState<Reservation | null>(null);
+  const [allowNavigation, setAllowNavigation] = useState(false);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -166,6 +167,8 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     if (email) params.set('email', email);
     
     setSelectedReservation(null);
+    // Allow navigation and then navigate to protocols
+    setAllowNavigation(true);
     // Always navigate to /admin/protocols - protocols view is only in admin area
     navigate(`/admin/protocols?${params.toString()}`);
   };
@@ -177,7 +180,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   };
 
   // Prevent navigation away - capture back button and history manipulation
+  // Only active when allowNavigation is false
   useEffect(() => {
+    if (allowNavigation) return;
+    
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
@@ -200,7 +206,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [allowNavigation]);
 
   // Get user's instance ID
   useEffect(() => {
