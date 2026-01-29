@@ -1,149 +1,121 @@
 
 
-# Plan: Nowy komponent HallReservationCard z listą usług
+# Plan: Przycisk Fullscreen w nagłówku kalendarza
 
 ## Podsumowanie
-Stworzenie nowego komponentu `HallReservationCard` dla widoku hali z dużymi przyciskami akcji. Usługi będą wyświetlane jako pionowa lista (bold), nie chipy.
+Dodanie przycisku fullscreen (ikona `Maximize2`/`Minimize2`) obok przycisku "Protokół" w nagłówku kalendarza. Po kliknięciu uruchamia tryb pełnoekranowy przeglądarki (jak F11), ukrywając całe okno przeglądarki.
 
-## Zaktualizowane rozmiary fontów
+## Jak działa Fullscreen API
 
-| Element | Rozmiar | Styl |
-|---------|---------|------|
-| Czas + data | 28px | italic, szary |
-| Klient (z telefonem) | 20px | bold |
-| Model auta | 38px | bold |
-| Usługi (lista) | 24px | bold, pionowo |
-| Notatka deadline | 20px | żółte tło, czerwony tekst |
-| START/STOP/WYDAJ | 24px | bold |
-| Wyślij SMS | 20px | semibold |
-
----
-
-## Struktura wizualna karty
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                                               [X]           │
-│                                                             │
-│   09:00 - 17:00 · 24 sty - 3 lut 2026        (28px, gray)  │
-│                                                             │
-│   Rafał Kamiński (693 178 704)               (20px, bold)  │
-│                                                             │
-│   Audi A6                                    (38px, bold)  │
-│                                                             │
-│   Mycie podstawowe                           (24px, bold)  │
-│   Pranie tapicerki                           (24px, bold)  │
-│   Korekta lakieru                            (24px, bold)  │
-│   Powłoka ceramiczna                         (24px, bold)  │
-│                                                             │
-│   ⚠️ Notatka z admin_notes                   (20px, żółte) │
-│                                                             │
-│   ┌──────────────────────────────────────────────────────┐ │
-│   │                       START                          │ │
-│   └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Faza 1: Nowy komponent HallReservationCard
-
-**Plik:** `src/components/admin/halls/HallReservationCard.tsx`
-
-### Props interface
+Browser Fullscreen API pozwala ukryć całkowicie ramkę przeglądarki (pasek adresu, zakładki, menu):
 
 ```typescript
-interface HallReservationCardProps {
-  reservation: {
-    id: string;
-    customer_name: string;
-    customer_phone: string;
-    vehicle_plate: string;
-    reservation_date: string;
-    end_date?: string | null;
-    start_time: string;
-    end_time: string;
-    status: string;
-    services_data?: Array<{ name: string }>;
-    admin_notes?: string | null;
-    instance_id: string;
-  };
-  open: boolean;
-  onClose: () => void;
-  onStartWork: (id: string) => Promise<void>;
-  onEndWork: (id: string) => Promise<void>;
-  onRelease: (id: string) => Promise<void>;
-  onSendPickupSms: (id: string) => Promise<void>;
-}
+// Wejście w fullscreen
+document.documentElement.requestFullscreen();
+
+// Wyjście z fullscreen
+document.exitFullscreen();
+
+// Sprawdzenie stanu
+document.fullscreenElement !== null;
 ```
 
-### Stylowanie usług (lista pionowa)
+---
+
+## Implementacja
+
+### 1. Stan i logika fullscreen
+
+W `AdminCalendar.tsx` dodamy:
+
+```typescript
+const [isFullscreen, setIsFullscreen] = useState(false);
+
+// Nasłuchiwanie zmian stanu fullscreen (np. user naciśnie ESC)
+useEffect(() => {
+  const handleFullscreenChange = () => {
+    setIsFullscreen(document.fullscreenElement !== null);
+  };
+  
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  return () => {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  };
+}, []);
+
+// Funkcja toggle
+const toggleFullscreen = useCallback(async () => {
+  if (!document.fullscreenElement) {
+    await document.documentElement.requestFullscreen();
+  } else {
+    await document.exitFullscreen();
+  }
+}, []);
+```
+
+### 2. Przycisk w nagłówku
+
+Dodanie przycisku obok "Protokół" (linia ~1235):
 
 ```tsx
-{/* Lista usług - pionowo, bold */}
-<div className="space-y-1">
-  {services_data?.map((service, idx) => (
-    <div key={idx} className="text-2xl font-bold">
-      {service.name}
-    </div>
-  ))}
-</div>
+{/* Fullscreen button - in hall mode */}
+{hallMode && (
+  <Button 
+    variant="outline" 
+    size="sm" 
+    onClick={toggleFullscreen} 
+    className="gap-1"
+    title={isFullscreen ? t('calendar.exitFullscreen') : t('calendar.enterFullscreen')}
+  >
+    {isFullscreen ? (
+      <Minimize2 className="w-4 h-4" />
+    ) : (
+      <Maximize2 className="w-4 h-4" />
+    )}
+  </Button>
+)}
 ```
 
-### Flow przycisków
+---
 
-| Status | Przycisk(i) | Kolor |
-|--------|-------------|-------|
-| pending/confirmed | START | zielony `bg-green-500` |
-| in_progress | STOP | czerwony `bg-red-500` |
-| completed | SMS + WYDAJ | fioletowy + niebieski |
-| released | zamknij kartę | - |
+## Struktura nagłówka po zmianach
 
-### Pozostałe style
-
-- **Overlay:** `fixed inset-0 bg-black/50 z-50`
-- **Karta:** `max-w-4xl w-[70%] min-w-[500px] bg-white rounded-xl shadow-2xl p-8`
-- **Przycisk X:** `absolute top-4 right-4`
-- **Czas/data:** `text-[28px] italic text-gray-500`
-- **Klient:** `text-xl font-bold`
-- **Auto:** `text-[38px] font-bold`
-- **Notatka:** `text-xl bg-yellow-100 text-red-600 rounded-lg p-4`
+```text
+[< poprzedni] [Dziś] [następny >]  |  [Dzień] [2-Dni]  |  [Plac] [Protokół] [⛶]
+                                                                             ↑
+                                                              przycisk fullscreen
+```
 
 ---
 
-## Faza 2: Modyfikacja HallView.tsx
-
-### Zmiany
-
-1. Import nowego `HallReservationCard`
-2. Pobranie `unified_services` do mapowania nazw usług
-3. Dodanie funkcji `handleSendPickupSms` (wywołanie edge function `send-sms-message`)
-4. Zamiana `ReservationDetailsDrawer` na `HallReservationCard`
-
----
-
-## Faza 3: Tłumaczenia
+## Tłumaczenia
 
 **Plik:** `src/i18n/locales/pl.json`
 
 ```json
 {
-  "hallCard": {
-    "start": "START",
-    "stop": "STOP",
-    "release": "WYDAJ",
-    "sendPickupSms": "Wyślij SMS: auto do odbioru"
+  "calendar": {
+    "enterFullscreen": "Pełny ekran",
+    "exitFullscreen": "Zamknij pełny ekran"
   }
 }
 ```
 
 ---
 
-## Podsumowanie zmian
+## Pliki do zmodyfikowania
 
-| Plik | Typ | Opis |
-|------|-----|------|
-| `src/components/admin/halls/HallReservationCard.tsx` | Nowy | Karta rezerwacji z listą usług i dużymi przyciskami |
-| `src/pages/HallView.tsx` | Modyfikacja | Import karty, mapowanie services, SMS handler |
-| `src/i18n/locales/pl.json` | Modyfikacja | Tłumaczenia dla przycisków |
+| Plik | Zmiana |
+|------|--------|
+| `src/components/admin/AdminCalendar.tsx` | State, useEffect, toggle function, przycisk z ikoną |
+| `src/i18n/locales/pl.json` | Tłumaczenia dla tooltip |
+
+---
+
+## Uwagi techniczne
+
+- Fullscreen API jest wspierany we wszystkich nowoczesnych przeglądarkach
+- User może wyjść z fullscreen naciskając **ESC** - useEffect nasłuchuje `fullscreenchange` i aktualizuje ikonę
+- Przycisk będzie widoczny tylko w `hallMode` (widok hali)
+- Import ikon: `Maximize2`, `Minimize2` z `lucide-react`
 
