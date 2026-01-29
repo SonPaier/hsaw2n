@@ -567,18 +567,62 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     allowed_actions: hall.allowed_actions,
   } : undefined;
 
-  // Show protocols list in kiosk mode
+  // Render protocols with sidebar (like calendar view)
   if (showProtocolsList && instanceId) {
     return (
       <>
         <Helmet>
           <title>Protokoły | {hall?.name || t('hall.title')}</title>
         </Helmet>
-        <ProtocolsView 
-          instanceId={instanceId} 
-          kioskMode={true}
-          onBack={() => setShowProtocolsList(false)}
-        />
+
+        <div className="h-screen w-screen overflow-hidden bg-background flex">
+          {/* Mini Sidebar for hall view - matching AdminDashboard sidebar styles */}
+          <aside className="sticky top-0 inset-y-0 left-0 z-50 h-screen w-16 bg-card border-r border-border/50 flex-shrink-0">
+            <div className="flex flex-col h-full overflow-hidden">
+              {/* Navigation */}
+              <nav className="flex-1 space-y-2 p-2">
+                {/* Calendar/Halls icon */}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2"
+                  onClick={() => setShowProtocolsList(false)}
+                  title={t('navigation.calendar')}
+                >
+                  <Calendar className="w-4 h-4 shrink-0" />
+                </Button>
+
+                {/* Protocols icon - active */}
+                <Button
+                  variant="secondary"
+                  className="w-full justify-center px-2"
+                  title={t('navigation.protocols')}
+                >
+                  <FileText className="w-4 h-4 shrink-0" />
+                </Button>
+              </nav>
+
+              {/* Logout button at bottom */}
+              <div className="p-2 border-t border-border/50">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2 text-muted-foreground hover:text-foreground"
+                  onClick={handleLogout}
+                  title={t('auth.logout')}
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                </Button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Protocols content */}
+          <div className="flex-1 h-full overflow-auto">
+            <ProtocolsView 
+              instanceId={instanceId} 
+              kioskMode={true}
+            />
+          </div>
+        </div>
       </>
     );
   }
