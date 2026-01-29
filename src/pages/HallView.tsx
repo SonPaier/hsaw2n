@@ -46,6 +46,7 @@ interface Reservation {
   };
   price: number | null;
   has_unified_services?: boolean | null;
+  admin_notes?: string | null;
 }
 
 interface Break {
@@ -336,6 +337,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           service_ids,
           service_items,
           has_unified_services,
+          admin_notes,
           stations:station_id (name, type)
         `)
         .eq('instance_id', instanceId);
@@ -349,6 +351,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           service: undefined, // Legacy relation removed
           station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
           has_unified_services: r.has_unified_services,
+          admin_notes: r.admin_notes,
         })));
       }
 
@@ -478,6 +481,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
               confirmation_code,
               price,
               source,
+              service_ids,
+              admin_notes,
+              has_unified_services,
               stations:station_id (name, type)
             `)
             .eq('id', payload.new.id)
@@ -487,8 +493,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 const newReservation = {
                   ...data,
                   status: data.status || 'pending',
+                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
                   service: undefined, // Legacy relation removed
-                  station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined
+                  station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
+                  admin_notes: data.admin_notes,
+                  has_unified_services: data.has_unified_services,
                 };
                 setReservations(prev => [...prev, newReservation as Reservation]);
                 
