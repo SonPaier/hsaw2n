@@ -222,13 +222,8 @@ const HallReservationCard = ({
 
         <div className="space-y-6">
           {/* Time and date - italic, black (foreground), NOT bold */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[28px] italic text-foreground">
-              {formatTimeRange()} · {formatDateRange()}
-            </div>
-            <div className="rounded-full bg-muted px-3 py-1 text-base font-medium text-muted-foreground">
-              status: {normalizedStatus || '-'}
-            </div>
+          <div className="text-[28px] italic text-foreground">
+            {formatTimeRange()} · {formatDateRange()}
           </div>
 
           {/* Customer name with phone AND vehicle on same line */}
