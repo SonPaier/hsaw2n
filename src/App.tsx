@@ -201,6 +201,15 @@ const DevRoutes = () => (
         </ProtectedRoute>
       } 
     />
+    {/* Halls without /admin prefix - for hall role navigation */}
+    <Route 
+      path="/halls/:hallId" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <HallView />
+        </ProtectedRoute>
+      } 
+    />
     {/* Reminder template edit route - must be before /admin/:view to avoid conflict */}
     <Route 
       path="/admin/reminders/:shortId" 
