@@ -116,25 +116,17 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
 // Instance Admin Routes - for armcar.admin.n2wash.com (admin panel)
 const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
   <Routes>
-    {/* Login page */}
+    {/* Login page - must be first */}
     <Route path="/login" element={<InstanceAuth subdomainSlug={subdomain} />} />
     
-    {/* Role-based redirect after login */}
+    {/* Public routes - BEFORE catch-all */}
+    <Route path="/offers/:token" element={<PublicOfferView />} />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
+    
+    {/* Role-based redirect - ONLY for /dashboard */}
     <Route path="/dashboard" element={<RoleBasedRedirect />} />
     
-    {/* Protected admin routes */}
-    <Route 
-      path="/" 
-      element={<RoleBasedRedirect />} 
-    />
-    <Route 
-      path="/admin" 
-      element={
-        <ProtectedRoute requiredRole="admin">
-          <AdminDashboard />
-        </ProtectedRoute>
-      } 
-    />
+    {/* Hall view - specific route BEFORE catch-all */}
     <Route 
       path="/halls/:hallId" 
       element={
@@ -143,9 +135,10 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       } 
     />
-    {/* All dashboard views - admin gets full access, hall gets limited views */}
-    <Route
-      path="/:view" 
+    
+    {/* Admin dashboard with optional view param - handles both / and /:view */}
+    <Route 
+      path="/:view?" 
       element={
         <ProtectedRoute requiredRole="admin">
           <AdminDashboard />
@@ -153,12 +146,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
       } 
     />
     
-    {/* Public offer view - works on admin subdomain too */}
-    <Route path="/offers/:token" element={<PublicOfferView />} />
-    
-    {/* Public protocol view - works on admin subdomain too */}
-    <Route path="/protocols/:token" element={<PublicProtocolView />} />
-    
+    {/* Catch-all */}
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

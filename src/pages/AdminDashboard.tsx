@@ -152,11 +152,17 @@ const AdminDashboard = () => {
   const adminBasePath = location.pathname.startsWith('/admin') ? '/admin' : '';
 
   const setCurrentView = (newView: ViewType) => {
-    // For subdomain mode (empty adminBasePath), calendar is at root '/'
-    // For /admin prefix mode, calendar is at '/admin'
-    const calendarPath = adminBasePath || '/';
-    const target = newView === 'calendar' ? calendarPath : `${adminBasePath}/${newView}`;
-    navigate(target, { replace: true }); // replace: true prevents history stack buildup
+    // For subdomain mode: empty adminBasePath means we're on *.admin.n2wash.com
+    // Calendar should be at '/' and views at '/:view'
+    if (!adminBasePath) {
+      // Subdomain mode
+      const target = newView === 'calendar' ? '/' : `/${newView}`;
+      navigate(target, { replace: true });
+    } else {
+      // Dev mode with /admin prefix
+      const target = newView === 'calendar' ? adminBasePath : `${adminBasePath}/${newView}`;
+      navigate(target, { replace: true });
+    }
   };
 
 
