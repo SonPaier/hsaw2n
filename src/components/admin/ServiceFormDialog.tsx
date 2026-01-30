@@ -108,6 +108,7 @@ interface ServiceFormDialogProps {
   totalServicesCount?: number;
   onDelete?: () => void;
   existingServices?: ExistingService[];
+  forceAdvancedOpen?: boolean;
 }
 
 // Info icon with tooltip component - only shows on click, not on focus
@@ -150,6 +151,7 @@ const ServiceFormContent = ({
         isMobile = false,
         onDelete,
         existingServices = [],
+        forceAdvancedOpen = false,
       }: {
         service?: ServiceData | null;
         categories: ServiceCategory[];
@@ -161,6 +163,7 @@ const ServiceFormContent = ({
         isMobile?: boolean;
         onDelete?: () => void;
         existingServices?: ExistingService[];
+        forceAdvancedOpen?: boolean;
       }) => {
       const { t } = useTranslation();
         const navigate = useNavigate();
@@ -173,7 +176,7 @@ const ServiceFormContent = ({
         const [nameError, setNameError] = useState(false);
         const [shortNameError, setShortNameError] = useState(false);
         
-        // Auto-expand advanced section if any advanced field has value
+        // Auto-expand advanced section if any advanced field has value or forced by prop
         const hasAdvancedValues = !!(
           service?.duration_minutes || 
           service?.duration_small || 
@@ -183,7 +186,7 @@ const ServiceFormContent = ({
           service?.reminder_template_id ||
           service?.is_popular
         );
-        const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
+        const [advancedOpen, setAdvancedOpen] = useState(forceAdvancedOpen || hasAdvancedValues);
         
         // Auto-expand size prices/durations if any exist
         const hasSizePrices = !!(service?.price_small || service?.price_medium || service?.price_large);
@@ -906,6 +909,7 @@ export const ServiceFormDialog = ({
   totalServicesCount = 0,
   onDelete,
   existingServices = [],
+  forceAdvancedOpen = false,
 }: ServiceFormDialogProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -935,6 +939,7 @@ export const ServiceFormDialog = ({
               isMobile={true}
               onDelete={onDelete}
               existingServices={existingServices}
+              forceAdvancedOpen={forceAdvancedOpen}
             />
           </div>
         </DrawerContent>
@@ -965,6 +970,7 @@ export const ServiceFormDialog = ({
             isMobile={false}
             onDelete={onDelete}
             existingServices={existingServices}
+            forceAdvancedOpen={forceAdvancedOpen}
           />
         </div>
       </DialogContent>
