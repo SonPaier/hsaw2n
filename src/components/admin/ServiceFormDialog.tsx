@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Sparkles, ChevronDown, Info, Trash2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Loader2, Sparkles, ChevronDown, Info, Trash2, Plus } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -162,6 +163,8 @@ const ServiceFormContent = ({
         existingServices?: ExistingService[];
       }) => {
       const { t } = useTranslation();
+        const navigate = useNavigate();
+        const location = useLocation();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const nameInputRef = useRef<HTMLInputElement>(null);
         const [saving, setSaving] = useState(false);
@@ -808,18 +811,18 @@ const ServiceFormContent = ({
             </div>
 
             {/* Reminder Template */}
-            {reminderTemplates.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-sm">{t('productDialog.reminderTemplate', 'Szablon przypomnień')}</Label>
-                  <FieldInfo tooltip="Automatyczne przypomnienia SMS po wykonaniu usługi" />
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm">{t('productDialog.reminderTemplate', 'Szablon przypomnień')}</Label>
+                <FieldInfo tooltip="Automatyczne przypomnienia SMS po wykonaniu usługi" />
+              </div>
+              <div className="flex items-center gap-2">
                 <Select
                   value={formData.reminder_template_id}
                   onValueChange={(v) => setFormData(prev => ({ ...prev, reminder_template_id: v }))}
                 >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
+                  <SelectTrigger className="bg-white flex-1">
+                    <SelectValue placeholder={t('reminderTemplates.noTemplate', 'Brak')} />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="__none__">{t('reminderTemplates.noTemplate', 'Brak')}</SelectItem>
@@ -828,18 +831,38 @@ const ServiceFormContent = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {/* Show reminder items list when template is selected */}
-                {templateItems.length > 0 && (
-                  <div className="mt-4 pl-3 border-l-2 border-muted space-y-1.5">
-                    {templateItems.map((item, idx) => (
-                      <div key={idx} className="text-sm text-foreground/50">
-                        {item.months} mies. – {item.service_type === 'inspection' ? 'Przegląd' : item.service_type === 'maintenance' ? 'Konserwacja' : 'Serwis'}{item.is_paid ? ', płatne' : ''}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Navigate to new template creation with return params
+                    const isAdminPath = location.pathname.startsWith('/admin');
+                    const remindersPath = isAdminPath ? '/admin/reminders/new' : '/reminders/new';
+                    const params = new URLSearchParams({
+                      returnToService: 'true',
+                    });
+                    if (service?.id) {
+                      params.set('serviceId', service.id);
+                    }
+                    navigate(`${remindersPath}?${params.toString()}`);
+                  }}
+                  className="shrink-0"
+                >
+                  {t('common.add', 'Dodaj')}
+                </Button>
               </div>
-            )}
+              {/* Show reminder items list when template is selected */}
+              {templateItems.length > 0 && (
+                <div className="mt-4 pl-3 border-l-2 border-muted space-y-1.5">
+                  {templateItems.map((item, idx) => (
+                    <div key={idx} className="text-sm text-foreground/50">
+                      {item.months} mies. – {item.service_type === 'inspection' ? 'Przegląd' : item.service_type === 'maintenance' ? 'Konserwacja' : 'Serwis'}{item.is_paid ? ', płatne' : ''}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
