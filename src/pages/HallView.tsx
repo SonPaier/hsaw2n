@@ -86,7 +86,6 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [instanceShortName, setInstanceShortName] = useState<string>('');
   const [photosDialogReservation, setPhotosDialogReservation] = useState<Reservation | null>(null);
-  const [allowNavigation, setAllowNavigation] = useState(false);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -154,23 +153,25 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   };
 
   // Handle adding protocol from reservation
-  const handleAddProtocol = async (reservation: Reservation) => {
-    const email = await findCustomerEmail(reservation.customer_phone);
-    
-    const params = new URLSearchParams({
-      action: 'new',
-      reservationId: reservation.id,
-      customerName: reservation.customer_name || '',
-      customerPhone: reservation.customer_phone || '',
-      vehiclePlate: reservation.vehicle_plate || '',
-    });
-    if (email) params.set('email', email);
-    
-    setSelectedReservation(null);
-    // Allow navigation and then navigate to protocols
-    setAllowNavigation(true);
-    // Always navigate to /admin/protocols - protocols view is only in admin area
-    navigate(`/admin/protocols?${params.toString()}`);
+  const handleAddProtocol = (reservation: Reservation) => {
+    void (async () => {
+      const email = await findCustomerEmail(reservation.customer_phone);
+
+      const params = new URLSearchParams({
+        action: 'new',
+        reservationId: reservation.id,
+        customerName: reservation.customer_name || '',
+        customerPhone: reservation.customer_phone || '',
+        vehiclePlate: reservation.vehicle_plate || '',
+      });
+      if (email) params.set('email', email);
+
+      setSelectedReservation(null);
+
+      // Same behaviour as ReservationDetailsDrawer: go to Protocols view and let it open the Create form from URL.
+      const protocolsPath = isAdminPath ? '/admin/protocols' : '/protocols';
+      navigate(`${protocolsPath}?${params.toString()}`);
+    })();
   };
 
   // Handle adding photos to reservation
@@ -180,10 +181,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   };
 
   // Prevent navigation away - capture back button and history manipulation
-  // Only active when allowNavigation is false
   useEffect(() => {
-    if (allowNavigation) return;
-    
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
@@ -206,7 +204,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [allowNavigation]);
+  }, []);
 
   // Get user's instance ID
   useEffect(() => {

@@ -343,13 +343,16 @@ const AdminDashboard = () => {
     fetchUserInstanceId();
   }, [user]);
 
-  // Redirect hall role to HallView - they shouldn't be on AdminDashboard
+  // Redirect hall role to HallView by default, but allow access to protocols view.
   useEffect(() => {
-    if (userRole === 'hall' && instanceId) {
-      const hallPath = adminBasePath ? '/admin/halls/1' : '/halls/1';
-      navigate(hallPath, { replace: true });
-    }
-  }, [userRole, instanceId, navigate, adminBasePath]);
+    if (userRole !== 'hall' || !instanceId) return;
+
+    // Hall users are allowed to use the Protocols module.
+    if (currentView === 'protocols') return;
+
+    const hallPath = adminBasePath ? '/admin/halls/1' : '/halls/1';
+    navigate(hallPath, { replace: true });
+  }, [userRole, instanceId, navigate, adminBasePath, currentView]);
 
   // Fetch username from profiles
   useEffect(() => {
