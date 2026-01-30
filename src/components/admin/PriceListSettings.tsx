@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, Loader2, Search, Settings2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -281,6 +281,8 @@ const ServiceRow = ({
 const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -296,6 +298,38 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   
   // Category management dialog state
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  
+  // Handle template assignment from reminder creation
+  useEffect(() => {
+    const assignTemplate = searchParams.get('assignTemplate');
+    const serviceId = searchParams.get('serviceId');
+    
+    if (assignTemplate && serviceId && services.length > 0) {
+      // Find the service and update it with the new template
+      const service = services.find(s => s.id === serviceId);
+      if (service) {
+        (async () => {
+          try {
+            const { error } = await supabase
+              .from('unified_services')
+              .update({ reminder_template_id: assignTemplate })
+              .eq('id', serviceId);
+            
+            if (error) throw error;
+            
+            toast.success(t('reminderTemplates.templateAssigned', 'Szablon przypomnień przypisany'));
+            fetchServices();
+          } catch (error) {
+            console.error('Error assigning template:', error);
+            toast.error(t('reminderTemplates.assignError', 'Błąd podczas przypisywania szablonu'));
+          }
+        })();
+      }
+      
+      // Clear the URL params
+      setSearchParams({});
+    }
+  }, [searchParams, services]);
 
   // DnD sensors - only enabled on desktop
   const sensors = useSensors(
@@ -536,7 +570,14 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Button onClick={() => navigate('/admin/reminders')} variant="outline" className="gap-2 bg-white">
+          <Button 
+            onClick={() => {
+              const isAdminPath = location.pathname.startsWith('/admin');
+              navigate(isAdminPath ? '/admin/reminders' : '/reminders');
+            }} 
+            variant="outline" 
+            className="gap-2 bg-white"
+          >
             <Bell className="w-4 h-4" />
             {t('reminders.title')}
           </Button>

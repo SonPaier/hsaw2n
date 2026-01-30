@@ -2045,19 +2045,24 @@
       "serwis_gwarancyjny": "Serwis gwarancyjny",
       "odswiezenie_powloki": "Odświeżenie powłoki"
     },
-    "noTemplate": "Brak"
+    "noTemplate": "Brak",
+    "templateAssigned": "Szablon przypomnień przypisany",
+    "assignError": "Błąd podczas przypisywania szablonu"
   },
   "reminders": {
     "title": "Przypomnienia",
+    "description": "Dzięki przypomnieniom, Twoi klienci, którym już np. położyłeś powłokę, będą dostawać zaplanowane SMSy i zaproszenie na odnowienie powłoki.",
     "addTemplate": "Dodaj szablon",
     "editTemplate": "Edytuj szablon",
     "activeCustomers": "aktywnych",
     "customerSingular": "klient",
     "customerPlural": "klientów",
-    "schedule": "Harmonogram przypomnień",
+    "schedule": "Harmonogram przypomnień SMS",
     "reminderNumber": "Przypomnienie",
+    "reminderNumberSms": "SMS",
     "monthsAfter": "miesięcy od wykonania usługi",
     "addReminder": "Dodaj przypomnienie",
+    "addAnotherReminder": "Dodaj kolejne przypomnienie",
     "smsTemplate": "Szablon SMS",
     "smsExample": "Przykład",
     "smsTemplateReadonly": "Szablon SMS jest konfigurowany globalnie przez administratora systemu.",

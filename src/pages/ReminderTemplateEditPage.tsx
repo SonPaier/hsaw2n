@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Plus, Trash2, Loader2, Bell } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,11 +53,21 @@ const SMS_TEMPLATES: Record<string, string> = {
 export default function ReminderTemplateEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { shortId } = useParams<{ shortId: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [instanceId, setInstanceId] = useState<string | null>(null);
   
+  // Check if we came from ServiceFormDialog (to return and assign template)
+  const returnToService = searchParams.get('returnToService');
+  const serviceId = searchParams.get('serviceId');
+  
   const isNew = shortId === 'new';
+  
+  // Detect if we're on admin path (for subdomain navigation)
+  const isAdminPath = location.pathname.startsWith('/admin');
+  const remindersBasePath = isAdminPath ? '/admin/reminders' : '/reminders';
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,12 +134,12 @@ export default function ReminderTemplateEditPage() {
         setItems(parsedItems.length > 0 ? parsedItems : [{ months: 12, service_type: 'serwis' }]);
       } else {
       toast.error(t('reminderTemplates.notFound'));
-        navigate('/admin/reminders');
+        navigate(remindersBasePath);
       }
     } catch (error) {
       console.error('Error fetching template:', error);
       toast.error(t('reminderTemplates.fetchError'));
-      navigate('/admin/reminders');
+      navigate(remindersBasePath);
     } finally {
       setLoading(false);
     }
@@ -156,8 +166,10 @@ export default function ReminderTemplateEditPage() {
       // Convert items to Json compatible format
       const itemsJson = items as unknown as Json;
       
+      let newTemplateId: string | null = null;
+      
       if (isNew) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('reminder_templates')
           .insert({
             instance_id: instanceId!,
@@ -165,9 +177,12 @@ export default function ReminderTemplateEditPage() {
             description: description.trim() || null,
             items: itemsJson,
             sms_template: smsTemplate,
-          });
+          })
+          .select('id')
+          .single();
 
         if (error) throw error;
+        newTemplateId = data?.id || null;
         toast.success(t('reminderTemplates.created'));
       } else if (templateId) {
         const { error } = await supabase
@@ -181,10 +196,18 @@ export default function ReminderTemplateEditPage() {
           .eq('id', templateId);
 
         if (error) throw error;
-      toast.success(t('reminderTemplates.updated'));
+        newTemplateId = templateId;
+        toast.success(t('reminderTemplates.updated'));
       }
 
-      navigate('/admin/reminders');
+      // If we came from ServiceFormDialog, return with the new template ID
+      if (returnToService === 'true' && newTemplateId) {
+        // Navigate back with template ID in URL for assignment
+        const pricingPath = isAdminPath ? '/admin/pricing' : '/pricing';
+        navigate(`${pricingPath}?assignTemplate=${newTemplateId}${serviceId ? `&serviceId=${serviceId}` : ''}`);
+      } else {
+        navigate(remindersBasePath);
+      }
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error(t('reminderTemplates.saveError'));
@@ -218,6 +241,16 @@ export default function ReminderTemplateEditPage() {
       .replace('{reservation_phone}', '123456789');
   };
 
+  const handleBack = () => {
+    if (returnToService === 'true') {
+      // Go back to pricing without creating template
+      const pricingPath = isAdminPath ? '/admin/pricing' : '/pricing';
+      navigate(pricingPath);
+    } else {
+      navigate(remindersBasePath);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -235,7 +268,7 @@ export default function ReminderTemplateEditPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/admin/reminders')}
+              onClick={handleBack}
               className="shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -299,7 +332,7 @@ export default function ReminderTemplateEditPage() {
                 <div key={index} className="flex items-center gap-3 p-4 border rounded-lg bg-card">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-muted-foreground mb-2">
-                      {t('reminders.reminderNumber')} #{index + 1}
+                      {t('reminders.reminderNumber')} #{index + 1} {t('reminders.reminderNumberSms')}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       {/* Months input */}
@@ -350,17 +383,16 @@ export default function ReminderTemplateEditPage() {
               <Button
                 variant="outline"
                 onClick={addItem}
-                className="w-full gap-2"
+                className="w-full gap-2 bg-white"
               >
                 <Plus className="h-4 w-4" />
-                {t('reminders.addReminder')}
+                {items.length > 0 ? t('reminders.addAnotherReminder') : t('reminders.addReminder')}
               </Button>
             </div>
 
             {/* SMS Template Preview (readonly for admin) */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
                 {t('reminders.smsTemplate')}
               </Label>
               <div className="p-3 bg-card rounded-lg border">
@@ -387,11 +419,11 @@ export default function ReminderTemplateEditPage() {
 
       {/* Sticky Footer Buttons - only show in template tab */}
       {activeTab === 'template' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-20">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-20">
           <div className="container max-w-2xl mx-auto flex gap-3">
             <Button
               variant="outline"
-              onClick={() => navigate('/admin/reminders')}
+              onClick={handleBack}
               className="flex-1"
               disabled={saving}
             >

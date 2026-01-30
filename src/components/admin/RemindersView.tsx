@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, Loader2, MoreHorizontal, Trash2, Bell, Users, ArrowLeft } from 'lucide-react';
+import { Plus, Loader2, MoreHorizontal, Trash2, Users, ArrowLeft, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -33,12 +33,17 @@ interface RemindersViewProps {
 export default function RemindersView({ instanceId, onNavigateBack }: RemindersViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<TemplateWithCount[]>([]);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; template: ReminderTemplate | null }>({
     open: false,
     template: null,
   });
+  
+  // Detect if we're on admin path (for subdomain navigation)
+  const isAdminPath = location.pathname.startsWith('/admin');
+  const remindersBasePath = isAdminPath ? '/admin/reminders' : '/reminders';
 
   useEffect(() => {
     if (instanceId) {
@@ -133,11 +138,11 @@ export default function RemindersView({ instanceId, onNavigateBack }: RemindersV
   const handleTemplateClick = (template: ReminderTemplate) => {
     // Use first 8 chars of UUID for short URL
     const shortId = template.id.substring(0, 8);
-    navigate(`/admin/reminders/${shortId}`);
+    navigate(`${remindersBasePath}/${shortId}`);
   };
 
   const handleAddNew = () => {
-    navigate('/admin/reminders/new');
+    navigate(`${remindersBasePath}/new`);
   };
 
   return (
@@ -157,9 +162,11 @@ export default function RemindersView({ instanceId, onNavigateBack }: RemindersV
           )}
           <div>
             <h1 className="text-xl font-semibold flex items-center gap-2">
-              <Bell className="h-5 w-5" />
               {t('reminders.title')}
             </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t('reminders.description')}
+            </p>
           </div>
         </div>
         <Button onClick={handleAddNew} className="gap-2">
