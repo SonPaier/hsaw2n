@@ -56,8 +56,10 @@ export default function ReminderTemplateEditPage() {
   const location = useLocation();
   const { shortId } = useParams<{ shortId: string }>();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
-  const [instanceId, setInstanceId] = useState<string | null>(null);
+  const { user, roles, loading: authLoading } = useAuth();
+  
+  // Get instanceId directly from roles (already fetched by useAuth)
+  const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
   
   // Check if we came from ServiceFormDialog (to return and assign template)
   const returnToService = searchParams.get('returnToService');
@@ -78,33 +80,18 @@ export default function ReminderTemplateEditPage() {
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<ReminderItem[]>([{ months: 12, service_type: 'serwis' }]);
 
-  // Fetch instanceId from user_roles
+  // For new templates, stop loading once auth is ready and we have instanceId
   useEffect(() => {
-    const fetchInstanceId = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('user_roles')
-        .select('instance_id')
-        .eq('user_id', user.id)
-        .not('instance_id', 'is', null)
-        .limit(1)
-        .maybeSingle();
-      if (data?.instance_id) {
-        setInstanceId(data.instance_id);
-      }
-      // For new templates, stop loading once we have instanceId
-      if (isNew) {
-        setLoading(false);
-      }
-    };
-    fetchInstanceId();
-  }, [user, isNew]);
+    if (!authLoading && isNew) {
+      setLoading(false);
+    }
+  }, [authLoading, isNew]);
 
   useEffect(() => {
-    if (!isNew && instanceId && shortId) {
+    if (!authLoading && !isNew && instanceId && shortId) {
       fetchTemplate();
     }
-  }, [isNew, instanceId, shortId]);
+  }, [authLoading, isNew, instanceId, shortId]);
 
   const fetchTemplate = async () => {
     if (!instanceId || !shortId) return;
