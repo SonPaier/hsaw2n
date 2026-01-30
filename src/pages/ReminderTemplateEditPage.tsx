@@ -65,7 +65,8 @@ export default function ReminderTemplateEditPage() {
   const returnToService = searchParams.get('returnToService');
   const serviceId = searchParams.get('serviceId');
   
-  const isNew = shortId === 'new';
+  // In some routes we use explicit "/reminders/new" path. Treat it as shortId="new".
+  const isNew = shortId === 'new' || location.pathname.endsWith('/reminders/new');
   
   // Detect if we're on admin path (for subdomain navigation)
   const isAdminPath = location.pathname.startsWith('/admin');
