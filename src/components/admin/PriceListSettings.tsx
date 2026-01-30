@@ -299,7 +299,10 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
   // Category management dialog state
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   
-  // Handle template assignment from reminder creation
+  // State for forcing advanced section open after returning from reminder template creation
+  const [forceAdvancedOpen, setForceAdvancedOpen] = useState(false);
+  
+  // Handle template assignment from reminder creation (legacy support for assignTemplate)
   useEffect(() => {
     const assignTemplate = searchParams.get('assignTemplate');
     const serviceId = searchParams.get('serviceId');
@@ -330,6 +333,54 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       setSearchParams({});
     }
   }, [searchParams, services]);
+  
+  // Handle return from reminder template creation with new params format
+  useEffect(() => {
+    const serviceId = searchParams.get('serviceId');
+    const assignedReminderId = searchParams.get('assignedReminderId');
+    
+    if (serviceId && assignedReminderId && services.length > 0 && !editDialogOpen) {
+      const service = services.find(s => s.id === serviceId);
+      if (service) {
+        (async () => {
+          try {
+            // 1. Assign the template to the service
+            const { error } = await supabase
+              .from('unified_services')
+              .update({ reminder_template_id: assignedReminderId })
+              .eq('id', serviceId);
+            
+            if (error) throw error;
+            
+            // 2. Refresh services to get updated data
+            await fetchServices();
+            
+            // 3. Find updated service and open dialog
+            const { data: updatedService } = await supabase
+              .from('unified_services')
+              .select('*')
+              .eq('id', serviceId)
+              .single();
+            
+            if (updatedService) {
+              setEditingService(updatedService as Service);
+              setDefaultCategoryId(updatedService.category_id || '');
+              setForceAdvancedOpen(true);
+              setEditDialogOpen(true);
+            }
+            
+            toast.success(t('reminderTemplates.templateAssigned', 'Szablon przypomnień przypisany'));
+          } catch (error) {
+            console.error('Error assigning template:', error);
+            toast.error(t('reminderTemplates.assignError', 'Błąd podczas przypisywania szablonu'));
+          }
+        })();
+      }
+      
+      // Clear the URL params
+      setSearchParams({});
+    }
+  }, [searchParams, services, editDialogOpen]);
 
   // DnD sensors - only enabled on desktop
   const sensors = useSensors(
@@ -710,7 +761,13 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       {/* Edit/Add Service Dialog */}
       <ServiceFormDialog
         open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          // Reset forceAdvancedOpen when dialog closes
+          if (!open) {
+            setForceAdvancedOpen(false);
+          }
+        }}
         instanceId={instanceId || ''}
         service={editingService ? {
           id: editingService.id,
@@ -739,6 +796,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
         totalServicesCount={services.length}
         onDelete={editingService ? () => handleDeleteClick(editingService.id) : undefined}
         existingServices={services.map(s => ({ id: s.id, name: s.name, short_name: (s.short_name ?? s.shortcut) || null }))}
+        forceAdvancedOpen={forceAdvancedOpen}
       />
 
       {/* Category Management Dialog */}

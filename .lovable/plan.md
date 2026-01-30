@@ -1,6 +1,6 @@
-
-
 # Plan: Poprawa flow tworzenia szablonu przypomnień z usługi
+
+## Status: ✅ ZAIMPLEMENTOWANO
 
 ## Problem
 
@@ -14,7 +14,7 @@ Gdy administrator w cenniku (`/admin/pricelist`) edytuje usługę i klika "Dodaj
 
 ## Rozwiązanie
 
-### Krok 1: Naprawa ścieżki nawigacji
+### Krok 1: ✅ Naprawa ścieżki nawigacji
 
 **Plik: `src/pages/ReminderTemplateEditPage.tsx`**
 
@@ -22,17 +22,17 @@ Zmiana nawigacji po zapisaniu:
 - ❌ `/admin/pricing?assignTemplate=xxx&serviceId=xxx`
 - ✅ `/admin/pricelist?serviceId=xxx&assignedReminderId=xxx`
 
-### Krok 2: Auto-otwarcie dialogu usługi
+### Krok 2: ✅ Auto-otwarcie dialogu usługi
 
 **Plik: `src/components/admin/PriceListSettings.tsx`**
 
 Dodanie efektu reagującego na parametry URL:
 - Gdy `serviceId` i `assignedReminderId` są w URL
-- Znajdź usługę po ID
-- Otwórz dialog edycji usługi
-- Przekaż informację o nowym szablonie
+- Przypisz szablon do usługi w bazie
+- Odśwież listę usług
+- Otwórz dialog edycji usługi z forceAdvancedOpen=true
 
-### Krok 3: Auto-rozwinięcie sekcji zaawansowanej
+### Krok 3: ✅ Auto-rozwinięcie sekcji zaawansowanej
 
 **Plik: `src/components/admin/ServiceFormDialog.tsx`**
 
@@ -40,63 +40,13 @@ Dodanie nowego prop `forceAdvancedOpen`:
 - Gdy zwracamy się z tworzenia szablonu, sekcja zaawansowana jest rozwinięta
 - Użytkownik widzi przypisany szablon bez dodatkowych kliknięć
 
-### Krok 4: Naprawa przycisku Wstecz
+### Krok 4: ✅ Naprawa przycisku Wstecz
 
 **Plik: `src/pages/ReminderTemplateEditPage.tsx`**
 
 Zmiana funkcji `handleBack()`:
 - ❌ `/admin/pricing`
 - ✅ `/admin/pricelist`
-
----
-
-## Szczegóły techniczne
-
-### Zmiana 1: ReminderTemplateEditPage.tsx
-
-```typescript
-// Linia 192-196: handleSave
-const pricingPath = isAdminPath ? '/admin/pricelist' : '/pricelist';
-navigate(`${pricingPath}?serviceId=${serviceId}&assignedReminderId=${newTemplateId}`);
-
-// Linia 234-236: handleBack
-const pricingPath = isAdminPath ? '/admin/pricelist' : '/pricelist';
-navigate(pricingPath);
-```
-
-### Zmiana 2: PriceListSettings.tsx
-
-```typescript
-// Nowy useEffect do obsługi powrotu z reminder creation
-useEffect(() => {
-  const serviceId = searchParams.get('serviceId');
-  const assignedReminderId = searchParams.get('assignedReminderId');
-  
-  if (serviceId && assignedReminderId && services.length > 0) {
-    // 1. Przypisz szablon do usługi w bazie
-    // 2. Odśwież listę usług
-    // 3. Otwórz dialog dla tej usługi z forceAdvancedOpen=true
-    // 4. Wyczyść parametry URL
-  }
-}, [searchParams, services]);
-```
-
-### Zmiana 3: ServiceFormDialog.tsx
-
-Dodanie nowego prop:
-```typescript
-interface ServiceFormDialogProps {
-  // ...existing props
-  forceAdvancedOpen?: boolean;
-}
-```
-
-Modyfikacja inicjalizacji stanu:
-```typescript
-const [advancedOpen, setAdvancedOpen] = useState(
-  forceAdvancedOpen || hasAdvancedValues
-);
-```
 
 ---
 
@@ -114,4 +64,3 @@ const [advancedOpen, setAdvancedOpen] = useState(
    - Automatycznie rozwija sekcję "Zaawansowane właściwości"
 6. Admin widzi przypisany szablon i klika "Zapisz" lub zamyka dialog
 ```
-

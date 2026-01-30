@@ -189,10 +189,10 @@ export default function ReminderTemplateEditPage() {
       }
 
       // If we came from ServiceFormDialog, return with the new template ID
-      if (returnToService === 'true' && newTemplateId) {
+      if (returnToService === 'true' && serviceId && newTemplateId) {
         // Navigate back with template ID in URL for assignment
-        const pricingPath = isAdminPath ? '/admin/pricing' : '/pricing';
-        navigate(`${pricingPath}?assignTemplate=${newTemplateId}${serviceId ? `&serviceId=${serviceId}` : ''}`);
+        const pricingPath = isAdminPath ? '/admin/pricelist' : '/pricelist';
+        navigate(`${pricingPath}?serviceId=${serviceId}&assignedReminderId=${newTemplateId}`);
       } else {
         navigate(remindersBasePath);
       }
@@ -231,8 +231,8 @@ export default function ReminderTemplateEditPage() {
 
   const handleBack = () => {
     if (returnToService === 'true') {
-      // Go back to pricing without creating template
-      const pricingPath = isAdminPath ? '/admin/pricing' : '/pricing';
+      // Go back to pricelist without creating template
+      const pricingPath = isAdminPath ? '/admin/pricelist' : '/pricelist';
       navigate(pricingPath);
     } else {
       navigate(remindersBasePath);
