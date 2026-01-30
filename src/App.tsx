@@ -135,18 +135,8 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       } 
     />
-    
+
     {/* Reminder template routes - must be before /:view? to avoid conflict */}
-    <Route 
-      path="/reminders/new" 
-      element={
-        <ProtectedRoute requiredRole="admin">
-          <Suspense fallback={<PageLoader />}>
-            <ReminderTemplateEditPage />
-          </Suspense>
-        </ProtectedRoute>
-      } 
-    />
     <Route 
       path="/reminders/:shortId" 
       element={
@@ -221,16 +211,6 @@ const DevRoutes = () => (
       } 
     />
     {/* Reminder template routes - must be before /admin/:view to avoid conflict */}
-    <Route 
-      path="/admin/reminders/new" 
-      element={
-        <ProtectedRoute requiredRole="admin">
-          <Suspense fallback={<PageLoader />}>
-            <ReminderTemplateEditPage />
-          </Suspense>
-        </ProtectedRoute>
-      } 
-    />
     <Route 
       path="/admin/reminders/:shortId" 
       element={
