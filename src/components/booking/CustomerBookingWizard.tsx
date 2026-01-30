@@ -209,7 +209,6 @@ export default function CustomerBookingWizard({
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [carSize, setCarSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [isInferringCarSize, setIsInferringCarSize] = useState(false);
 
   // Date/time carousel state
   const [dayScrollIndex, setDayScrollIndex] = useState(0);
@@ -357,35 +356,8 @@ export default function CustomerBookingWizard({
 
   // Vehicles are now fetched in the combined fetchCustomerInfo effect above
 
-  // Auto-infer car size from car model using AI
-  useEffect(() => {
-    const inferCarSize = async () => {
-      if (!carModel || carModel.length < 3) return;
-      setIsInferringCarSize(true);
-      try {
-        const {
-          data,
-          error
-        } = await supabase.functions.invoke('suggest-car-size', {
-          body: {
-            carModel
-          }
-        });
-        if (!error && data?.carSize) {
-          const size = data.carSize as 'small' | 'medium' | 'large';
-          if (['small', 'medium', 'large'].includes(size)) {
-            setCarSize(size);
-          }
-        }
-      } catch (e) {
-        console.log('Car size inference failed, using default');
-      } finally {
-        setIsInferringCarSize(false);
-      }
-    };
-    const timeoutId = setTimeout(inferCarSize, 800);
-    return () => clearTimeout(timeoutId);
-  }, [carModel]);
+  // Car size is set directly from CarSearchAutocomplete selection
+  // For custom input (not from list), default to 'medium'
 
   // Auto-select first available slot when entering datetime step or when date changes
   // Skip in edit mode - we want to preserve the existing date/time selection
@@ -1125,7 +1097,8 @@ export default function CustomerBookingWizard({
                     setCarModel('');
                   } else if ('type' in val && val.type === 'custom') {
                     setCarModel(val.label);
-                    // Custom input - keep current carSize (will be inferred by AI)
+                    // Custom input - default to medium size
+                    setCarSize('medium');
                   } else if ('size' in val) {
                     // It's a CarModel with size
                     setCarModel(val.label);
