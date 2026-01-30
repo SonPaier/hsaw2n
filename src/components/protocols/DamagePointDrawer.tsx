@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -97,11 +97,6 @@ export const DamagePointDrawer = ({
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  
-  // Ref to track current note value for AI cancel check
-  const customNoteRef = useRef(customNote);
-  customNoteRef.current = customNote;
 
   useEffect(() => {
     if (open) {
@@ -120,39 +115,6 @@ export const DamagePointDrawer = ({
       }
     }
   }, [open, existingPoint?.id]);
-
-  // Silent AI analysis with 10s timeout, cancelled if user is typing
-  const analyzeImageWithAI = async (imageUrl: string) => {
-    // If user already typed something - don't analyze
-    if (customNoteRef.current.length >= 1) return;
-    
-    setAnalyzing(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-damage', {
-        body: { type: 'analyze_image', imageUrl }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (error) {
-        console.error('AI analysis error:', error);
-        return;
-      }
-      
-      // Check again before setting - user might have started typing
-      if (customNoteRef.current.length === 0 && data?.result && data.result !== 'Brak widocznych uszkodzeń') {
-        setCustomNote(data.result);
-      }
-    } catch {
-      // Silently ignore - timeout or error
-      clearTimeout(timeoutId);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -191,11 +153,6 @@ export const DamagePointDrawer = ({
 
       setPhotoUrls(prev => [...prev, ...uploadedUrls]);
       toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
-
-      // Auto-analyze first uploaded image with AI (silently)
-      if (uploadedUrls.length > 0 && customNoteRef.current.length === 0) {
-        analyzeImageWithAI(uploadedUrls[0]);
-      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Błąd podczas przesyłania zdjęcia');
@@ -301,15 +258,7 @@ export const DamagePointDrawer = ({
           {/* Note with voice input */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label>Notatka</Label>
-                {analyzing && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Analizuję...</span>
-                  </div>
-                )}
-              </div>
+              <Label>Notatka</Label>
               <VoiceNoteInput onTranscript={handleVoiceTranscript} />
             </div>
             <Textarea
