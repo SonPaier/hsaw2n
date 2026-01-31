@@ -951,9 +951,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             </div>
           </aside>
 
-          {/* Workers content */}
-          <div className="flex-1 h-full overflow-auto p-4">
-            <EmployeesList instanceId={instanceId} />
+          {/* Workers content - centered */}
+          <div className="flex-1 h-full overflow-auto">
+            <EmployeesList instanceId={instanceId} centered />
           </div>
         </div>
       </>

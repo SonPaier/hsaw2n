@@ -13,9 +13,10 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface EmployeesListProps {
   instanceId: string | null;
+  centered?: boolean; // For Hall view - center content
 }
 
-const EmployeesList = ({ instanceId }: EmployeesListProps) => {
+const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin') || hasRole('super_admin');
   
@@ -76,19 +77,21 @@ const EmployeesList = ({ instanceId }: EmployeesListProps) => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Lista pracowników</h2>
-        {isAdmin && (
-          <Button onClick={() => setDialogOpen(true)} size="sm">
-            <Plus className="w-4 h-4 mr-1" />
-            Dodaj pracownika
-          </Button>
-        )}
-      </div>
+    <div className={`space-y-4 ${centered ? 'h-full flex flex-col' : ''}`}>
+      {!centered && (
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Lista pracowników</h2>
+          {isAdmin && (
+            <Button onClick={() => setDialogOpen(true)} size="sm">
+              <Plus className="w-4 h-4 mr-1" />
+              Dodaj pracownika
+            </Button>
+          )}
+        </div>
+      )}
 
       {employees.length === 0 ? (
-        <div className="py-12 text-center">
+        <div className={`py-12 text-center ${centered ? 'flex-1 flex flex-col items-center justify-center' : ''}`}>
           <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground">Brak pracowników</p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -102,46 +105,48 @@ const EmployeesList = ({ instanceId }: EmployeesListProps) => {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {employees.map((employee) => {
-            const isWorking = isEmployeeWorking(employee.id);
-            
-            return (
-              <div
-                key={employee.id}
-                onClick={() => handleTileClick(employee)}
-                className="relative flex flex-col items-center p-4 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
-              >
-                {/* Working status indicator */}
+        <div className={`${centered ? 'flex-1 flex items-center justify-center' : ''}`}>
+          <div className={`grid gap-4 ${centered ? 'grid-cols-3 max-w-xl' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'}`}>
+            {employees.map((employee) => {
+              const isWorking = isEmployeeWorking(employee.id);
+              
+              return (
                 <div
-                  className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
-                    isWorking ? 'bg-green-500' : 'bg-muted'
-                  }`}
-                />
-                
-                <Avatar className="h-20 w-20 mb-3">
-                  <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                    {employee.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium text-center truncate max-w-[120px]">
-                    {employee.name}
-                  </span>
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => handleEdit(e, employee)}
-                      className="p-1 rounded hover:bg-muted"
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                  )}
+                  key={employee.id}
+                  onClick={() => handleTileClick(employee)}
+                  className="relative flex flex-col items-center p-4 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  {/* Working status indicator */}
+                  <div
+                    className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
+                      isWorking ? 'bg-green-500' : 'bg-muted'
+                    }`}
+                  />
+                  
+                  <Avatar className="h-20 w-20 mb-3">
+                    <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                      {employee.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-center truncate max-w-[120px]">
+                      {employee.name}
+                    </span>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => handleEdit(e, employee)}
+                        className="p-1 rounded hover:bg-muted"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
