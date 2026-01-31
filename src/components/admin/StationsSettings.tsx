@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Loader2, Save, Droplets } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +36,7 @@ interface SubscriptionData {
 
 const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -148,6 +150,8 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
 
       setEditDialogOpen(false);
       fetchStations();
+      // Invalidate stations cache
+      queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
     } catch (error: any) {
       console.error('Error saving station:', error);
       // Handle station limit error from trigger
@@ -173,6 +177,8 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       if (error) throw error;
       toast.success(t('stationsSettings.stationDeleted'));
       fetchStations();
+      // Invalidate stations cache
+      queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
     } catch (error) {
       console.error('Error deleting station:', error);
       toast.error(t('stationsSettings.deleteError'));

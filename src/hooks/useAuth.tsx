@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   roles: UserRole[];
+  username: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [username, setUsername] = useState<string | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(false);
   
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         previousUserIdRef.current = null;
         setRoles([]);
+        setUsername(null);
         setRolesLoading(false);
         clearSentryUser();
       }
@@ -83,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setRoles([]);
+          setUsername(null);
           setRolesLoading(false);
         }
 
@@ -98,23 +102,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role, instance_id, hall_id')
-        .eq('user_id', userId);
+      // Fetch roles and profile in parallel to reduce requests
+      const [rolesResult, profileResult] = await Promise.all([
+        supabase
+          .from('user_roles')
+          .select('role, instance_id, hall_id')
+          .eq('user_id', userId),
+        supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', userId)
+          .maybeSingle()
+      ]);
 
-      if (error) {
-        console.error('Error fetching roles:', error);
+      if (rolesResult.error) {
+        console.error('Error fetching roles:', rolesResult.error);
         return;
       }
 
-      const userRoles = data?.map(r => ({
+      const userRoles = rolesResult.data?.map(r => ({
         role: r.role as AppRole,
         instance_id: r.instance_id,
         hall_id: r.hall_id
       })) || [];
       
       setRoles(userRoles);
+      
+      // Set username from profile
+      if (profileResult.data?.username) {
+        setUsername(profileResult.data.username);
+      }
       
       // Update Sentry user context
       const primaryRole = userRoles.length > 0 ? userRoles[0].role : undefined;
@@ -192,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRoles([]);
+    setUsername(null);
     previousUserIdRef.current = null;
     clearSentryUser();
     // Then sign out from Supabase (will also trigger onAuthStateChange)
@@ -219,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       roles,
+      username,
       loading: sessionLoading || rolesLoading,
       signIn,
       signUp,

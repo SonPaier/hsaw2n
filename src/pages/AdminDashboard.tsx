@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2 } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
+import { useStations } from '@/hooks/useStations';
+import { useBreaks } from '@/hooks/useBreaks';
+import { useClosedDays } from '@/hooks/useClosedDays';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
+import { useUnifiedServices } from '@/hooks/useUnifiedServices';
+import { useInstanceData } from '@/hooks/useInstanceData';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
   DropdownMenu,
@@ -10,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useQueryClient } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -124,9 +131,11 @@ const AdminDashboard = () => {
   }>();
   const {
     user,
+    username: authUsername,
     signOut
   } = useAuth();
   const { updateAvailable, isUpdating, applyUpdate, checkForUpdate, currentVersion } = useAppUpdate();
+  const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Hall users always have collapsed sidebar
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -212,7 +221,7 @@ const AdminDashboard = () => {
     duration_medium?: number | null;
     duration_large?: number | null;
   }>>([]);
-  const [stations, setStations] = useState<Station[]>([]);
+  // Using cached hooks for stations - manual state is fallback for local updates
 
   // Add/Edit reservation dialog state
   const [addReservationOpen, setAddReservationOpen] = useState(false);
@@ -243,17 +252,13 @@ const AdminDashboard = () => {
     setSlotPreview(preview);
   }, []);
 
-  // Breaks state
-  const [breaks, setBreaks] = useState<Break[]>([]);
+  // Breaks state - using cached hooks, state for local updates
   const [addBreakOpen, setAddBreakOpen] = useState(false);
   const [newBreakData, setNewBreakData] = useState({
     stationId: '',
     date: '',
     time: ''
   });
-
-  // Closed days state
-  const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
 
   // Yard vehicle count for badge
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
@@ -270,11 +275,11 @@ const AdminDashboard = () => {
   // User role (admin, employee, or hall)
   const [userRole, setUserRole] = useState<'admin' | 'employee' | 'hall' | null>(null);
 
-  // Get user's username from profiles
-  const [username, setUsername] = useState<string | null>(null);
+  // Use username from auth context (combined with roles fetch)
+  const username = authUsername;
+  
   // Instance settings dialog
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
-  const [instanceData, setInstanceData] = useState<any>(null);
 
   // Protocol editing mode - used to hide sidebar/mobile nav
   const [protocolEditMode, setProtocolEditMode] = useState(false);
@@ -282,11 +287,20 @@ const AdminDashboard = () => {
   // Combined feature check: checks both plan features and instance-level features
   const { hasFeature } = useCombinedFeatures(instanceId);
 
-  // Working hours for calendar
-  const [workingHours, setWorkingHours] = useState<Record<string, {
-    open: string;
-    close: string;
-  } | null> | null>(null);
+  // CACHED HOOKS - using React Query with staleTime for static data
+  const { data: cachedStations = [] } = useStations(instanceId);
+  const { data: cachedBreaks = [] } = useBreaks(instanceId);
+  const { data: cachedClosedDays = [] } = useClosedDays(instanceId);
+  const { data: cachedWorkingHours } = useWorkingHours(instanceId);
+  const { data: cachedServices = [] } = useUnifiedServices(instanceId);
+  const { data: cachedInstanceData } = useInstanceData(instanceId);
+  
+  // Use cached data (with local state fallback for realtime updates)
+  const stations = cachedStations as Station[];
+  const breaks = cachedBreaks as Break[];
+  const closedDays = cachedClosedDays as ClosedDay[];
+  const workingHours = cachedWorkingHours;
+  const instanceData = cachedInstanceData;
 
   // Current calendar date (synced from AdminCalendar) - initialize from same localStorage source
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
@@ -359,60 +373,7 @@ const AdminDashboard = () => {
     navigate(hallPath, { replace: true });
   }, [userRole, instanceId, navigate, adminBasePath, currentView]);
 
-  // Fetch username from profiles
-  useEffect(() => {
-    const fetchUsername = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (data?.username) {
-        setUsername(data.username);
-      }
-    };
-    fetchUsername();
-  }, [user]);
-
-  // Fetch stations from database
-  const fetchStations = async () => {
-    if (!instanceId) return;
-    const {
-      data,
-      error
-    } = await supabase.from('stations').select('id, name, type').eq('instance_id', instanceId).eq('active', true).order('sort_order');
-    if (!error && data) {
-      setStations(data);
-    }
-  };
-
-  // Fetch working hours from database
-  const fetchWorkingHours = async () => {
-    if (!instanceId) return;
-    const {
-      data
-    } = await supabase.from('instances').select('working_hours').eq('id', instanceId).maybeSingle();
-    if (data?.working_hours) {
-      setWorkingHours(data.working_hours as unknown as Record<string, {
-        open: string;
-        close: string;
-      } | null>);
-    }
-  };
-
-  // Fetch instance data for settings
-  const fetchInstanceData = async () => {
-    if (!instanceId) return;
-    const {
-      data
-    } = await supabase.from('instances').select('*').eq('id', instanceId).maybeSingle();
-    if (data) {
-      setInstanceData(data);
-    }
-  };
-
-  // Fetch yard vehicle count for badge
+  // Fetch yard vehicle count for badge (lazy-loaded only when needed)
   const fetchYardVehicleCount = async () => {
     if (!instanceId) return;
     const { count, error } = await supabase
@@ -438,12 +399,11 @@ const AdminDashboard = () => {
     }
   };
 
+  // Removed fetchStations, fetchWorkingHours, fetchInstanceData - now using cached hooks
+  // Only fetch notification count and yard vehicles on initial load
   useEffect(() => {
-    fetchStations();
-    fetchWorkingHours();
-    fetchInstanceData();
-    fetchYardVehicleCount();
     fetchUnreadNotificationsCount();
+    // Don't fetch yard vehicles eagerly - only when dialog opens
   }, [instanceId]);
 
   // Helper to find nearest working day
@@ -539,13 +499,10 @@ const AdminDashboard = () => {
     localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // Refetch stations when switching to calendar view
+  // Calendar view now uses cached hooks - just fetch reservations
   useEffect(() => {
     if (currentView === 'calendar') {
-      fetchStations();
       fetchReservations();
-      fetchBreaks();
-      fetchClosedDays();
     }
   }, [currentView]);
 
@@ -807,33 +764,17 @@ const AdminDashboard = () => {
     }
   }, [loadedDateRange.from, loadMoreReservations]);
 
-  // Fetch breaks from database
-  const fetchBreaks = async () => {
-    if (!instanceId) return;
-    const {
-      data,
-      error
-    } = await supabase.from('breaks').select('*').eq('instance_id', instanceId);
-    if (!error && data) {
-      setBreaks(data);
-    }
+  // Breaks and closed days now use cached hooks - invalidate cache instead of local state
+  const invalidateBreaksCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['breaks', instanceId] });
   };
-
-  // Fetch closed days from database
-  const fetchClosedDays = async () => {
-    if (!instanceId) return;
-    const {
-      data,
-      error
-    } = await supabase.from('closed_days').select('*').eq('instance_id', instanceId);
-    if (!error && data) {
-      setClosedDays(data);
-    }
+  
+  const invalidateClosedDaysCache = () => {
+    queryClient.invalidateQueries({ queryKey: ['closed_days', instanceId] });
   };
+  
   useEffect(() => {
     fetchReservations();
-    fetchBreaks();
-    fetchClosedDays();
   }, [instanceId]);
 
   // Deep linking: auto-open reservation from URL param
@@ -1429,21 +1370,18 @@ const AdminDashboard = () => {
     setAddBreakOpen(true);
   };
   const handleBreakAdded = () => {
-    fetchBreaks();
+    invalidateBreaksCache();
   };
   const handleDeleteBreak = async (breakId: string) => {
-    // Optimistic update - remove from UI immediately
-    setBreaks(prev => prev.filter(b => b.id !== breakId));
     const {
       error
     } = await supabase.from('breaks').delete().eq('id', breakId);
     if (error) {
       toast.error(t('errors.generic'));
       console.error('Error deleting break:', error);
-      // Revert on error - refetch breaks
-      fetchBreaks();
       return;
     }
+    invalidateBreaksCache();
     toast.success(t('common.success'));
   };
   const handleToggleClosedDay = async (date: string) => {
@@ -1451,16 +1389,15 @@ const AdminDashboard = () => {
     const existingClosedDay = closedDays.find(cd => cd.closed_date === date);
     if (existingClosedDay) {
       // Day is closed - open it (delete from closed_days)
-      setClosedDays(prev => prev.filter(cd => cd.id !== existingClosedDay.id));
       const {
         error
       } = await supabase.from('closed_days').delete().eq('id', existingClosedDay.id);
       if (error) {
         toast.error(t('errors.generic'));
         console.error('Error opening day:', error);
-        fetchClosedDays();
         return;
       }
+      invalidateClosedDaysCache();
       toast.success(t('common.success'));
     } else {
       // Day is open - close it (insert to closed_days)
@@ -1470,7 +1407,6 @@ const AdminDashboard = () => {
         reason: null
       };
       const {
-        data,
         error
       } = await supabase.from('closed_days').insert(newClosedDay).select().single();
       if (error) {
@@ -1478,9 +1414,7 @@ const AdminDashboard = () => {
         console.error('Error closing day:', error);
         return;
       }
-      if (data) {
-        setClosedDays(prev => [...prev, data]);
-      }
+      invalidateClosedDaysCache();
       toast.success(t('common.success'));
     }
   };
@@ -2492,8 +2426,8 @@ const AdminDashboard = () => {
               <SettingsView 
                 instanceId={instanceId} 
                 instanceData={instanceData}
-                onInstanceUpdate={(data) => setInstanceData(data)}
-                onWorkingHoursUpdate={fetchWorkingHours}
+                onInstanceUpdate={() => queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] })}
+                onWorkingHoursUpdate={() => queryClient.invalidateQueries({ queryKey: ['working_hours', instanceId] })}
               />
             )}
 
@@ -2616,9 +2550,9 @@ const AdminDashboard = () => {
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
-      <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={updated => {
-      setInstanceData(updated);
-    }} />
+      <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={() => {
+        queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] });
+      }} />
 
       {/* Mobile Bottom Navigation - hidden when editing protocols */}
       {!protocolEditMode && (
