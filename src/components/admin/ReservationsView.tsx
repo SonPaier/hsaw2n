@@ -49,6 +49,7 @@ interface Reservation {
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
   };
   price: number | null;
+  photo_urls?: string[] | null;
 }
 
 interface Customer {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -8,7 +8,6 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
-import ReservationPhotosDialog from '@/components/admin/ReservationPhotosDialog';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
 import { Loader2, Calendar, FileText, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +16,7 @@ import type { Hall } from '@/components/admin/halls/HallCard';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { normalizePhone } from '@/lib/phoneUtils';
+import { compressImage } from '@/lib/imageUtils';
 interface Station {
   id: string;
   name: string;
@@ -86,7 +86,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [showProtocolsList, setShowProtocolsList] = useState(false);
   const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [instanceShortName, setInstanceShortName] = useState<string>('');
-  const [photosDialogReservation, setPhotosDialogReservation] = useState<Reservation | null>(null);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photosTargetReservation, setPhotosTargetReservation] = useState<Reservation | null>(null);
+  const photosInputRef = useRef<HTMLInputElement>(null);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -175,10 +177,84 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     })();
   };
 
-  // Handle adding photos to reservation
+  // Handle adding photos to reservation - directly trigger file input
   const handleAddPhotos = (reservation: Reservation) => {
-    setPhotosDialogReservation(reservation);
+    setPhotosTargetReservation(reservation);
     setSelectedReservation(null);
+    // Trigger file input after state update
+    setTimeout(() => {
+      photosInputRef.current?.click();
+    }, 100);
+  };
+
+  // Handle photo file selection and upload
+  const handlePhotoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !photosTargetReservation) {
+      setPhotosTargetReservation(null);
+      return;
+    }
+
+    const maxPhotos = 8;
+    const currentPhotos = photosTargetReservation.photo_urls || [];
+    const remainingSlots = maxPhotos - currentPhotos.length;
+
+    if (remainingSlots <= 0) {
+      toast.error(`Maksymalna liczba zdjęć: ${maxPhotos}`);
+      setPhotosTargetReservation(null);
+      if (photosInputRef.current) photosInputRef.current.value = '';
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+    setUploadingPhotos(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of filesToUpload) {
+        const compressed = await compressImage(file, 1200, 0.8);
+        const fileName = `reservation-${photosTargetReservation.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('reservation-photos')
+          .upload(fileName, compressed, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('reservation-photos')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      const newPhotos = [...currentPhotos, ...uploadedUrls];
+
+      const { error: updateError } = await supabase
+        .from('reservations')
+        .update({ photo_urls: newPhotos })
+        .eq('id', photosTargetReservation.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setReservations(prev => prev.map(r => 
+        r.id === photosTargetReservation.id ? { ...r, photo_urls: newPhotos } : r
+      ));
+
+      toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+      toast.error('Błąd podczas przesyłania zdjęć');
+    } finally {
+      setUploadingPhotos(false);
+      setPhotosTargetReservation(null);
+      if (photosInputRef.current) photosInputRef.current.value = '';
+    }
   };
 
   // Prevent navigation away - capture back button and history manipulation
@@ -905,18 +981,16 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         />
       )}
 
-      {/* Photos dialog */}
-      {photosDialogReservation && (
-        <ReservationPhotosDialog
-          open={!!photosDialogReservation}
-          onClose={() => setPhotosDialogReservation(null)}
-          reservationId={photosDialogReservation.id}
-          currentPhotos={[]}
-          onPhotosUpdated={() => {
-            toast.success('Zdjęcia zostały zapisane');
-          }}
-        />
-      )}
+      {/* Hidden file input for direct photo capture */}
+      <input
+        ref={photosInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        capture="environment"
+        onChange={handlePhotoFileSelect}
+        className="hidden"
+      />
 
       {/* Edit reservation drawer - only shown when hall allows editing */}
       {editingReservation && instanceId && (
