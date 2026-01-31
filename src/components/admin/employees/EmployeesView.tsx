@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
-import { useTimeEntriesForMonth, useTimeEntriesForDateRange, calculateMonthlySummary, formatMinutesToTime } from '@/hooks/useTimeEntries';
+import { useTimeEntriesForMonth, useTimeEntriesForDateRange, calculateMonthlySummary, formatMinutesToTime, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, DAY_OFF_TYPE_LABELS, DayOffType, EmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +15,17 @@ import AddEditEmployeeDialog from './AddEditEmployeeDialog';
 import WorkerTimeDialog from './WorkerTimeDialog';
 import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
 import WorkersSettingsDrawer from './WorkersSettingsDrawer';
+
+// Weekday index to working_hours key map (0=Sunday, 1=Monday, etc)
+const WEEKDAY_TO_KEY: Record<number, string> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
 
 interface EmployeesViewProps {
   instanceId: string | null;
@@ -67,6 +79,69 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees(instanceId);
   const { data: timeEntries = [], isLoading: loadingEntries } = useTimeEntriesForDateRange(instanceId, dateFrom, dateTo);
   const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(instanceId, null);
+  const { data: workingHours } = useWorkingHours(instanceId);
+
+  // Helper to get opening time for a given date
+  const getOpeningTime = (dateStr: string): Date | null => {
+    if (!workingHours) return null;
+    const date = new Date(dateStr);
+    const dayOfWeek = getDay(date);
+    const dayKey = WEEKDAY_TO_KEY[dayOfWeek];
+    const dayHours = workingHours[dayKey];
+    if (!dayHours || !dayHours.open) return null;
+    
+    const [hours, minutes] = dayHours.open.split(':').map(Number);
+    const openingDate = new Date(dateStr);
+    openingDate.setHours(hours, minutes, 0, 0);
+    return openingDate;
+  };
+
+  // Calculate pre-opening minutes for entries on a given date
+  const calculatePreOpeningMinutes = (entries: TimeEntry[], dateStr: string): number => {
+    const openingTime = getOpeningTime(dateStr);
+    if (!openingTime) return 0;
+    
+    let preOpeningMinutes = 0;
+    entries.forEach(entry => {
+      if (!entry.start_time) return;
+      const startTime = new Date(entry.start_time);
+      if (startTime < openingTime) {
+        const endTime = entry.end_time ? new Date(entry.end_time) : new Date();
+        const effectiveEnd = endTime < openingTime ? endTime : openingTime;
+        const diffMs = effectiveEnd.getTime() - startTime.getTime();
+        preOpeningMinutes += Math.max(0, Math.floor(diffMs / 60000));
+      }
+    });
+    return preOpeningMinutes;
+  };
+
+  // Calculate pre-opening time per employee for the period
+  const preOpeningByEmployee = useMemo(() => {
+    const result = new Map<string, number>();
+    
+    // Group entries by employee and date
+    const entriesByEmployeeDate = new Map<string, Map<string, TimeEntry[]>>();
+    timeEntries.forEach(entry => {
+      if (!entriesByEmployeeDate.has(entry.employee_id)) {
+        entriesByEmployeeDate.set(entry.employee_id, new Map());
+      }
+      const dateMap = entriesByEmployeeDate.get(entry.employee_id)!;
+      if (!dateMap.has(entry.entry_date)) {
+        dateMap.set(entry.entry_date, []);
+      }
+      dateMap.get(entry.entry_date)!.push(entry);
+    });
+    
+    entriesByEmployeeDate.forEach((dateMap, employeeId) => {
+      let totalPreOpening = 0;
+      dateMap.forEach((entries, dateStr) => {
+        totalPreOpening += calculatePreOpeningMinutes(entries, dateStr);
+      });
+      result.set(employeeId, totalPreOpening);
+    });
+    
+    return result;
+  }, [timeEntries, workingHours]);
 
   // Filter only active (not soft-deleted) employees
   const activeEmployees = employees.filter(e => e.active && !(e as any).deleted_at);
@@ -251,6 +326,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               onClick={() => setSettingsDrawerOpen(true)} 
               variant="ghost" 
               size="icon"
+              className="border-0"
               title="Ustawienia czasu pracy"
             >
               <Settings2 className="w-5 h-5" />
@@ -303,9 +379,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {activeEmployees.map((employee) => {
               const summary = periodSummary.get(employee.id);
-              const totalHours = summary ? formatMinutesToTime(summary.total_minutes) : '0h 0min';
-              const earnings = summary && employee.hourly_rate 
-                ? ((summary.total_minutes / 60) * employee.hourly_rate).toFixed(2)
+              const totalMinutes = summary?.total_minutes || 0;
+              const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
+              const realMinutes = Math.max(0, totalMinutes - preOpeningMinutes);
+              
+              const totalHours = formatMinutesToTime(totalMinutes);
+              const preOpeningHours = formatMinutesToTime(preOpeningMinutes);
+              const realHours = formatMinutesToTime(realMinutes);
+              
+              // Earnings based on real time (after pre-opening deduction)
+              const earnings = employee.hourly_rate 
+                ? ((realMinutes / 60) * employee.hourly_rate).toFixed(2)
                 : null;
               const employeeDaysOff = getDaysOffForEmployee(employee.id);
               const formattedDaysOff = formatDaysOffForPeriod(employeeDaysOff);
@@ -338,7 +422,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                       <div className="flex-1 min-w-0">
                         <span className="font-medium truncate block">{employee.name}</span>
                         
-                        {/* Hours summary */}
+                        {/* Hours summary - Total time */}
                         <div className="flex items-center gap-1 mt-1 text-sm">
                           <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="font-semibold">{totalHours}</span>
@@ -346,6 +430,14 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                             <span className="text-muted-foreground">• {earnings} zł</span>
                           )}
                         </div>
+                        
+                        {/* Pre-opening and real time - only show if there's pre-opening time */}
+                        {isAdmin && preOpeningMinutes > 0 && (
+                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                            <div>Przed otwarciem: {preOpeningHours}</div>
+                            <div className="font-medium text-foreground">Czas realny: {realHours}</div>
+                          </div>
+                        )}
                         
                         {/* Days off - detailed dates */}
                         {formattedDaysOff.length > 0 && (

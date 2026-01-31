@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry } from '@/hooks/useTimeEntries';
 import { Employee } from '@/hooks/useEmployees';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
@@ -134,116 +134,101 @@ const WorkerTimeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={showSchedule || !startStopEnabled ? "sm:max-w-2xl" : "sm:max-w-sm"}>
-        <DialogHeader>
+      <DialogContent className={`${showSchedule || !startStopEnabled ? "sm:max-w-2xl" : "sm:max-w-sm"} max-h-[90vh] overflow-hidden flex flex-col`}>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="sr-only">Czas pracy</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center py-4 gap-4">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-            <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-              {employee.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <h2 className="text-xl font-semibold">{employee.name}</h2>
-          
-          {totalMinutes > 0 && (
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                Dzisiaj: {formatDuration(totalMinutes)}
-              </p>
-              {todayEmployeeEntries.length > 0 && (
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  ({todayEmployeeEntries.map((e, i) => (
-                    <span key={e.id}>
-                      {i > 0 && ', '}
-                      {formatTimeFromISO(e.start_time)}-{formatTimeFromISO(e.end_time)}
-                    </span>
-                  ))})
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex flex-col items-center py-2 gap-2">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                {employee.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <h2 className="text-lg font-semibold">{employee.name}</h2>
+            
+            {totalMinutes > 0 && (
+              <div className="text-center">
+                <p className="text-2xl font-bold">
+                  Dzisiaj: {formatDuration(totalMinutes)}
                 </p>
-              )}
-            </div>
-          )}
-
-          <Separator className="my-2" />
-
-          {/* Status indicator - only show when start/stop is enabled */}
-          {startStopEnabled && (
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  isWorking ? 'bg-green-500' : 'bg-muted'
-                }`}
-              />
-              {isWorking && workStartTime && (
-                <span className="text-green-700 dark:text-green-400 font-medium">
-                  W pracy od {workStartTime}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Action buttons - only show when start/stop is enabled */}
-          {startStopEnabled && (
-            <div className="flex flex-col gap-3 w-full">
-              <div className="flex gap-3">
-                {!isWorking ? (
-                  <Button
-                    onClick={handleStart}
-                    disabled={isLoading}
-                    className="flex-1 h-14 text-lg"
-                    size="lg"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5 mr-2" />
-                        Start
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleStop}
-                    disabled={isLoading}
-                    variant="destructive"
-                    className="flex-1 h-14 text-lg"
-                    size="lg"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Square className="w-5 h-5 mr-2" />
-                        Stop
-                      </>
-                    )}
-                  </Button>
+                {todayEmployeeEntries.length > 0 && (
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    ({todayEmployeeEntries.map((e, i) => (
+                      <span key={e.id}>
+                        {i > 0 && ', '}
+                        {formatTimeFromISO(e.start_time)}-{formatTimeFromISO(e.end_time)}
+                      </span>
+                    ))})
+                  </p>
                 )}
               </div>
+            )}
 
-              {/* View schedule button - only when start/stop enabled */}
-              <Button
-                variant="outline"
-                onClick={() => setShowSchedule(!showSchedule)}
-                className="w-full bg-white dark:bg-card"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                {showSchedule ? 'Ukryj grafik' : 'Zobacz grafik'}
-              </Button>
-            </div>
-          )}
+            {/* Action buttons - only show when start/stop is enabled */}
+            {startStopEnabled && (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <div className="flex gap-3">
+                  {!isWorking ? (
+                    <Button
+                      onClick={handleStart}
+                      disabled={isLoading}
+                      className="flex-1 h-14 text-lg"
+                      size="lg"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Play className="w-5 h-5 mr-2" />
+                          Start
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleStop}
+                      disabled={isLoading}
+                      variant="destructive"
+                      className="flex-1 h-14 text-lg"
+                      size="lg"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Square className="w-5 h-5 mr-2" />
+                          Stop
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
 
-          {/* Weekly schedule - always visible when start/stop disabled, toggleable otherwise */}
-          {(startStopEnabled ? showSchedule : true) && (
-            <div className="w-full mt-4">
-              <WeeklySchedule employee={employee} instanceId={instanceId} />
-            </div>
-          )}
-        </div>
+                {/* View schedule button - only when start/stop enabled */}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSchedule(!showSchedule)}
+                  className="w-full bg-white dark:bg-card"
+                  size="sm"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {showSchedule ? 'Ukryj grafik' : 'Zobacz grafik'}
+                </Button>
+              </div>
+            )}
+
+            {/* Weekly schedule - always visible when start/stop disabled, toggleable otherwise */}
+            {(startStopEnabled ? showSchedule : true) && (
+              <div className="w-full mt-2">
+                <WeeklySchedule employee={employee} instanceId={instanceId} />
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
