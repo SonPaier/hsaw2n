@@ -366,8 +366,8 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
       <div className="space-y-6">
         {/* Templates visibility and pricing */}
         <div className="space-y-4">
-          <div>
-            <h3 className="font-medium">Szablony w widgecie</h3>
+        <div>
+            <h3 className="font-medium">Szablony w formularzu</h3>
             <p className="text-sm text-muted-foreground">
               Wybierz które szablony będą widoczne i ustaw ceny "od"
             </p>
@@ -480,9 +480,9 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
         {/* Embed code */}
         <div className="space-y-4">
           <div>
-            <h3 className="font-medium">Kod do osadzenia</h3>
+            <h3 className="font-medium">Udostępnij wtyczkę</h3>
             <p className="text-sm text-muted-foreground">
-              Skopiuj kod iframe i wklej na swoją stronę
+              Przekieruj klientów bezpośrednio do formularza, lub skopiuj kod iframe i wklej na swojej stronie
             </p>
           </div>
 
