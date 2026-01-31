@@ -84,14 +84,16 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   // Helper to get opening time for a given date
   const getOpeningTime = (dateStr: string): Date | null => {
     if (!workingHours) return null;
-    const date = new Date(dateStr);
+    // Use ISO format with time to avoid timezone issues
+    const date = new Date(dateStr + 'T12:00:00'); // Use noon so getDay() works correctly
     const dayOfWeek = getDay(date);
     const dayKey = WEEKDAY_TO_KEY[dayOfWeek];
     const dayHours = workingHours[dayKey];
     if (!dayHours || !dayHours.open) return null;
     
     const [hours, minutes] = dayHours.open.split(':').map(Number);
-    const openingDate = new Date(dateStr);
+    // Create opening date in local time
+    const openingDate = new Date(dateStr + 'T00:00:00');
     openingDate.setHours(hours, minutes, 0, 0);
     return openingDate;
   };
@@ -149,16 +151,18 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   // Calculate period totals (works for both weekly and monthly)
   const periodSummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
 
-  // Calculate total earnings (admin only)
+  // Calculate total earnings (admin only) - uses real time (after pre-opening deduction)
   const totalEarnings = useMemo(() => {
     return activeEmployees.reduce((sum, employee) => {
       const summary = periodSummary.get(employee.id);
       if (summary && employee.hourly_rate) {
-        return sum + (summary.total_minutes / 60) * employee.hourly_rate;
+        const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
+        const realMinutes = Math.max(0, summary.total_minutes - preOpeningMinutes);
+        return sum + (realMinutes / 60) * employee.hourly_rate;
       }
       return sum;
     }, 0);
-  }, [activeEmployees, periodSummary]);
+  }, [activeEmployees, periodSummary, preOpeningByEmployee]);
 
   // Get days off for this period
   const getDaysOffForEmployee = (employeeId: string) => {
