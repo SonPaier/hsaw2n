@@ -536,17 +536,23 @@ const AdminDashboard = () => {
         price_from?: number | null;
       }> = [];
       
-      // Use service_items as primary source (has names embedded)
+      // Primary source: service_items (may be minimal objects with only service_id/custom_price)
+      // If name/short_name are missing, resolve them from the cached services map.
       if (serviceItems && serviceItems.length > 0) {
-        servicesDataMapped = serviceItems.map(item => ({
-          id: item.id || item.service_id,
-          name: item.name || 'Usługa',
-          shortcut: item.short_name || null,
-          price_small: item.price_small ?? null,
-          price_medium: item.price_medium ?? null,
-          price_large: item.price_large ?? null,
-          price_from: item.price_from ?? null
-        }));
+        servicesDataMapped = serviceItems.map(item => {
+          const resolvedId = item.id || item.service_id;
+          const svc = resolvedId ? servicesMap.get(resolvedId) : undefined;
+
+          return {
+            id: resolvedId,
+            name: item.name ?? svc?.name ?? 'Usługa',
+            shortcut: item.short_name ?? svc?.shortcut ?? null,
+            price_small: item.price_small ?? svc?.price_small ?? null,
+            price_medium: item.price_medium ?? svc?.price_medium ?? null,
+            price_large: item.price_large ?? svc?.price_large ?? null,
+            price_from: item.price_from ?? svc?.price_from ?? null
+          };
+        });
       } else if (serviceIds && serviceIds.length > 0) {
         // Fallback to service_ids lookup (for legacy reservations)
         serviceIds.forEach(id => {
