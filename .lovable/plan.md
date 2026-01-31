@@ -1,157 +1,150 @@
 
-
-# Plan: Naprawa obliczeń czasu przed otwarciem i stawki godzinowej
+# Plan: Uproszczenie kafelków czasu pracy z konfiguracją trybu liczenia
 
 ## Problem
 
-1. **Dane nie są widoczne** - obliczenia czasu przed otwarciem nie działają poprawnie z powodu problemu ze strefami czasowymi
-2. **Błędne obliczanie stawki** - `totalEarnings` (suma wypłat) używa pełnego czasu zamiast czasu realnego
+Obecnie kafelek pracownika pokazuje 3 linie czasu:
+- **Łącznie** - całkowity czas od start do stop
+- **Przed otwarciem** - czas przed godziną otwarcia myjni  
+- **Od otwarcia** - czas po otwarciu (realny)
 
-## Analiza techniczna
+To jest zbyt skomplikowane. Chcemy uproszczony widok z jedną wartością "Czas" w zależności od konfiguracji.
 
-### Problem stref czasowych
+## Rozwiązanie
 
-Dane z bazy:
-```
-start_time: 2026-01-30 07:00:00+00 (UTC)
-```
+Dodajemy nowe ustawienie: **"Jak liczyć czas?"** (widoczne tylko gdy Start/Stop włączony)
 
-To oznacza 08:00 czasu polskiego (CET = UTC+1).
+| Opcja | Opis | Logika |
+|-------|------|--------|
+| `start_to_stop` (domyślna) | Od kliknięcia start do stop | Czas = suma wszystkich wpisów |
+| `opening_to_stop` | Od otwarcia myjni do stop | Czas = suma - czas przed otwarciem |
 
-Obecny kod:
-```typescript
-const openingDate = new Date(dateStr);  // "2026-01-30" → 2026-01-30 00:00:00 CET
-openingDate.setHours(8, 0, 0, 0);       // → 2026-01-30 08:00:00 CET
-```
+**Edge case:** Jeśli wybrano `opening_to_stop`, ale nie znaleziono godziny otwarcia (np. niedziela bez godzin), używamy czasu od start.
 
-Problem: `new Date("2026-01-30 07:00:00+00")` daje czas w UTC, a `openingDate` jest w czasie lokalnym (CET). Porównanie jest niepoprawne.
+## Zmiany w bazie danych
 
-### Rozwiązanie
+```sql
+ALTER TABLE workers_settings 
+ADD COLUMN time_calculation_mode TEXT NOT NULL DEFAULT 'start_to_stop';
 
-Konwertować godzinę otwarcia do UTC na dany dzień, aby oba czasy były w tej samej strefie:
-
-```typescript
-const getOpeningTime = (dateStr: string): Date | null => {
-  // ...
-  // Tworzymy datę w UTC dla danego dnia
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const openingDate = new Date(Date.UTC(year, month - 1, day, hours - 1, minutes));
-  // -1 bo CET = UTC+1, więc 08:00 CET = 07:00 UTC
-  return openingDate;
-};
+COMMENT ON COLUMN workers_settings.time_calculation_mode IS 
+  'start_to_stop = od kliknięcia start, opening_to_stop = od godziny otwarcia';
 ```
 
-Lepsze rozwiązanie: parsować `start_time` do daty i porównywać godziny/minuty zamiast pełnych timestampów:
+## Zmiany w plikach
+
+### 1. `src/hooks/useWorkersSettings.ts`
+
+Dodać pole do interfejsu:
 
 ```typescript
-const calculatePreOpeningMinutes = (entries: TimeEntry[], dateStr: string): number => {
-  const openingHour = getOpeningHour(dateStr); // np. "08:00"
-  if (!openingHour) return 0;
-  
-  const [openHour, openMin] = openingHour.split(':').map(Number);
-  
-  entries.forEach(entry => {
-    if (!entry.start_time) return;
-    const startTime = new Date(entry.start_time);
-    const startHour = startTime.getHours(); // Czas lokalny przeglądarki
-    const startMin = startTime.getMinutes();
-    
-    // Jeśli pracownik zaczął przed otwarciem
-    if (startHour < openHour || (startHour === openHour && startMin < openMin)) {
-      // ... oblicz minuty
-    }
-  });
-};
+export interface WorkersSettings {
+  // ...istniejące pola...
+  time_calculation_mode: 'start_to_stop' | 'opening_to_stop';
+}
 ```
 
-## Zmiany do wprowadzenia
+### 2. `src/components/admin/employees/WorkersSettingsDrawer.tsx`
 
-### 1. Naprawa `getOpeningTime` w `EmployeesView.tsx`
+Dodać nową sekcję RadioGroup (widoczną tylko gdy `startStopEnabled === true`):
 
-Zmienić na porównywanie godzin/minut w czasie lokalnym (przeglądarka już konwertuje UTC na czas lokalny):
+```
+{startStopEnabled && (
+  <div className="space-y-3">
+    <Label>Jak liczyć czas?</Label>
+    <RadioGroup value={timeCalculationMode} ...>
+      <RadioGroupItem value="start_to_stop">
+        Od kliknięcia start do stop
+      </RadioGroupItem>
+      <RadioGroupItem value="opening_to_stop">
+        Od otwarcia myjni do stop
+      </RadioGroupItem>
+    </RadioGroup>
+  </div>
+)}
+```
 
+### 3. `src/components/admin/employees/EmployeesView.tsx`
+
+Uprościć logikę wyświetlania na kafelkach:
+
+**Przed (admin widzi 4 linie):**
+```
+Łącznie: 8h 30min
+Przed otwarciem: 0h 30min
+Od otwarcia: 8h 00min
+320.00 zł
+```
+
+**Po (admin widzi 2 linie):**
+```
+Czas: 8h 00min    (lub 8h 30min w trybie start_to_stop)
+320.00 zł
+```
+
+Logika w komponencie:
 ```typescript
-const getOpeningTime = (dateStr: string): Date | null => {
-  if (!workingHours) return null;
-  const date = new Date(dateStr + 'T00:00:00');
-  const dayOfWeek = date.getDay();
-  const dayKey = WEEKDAY_TO_KEY[dayOfWeek];
-  const dayHours = workingHours[dayKey];
-  if (!dayHours || !dayHours.open) return null;
-  
-  const [hours, minutes] = dayHours.open.split(':').map(Number);
-  // Utwórz datę otwarcia w czasie lokalnym
-  const openingDate = new Date(dateStr + 'T00:00:00');
-  openingDate.setHours(hours, minutes, 0, 0);
-  return openingDate;
-};
+const timeCalculationMode = workersSettings?.time_calculation_mode ?? 'start_to_stop';
+
+// W mapowaniu pracownika:
+const displayMinutes = timeCalculationMode === 'opening_to_stop'
+  ? realMinutes   // po odjęciu czasu przed otwarciem (lub totalMinutes jeśli brak godzin)
+  : totalMinutes; // pełny czas start-stop
+
+const displayHours = formatMinutesToTime(displayMinutes);
 ```
 
-I w `calculatePreOpeningMinutes`:
+Edge case dla `opening_to_stop`:
 ```typescript
-const startTime = new Date(entry.start_time); // Automatycznie konwertowane do czasu lokalnego
+// Jeśli preOpeningMinutes === 0 i tryb opening_to_stop, 
+// sprawdź czy to dlatego że nie ma godzin otwarcia
+// W takim przypadku używamy totalMinutes
 ```
 
-### 2. Naprawa `totalEarnings`
+### 4. Aktualizacja totalEarnings
 
-Zmienić na używanie `realMinutes` (z odliczeniem czasu przed otwarciem):
-
+Suma wypłat zawsze bazuje na czasie wyświetlanym (displayMinutes):
 ```typescript
 const totalEarnings = useMemo(() => {
   return activeEmployees.reduce((sum, employee) => {
     const summary = periodSummary.get(employee.id);
     if (summary && employee.hourly_rate) {
-      const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-      const realMinutes = Math.max(0, summary.total_minutes - preOpeningMinutes);
-      return sum + (realMinutes / 60) * employee.hourly_rate;
+      const preOpening = preOpeningByEmployee.get(employee.id) || 0;
+      const displayMinutes = timeCalculationMode === 'opening_to_stop'
+        ? Math.max(0, summary.total_minutes - preOpening)
+        : summary.total_minutes;
+      return sum + (displayMinutes / 60) * employee.hourly_rate;
     }
     return sum;
   }, 0);
-}, [activeEmployees, periodSummary, preOpeningByEmployee]);
+}, [activeEmployees, periodSummary, preOpeningByEmployee, timeCalculationMode]);
 ```
 
-## Pliki do zmiany
+## Podsumowanie zmian
 
 | Plik | Zmiana |
 |------|--------|
-| `EmployeesView.tsx` | 1. Naprawić `getOpeningTime` - użyć `dateStr + 'T00:00:00'` dla poprawnej strefy czasowej |
-| `EmployeesView.tsx` | 2. Naprawić `totalEarnings` - używać `realMinutes` zamiast `summary.total_minutes` |
-| `EmployeesView.tsx` | 3. Dodać `preOpeningByEmployee` do zależności `useMemo` dla `totalEarnings` |
+| **Baza danych** | Migracja: dodanie kolumny `time_calculation_mode` |
+| `useWorkersSettings.ts` | Dodanie typu `time_calculation_mode` do interfejsu |
+| `WorkersSettingsDrawer.tsx` | Nowa sekcja RadioGroup (widoczna gdy Start/Stop włączony) |
+| `EmployeesView.tsx` | Uproszczenie kafelka: 1 linia "Czas" + zarobki zamiast 3 linii |
 
-## Szczegóły implementacji
+## Wizualizacja kafelka po zmianach
 
-### Zmiana w `getOpeningTime` (linie ~85-97)
-
-```typescript
-const getOpeningTime = (dateStr: string): Date | null => {
-  if (!workingHours) return null;
-  // Użyj formatu ISO z czasem, aby uniknąć problemów ze strefami czasowymi
-  const date = new Date(dateStr + 'T12:00:00'); // Użyj południa, żeby getDay() działał poprawnie
-  const dayOfWeek = date.getDay();
-  const dayKey = WEEKDAY_TO_KEY[dayOfWeek];
-  const dayHours = workingHours[dayKey];
-  if (!dayHours || !dayHours.open) return null;
-  
-  const [hours, minutes] = dayHours.open.split(':').map(Number);
-  const openingDate = new Date(dateStr + 'T00:00:00');
-  openingDate.setHours(hours, minutes, 0, 0);
-  return openingDate;
-};
+**Tryb `start_to_stop`:**
+```
+┌─────────────────────────────┐
+│ [Avatar] Jan Kowalski    ✏️ │
+│          Czas: 8h 30min     │
+│          320.00 zł          │
+└─────────────────────────────┘
 ```
 
-### Zmiana w `totalEarnings` (linie ~152-161)
-
-```typescript
-const totalEarnings = useMemo(() => {
-  return activeEmployees.reduce((sum, employee) => {
-    const summary = periodSummary.get(employee.id);
-    if (summary && employee.hourly_rate) {
-      const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-      const realMinutes = Math.max(0, summary.total_minutes - preOpeningMinutes);
-      return sum + (realMinutes / 60) * employee.hourly_rate;
-    }
-    return sum;
-  }, 0);
-}, [activeEmployees, periodSummary, preOpeningByEmployee]);
+**Tryb `opening_to_stop`:**
 ```
-
+┌─────────────────────────────┐
+│ [Avatar] Jan Kowalski    ✏️ │
+│          Czas: 8h 00min     │
+│          320.00 zł          │
+└─────────────────────────────┘
+```
