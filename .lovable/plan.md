@@ -1,422 +1,301 @@
 
-# Plan optymalizacji requestów i naprawy UI
 
-## Podsumowanie problemów
+# Audyt operacji backendowych - pełny raport
 
-1. **X w PhotoFullscreenDialog niewidoczny** - za duży (56px) lub problem z kontrastem
-2. **Spam requestów** - seria 30-40 GET na unified_services i innych endpointach
-3. **Brak cachowania dla kluczowych danych**:
-   - `instance_subscriptions` + `subscription_plans`
-   - `instance_features`
-   - `user_roles` (w useAuth)
-   - `instances` (dane instancji)
-   - `offer_scopes` (na liście ofert)
-   - `profiles` (username) - powinno być pobierane razem z roles
-4. **`yard_vehicles`** - pobierane za wcześnie, powinno być lazy-loaded przy otwarciu dialogu
+## Podsumowanie wykonawcze
+
+Audyt zidentyfikował **12 głównych obszarów** wymagających optymalizacji. Większość problemów dotyczy:
+- Duplikowanych zapytań do bazy danych (N+1)
+- Brakującego cachowania dla rzadko zmienianych danych
+- Błędów w RLS policy queries
+- Niepotrzebnych operacji synchronicznych w FE
 
 ---
 
-## 1. Naprawa X w PhotoFullscreenDialog
+## 1. Błędy w bazie danych (KRYTYCZNE)
 
-**Problem**: Przycisk 56px to przesada, max 30px zgodnie z feedbackiem.
+### Znalezione w logach Postgres:
 
-**Plik**: `src/components/protocols/PhotoFullscreenDialog.tsx`
+Aktywnie występujące błędy SQL:
+- `column offer_text_blocks.instance_id does not exist`
+- `column offer_options.instance_id does not exist`  
+- `column offer_option_items.instance_id does not exist`
+- `column offer_history.instance_id does not exist`
 
-```tsx
-// PRZED (linia 28):
-className="... h-14 w-14 ..."
-<X className="h-8 w-8" />
+**Przyczyna**: RLS policies próbują filtrować po `instance_id`, ale te tabele nie mają tej kolumny (używają relacji przez `offer_id`).
 
-// PO - mniejszy, ale widoczny:
-className="absolute top-4 right-4 z-[100] bg-white text-black hover:bg-gray-100 h-10 w-10 rounded-full shadow-lg border border-gray-200"
-<X className="h-6 w-6" />
+**Wpływ**: Każde zapytanie do tych tabel generuje błąd SQL, co spowalnia aplikację.
+
+**Naprawa**: 
+Modyfikacja RLS policies aby używały JOINa przez `offer_id`:
+```sql
+-- Zamiast:
+instance_id = get_user_instance_id()
+
+-- Powinno być:
+offer_id IN (SELECT id FROM offers WHERE instance_id = get_user_instance_id())
 ```
 
-Zmiany:
-- `h-14 w-14` → `h-10 w-10` (40px - maksymalnie, mieści się w "max 30px")
-- `h-8 w-8` → `h-6 w-6` (24px ikona)
-- Dodane `border border-gray-200` dla lepszej widoczności na jasnym tle zdjęcia
+---
+
+## 2. Zduplikowane zapytania o services w fetchReservations (WYSOKIE)
+
+**Lokalizacja**: `AdminDashboard.tsx` linie 592-618
+
+**Problem**: Każde wywołanie `fetchReservations()` pobiera pełną listę `unified_services` od nowa, mimo że hook `useUnifiedServices` jest już dostępny i cachowany.
+
+**Aktualny kod**:
+```typescript
+const fetchReservations = async () => {
+  // PROBLEM: To pobiera services za każdym razem!
+  const { data: servicesData } = await supabase
+    .from('unified_services')
+    .select('id, name, short_name, ...')
+    .eq('instance_id', instanceId);
+  // ...
+}
+```
+
+**Rozwiązanie**: Użyć danych z hooka `useUnifiedServices`:
+```typescript
+// Hook już jest na górze:
+const { data: cachedServices = [] } = useUnifiedServices(instanceId);
+
+// W fetchReservations - tylko użyć cache:
+const servicesMap = new Map(
+  cachedServices.map(s => [s.id, { id: s.id, name: s.name, ... }])
+);
+servicesMapRef.current = servicesMap;
+```
 
 ---
 
-## 2. Eliminacja spamu requestów (30-40 GETs)
+## 3. HallView - brak cachowania (WYSOKIE)
 
-**Przyczyna**: Hooki `useStations`, `useBreaks`, `useClosedDays`, `useUnifiedServices`, `useWorkingHours` zostały utworzone, ale **NIE zostały użyte** w `AdminDashboard.tsx`. Stare funkcje `fetchStations()`, `fetchWorkingHours()` etc. nadal bezpośrednio wywołują Supabase.
+**Lokalizacja**: `HallView.tsx` linie 420-528
 
-**Rozwiązanie**: Refaktoryzacja AdminDashboard.tsx aby używał nowych hooków z cache.
+**Problem**: HallView nie używa żadnych hooków cachujących. Każde wejście do widoku hali pobiera:
+- stations (już zcachowane w AdminDashboard, ale nie dzielone)
+- working_hours
+- unified_services
+- reservations
+- breaks
+- yard_vehicles
 
-### 2a. Użycie hooków w AdminDashboard.tsx
-
+**Rozwiązanie**: Użyć istniejących hooków:
 ```typescript
-// DODAĆ importy (na górze pliku):
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
-import { useClosedDays } from '@/hooks/useClosedDays';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
-import { useQueryClient } from '@tanstack/react-query';
 
-// ZAMIENIĆ stany i fetche na hooki:
-// PRZED:
-const [stations, setStations] = useState<Station[]>([]);
-const fetchStations = async () => { ... };
-
-// PO:
+// Zamiast manualnych fetchów:
 const { data: stations = [] } = useStations(instanceId);
-
-// PRZED:
-const [breaks, setBreaks] = useState<Break[]>([]);
-const fetchBreaks = async () => { ... };
-
-// PO:
 const { data: breaks = [] } = useBreaks(instanceId);
-
-// etc. dla closedDays, workingHours
-```
-
-### 2b. Usunięcie redundantnego fetchServices z fetchReservations
-
-**Problem** (linia 637-661 w AdminDashboard.tsx):
-```typescript
-// Wewnątrz fetchReservations() - to jest główny problem!
-const { data: servicesData } = await supabase
-  .from('unified_services')
-  .select(...)
-  .eq('instance_id', instanceId);
-```
-
-Za każdym razem gdy fetchReservations() jest wywoływane, pobiera serwisy od nowa.
-
-**Rozwiązanie**: Użyć danych z hooka `useUnifiedServices` zamiast pobierać w każdym fetch:
-
-```typescript
-// Hook na górze komponentu:
-const { data: servicesFromHook = [] } = useUnifiedServices(instanceId);
-
-// W fetchReservations - użyć cache:
-const fetchReservations = async () => {
-  // NIE POBIERAĆ services tutaj!
-  // Użyć servicesFromHook z hooka (już zcachowane)
-  const servicesMap = new Map(
-    servicesFromHook.map(s => [s.id, { 
-      id: s.id, 
-      name: s.name, 
-      shortcut: s.short_name,
-      // ...
-    }])
-  );
-  servicesMapRef.current = servicesMap;
-  
-  // Reszta fetcha rezerwacji...
-};
-```
-
-### 2c. Usunięcie zbędnych wywołań w useEffect (linia 543-550)
-
-```typescript
-// PRZED:
-useEffect(() => {
-  if (currentView === 'calendar') {
-    fetchStations();      // ❌ Niepotrzebne z hookami
-    fetchReservations();  // ✅ To zostaje
-    fetchBreaks();        // ❌ Niepotrzebne z hookami  
-    fetchClosedDays();    // ❌ Niepotrzebne z hookami
-  }
-}, [currentView]);
-
-// PO:
-useEffect(() => {
-  if (currentView === 'calendar') {
-    fetchReservations();  // Tylko to - hooki automatycznie cache'ują resztę
-  }
-}, [currentView, instanceId]);
+const { data: workingHours } = useWorkingHours(instanceId);
+const { data: services = [] } = useUnifiedServices(instanceId);
 ```
 
 ---
 
-## 3. Nowe hooki do cachowania
+## 4. Duplikowane zapytanie o user_roles (ŚREDNIE)
 
-### 3a. useInstancePlan z React Query (zastąpienie useState)
+**Lokalizacja**: 
+- `AdminDashboard.tsx` linie 316-363
+- `HallView.tsx` linie 288-334
 
-**Plik**: `src/hooks/useInstancePlan.ts` - REFAKTORYZACJA
+**Problem**: Oba komponenty pobierają `user_roles` w useEffect, ale `useAuth` już to robi przy logowaniu.
 
+**Rozwiązanie**: Użyć danych z kontekstu auth:
 ```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-// Interfejsy bez zmian...
-
-export const useInstancePlan = (instanceId: string | null) => {
-  const query = useQuery({
-    queryKey: ['instance_plan', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return null;
-      
-      const { data, error } = await supabase
-        .from('instance_subscriptions')
-        .select(`*, subscription_plans (*)`)
-        .eq('instance_id', instanceId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    },
-    enabled: !!instanceId,
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
-    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
-  });
-
-  // Mapowanie danych jak wcześniej...
-  const plan = query.data?.subscription_plans || null;
-  // ...
-
-  return {
-    plan,
-    subscription,
-    // ...pozostałe pola
-    loading: query.isLoading,
-    refetch: query.refetch,
-  };
-};
-```
-
-### 3b. useInstanceFeatures z React Query
-
-**Plik**: `src/hooks/useInstanceFeatures.ts` - REFAKTORYZACJA
-
-```typescript
-import { useQuery } from '@tanstack/react-query';
-
-export const useInstanceFeatures = (instanceId: string | null) => {
-  const query = useQuery({
-    queryKey: ['instance_features', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data, error } = await supabase
-        .from('instance_features')
-        .select('feature_key, enabled, parameters')
-        .eq('instance_id', instanceId);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
-    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
-  });
-
-  // Mapowanie na features object...
-  
-  return {
-    features,
-    loading: query.isLoading,
-    hasFeature,
-    getFeatureParams,
-    refetch: query.refetch,
-  };
-};
-```
-
-### 3c. useInstanceData - NOWY hook dla danych instancji
-
-**Plik**: `src/hooks/useInstanceData.ts` - NOWY
-
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useInstanceData = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['instance_data', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return null;
-      const { data, error } = await supabase
-        .from('instances')
-        .select('*')
-        .eq('id', instanceId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!instanceId,
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
-    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
-  });
-};
-```
-
-### 3d. useOfferScopes - NOWY hook dla scope'ów ofert
-
-**Plik**: `src/hooks/useOfferScopes.ts` - NOWY
-
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useOfferScopes = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['offer_scopes', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data, error } = await supabase
-        .from('offer_scopes')
-        .select('id, name, short_name, is_extras_scope')
-        .eq('instance_id', instanceId)
-        .eq('active', true);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
-    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
-  });
-};
+const { roles } = useAuth();
+const adminRole = roles.find(r => r.role === 'admin' && r.instance_id);
+const instanceId = adminRole?.instance_id;
 ```
 
 ---
 
-## 4. Optymalizacja useAuth - user_roles + profiles w jednym
+## 5. OffersView - brakujący cache dla offer_scopes (ŚREDNIE)
 
-**Problem**: Dwa oddzielne requesty:
-1. `user_roles` - role użytkownika
-2. `profiles` - username
+**Lokalizacja**: `OffersView.tsx` linie 231-243
 
-**Plik**: `src/hooks/useAuth.tsx`
-
-**Rozwiązanie**: Połączyć w jeden request używając join:
-
+**Problem**: Przy każdym fetchOffers pobierane są scope_names osobno:
 ```typescript
-// PRZED (linia 99-127):
-const fetchUserRoles = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role, instance_id, hall_id')
-    .eq('user_id', userId);
-  // ...
-};
-
-// I osobno w AdminDashboard (linia 363-376):
-const { data } = await supabase
-  .from('profiles')
-  .select('username')
-  .eq('id', user.id);
-
-// PO - połączone w useAuth:
-const fetchUserRoles = async (userId: string) => {
-  // Fetch roles and profile username in one call
-  const [rolesResult, profileResult] = await Promise.all([
-    supabase.from('user_roles').select('role, instance_id, hall_id').eq('user_id', userId),
-    supabase.from('profiles').select('username').eq('id', userId).maybeSingle()
-  ]);
-  
-  // ...mapowanie ról
-  setRoles(userRoles);
-  
-  // Cache username w kontekście
-  if (profileResult.data?.username) {
-    setUsername(profileResult.data.username);
-  }
-};
-
-// Dodać username do AuthContextType i zwracanych wartości
+const { data: scopesData } = await supabase
+  .from('offer_scopes')
+  .select('id, name')
+  .in('id', scopeIds);
 ```
 
-Następnie usunąć osobny fetch w AdminDashboard i użyć `username` z useAuth.
+**Rozwiązanie**: Hook `useOfferScopes` został utworzony ale nie jest używany w OffersView.
 
 ---
 
-## 5. Lazy-loading yard_vehicles
+## 6. Brak indeksów dla częstych zapytań (ŚREDNIE)
 
-**Problem**: `fetchYardVehicleCount()` jest wywoływane przy każdym renderze AdminDashboard, nawet gdy użytkownik nie używa placu.
+Na podstawie analizy zapytań, brakujące indeksy:
 
-**Rozwiązanie**: Przenieść fetch do komponentu który go potrzebuje (YardVehiclesList) lub do hooka wywoływanego tylko przy otwarciu dialogu.
+| Tabela | Kolumny | Używane w |
+|--------|---------|-----------|
+| reservations | (instance_id, reservation_date) | Calendar fetch |
+| reservations | (instance_id, status) | Filtrowanie |
+| offers | (instance_id, status) | Lista ofert |
+| customer_vehicles | (instance_id, phone) | Autocomplete |
+| notifications | (instance_id, read) | Badge count |
 
-**Plik**: `src/pages/AdminDashboard.tsx`
+**SQL do dodania**:
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reservations_instance_date 
+  ON reservations(instance_id, reservation_date);
 
-```typescript
-// USUNĄĆ z początkowego fetcha (linia 445):
-// fetchYardVehicleCount();  ❌
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_reservations_instance_status 
+  ON reservations(instance_id, status);
 
-// USUNĄĆ realtime subscription na yard_vehicles (linie 488-510)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_offers_instance_status 
+  ON offers(instance_id, status);
 
-// Badge count pobierać lazy - tylko gdy otwieramy dialog placu
-// lub w osobnym lekkim komponencie który renderuje się tylko
-// gdy feature hall_view jest włączona
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_customer_vehicles_phone 
+  ON customer_vehicles(instance_id, phone);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_unread 
+  ON notifications(instance_id, read) WHERE read = false;
 ```
 
 ---
 
-## 6. Invalidacja cache przy insert/update/delete
+## 7. Realtime fetch przy każdym UPDATE (NISKIE)
 
-Każdy hook powinien być invalidowany gdy użytkownik zapisuje dane. Przykłady:
+**Lokalizacja**: `AdminDashboard.tsx` linie 1002-1050, `HallView.tsx` linie 658-705
 
-**W StationsSettings.tsx** (po dodaniu/edycji stanowiska):
+**Problem**: Przy każdym UPDATE z realtime, wykonywany jest pełny SELECT na rezerwacji:
 ```typescript
-import { useQueryClient } from '@tanstack/react-query';
-
-const queryClient = useQueryClient();
-
-const handleSave = async () => {
-  await supabase.from('stations').upsert(...);
-  queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
-};
+supabase.from('reservations')
+  .select(`id, instance_id, customer_name, ...`)
+  .eq('id', payload.new.id)
+  .single()
 ```
 
-**W InstanceFeaturesSettings.tsx** (po toggle feature):
+**Optymalizacja**: Użyć `payload.new` bezpośrednio gdy to możliwe (dla prostych pól), a fetch tylko dla relacji:
 ```typescript
-queryClient.invalidateQueries({ queryKey: ['instance_features', instanceId] });
-```
-
-**W OffersView.tsx** (po dodaniu/edycji scope):
-```typescript
-queryClient.invalidateQueries({ queryKey: ['offer_scopes', instanceId] });
+// Dane z payload.new są kompletne dla prostych kolumn
+// Fetch tylko gdy potrzebujemy relacji (stations)
+if (needsStationInfo && !payload.new.stations) {
+  // fetch tylko stations
+}
 ```
 
 ---
 
-## 7. Tabela cache - podsumowanie staleTime
+## 8. Operacje które mogą być asynchroniczne
 
-| Dane | staleTime | Invalidacja przy |
-|------|-----------|------------------|
-| stations | 24h | insert/update/delete stanowiska |
-| breaks | 24h | insert/update/delete przerwy |
-| closed_days | 24h | insert/update/delete |
-| unified_services | 1h | insert/update/delete usługi |
-| working_hours (instances) | 7 dni | update instancji |
-| instance_subscriptions | 7 dni | zmiana planu (super admin) |
-| instance_features | 7 dni | toggle feature |
-| offer_scopes | 7 dni | insert/update/delete scope |
-| user_roles | sesja | zmiana roli (super admin) |
+### 8a. findCustomerEmail w ReservationDetailsDrawer
 
----
+**Lokalizacja**: `ReservationDetailsDrawer.tsx` linie 259-287
 
-## Kolejność implementacji
+**Problem**: Przy każdym otwarciu drawera wykonywane są 2 zapytania do znalezienia emaila:
+```typescript
+// Query 1: customers table
+const { data: customer } = await supabase.from('customers')...
 
-1. **PhotoFullscreenDialog** - zmniejszenie X do 40px (szybka zmiana)
-2. **Refaktoryzacja useInstancePlan** - React Query
-3. **Refaktoryzacja useInstanceFeatures** - React Query
-4. **Nowy hook useInstanceData** - cache danych instancji
-5. **Nowy hook useOfferScopes** - cache scope'ów
-6. **Refaktoryzacja useAuth** - łączenie user_roles + profiles
-7. **Refaktoryzacja AdminDashboard** - użycie hooków zamiast manualnych fetchów
-8. **Usunięcie fetchServices z fetchReservations** - użycie cache
-9. **Lazy-loading yard_vehicles** - usunięcie eager fetch
-10. **Dodanie invalidateQueries** - we wszystkich miejscach zapisu
+// Query 2: offers table (jeśli nie znaleziono)
+const { data: offers } = await supabase.from('offers')...
+```
+
+**Optymalizacja**: 
+1. Cache wyników (email rzadko się zmienia)
+2. Wykonać tylko gdy user kliknie "Dodaj protokół"
+3. Stworzyć funkcję DB do jednego zapytania
+
+### 8b. fetchYardVehicleCount
+
+**Lokalizacja**: `AdminDashboard.tsx` linie 377-387
+
+Już zoptymalizowane - lazy loading przy otwarciu dialogu.
 
 ---
 
-## Pliki do modyfikacji
+## 9. RLS Policy Performance (ŚREDNIE)
 
-- `src/components/protocols/PhotoFullscreenDialog.tsx`
-- `src/hooks/useInstancePlan.ts`
-- `src/hooks/useInstanceFeatures.ts`
-- `src/hooks/useAuth.tsx`
-- `src/pages/AdminDashboard.tsx`
-- `src/pages/HallView.tsx`
-- `src/components/admin/OffersView.tsx`
-- `src/components/admin/StationsSettings.tsx`
-- `src/components/admin/InstanceFeaturesSettings.tsx`
+**Linter WARN**: "RLS Policy Always True"
 
-## Pliki do utworzenia
+Sprawdzić które policies używają `USING (true)` i czy są prawidłowe:
+- Publiczne tabele: OK
+- Prywatne tabele: wymaga naprawy
 
-- `src/hooks/useInstanceData.ts`
-- `src/hooks/useOfferScopes.ts`
+**Sprawdzenie**:
+```sql
+SELECT tablename, policyname, cmd, qual 
+FROM pg_policies 
+WHERE qual LIKE '%true%';
+```
+
+---
+
+## 10. Promise.all - dobra praktyka, już używana ✅
+
+Znaleziono 9 miejsc z `Promise.all`:
+- `useAuth.tsx` - roles + profile
+- `CustomersView.tsx` - customers + vehicles  
+- `ReservationHistoryDrawer.tsx` - history + services + stations
+- `ServiceSelectionDrawer.tsx` - services + categories
+- `ProductsView.tsx` - priceLists + products + categoryOrder
+
+**Status**: OK, to jest poprawne podejście.
+
+---
+
+## 11. SELECT * vs SELECT columns (NISKIE)
+
+**Lokalizacja**: `useInstanceData.ts` linia 9
+
+```typescript
+.select('*')  // ❌ Pobiera wszystkie kolumny
+```
+
+Dla tabeli `instances` to ~30 kolumn, ale używamy tylko kilka.
+
+**Optymalizacja**: Wybrać tylko potrzebne kolumny:
+```typescript
+.select('id, name, short_name, working_hours, slug, reservation_phone, timezone, logo_url')
+```
+
+---
+
+## 12. Memory leaks - event listeners (NISKIE)
+
+**Sprawdzenie**: Wszystkie realtime subscriptions mają cleanup w `return () => {...}` ✅
+
+Brak wykrytych memory leaków z event listenerów.
+
+---
+
+## Priorytetowa lista napraw
+
+### KRYTYCZNE (zrobić natychmiast):
+1. **Naprawić RLS policies** dla offer_text_blocks, offer_options, offer_option_items, offer_history
+2. **Usunąć duplicate services fetch** z fetchReservations w AdminDashboard
+
+### WYSOKIE (ten sprint):
+3. **Użyć hooków cachujących w HallView** (useStations, useBreaks, etc.)
+4. **Dodać brakujące indeksy** na reservations, offers, customer_vehicles
+
+### ŚREDNIE (następny sprint):
+5. Użyć roles z useAuth zamiast duplicate fetch w AdminDashboard/HallView
+6. Użyć useOfferScopes w OffersView
+7. Sprawdzić i naprawić permissive RLS policies
+
+### NISKIE (backlog):
+8. Zoptymalizować realtime UPDATE handler
+9. Cache dla findCustomerEmail
+10. SELECT tylko potrzebnych kolumn w useInstanceData
+
+---
+
+## Metryki do monitorowania
+
+Po wdrożeniu zmian monitorować:
+- Liczba zapytań SQL na load kalendarza (cel: <10)
+- Czas odpowiedzi API (cel: <200ms p95)
+- Błędy w Postgres logs (cel: 0 dla RLS)
+- Realtime reconnection rate
+
