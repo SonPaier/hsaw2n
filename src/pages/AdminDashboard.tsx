@@ -94,6 +94,7 @@ interface Reservation {
   service_items?: ServiceItem[] | null;
   service_ids?: string[];
   has_unified_services?: boolean | null;
+  photo_urls?: string[] | null;
 }
 interface Break {
   id: string;
@@ -683,6 +684,7 @@ const AdminDashboard = () => {
         confirmation_sms_sent_at,
         pickup_sms_sent_at,
         has_unified_services,
+        photo_urls,
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
@@ -757,6 +759,7 @@ const AdminDashboard = () => {
           confirmation_sms_sent_at,
           pickup_sms_sent_at,
           has_unified_services,
+          photo_urls,
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
         .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
@@ -881,6 +884,7 @@ const AdminDashboard = () => {
             offer_number,
             confirmation_sms_sent_at,
             pickup_sms_sent_at,
+            photo_urls,
             stations:station_id (name, type)
           `)
           .eq('instance_id', instanceId)
@@ -1000,6 +1004,7 @@ const AdminDashboard = () => {
               service_items,
               created_by_username,
               offer_number,
+              photo_urls,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -1070,6 +1075,7 @@ const AdminDashboard = () => {
               customer_notes,
               car_size,
               offer_number,
+              photo_urls,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {

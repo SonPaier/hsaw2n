@@ -2,6 +2,8 @@
 
 Wszystkie 11 zadań zostało zaimplementowanych.
 
+## Ostatnia aktualizacja: 2026-01-31 (poprawki photo_urls)
+
 ## Zaimplementowane zmiany:
 
 ### 1. ✅ Usunięcie statusu "released" z flow rezerwacji
@@ -13,13 +15,17 @@ Wszystkie 11 zadań zostało zaimplementowanych.
 - Usunięto sekcję "Released" z ReservationDetailsDrawer.tsx
 
 ### 2. ✅ Bezpośrednie otwarcie aparatu/galerii
-- Dialog zdjęć używa `<input capture="environment">` do triggerowania aparatu
+- **POPRAWKA**: Usunięto ReservationPhotosDialog z HallView.tsx
+- Dodano bezpośredni upload przez hidden `<input type="file" capture="environment">`
+- `handleAddPhotos` triggeruje input zamiast otwierania dialogu
 
 ### 3. ✅ Zdjęcia widoczne + kafelki w HallReservationCard
 - Dodano `photo_urls` do interfejsu Reservation w HallView.tsx
 - Dodano `photo_urls` do selecta przy fetchu rezerwacji
 - Realtime UPDATE fetchuje pełne dane z serwera
 - Dodano kafelki zdjęć do HallReservationCard z fullscreen preview
+- **POPRAWKA**: Dodano `photo_urls` do wszystkich query w AdminDashboard.tsx
+- **POPRAWKA**: Dodano `photo_urls` do interface Reservation w AdminDashboard.tsx i ReservationsView.tsx
 
 ### 4. ✅ Powiększenie fontów na tablecie (widok hall)
 - Czas: `text-[12px] md:text-[15px]` → `text-[13px] md:text-[16px]`
@@ -62,6 +68,8 @@ Wszystkie 11 zadań zostało zaimplementowanych.
 - src/components/admin/AdminCalendar.tsx
 - src/components/admin/halls/HallReservationCard.tsx
 - src/pages/HallView.tsx
+- src/pages/AdminDashboard.tsx
+- src/components/admin/ReservationsView.tsx
 - src/components/admin/ReservationDetailsDrawer.tsx
 - src/pages/EmbedLeadForm.tsx
 - src/components/admin/ReservationPhotosDialog.tsx
