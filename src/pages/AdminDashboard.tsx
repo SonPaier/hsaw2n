@@ -502,13 +502,7 @@ const AdminDashboard = () => {
     localStorage.setItem('admin-sidebar-collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // Calendar view now uses cached hooks - just fetch reservations
-  // Wait for cachedServices to be loaded before fetching reservations to prevent "usługa usunięta"
-  useEffect(() => {
-    if (currentView === 'calendar' && cachedServices.length > 0) {
-      fetchReservations();
-    }
-  }, [currentView, cachedServices.length]);
+  // Calendar view now uses cached hooks - reservations are fetched via the main useEffect below
 
   // Fetch all services for multi-service mapping
   const fetchAllServices = async () => {
@@ -779,9 +773,12 @@ const AdminDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ['closed_days', instanceId] });
   };
   
+  // Initial fetch - wait for cached services to be loaded first
   useEffect(() => {
-    fetchReservations();
-  }, [instanceId]);
+    if (instanceId && cachedServices.length > 0) {
+      fetchReservations();
+    }
+  }, [instanceId, cachedServices.length]);
 
   // Deep linking: auto-open reservation from URL param
   // If reservation is not in loaded range, fetch it directly
