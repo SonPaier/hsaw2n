@@ -846,14 +846,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               </DropdownMenuItem>
                             </>
                           )}
-                          {(offer.status === 'accepted' || offer.status === 'completed') && offer.selected_state && (
+                          {/* "Zobacz wybór" - temporarily hidden for readonly mode */}
+                          {/* {(offer.status === 'accepted' || offer.status === 'completed') && offer.selected_state && (
                             <DropdownMenuItem 
                               onClick={(e) => { e.stopPropagation(); setSelectionDialog({ open: true, offer }); }}
                             >
                               <Receipt className="w-4 h-4 mr-2" />
                               {t('offers.viewSelection', 'Zobacz wybór')}
                             </DropdownMenuItem>
-                          )}
+                          )} */}
                           {/* Change amount option for accepted/completed offers */}
                           {(offer.status === 'accepted' || offer.status === 'completed') && (
                             <DropdownMenuItem 
