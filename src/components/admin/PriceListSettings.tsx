@@ -615,7 +615,7 @@ const PriceListSettings = ({ instanceId }: PriceListSettingsProps) => {
       {/* Header with buttons inline on desktop */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Cennik usług</h2>
+          <h2 className="text-2xl font-bold">Usługi</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Usługi będą widoczne do wyboru w rezerwacjach i przy tworzeniu szablonów ofert. Kategorie są opcjonalne.
           </p>
