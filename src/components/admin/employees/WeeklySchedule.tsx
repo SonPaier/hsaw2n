@@ -128,7 +128,9 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const formatMinutes = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return `${h}:${m.toString().padStart(2, '0')}`;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} h`;
+    return `${h} h ${m} min`;
   };
 
   // Find which day is being edited to show its label in the editor panel
