@@ -11,6 +11,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
 import { cn } from '@/lib/utils';
 
 interface ReservationPhotosDialogProps {
@@ -32,6 +43,8 @@ const ReservationPhotosDialog = ({
 }: ReservationPhotosDialogProps) => {
   const [photos, setPhotos] = useState<string[]>(currentPhotos);
   const [uploading, setUploading] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,7 +86,6 @@ const ReservationPhotosDialog = ({
       const newPhotos = [...photos, ...uploadedUrls];
       setPhotos(newPhotos);
 
-      // Update reservation in database
       const { error: updateError } = await supabase
         .from('reservations')
         .update({ photo_urls: newPhotos })
@@ -99,7 +111,6 @@ const ReservationPhotosDialog = ({
     const newPhotos = photos.filter((_, i) => i !== index);
 
     try {
-      // Update database first
       const { error: updateError } = await supabase
         .from('reservations')
         .update({ photo_urls: newPhotos.length > 0 ? newPhotos : null })
@@ -110,7 +121,6 @@ const ReservationPhotosDialog = ({
       setPhotos(newPhotos);
       onPhotosUpdated(newPhotos);
 
-      // Try to delete from storage
       const urlParts = photoUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
       if (fileName) {
@@ -121,75 +131,106 @@ const ReservationPhotosDialog = ({
     } catch (error) {
       console.error('Error removing photo:', error);
       toast.error('Błąd podczas usuwania zdjęcia');
+    } finally {
+      setDeleteConfirmIndex(null);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Zdjęcia rezerwacji</DialogTitle>
-          <DialogDescription>
-            Możesz dodać maksymalnie {maxPhotos} zdjęć do tej rezerwacji ({photos.length}/{maxPhotos})
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Zdjęcia rezerwacji</DialogTitle>
+            <DialogDescription>
+              Możesz dodać maksymalnie {maxPhotos} zdjęć do tej rezerwacji ({photos.length}/{maxPhotos})
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Photo grid */}
-          {photos.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {photos.map((url, index) => (
-                <div key={index} className="relative aspect-square group">
-                  <img
-                    src={url}
-                    alt={`Zdjęcie ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(index)}
-                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="space-y-4">
+            {photos.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {photos.map((url, index) => (
+                  <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(url)}>
+                    <img
+                      src={url}
+                      alt={`Zdjęcie ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmIndex(index);
+                      }}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          {/* Upload button */}
-          {photos.length < maxPhotos && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                capture="environment"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className={cn('w-full border-dashed', uploading && 'opacity-50')}
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : photos.length > 0 ? (
-                  <ImagePlus className="h-4 w-4 mr-2" />
-                ) : (
-                  <Camera className="h-4 w-4 mr-2" />
-                )}
-                {uploading ? 'Przesyłanie...' : 'Zrób zdjęcie lub wybierz z galerii'}
-              </Button>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            {photos.length < maxPhotos && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn('w-full border-dashed', uploading && 'opacity-50')}
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : photos.length > 0 ? (
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Camera className="h-4 w-4 mr-2" />
+                  )}
+                  {uploading ? 'Przesyłanie...' : 'Zrób zdjęcie lub wybierz z galerii'}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => !open && setFullscreenPhoto(null)}
+        photoUrl={fullscreenPhoto}
+      />
+
+      <AlertDialog open={deleteConfirmIndex !== null} onOpenChange={(open) => !open && setDeleteConfirmIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń zdjęcie</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć to zdjęcie? Tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirmIndex !== null && handleRemovePhoto(deleteConfirmIndex)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

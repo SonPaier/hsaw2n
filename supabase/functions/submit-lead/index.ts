@@ -28,7 +28,7 @@ interface OfferDetails {
   extra_service_ids?: string[];
   budget_suggestion?: number | null;
   additional_notes?: string;
-  planned_date?: string | null;
+  planned_timeframe?: string | null;
   duration_selections?: Record<string, number | null>;
 }
 
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         inquiry_notes: inquiryNotes || null,
         paint_color: vehicle_data?.paint_color || null,
         paint_finish: vehicle_data?.paint_finish || null,
-        planned_date: offer_details.planned_date || null,
+        planned_timeframe: offer_details.planned_timeframe || null,
         total_net: 0,
         total_gross: 0,
         has_unified_services: true,

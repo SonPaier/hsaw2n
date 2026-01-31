@@ -146,8 +146,6 @@ const getStatusColor = (status: string, stationType?: string) => {
         // Pomarańczowy - w trakcie realizacji
         return 'bg-orange-200 border-orange-400 text-orange-900';
       case 'completed':
-        return 'bg-sky-200 border-sky-400 text-sky-900';
-      case 'released':
         return 'bg-slate-200 border-slate-400 text-slate-700';
       case 'cancelled':
         return 'bg-slate-100/40 border-slate-200 text-slate-500 line-through opacity-60';
@@ -171,10 +169,7 @@ const getStatusColor = (status: string, stationType?: string) => {
       // Pomarańczowy - w trakcie realizacji
       return 'bg-orange-200 border-orange-400 text-orange-900';
     case 'completed':
-      // Niebieski pastelowy - gotowy do wydania
-      return 'bg-sky-200 border-sky-400 text-sky-900';
-    case 'released':
-      // Szary - wydane
+      // Szary - zakończony
       return 'bg-slate-200 border-slate-400 text-slate-700';
     case 'cancelled':
       // Czerwony - anulowana
@@ -2295,12 +2290,8 @@ const AdminCalendar = ({
           <span className="text-xs text-muted-foreground">Potwierdzony</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-sky-300/80 border border-sky-400/70" />
-          <span className="text-xs text-muted-foreground">Gotowy do wydania</span>
-        </div>
-        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-slate-400/80 border border-slate-500/70" />
-          <span className="text-xs text-muted-foreground">Wydany</span>
+          <span className="text-xs text-muted-foreground">Zakończony</span>
         </div>
       </div>
 

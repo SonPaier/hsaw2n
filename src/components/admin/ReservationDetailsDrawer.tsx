@@ -810,8 +810,8 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
             
-            {/* Link: Wyślij SMS o odbiorze - nad Edit dla in_progress, completed, released */}
-            {['in_progress', 'completed', 'released'].includes(reservation.status) && onSendPickupSms && (
+            {/* Link: Wyślij SMS o odbiorze - nad Edit dla in_progress, completed */}
+            {['in_progress', 'completed'].includes(reservation.status) && onSendPickupSms && (
               <div className="mb-2">
                 {reservation.pickup_sms_sent_at && (
                   <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -852,8 +852,8 @@ const ReservationDetailsDrawer = ({
               />
             )}
 
-            {/* Row 1: Edit and Actions Menu for confirmed, in_progress, completed, released */}
-            {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed' || reservation.status === 'released') && (showEdit || showDelete) && (
+            {/* Row 1: Edit and Actions Menu for confirmed, in_progress, completed */}
+            {(reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed') && (showEdit || showDelete) && (
               <div className="flex gap-2">
                 {showEdit && onEdit && (
                   <Button 
@@ -874,7 +874,7 @@ const ReservationDetailsDrawer = ({
                         <MoreVertical className="w-5 h-5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-48" sideOffset={5} collisionPadding={16} avoidCollisions>
                       <DropdownMenuItem onClick={() => {
                         setActionsMenuOpen(false);
                         setPhotosDialogOpen(true);
@@ -982,7 +982,7 @@ const ReservationDetailsDrawer = ({
                         <MoreVertical className="w-5 h-5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-48" sideOffset={5} collisionPadding={16} avoidCollisions>
                       <DropdownMenuItem onClick={() => setPhotosDialogOpen(true)}>
                         <Camera className="w-4 h-4 mr-2" />
                         Dodaj zdjęcia
@@ -1095,7 +1095,7 @@ const ReservationDetailsDrawer = ({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                      {['in_progress', 'completed', 'released'].map((status) => (
+                      {['in_progress', 'completed'].map((status) => (
                         <Button
                           key={status}
                           variant="ghost"
@@ -1160,7 +1160,7 @@ const ReservationDetailsDrawer = ({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                      {['confirmed', 'completed', 'released'].map((status) => (
+                      {['confirmed', 'completed'].map((status) => (
                         <Button
                           key={status}
                           variant="ghost"
@@ -1190,74 +1190,8 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Completed: Release Vehicle with dropdown for all statuses */}
-            {reservation.status === 'completed' && onRelease && (
-              <div className="flex gap-0">
-                <Button 
-                  className="flex-1 gap-2 rounded-r-none"
-                  variant="outline"
-                  onClick={async () => {
-                    setReleasing(true);
-                    try {
-                      await onRelease(reservation.id);
-                    } finally {
-                      setReleasing(false);
-                    }
-                  }}
-                  disabled={releasing || changingStatus}
-                >
-                  {releasing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Car className="w-4 h-4" />
-                  )}
-                  {t('reservations.releaseVehicle')}
-                </Button>
-                
-                {onStatusChange && (
-                  <Popover open={completedDropdownOpen} onOpenChange={setCompletedDropdownOpen}>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline"
-                        className="px-2 rounded-l-none border-l-0"
-                        disabled={releasing || changingStatus}
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                      {['confirmed', 'in_progress', 'released'].map((status) => (
-                        <Button
-                          key={status}
-                          variant="ghost"
-                          className="w-full justify-start gap-2 text-sm"
-                          onClick={async () => {
-                            setCompletedDropdownOpen(false);
-                            setChangingStatus(true);
-                            try {
-                              await onStatusChange(reservation.id, status);
-                            } finally {
-                              setChangingStatus(false);
-                            }
-                          }}
-                          disabled={changingStatus}
-                        >
-                          {changingStatus ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-4 h-4" />
-                          )}
-                          {t(`reservations.statuses.${status === 'in_progress' ? 'inProgress' : status}`)}
-                        </Button>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-            )}
-
-            {/* Released: Status change dropdown only */}
-            {reservation.status === 'released' && onStatusChange && (
+            {/* Completed: Status change dropdown only (completed is now final status) */}
+            {reservation.status === 'completed' && onStatusChange && (
               <div className="flex gap-0">
                 <Button 
                   variant="outline"
@@ -1265,10 +1199,10 @@ const ReservationDetailsDrawer = ({
                   disabled
                 >
                   <Check className="w-4 h-4" />
-                  {t('reservations.statuses.released')}
+                  {t('reservations.statuses.completed')}
                 </Button>
                 
-                <Popover open={releasedDropdownOpen} onOpenChange={setReleasedDropdownOpen}>
+                <Popover open={completedDropdownOpen} onOpenChange={setCompletedDropdownOpen}>
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline"
@@ -1279,13 +1213,13 @@ const ReservationDetailsDrawer = ({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-1 bg-background border shadow-lg z-50" align="end">
-                    {['confirmed', 'in_progress', 'completed'].map((status) => (
+                    {['confirmed', 'in_progress'].map((status) => (
                       <Button
                         key={status}
                         variant="ghost"
                         className="w-full justify-start gap-2 text-sm"
                         onClick={async () => {
-                          setReleasedDropdownOpen(false);
+                          setCompletedDropdownOpen(false);
                           setChangingStatus(true);
                           try {
                             await onStatusChange(reservation.id, status);
@@ -1307,6 +1241,7 @@ const ReservationDetailsDrawer = ({
                 </Popover>
               </div>
             )}
+
           </div>
         </SheetContent>
       </Sheet>

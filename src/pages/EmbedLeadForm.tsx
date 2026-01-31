@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Loader2, CheckCircle2, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { Check, Loader2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CarSearchAutocomplete, CarSearchValue } from '@/components/ui/car-search-autocomplete';
 import { CarModelsProvider } from '@/contexts/CarModelsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
 
 interface EmbedConfig {
   branding: {
@@ -53,7 +50,7 @@ interface FormData {
   mileage: string;
   paintColor: string;
   paintFinish: 'gloss' | 'matte' | null;
-  plannedDate: Date | null;
+  plannedTimeframe: string;
   selectedTemplates: string[];
   selectedExtras: string[];
   durationSelections: Record<string, number | null>;
@@ -79,7 +76,6 @@ function EmbedLeadFormContent() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -91,7 +87,7 @@ function EmbedLeadFormContent() {
     mileage: '',
     paintColor: '',
     paintFinish: null,
-    plannedDate: null,
+    plannedTimeframe: '',
     selectedTemplates: [],
     selectedExtras: [],
     durationSelections: {},
@@ -217,7 +213,7 @@ function EmbedLeadFormContent() {
             duration_selections: formData.durationSelections,
             budget_suggestion: formData.budget ? parseFloat(formData.budget) : null,
             additional_notes: formData.notes,
-            planned_date: formData.plannedDate ? format(formData.plannedDate, 'yyyy-MM-dd') : null,
+            planned_timeframe: formData.plannedTimeframe || null,
           },
         },
       });
@@ -726,45 +722,27 @@ function EmbedLeadFormContent() {
             </div>
           )}
 
-          {/* Planned Date Section */}
+          {/* Planned Timeframe Section */}
           <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
             <div>
               <h2 className="font-semibold text-lg">Planowany termin realizacji</h2>
               <p className="text-sm text-muted-foreground">Kiedy chciałbyś zrealizować usługę?</p>
             </div>
             
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.plannedDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formData.plannedDate ? (
-                    format(formData.plannedDate, 'd MMMM yyyy', { locale: pl })
-                  ) : (
-                    'Wybierz datę (opcjonalne)'
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={formData.plannedDate || undefined}
-                  onSelect={(date) => {
-                    setFormData(prev => ({ ...prev, plannedDate: date || null }));
-                    setDatePickerOpen(false);
-                  }}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <Select 
+              value={formData.plannedTimeframe} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, plannedTimeframe: value }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Wybierz (opcjonalne)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asap">Jak najszybciej</SelectItem>
+                <SelectItem value="1_3_months">W ciągu 1–3 miesięcy</SelectItem>
+                <SelectItem value="later">Później niż za 3 miesiące</SelectItem>
+                <SelectItem value="not_sure">Jeszcze nie wiem / chcę się tylko rozeznać</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Budget Section */}

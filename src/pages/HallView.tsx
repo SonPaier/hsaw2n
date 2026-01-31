@@ -49,6 +49,7 @@ interface Reservation {
   price: number | null;
   has_unified_services?: boolean | null;
   admin_notes?: string | null;
+  photo_urls?: string[] | null;
 }
 
 interface Break {
@@ -403,6 +404,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           service_items,
           has_unified_services,
           admin_notes,
+          photo_urls,
           stations:station_id (name, type)
         `)
         .eq('instance_id', instanceId);
@@ -573,7 +575,51 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
               }
             });
         } else if (payload.eventType === 'UPDATE') {
-          setReservations(prev => prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r));
+          // Fetch full data from server to ensure complete object (including photo_urls)
+          supabase
+            .from('reservations')
+            .select(`
+              id,
+              instance_id,
+              customer_name,
+              customer_phone,
+              vehicle_plate,
+              reservation_date,
+              end_date,
+              start_time,
+              end_time,
+              station_id,
+              status,
+              confirmation_code,
+              price,
+              service_ids,
+              service_items,
+              admin_notes,
+              has_unified_services,
+              photo_urls,
+              stations:station_id (name, type)
+            `)
+            .eq('id', payload.new.id)
+            .single()
+            .then(({ data }) => {
+              if (data) {
+                const updatedReservation = {
+                  ...data,
+                  status: data.status || 'pending',
+                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
+                  service: undefined,
+                  station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
+                  admin_notes: data.admin_notes,
+                  has_unified_services: data.has_unified_services,
+                };
+                setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation as Reservation : r));
+                // Also update selectedReservation if it's the same
+                setSelectedReservation(prev => 
+                  prev?.id === data.id ? updatedReservation as Reservation : prev
+                );
+              }
+            });
         } else if (payload.eventType === 'DELETE') {
           setReservations(prev => prev.filter(r => r.id !== payload.old.id));
         }
@@ -852,10 +898,6 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           onEndWork={async (id) => {
             await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
             handleStatusChange(id, 'completed');
-          }}
-          onRelease={async (id) => {
-            await supabase.from('reservations').update({ status: 'released', released_at: new Date().toISOString() }).eq('id', id);
-            handleStatusChange(id, 'released');
           }}
           onSendPickupSms={handleSendPickupSms}
           onAddProtocol={canAccessProtocols ? handleAddProtocol : undefined}
