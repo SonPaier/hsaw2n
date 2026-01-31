@@ -62,18 +62,37 @@ export const useCreateEmployeeBreak = (instanceId: string | null) => {
     mutationFn: async (input: EmployeeBreakInput) => {
       if (!instanceId) throw new Error('No instance ID');
       
-      // Calculate duration
-      const [startH, startM] = input.start_time.split(':').map(Number);
-      const [endH, endM] = input.end_time.split(':').map(Number);
-      const duration_minutes = (endH * 60 + endM) - (startH * 60 + startM);
-      
+      // Don't include duration_minutes - it's a generated column
       const { data, error } = await supabase
         .from('employee_breaks')
         .insert({
           instance_id: instanceId,
-          ...input,
-          duration_minutes,
+          employee_id: input.employee_id,
+          break_date: input.break_date,
+          start_time: input.start_time,
+          end_time: input.end_time,
         })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee_breaks', instanceId] });
+    },
+  });
+};
+
+export const useUpdateEmployeeBreak = (instanceId: string | null) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...input }: Partial<EmployeeBreakInput> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('employee_breaks')
+        .update(input)
+        .eq('id', id)
         .select()
         .single();
       
