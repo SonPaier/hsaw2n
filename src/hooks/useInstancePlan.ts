@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SubscriptionPlan {
@@ -41,19 +42,12 @@ export interface InstancePlanData {
 }
 
 export const useInstancePlan = (instanceId: string | null): InstancePlanData => {
-  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
-  const [subscription, setSubscription] = useState<InstanceSubscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery({
+    queryKey: ['instance_plan', instanceId],
+    queryFn: async () => {
+      if (!instanceId) return null;
 
-  const fetchData = useCallback(async () => {
-    if (!instanceId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Fetch subscription with plan data
-      const { data: subData, error: subError } = await supabase
+      const { data, error } = await supabase
         .from('instance_subscriptions')
         .select(`
           *,
@@ -62,52 +56,55 @@ export const useInstancePlan = (instanceId: string | null): InstancePlanData => 
         .eq('instance_id', instanceId)
         .single();
 
-      if (subError && subError.code !== 'PGRST116') {
-        throw subError;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
 
-      if (subData) {
-        const planData = subData.subscription_plans as unknown as SubscriptionPlan;
-        setPlan({
-          ...planData,
-          included_features: Array.isArray(planData.included_features) 
-            ? planData.included_features 
-            : []
-        });
-        setSubscription({
-          id: subData.id,
-          instance_id: subData.instance_id,
-          plan_id: subData.plan_id,
-          station_limit: subData.station_limit,
-          monthly_price: subData.monthly_price,
-          starts_at: subData.starts_at,
-          ends_at: subData.ends_at,
-          status: subData.status,
-        });
-      } else {
-        setPlan(null);
-        setSubscription(null);
-      }
-    } catch (error) {
-      console.error('Error fetching instance plan:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [instanceId]);
+      return data;
+    },
+    enabled: !!instanceId,
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 days
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const plan = useMemo(() => {
+    if (!query.data?.subscription_plans) return null;
+    const planData = query.data.subscription_plans as unknown as SubscriptionPlan;
+    return {
+      ...planData,
+      included_features: Array.isArray(planData.included_features) 
+        ? planData.included_features 
+        : []
+    };
+  }, [query.data]);
+
+  const subscription = useMemo(() => {
+    if (!query.data) return null;
+    return {
+      id: query.data.id,
+      instance_id: query.data.instance_id,
+      plan_id: query.data.plan_id,
+      station_limit: query.data.station_limit,
+      monthly_price: query.data.monthly_price,
+      starts_at: query.data.starts_at,
+      ends_at: query.data.ends_at,
+      status: query.data.status,
+    } as InstanceSubscription;
+  }, [query.data]);
+
+  const includedFeatures = useMemo(() => plan?.included_features || [], [plan]);
 
   const hasFeature = useCallback((key: string): boolean => {
-    if (!plan) return false;
-    return plan.included_features.includes(key);
-  }, [plan]);
+    return includedFeatures.includes(key);
+  }, [includedFeatures]);
 
   const isFeatureFromPlan = useCallback((key: string): boolean => {
-    if (!plan) return false;
-    return plan.included_features.includes(key);
-  }, [plan]);
+    return includedFeatures.includes(key);
+  }, [includedFeatures]);
+
+  const refetch = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
 
   return {
     plan,
@@ -117,10 +114,10 @@ export const useInstancePlan = (instanceId: string | null): InstancePlanData => 
     stationLimit: subscription?.station_limit || 2,
     monthlyPrice: subscription?.monthly_price || 0,
     smsLimit: plan?.sms_limit || 100,
-    includedFeatures: plan?.included_features || [],
+    includedFeatures,
     hasFeature,
     isFeatureFromPlan,
-    loading,
-    refetch: fetchData,
+    loading: query.isLoading,
+    refetch,
   };
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -89,6 +90,7 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
 ];
 
 export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSettingsProps) => {
+  const queryClient = useQueryClient();
   const [features, setFeatures] = useState<InstanceFeature[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -160,6 +162,9 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
         return [...prev, { feature_key: featureKey, enabled: !currentEnabled, parameters: null }];
       });
 
+      // Invalidate features cache
+      queryClient.invalidateQueries({ queryKey: ['instance_features', instanceId] });
+      
       toast.success(`Funkcja ${!currentEnabled ? 'włączona' : 'wyłączona'}`);
     } catch (error) {
       console.error('Error toggling feature:', error);
@@ -204,6 +209,9 @@ export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSetting
         return [...prev, { feature_key: featureKey, enabled: false, parameters }];
       });
 
+      // Invalidate features cache
+      queryClient.invalidateQueries({ queryKey: ['instance_features', instanceId] });
+      
       toast.success('Parametry zapisane');
     } catch (error) {
       console.error('Error saving parameters:', error);
