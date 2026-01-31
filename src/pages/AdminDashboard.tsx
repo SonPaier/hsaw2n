@@ -2333,10 +2333,10 @@ const AdminDashboard = () => {
                     <UserCircle className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Klienci"}
                   </Button>
-                  {/* Cennik - after Klienci, before Oferty */}
-                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Cennik">
+                  {/* Usługi - after Klienci, before Oferty */}
+                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Usługi">
                     <FileText className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && "Cennik"}
+                    {!sidebarCollapsed && "Usługi"}
                   </Button>}
                   {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('offers'); }} title="Oferty">
                       <FileText className="w-4 h-4 shrink-0" />
