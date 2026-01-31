@@ -325,6 +325,140 @@ export type Database = {
           },
         ]
       }
+      employee_breaks: {
+        Row: {
+          break_date: string
+          created_at: string | null
+          duration_minutes: number | null
+          employee_id: string
+          end_time: string
+          id: string
+          instance_id: string
+          start_time: string
+        }
+        Insert: {
+          break_date: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          employee_id: string
+          end_time: string
+          id?: string
+          instance_id: string
+          start_time: string
+        }
+        Update: {
+          break_date?: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          employee_id?: string
+          end_time?: string
+          id?: string
+          instance_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_breaks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_breaks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_days_off: {
+        Row: {
+          created_at: string | null
+          date_from: string
+          date_to: string
+          day_off_type: string
+          employee_id: string
+          id: string
+          instance_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_from: string
+          date_to: string
+          day_off_type?: string
+          employee_id: string
+          id?: string
+          instance_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date_from?: string
+          date_to?: string
+          day_off_type?: string
+          employee_id?: string
+          id?: string
+          instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_days_off_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_days_off_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_edit_logs: {
+        Row: {
+          edited_at: string | null
+          edited_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          instance_id: string
+          new_value: Json | null
+          old_value: Json | null
+        }
+        Insert: {
+          edited_at?: string | null
+          edited_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          instance_id: string
+          new_value?: Json | null
+          old_value?: Json | null
+        }
+        Update: {
+          edited_at?: string | null
+          edited_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          instance_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_edit_logs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           created_at: string
@@ -356,6 +490,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "employee_permissions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          hourly_rate: number | null
+          id: string
+          instance_id: string
+          name: string
+          photo_url: string | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          instance_id: string
+          name: string
+          photo_url?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          instance_id?: string
+          name?: string
+          photo_url?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
@@ -2832,6 +3010,66 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          end_time: string | null
+          entry_date: string
+          entry_number: number
+          entry_type: string
+          id: string
+          instance_id: string
+          is_auto_closed: boolean | null
+          start_time: string | null
+          total_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          end_time?: string | null
+          entry_date: string
+          entry_number?: number
+          entry_type?: string
+          id?: string
+          instance_id: string
+          is_auto_closed?: boolean | null
+          start_time?: string | null
+          total_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          end_time?: string | null
+          entry_date?: string
+          entry_number?: number
+          entry_type?: string
+          id?: string
+          instance_id?: string
+          is_auto_closed?: boolean | null
+          start_time?: string | null
+          total_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_categories: {
         Row: {
           active: boolean | null
@@ -3159,6 +3397,50 @@ export type Database = {
             columns: ["reservation_id"]
             isOneToOne: false
             referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers_settings: {
+        Row: {
+          breaks_enabled: boolean
+          created_at: string | null
+          instance_id: string
+          overtime_enabled: boolean
+          report_email: string | null
+          report_frequency: string | null
+          standard_hours_per_day: number
+          start_stop_enabled: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          breaks_enabled?: boolean
+          created_at?: string | null
+          instance_id: string
+          overtime_enabled?: boolean
+          report_email?: string | null
+          report_frequency?: string | null
+          standard_hours_per_day?: number
+          start_stop_enabled?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          breaks_enabled?: boolean
+          created_at?: string | null
+          instance_id?: string
+          overtime_enabled?: boolean
+          report_email?: string | null
+          report_frequency?: string | null
+          standard_hours_per_day?: number
+          start_stop_enabled?: boolean
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workers_settings_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "instances"
             referencedColumns: ["id"]
           },
         ]
