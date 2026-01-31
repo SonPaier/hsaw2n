@@ -3414,6 +3414,7 @@ export type Database = {
           report_frequency: string | null
           standard_hours_per_day: number
           start_stop_enabled: boolean
+          time_calculation_mode: string
           updated_at: string | null
         }
         Insert: {
@@ -3425,6 +3426,7 @@ export type Database = {
           report_frequency?: string | null
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
+          time_calculation_mode?: string
           updated_at?: string | null
         }
         Update: {
@@ -3436,6 +3438,7 @@ export type Database = {
           report_frequency?: string | null
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
+          time_calculation_mode?: string
           updated_at?: string | null
         }
         Relationships: [
