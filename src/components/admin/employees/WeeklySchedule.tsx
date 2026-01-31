@@ -78,7 +78,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     
     try {
       if (existing && existing.entries.length > 0) {
-        // Update first entry with new total, remove others if needed
+        // Update first entry with new total
         const firstEntry = existing.entries[0];
         
         // Calculate start and end time for the entry based on total minutes
@@ -125,11 +125,16 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     return total;
   }, [minutesByDate]);
 
-  const formatMinutes = (minutes: number) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+  const formatMinutes = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
     return `${h}:${m.toString().padStart(2, '0')}`;
   };
+
+  // Find which day is being edited to show its label in the editor panel
+  const editingDayLabel = editingCell
+    ? format(new Date(editingCell.date), 'EEEE, d MMM', { locale: pl })
+    : '';
 
   return (
     <div className="w-full space-y-4">
@@ -146,11 +151,11 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         </Button>
       </div>
 
-      {/* Week grid */}
+      {/* Week grid - days only, no inline editing */}
       <div className="grid grid-cols-7 gap-1">
         {weekDays.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
-          const isEditing = editingCell?.date === dateStr;
+          const isSelected = editingCell?.date === dateStr;
           const dayData = minutesByDate.get(dateStr);
           const totalMinutes = dayData?.totalMinutes || 0;
           const isToday = isSameDay(day, new Date());
@@ -167,58 +172,64 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
                 <div>{format(day, 'd')}</div>
               </div>
               
-              {/* Time cell */}
-              {isEditing ? (
-                <div className="border rounded-b p-1 bg-background space-y-1">
-                  <div className="flex gap-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="24"
-                      value={editingCell.hours}
-                      onChange={(e) => setEditingCell({ ...editingCell, hours: e.target.value })}
-                      className="h-8 text-center text-xs px-1"
-                      placeholder="h"
-                      autoFocus
-                    />
-                    <span className="text-xs self-center">:</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="59"
-                      value={editingCell.minutes}
-                      onChange={(e) => setEditingCell({ ...editingCell, minutes: e.target.value })}
-                      className="h-8 text-center text-xs px-1"
-                      placeholder="m"
-                    />
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" className="flex-1 h-6 p-0" onClick={handleSaveEdit}>
-                      <Check className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="flex-1 h-6 p-0" onClick={handleCancelEdit}>
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleCellClick(day)}
-                  className={`border rounded-b p-2 text-center min-h-[48px] flex items-center justify-center transition-colors ${
-                    totalMinutes > 0 
+              {/* Time cell - click to select for editing */}
+              <button
+                onClick={() => handleCellClick(day)}
+                className={`border rounded-b p-2 text-center min-h-[48px] flex items-center justify-center transition-colors ${
+                  isSelected
+                    ? 'ring-2 ring-primary border-primary bg-primary/10'
+                    : totalMinutes > 0 
                       ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' 
                       : 'bg-background hover:bg-muted/50'
-                  }`}
-                >
-                  <span className={`text-sm font-medium ${totalMinutes > 0 ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
-                    {totalMinutes > 0 ? formatMinutes(totalMinutes) : '-'}
-                  </span>
-                </button>
-              )}
+                }`}
+              >
+                <span className={`text-sm font-medium ${totalMinutes > 0 ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
+                  {totalMinutes > 0 ? formatMinutes(totalMinutes) : '-'}
+                </span>
+              </button>
             </div>
           );
         })}
       </div>
+
+      {/* Editor panel - appears below the week grid when a day is selected */}
+      {editingCell && (
+        <div className="border rounded-lg p-4 bg-card space-y-3">
+          <div className="text-sm font-medium text-center capitalize">{editingDayLabel}</div>
+          <div className="flex items-center justify-center gap-2">
+            <Input
+              type="number"
+              min="0"
+              max="24"
+              value={editingCell.hours}
+              onChange={(e) => setEditingCell({ ...editingCell, hours: e.target.value })}
+              className="h-12 w-20 text-center text-lg"
+              placeholder="h"
+              autoFocus
+            />
+            <span className="text-xl font-bold">:</span>
+            <Input
+              type="number"
+              min="0"
+              max="59"
+              value={editingCell.minutes}
+              onChange={(e) => setEditingCell({ ...editingCell, minutes: e.target.value })}
+              className="h-12 w-20 text-center text-lg"
+              placeholder="m"
+            />
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={handleSaveEdit} size="sm" className="px-6">
+              <Check className="w-4 h-4 mr-1" />
+              Zapisz
+            </Button>
+            <Button onClick={handleCancelEdit} size="sm" variant="ghost">
+              <X className="w-4 h-4 mr-1" />
+              Anuluj
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Week summary */}
       <div className="flex justify-between items-center pt-2 border-t">

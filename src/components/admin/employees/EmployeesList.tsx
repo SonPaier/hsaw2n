@@ -105,8 +105,8 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
           )}
         </div>
       ) : (
-        <div className={`${centered ? 'flex-1 flex items-center justify-center' : ''}`}>
-          <div className={`grid gap-4 ${centered ? 'grid-cols-3 max-w-xl' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'}`}>
+        <div className={`${centered ? 'flex-1 flex items-center justify-center px-10' : ''}`}>
+          <div className={`grid gap-6 ${centered ? 'grid-cols-3 w-full max-w-2xl' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'}`}>
             {employees.map((employee) => {
               const isWorking = isEmployeeWorking(employee.id);
               
@@ -114,24 +114,24 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
                 <div
                   key={employee.id}
                   onClick={() => handleTileClick(employee)}
-                  className="relative flex flex-col items-center p-4 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
+                  className={`relative flex flex-col items-center rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors ${centered ? 'p-6' : 'p-4'}`}
                 >
                   {/* Working status indicator */}
                   <div
-                    className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
+                    className={`absolute top-2 right-2 rounded-full ${
                       isWorking ? 'bg-green-500' : 'bg-muted'
-                    }`}
+                    } ${centered ? 'w-4 h-4' : 'w-3 h-3'}`}
                   />
                   
-                  <Avatar className="h-20 w-20 mb-3">
+                  <Avatar className={centered ? 'h-28 w-28 mb-4' : 'h-20 w-20 mb-3'}>
                     <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    <AvatarFallback className={`bg-primary/10 text-primary ${centered ? 'text-3xl' : 'text-xl'}`}>
                       {employee.name.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex items-center gap-1">
-                    <span className="text-sm font-medium text-center truncate max-w-[120px]">
+                    <span className={`font-medium text-center truncate ${centered ? 'text-base max-w-[140px]' : 'text-sm max-w-[120px]'}`}>
                       {employee.name}
                     </span>
                     {isAdmin && (
