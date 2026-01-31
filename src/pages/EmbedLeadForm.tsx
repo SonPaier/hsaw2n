@@ -815,6 +815,7 @@ function EmbedLeadFormContent() {
                 htmlFor="gdpr" 
                 className="text-sm text-muted-foreground font-normal cursor-pointer"
               >
+                <span className="text-red-500 font-medium">*</span>{' '}
                 {t('embed.gdprLabel', {
                   companyName: config?.instance_info.name || '',
                   nip: config?.instance_info.nip || '',
