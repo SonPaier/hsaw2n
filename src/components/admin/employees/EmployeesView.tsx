@@ -6,12 +6,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, ChevronLeft, ChevronRight, Loader2, User, Pencil, Clock, CalendarOff } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, User, Pencil, Clock, CalendarOff, Settings2 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, isSameMonth, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
 import WorkerTimeDialog from './WorkerTimeDialog';
 import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
+import WorkersSettingsDrawer from './WorkersSettingsDrawer';
 
 interface EmployeesViewProps {
   instanceId: string | null;
@@ -36,6 +37,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [workerDialogEmployee, setWorkerDialogEmployee] = useState<Employee | null>(null);
   const [dayOffDialogOpen, setDayOffDialogOpen] = useState(false);
+  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -51,6 +53,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
 
   // Calculate monthly totals
   const monthlySummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
+
+  // Calculate total earnings (admin only)
+  const totalEarnings = useMemo(() => {
+    return activeEmployees.reduce((sum, employee) => {
+      const summary = monthlySummary.get(employee.id);
+      if (summary && employee.hourly_rate) {
+        return sum + (summary.total_minutes / 60) * employee.hourly_rate;
+      }
+      return sum;
+    }, 0);
+  }, [activeEmployees, monthlySummary]);
 
   // Get days off for this month
   const getDaysOffForEmployee = (employeeId: string) => {
@@ -196,6 +209,14 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setSettingsDrawerOpen(true)} 
+              variant="ghost" 
+              size="icon"
+              title="Ustawienia czasu pracy"
+            >
+              <Settings2 className="w-5 h-5" />
+            </Button>
             <Button onClick={() => setDayOffDialogOpen(true)} variant="outline" size="sm">
               <CalendarOff className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Dodaj nieobecność</span>
@@ -237,70 +258,81 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {activeEmployees.map((employee) => {
-            const summary = monthlySummary.get(employee.id);
-            const totalHours = summary ? formatMinutesToTime(summary.total_minutes) : '0:00';
-            const earnings = summary && employee.hourly_rate 
-              ? ((summary.total_minutes / 60) * employee.hourly_rate).toFixed(2)
-              : null;
-            const employeeDaysOff = getDaysOffForEmployee(employee.id);
-            const formattedDaysOff = formatDaysOffForMonth(employeeDaysOff);
-            
-            return (
-              <Card 
-                key={employee.id} 
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => handleTileClick(employee)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {employee.name.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+        <>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {activeEmployees.map((employee) => {
+              const summary = monthlySummary.get(employee.id);
+              const totalHours = summary ? formatMinutesToTime(summary.total_minutes) : '0h 0min';
+              const earnings = summary && employee.hourly_rate 
+                ? ((summary.total_minutes / 60) * employee.hourly_rate).toFixed(2)
+                : null;
+              const employeeDaysOff = getDaysOffForEmployee(employee.id);
+              const formattedDaysOff = formatDaysOffForMonth(employeeDaysOff);
+              
+              return (
+                <Card 
+                  key={employee.id} 
+                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => handleTileClick(employee)}
+                >
+                  <CardContent className="p-4 relative">
+                    {/* Edit pencil in top-right corner */}
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => handleEditEmployee(e, employee)}
+                        className="absolute top-3 right-3 p-1.5 rounded hover:bg-muted"
+                      >
+                        <Pencil className="w-5 h-5 text-muted-foreground" />
+                      </button>
+                    )}
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium truncate">{employee.name}</span>
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => handleEditEmployee(e, employee)}
-                            className="p-1 rounded hover:bg-muted shrink-0"
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
+                    <div className="flex items-start gap-3 pr-8">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {employee.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       
-                      {/* Hours summary */}
-                      <div className="flex items-center gap-1 mt-1 text-sm">
-                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="font-semibold">{totalHours}</span>
-                        {earnings && isAdmin && (
-                          <span className="text-muted-foreground">• {earnings} zł</span>
-                        )}
-                      </div>
-                      
-                      {/* Days off - detailed dates */}
-                      {formattedDaysOff.length > 0 && (
-                        <div className="mt-2 space-y-0.5">
-                          {formattedDaysOff.map((item, idx) => (
-                            <div key={idx} className="text-xs text-muted-foreground">
-                              <span className="font-medium">{item.label}:</span> {item.dates}
-                            </div>
-                          ))}
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium truncate block">{employee.name}</span>
+                        
+                        {/* Hours summary */}
+                        <div className="flex items-center gap-1 mt-1 text-sm">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="font-semibold">{totalHours}</span>
+                          {earnings && isAdmin && (
+                            <span className="text-muted-foreground">• {earnings} zł</span>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Days off - detailed dates */}
+                        {formattedDaysOff.length > 0 && (
+                          <div className="mt-2 space-y-0.5">
+                            {formattedDaysOff.map((item, idx) => (
+                              <div key={idx} className="text-xs text-muted-foreground">
+                                <span className="font-medium">{item.label}:</span> {item.dates}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Total earnings - admin only */}
+          {isAdmin && totalEarnings > 0 && (
+            <div className="pt-4 border-t mt-4">
+              <div className="text-lg font-medium">
+                Suma wypłat: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Dialogs */}
@@ -326,6 +358,12 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         onOpenChange={setDayOffDialogOpen}
         instanceId={instanceId}
         employees={activeEmployees}
+      />
+
+      <WorkersSettingsDrawer
+        open={settingsDrawerOpen}
+        onOpenChange={setSettingsDrawerOpen}
+        instanceId={instanceId}
       />
     </div>
   );

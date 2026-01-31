@@ -158,10 +158,10 @@ export const calculateMonthlySummary = (entries: TimeEntry[]): Map<string, TimeE
   return summaryMap;
 };
 
-// Format minutes to hours:minutes string
+// Format minutes to hours and minutes string
 export const formatMinutesToTime = (minutes: number | null): string => {
-  if (!minutes) return '0:00';
+  if (!minutes) return '0h 0min';
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${hours}:${mins.toString().padStart(2, '0')}`;
+  return `${hours}h ${mins}min`;
 };

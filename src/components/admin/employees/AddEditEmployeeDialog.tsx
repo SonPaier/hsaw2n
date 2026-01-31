@@ -204,9 +204,6 @@ const AddEditEmployeeDialog = ({
                   onChange={handlePhotoUpload}
                   disabled={isUploading}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  JPG, PNG do 5MB
-                </p>
               </div>
             </div>
 
