@@ -60,7 +60,12 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
     const activeEntry = timeEntries.find(
       (e) => e.employee_id === employeeId && !e.end_time
     );
-    return activeEntry?.start_time?.slice(0, 5);
+    if (!activeEntry?.start_time) return null;
+    try {
+      return format(new Date(activeEntry.start_time), 'HH:mm');
+    } catch {
+      return null;
+    }
   };
 
   if (isLoading) {
@@ -86,7 +91,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
       )}
 
       {centered && canAddEmployee && (
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4 px-8">
           <Button onClick={() => setDialogOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-1" />
             Dodaj pracownika

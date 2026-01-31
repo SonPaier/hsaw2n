@@ -134,7 +134,7 @@ const WorkerTimeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={showSchedule ? "sm:max-w-2xl" : "sm:max-w-sm"}>
+      <DialogContent className={showSchedule || !startStopEnabled ? "sm:max-w-2xl" : "sm:max-w-sm"}>
         <DialogHeader>
           <DialogTitle className="sr-only">Czas pracy</DialogTitle>
         </DialogHeader>
