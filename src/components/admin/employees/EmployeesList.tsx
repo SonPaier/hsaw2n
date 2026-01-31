@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { useEmployees, useDeleteEmployee, Employee } from '@/hooks/useEmployees';
+import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, Pencil, User, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
 import WorkerTimeDialog from './WorkerTimeDialog';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface EmployeesListProps {
   instanceId: string | null;
@@ -19,9 +17,10 @@ interface EmployeesListProps {
 const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin') || hasRole('super_admin');
+  const isHall = hasRole('hall');
+  const canAddEmployee = isAdmin || isHall;
   
   const { data: employees = [], isLoading } = useEmployees(instanceId);
-  const deleteEmployee = useDeleteEmployee(instanceId);
   
   // Get today's time entries to show working status
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -30,8 +29,9 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [workerDialogEmployee, setWorkerDialogEmployee] = useState<Employee | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+  // Filter only active (not soft-deleted) employees
+  const activeEmployees = employees.filter(e => e.active && !(e as any).deleted_at);
 
   const handleEdit = (e: React.MouseEvent, employee: Employee) => {
     e.stopPropagation();
@@ -41,19 +41,6 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
 
   const handleTileClick = (employee: Employee) => {
     setWorkerDialogEmployee(employee);
-  };
-
-  const handleDelete = async () => {
-    if (!employeeToDelete) return;
-    
-    try {
-      await deleteEmployee.mutateAsync(employeeToDelete.id);
-      toast.success('Pracownik został usunięty');
-      setDeleteConfirmOpen(false);
-      setEmployeeToDelete(null);
-    } catch (error) {
-      toast.error('Błąd podczas usuwania pracownika');
-    }
   };
 
   const handleDialogClose = () => {
@@ -66,6 +53,14 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
     return timeEntries.some(
       (e) => e.employee_id === employeeId && !e.end_time
     );
+  };
+
+  // Get start time of active work session
+  const getWorkingFromTime = (employeeId: string) => {
+    const activeEntry = timeEntries.find(
+      (e) => e.employee_id === employeeId && !e.end_time
+    );
+    return activeEntry?.start_time?.slice(0, 5);
   };
 
   if (isLoading) {
@@ -81,7 +76,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
       {!centered && (
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Lista pracowników</h2>
-          {isAdmin && (
+          {canAddEmployee && (
             <Button onClick={() => setDialogOpen(true)} size="sm">
               <Plus className="w-4 h-4 mr-1" />
               Dodaj pracownika
@@ -90,14 +85,23 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
         </div>
       )}
 
-      {employees.length === 0 ? (
+      {centered && canAddEmployee && (
+        <div className="flex justify-center mb-4">
+          <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Plus className="w-4 h-4 mr-1" />
+            Dodaj pracownika
+          </Button>
+        </div>
+      )}
+
+      {activeEmployees.length === 0 ? (
         <div className={`py-12 text-center ${centered ? 'flex-1 flex flex-col items-center justify-center' : ''}`}>
           <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground">Brak pracowników</p>
           <p className="text-sm text-muted-foreground mt-1">
             Dodaj pierwszego pracownika, aby rozpocząć rejestrację czasu pracy
           </p>
-          {isAdmin && (
+          {canAddEmployee && (
             <Button onClick={() => setDialogOpen(true)} className="mt-4">
               <Plus className="w-4 h-4 mr-1" />
               Dodaj pracownika
@@ -107,8 +111,9 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
       ) : (
         <div className={`${centered ? 'flex-1 flex items-center justify-center px-10' : ''}`}>
           <div className={`grid gap-6 ${centered ? 'grid-cols-3 w-full max-w-2xl' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'}`}>
-            {employees.map((employee) => {
+            {activeEmployees.map((employee) => {
               const isWorking = isEmployeeWorking(employee.id);
+              const workingFrom = getWorkingFromTime(employee.id);
               
               return (
                 <div
@@ -143,6 +148,13 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
                       </button>
                     )}
                   </div>
+
+                  {/* Working from time label */}
+                  {isWorking && workingFrom && (
+                    <span className="text-xs text-primary mt-1">
+                      W pracy od {workingFrom}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -166,16 +178,6 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
           instanceId={instanceId}
         />
       )}
-
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        title="Usuń pracownika"
-        description={`Czy na pewno chcesz usunąć pracownika "${employeeToDelete?.name}"? Ta operacja jest nieodwracalna.`}
-        confirmLabel="Usuń"
-        onConfirm={handleDelete}
-        variant="destructive"
-      />
     </div>
   );
 };

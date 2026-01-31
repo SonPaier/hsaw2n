@@ -501,6 +501,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string | null
+          deleted_at: string | null
           hourly_rate: number | null
           id: string
           instance_id: string
@@ -512,6 +513,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string | null
+          deleted_at?: string | null
           hourly_rate?: number | null
           id?: string
           instance_id: string
@@ -523,6 +525,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string | null
+          deleted_at?: string | null
           hourly_rate?: number | null
           id?: string
           instance_id?: string
