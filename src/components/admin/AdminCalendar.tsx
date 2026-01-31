@@ -1585,7 +1585,7 @@ const AdminCalendar = ({
                         <div className="px-0.5 text-black">
                           {/* Line 1: Time range + action buttons */}
                           <div className="flex items-center justify-between gap-0.5">
-{hallMode ? <div className="text-[12px] md:text-[15px] font-bold truncate pb-0.5 flex items-center gap-1">
+{hallMode ? <div className="text-[13px] md:text-[16px] font-bold truncate pb-0.5 flex items-center gap-1">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
                               </div> : <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
                                 {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${reservation.start_time.slice(0, 5)} - ${reservation.end_time.slice(0, 5)}`}
@@ -1606,7 +1606,7 @@ const AdminCalendar = ({
                           {/* Line 2: Vehicle plate + customer name with ellipsis */}
 {hallMode ? (
                             // Hall mode: show based on hallConfig and hallDataVisible
-                            <div className="flex items-center gap-1 text-xs md:text-sm min-w-0">
+                            <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
                               {/* Vehicle plate is always visible */}
                               <span className="font-semibold truncate max-w-[50%]">
                                 {reservation.vehicle_plate}
@@ -1634,14 +1634,14 @@ const AdminCalendar = ({
                             reservation.services_data && reservation.services_data.length > 0 ? (
                               <div className="flex flex-wrap gap-0.5 mt-0.5">
                                 {reservation.services_data.map((svc, idx) => (
-                                  <span key={idx} className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                  <span key={idx} className="inline-block px-1 py-0.5 text-[10px] md:text-[11px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                     {svc.shortcut || svc.name}
                                   </span>
                                 ))}
                               </div>
                             ) : reservation.service && (
                               <div className="flex flex-wrap gap-0.5 mt-0.5">
-                                <span className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-slate-700/90 text-white rounded leading-none">
+                                <span className="inline-block px-1 py-0.5 text-[10px] md:text-[11px] font-medium bg-slate-700/90 text-white rounded leading-none">
                                   {reservation.service.shortcut || reservation.service.name}
                                 </span>
                               </div>
@@ -1680,7 +1680,7 @@ const AdminCalendar = ({
                               : (durationMinutes > 30 && notesToShow);
                             if (showNotes) {
                               return <div 
-                                className="text-[13px] mt-0.5 break-words overflow-hidden"
+                                className="text-[14px] mt-0.5 break-words overflow-hidden"
                                 style={{ 
                                   display: '-webkit-box',
                                   WebkitBoxOrient: 'vertical',
