@@ -406,7 +406,7 @@ export default function EmbedLeadFormPreview({ templates, extras, branding }: Em
           <div className="flex items-start gap-2">
             <Checkbox disabled className="mt-0.5" />
             <p className="text-xs opacity-70">
-              Wyrażam zgodę na przetwarzanie moich danych osobowych...
+              <span className="text-red-500 font-medium">*</span> Wyrażam zgodę na przetwarzanie moich danych osobowych...
             </p>
           </div>
         </div>
