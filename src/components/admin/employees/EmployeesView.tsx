@@ -428,7 +428,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         
                         {/* Hours summary - always show all three times for admin */}
                         {isAdmin ? (
-                          <div className="mt-1.5 space-y-0.5 text-sm">
+                          <div className="mt-1.5 space-y-1 text-sm">
                             <div className="flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                               <span>Łącznie: <span className="font-semibold">{totalHours}</span></span>
@@ -436,11 +436,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                             <div className="text-sm text-muted-foreground">
                               Przed otwarciem: {preOpeningHours}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-sm mt-1.5">
                               Od otwarcia: <span className="font-semibold">{realHours}</span>
                             </div>
                             {earnings && (
-                              <div className="text-base font-semibold mt-1">
+                              <div className="text-base font-semibold mt-1.5">
                                 {earnings} zł
                               </div>
                             )}
