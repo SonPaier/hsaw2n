@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Check, X, Palmtree } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
+import { useTimeEntries, useTimeEntriesForDateRange, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, useCreateEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
@@ -32,7 +32,14 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const dateFrom = format(currentWeekStart, 'yyyy-MM-dd');
   const dateTo = format(weekEnd, 'yyyy-MM-dd');
 
+  // Monthly data for the calendar month of the current week
+  const monthStartDate = startOfMonth(currentWeekStart);
+  const monthEndDate = endOfMonth(currentWeekStart);
+  const monthFrom = format(monthStartDate, 'yyyy-MM-dd');
+  const monthTo = format(monthEndDate, 'yyyy-MM-dd');
+
   const { data: timeEntries = [] } = useTimeEntries(instanceId, employee.id, dateFrom, dateTo);
+  const { data: monthTimeEntries = [] } = useTimeEntriesForDateRange(instanceId, monthFrom, monthTo);
   const { data: daysOff = [] } = useEmployeeDaysOff(instanceId, employee.id);
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
@@ -151,6 +158,13 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     return total;
   }, [minutesByDate]);
 
+  // Filter monthly entries to this employee and sum
+  const monthTotal = useMemo(() => {
+    return monthTimeEntries
+      .filter(e => e.employee_id === employee.id)
+      .reduce((sum, e) => sum + (e.total_minutes || 0), 0);
+  }, [monthTimeEntries, employee.id]);
+
   const formatMinutes = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -163,6 +177,9 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const editingDayLabel = editingCell
     ? format(new Date(editingCell.date), 'EEEE, d MMM', { locale: pl })
     : '';
+  
+  // Month name for display
+  const monthName = format(monthStartDate, 'LLLL', { locale: pl });
 
   return (
     <div className="w-full space-y-4">
@@ -273,9 +290,15 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       )}
 
       {/* Week summary */}
-      <div className="flex justify-between items-center pt-2 border-t">
-        <span className="text-sm text-muted-foreground">Suma tygodnia:</span>
-        <span className="font-bold">{formatMinutes(weekTotal)}</span>
+      <div className="space-y-2 pt-2 border-t">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Suma tygodnia:</span>
+          <span className="font-bold">{formatMinutes(weekTotal)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Suma miesiąca ({monthName}):</span>
+          <span className="font-bold">{formatMinutes(monthTotal)}</span>
+        </div>
       </div>
     </div>
   );
