@@ -124,13 +124,10 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const {
-    view
-  } = useParams<{
-    view?: string;
-  }>();
+  const { view } = useParams<{ view?: string }>();
   const {
     user,
+    roles,
     username: authUsername,
     signOut
   } = useAuth();
@@ -313,54 +310,52 @@ const AdminDashboard = () => {
     }
     return new Date();
   });
+  // Derive instanceId and userRole from auth roles (avoid duplicate fetch)
   useEffect(() => {
-    const fetchUserInstanceId = async () => {
-      if (!user) return;
-
-      // Get all user roles
-      const {
-        data: rolesData
-      } = await supabase.from('user_roles').select('instance_id, role').eq('user_id', user.id);
-      if (!rolesData || rolesData.length === 0) return;
-
-      // First check if user has admin role with instance_id
-      const adminRole = rolesData.find(r => r.role === 'admin' && r.instance_id);
-      if (adminRole?.instance_id) {
-        setInstanceId(adminRole.instance_id);
-        setUserRole('admin');
-        return;
-      }
-
-      // Check if user has employee role with instance_id
-      const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
-      if (employeeRole?.instance_id) {
-        setInstanceId(employeeRole.instance_id);
-        setUserRole('employee');
-        return;
-      }
-
-      // Check if user has hall role with instance_id (kiosk/tablet mode)
-      const hallRole = rolesData.find(r => r.role === 'hall' && r.instance_id);
-      if (hallRole?.instance_id) {
-        setInstanceId(hallRole.instance_id);
-        setUserRole('hall');
-        return;
-      }
-
-      // Check for super_admin - get first available instance
-      const isSuperAdmin = rolesData.some(r => r.role === 'super_admin');
-      if (isSuperAdmin) {
-        setUserRole('admin'); // super_admin has admin privileges
-        const {
-          data: instances
-        } = await supabase.from('instances').select('id').eq('active', true).limit(1).maybeSingle();
+    if (!user) return;
+    
+    // Check admin role first
+    const adminRole = roles.find(r => r.role === 'admin' && r.instance_id);
+    if (adminRole?.instance_id) {
+      setInstanceId(adminRole.instance_id);
+      setUserRole('admin');
+      return;
+    }
+    
+    // Check employee role
+    const employeeRole = roles.find(r => r.role === 'employee' && r.instance_id);
+    if (employeeRole?.instance_id) {
+      setInstanceId(employeeRole.instance_id);
+      setUserRole('employee');
+      return;
+    }
+    
+    // Check hall role
+    const hallRole = roles.find(r => r.role === 'hall' && r.instance_id);
+    if (hallRole?.instance_id) {
+      setInstanceId(hallRole.instance_id);
+      setUserRole('hall');
+      return;
+    }
+    
+    // Check super_admin - need to fetch first instance
+    const isSuperAdmin = roles.some(r => r.role === 'super_admin');
+    if (isSuperAdmin) {
+      setUserRole('admin');
+      const fetchFirstInstance = async () => {
+        const { data: instances } = await supabase
+          .from('instances')
+          .select('id')
+          .eq('active', true)
+          .limit(1)
+          .maybeSingle();
         if (instances?.id) {
           setInstanceId(instances.id);
         }
-      }
-    };
-    fetchUserInstanceId();
-  }, [user]);
+      };
+      fetchFirstInstance();
+    }
+  }, [user, roles]);
 
   // Redirect hall role to HallView by default, but allow access to protocols view.
   useEffect(() => {
@@ -589,11 +584,8 @@ const AdminDashboard = () => {
     const from = fromDate || loadedDateRange.from;
     const to = toDate === undefined ? loadedDateRange.to : toDate;
 
-    // First fetch services to map service_ids (include pricing)
-    // Fetch ALL services (both 'reservation' and 'both' types, including inactive) to properly map historical reservations
-    const {
-      data: servicesData
-    } = await supabase.from('unified_services').select('id, name, short_name, price_small, price_medium, price_large, price_from').eq('instance_id', instanceId).in('service_type', ['reservation', 'both']) as unknown as { data: Array<{ id: string; name: string; short_name: string | null; price_small: number | null; price_medium: number | null; price_large: number | null; price_from: number | null }> | null };
+    // Use cached services from hook instead of fetching each time
+    // Build map from cached services (for realtime updates)
     const servicesMap = new Map<string, {
       id: string;
       name: string;
@@ -603,17 +595,15 @@ const AdminDashboard = () => {
       price_large?: number | null;
       price_from?: number | null;
     }>();
-    if (servicesData) {
-      servicesData.forEach(s => servicesMap.set(s.id, {
-        id: s.id,
-        name: s.name,
-        shortcut: s.short_name,
-        price_small: s.price_small,
-        price_medium: s.price_medium,
-        price_large: s.price_large,
-        price_from: s.price_from
-      }));
-    }
+    cachedServices.forEach(s => servicesMap.set(s.id, {
+      id: s.id,
+      name: s.name,
+      shortcut: s.short_name,
+      price_small: s.price_small,
+      price_medium: s.price_medium,
+      price_large: s.price_large,
+      price_from: s.price_from
+    }));
     // Save for realtime updates
     servicesMapRef.current = servicesMap;
 

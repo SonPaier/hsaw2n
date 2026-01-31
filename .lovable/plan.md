@@ -272,17 +272,25 @@ Brak wykrytych memory leaków z event listenerów.
 ## Priorytetowa lista napraw
 
 ### KRYTYCZNE (zrobić natychmiast):
-1. **Naprawić RLS policies** dla offer_text_blocks, offer_options, offer_option_items, offer_history
-2. **Usunąć duplicate services fetch** z fetchReservations w AdminDashboard
+1. ✅ **Naprawić RLS policies** dla offer_text_blocks, offer_options, offer_option_items, offer_history
+   - Utworzono funkcje `get_offer_instance_id()` i `get_option_instance_id()` 
+   - Nowe polityki używają JOIN przez offer_id zamiast nieistniejącej kolumny instance_id
+2. ✅ **Usunąć duplicate services fetch** z fetchReservations w AdminDashboard
+   - Teraz używa `cachedServices` z hooka `useUnifiedServices`
 
 ### WYSOKIE (ten sprint):
-3. **Użyć hooków cachujących w HallView** (useStations, useBreaks, etc.)
-4. **Dodać brakujące indeksy** na reservations, offers, customer_vehicles
+3. ✅ **Użyć hooków cachujących w HallView** (useStations, useBreaks, etc.)
+   - Dodano `useBreaks`, `useWorkingHours`, `useUnifiedServices`
+   - Usunięto duplicate fetch user_roles - używa roles z useAuth
+4. ✅ **Dodać brakujące indeksy** na reservations, offers, customer_vehicles
+   - `idx_reservations_instance_date`, `idx_reservations_instance_status`
+   - `idx_offers_instance_status`, `idx_customer_vehicles_instance_phone`
+   - `idx_notifications_instance_unread`
 
 ### ŚREDNIE (następny sprint):
-5. Użyć roles z useAuth zamiast duplicate fetch w AdminDashboard/HallView
-6. Użyć useOfferScopes w OffersView
-7. Sprawdzić i naprawić permissive RLS policies
+5. ✅ Użyć roles z useAuth zamiast duplicate fetch w AdminDashboard/HallView
+6. ✅ Użyć useOfferScopes w OffersView
+7. Sprawdzić i naprawić permissive RLS policies (ostrzeżenia lintera - istniejące)
 
 ### NISKIE (backlog):
 8. Zoptymalizować realtime UPDATE handler
