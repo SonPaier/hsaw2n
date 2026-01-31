@@ -536,32 +536,52 @@ const AdminDashboard = () => {
         price_from?: number | null;
       }> = [];
       
-      // Primary source: service_items (may be minimal objects with only service_id/custom_price)
-      // If name/short_name are missing, resolve them from the cached services map.
-      if (serviceItems && serviceItems.length > 0) {
-        servicesDataMapped = serviceItems.map(item => {
+      // Canonical list of selected services is `service_ids`.
+      // `service_items` may contain stale/legacy entries (e.g. after edits), so use it only to enrich.
+      if (serviceIds && serviceIds.length > 0) {
+        const itemsById = new Map<string, ServiceItem>();
+        (serviceItems || []).forEach(item => {
           const resolvedId = item.id || item.service_id;
-          const svc = resolvedId ? servicesMap.get(resolvedId) : undefined;
+          if (resolvedId) itemsById.set(resolvedId, item);
+        });
+
+        servicesDataMapped = serviceIds.map(id => {
+          const item = itemsById.get(id);
+          const svc = servicesMap.get(id);
 
           return {
-            id: resolvedId,
-            name: item.name ?? svc?.name ?? 'Usługa',
-            shortcut: item.short_name ?? svc?.shortcut ?? null,
-            price_small: item.price_small ?? svc?.price_small ?? null,
-            price_medium: item.price_medium ?? svc?.price_medium ?? null,
-            price_large: item.price_large ?? svc?.price_large ?? null,
-            price_from: item.price_from ?? svc?.price_from ?? null
+            id,
+            name: item?.name ?? svc?.name ?? 'Usługa',
+            shortcut: item?.short_name ?? svc?.shortcut ?? null,
+            price_small: item?.price_small ?? svc?.price_small ?? null,
+            price_medium: item?.price_medium ?? svc?.price_medium ?? null,
+            price_large: item?.price_large ?? svc?.price_large ?? null,
+            price_from: item?.price_from ?? svc?.price_from ?? null
           };
         });
-      } else if (serviceIds && serviceIds.length > 0) {
-        // Fallback to service_ids lookup (for legacy reservations)
-        serviceIds.forEach(id => {
-          const svc = servicesMap.get(id);
-          if (svc) {
-            servicesDataMapped.push(svc);
-          }
-          // Don't show "usługa usunięta" - skip if cache not ready
-        });
+      } else if (serviceItems && serviceItems.length > 0) {
+        // Fallback: no service_ids, use service_items directly (dedupe by id)
+        const seen = new Set<string>();
+        servicesDataMapped = serviceItems
+          .map(item => {
+            const resolvedId = item.id || item.service_id;
+            const svc = resolvedId ? servicesMap.get(resolvedId) : undefined;
+            return {
+              id: resolvedId,
+              name: item.name ?? svc?.name ?? 'Usługa',
+              shortcut: item.short_name ?? svc?.shortcut ?? null,
+              price_small: item.price_small ?? svc?.price_small ?? null,
+              price_medium: item.price_medium ?? svc?.price_medium ?? null,
+              price_large: item.price_large ?? svc?.price_large ?? null,
+              price_from: item.price_from ?? svc?.price_from ?? null
+            };
+          })
+          .filter(svc => {
+            if (!svc.id) return false;
+            if (seen.has(svc.id)) return false;
+            seen.add(svc.id);
+            return true;
+          });
       }
       
       const originalReservation = r.original_reservation_id 
