@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { format, subMonths, addDays, parseISO, getDay } from 'date-fns';
+import { format, subMonths, subWeeks, startOfWeek, addDays, parseISO, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
@@ -170,10 +170,14 @@ const AdminDashboard = () => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   
-  // Loaded date range for reservations - 2 months back initially, null = all future
-  const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>({
-    from: subMonths(new Date(), 2),
-    to: null
+  // Loaded date range for reservations - 1 week back from Monday initially, null = all future
+  const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>(() => {
+    const today = new Date();
+    const mondayThisWeek = startOfWeek(today, { weekStartsOn: 1 });
+    return {
+      from: subWeeks(mondayThisWeek, 1), // Monday one week earlier
+      to: null
+    };
   });
   const [isLoadingMoreReservations, setIsLoadingMoreReservations] = useState(false);
   

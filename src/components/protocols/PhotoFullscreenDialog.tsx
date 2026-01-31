@@ -25,13 +25,13 @@ export const PhotoFullscreenDialog = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 z-[100] bg-black/50 text-white hover:bg-white/30 h-10 w-10"
+          className="absolute top-4 right-4 z-[100] bg-white text-black hover:bg-white/80 h-14 w-14 rounded-full shadow-lg"
           onClick={(e) => {
             e.stopPropagation();
             onOpenChange(false);
           }}
         >
-          <X className="h-7 w-7" />
+          <X className="h-8 w-8" />
         </Button>
 
         {/* Fullscreen image */}

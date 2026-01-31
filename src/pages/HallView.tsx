@@ -50,6 +50,7 @@ interface Reservation {
   has_unified_services?: boolean | null;
   admin_notes?: string | null;
   photo_urls?: string[] | null;
+  checked_service_ids?: string[] | null;
 }
 
 interface Break {
@@ -481,6 +482,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           has_unified_services,
           admin_notes,
           photo_urls,
+          checked_service_ids,
           stations:station_id (name, type)
         `)
         .eq('instance_id', instanceId);
@@ -495,6 +497,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
           has_unified_services: r.has_unified_services,
           admin_notes: r.admin_notes,
+          checked_service_ids: Array.isArray(r.checked_service_ids) ? r.checked_service_ids as string[] : null,
         })));
       }
 
@@ -627,6 +630,8 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
               service_ids,
               admin_notes,
               has_unified_services,
+              photo_urls,
+              checked_service_ids,
               stations:station_id (name, type)
             `)
             .eq('id', payload.new.id)
@@ -673,6 +678,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
               admin_notes,
               has_unified_services,
               photo_urls,
+              checked_service_ids,
               stations:station_id (name, type)
             `)
             .eq('id', payload.new.id)
@@ -688,6 +694,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
                   admin_notes: data.admin_notes,
                   has_unified_services: data.has_unified_services,
+                  checked_service_ids: Array.isArray(data.checked_service_ids) ? data.checked_service_ids as string[] : null,
                 };
                 setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation as Reservation : r));
                 // Also update selectedReservation if it's the same
@@ -756,21 +763,23 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
   };
 
-  // Map all reservations with services_data for calendar display
+  // Map all reservations with services_data for calendar display (including service id for toggle)
   const reservationsWithServices = useMemo(() => {
     return reservations.map(reservation => ({
       ...reservation,
       services_data: reservation.service_ids?.map(id => ({
+        id, // Include id for toggle functionality
         name: servicesMap.get(id) || id,
       })) || [],
     }));
   }, [reservations, servicesMap]);
 
-  // Map selected reservation with services_data
+  // Map selected reservation with services_data (including service id for toggle)
   const selectedReservationWithServices = useMemo(() => {
     if (!selectedReservation) return null;
     
     const services_data = selectedReservation.service_ids?.map(id => ({
+      id, // Include id for toggle functionality
       name: servicesMap.get(id) || id,
     })) || [];
 
@@ -779,6 +788,34 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       services_data,
     };
   }, [selectedReservation, servicesMap]);
+
+  // Handle service toggle (mark as done/undone)
+  const handleServiceToggle = async (serviceId: string, checked: boolean) => {
+    if (!selectedReservation) return;
+    
+    const currentChecked = selectedReservation.checked_service_ids || [];
+    const newChecked = checked 
+      ? [...currentChecked, serviceId]
+      : currentChecked.filter(id => id !== serviceId);
+    
+    const { error } = await supabase
+      .from('reservations')
+      .update({ checked_service_ids: newChecked })
+      .eq('id', selectedReservation.id);
+    
+    if (error) {
+      toast.error(t('common.error'));
+      return;
+    }
+    
+    // Update local state
+    setReservations(prev => prev.map(r => 
+      r.id === selectedReservation.id ? { ...r, checked_service_ids: newChecked } : r
+    ));
+    setSelectedReservation(prev => 
+      prev ? { ...prev, checked_service_ids: newChecked } : prev
+    );
+  };
 
   const handleReservationSaved = async () => {
     // Refresh reservations after edit
@@ -978,6 +1015,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           onSendPickupSms={handleSendPickupSms}
           onAddProtocol={canAccessProtocols ? handleAddProtocol : undefined}
           onAddPhotos={handleAddPhotos}
+          onServiceToggle={handleServiceToggle}
         />
       )}
 
