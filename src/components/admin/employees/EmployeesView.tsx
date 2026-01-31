@@ -426,20 +426,27 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                       <div className="flex-1 min-w-0">
                         <span className="font-medium truncate block">{employee.name}</span>
                         
-                        {/* Hours summary - Total time */}
-                        <div className="flex items-center gap-1 mt-1 text-sm">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-semibold">{totalHours}</span>
-                          {earnings && isAdmin && (
-                            <span className="text-muted-foreground">• {earnings} zł</span>
-                          )}
-                        </div>
-                        
-                        {/* Pre-opening and real time - only show if there's pre-opening time */}
-                        {isAdmin && preOpeningMinutes > 0 && (
-                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            <div>Przed otwarciem: {preOpeningHours}</div>
-                            <div className="font-medium text-foreground">Czas realny: {realHours}</div>
+                        {/* Hours summary - always show all three times for admin */}
+                        {isAdmin ? (
+                          <div className="mt-1 space-y-0.5 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span>Łącznie: <span className="font-semibold">{totalHours}</span></span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Przed otwarciem: {preOpeningHours}
+                            </div>
+                            <div className="text-xs">
+                              Czas realny: <span className="font-semibold">{realHours}</span>
+                              {earnings && (
+                                <span className="text-muted-foreground"> • {earnings} zł</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 mt-1 text-sm">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="font-semibold">{totalHours}</span>
                           </div>
                         )}
                         
