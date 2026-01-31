@@ -3557,6 +3557,10 @@ export type Database = {
       }
       get_offer_instance_id: { Args: { p_offer_id: string }; Returns: string }
       get_option_instance_id: { Args: { p_option_id: string }; Returns: string }
+      get_reservation_instance_id: {
+        Args: { p_reservation_id: string }
+        Returns: string
+      }
       has_employee_permission: {
         Args: { _feature_key: string; _instance_id: string; _user_id: string }
         Returns: boolean
@@ -3592,8 +3596,6 @@ export type Database = {
           id: string
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       update_instance_working_hours: {
         Args: { _instance_id: string; _working_hours: Json }
         Returns: Json
