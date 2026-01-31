@@ -9,12 +9,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCreateEmployee, useUpdateEmployee, Employee } from '@/hooks/useEmployees';
+import { useCreateEmployee, useUpdateEmployee, useDeleteEmployee, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X, Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface AddEditEmployeeDialogProps {
   open: boolean;
@@ -33,26 +33,26 @@ const AddEditEmployeeDialog = ({
 }: AddEditEmployeeDialogProps) => {
   const [name, setName] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
-  const [active, setActive] = useState(true);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const createEmployee = useCreateEmployee(instanceId);
   const updateEmployee = useUpdateEmployee(instanceId);
+  const deleteEmployee = useDeleteEmployee(instanceId);
 
   const isEditing = !!employee;
   const isSubmitting = createEmployee.isPending || updateEmployee.isPending;
+  const isDeleting = deleteEmployee.isPending;
 
   useEffect(() => {
     if (employee) {
       setName(employee.name);
       setHourlyRate(employee.hourly_rate?.toString() || '');
-      setActive(employee.active);
       setPhotoUrl(employee.photo_url);
     } else {
       setName('');
       setHourlyRate('');
-      setActive(true);
       setPhotoUrl(null);
     }
   }, [employee, open]);
@@ -102,15 +102,14 @@ const AddEditEmployeeDialog = ({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      toast.error('Podaj imię i nazwisko');
+      toast.error('Podaj imię lub ksywkę');
       return;
     }
 
     try {
       const data = {
         name: name.trim(),
-        hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
-        active,
+        hourly_rate: isAdmin && hourlyRate ? parseFloat(hourlyRate) : null,
         photo_url: photoUrl,
       };
 
@@ -128,100 +127,150 @@ const AddEditEmployeeDialog = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (!employee) return;
+
+    try {
+      // Soft delete - just set deleted_at timestamp
+      const { error } = await supabase
+        .from('employees')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          active: false 
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+
+      toast.success('Pracownik został usunięty');
+      setDeleteConfirmOpen(false);
+      onOpenChange(false);
+      
+      // Invalidate query to refresh the list
+      deleteEmployee.reset();
+      window.location.reload(); // Force refresh to update the list
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Błąd podczas usuwania pracownika');
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edytuj pracownika' : 'Dodaj pracownika'}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? 'Edytuj pracownika' : 'Dodaj pracownika'}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Photo upload */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={photoUrl || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                  {name.slice(0, 2).toUpperCase() || '??'}
-                </AvatarFallback>
-              </Avatar>
-              {photoUrl && (
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+          <div className="space-y-4 py-4">
+            {/* Photo upload */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={photoUrl || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {name.slice(0, 2).toUpperCase() || '??'}
+                  </AvatarFallback>
+                </Avatar>
+                {photoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="photo" className="cursor-pointer">
+                  <div className="flex items-center gap-2 text-sm text-primary hover:text-primary/80">
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {photoUrl ? 'Zmień zdjęcie' : 'Dodaj zdjęcie'}
+                  </div>
+                </Label>
+                <input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={isUploading}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG do 5MB
+                </p>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="photo" className="cursor-pointer">
-                <div className="flex items-center gap-2 text-sm text-primary hover:text-primary/80">
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  {photoUrl ? 'Zmień zdjęcie' : 'Dodaj zdjęcie'}
-                </div>
-              </Label>
-              <input
-                id="photo"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={isUploading}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG do 5MB
-              </p>
-            </div>
-          </div>
 
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Imię i nazwisko *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="np. Jan Kowalski"
-            />
-          </div>
-
-          {/* Hourly rate - admin only */}
-          {isAdmin && (
+            {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="rate">Stawka godzinowa (zł)</Label>
+              <Label htmlFor="name">Imię / ksywka *</Label>
               <Input
-                id="rate"
-                type="number"
-                min="0"
-                step="0.01"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
-                placeholder="np. 30"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="np. Jan, Kowal, Mechanik"
               />
             </div>
-          )}
 
-        </div>
+            {/* Hourly rate - admin only */}
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="rate">Stawka godzinowa (zł)</Label>
+                <Input
+                  id="rate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(e.target.value)}
+                  placeholder="np. 30"
+                />
+              </div>
+            )}
+          </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Anuluj
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {isEditing ? 'Zapisz' : 'Dodaj'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {isEditing && isAdmin && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setDeleteConfirmOpen(true)}
+                disabled={isDeleting}
+                className="sm:mr-auto"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Usuń
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isEditing ? 'Zapisz' : 'Dodaj'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Usuń pracownika"
+        description={`Czy na pewno chcesz usunąć pracownika "${employee?.name}"? Wpisy czasu pracy zostaną zachowane.`}
+        confirmLabel="Usuń"
+        onConfirm={handleDelete}
+        variant="destructive"
+      />
+    </>
   );
 };
 
