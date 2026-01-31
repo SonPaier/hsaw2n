@@ -53,6 +53,13 @@ interface Station {
 interface ServiceItem {
   service_id: string;
   custom_price: number | null;
+  name?: string; // Present in JSONB from database
+  id?: string; // Alias for service_id in some contexts
+  short_name?: string | null;
+  price_small?: number | null;
+  price_medium?: number | null;
+  price_large?: number | null;
+  price_from?: number | null;
 }
 
 interface Reservation {
@@ -520,8 +527,11 @@ const AdminDashboard = () => {
     originalReservationsMap: Map<string, any>
   ): Reservation[] => {
     return data.map(r => {
+      // Primary source: service_items JSONB (already contains names)
+      const serviceItems = r.service_items as unknown as ServiceItem[] | null;
       const serviceIds = (r as any).service_ids as string[] | null;
-      const servicesDataMapped: Array<{
+      
+      let servicesDataMapped: Array<{
         id?: string;
         name: string;
         shortcut?: string | null;
@@ -530,22 +540,26 @@ const AdminDashboard = () => {
         price_large?: number | null;
         price_from?: number | null;
       }> = [];
-      if (serviceIds && serviceIds.length > 0) {
+      
+      // Use service_items as primary source (has names embedded)
+      if (serviceItems && serviceItems.length > 0) {
+        servicesDataMapped = serviceItems.map(item => ({
+          id: item.id || item.service_id,
+          name: item.name || 'Usługa',
+          shortcut: item.short_name || null,
+          price_small: item.price_small ?? null,
+          price_medium: item.price_medium ?? null,
+          price_large: item.price_large ?? null,
+          price_from: item.price_from ?? null
+        }));
+      } else if (serviceIds && serviceIds.length > 0) {
+        // Fallback to service_ids lookup (for legacy reservations)
         serviceIds.forEach(id => {
           const svc = servicesMap.get(id);
           if (svc) {
             servicesDataMapped.push(svc);
-          } else {
-            // Graceful fallback for deleted services
-            servicesDataMapped.push({
-              name: '(usługa usunięta)',
-              shortcut: null,
-              price_small: null,
-              price_medium: null,
-              price_large: null,
-              price_from: null
-            });
           }
+          // Don't show "usługa usunięta" - skip if cache not ready
         });
       }
       
@@ -1017,12 +1031,32 @@ const AdminDashboard = () => {
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
+                // Primary source: service_items JSONB (already contains names)
+                const serviceItems = data.service_items as unknown as ServiceItem[] | null;
                 const serviceIds = (data as any).service_ids as string[] | null;
-                const servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
-                if (serviceIds && serviceIds.length > 0) {
+                
+                let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
+                
+                // Use service_items as primary source (has names embedded)
+                if (serviceItems && serviceItems.length > 0) {
+                  servicesDataMapped = serviceItems.map(item => ({
+                    id: item.id || item.service_id,
+                    name: item.name || 'Usługa',
+                    shortcut: item.short_name || null,
+                    price_small: item.price_small ?? null,
+                    price_medium: item.price_medium ?? null,
+                    price_large: item.price_large ?? null,
+                    price_from: item.price_from ?? null
+                  }));
+                } else if (serviceIds && serviceIds.length > 0) {
+                  // Fallback to service_ids lookup (for legacy reservations)
                   serviceIds.forEach(id => {
                     const svc = servicesMapRef.current.get(id);
-                    if (svc) servicesDataMapped.push(svc);
+                    if (svc) {
+                      servicesDataMapped.push(svc);
+                    }
+                    // Don't show "usługa usunięta" - just skip if not found in cache
+                    // The reservation still has the data, just wait for cache to load
                   });
                 }
 
