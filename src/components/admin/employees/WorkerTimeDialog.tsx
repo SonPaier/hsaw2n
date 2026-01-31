@@ -86,6 +86,11 @@ const WorkerTimeDialog = ({
     }
   };
 
+  // Get today's completed entries for this employee
+  const todayEmployeeEntries = timeEntries
+    .filter((e) => e.employee_id === employee.id && e.end_time)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
   // Calculate total time worked today
   const calculateTotalMinutes = () => {
     const employeeEntries = timeEntries.filter((e) => e.employee_id === employee.id);
@@ -141,9 +146,21 @@ const WorkerTimeDialog = ({
           <h2 className="text-xl font-semibold">{employee.name}</h2>
           
           {totalMinutes > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Dzisiaj: {formatDuration(totalMinutes)}
-            </p>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Dzisiaj: {formatDuration(totalMinutes)}
+              </p>
+              {todayEmployeeEntries.length > 0 && (
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  ({todayEmployeeEntries.map((e, i) => (
+                    <span key={e.id}>
+                      {i > 0 && ', '}
+                      {formatTimeFromISO(e.start_time)}-{formatTimeFromISO(e.end_time)}
+                    </span>
+                  ))})
+                </p>
+              )}
+            </div>
           )}
 
           <Separator className="my-2" />

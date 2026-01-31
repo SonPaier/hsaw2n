@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Palmtree } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
+import { useEmployeeDaysOff, useCreateEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
 
@@ -32,8 +33,15 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const dateTo = format(weekEnd, 'yyyy-MM-dd');
 
   const { data: timeEntries = [] } = useTimeEntries(instanceId, employee.id, dateFrom, dateTo);
+  const { data: daysOff = [] } = useEmployeeDaysOff(instanceId, employee.id);
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
+  const createDayOff = useCreateEmployeeDayOff(instanceId);
+
+  // Check if a date is a day off
+  const isDayOff = (dateStr: string) => {
+    return daysOff.some(d => dateStr >= d.date_from && dateStr <= d.date_to);
+  };
 
   // Group entries by date and sum minutes
   const minutesByDate = useMemo(() => {
@@ -116,6 +124,24 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     setEditingCell(null);
   };
 
+  const handleMarkDayOff = async () => {
+    if (!editingCell) return;
+    
+    try {
+      await createDayOff.mutateAsync({
+        employee_id: employee.id,
+        date_from: editingCell.date,
+        date_to: editingCell.date,
+        day_off_type: 'vacation',
+      });
+      toast.success('Zapisano jako wolne');
+      setEditingCell(null);
+    } catch (error) {
+      console.error('Day off error:', error);
+      toast.error('Błąd podczas zapisywania');
+    }
+  };
+
   // Calculate week total
   const weekTotal = useMemo(() => {
     let total = 0;
@@ -162,6 +188,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
           const totalMinutes = dayData?.totalMinutes || 0;
           const isToday = isSameDay(day, new Date());
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const isOff = isDayOff(dateStr);
           
           return (
             <div key={dateStr} className="flex flex-col">
@@ -180,13 +207,21 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
                 className={`border rounded-b p-2 text-center min-h-[48px] flex items-center justify-center transition-colors ${
                   isSelected
                     ? 'ring-2 ring-primary border-primary bg-primary/10'
-                    : totalMinutes > 0 
-                      ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' 
-                      : 'bg-background hover:bg-muted/50'
+                    : isOff
+                      ? 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
+                      : totalMinutes > 0 
+                        ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' 
+                        : 'bg-background hover:bg-muted/50'
                 }`}
               >
-                <span className={`text-sm font-medium ${totalMinutes > 0 ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
-                  {totalMinutes > 0 ? formatMinutes(totalMinutes) : '-'}
+                <span className={`text-sm font-medium ${
+                  isOff 
+                    ? 'text-orange-600 dark:text-orange-400' 
+                    : totalMinutes > 0 
+                      ? 'text-green-700 dark:text-green-300' 
+                      : 'text-muted-foreground'
+                }`}>
+                  {isOff ? 'Wolne' : totalMinutes > 0 ? formatMinutes(totalMinutes) : '-'}
                 </span>
               </button>
             </div>
@@ -220,7 +255,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
               placeholder="m"
             />
           </div>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center flex-wrap">
             <Button onClick={handleSaveEdit} size="sm" className="px-6">
               <Check className="w-4 h-4 mr-1" />
               Zapisz
@@ -228,6 +263,10 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
             <Button onClick={handleCancelEdit} size="sm" variant="ghost">
               <X className="w-4 h-4 mr-1" />
               Anuluj
+            </Button>
+            <Button onClick={handleMarkDayOff} size="sm" variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
+              <Palmtree className="w-4 h-4 mr-1" />
+              Wolne
             </Button>
           </div>
         </div>
