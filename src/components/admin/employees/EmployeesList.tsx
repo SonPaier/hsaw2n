@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,6 +22,8 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
   const canAddEmployee = isAdmin || isHall;
   
   const { data: employees = [], isLoading } = useEmployees(instanceId);
+  const { data: workersSettings } = useWorkersSettings(instanceId);
+  const startStopEnabled = workersSettings?.start_stop_enabled !== false;
   
   // Get today's time entries to show working status
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -91,7 +94,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
       )}
 
       {centered && canAddEmployee && (
-        <div className="flex justify-center mb-4 px-8">
+        <div className="flex justify-center mt-8 mb-4 px-8">
           <Button onClick={() => setDialogOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-1" />
             Dodaj pracownika
@@ -154,8 +157,8 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
                     )}
                   </div>
 
-                  {/* Working from time label */}
-                  {isWorking && workingFrom && (
+                  {/* Working from time label - only show when start/stop enabled */}
+                  {startStopEnabled && isWorking && workingFrom && (
                     <span className="text-xs text-primary mt-1">
                       W pracy od {workingFrom}
                     </span>
