@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, Loader2, FileText, Camera } from 'lucide-react';
+import { X, Loader2, FileText, Camera, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { useTranslation } from 'react-i18next';
 import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
+import { cn } from '@/lib/utils';
 
 interface HallReservationCardProps {
   reservation: {
@@ -18,10 +19,11 @@ interface HallReservationCardProps {
     start_time: string;
     end_time: string;
     status: string;
-    services_data?: Array<{ name: string }>;
+    services_data?: Array<{ id?: string; name: string }>;
     admin_notes?: string | null;
     instance_id: string;
     photo_urls?: string[] | null;
+    checked_service_ids?: string[] | null;
   };
   open: boolean;
   onClose: () => void;
@@ -30,6 +32,7 @@ interface HallReservationCardProps {
   onSendPickupSms: (id: string) => Promise<void>;
   onAddProtocol?: (reservation: HallReservationCardProps['reservation']) => void;
   onAddPhotos?: (reservation: HallReservationCardProps['reservation']) => void;
+  onServiceToggle?: (serviceId: string, checked: boolean) => Promise<void>;
 }
 
 const HallReservationCard = ({
@@ -41,6 +44,7 @@ const HallReservationCard = ({
   onSendPickupSms,
   onAddProtocol,
   onAddPhotos,
+  onServiceToggle,
 }: HallReservationCardProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | null>(null);
@@ -61,6 +65,7 @@ const HallReservationCard = ({
     services_data,
     admin_notes,
     photo_urls,
+    checked_service_ids,
   } = reservation;
 
   const normalizedStatus = (status ?? '').toLowerCase().trim();
@@ -205,14 +210,30 @@ const HallReservationCard = ({
               </span>
             </div>
 
-            {/* Services list - numbered, vertical, bold */}
+            {/* Services list - clickable with checkmark toggle */}
             {services_data && services_data.length > 0 && (
               <div className="space-y-1">
-                {services_data.map((service, idx) => (
-                  <div key={idx} className="text-2xl font-bold">
-                    {idx + 1}. {service.name}
-                  </div>
-                ))}
+                {services_data.map((service, idx) => {
+                  const isChecked = service.id && checked_service_ids?.includes(service.id);
+                  const canToggle = !!service.id && !!onServiceToggle;
+                  
+                  return (
+                    <div 
+                      key={service.id || idx} 
+                      className={cn(
+                        "text-2xl font-bold flex items-center gap-2",
+                        canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
+                        isChecked && "text-muted-foreground"
+                      )}
+                      onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}
+                    >
+                      <span className={isChecked ? "line-through" : ""}>
+                        {idx + 1}. {service.name}
+                      </span>
+                      {isChecked && <Check className="w-6 h-6 text-success" />}
+                    </div>
+                  );
+                })}
               </div>
             )}
 

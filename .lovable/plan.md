@@ -1,12 +1,12 @@
 
 # Plan implementacji - poprawki UI i optymalizacja cachowania
 
-## Podsumowanie zadań
+## ✅ WSZYSTKIE ZADANIA ZAKOŃCZONE
 
-1. **X w PhotoFullscreenDialog niewidoczny** - problem z z-index, trzeba naprawić styl
-2. **Klikalne usługi w HallReservationCard** - toggle checkmark
-3. **Optymalizacja cachowania** - React Query hooks ze staleTime
-4. **Filtr dat rezerwacji** - zmiana subMonths na subWeeks
+1. ✅ **X w PhotoFullscreenDialog** - biały okrąg z wyraźnym X (32px icon, 56px button)
+2. ✅ **Klikalne usługi w HallReservationCard** - toggle checkmark z zapisem do `checked_service_ids`
+3. ✅ **Optymalizacja cachowania** - React Query hooks (useStations, useBreaks, useClosedDays, useUnifiedServices, useWorkingHours)
+4. ✅ **Filtr dat rezerwacji** - zmiana z subMonths(2) na subWeeks(1) od poniedziałku
 
 ---
 
