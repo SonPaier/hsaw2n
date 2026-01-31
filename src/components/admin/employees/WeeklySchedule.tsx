@@ -272,15 +272,47 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
               placeholder="m"
             />
           </div>
-          <div className="flex gap-2 justify-center flex-wrap">
+          
+          {/* Time slots for the selected day */}
+          {(() => {
+            const dayData = minutesByDate.get(editingCell.date);
+            const dayEntries = dayData?.entries || [];
+            if (dayEntries.length === 0) return null;
+            
+            const formatTimeFromISO = (isoString: string | null) => {
+              if (!isoString) return '';
+              try {
+                return format(new Date(isoString), 'HH:mm');
+              } catch {
+                return '';
+              }
+            };
+            
+            return (
+              <div className="text-center text-lg font-medium text-muted-foreground">
+                ({dayEntries.map((entry, idx) => (
+                  <span key={entry.id}>
+                    {idx > 0 && ', '}
+                    {formatTimeFromISO(entry.start_time)}-{formatTimeFromISO(entry.end_time)}
+                  </span>
+                ))})
+              </div>
+            );
+          })()}
+          
+          {/* Action buttons - Anuluj left, Zapisz right */}
+          <div className="flex gap-2 justify-between">
+            <Button onClick={handleCancelEdit} size="sm" variant="outline" className="px-6">
+              <X className="w-4 h-4 mr-1" />
+              Anuluj
+            </Button>
             <Button onClick={handleSaveEdit} size="sm" className="px-6">
               <Check className="w-4 h-4 mr-1" />
               Zapisz
             </Button>
-            <Button onClick={handleCancelEdit} size="sm" variant="ghost">
-              <X className="w-4 h-4 mr-1" />
-              Anuluj
-            </Button>
+          </div>
+          {/* Wolne button centered below */}
+          <div className="flex justify-center">
             <Button onClick={handleMarkDayOff} size="sm" variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
               <Palmtree className="w-4 h-4 mr-1" />
               Wolne
