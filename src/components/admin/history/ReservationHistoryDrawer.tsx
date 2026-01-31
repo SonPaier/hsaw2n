@@ -74,13 +74,19 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     loadData();
   }, [open, reservationId, instanceId, hasUnifiedServices]);
 
+  // Handle close with explicit callback
+  const handleClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      onClose();
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onClose} modal={false}>
+    <Sheet open={open} onOpenChange={handleClose} modal={true}>
       <SheetContent
         side="right"
         className="w-full sm:max-w-[27rem] flex flex-col"
         hideCloseButton
-        hideOverlay
       >
         <SheetHeader className="flex-row items-center justify-between border-b pb-4">
           <div className="flex items-center gap-2">

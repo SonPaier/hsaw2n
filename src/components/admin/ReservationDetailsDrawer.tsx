@@ -877,7 +877,69 @@ const ReservationDetailsDrawer = ({
                     <DropdownMenuContent align="end" className="w-48" sideOffset={5} collisionPadding={16} avoidCollisions>
                       <DropdownMenuItem onClick={() => {
                         setActionsMenuOpen(false);
-                        setPhotosDialogOpen(true);
+                        // Trigger file input directly instead of opening dialog
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.multiple = true;
+                        fileInput.capture = 'environment';
+                        fileInput.onchange = async (e) => {
+                          const target = e.target as HTMLInputElement;
+                          const files = target.files;
+                          if (!files || files.length === 0 || !reservation) return;
+                          
+                          const maxPhotos = 8;
+                          const currentPhotos = reservationPhotos || [];
+                          const remainingSlots = maxPhotos - currentPhotos.length;
+                          
+                          if (remainingSlots <= 0) {
+                            toast.error(`Maksymalna liczba zdjęć: ${maxPhotos}`);
+                            return;
+                          }
+                          
+                          const filesToUpload = Array.from(files).slice(0, remainingSlots);
+                          
+                          try {
+                            const uploadedUrls: string[] = [];
+                            const { compressImage } = await import('@/lib/imageUtils');
+                            
+                            for (const file of filesToUpload) {
+                              const compressed = await compressImage(file, 1200, 0.8);
+                              const fileName = `reservation-${reservation.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                              
+                              const { error: uploadError } = await supabase.storage
+                                .from('reservation-photos')
+                                .upload(fileName, compressed, {
+                                  contentType: 'image/jpeg',
+                                  cacheControl: '3600',
+                                });
+                              
+                              if (uploadError) throw uploadError;
+                              
+                              const { data: urlData } = supabase.storage
+                                .from('reservation-photos')
+                                .getPublicUrl(fileName);
+                              
+                              uploadedUrls.push(urlData.publicUrl);
+                            }
+                            
+                            const newPhotos = [...currentPhotos, ...uploadedUrls];
+                            
+                            const { error: updateError } = await supabase
+                              .from('reservations')
+                              .update({ photo_urls: newPhotos })
+                              .eq('id', reservation.id);
+                            
+                            if (updateError) throw updateError;
+                            
+                            setReservationPhotos(newPhotos);
+                            toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
+                          } catch (error) {
+                            console.error('Error uploading photos:', error);
+                            toast.error('Błąd podczas przesyłania zdjęć');
+                          }
+                        };
+                        fileInput.click();
                       }}>
                         <Camera className="w-4 h-4 mr-2" />
                         Dodaj zdjęcia
@@ -983,7 +1045,71 @@ const ReservationDetailsDrawer = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48" sideOffset={5} collisionPadding={16} avoidCollisions>
-                      <DropdownMenuItem onClick={() => setPhotosDialogOpen(true)}>
+                      <DropdownMenuItem onClick={() => {
+                        // Trigger file input directly instead of opening dialog
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.multiple = true;
+                        fileInput.capture = 'environment';
+                        fileInput.onchange = async (e) => {
+                          const target = e.target as HTMLInputElement;
+                          const files = target.files;
+                          if (!files || files.length === 0 || !reservation) return;
+                          
+                          const maxPhotos = 8;
+                          const currentPhotos = reservationPhotos || [];
+                          const remainingSlots = maxPhotos - currentPhotos.length;
+                          
+                          if (remainingSlots <= 0) {
+                            toast.error(`Maksymalna liczba zdjęć: ${maxPhotos}`);
+                            return;
+                          }
+                          
+                          const filesToUpload = Array.from(files).slice(0, remainingSlots);
+                          
+                          try {
+                            const uploadedUrls: string[] = [];
+                            const { compressImage } = await import('@/lib/imageUtils');
+                            
+                            for (const file of filesToUpload) {
+                              const compressed = await compressImage(file, 1200, 0.8);
+                              const fileName = `reservation-${reservation.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                              
+                              const { error: uploadError } = await supabase.storage
+                                .from('reservation-photos')
+                                .upload(fileName, compressed, {
+                                  contentType: 'image/jpeg',
+                                  cacheControl: '3600',
+                                });
+                              
+                              if (uploadError) throw uploadError;
+                              
+                              const { data: urlData } = supabase.storage
+                                .from('reservation-photos')
+                                .getPublicUrl(fileName);
+                              
+                              uploadedUrls.push(urlData.publicUrl);
+                            }
+                            
+                            const newPhotos = [...currentPhotos, ...uploadedUrls];
+                            
+                            const { error: updateError } = await supabase
+                              .from('reservations')
+                              .update({ photo_urls: newPhotos })
+                              .eq('id', reservation.id);
+                            
+                            if (updateError) throw updateError;
+                            
+                            setReservationPhotos(newPhotos);
+                            toast.success(`Dodano ${uploadedUrls.length} zdjęć`);
+                          } catch (error) {
+                            console.error('Error uploading photos:', error);
+                            toast.error('Błąd podczas przesyłania zdjęć');
+                          }
+                        };
+                        fileInput.click();
+                      }}>
                         <Camera className="w-4 h-4 mr-2" />
                         Dodaj zdjęcia
                       </DropdownMenuItem>

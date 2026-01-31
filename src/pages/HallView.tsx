@@ -817,6 +817,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         confirmation_code,
         price,
         service_ids,
+        service_items,
+        has_unified_services,
+        admin_notes,
+        photo_urls,
+        checked_service_ids,
         stations:station_id (name, type)
       `)
       .eq('instance_id', instanceId);
@@ -826,8 +831,12 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         ...r,
         status: r.status || 'pending',
         service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
+        service_items: Array.isArray(r.service_items) ? r.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
         service: undefined, // Legacy relation removed
-        station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined
+        station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
+        has_unified_services: r.has_unified_services,
+        admin_notes: r.admin_notes,
+        checked_service_ids: Array.isArray(r.checked_service_ids) ? r.checked_service_ids as string[] : null,
       })));
     }
     setEditingReservation(null);
@@ -986,12 +995,20 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           open={!!selectedReservation}
           onClose={() => setSelectedReservation(null)}
           onStartWork={async (id) => {
-            await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
-            handleStatusChange(id, 'in_progress');
+            const { error } = await supabase.from('reservations').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', id);
+            if (!error) {
+              handleStatusChange(id, 'in_progress');
+            } else {
+              toast.error(t('common.error'));
+            }
           }}
           onEndWork={async (id) => {
-            await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
-            handleStatusChange(id, 'completed');
+            const { error } = await supabase.from('reservations').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+            if (!error) {
+              handleStatusChange(id, 'completed');
+            } else {
+              toast.error(t('common.error'));
+            }
           }}
           onSendPickupSms={handleSendPickupSms}
           onAddProtocol={canAccessProtocols ? handleAddProtocol : undefined}

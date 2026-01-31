@@ -495,11 +495,12 @@ const AdminDashboard = () => {
   }, [sidebarCollapsed]);
 
   // Calendar view now uses cached hooks - just fetch reservations
+  // Wait for cachedServices to be loaded before fetching reservations to prevent "usługa usunięta"
   useEffect(() => {
-    if (currentView === 'calendar') {
+    if (currentView === 'calendar' && cachedServices.length > 0) {
       fetchReservations();
     }
-  }, [currentView]);
+  }, [currentView, cachedServices.length]);
 
   // Fetch all services for multi-service mapping
   const fetchAllServices = async () => {
@@ -1036,6 +1037,10 @@ const AdminDashboard = () => {
                   } : undefined
                 };
                 setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
+                // Also update selectedReservation if viewing the same reservation
+                setSelectedReservation(prev => 
+                  prev?.id === payload.new.id ? updatedReservation as Reservation : prev
+                );
               }
             });
           } else if (payload.eventType === 'DELETE') {
