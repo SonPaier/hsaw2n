@@ -1012,6 +1012,8 @@ const AdminDashboard = () => {
               car_size,
               offer_number,
               photo_urls,
+              has_unified_services,
+              checked_service_ids,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -1034,7 +1036,10 @@ const AdminDashboard = () => {
                   station: data.stations ? {
                     name: (data.stations as any).name,
                     type: (data.stations as any).type
-                  } : undefined
+                  } : undefined,
+                  has_unified_services: (data as any).has_unified_services,
+                  photo_urls: (data as any).photo_urls,
+                  checked_service_ids: Array.isArray((data as any).checked_service_ids) ? (data as any).checked_service_ids as string[] : undefined
                 };
                 setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
                 // Also update selectedReservation if viewing the same reservation
