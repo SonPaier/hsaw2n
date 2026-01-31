@@ -499,6 +499,9 @@ export const PublicOfferCustomerView = ({
   const isAccepted = offer.status === 'accepted' || !!offer.approved_at;
   // In overlay mode, always allow interactions. In public mode, disabled when accepted and not editing
   const interactionsDisabled = mode === 'public' && isAccepted && !isEditMode;
+  
+  // Read-only mode: hide all interactive elements (buttons, selection UI)
+  const readonlyMode = true; // Temporarily make all offers read-only
 
   // Branding colors
   const brandingEnabled = instance?.offer_branding_enabled ?? false;
@@ -877,26 +880,28 @@ export const PublicOfferCustomerView = ({
                                     +{formatPrice(itemTotal)}
                                   </span>
                                 )}
-                                <Button
-                                  variant={isItemSelected ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleToggleOptionalItem(item.id)}
-                                  disabled={interactionsDisabled}
-                                  className="shrink-0"
-                                  style={isItemSelected ? { 
-                                    backgroundColor: branding.offer_primary_color, 
-                                    color: primaryButtonTextColor 
-                                  } : {}}
-                                >
-                                  {isItemSelected ? (
-                                    <>
-                                      <Check className="w-4 h-4 mr-1" />
-                                      Dodane
-                                    </>
-                                  ) : (
-                                    'Dodaj'
-                                  )}
-                                </Button>
+                                {!readonlyMode && (
+                                  <Button
+                                    variant={isItemSelected ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleToggleOptionalItem(item.id)}
+                                    disabled={interactionsDisabled}
+                                    className="shrink-0"
+                                    style={isItemSelected ? { 
+                                      backgroundColor: branding.offer_primary_color, 
+                                      color: primaryButtonTextColor 
+                                    } : {}}
+                                  >
+                                    {isItemSelected ? (
+                                      <>
+                                        <Check className="w-4 h-4 mr-1" />
+                                        Dodane
+                                      </>
+                                    ) : (
+                                      'Dodaj'
+                                    )}
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             {(item.custom_description || item.unified_services?.description) && (
@@ -926,26 +931,28 @@ export const PublicOfferCustomerView = ({
                                   +{formatPrice(itemTotal)}
                                 </span>
                               )}
-                              <Button
-                                variant={isItemSelected ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => handleToggleOptionalItem(item.id)}
-                                disabled={interactionsDisabled}
-                                className="shrink-0"
-                                style={isItemSelected ? { 
-                                  backgroundColor: branding.offer_primary_color, 
-                                  color: primaryButtonTextColor 
-                                } : {}}
-                              >
-                                {isItemSelected ? (
-                                  <>
-                                    <Check className="w-4 h-4 mr-1" />
-                                    Dodane
-                                  </>
-                                ) : (
-                                  'Dodaj'
-                                )}
-                              </Button>
+                              {!readonlyMode && (
+                                <Button
+                                  variant={isItemSelected ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleToggleOptionalItem(item.id)}
+                                  disabled={interactionsDisabled}
+                                  className="shrink-0"
+                                  style={isItemSelected ? { 
+                                    backgroundColor: branding.offer_primary_color, 
+                                    color: primaryButtonTextColor 
+                                  } : {}}
+                                >
+                                  {isItemSelected ? (
+                                    <>
+                                      <Check className="w-4 h-4 mr-1" />
+                                      Dodane
+                                    </>
+                                  ) : (
+                                    'Dodaj'
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -1052,8 +1059,9 @@ export const PublicOfferCustomerView = ({
                             <div
                               key={item.id}
                               className={cn(
-                                "rounded-lg border p-4 transition-all cursor-pointer",
-                                isItemSelected ? "ring-2" : "opacity-70 hover:opacity-100"
+                                "rounded-lg border p-4 transition-all",
+                                !readonlyMode && "cursor-pointer",
+                                isItemSelected ? "ring-2" : (!readonlyMode && "opacity-70 hover:opacity-100")
                               )}
                               style={{
                                 borderColor: isItemSelected ? branding.offer_primary_color : undefined,
@@ -1061,7 +1069,7 @@ export const PublicOfferCustomerView = ({
                                 backgroundColor: branding.offer_section_bg_color,
                               }}
                               onClick={() => {
-                                if (!interactionsDisabled) {
+                                if (!interactionsDisabled && !readonlyMode) {
                                   handleToggleScope(section.key, option.id, item.id);
                                 }
                               }}
@@ -1081,21 +1089,23 @@ export const PublicOfferCustomerView = ({
                                       {formatPrice(itemTotal)}
                                     </span>
                                   )}
-                                  <Button
-                                    variant={isItemSelected ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (!interactionsDisabled) {
-                                        handleToggleScope(section.key, option.id, item.id);
-                                      }
-                                    }}
-                                    disabled={interactionsDisabled}
-                                    className="shrink-0"
-                                    style={isItemSelected ? { backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor } : {}}
-                                  >
-                                    {isItemSelected ? (<><Check className="w-4 h-4 mr-1" />Dodana</>) : 'Dodaj'}
-                                  </Button>
+                                  {!readonlyMode && (
+                                    <Button
+                                      variant={isItemSelected ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!interactionsDisabled) {
+                                          handleToggleScope(section.key, option.id, item.id);
+                                        }
+                                      }}
+                                      disabled={interactionsDisabled}
+                                      className="shrink-0"
+                                      style={isItemSelected ? { backgroundColor: branding.offer_primary_color, color: primaryButtonTextColor } : {}}
+                                    >
+                                      {isItemSelected ? (<><Check className="w-4 h-4 mr-1" />Dodana</>) : 'Dodaj'}
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                               {description && (
@@ -1292,7 +1302,7 @@ export const PublicOfferCustomerView = ({
         )}
 
         {/* Actions - only in public mode */}
-        {mode === 'public' && (
+        {mode === 'public' && !readonlyMode && (
           <>
             {canRespond && (
               <Card 
