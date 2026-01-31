@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry } from '@/hooks/useTimeEntries';
 import { Employee } from '@/hooks/useEmployees';
+import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { toast } from 'sonner';
 import { Play, Square, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -30,6 +31,9 @@ const WorkerTimeDialog = ({
 }: WorkerTimeDialogProps) => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showSchedule, setShowSchedule] = useState(false);
+  
+  const { data: workersSettings } = useWorkersSettings(instanceId);
+  const startStopEnabled = workersSettings?.start_stop_enabled !== false; // default true
   
   const { data: timeEntries = [], refetch: refetchTimeEntries } = useTimeEntries(instanceId, undefined, today, today);
   
@@ -147,7 +151,7 @@ const WorkerTimeDialog = ({
           
           {totalMinutes > 0 && (
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-2xl font-bold">
                 Dzisiaj: {formatDuration(totalMinutes)}
               </p>
               {todayEmployeeEntries.length > 0 && (
@@ -165,72 +169,76 @@ const WorkerTimeDialog = ({
 
           <Separator className="my-2" />
 
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 text-sm">
-            <span
-              className={`w-3 h-3 rounded-full ${
-                isWorking ? 'bg-green-500' : 'bg-muted'
-              }`}
-            />
-            {isWorking && workStartTime && (
-              <span className="text-green-700 dark:text-green-400 font-medium">
-                W pracy od {workStartTime}
-              </span>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-col gap-3 w-full">
-            <div className="flex gap-3">
-              {!isWorking ? (
-                <Button
-                  onClick={handleStart}
-                  disabled={isLoading}
-                  className="flex-1 h-14 text-lg"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 mr-2" />
-                      Start
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleStop}
-                  disabled={isLoading}
-                  variant="destructive"
-                  className="flex-1 h-14 text-lg"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Square className="w-5 h-5 mr-2" />
-                      Stop
-                    </>
-                  )}
-                </Button>
+          {/* Status indicator - only show when start/stop is enabled */}
+          {startStopEnabled && (
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className={`w-3 h-3 rounded-full ${
+                  isWorking ? 'bg-green-500' : 'bg-muted'
+                }`}
+              />
+              {isWorking && workStartTime && (
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  W pracy od {workStartTime}
+                </span>
               )}
             </div>
+          )}
 
-            {/* View schedule button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowSchedule(!showSchedule)}
-              className="w-full bg-white dark:bg-card"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              {showSchedule ? 'Ukryj grafik' : 'Zobacz pełny grafik'}
-            </Button>
-          </div>
+          {/* Action buttons - only show when start/stop is enabled */}
+          {startStopEnabled && (
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex gap-3">
+                {!isWorking ? (
+                  <Button
+                    onClick={handleStart}
+                    disabled={isLoading}
+                    className="flex-1 h-14 text-lg"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5 mr-2" />
+                        Start
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleStop}
+                    disabled={isLoading}
+                    variant="destructive"
+                    className="flex-1 h-14 text-lg"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Square className="w-5 h-5 mr-2" />
+                        Stop
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
 
-          {/* Weekly schedule */}
-          {showSchedule && (
+              {/* View schedule button - only when start/stop enabled */}
+              <Button
+                variant="outline"
+                onClick={() => setShowSchedule(!showSchedule)}
+                className="w-full bg-white dark:bg-card"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                {showSchedule ? 'Ukryj grafik' : 'Zobacz grafik'}
+              </Button>
+            </div>
+          )}
+
+          {/* Weekly schedule - always visible when start/stop disabled, toggleable otherwise */}
+          {(startStopEnabled ? showSchedule : true) && (
             <div className="w-full mt-4">
               <WeeklySchedule employee={employee} instanceId={instanceId} />
             </div>
