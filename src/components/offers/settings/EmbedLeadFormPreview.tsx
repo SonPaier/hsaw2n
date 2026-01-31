@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { getContrastTextColor } from '@/lib/colorUtils';
 
 interface Template {
   id: string;
@@ -21,9 +22,17 @@ interface Extra {
   name: string;
 }
 
+interface BrandingColors {
+  bgColor: string;
+  sectionBgColor: string;
+  sectionTextColor: string;
+  primaryColor: string;
+}
+
 interface EmbedLeadFormPreviewProps {
   templates: Template[];
   extras: Extra[];
+  branding?: BrandingColors;
 }
 
 // Helper to format duration in Polish
@@ -34,11 +43,22 @@ const formatDuration = (months: number): string => {
   return `${years} lat`;
 };
 
-export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFormPreviewProps) {
+export default function EmbedLeadFormPreview({ templates, extras, branding }: EmbedLeadFormPreviewProps) {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
   const [selectedExtras, setSelectedExtras] = useState<Set<string>>(new Set());
   const [durationSelections, setDurationSelections] = useState<Record<string, number | null>>({});
+
+  // Default colors (fallback to blue theme)
+  const bgColor = branding?.bgColor || '#f8fafc';
+  const sectionBgColor = branding?.sectionBgColor || '#ffffff';
+  const sectionTextColor = branding?.sectionTextColor || '#1e293b';
+  const primaryColor = branding?.primaryColor || '#2563eb';
+  const primaryTextColor = getContrastTextColor(primaryColor);
+
+  // Computed colors for selections
+  const selectedBgColor = `${primaryColor}15`; // 15% opacity
+  const selectedBorderColor = primaryColor;
 
   const toggleDescription = (id: string) => {
     setExpandedDescriptions(prev => {
@@ -90,16 +110,16 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
   };
 
   return (
-    <div className="p-4 bg-slate-50 min-h-full">
+    <div className="p-4 min-h-full" style={{ backgroundColor: bgColor }}>
       <div className="max-w-md mx-auto space-y-4">
         {/* Header */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-4" style={{ color: sectionTextColor }}>
           <h1 className="text-lg font-bold">Zapytaj o wycenę</h1>
-          <p className="text-sm text-muted-foreground">Wypełnij formularz</p>
+          <p className="text-sm opacity-70">Wypełnij formularz</p>
         </div>
 
         {/* Customer Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+        <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <h2 className="font-medium text-sm">Dane kontaktowe</h2>
           
           <div className="space-y-1">
@@ -119,7 +139,7 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
         </div>
 
         {/* Vehicle Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+        <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <h2 className="font-medium text-sm">Pojazd</h2>
           
           <div className="space-y-1">
@@ -151,10 +171,10 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
         </div>
 
         {/* Templates Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+        <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <div>
             <h2 className="font-medium text-sm">Wybierz pakiet</h2>
-            <p className="text-xs text-muted-foreground">Możesz wybrać kilka</p>
+            <p className="text-xs opacity-70">Możesz wybrać kilka</p>
           </div>
           
           <div className="space-y-2">
@@ -168,27 +188,28 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
                   <button
                     type="button"
                     onClick={() => toggleTemplate(template.id)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border-2 transition-all",
-                      isSelected 
-                        ? "border-blue-500 bg-blue-50" 
-                        : "border-gray-200 hover:border-blue-300"
-                    )}
+                    className="w-full text-left p-3 rounded-lg border-2 transition-all"
+                    style={{
+                      backgroundColor: isSelected ? selectedBgColor : sectionBgColor,
+                      borderColor: isSelected ? selectedBorderColor : '#e5e7eb',
+                      color: sectionTextColor,
+                    }}
                   >
                     <div className="flex items-start gap-2">
                       <div 
-                        className={cn(
-                          "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
-                          isSelected ? "border-blue-500 bg-blue-500" : "border-gray-400"
-                        )}
+                        className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
+                        style={{
+                          borderColor: isSelected ? primaryColor : '#9ca3af',
+                          backgroundColor: isSelected ? primaryColor : 'transparent',
+                        }}
                       >
-                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                        {isSelected && <Check className="w-3 h-3" style={{ color: primaryTextColor }} />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium text-sm">{template.name}</p>
                           {template.price_from && (
-                            <span className="text-xs font-medium text-blue-600 whitespace-nowrap">
+                            <span className="text-xs font-medium whitespace-nowrap" style={{ color: primaryColor }}>
                               od {template.price_from} zł
                             </span>
                           )}
@@ -199,73 +220,73 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
                   
                   {/* Duration selection - only show if template is selected and has durations */}
                   {isSelected && hasDurations && (
-                    <div className="ml-6 p-2 bg-muted/30 rounded-lg space-y-1.5">
+                    <div className="ml-6 p-2 rounded-lg space-y-1.5" style={{ backgroundColor: `${primaryColor}10` }}>
                       <p className="text-xs font-medium">Pakiet powłoki:</p>
                       <div className="grid gap-1">
-                        {template.available_durations!.map((months) => (
-                          <label
-                            key={months}
-                            className={cn(
-                              "flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors",
-                              durationSelections[template.id] === months
-                                ? "bg-blue-100"
-                                : "hover:bg-muted/50"
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "w-3 h-3 rounded-full border-2 flex items-center justify-center",
-                                durationSelections[template.id] === months
-                                  ? "border-blue-500"
-                                  : "border-gray-400"
-                              )}
+                        {template.available_durations!.map((months) => {
+                          const isDurationSelected = durationSelections[template.id] === months;
+                          return (
+                            <label
+                              key={months}
+                              className="flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: isDurationSelected ? selectedBgColor : 'transparent',
+                              }}
                             >
-                              {durationSelections[template.id] === months && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                              )}
-                            </div>
-                            <span className="text-xs">{formatDuration(months)}</span>
-                            <input
-                              type="radio"
-                              name={`duration-${template.id}`}
-                              value={months}
-                              checked={durationSelections[template.id] === months}
-                              onChange={() => setDurationSelection(template.id, months)}
-                              className="sr-only"
-                            />
-                          </label>
-                        ))}
+                              <div
+                                className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                                style={{
+                                  borderColor: isDurationSelected ? primaryColor : '#9ca3af',
+                                }}
+                              >
+                                {isDurationSelected && (
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                )}
+                              </div>
+                              <span className="text-xs">{formatDuration(months)}</span>
+                              <input
+                                type="radio"
+                                name={`duration-${template.id}`}
+                                value={months}
+                                checked={isDurationSelected}
+                                onChange={() => setDurationSelection(template.id, months)}
+                                className="sr-only"
+                              />
+                            </label>
+                          );
+                        })}
                         {/* "Nie wiem" option */}
-                        <label
-                          className={cn(
-                            "flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors",
-                            durationSelections[template.id] === null && template.id in durationSelections
-                              ? "bg-blue-100"
-                              : "hover:bg-muted/50"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "w-3 h-3 rounded-full border-2 flex items-center justify-center",
-                              durationSelections[template.id] === null && template.id in durationSelections
-                                ? "border-blue-500"
-                                : "border-gray-400"
-                            )}
-                          >
-                            {durationSelections[template.id] === null && template.id in durationSelections && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                            )}
-                          </div>
-                          <span className="text-xs">Nie wiem, proszę o propozycję</span>
-                          <input
-                            type="radio"
-                            name={`duration-${template.id}`}
-                            value="null"
-                            checked={durationSelections[template.id] === null && template.id in durationSelections}
-                            onChange={() => setDurationSelection(template.id, null)}
-                            className="sr-only"
-                          />
-                        </label>
+                        {(() => {
+                          const isNieWiemSelected = durationSelections[template.id] === null && template.id in durationSelections;
+                          return (
+                            <label
+                              className="flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: isNieWiemSelected ? selectedBgColor : 'transparent',
+                              }}
+                            >
+                              <div
+                                className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                                style={{
+                                  borderColor: isNieWiemSelected ? primaryColor : '#9ca3af',
+                                }}
+                              >
+                                {isNieWiemSelected && (
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                )}
+                              </div>
+                              <span className="text-xs">Nie wiem, proszę o propozycję</span>
+                              <input
+                                type="radio"
+                                name={`duration-${template.id}`}
+                                value="null"
+                                checked={isNieWiemSelected}
+                                onChange={() => setDurationSelection(template.id, null)}
+                                className="sr-only"
+                              />
+                            </label>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -278,7 +299,8 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
                           e.stopPropagation();
                           toggleDescription(template.id);
                         }}
-                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-xs hover:underline flex items-center gap-1"
+                        style={{ color: primaryColor }}
                       >
                         Czytaj więcej...
                         {isExpanded ? (
@@ -288,7 +310,7 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
                         )}
                       </button>
                       {isExpanded && (
-                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                        <p className="text-xs opacity-70 mt-1 whitespace-pre-wrap">
                           {template.description}
                         </p>
                       )}
@@ -308,10 +330,10 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
 
         {/* Extras Section */}
         {extras.length > 0 && (
-          <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+          <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
             <div>
               <h2 className="font-medium text-sm">Dodatki</h2>
-              <p className="text-xs text-muted-foreground">Opcjonalne usługi</p>
+              <p className="text-xs opacity-70">Opcjonalne usługi</p>
             </div>
             
             <div className="space-y-2">
@@ -322,20 +344,21 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
                     key={extra.id}
                     type="button"
                     onClick={() => toggleExtra(extra.id)}
-                    className={cn(
-                      "w-full text-left p-2 rounded-lg border transition-all flex items-center gap-2",
-                      isSelected 
-                        ? "border-blue-500 bg-blue-50" 
-                        : "border-gray-200 hover:border-blue-300"
-                    )}
+                    className="w-full text-left p-2 rounded-lg border transition-all flex items-center gap-2"
+                    style={{
+                      backgroundColor: isSelected ? selectedBgColor : sectionBgColor,
+                      borderColor: isSelected ? selectedBorderColor : '#e5e7eb',
+                      color: sectionTextColor,
+                    }}
                   >
                     <div 
-                      className={cn(
-                        "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
-                        isSelected ? "border-blue-500 bg-blue-500" : "border-gray-400"
-                      )}
+                      className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0"
+                      style={{
+                        borderColor: isSelected ? primaryColor : '#9ca3af',
+                        backgroundColor: isSelected ? primaryColor : 'transparent',
+                      }}
                     >
-                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                      {isSelected && <Check className="w-3 h-3" style={{ color: primaryTextColor }} />}
                     </div>
                     <span className="text-sm">{extra.name}</span>
                   </button>
@@ -346,10 +369,10 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
         )}
 
         {/* Planned Date Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+        <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <div>
             <h2 className="font-medium text-sm">Planowany termin realizacji</h2>
-            <p className="text-xs text-muted-foreground">Kiedy chciałbyś zrealizować usługę?</p>
+            <p className="text-xs opacity-70">Kiedy chciałbyś zrealizować usługę?</p>
           </div>
           
           <Button variant="outline" className="w-full h-8 justify-start text-sm" disabled>
@@ -359,7 +382,7 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
         </div>
 
         {/* Budget & Notes Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm space-y-3">
+        <div className="rounded-lg p-3 shadow-sm space-y-3" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <h2 className="font-medium text-sm">Dodatkowe informacje</h2>
           
           <div className="space-y-1">
@@ -379,17 +402,24 @@ export default function EmbedLeadFormPreview({ templates, extras }: EmbedLeadFor
         </div>
 
         {/* GDPR Section */}
-        <div className="bg-white rounded-lg p-3 shadow-sm">
+        <div className="rounded-lg p-3 shadow-sm" style={{ backgroundColor: sectionBgColor, color: sectionTextColor }}>
           <div className="flex items-start gap-2">
             <Checkbox disabled className="mt-0.5" />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs opacity-70">
               Wyrażam zgodę na przetwarzanie moich danych osobowych...
             </p>
           </div>
         </div>
 
         {/* Submit Button */}
-        <Button className="w-full h-10" disabled>
+        <Button 
+          className="w-full h-10" 
+          disabled
+          style={{ 
+            backgroundColor: primaryColor, 
+            color: primaryTextColor,
+          }}
+        >
           Wyślij zapytanie
         </Button>
       </div>

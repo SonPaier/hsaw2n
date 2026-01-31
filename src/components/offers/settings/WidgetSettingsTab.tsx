@@ -62,16 +62,22 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
   });
   const [instanceSlug, setInstanceSlug] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [branding, setBranding] = useState<{
+    bgColor: string;
+    sectionBgColor: string;
+    sectionTextColor: string;
+    primaryColor: string;
+  } | null>(null);
 
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch instance with widget_config
+        // Fetch instance with widget_config and branding colors
         const { data: instance } = await supabase
           .from('instances')
-          .select('slug, widget_config')
+          .select('slug, widget_config, offer_branding_enabled, offer_bg_color, offer_section_bg_color, offer_section_text_color, offer_primary_color')
           .eq('id', instanceId)
           .single();
 
@@ -83,6 +89,18 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
               visible_templates: parsed.visible_templates || [],
               extras: parsed.extras || [],
             });
+          }
+          
+          // Set branding if enabled
+          if (instance.offer_branding_enabled) {
+            setBranding({
+              bgColor: instance.offer_bg_color || '#f8fafc',
+              sectionBgColor: instance.offer_section_bg_color || '#ffffff',
+              sectionTextColor: instance.offer_section_text_color || '#1e293b',
+              primaryColor: instance.offer_primary_color || '#2563eb',
+            });
+          } else {
+            setBranding(null);
           }
         }
 
@@ -513,6 +531,7 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
               id: e.service_id,
               name: e.custom_label || getServiceName(e.service_id),
             }))}
+            branding={branding || undefined}
           />
         </ScrollArea>
       </div>
