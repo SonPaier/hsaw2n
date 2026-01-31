@@ -27,6 +27,7 @@ const WorkersSettingsDrawer = ({
   const [overtimeEnabled, setOvertimeEnabled] = useState(false);
   const [standardHours, setStandardHours] = useState('8');
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'weekly'>('monthly');
+  const [timeCalculationMode, setTimeCalculationMode] = useState<'start_to_stop' | 'opening_to_stop'>('start_to_stop');
 
   // Sync form state with fetched settings
   useEffect(() => {
@@ -35,6 +36,7 @@ const WorkersSettingsDrawer = ({
       setOvertimeEnabled(settings.overtime_enabled ?? false);
       setStandardHours(settings.standard_hours_per_day?.toString() ?? '8');
       setReportFrequency(settings.report_frequency ?? 'monthly');
+      setTimeCalculationMode(settings.time_calculation_mode ?? 'start_to_stop');
     }
   }, [settings]);
 
@@ -49,6 +51,7 @@ const WorkersSettingsDrawer = ({
         overtime_enabled: overtimeEnabled,
         standard_hours_per_day: parseInt(standardHours) || 8,
         report_frequency: reportFrequency,
+        time_calculation_mode: timeCalculationMode,
       });
       toast.success('Ustawienia zostały zapisane');
       handleClose();
@@ -93,6 +96,30 @@ const WorkersSettingsDrawer = ({
                   onCheckedChange={setStartStopEnabled} 
                 />
               </div>
+
+              {/* Time calculation mode - only when Start/Stop enabled */}
+              {startStopEnabled && (
+                <div className="space-y-3">
+                  <Label>Jak liczyć czas?</Label>
+                  <RadioGroup 
+                    value={timeCalculationMode} 
+                    onValueChange={(v) => setTimeCalculationMode(v as 'start_to_stop' | 'opening_to_stop')}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="start_to_stop" id="start-to-stop" />
+                      <Label htmlFor="start-to-stop" className="font-normal cursor-pointer">
+                        Od kliknięcia start do stop
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="opening_to_stop" id="opening-to-stop" />
+                      <Label htmlFor="opening-to-stop" className="font-normal cursor-pointer">
+                        Od otwarcia myjni do stop
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
               {/* Switch: Nadgodziny */}
               <div className="flex items-center justify-between">

@@ -151,18 +151,26 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   // Calculate period totals (works for both weekly and monthly)
   const periodSummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
 
-  // Calculate total earnings (admin only) - uses real time (after pre-opening deduction)
+  // Time calculation mode from settings (default: start_to_stop)
+  const timeCalculationMode = workersSettings?.time_calculation_mode ?? 'start_to_stop';
+
+  // Calculate total earnings (admin only) - based on time calculation mode
   const totalEarnings = useMemo(() => {
     return activeEmployees.reduce((sum, employee) => {
       const summary = periodSummary.get(employee.id);
       if (summary && employee.hourly_rate) {
         const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-        const realMinutes = Math.max(0, summary.total_minutes - preOpeningMinutes);
-        return sum + (realMinutes / 60) * employee.hourly_rate;
+        // If mode is opening_to_stop and we have pre-opening time, use real time
+        // Edge case: if preOpeningMinutes is 0 in opening_to_stop mode, it might be because
+        // there were no opening hours defined - in that case, use total time
+        const displayMinutes = timeCalculationMode === 'opening_to_stop'
+          ? Math.max(0, summary.total_minutes - preOpeningMinutes)
+          : summary.total_minutes;
+        return sum + (displayMinutes / 60) * employee.hourly_rate;
       }
       return sum;
     }, 0);
-  }, [activeEmployees, periodSummary, preOpeningByEmployee]);
+  }, [activeEmployees, periodSummary, preOpeningByEmployee, timeCalculationMode]);
 
   // Get days off for this period
   const getDaysOffForEmployee = (employeeId: string) => {
@@ -385,15 +393,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               const summary = periodSummary.get(employee.id);
               const totalMinutes = summary?.total_minutes || 0;
               const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-              const realMinutes = Math.max(0, totalMinutes - preOpeningMinutes);
               
-              const totalHours = formatMinutesToTime(totalMinutes);
-              const preOpeningHours = formatMinutesToTime(preOpeningMinutes);
-              const realHours = formatMinutesToTime(realMinutes);
+              // Calculate display minutes based on time calculation mode
+              const displayMinutes = timeCalculationMode === 'opening_to_stop'
+                ? Math.max(0, totalMinutes - preOpeningMinutes)
+                : totalMinutes;
               
-              // Earnings based on real time (after pre-opening deduction)
+              const displayHours = formatMinutesToTime(displayMinutes);
+              
+              // Earnings based on display time
               const earnings = employee.hourly_rate 
-                ? ((realMinutes / 60) * employee.hourly_rate).toFixed(2)
+                ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
                 : null;
               const employeeDaysOff = getDaysOffForEmployee(employee.id);
               const formattedDaysOff = formatDaysOffForPeriod(employeeDaysOff);
@@ -426,18 +436,12 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                       <div className="flex-1 min-w-0">
                         <span className="font-medium truncate block">{employee.name}</span>
                         
-                        {/* Hours summary - always show all three times for admin */}
+                        {/* Hours summary - simplified view with single "Czas" line */}
                         {isAdmin ? (
                           <div className="mt-1.5 space-y-1 text-sm">
                             <div className="flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span>Łącznie: <span className="font-semibold">{totalHours}</span></span>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Przed otwarciem: {preOpeningHours}
-                            </div>
-                            <div className="text-sm mt-1.5">
-                              Od otwarcia: <span className="font-semibold">{realHours}</span>
+                              <span>Czas: <span className="font-semibold">{displayHours}</span></span>
                             </div>
                             {earnings && (
                               <div className="text-base font-semibold mt-1.5">
@@ -448,7 +452,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         ) : (
                           <div className="flex items-center gap-1 mt-1 text-sm">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="font-semibold">{totalHours}</span>
+                            <span className="font-semibold">{displayHours}</span>
                           </div>
                         )}
                         
