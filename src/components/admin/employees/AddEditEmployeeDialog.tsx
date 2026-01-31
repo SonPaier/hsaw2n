@@ -21,6 +21,7 @@ interface AddEditEmployeeDialogProps {
   onOpenChange: (open: boolean) => void;
   instanceId: string | null;
   employee?: Employee | null;
+  isAdmin?: boolean;
 }
 
 const AddEditEmployeeDialog = ({
@@ -28,6 +29,7 @@ const AddEditEmployeeDialog = ({
   onOpenChange,
   instanceId,
   employee,
+  isAdmin = true,
 }: AddEditEmployeeDialogProps) => {
   const [name, setName] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
@@ -191,29 +193,22 @@ const AddEditEmployeeDialog = ({
             />
           </div>
 
-          {/* Hourly rate */}
-          <div className="space-y-2">
-            <Label htmlFor="rate">Stawka godzinowa (zł)</Label>
-            <Input
-              id="rate"
-              type="number"
-              min="0"
-              step="0.01"
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
-              placeholder="np. 30"
-            />
-          </div>
+          {/* Hourly rate - admin only */}
+          {isAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="rate">Stawka godzinowa (zł)</Label>
+              <Input
+                id="rate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                placeholder="np. 30"
+              />
+            </div>
+          )}
 
-          {/* Active switch */}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="active">Aktywny pracownik</Label>
-            <Switch
-              id="active"
-              checked={active}
-              onCheckedChange={setActive}
-            />
-          </div>
         </div>
 
         <DialogFooter>

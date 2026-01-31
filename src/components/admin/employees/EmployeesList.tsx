@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useEmployees, useDeleteEmployee, Employee } from '@/hooks/useEmployees';
+import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, User, Loader2 } from 'lucide-react';
+import { Plus, Pencil, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
+import WorkerTimeDialog from './WorkerTimeDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface EmployeesListProps {
@@ -14,17 +16,30 @@ interface EmployeesListProps {
 }
 
 const EmployeesList = ({ instanceId }: EmployeesListProps) => {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin') || hasRole('super_admin');
+  
   const { data: employees = [], isLoading } = useEmployees(instanceId);
   const deleteEmployee = useDeleteEmployee(instanceId);
   
+  // Get today's time entries to show working status
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: timeEntries = [] } = useTimeEntries(instanceId, undefined, today, today);
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [workerDialogEmployee, setWorkerDialogEmployee] = useState<Employee | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
-  const handleEdit = (employee: Employee) => {
+  const handleEdit = (e: React.MouseEvent, employee: Employee) => {
+    e.stopPropagation();
     setEditingEmployee(employee);
     setDialogOpen(true);
+  };
+
+  const handleTileClick = (employee: Employee) => {
+    setWorkerDialogEmployee(employee);
   };
 
   const handleDelete = async () => {
@@ -45,6 +60,13 @@ const EmployeesList = ({ instanceId }: EmployeesListProps) => {
     setEditingEmployee(null);
   };
 
+  // Check if employee is currently working (has active time entry)
+  const isEmployeeWorking = (employeeId: string) => {
+    return timeEntries.some(
+      (e) => e.employee_id === employeeId && !e.end_time
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -57,77 +79,69 @@ const EmployeesList = ({ instanceId }: EmployeesListProps) => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Lista pracowników</h2>
-        <Button onClick={() => setDialogOpen(true)} size="sm">
-          <Plus className="w-4 h-4 mr-1" />
-          Dodaj pracownika
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Plus className="w-4 h-4 mr-1" />
+            Dodaj pracownika
+          </Button>
+        )}
       </div>
 
       {employees.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">Brak pracowników</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Dodaj pierwszego pracownika, aby rozpocząć rejestrację czasu pracy
-            </p>
+        <div className="py-12 text-center">
+          <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+          <p className="text-muted-foreground">Brak pracowników</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Dodaj pierwszego pracownika, aby rozpocząć rejestrację czasu pracy
+          </p>
+          {isAdmin && (
             <Button onClick={() => setDialogOpen(true)} className="mt-4">
               <Plus className="w-4 h-4 mr-1" />
               Dodaj pracownika
             </Button>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {employees.map((employee) => (
-            <Card key={employee.id} className="relative group">
-              <CardHeader className="pb-2">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {employee.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base truncate">{employee.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={employee.active ? 'default' : 'secondary'}>
-                        {employee.active ? 'Aktywny' : 'Nieaktywny'}
-                      </Badge>
-                    </div>
-                  </div>
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {employees.map((employee) => {
+            const isWorking = isEmployeeWorking(employee.id);
+            
+            return (
+              <div
+                key={employee.id}
+                onClick={() => handleTileClick(employee)}
+                className="relative flex flex-col items-center p-4 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
+              >
+                {/* Working status indicator */}
+                <div
+                  className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
+                    isWorking ? 'bg-green-500' : 'bg-muted'
+                  }`}
+                />
+                
+                <Avatar className="h-20 w-20 mb-3">
+                  <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {employee.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium text-center truncate max-w-[120px]">
+                    {employee.name}
+                  </span>
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => handleEdit(e, employee)}
+                      className="p-1 rounded hover:bg-muted"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="pt-2">
-                {employee.hourly_rate && (
-                  <p className="text-sm text-muted-foreground">
-                    Stawka: <span className="font-medium">{employee.hourly_rate} zł/h</span>
-                  </p>
-                )}
-                <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(employee)}
-                  >
-                    <Pencil className="w-3.5 h-3.5 mr-1" />
-                    Edytuj
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmployeeToDelete(employee);
-                      setDeleteConfirmOpen(true);
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -136,7 +150,17 @@ const EmployeesList = ({ instanceId }: EmployeesListProps) => {
         onOpenChange={handleDialogClose}
         instanceId={instanceId}
         employee={editingEmployee}
+        isAdmin={isAdmin}
       />
+
+      {workerDialogEmployee && instanceId && (
+        <WorkerTimeDialog
+          open={!!workerDialogEmployee}
+          onOpenChange={(open) => !open && setWorkerDialogEmployee(null)}
+          employee={workerDialogEmployee}
+          instanceId={instanceId}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteConfirmOpen}
