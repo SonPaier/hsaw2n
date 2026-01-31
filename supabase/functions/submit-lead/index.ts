@@ -328,89 +328,34 @@ async function sendLeadConfirmationEmail(
   // Build extras section (if any)
   let extrasSection = '';
   if (offerDetails.extra_service_ids && offerDetails.extra_service_ids.length > 0) {
-    // We don't have extras names here, just show count
-    extrasSection = `
-      <div class="summary-label">Dodatki</div>
-      <div class="summary-value">${offerDetails.extra_service_ids.length} dodatkowych usług</div>
-    `;
+    extrasSection = `<div style="font-size:12px;color:#666;text-transform:uppercase;margin-bottom:4px;">Dodatki</div><div style="font-size:14px;margin-bottom:12px;">${offerDetails.extra_service_ids.length} dodatkowych usług</div>`;
   }
 
   // Build budget section
   let budgetSection = '';
   if (offerDetails.budget_suggestion) {
-    budgetSection = `
-      <div class="summary-label">Budżet</div>
-      <div class="summary-value">${offerDetails.budget_suggestion.toLocaleString('pl-PL')} zł</div>
-    `;
+    budgetSection = `<div style="font-size:12px;color:#666;text-transform:uppercase;margin-bottom:4px;">Budżet</div><div style="font-size:14px;margin-bottom:12px;">${offerDetails.budget_suggestion.toLocaleString('pl-PL')} zł</div>`;
   }
 
   // Build notes section
   let notesSection = '';
   if (offerDetails.additional_notes) {
-    notesSection = `
-      <div class="summary-label">Twoje uwagi</div>
-      <div class="summary-value">${offerDetails.additional_notes}</div>
-    `;
+    notesSection = `<div style="font-size:12px;color:#666;text-transform:uppercase;margin-bottom:4px;">Twoje uwagi</div><div style="font-size:14px;margin-bottom:12px;">${offerDetails.additional_notes}</div>`;
   }
 
   // Build portfolio section
   let portfolioSection = '';
   const portfolioLinksHtml = buildPortfolioLinksHtml(instance.social_instagram, instance.offer_portfolio_url);
   if (portfolioLinksHtml) {
-    portfolioSection = `
-    <div style="background-color: #f0f4f8; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
-      <p style="margin: 0 0 8px 0; font-weight: 500;">Zapraszamy do odwiedzenia naszego portfolio:</p>
-      <div style="margin-top: 12px;">
-        ${portfolioLinksHtml}
-      </div>
-    </div>
-    `;
+    portfolioSection = `<div style="background-color:#f0f4f8;border-radius:8px;padding:16px;margin:20px 0;text-align:center;"><p style="margin:0 0 8px 0;font-weight:500;">Zapraszamy do odwiedzenia naszego portfolio:</p><div style="margin-top:12px;">${portfolioLinksHtml}</div></div>`;
   }
 
   // Build footer rows
-  const phoneRow = instance.phone ? `<div style="margin-bottom: 8px;">📞 ${instance.phone}</div>` : '';
-  const addressRow = instance.address ? `<div style="margin-bottom: 8px;">📍 ${instance.address}</div>` : '';
-  const websiteRow = instance.website ? `<div style="margin-bottom: 8px;">🌐 <a href="${instance.website}" style="color: #2563eb; text-decoration: none;">${instance.website}</a></div>` : '';
+  const phoneRow = instance.phone ? `<div style="margin-bottom:8px;">📞 ${instance.phone}</div>` : '';
+  const addressRow = instance.address ? `<div style="margin-bottom:8px;">📍 ${instance.address}</div>` : '';
+  const websiteRow = instance.website ? `<div style="margin-bottom:8px;">🌐 <a href="${instance.website}" style="color:#2563eb;text-decoration:none;">${instance.website}</a></div>` : '';
 
-  const emailHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <p>Dzień dobry <strong>${customerData.name}</strong>,</p>
-    <p>dziękujemy za przesłanie zapytania! Poniżej znajdziesz podsumowanie Twojego zgłoszenia.</p>
-    
-    <div style="background-color: #f8f9fa; border-radius: 8px; padding: 16px; margin: 20px 0;">
-      <div style="font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 4px;">Pojazd</div>
-      <div style="font-size: 14px; margin-bottom: 12px;">${vehicleInfo}</div>
-      
-      <div style="font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 4px;">Wybrane usługi</div>
-      <ul style="margin: 0 0 12px 0; padding-left: 20px;">${servicesHtml}</ul>
-      
-      ${extrasSection}
-      ${budgetSection}
-      ${notesSection}
-    </div>
-    
-    <p>Twoje zapytanie zostało przekazane do naszego zespołu. Skontaktujemy się z Tobą wkrótce z indywidualną wyceną.</p>
-    
-    ${portfolioSection}
-    
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #666;">
-      <p style="margin-bottom: 15px;">Pozdrawiamy serdecznie,<br><strong>${instance.name}</strong>${instance.contact_person ? `<br>${instance.contact_person}` : ''}</p>
-      ${phoneRow}
-      ${addressRow}
-      ${websiteRow}
-    </div>
-    
-    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e5e5; font-size: 10px; color: #999; text-align: center;">
-      Email generowany automatycznie przy użyciu systemu CRM dla studiów detailingu i myjni n2wash.com
-    </div>
-  </div>
-</body>
-</html>`;
+  const emailHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;"><div style="max-width:600px;margin:0 auto;padding:20px;"><p>Dzień dobry <strong>${customerData.name}</strong>,</p><p>dziękujemy za przesłanie zapytania! Poniżej znajdziesz podsumowanie Twojego zgłoszenia.</p><div style="background-color:#f8f9fa;border-radius:8px;padding:16px;margin:20px 0;"><div style="font-size:12px;color:#666;text-transform:uppercase;margin-bottom:4px;">Pojazd</div><div style="font-size:14px;margin-bottom:12px;">${vehicleInfo}</div><div style="font-size:12px;color:#666;text-transform:uppercase;margin-bottom:4px;">Wybrane usługi</div><ul style="margin:0 0 12px 0;padding-left:20px;">${servicesHtml}</ul>${extrasSection}${budgetSection}${notesSection}</div><p>Twoje zapytanie zostało przekazane do naszego zespołu. Skontaktujemy się z Tobą wkrótce z indywidualną wyceną.</p>${portfolioSection}<div style="margin-top:30px;padding-top:20px;border-top:1px solid #e5e5e5;font-size:13px;color:#666;"><p style="margin-bottom:15px;">Pozdrawiamy serdecznie,<br><strong>${instance.name}</strong>${instance.contact_person ? `<br>${instance.contact_person}` : ''}</p>${phoneRow}${addressRow}${websiteRow}</div><div style="margin-top:20px;padding-top:15px;border-top:1px solid #e5e5e5;font-size:10px;color:#999;text-align:center;">Email generowany automatycznie przy użyciu systemu CRM dla studiów detailingu i myjni n2wash.com</div></div></body></html>`;
 
   const client = new SMTPClient({
     connection: {
