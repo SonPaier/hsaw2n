@@ -3273,6 +3273,8 @@ export type Database = {
           station_id: string
         }[]
       }
+      get_offer_instance_id: { Args: { p_offer_id: string }; Returns: string }
+      get_option_instance_id: { Args: { p_option_id: string }; Returns: string }
       has_employee_permission: {
         Args: { _feature_key: string; _instance_id: string; _user_id: string }
         Returns: boolean

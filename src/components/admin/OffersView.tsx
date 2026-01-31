@@ -39,6 +39,7 @@ import { OfferServiceEditView } from '@/components/offers/services/OfferServiceE
 import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
 import { OfferFollowUpStatus } from './OfferFollowUpStatus';
 import { OfferPreviewDialogByToken } from './OfferPreviewDialogByToken';
+import { useOfferScopes } from '@/hooks/useOfferScopes';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -188,6 +189,16 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // Preview dialog state
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; token: string | null }>({ open: false, token: null });
 
+  // CACHED HOOK - offer scopes with 7-day staleTime
+  const { data: cachedScopes = [] } = useOfferScopes(instanceId);
+  
+  // Build scopes map from cached data
+  const scopesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    cachedScopes.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, [cachedScopes]);
+
   // Reset generator state when clicking sidebar link (same route navigation)
   useEffect(() => {
     if (showGenerator || showServicesView) {
@@ -228,20 +239,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       
       if (error) throw error;
 
-      // Fetch unique scope names for badges
-      const scopeIds = [...new Set((data || []).flatMap(o => 
-        o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || []
-      ))];
-
-      let scopesMap: Record<string, string> = {};
-      if (scopeIds.length > 0) {
-        const { data: scopesData } = await supabase
-          .from('offer_scopes')
-          .select('id, name')
-          .in('id', scopeIds);
-        scopesMap = (scopesData || []).reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {});
-      }
-
+      // Use cached scopes instead of fetching each time
       // Attach scope names and selected option name to offers
       const offersWithScopes = (data || []).map(o => {
         // Get selected option name from selected_state

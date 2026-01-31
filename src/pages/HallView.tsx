@@ -9,6 +9,9 @@ import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
+import { useBreaks } from '@/hooks/useBreaks';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
+import { useUnifiedServices } from '@/hooks/useUnifiedServices';
 import { Loader2, Calendar, FileText, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -73,23 +76,46 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const location = useLocation();
   const { hallId } = useParams<{ hallId: string }>();
   const { user, roles, signOut } = useAuth();
+  
+  // Derive instanceId from auth roles (avoid duplicate fetch)
+  const derivedInstanceId = useMemo(() => {
+    const adminRole = roles.find(r => r.role === 'admin' && r.instance_id);
+    if (adminRole?.instance_id) return adminRole.instance_id;
+    const employeeRole = roles.find(r => r.role === 'employee' && r.instance_id);
+    if (employeeRole?.instance_id) return employeeRole.instance_id;
+    const hallRole = roles.find(r => r.role === 'hall' && r.instance_id);
+    if (hallRole?.instance_id) return hallRole.instance_id;
+    return null;
+  }, [roles]);
+  
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [hall, setHall] = useState<Hall | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [breaks, setBreaks] = useState<Break[]>([]);
-  const [workingHours, setWorkingHours] = useState<Record<string, { open: string; close: string } | null> | null>(null);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [yardVehicleCount, setYardVehicleCount] = useState(0);
   const [hallDataVisible, setHallDataVisible] = useState(true);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [showProtocolsList, setShowProtocolsList] = useState(false);
-  const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [instanceShortName, setInstanceShortName] = useState<string>('');
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photosTargetReservation, setPhotosTargetReservation] = useState<Reservation | null>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
+
+  // CACHED HOOKS - using React Query with staleTime for static data
+  const { data: cachedBreaks = [] } = useBreaks(instanceId);
+  const { data: cachedWorkingHours } = useWorkingHours(instanceId);
+  const { data: cachedServices = [] } = useUnifiedServices(instanceId);
+  
+  // Use cached data
+  const breaks = cachedBreaks as Break[];
+  const workingHours = cachedWorkingHours;
+  const servicesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    cachedServices.forEach(s => map.set(s.id, s.name));
+    return map;
+  }, [cachedServices]);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -284,39 +310,17 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     };
   }, []);
 
-  // Get user's instance ID
+  // Set instanceId from auth roles (avoid duplicate fetch)
   useEffect(() => {
-    const fetchUserInstanceId = async () => {
+    if (derivedInstanceId) {
+      setInstanceId(derivedInstanceId);
+      return;
+    }
+    
+    // Fallback for super_admin - need to fetch first instance
+    const fetchSuperAdminInstance = async () => {
       if (!user) return;
-
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('instance_id, role')
-        .eq('user_id', user.id);
-      
-      if (!rolesData || rolesData.length === 0) return;
-
-      const adminRole = rolesData.find(r => r.role === 'admin' && r.instance_id);
-      if (adminRole?.instance_id) {
-        setInstanceId(adminRole.instance_id);
-        return;
-      }
-
-      // Support employee role access to halls
-      const employeeRole = rolesData.find(r => r.role === 'employee' && r.instance_id);
-      if (employeeRole?.instance_id) {
-        setInstanceId(employeeRole.instance_id);
-        return;
-      }
-
-      // Support hall role access (kiosk mode)
-      const hallRole = rolesData.find(r => r.role === 'hall' && r.instance_id);
-      if (hallRole?.instance_id) {
-        setInstanceId(hallRole.instance_id);
-        return;
-      }
-
-      const isSuperAdmin = rolesData.some(r => r.role === 'super_admin');
+      const isSuperAdmin = roles.some(r => r.role === 'super_admin');
       if (isSuperAdmin) {
         const { data: instances } = await supabase
           .from('instances')
@@ -329,9 +333,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         }
       }
     };
-
-    fetchUserInstanceId();
-  }, [user]);
+    
+    fetchSuperAdminInstance();
+  }, [user, roles, derivedInstanceId]);
 
   // Fetch hall config - supports both UUID and numeric order (1, 2, 3...)
   useEffect(() => {
@@ -416,7 +420,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     fetchHall();
   }, [hallId, instanceId, navigate, t]);
 
-  // Fetch data
+  // Fetch data - only stations, reservations, and instance short_name (breaks, workingHours, services from hooks)
   useEffect(() => {
     if (!instanceId || !hall) return;
 
@@ -436,31 +440,18 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         setStations(stationsData);
       }
 
-      // Fetch working hours
+      // Fetch instance short_name only (working_hours comes from hook)
       const { data: instanceData } = await supabase
         .from('instances')
-        .select('working_hours, short_name, reservation_phone')
+        .select('short_name')
         .eq('id', instanceId)
         .maybeSingle();
 
-      if (instanceData?.working_hours) {
-        setWorkingHours(instanceData.working_hours as unknown as Record<string, { open: string; close: string } | null>);
-      }
       if (instanceData?.short_name) {
         setInstanceShortName(instanceData.short_name);
       }
 
-      // Fetch unified services for mapping
-      const { data: servicesData } = await supabase
-        .from('unified_services')
-        .select('id, name')
-        .eq('instance_id', instanceId);
-
-      if (servicesData) {
-        const map = new Map<string, string>();
-        servicesData.forEach(s => map.set(s.id, s.name));
-        setServicesMap(map);
-      }
+      // Fetch reservations
       const { data: reservationsData } = await supabase
         .from('reservations')
         .select(`
@@ -501,17 +492,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         })));
       }
 
-      // Fetch breaks
-      const { data: breaksData } = await supabase
-        .from('breaks')
-        .select('*')
-        .eq('instance_id', instanceId);
-
-      if (breaksData) {
-        setBreaks(breaksData);
-      }
-
-      // Fetch yard vehicles count
+      // Fetch yard vehicles count (lazy-loaded)
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const { count } = await supabase
         .from('yard_vehicles')
