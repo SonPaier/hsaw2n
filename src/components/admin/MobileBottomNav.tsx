@@ -68,8 +68,8 @@ const MobileBottomNav = ({
         { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
         // 3. Klienci
         { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
-        // 4. Cennik (admin only)
-        ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Cennik' }] : []),
+        // 4. Usługi (admin only)
+        ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Usługi' }] : []),
         // 5. Oferty (when enabled)
         ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
         // 6. Hale (when enabled, including employees)
