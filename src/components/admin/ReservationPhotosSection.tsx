@@ -4,6 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ReservationPhotosSectionProps {
   photos: string[];
@@ -20,11 +30,11 @@ const ReservationPhotosSection = ({
 }: ReservationPhotosSectionProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
 
   if (!photos || photos.length === 0) return null;
 
-  const handleRemovePhoto = async (index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRemovePhoto = async (index: number) => {
     const photoUrl = photos[index];
     const newPhotos = photos.filter((_, i) => i !== index);
 
@@ -49,6 +59,8 @@ const ReservationPhotosSection = ({
     } catch (error) {
       console.error('Error removing photo:', error);
       toast.error('Błąd podczas usuwania zdjęcia');
+    } finally {
+      setDeleteConfirmIndex(null);
     }
   };
 
@@ -75,8 +87,11 @@ const ReservationPhotosSection = ({
                 {!readOnly && (
                   <button
                     type="button"
-                    onClick={(e) => handleRemovePhoto(index, e)}
-                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirmIndex(index);
+                    }}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -92,6 +107,26 @@ const ReservationPhotosSection = ({
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
       />
+
+      <AlertDialog open={deleteConfirmIndex !== null} onOpenChange={(open) => !open && setDeleteConfirmIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń zdjęcie</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć to zdjęcie? Tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirmIndex !== null && handleRemovePhoto(deleteConfirmIndex)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

@@ -5,6 +5,7 @@ import { X, Loader2, FileText, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { useTranslation } from 'react-i18next';
+import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
 
 interface HallReservationCardProps {
   reservation: {
@@ -20,12 +21,12 @@ interface HallReservationCardProps {
     services_data?: Array<{ name: string }>;
     admin_notes?: string | null;
     instance_id: string;
+    photo_urls?: string[] | null;
   };
   open: boolean;
   onClose: () => void;
   onStartWork: (id: string) => Promise<void>;
   onEndWork: (id: string) => Promise<void>;
-  onRelease: (id: string) => Promise<void>;
   onSendPickupSms: (id: string) => Promise<void>;
   onAddProtocol?: (reservation: HallReservationCardProps['reservation']) => void;
   onAddPhotos?: (reservation: HallReservationCardProps['reservation']) => void;
@@ -37,13 +38,13 @@ const HallReservationCard = ({
   onClose,
   onStartWork,
   onEndWork,
-  onRelease,
   onSendPickupSms,
   onAddProtocol,
   onAddPhotos,
 }: HallReservationCardProps) => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | 'release' | null>(null);
+  const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | null>(null);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   if (!open || !reservation) return null;
 
@@ -59,6 +60,7 @@ const HallReservationCard = ({
     status,
     services_data,
     admin_notes,
+    photo_urls,
   } = reservation;
 
   const normalizedStatus = (status ?? '').toLowerCase().trim();
@@ -107,15 +109,6 @@ const HallReservationCard = ({
     }
   };
 
-  const handleRelease = async () => {
-    setLoading('release');
-    try {
-      await onRelease(id);
-      onClose();
-    } finally {
-      setLoading(null);
-    }
-  };
 
   // Render action buttons based on status
   const renderActionButtons = () => {
@@ -123,48 +116,20 @@ const HallReservationCard = ({
     const isInProgress = normalizedStatus === 'in_progress';
     const isCompleted = normalizedStatus === 'completed';
     const isCancelled = normalizedStatus === 'cancelled';
-    const isReleased = normalizedStatus === 'released';
 
     if (isPendingOrConfirmed) {
       return (
-        <div className="space-y-3">
-          {/* Protocol and Photos buttons */}
-          {(onAddProtocol || onAddPhotos) && (
-            <div className="flex gap-2">
-              {onAddProtocol && (
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={() => onAddProtocol(reservation)}
-                >
-                  <FileText className="w-5 h-5" />
-                  {t('hallCard.protocol', { defaultValue: 'Protokół' })}
-                </Button>
-              )}
-              {onAddPhotos && (
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={() => onAddPhotos(reservation)}
-                >
-                  <Camera className="w-5 h-5" />
-                  {t('hallCard.photos', { defaultValue: 'Zdjęcia' })}
-                </Button>
-              )}
-            </div>
+        <Button
+          onClick={handleStart}
+          disabled={loading === 'start'}
+          className="w-full py-7 text-2xl font-bold rounded-lg bg-success text-success-foreground hover:bg-success/90"
+        >
+          {loading === 'start' ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            t('hallCard.start', { defaultValue: 'START' })
           )}
-          <Button
-            onClick={handleStart}
-            disabled={loading === 'start'}
-            className="w-full py-7 text-2xl font-bold rounded-lg bg-success text-success-foreground hover:bg-success/90"
-          >
-            {loading === 'start' ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              t('hallCard.start', { defaultValue: 'START' })
-            )}
-          </Button>
-        </div>
+        </Button>
       );
     }
 
@@ -186,34 +151,21 @@ const HallReservationCard = ({
 
     if (isCompleted) {
       return (
-        <div className="space-y-3">
-          <Button
-            onClick={handleSendSms}
-            disabled={loading === 'sms'}
-            className="w-full py-6 text-xl font-semibold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90"
-          >
-            {loading === 'sms' ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              t('hallCard.sendPickupSms', { defaultValue: 'Wyślij SMS: auto do odbioru' })
-            )}
-          </Button>
-          <Button
-            onClick={handleRelease}
-            disabled={loading === 'release'}
-            className="w-full py-7 text-2xl font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {loading === 'release' ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              t('hallCard.release', { defaultValue: 'WYDAJ' })
-            )}
-          </Button>
-        </div>
+        <Button
+          onClick={handleSendSms}
+          disabled={loading === 'sms'}
+          className="w-full py-6 text-xl font-semibold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90"
+        >
+          {loading === 'sms' ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            t('hallCard.sendPickupSms', { defaultValue: 'Wyślij SMS: auto do odbioru' })
+          )}
+        </Button>
       );
     }
 
-    // For released / cancelled (and any other status), just show close button
+    // For cancelled (and any other status), just show close button
     return (
       <Button
         variant="secondary"
@@ -226,57 +178,106 @@ const HallReservationCard = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-sm">
-      <div className="relative bg-card text-card-foreground rounded-xl shadow-2xl p-8 w-[70%] max-w-4xl min-w-[500px]">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-muted rounded-lg transition-colors"
-        >
-          <X className="w-6 h-6 text-muted-foreground" />
-        </button>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/40 backdrop-blur-sm">
+        <div className="relative bg-card text-card-foreground rounded-xl shadow-2xl p-8 w-[70%] max-w-4xl min-w-[500px]">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-muted-foreground" />
+          </button>
 
-        <div className="space-y-6">
-          {/* Time and date - italic, black (foreground), NOT bold */}
-          <div className="text-[28px] italic text-foreground">
-            {formatTimeRange()} · {formatDateRange()}
-          </div>
-
-          {/* Customer name with phone AND vehicle on same line */}
-          <div className="flex items-baseline gap-4 flex-wrap">
-            <span className="text-xl font-bold">
-              {customer_name} ({formatPhoneDisplay(customer_phone)})
-            </span>
-            <span className="text-lg font-semibold text-muted-foreground">
-              {vehicle_plate}
-            </span>
-          </div>
-
-          {/* Services list - numbered, vertical, bold */}
-          {services_data && services_data.length > 0 && (
-            <div className="space-y-1">
-              {services_data.map((service, idx) => (
-                <div key={idx} className="text-2xl font-bold">
-                  {idx + 1}. {service.name}
-                </div>
-              ))}
+          <div className="space-y-6">
+            {/* Time and date - italic, black (foreground), NOT bold */}
+            <div className="text-[28px] italic text-foreground">
+              {formatTimeRange()} · {formatDateRange()}
             </div>
-          )}
 
-          {/* Admin notes - yellow background, red text */}
-          {admin_notes && (
-            <div className="text-xl bg-warning/20 text-destructive rounded-lg p-4">
-              {admin_notes}
+            {/* Customer name with phone AND vehicle on same line */}
+            <div className="flex items-baseline gap-4 flex-wrap">
+              <span className="text-xl font-bold">
+                {customer_name} ({formatPhoneDisplay(customer_phone)})
+              </span>
+              <span className="text-lg font-semibold text-muted-foreground">
+                {vehicle_plate}
+              </span>
             </div>
-          )}
 
-          {/* Action buttons */}
-          <div className="pt-4">
-            {renderActionButtons()}
+            {/* Services list - numbered, vertical, bold */}
+            {services_data && services_data.length > 0 && (
+              <div className="space-y-1">
+                {services_data.map((service, idx) => (
+                  <div key={idx} className="text-2xl font-bold">
+                    {idx + 1}. {service.name}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Photos thumbnails */}
+            {photo_urls && photo_urls.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photo_urls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`Zdjęcie ${idx + 1}`}
+                    className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setFullscreenPhoto(url)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Admin notes - yellow background, red text */}
+            {admin_notes && (
+              <div className="text-xl bg-warning/20 text-destructive rounded-lg p-4">
+                {admin_notes}
+              </div>
+            )}
+
+            {/* Protocol and Photos buttons - always visible */}
+            {(onAddProtocol || onAddPhotos) && (
+              <div className="flex gap-2">
+                {onAddProtocol && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => onAddProtocol(reservation)}
+                  >
+                    <FileText className="w-5 h-5" />
+                    {t('hallCard.protocol', { defaultValue: 'Protokół' })}
+                  </Button>
+                )}
+                {onAddPhotos && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => onAddPhotos(reservation)}
+                  >
+                    <Camera className="w-5 h-5" />
+                    {t('hallCard.photos', { defaultValue: 'Zdjęcia' })}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="pt-4">
+              {renderActionButtons()}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => !open && setFullscreenPhoto(null)}
+        photoUrl={fullscreenPhoto}
+      />
+    </>
   );
 };
 

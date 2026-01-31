@@ -2271,6 +2271,7 @@ export type Database = {
           cancelled_by: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
           change_request_note: string | null
+          checked_service_ids: Json | null
           completed_at: string | null
           confirmation_code: string
           confirmation_sms_sent_at: string | null
@@ -2320,6 +2321,7 @@ export type Database = {
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
           change_request_note?: string | null
+          checked_service_ids?: Json | null
           completed_at?: string | null
           confirmation_code: string
           confirmation_sms_sent_at?: string | null
@@ -2369,6 +2371,7 @@ export type Database = {
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
           change_request_note?: string | null
+          checked_service_ids?: Json | null
           completed_at?: string | null
           confirmation_code?: string
           confirmation_sms_sent_at?: string | null
