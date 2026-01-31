@@ -1,66 +1,42 @@
-# Plan: Poprawa flow tworzenia szablonu przypomnień z usługi
 
-## Status: ✅ ZAIMPLEMENTOWANO
+# Plan: Usunięcie artefaktów `=20` z maili potwierdzających
 
 ## Problem
-
-Gdy administrator w cenniku (`/admin/pricelist`) edytuje usługę i klika "Dodaj" przy dropdown szablonów przypomnień:
-
-1. Nawigacja do `/admin/reminders/new?returnToService=true&serviceId=xxx` działa poprawnie
-2. Po zapisaniu szablonu, system nawiguje do **`/admin/pricing`** zamiast **`/admin/pricelist`** (błędna ścieżka)
-3. Dialog edycji usługi nie otwiera się automatycznie
-4. Sekcja "Zaawansowane właściwości" nie jest rozwinięta
-5. Nowy szablon nie jest przypisany do usługi w widoczny sposób
+`=20` to zakodowany znak spacji w standardzie Quoted-Printable (używanym w emailach). Pojawia się gdy:
+- Linie HTML przekraczają 76 znaków
+- W HTML są niepotrzebne białe znaki (wcięcia, puste linie)
 
 ## Rozwiązanie
+Zmodyfikować szablon emaila w funkcji `submit-lead` aby:
+1. Usunąć wszystkie zbędne wcięcia i białe znaki z template'u HTML
+2. Zapisać HTML jako "minified" string bez niepotrzebnych spacji
+3. Dynamiczne sekcje (extras, budget, notes) budować bez wcięć
 
-### Krok 1: ✅ Naprawa ścieżki nawigacji
+## Zmiany techniczne
 
-**Plik: `src/pages/ReminderTemplateEditPage.tsx`**
+### Plik: `supabase/functions/submit-lead/index.ts`
 
-Zmiana nawigacji po zapisaniu:
-- ❌ `/admin/pricing?assignTemplate=xxx&serviceId=xxx`
-- ✅ `/admin/pricelist?serviceId=xxx&assignedReminderId=xxx`
-
-### Krok 2: ✅ Auto-otwarcie dialogu usługi
-
-**Plik: `src/components/admin/PriceListSettings.tsx`**
-
-Dodanie efektu reagującego na parametry URL:
-- Gdy `serviceId` i `assignedReminderId` są w URL
-- Przypisz szablon do usługi w bazie
-- Odśwież listę usług
-- Otwórz dialog edycji usługi z forceAdvancedOpen=true
-
-### Krok 3: ✅ Auto-rozwinięcie sekcji zaawansowanej
-
-**Plik: `src/components/admin/ServiceFormDialog.tsx`**
-
-Dodanie nowego prop `forceAdvancedOpen`:
-- Gdy zwracamy się z tworzenia szablonu, sekcja zaawansowana jest rozwinięta
-- Użytkownik widzi przypisany szablon bez dodatkowych kliknięć
-
-### Krok 4: ✅ Naprawa przycisku Wstecz
-
-**Plik: `src/pages/ReminderTemplateEditPage.tsx`**
-
-Zmiana funkcji `handleBack()`:
-- ❌ `/admin/pricing`
-- ✅ `/admin/pricelist`
-
----
-
-## Flow po implementacji
-
-```text
-1. Admin otwiera usługę w cenniku
-2. Klika "Dodaj" przy szablonach → /admin/reminders/new?returnToService=true&serviceId=xxx
-3. Tworzy nowy szablon i klika "Zapisz"
-4. System nawiguje → /admin/pricelist?serviceId=xxx&assignedReminderId=yyy
-5. PriceListSettings:
-   - Przypisuje szablon do usługi (UPDATE unified_services)
-   - Odświeża listę usług
-   - Otwiera dialog edycji usługi
-   - Automatycznie rozwija sekcję "Zaawansowane właściwości"
-6. Admin widzi przypisany szablon i klika "Zapisz" lub zamyka dialog
+**Zmiana 1**: Usunięcie wcięć z dynamicznych sekcji (linie 332-354)
+- `extrasSection`, `budgetSection`, `notesSection` - usunąć wcięcia ze stringów
+- Zamiast:
+```typescript
+extrasSection = `
+      <div class="summary-label">Dodatki</div>
+      <div class="summary-value">...</div>
+    `;
 ```
+- Na:
+```typescript
+extrasSection = `<div style="...">Dodatki</div><div style="...">...</div>`;
+```
+
+**Zmiana 2**: Usunięcie wcięć z sekcji portfolio (linie 360-368)
+- Analogicznie jak wyżej
+
+**Zmiana 3**: Kompaktowy główny template HTML (linie 375-413)
+- Usunąć wszystkie niepotrzebne wcięcia i nowe linie
+- Zostawić jednolinijkowy (minified) HTML
+- Przenieść style inline (usunąć class="summary-label" itp., bo nie ma CSS)
+
+## Efekt
+Po wdrożeniu klient otrzyma czytelny email bez artefaktów `=20`.
