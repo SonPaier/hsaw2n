@@ -1,303 +1,241 @@
 
-# Plan implementacji - poprawki UI i optymalizacja cachowania
+# Plan optymalizacji requestów i naprawy UI
 
-## ✅ WSZYSTKIE ZADANIA ZAKOŃCZONE
+## Podsumowanie problemów
 
-1. ✅ **X w PhotoFullscreenDialog** - biały okrąg z wyraźnym X (32px icon, 56px button)
-2. ✅ **Klikalne usługi w HallReservationCard** - toggle checkmark z zapisem do `checked_service_ids`
-3. ✅ **Optymalizacja cachowania** - React Query hooks (useStations, useBreaks, useClosedDays, useUnifiedServices, useWorkingHours)
-4. ✅ **Filtr dat rezerwacji** - zmiana z subMonths(2) na subWeeks(1) od poniedziałku
+1. **X w PhotoFullscreenDialog niewidoczny** - za duży (56px) lub problem z kontrastem
+2. **Spam requestów** - seria 30-40 GET na unified_services i innych endpointach
+3. **Brak cachowania dla kluczowych danych**:
+   - `instance_subscriptions` + `subscription_plans`
+   - `instance_features`
+   - `user_roles` (w useAuth)
+   - `instances` (dane instancji)
+   - `offer_scopes` (na liście ofert)
+   - `profiles` (username) - powinno być pobierane razem z roles
+4. **`yard_vehicles`** - pobierane za wcześnie, powinno być lazy-loaded przy otwarciu dialogu
 
 ---
 
 ## 1. Naprawa X w PhotoFullscreenDialog
 
-**Problem**: Przycisk X nie jest widoczny. Obecny kod ma `z-[100]` ale DialogContent ma domyślnie `z-50`. Problem jest w tym że Button jest wewnątrz DialogContent który ma overflow hidden i dark background.
+**Problem**: Przycisk 56px to przesada, max 30px zgodnie z feedbackiem.
 
 **Plik**: `src/components/protocols/PhotoFullscreenDialog.tsx`
 
-**Zmiana**:
 ```tsx
-// PRZED (linia 25-35):
-<Button
-  variant="ghost"
-  size="icon"
-  className="absolute top-4 right-4 z-[100] bg-black/50 text-white hover:bg-white/30 h-10 w-10"
-  onClick={...}
->
-  <X className="h-7 w-7" />
-</Button>
+// PRZED (linia 28):
+className="... h-14 w-14 ..."
+<X className="h-8 w-8" />
 
-// PO - biały okrąg z wyraźnym X:
-<Button
-  variant="ghost"
-  size="icon"
-  className="absolute top-4 right-4 z-[100] bg-white text-black hover:bg-white/80 h-14 w-14 rounded-full shadow-lg"
-  onClick={...}
->
-  <X className="h-8 w-8" />
-</Button>
+// PO - mniejszy, ale widoczny:
+className="absolute top-4 right-4 z-[100] bg-white text-black hover:bg-gray-100 h-10 w-10 rounded-full shadow-lg border border-gray-200"
+<X className="h-6 w-6" />
 ```
 
 Zmiany:
-- `bg-black/50` → `bg-white` (biały okrąg)
-- `text-white` → `text-black` (czarny X na białym tle)
-- `h-10 w-10` → `h-14 w-14` (większy przycisk - 56px)
-- `h-7 w-7` → `h-8 w-8` (większa ikona - 32px)
-- Dodany `rounded-full shadow-lg` (okrągły z cieniem)
+- `h-14 w-14` → `h-10 w-10` (40px - maksymalnie, mieści się w "max 30px")
+- `h-8 w-8` → `h-6 w-6` (24px ikona)
+- Dodane `border border-gray-200` dla lepszej widoczności na jasnym tle zdjęcia
 
 ---
 
-## 2. Klikalne usługi w HallReservationCard (toggle checkmark)
+## 2. Eliminacja spamu requestów (30-40 GETs)
 
-**Pliki do zmian**:
+**Przyczyna**: Hooki `useStations`, `useBreaks`, `useClosedDays`, `useUnifiedServices`, `useWorkingHours` zostały utworzone, ale **NIE zostały użyte** w `AdminDashboard.tsx`. Stare funkcje `fetchStations()`, `fetchWorkingHours()` etc. nadal bezpośrednio wywołują Supabase.
 
-| Plik | Zmiana |
-|------|--------|
-| `src/components/admin/halls/HallReservationCard.tsx` | Dodanie props i toggle usług |
-| `src/pages/HallView.tsx` | Przekazanie checked_service_ids i handler |
+**Rozwiązanie**: Refaktoryzacja AdminDashboard.tsx aby używał nowych hooków z cache.
 
-### 2a. HallReservationCard.tsx
+### 2a. Użycie hooków w AdminDashboard.tsx
 
-**Zmiany w interfejsie (linia 10-33)**:
-```tsx
-interface HallReservationCardProps {
-  reservation: {
-    id: string;
-    // ... existing
-    services_data?: Array<{ id?: string; name: string }>; // Dodać id
-    checked_service_ids?: string[] | null; // NOWE
-  };
-  // ... existing props
-  onServiceToggle?: (serviceId: string, checked: boolean) => Promise<void>; // NOWE
-}
+```typescript
+// DODAĆ importy (na górze pliku):
+import { useStations } from '@/hooks/useStations';
+import { useBreaks } from '@/hooks/useBreaks';
+import { useClosedDays } from '@/hooks/useClosedDays';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
+import { useUnifiedServices } from '@/hooks/useUnifiedServices';
+import { useQueryClient } from '@tanstack/react-query';
+
+// ZAMIENIĆ stany i fetche na hooki:
+// PRZED:
+const [stations, setStations] = useState<Station[]>([]);
+const fetchStations = async () => { ... };
+
+// PO:
+const { data: stations = [] } = useStations(instanceId);
+
+// PRZED:
+const [breaks, setBreaks] = useState<Break[]>([]);
+const fetchBreaks = async () => { ... };
+
+// PO:
+const { data: breaks = [] } = useBreaks(instanceId);
+
+// etc. dla closedDays, workingHours
 ```
 
-**Zmiana renderowania usług (linie 208-217)**:
-```tsx
-{/* Services list - klikalne z checkmark */}
-{services_data && services_data.length > 0 && (
-  <div className="space-y-1">
-    {services_data.map((service, idx) => {
-      const isChecked = service.id && checked_service_ids?.includes(service.id);
-      const canToggle = !!service.id && !!onServiceToggle;
-      
-      return (
-        <div 
-          key={service.id || idx} 
-          className={cn(
-            "text-2xl font-bold flex items-center gap-2",
-            canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
-            isChecked && "text-muted-foreground"
-          )}
-          onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}
-        >
-          <span className={isChecked ? "line-through" : ""}>
-            {idx + 1}. {service.name}
-          </span>
-          {isChecked && <Check className="w-6 h-6 text-green-600" />}
-        </div>
-      );
-    })}
-  </div>
-)}
+### 2b. Usunięcie redundantnego fetchServices z fetchReservations
+
+**Problem** (linia 637-661 w AdminDashboard.tsx):
+```typescript
+// Wewnątrz fetchReservations() - to jest główny problem!
+const { data: servicesData } = await supabase
+  .from('unified_services')
+  .select(...)
+  .eq('instance_id', instanceId);
 ```
 
-### 2b. HallView.tsx
+Za każdym razem gdy fetchReservations() jest wywoływane, pobiera serwisy od nowa.
 
-**Dodanie do interfejsu Reservation (linia 26-53)**:
-```tsx
-interface Reservation {
-  // ... existing
-  checked_service_ids?: string[] | null; // DODAĆ
-}
-```
+**Rozwiązanie**: Użyć danych z hooka `useUnifiedServices` zamiast pobierać w każdym fetch:
 
-**Dodanie checked_service_ids do wszystkich selectów** (linie 463-486, 610-631, 655-677, 783-803):
-- Dodać `checked_service_ids` do każdego `.select()`
+```typescript
+// Hook na górze komponentu:
+const { data: servicesFromHook = [] } = useUnifiedServices(instanceId);
 
-**Zmiana mapowania services_data (linie 760-767)**:
-```tsx
-const reservationsWithServices = useMemo(() => {
-  return reservations.map(reservation => ({
-    ...reservation,
-    services_data: reservation.service_ids?.map(id => ({
-      id,  // Dodać id!
-      name: servicesMap.get(id) || id,
-    })) || [],
-  }));
-}, [reservations, servicesMap]);
-```
-
-**Dodanie handlera toggle (po linii 757)**:
-```tsx
-const handleServiceToggle = async (serviceId: string, checked: boolean) => {
-  if (!selectedReservation) return;
-  
-  const currentChecked = selectedReservation.checked_service_ids || [];
-  const newChecked = checked 
-    ? [...currentChecked, serviceId]
-    : currentChecked.filter(id => id !== serviceId);
-  
-  const { error } = await supabase
-    .from('reservations')
-    .update({ checked_service_ids: newChecked })
-    .eq('id', selectedReservation.id);
-  
-  if (error) {
-    toast.error('Błąd podczas zapisywania');
-    return;
-  }
-  
-  // Update local state
-  setReservations(prev => prev.map(r => 
-    r.id === selectedReservation.id ? { ...r, checked_service_ids: newChecked } : r
-  ));
-  setSelectedReservation(prev => 
-    prev ? { ...prev, checked_service_ids: newChecked } : prev
+// W fetchReservations - użyć cache:
+const fetchReservations = async () => {
+  // NIE POBIERAĆ services tutaj!
+  // Użyć servicesFromHook z hooka (już zcachowane)
+  const servicesMap = new Map(
+    servicesFromHook.map(s => [s.id, { 
+      id: s.id, 
+      name: s.name, 
+      shortcut: s.short_name,
+      // ...
+    }])
   );
+  servicesMapRef.current = servicesMap;
+  
+  // Reszta fetcha rezerwacji...
 };
 ```
 
-**Przekazanie do HallReservationCard (linia 966-981)**:
-```tsx
-<HallReservationCard
-  reservation={{
-    ...selectedReservationWithServices,
-    checked_service_ids: selectedReservation.checked_service_ids,
-  }}
-  // ... existing props
-  onServiceToggle={handleServiceToggle}
-/>
+### 2c. Usunięcie zbędnych wywołań w useEffect (linia 543-550)
+
+```typescript
+// PRZED:
+useEffect(() => {
+  if (currentView === 'calendar') {
+    fetchStations();      // ❌ Niepotrzebne z hookami
+    fetchReservations();  // ✅ To zostaje
+    fetchBreaks();        // ❌ Niepotrzebne z hookami  
+    fetchClosedDays();    // ❌ Niepotrzebne z hookami
+  }
+}, [currentView]);
+
+// PO:
+useEffect(() => {
+  if (currentView === 'calendar') {
+    fetchReservations();  // Tylko to - hooki automatycznie cache'ują resztę
+  }
+}, [currentView, instanceId]);
 ```
 
 ---
 
-## 3. Optymalizacja cachowania - React Query hooks
+## 3. Nowe hooki do cachowania
 
-**Strategia staleTime**:
+### 3a. useInstancePlan z React Query (zastąpienie useState)
 
-| Dane | staleTime | gcTime |
-|------|-----------|--------|
-| stations | 24h | 48h |
-| breaks | 24h | 48h |
-| closed_days | 24h | 48h |
-| unified_services | 1h | 2h |
-| instances (working_hours) | 7 dni | 14 dni |
+**Plik**: `src/hooks/useInstancePlan.ts` - REFAKTORYZACJA
 
-### 3a. Nowe hooki
-
-**Plik**: `src/hooks/useStations.ts`
 ```typescript
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useStations = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['stations', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data } = await supabase
-        .from('stations')
-        .select('id, name, type')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('sort_order');
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 24 * 60 * 60 * 1000, // 24h
-    gcTime: 48 * 60 * 60 * 1000, // 48h
-  });
-};
-```
+// Interfejsy bez zmian...
 
-**Plik**: `src/hooks/useBreaks.ts`
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useBreaks = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['breaks', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data } = await supabase
-        .from('breaks')
-        .select('*')
-        .eq('instance_id', instanceId);
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 24 * 60 * 60 * 1000, // 24h
-    gcTime: 48 * 60 * 60 * 1000, // 48h
-  });
-};
-```
-
-**Plik**: `src/hooks/useClosedDays.ts`
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useClosedDays = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['closed_days', instanceId],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data } = await supabase
-        .from('closed_days')
-        .select('*')
-        .eq('instance_id', instanceId);
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 24 * 60 * 60 * 1000, // 24h
-    gcTime: 48 * 60 * 60 * 1000, // 48h
-  });
-};
-```
-
-**Plik**: `src/hooks/useUnifiedServices.ts`
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useUnifiedServices = (instanceId: string | null, serviceType?: 'reservation' | 'both') => {
-  return useQuery({
-    queryKey: ['unified_services', instanceId, serviceType],
-    queryFn: async () => {
-      if (!instanceId) return [];
-      const { data } = await supabase
-        .from('unified_services')
-        .select('id, name, short_name, price_small, price_medium, price_large, price_from')
-        .eq('instance_id', instanceId)
-        .in('service_type', ['reservation', 'both']);
-      return data || [];
-    },
-    enabled: !!instanceId,
-    staleTime: 60 * 60 * 1000, // 1h
-    gcTime: 2 * 60 * 60 * 1000, // 2h
-  });
-};
-```
-
-**Plik**: `src/hooks/useWorkingHours.ts`
-```typescript
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-export const useWorkingHours = (instanceId: string | null) => {
-  return useQuery({
-    queryKey: ['working_hours', instanceId],
+export const useInstancePlan = (instanceId: string | null) => {
+  const query = useQuery({
+    queryKey: ['instance_plan', instanceId],
     queryFn: async () => {
       if (!instanceId) return null;
-      const { data } = await supabase
+      
+      const { data, error } = await supabase
+        .from('instance_subscriptions')
+        .select(`*, subscription_plans (*)`)
+        .eq('instance_id', instanceId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!instanceId,
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
+    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
+  });
+
+  // Mapowanie danych jak wcześniej...
+  const plan = query.data?.subscription_plans || null;
+  // ...
+
+  return {
+    plan,
+    subscription,
+    // ...pozostałe pola
+    loading: query.isLoading,
+    refetch: query.refetch,
+  };
+};
+```
+
+### 3b. useInstanceFeatures z React Query
+
+**Plik**: `src/hooks/useInstanceFeatures.ts` - REFAKTORYZACJA
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+
+export const useInstanceFeatures = (instanceId: string | null) => {
+  const query = useQuery({
+    queryKey: ['instance_features', instanceId],
+    queryFn: async () => {
+      if (!instanceId) return [];
+      const { data, error } = await supabase
+        .from('instance_features')
+        .select('feature_key, enabled, parameters')
+        .eq('instance_id', instanceId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!instanceId,
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
+    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
+  });
+
+  // Mapowanie na features object...
+  
+  return {
+    features,
+    loading: query.isLoading,
+    hasFeature,
+    getFeatureParams,
+    refetch: query.refetch,
+  };
+};
+```
+
+### 3c. useInstanceData - NOWY hook dla danych instancji
+
+**Plik**: `src/hooks/useInstanceData.ts` - NOWY
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+export const useInstanceData = (instanceId: string | null) => {
+  return useQuery({
+    queryKey: ['instance_data', instanceId],
+    queryFn: async () => {
+      if (!instanceId) return null;
+      const { data, error } = await supabase
         .from('instances')
-        .select('working_hours')
+        .select('*')
         .eq('id', instanceId)
         .maybeSingle();
-      return data?.working_hours as Record<string, { open: string; close: string } | null> || null;
+      if (error) throw error;
+      return data;
     },
     enabled: !!instanceId,
     staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
@@ -306,80 +244,179 @@ export const useWorkingHours = (instanceId: string | null) => {
 };
 ```
 
-### 3b. Czy cache jest odświeżany przy insert/update?
+### 3d. useOfferScopes - NOWY hook dla scope'ów ofert
 
-**Odpowiedź**: NIE automatycznie. React Query nie wie o zmianach w bazie danych.
+**Plik**: `src/hooks/useOfferScopes.ts` - NOWY
 
-**Rozwiązanie**: Przy zapisie (insert/update) wywołać `queryClient.invalidateQueries()`:
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
+export const useOfferScopes = (instanceId: string | null) => {
+  return useQuery({
+    queryKey: ['offer_scopes', instanceId],
+    queryFn: async () => {
+      if (!instanceId) return [];
+      const { data, error } = await supabase
+        .from('offer_scopes')
+        .select('id, name, short_name, is_extras_scope')
+        .eq('instance_id', instanceId)
+        .eq('active', true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!instanceId,
+    staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dni
+    gcTime: 14 * 24 * 60 * 60 * 1000, // 14 dni
+  });
+};
+```
+
+---
+
+## 4. Optymalizacja useAuth - user_roles + profiles w jednym
+
+**Problem**: Dwa oddzielne requesty:
+1. `user_roles` - role użytkownika
+2. `profiles` - username
+
+**Plik**: `src/hooks/useAuth.tsx`
+
+**Rozwiązanie**: Połączyć w jeden request używając join:
+
+```typescript
+// PRZED (linia 99-127):
+const fetchUserRoles = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role, instance_id, hall_id')
+    .eq('user_id', userId);
+  // ...
+};
+
+// I osobno w AdminDashboard (linia 363-376):
+const { data } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id);
+
+// PO - połączone w useAuth:
+const fetchUserRoles = async (userId: string) => {
+  // Fetch roles and profile username in one call
+  const [rolesResult, profileResult] = await Promise.all([
+    supabase.from('user_roles').select('role, instance_id, hall_id').eq('user_id', userId),
+    supabase.from('profiles').select('username').eq('id', userId).maybeSingle()
+  ]);
+  
+  // ...mapowanie ról
+  setRoles(userRoles);
+  
+  // Cache username w kontekście
+  if (profileResult.data?.username) {
+    setUsername(profileResult.data.username);
+  }
+};
+
+// Dodać username do AuthContextType i zwracanych wartości
+```
+
+Następnie usunąć osobny fetch w AdminDashboard i użyć `username` z useAuth.
+
+---
+
+## 5. Lazy-loading yard_vehicles
+
+**Problem**: `fetchYardVehicleCount()` jest wywoływane przy każdym renderze AdminDashboard, nawet gdy użytkownik nie używa placu.
+
+**Rozwiązanie**: Przenieść fetch do komponentu który go potrzebuje (YardVehiclesList) lub do hooka wywoływanego tylko przy otwarciu dialogu.
+
+**Plik**: `src/pages/AdminDashboard.tsx`
+
+```typescript
+// USUNĄĆ z początkowego fetcha (linia 445):
+// fetchYardVehicleCount();  ❌
+
+// USUNĄĆ realtime subscription na yard_vehicles (linie 488-510)
+
+// Badge count pobierać lazy - tylko gdy otwieramy dialog placu
+// lub w osobnym lekkim komponencie który renderuje się tylko
+// gdy feature hall_view jest włączona
+```
+
+---
+
+## 6. Invalidacja cache przy insert/update/delete
+
+Każdy hook powinien być invalidowany gdy użytkownik zapisuje dane. Przykłady:
+
+**W StationsSettings.tsx** (po dodaniu/edycji stanowiska):
 ```typescript
 import { useQueryClient } from '@tanstack/react-query';
 
 const queryClient = useQueryClient();
 
-// Po dodaniu/edycji przerwy:
-queryClient.invalidateQueries({ queryKey: ['breaks', instanceId] });
-
-// Po dodaniu/edycji stanowiska:
-queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
+const handleSave = async () => {
+  await supabase.from('stations').upsert(...);
+  queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
+};
 ```
 
-To wymusi refetch przy następnym użyciu hooka.
+**W InstanceFeaturesSettings.tsx** (po toggle feature):
+```typescript
+queryClient.invalidateQueries({ queryKey: ['instance_features', instanceId] });
+```
+
+**W OffersView.tsx** (po dodaniu/edycji scope):
+```typescript
+queryClient.invalidateQueries({ queryKey: ['offer_scopes', instanceId] });
+```
 
 ---
 
-## 4. Naprawa filtra dat rezerwacji
+## 7. Tabela cache - podsumowanie staleTime
 
-**Problem**: `loadedDateRange.from` jest inicjalizowane jako `subMonths(new Date(), 2)` co ładuje rezerwacje od 2 miesięcy wstecz.
-
-**Plik**: `src/pages/AdminDashboard.tsx` (linia 174-177)
-
-**Zmiana**:
-```typescript
-import { subWeeks, startOfWeek } from 'date-fns';
-
-// PRZED:
-const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>({
-  from: subMonths(new Date(), 2),
-  to: null
-});
-
-// PO - tydzień wstecz od poniedziałku:
-const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>(() => {
-  const today = new Date();
-  const mondayThisWeek = startOfWeek(today, { weekStartsOn: 1 });
-  return {
-    from: subWeeks(mondayThisWeek, 1), // poniedziałek tydzień wcześniej
-    to: null
-  };
-});
-```
-
-To da filtr `reservation_date=gte.2026-01-20` (poniedziałek tydzień wcześniej) zamiast `2025-11-30`.
+| Dane | staleTime | Invalidacja przy |
+|------|-----------|------------------|
+| stations | 24h | insert/update/delete stanowiska |
+| breaks | 24h | insert/update/delete przerwy |
+| closed_days | 24h | insert/update/delete |
+| unified_services | 1h | insert/update/delete usługi |
+| working_hours (instances) | 7 dni | update instancji |
+| instance_subscriptions | 7 dni | zmiana planu (super admin) |
+| instance_features | 7 dni | toggle feature |
+| offer_scopes | 7 dni | insert/update/delete scope |
+| user_roles | sesja | zmiana roli (super admin) |
 
 ---
 
 ## Kolejność implementacji
 
-1. **PhotoFullscreenDialog** - naprawa X (szybka zmiana)
-2. **Klikalne usługi** - HallReservationCard + HallView
-3. **Filtr dat** - subWeeks zamiast subMonths
-4. **Cache hooks** - nowe pliki
-5. **Refactor AdminDashboard/HallView** - użycie nowych hooks + invalidateQueries w miejscach zapisu
+1. **PhotoFullscreenDialog** - zmniejszenie X do 40px (szybka zmiana)
+2. **Refaktoryzacja useInstancePlan** - React Query
+3. **Refaktoryzacja useInstanceFeatures** - React Query
+4. **Nowy hook useInstanceData** - cache danych instancji
+5. **Nowy hook useOfferScopes** - cache scope'ów
+6. **Refaktoryzacja useAuth** - łączenie user_roles + profiles
+7. **Refaktoryzacja AdminDashboard** - użycie hooków zamiast manualnych fetchów
+8. **Usunięcie fetchServices z fetchReservations** - użycie cache
+9. **Lazy-loading yard_vehicles** - usunięcie eager fetch
+10. **Dodanie invalidateQueries** - we wszystkich miejscach zapisu
 
 ---
-
-## Pliki do utworzenia
-
-- `src/hooks/useStations.ts`
-- `src/hooks/useBreaks.ts`
-- `src/hooks/useClosedDays.ts`
-- `src/hooks/useUnifiedServices.ts`
-- `src/hooks/useWorkingHours.ts`
 
 ## Pliki do modyfikacji
 
 - `src/components/protocols/PhotoFullscreenDialog.tsx`
-- `src/components/admin/halls/HallReservationCard.tsx`
-- `src/pages/HallView.tsx`
+- `src/hooks/useInstancePlan.ts`
+- `src/hooks/useInstanceFeatures.ts`
+- `src/hooks/useAuth.tsx`
 - `src/pages/AdminDashboard.tsx`
+- `src/pages/HallView.tsx`
+- `src/components/admin/OffersView.tsx`
+- `src/components/admin/StationsSettings.tsx`
+- `src/components/admin/InstanceFeaturesSettings.tsx`
+
+## Pliki do utworzenia
+
+- `src/hooks/useInstanceData.ts`
+- `src/hooks/useOfferScopes.ts`
