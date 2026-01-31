@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useEmployees } from '@/hooks/useEmployees';
-import { useEmployeeDaysOff, useDeleteEmployeeDayOff, EmployeeDayOff, DAY_OFF_TYPE_LABELS, calculateVacationDaysUsed } from '@/hooks/useEmployeeDaysOff';
+import { useEmployeeDaysOff, useDeleteEmployeeDayOff, EmployeeDayOff, DAY_OFF_TYPE_LABELS } from '@/hooks/useEmployeeDaysOff';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Loader2, CalendarOff, Trash2 } from 'lucide-react';
@@ -18,20 +17,15 @@ interface EmployeeDaysOffViewProps {
 }
 
 const EmployeeDaysOffView = ({ instanceId }: EmployeeDaysOffViewProps) => {
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [dayOffToDelete, setDayOffToDelete] = useState<EmployeeDayOff | null>(null);
 
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees(instanceId);
-  const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(
-    instanceId,
-    selectedEmployeeId === 'all' ? null : selectedEmployeeId
-  );
+  const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(instanceId, null);
   const deleteDayOff = useDeleteEmployeeDayOff(instanceId);
 
   const activeEmployees = employees.filter(e => e.active);
-  const currentYear = new Date().getFullYear();
 
   const handleDeleteDayOff = async () => {
     if (!dayOffToDelete) return;
@@ -45,16 +39,6 @@ const EmployeeDaysOffView = ({ instanceId }: EmployeeDaysOffViewProps) => {
       toast.error('Błąd podczas usuwania nieobecności');
     }
   };
-
-  // Calculate vacation days used per employee this year
-  const vacationSummary = useMemo(() => {
-    const summary = new Map<string, number>();
-    activeEmployees.forEach(emp => {
-      const empDaysOff = daysOff.filter(d => d.employee_id === emp.id);
-      summary.set(emp.id, calculateVacationDaysUsed(empDaysOff, currentYear));
-    });
-    return summary;
-  }, [daysOff, activeEmployees, currentYear]);
 
   const getEmployeeName = (employeeId: string) => {
     return employees.find(e => e.id === employeeId)?.name || 'Nieznany';
@@ -85,65 +69,25 @@ const EmployeeDaysOffView = ({ instanceId }: EmployeeDaysOffViewProps) => {
 
   if (activeEmployees.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <CalendarOff className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">Brak aktywnych pracowników</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Dodaj pracowników, aby móc rejestrować nieobecności
-          </p>
-        </CardContent>
-      </Card>
+      <div className="py-12 text-center">
+        <CalendarOff className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground">Brak aktywnych pracowników</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Dodaj pracowników, aby móc rejestrować nieobecności
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Header with add button */}
+      <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Nieobecności</h2>
-
-        <div className="flex items-center gap-2">
-          <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Wszyscy pracownicy" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Wszyscy pracownicy</SelectItem>
-              {activeEmployees.map(emp => (
-                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button onClick={() => setDialogOpen(true)} size="sm">
-            <Plus className="w-4 h-4 mr-1" />
-            Dodaj nieobecność
-          </Button>
-        </div>
-      </div>
-
-      {/* Vacation summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {activeEmployees
-          .filter(e => selectedEmployeeId === 'all' || e.id === selectedEmployeeId)
-          .map(employee => {
-            const vacationDays = vacationSummary.get(employee.id) || 0;
-            
-            return (
-              <Card key={employee.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">{employee.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{vacationDays} dni</div>
-                  <div className="text-xs text-muted-foreground">
-                    urlopu w {currentYear}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Plus className="w-4 h-4 mr-1" />
+          Dodaj nieobecność
+        </Button>
       </div>
 
       {/* Days off table */}

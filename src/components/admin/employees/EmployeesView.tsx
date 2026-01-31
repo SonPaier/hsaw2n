@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Clock, Coffee, CalendarOff } from 'lucide-react';
+import { Users, Clock, CalendarOff } from 'lucide-react';
 import EmployeesList from './EmployeesList';
 import TimeEntriesView from './TimeEntriesView';
-import EmployeeBreaksView from './EmployeeBreaksView';
 import EmployeeDaysOffView from './EmployeeDaysOffView';
 
 interface EmployeesViewProps {
@@ -25,7 +24,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-lg">
+        <TabsList className="grid grid-cols-3 w-full max-w-md">
           <TabsTrigger value="employees" className="gap-1.5">
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Pracownicy</span>
@@ -33,10 +32,6 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           <TabsTrigger value="time" className="gap-1.5">
             <Clock className="w-4 h-4" />
             <span className="hidden sm:inline">Czas pracy</span>
-          </TabsTrigger>
-          <TabsTrigger value="breaks" className="gap-1.5">
-            <Coffee className="w-4 h-4" />
-            <span className="hidden sm:inline">Przerwy</span>
           </TabsTrigger>
           <TabsTrigger value="daysoff" className="gap-1.5">
             <CalendarOff className="w-4 h-4" />
@@ -50,10 +45,6 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
 
         <TabsContent value="time" className="mt-6">
           <TimeEntriesView instanceId={instanceId} />
-        </TabsContent>
-
-        <TabsContent value="breaks" className="mt-6">
-          <EmployeeBreaksView instanceId={instanceId} />
         </TabsContent>
 
         <TabsContent value="daysoff" className="mt-6">

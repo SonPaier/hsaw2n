@@ -8,11 +8,12 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
+import { EmployeesList } from '@/components/admin/employees';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
 import { useBreaks } from '@/hooks/useBreaks';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
-import { Loader2, Calendar, FileText, LogOut } from 'lucide-react';
+import { Loader2, Calendar, FileText, LogOut, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Hall } from '@/components/admin/halls/HallCard';
@@ -98,6 +99,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [hallDataVisible, setHallDataVisible] = useState(true);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [showProtocolsList, setShowProtocolsList] = useState(false);
+  const [showWorkersList, setShowWorkersList] = useState(false);
   const [instanceShortName, setInstanceShortName] = useState<string>('');
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photosTargetReservation, setPhotosTargetReservation] = useState<Reservation | null>(null);
@@ -142,6 +144,17 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
 
   const handleProtocolsNavigation = () => {
     setShowProtocolsList(true);
+    setShowWorkersList(false);
+  };
+
+  const handleWorkersNavigation = () => {
+    setShowWorkersList(true);
+    setShowProtocolsList(false);
+  };
+
+  const handleCalendarFromSidebar = () => {
+    setShowProtocolsList(false);
+    setShowWorkersList(false);
   };
 
   const handleLogout = async () => {
@@ -883,6 +896,70 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     allowed_actions: hall.allowed_actions,
   } : undefined;
 
+  // Render workers list with sidebar
+  if (showWorkersList && instanceId) {
+    return (
+      <>
+        <Helmet>
+          <title>Pracownicy | {hall?.name || t('hall.title')}</title>
+        </Helmet>
+
+        <div className="h-screen w-screen overflow-hidden bg-background flex">
+          {/* Mini Sidebar for hall view */}
+          <aside className="sticky top-0 inset-y-0 left-0 z-50 h-screen w-16 bg-card border-r border-border/50 flex-shrink-0">
+            <div className="flex flex-col h-full overflow-hidden">
+              <nav className="flex-1 space-y-2 p-2">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2"
+                  onClick={handleCalendarFromSidebar}
+                  title={t('navigation.calendar')}
+                >
+                  <Calendar className="w-4 h-4 shrink-0" />
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  className="w-full justify-center px-2"
+                  title="Pracownicy"
+                >
+                  <Users className="w-4 h-4 shrink-0" />
+                </Button>
+
+                {canAccessProtocols && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-center px-2"
+                    onClick={handleProtocolsNavigation}
+                    title={t('navigation.protocols')}
+                  >
+                    <FileText className="w-4 h-4 shrink-0" />
+                  </Button>
+                )}
+              </nav>
+
+              <div className="p-2 border-t border-border/50">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2 text-muted-foreground hover:text-foreground"
+                  onClick={handleLogout}
+                  title={t('auth.logout')}
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                </Button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Workers content */}
+          <div className="flex-1 h-full overflow-auto p-4">
+            <EmployeesList instanceId={instanceId} />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   // Render protocols with sidebar (like calendar view)
   if (showProtocolsList && instanceId) {
     return (
@@ -901,10 +978,20 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 <Button
                   variant="ghost"
                   className="w-full justify-center px-2"
-                  onClick={() => setShowProtocolsList(false)}
+                  onClick={handleCalendarFromSidebar}
                   title={t('navigation.calendar')}
                 >
                   <Calendar className="w-4 h-4 shrink-0" />
+                </Button>
+
+                {/* Workers icon */}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center px-2"
+                  onClick={handleWorkersNavigation}
+                  title="Pracownicy"
+                >
+                  <Users className="w-4 h-4 shrink-0" />
                 </Button>
 
                 {/* Protocols icon - active */}
@@ -957,12 +1044,22 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             <nav className="flex-1 space-y-2 p-2">
               {/* Calendar/Halls icon */}
               <Button
-                variant={!showProtocolsList ? 'secondary' : 'ghost'}
+                variant={!showProtocolsList && !showWorkersList ? 'secondary' : 'ghost'}
                 className="w-full justify-center px-2"
-                onClick={handleCalendarNavigation}
+                onClick={handleCalendarFromSidebar}
                 title={t('navigation.calendar')}
               >
                 <Calendar className="w-4 h-4 shrink-0" />
+              </Button>
+
+              {/* Workers icon */}
+              <Button
+                variant={showWorkersList ? 'secondary' : 'ghost'}
+                className="w-full justify-center px-2"
+                onClick={handleWorkersNavigation}
+                title="Pracownicy"
+              >
+                <Users className="w-4 h-4 shrink-0" />
               </Button>
 
               {/* Protocols icon */}
