@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
-import { useTimeEntriesForMonth, calculateMonthlySummary, formatMinutesToTime } from '@/hooks/useTimeEntries';
+import { useTimeEntriesForMonth, useTimeEntriesForDateRange, calculateMonthlySummary, formatMinutesToTime } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, DAY_OFF_TYPE_LABELS, DayOffType, EmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
+import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, ChevronLeft, ChevronRight, Loader2, User, Pencil, Clock, CalendarOff, Settings2 } from 'lucide-react';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, isSameMonth, getDay } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
 import WorkerTimeDialog from './WorkerTimeDialog';
@@ -39,47 +40,66 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [dayOffDialogOpen, setDayOffDialogOpen] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
 
+  // Fetch workers settings to determine if we're in weekly or monthly mode
+  const { data: workersSettings, isLoading: loadingSettings } = useWorkersSettings(instanceId);
+  const isWeeklyMode = workersSettings?.report_frequency === 'weekly';
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  
+  // Month boundaries
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
+  
+  // Week boundaries (Monday to Sunday)
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekNumber = getISOWeek(currentDate);
+  
+  // Date range for queries based on mode
+  const dateFrom = isWeeklyMode ? format(weekStart, 'yyyy-MM-dd') : format(monthStart, 'yyyy-MM-dd');
+  const dateTo = isWeeklyMode ? format(weekEnd, 'yyyy-MM-dd') : format(monthEnd, 'yyyy-MM-dd');
+  
+  // Period boundaries for days off calculation
+  const periodStart = isWeeklyMode ? weekStart : monthStart;
+  const periodEnd = isWeeklyMode ? weekEnd : monthEnd;
 
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees(instanceId);
-  const { data: timeEntries = [], isLoading: loadingEntries } = useTimeEntriesForMonth(instanceId, year, month);
+  const { data: timeEntries = [], isLoading: loadingEntries } = useTimeEntriesForDateRange(instanceId, dateFrom, dateTo);
   const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(instanceId, null);
 
   // Filter only active (not soft-deleted) employees
   const activeEmployees = employees.filter(e => e.active && !(e as any).deleted_at);
 
-  // Calculate monthly totals
-  const monthlySummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
+  // Calculate period totals (works for both weekly and monthly)
+  const periodSummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
 
   // Calculate total earnings (admin only)
   const totalEarnings = useMemo(() => {
     return activeEmployees.reduce((sum, employee) => {
-      const summary = monthlySummary.get(employee.id);
+      const summary = periodSummary.get(employee.id);
       if (summary && employee.hourly_rate) {
         return sum + (summary.total_minutes / 60) * employee.hourly_rate;
       }
       return sum;
     }, 0);
-  }, [activeEmployees, monthlySummary]);
+  }, [activeEmployees, periodSummary]);
 
-  // Get days off for this month
+  // Get days off for this period
   const getDaysOffForEmployee = (employeeId: string) => {
     return daysOff.filter(d => {
       if (d.employee_id !== employeeId) return false;
       const from = parseISO(d.date_from);
       const to = parseISO(d.date_to);
-      // Check if any day in the range overlaps with current month
-      return isWithinInterval(monthStart, { start: from, end: to }) ||
-             isWithinInterval(monthEnd, { start: from, end: to }) ||
-             (from <= monthStart && to >= monthEnd);
+      // Check if any day in the range overlaps with current period
+      return isWithinInterval(periodStart, { start: from, end: to }) ||
+             isWithinInterval(periodEnd, { start: from, end: to }) ||
+             (from <= periodStart && to >= periodEnd);
     });
   };
 
   // Format days off for display on the card
-  const formatDaysOffForMonth = (employeeDaysOff: EmployeeDayOff[]) => {
+  const formatDaysOffForPeriod = (employeeDaysOff: EmployeeDayOff[]) => {
     const result: { type: DayOffType; label: string; dates: string }[] = [];
     
     // Group by type
@@ -97,10 +117,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         const from = parseISO(item.date_from);
         const to = parseISO(item.date_to);
         
-        // Get all days in the range that fall within the current month
+        // Get all days in the range that fall within the current period
         const daysInRange = eachDayOfInterval({ start: from, end: to });
         daysInRange.forEach(day => {
-          if (isSameMonth(day, currentDate)) {
+          const isInPeriod = isWeeklyMode 
+            ? isSameWeek(day, currentDate, { weekStartsOn: 1 })
+            : isSameMonth(day, currentDate);
+          if (isInPeriod) {
             allDates.push({ date: day, dayOfWeek: getDay(day) });
           }
         });
@@ -159,12 +182,20 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     return result;
   };
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+  const handlePrevPeriod = () => {
+    if (isWeeklyMode) {
+      setCurrentDate(subWeeks(currentDate, 1));
+    } else {
+      setCurrentDate(new Date(year, month - 1, 1));
+    }
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+  const handleNextPeriod = () => {
+    if (isWeeklyMode) {
+      setCurrentDate(addWeeks(currentDate, 1));
+    } else {
+      setCurrentDate(new Date(year, month + 1, 1));
+    }
   };
 
   const handleAddEmployee = () => {
@@ -187,7 +218,14 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     setEditingEmployee(null);
   };
 
-  const isLoading = loadingEmployees || loadingEntries || loadingDaysOff;
+  // Format week range display: "Tydzień 5 (27.01 - 02.02)"
+  const formatWeekDisplay = () => {
+    const startFormatted = format(weekStart, 'd.MM');
+    const endFormatted = format(weekEnd, 'd.MM');
+    return `Tydzień ${weekNumber} (${startFormatted} - ${endFormatted})`;
+  };
+
+  const isLoading = loadingEmployees || loadingEntries || loadingDaysOff || loadingSettings;
 
   if (isLoading) {
     return (
@@ -229,15 +267,18 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         )}
       </div>
 
-      {/* Month picker */}
+      {/* Period picker (Month or Week) */}
       <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+        <Button variant="outline" size="icon" onClick={handlePrevPeriod}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <span className="font-medium min-w-[160px] text-center text-lg">
-          {format(currentDate, 'LLLL yyyy', { locale: pl })}
+        <span className="font-medium min-w-[200px] text-center text-lg">
+          {isWeeklyMode 
+            ? formatWeekDisplay()
+            : format(currentDate, 'LLLL yyyy', { locale: pl })
+          }
         </span>
-        <Button variant="outline" size="icon" onClick={handleNextMonth}>
+        <Button variant="outline" size="icon" onClick={handleNextPeriod}>
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
@@ -261,13 +302,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         <>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {activeEmployees.map((employee) => {
-              const summary = monthlySummary.get(employee.id);
+              const summary = periodSummary.get(employee.id);
               const totalHours = summary ? formatMinutesToTime(summary.total_minutes) : '0h 0min';
               const earnings = summary && employee.hourly_rate 
                 ? ((summary.total_minutes / 60) * employee.hourly_rate).toFixed(2)
                 : null;
               const employeeDaysOff = getDaysOffForEmployee(employee.id);
-              const formattedDaysOff = formatDaysOffForMonth(employeeDaysOff);
+              const formattedDaysOff = formatDaysOffForPeriod(employeeDaysOff);
               
               return (
                 <Card 

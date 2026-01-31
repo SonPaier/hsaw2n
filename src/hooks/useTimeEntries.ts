@@ -74,6 +74,10 @@ export const useTimeEntriesForMonth = (instanceId: string | null, year: number, 
   return useTimeEntries(instanceId, null, dateFrom, dateTo);
 };
 
+export const useTimeEntriesForDateRange = (instanceId: string | null, dateFrom: string, dateTo: string) => {
+  return useTimeEntries(instanceId, null, dateFrom, dateTo);
+};
+
 export const useCreateTimeEntry = (instanceId: string | null) => {
   const queryClient = useQueryClient();
   
