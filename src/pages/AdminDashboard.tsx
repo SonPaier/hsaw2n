@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2 } from 'lucide-react';
+import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
@@ -42,6 +42,7 @@ import SettingsView from '@/components/admin/SettingsView';
 import PriceListSettings from '@/components/admin/PriceListSettings';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import RemindersView from '@/components/admin/RemindersView';
+import { EmployeesView } from '@/components/admin/employees';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
@@ -125,8 +126,8 @@ interface ClosedDay {
   closed_date: string;
   reason: string | null;
 }
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols' | 'reminders';
-const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols', 'reminders'];
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols' | 'reminders' | 'employees';
+const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols', 'reminders', 'employees'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -2330,6 +2331,11 @@ const AdminDashboard = () => {
                     <ClipboardCheck className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Protokoły"}
                   </Button>}
+                  {/* Pracownicy - admin only */}
+                  {userRole !== 'employee' && <Button variant={currentView === 'employees' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('employees'); }} title="Pracownicy">
+                    <UsersRound className="w-4 h-4 shrink-0" />
+                    {!sidebarCollapsed && "Pracownicy"}
+                  </Button>}
                   {/* Notifications - second to last */}
                   <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('notifications'); }} title="Powiadomienia">
                     <div className="relative">
@@ -2485,6 +2491,8 @@ const AdminDashboard = () => {
             {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} onEditModeChange={setProtocolEditMode} />}
 
             {currentView === 'reminders' && instanceId && <RemindersView instanceId={instanceId} onNavigateBack={() => setCurrentView('pricelist')} />}
+
+            {currentView === 'employees' && instanceId && <EmployeesView instanceId={instanceId} />}
           </div>
         </main>
       </div>
