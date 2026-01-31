@@ -8,8 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
-import { useEmployeeBreaks, useCreateEmployeeBreak } from '@/hooks/useEmployeeBreaks';
+import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry } from '@/hooks/useTimeEntries';
+import { useEmployeeBreaks, useCreateEmployeeBreak, useUpdateEmployeeBreak } from '@/hooks/useEmployeeBreaks';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
 import { Play, Square, Coffee, Loader2, Calendar } from 'lucide-react';
@@ -32,24 +32,25 @@ const WorkerTimeDialog = ({
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showSchedule, setShowSchedule] = useState(false);
   
-  const { data: timeEntries = [] } = useTimeEntries(instanceId, undefined, today, today);
-  const { data: breaks = [] } = useEmployeeBreaks(instanceId, today, today);
+  const { data: timeEntries = [], refetch: refetchTimeEntries } = useTimeEntries(instanceId, undefined, today, today);
+  const { data: breaks = [], refetch: refetchBreaks } = useEmployeeBreaks(instanceId, employee.id, today, today);
   
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
   const createBreak = useCreateEmployeeBreak(instanceId);
+  const updateBreak = useUpdateEmployeeBreak(instanceId);
   
   // Find active entry for this employee (no end_time)
   const activeEntry = timeEntries.find(
     (e) => e.employee_id === employee.id && !e.end_time
   );
   
-  // Find active break for this employee
-  const todayBreaks = breaks.filter(
-    (b) => b.employee_id === employee.id && b.break_date === today
-  );
+  // Find active break (start_time = end_time means it's ongoing)
+  const todayBreaks = breaks.filter((b) => b.break_date === today);
+  const activeBreak = todayBreaks.find((b) => b.start_time === b.end_time);
   
   const isWorking = !!activeEntry;
+  const isOnBreak = !!activeBreak;
   
   const [isLoading, setIsLoading] = useState(false);
 
@@ -64,6 +65,7 @@ const WorkerTimeDialog = ({
         entry_type: 'manual',
       });
       toast.success(`${employee.name} rozpoczął pracę`);
+      refetchTimeEntries();
     } catch (error) {
       console.error('Start error:', error);
       toast.error('Błąd podczas rozpoczynania pracy');
@@ -83,6 +85,8 @@ const WorkerTimeDialog = ({
         end_time: now.toISOString(),
       });
       toast.success(`${employee.name} zakończył pracę`);
+      // Refetch both time entries and schedule data
+      refetchTimeEntries();
     } catch (error) {
       console.error('Stop error:', error);
       toast.error('Błąd podczas kończenia pracy');
@@ -99,12 +103,33 @@ const WorkerTimeDialog = ({
         employee_id: employee.id,
         break_date: today,
         start_time: now,
-        end_time: now,
+        end_time: now, // Same as start = ongoing
       });
       toast.success('Przerwa rozpoczęta');
+      refetchBreaks();
     } catch (error) {
       console.error('Break start error:', error);
       toast.error('Błąd podczas rozpoczynania przerwy');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBreakEnd = async () => {
+    if (!activeBreak) return;
+    
+    setIsLoading(true);
+    try {
+      const now = new Date().toISOString();
+      await updateBreak.mutateAsync({
+        id: activeBreak.id,
+        end_time: now,
+      });
+      toast.success('Przerwa zakończona');
+      refetchBreaks();
+    } catch (error) {
+      console.error('Break end error:', error);
+      toast.error('Błąd podczas kończenia przerwy');
     } finally {
       setIsLoading(false);
     }
@@ -142,6 +167,12 @@ const WorkerTimeDialog = ({
     }
   };
 
+  // Get work start time for display
+  const workStartTime = activeEntry?.start_time ? formatTimeFromISO(activeEntry.start_time) : null;
+  
+  // Get active break start time
+  const breakStartTime = activeBreak?.start_time ? formatTimeFromISO(activeBreak.start_time) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={showSchedule ? "sm:max-w-2xl" : "sm:max-w-sm"}>
@@ -167,14 +198,27 @@ const WorkerTimeDialog = ({
 
           <Separator className="my-2" />
 
-          {/* Status indicator - just the dot */}
-          <div className="flex items-center gap-2 text-sm">
-            <span
-              className={`w-3 h-3 rounded-full ${
-                isWorking ? 'bg-green-500' : 'bg-muted'
-              }`}
-            />
-            {isWorking && <span>W pracy</span>}
+          {/* Status indicator */}
+          <div className="flex flex-col items-center gap-1 text-sm">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-3 h-3 rounded-full ${
+                  isWorking ? 'bg-green-500' : 'bg-muted'
+                }`}
+              />
+              {isWorking && workStartTime && (
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  W pracy od {workStartTime}
+                </span>
+              )}
+            </div>
+            
+            {/* Active break indicator */}
+            {isOnBreak && breakStartTime && (
+              <div className="text-amber-600 dark:text-amber-400 text-xs">
+                Przerwa od {breakStartTime}...
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -215,15 +259,27 @@ const WorkerTimeDialog = ({
                     )}
                   </Button>
                   
-                  <Button
-                    onClick={handleBreakStart}
-                    disabled={isLoading}
-                    variant="outline"
-                    className="h-14"
-                    size="lg"
-                  >
-                    <Coffee className="w-5 h-5" />
-                  </Button>
+                  {isOnBreak ? (
+                    <Button
+                      onClick={handleBreakEnd}
+                      disabled={isLoading}
+                      variant="outline"
+                      className="h-14 bg-white dark:bg-card"
+                      size="lg"
+                    >
+                      <Coffee className="w-5 h-5 text-amber-600" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleBreakStart}
+                      disabled={isLoading}
+                      variant="outline"
+                      className="h-14 bg-white dark:bg-card"
+                      size="lg"
+                    >
+                      <Coffee className="w-5 h-5" />
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -232,7 +288,7 @@ const WorkerTimeDialog = ({
             <Button
               variant="outline"
               onClick={() => setShowSchedule(!showSchedule)}
-              className="w-full"
+              className="w-full bg-white dark:bg-card"
             >
               <Calendar className="w-4 h-4 mr-2" />
               {showSchedule ? 'Ukryj grafik' : 'Zobacz pełny grafik'}
@@ -246,12 +302,12 @@ const WorkerTimeDialog = ({
             </div>
           )}
 
-          {/* Today's breaks list */}
-          {todayBreaks.length > 0 && !showSchedule && (
+          {/* Today's completed breaks list */}
+          {todayBreaks.filter(b => b.start_time !== b.end_time).length > 0 && !showSchedule && (
             <div className="w-full mt-2">
               <p className="text-xs text-muted-foreground mb-1">Przerwy dzisiaj:</p>
               <div className="text-xs space-y-1">
-                {todayBreaks.map((b) => (
+                {todayBreaks.filter(b => b.start_time !== b.end_time).map((b) => (
                   <div key={b.id} className="flex justify-between">
                     <span>
                       {formatTimeFromISO(b.start_time)} - {formatTimeFromISO(b.end_time)}
