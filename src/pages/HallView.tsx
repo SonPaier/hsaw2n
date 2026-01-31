@@ -40,7 +40,7 @@ interface Reservation {
   status: string;
   confirmation_code: string;
   service_ids?: string[];
-  service_items?: Array<{ service_id: string; custom_price: number | null }>;
+  service_items?: Array<{ service_id: string; custom_price: number | null; name?: string; id?: string }>;
   service?: {
     name: string;
     shortcut?: string | null;
@@ -745,24 +745,51 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   };
 
   // Map all reservations with services_data for calendar display (including service id for toggle)
+  // Primary source: service_items JSONB (already contains names), fallback to servicesMap
   const reservationsWithServices = useMemo(() => {
-    return reservations.map(reservation => ({
-      ...reservation,
-      services_data: reservation.service_ids?.map(id => ({
-        id, // Include id for toggle functionality
-        name: servicesMap.get(id) || id,
-      })) || [],
-    }));
+    return reservations.map(reservation => {
+      // Use service_items as primary source (has names embedded)
+      const serviceItems = reservation.service_items as any[] | undefined;
+      if (serviceItems && serviceItems.length > 0) {
+        return {
+          ...reservation,
+          services_data: serviceItems.map(item => ({
+            id: item.id || item.service_id,
+            name: item.name || 'Usługa',
+          })),
+        };
+      }
+      // Fallback to service_ids lookup
+      return {
+        ...reservation,
+        services_data: reservation.service_ids?.map(id => ({
+          id,
+          name: servicesMap.get(id) || 'Usługa',
+        })) || [],
+      };
+    });
   }, [reservations, servicesMap]);
 
   // Map selected reservation with services_data (including service id for toggle)
+  // Primary source: service_items JSONB
   const selectedReservationWithServices = useMemo(() => {
     if (!selectedReservation) return null;
     
-    const services_data = selectedReservation.service_ids?.map(id => ({
-      id, // Include id for toggle functionality
-      name: servicesMap.get(id) || id,
-    })) || [];
+    // Use service_items as primary source (has names embedded)
+    const serviceItems = selectedReservation.service_items as any[] | undefined;
+    let services_data: Array<{ id: string; name: string }>;
+    
+    if (serviceItems && serviceItems.length > 0) {
+      services_data = serviceItems.map(item => ({
+        id: item.id || item.service_id,
+        name: item.name || 'Usługa',
+      }));
+    } else {
+      services_data = selectedReservation.service_ids?.map(id => ({
+        id,
+        name: servicesMap.get(id) || 'Usługa',
+      })) || [];
+    }
 
     return {
       ...selectedReservation,
