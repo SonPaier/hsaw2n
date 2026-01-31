@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,9 @@ import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } fro
 import { useEmployeeBreaks, useCreateEmployeeBreak } from '@/hooks/useEmployeeBreaks';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
-import { Play, Square, Coffee, Loader2 } from 'lucide-react';
+import { Play, Square, Coffee, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import WeeklySchedule from './WeeklySchedule';
 
 interface WorkerTimeDialogProps {
   open: boolean;
@@ -30,6 +30,7 @@ const WorkerTimeDialog = ({
   instanceId,
 }: WorkerTimeDialogProps) => {
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [showSchedule, setShowSchedule] = useState(false);
   
   const { data: timeEntries = [] } = useTimeEntries(instanceId, undefined, today, today);
   const { data: breaks = [] } = useEmployeeBreaks(instanceId, today, today);
@@ -47,21 +48,19 @@ const WorkerTimeDialog = ({
   const todayBreaks = breaks.filter(
     (b) => b.employee_id === employee.id && b.break_date === today
   );
-  const activeBreak = todayBreaks.find((b) => !b.end_time);
   
   const isWorking = !!activeEntry;
-  const isOnBreak = !!activeBreak;
   
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStart = async () => {
     setIsLoading(true);
     try {
-      const now = format(new Date(), 'HH:mm:ss');
+      const now = new Date();
       await createTimeEntry.mutateAsync({
         employee_id: employee.id,
         entry_date: today,
-        start_time: now,
+        start_time: now.toISOString(),
         entry_type: 'manual',
       });
       toast.success(`${employee.name} rozpoczął pracę`);
@@ -78,10 +77,10 @@ const WorkerTimeDialog = ({
     
     setIsLoading(true);
     try {
-      const now = format(new Date(), 'HH:mm:ss');
+      const now = new Date();
       await updateTimeEntry.mutateAsync({
         id: activeEntry.id,
-        end_time: now,
+        end_time: now.toISOString(),
       });
       toast.success(`${employee.name} zakończył pracę`);
     } catch (error) {
@@ -95,12 +94,12 @@ const WorkerTimeDialog = ({
   const handleBreakStart = async () => {
     setIsLoading(true);
     try {
-      const now = format(new Date(), 'HH:mm:ss');
+      const now = new Date().toISOString();
       await createBreak.mutateAsync({
         employee_id: employee.id,
         break_date: today,
         start_time: now,
-        end_time: now, // Will be updated when break ends
+        end_time: now,
       });
       toast.success('Przerwa rozpoczęta');
     } catch (error) {
@@ -119,10 +118,6 @@ const WorkerTimeDialog = ({
     employeeEntries.forEach((entry) => {
       if (entry.total_minutes) {
         total += entry.total_minutes;
-      } else if (entry.start_time && entry.end_time) {
-        const start = new Date(`${today}T${entry.start_time}`);
-        const end = new Date(`${today}T${entry.end_time}`);
-        total += Math.floor((end.getTime() - start.getTime()) / 60000);
       }
     });
     
@@ -137,9 +132,19 @@ const WorkerTimeDialog = ({
 
   const totalMinutes = calculateTotalMinutes();
 
+  // Format time from ISO string for display
+  const formatTimeFromISO = (isoString: string | null) => {
+    if (!isoString) return '';
+    try {
+      return format(new Date(isoString), 'HH:mm');
+    } catch {
+      return isoString.slice(0, 5);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className={showSchedule ? "sm:max-w-2xl" : "sm:max-w-sm"}>
         <DialogHeader>
           <DialogTitle className="sr-only">Czas pracy</DialogTitle>
         </DialogHeader>
@@ -162,40 +167,23 @@ const WorkerTimeDialog = ({
 
           <Separator className="my-2" />
 
-          {/* Status indicator */}
+          {/* Status indicator - just the dot */}
           <div className="flex items-center gap-2 text-sm">
             <span
               className={`w-3 h-3 rounded-full ${
                 isWorking ? 'bg-green-500' : 'bg-muted'
               }`}
             />
-            <span>{isWorking ? 'W pracy' : 'Nie pracuje'}</span>
+            {isWorking && <span>W pracy</span>}
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-3 w-full">
-            {!isWorking ? (
-              <Button
-                onClick={handleStart}
-                disabled={isLoading}
-                className="flex-1 h-14 text-lg"
-                size="lg"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 mr-2" />
-                    Start
-                  </>
-                )}
-              </Button>
-            ) : (
-              <>
+          <div className="flex flex-col gap-3 w-full">
+            <div className="flex gap-3">
+              {!isWorking ? (
                 <Button
-                  onClick={handleStop}
+                  onClick={handleStart}
                   disabled={isLoading}
-                  variant="destructive"
                   className="flex-1 h-14 text-lg"
                   size="lg"
                 >
@@ -203,33 +191,71 @@ const WorkerTimeDialog = ({
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      <Square className="w-5 h-5 mr-2" />
-                      Stop
+                      <Play className="w-5 h-5 mr-2" />
+                      Start
                     </>
                   )}
                 </Button>
-                
-                <Button
-                  onClick={handleBreakStart}
-                  disabled={isLoading}
-                  variant="outline"
-                  className="h-14"
-                  size="lg"
-                >
-                  <Coffee className="w-5 h-5" />
-                </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  <Button
+                    onClick={handleStop}
+                    disabled={isLoading}
+                    variant="destructive"
+                    className="flex-1 h-14 text-lg"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Square className="w-5 h-5 mr-2" />
+                        Stop
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    onClick={handleBreakStart}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="h-14"
+                    size="lg"
+                  >
+                    <Coffee className="w-5 h-5" />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* View schedule button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowSchedule(!showSchedule)}
+              className="w-full"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {showSchedule ? 'Ukryj grafik' : 'Zobacz pełny grafik'}
+            </Button>
           </div>
 
+          {/* Weekly schedule */}
+          {showSchedule && (
+            <div className="w-full mt-4">
+              <WeeklySchedule employee={employee} instanceId={instanceId} />
+            </div>
+          )}
+
           {/* Today's breaks list */}
-          {todayBreaks.length > 0 && (
+          {todayBreaks.length > 0 && !showSchedule && (
             <div className="w-full mt-2">
               <p className="text-xs text-muted-foreground mb-1">Przerwy dzisiaj:</p>
               <div className="text-xs space-y-1">
                 {todayBreaks.map((b) => (
                   <div key={b.id} className="flex justify-between">
-                    <span>{b.start_time?.slice(0, 5)} - {b.end_time?.slice(0, 5)}</span>
+                    <span>
+                      {formatTimeFromISO(b.start_time)} - {formatTimeFromISO(b.end_time)}
+                    </span>
                     {b.duration_minutes && <span>{b.duration_minutes} min</span>}
                   </div>
                 ))}
