@@ -1123,7 +1123,8 @@ export const PublicOfferCustomerView = ({
           </div>
         )}
 
-        {/* Sticky Totals Card */}
+        {/* Sticky Totals Card - temporarily hidden for readonly mode */}
+        {/* 
         <Card 
           className="border sticky bottom-4 shadow-lg z-10"
           style={{ 
@@ -1132,12 +1133,10 @@ export const PublicOfferCustomerView = ({
           }}
         >
           <CardContent className="py-3 md:py-4">
-            {/* Mobile: Netto + VAT in one line */}
             <div className="flex items-center justify-between gap-2 text-xs md:hidden mb-1" style={{ color: branding.offer_section_text_color }}>
               <span>{t('publicOffer.netTotal')}: <span className="font-medium">{formatPrice(dynamicTotals.net)}</span></span>
               <span>VAT ({offer.vat_rate}%): <span className="font-medium">{formatPrice(dynamicTotals.gross - dynamicTotals.net)}</span></span>
             </div>
-            {/* Desktop: Separate lines */}
             <div className="hidden md:block space-y-1">
               <div className="flex justify-between text-xs" style={{ color: branding.offer_section_text_color }}>
                 <span>{t('publicOffer.netTotal')}</span>
@@ -1157,6 +1156,7 @@ export const PublicOfferCustomerView = ({
             </div>
           </CardContent>
         </Card>
+        */}
 
         {/* Expert Contact - below totals */}
         {(instance?.phone || instance?.contact_person) && (
