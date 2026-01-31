@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X, ClipboardCheck } from 'lucide-react';
+import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X, ClipboardCheck, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sheet';
 
 
-type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols' | 'reminders';
+type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'settings' | 'offers' | 'products' | 'followup' | 'notifications' | 'halls' | 'protocols' | 'reminders' | 'employees';
 
 interface MobileBottomNavProps {
   currentView: ViewType;
@@ -76,9 +76,11 @@ const MobileBottomNav = ({
         ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
         // 7. Protokoły (when enabled, including employees)
         ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-        // 8. Powiadomienia (second to last)
+        // 8. Pracownicy (admin only)
+        ...(userRole !== 'employee' ? [{ id: 'employees' as ViewType, icon: UsersRound, label: 'Pracownicy' }] : []),
+        // 9. Powiadomienia (second to last)
         { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
-        // 9. Ustawienia (always last, admin only)
+        // 10. Ustawienia (always last, admin only)
         ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
       ];
 
