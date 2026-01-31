@@ -2,12 +2,24 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Check, X, Palmtree } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, subWeeks, isSameDay, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useTimeEntries, useTimeEntriesForDateRange, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, useCreateEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
+
+// Weekday index to working_hours key map (0=Sunday, 1=Monday, etc)
+const WEEKDAY_TO_KEY: Record<number, string> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
 
 interface WeeklyScheduleProps {
   employee: Employee;
@@ -41,9 +53,44 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const { data: timeEntries = [] } = useTimeEntries(instanceId, employee.id, dateFrom, dateTo);
   const { data: monthTimeEntries = [] } = useTimeEntriesForDateRange(instanceId, monthFrom, monthTo);
   const { data: daysOff = [] } = useEmployeeDaysOff(instanceId, employee.id);
+  const { data: workingHours } = useWorkingHours(instanceId);
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
   const createDayOff = useCreateEmployeeDayOff(instanceId);
+
+  // Helper to get opening time for a given date
+  const getOpeningTime = (dateStr: string): Date | null => {
+    if (!workingHours) return null;
+    const date = new Date(dateStr);
+    const dayOfWeek = getDay(date);
+    const dayKey = WEEKDAY_TO_KEY[dayOfWeek];
+    const dayHours = workingHours[dayKey];
+    if (!dayHours || !dayHours.open) return null;
+    
+    const [hours, minutes] = dayHours.open.split(':').map(Number);
+    const openingDate = new Date(dateStr);
+    openingDate.setHours(hours, minutes, 0, 0);
+    return openingDate;
+  };
+
+  // Calculate pre-opening minutes for entries
+  const calculatePreOpeningMinutes = (entries: TimeEntry[], dateStr: string): number => {
+    const openingTime = getOpeningTime(dateStr);
+    if (!openingTime) return 0;
+    
+    let preOpeningMinutes = 0;
+    entries.forEach(entry => {
+      if (!entry.start_time) return;
+      const startTime = new Date(entry.start_time);
+      if (startTime < openingTime) {
+        const endTime = entry.end_time ? new Date(entry.end_time) : new Date();
+        const effectiveEnd = endTime < openingTime ? endTime : openingTime;
+        const diffMs = effectiveEnd.getTime() - startTime.getTime();
+        preOpeningMinutes += Math.max(0, Math.floor(diffMs / 60000));
+      }
+    });
+    return preOpeningMinutes;
+  };
 
   // Check if a date is a day off
   const isDayOff = (dateStr: string) => {
@@ -165,6 +212,27 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       .reduce((sum, e) => sum + (e.total_minutes || 0), 0);
   }, [monthTimeEntries, employee.id]);
 
+  // Calculate monthly pre-opening time
+  const monthPreOpeningMinutes = useMemo(() => {
+    const employeeEntries = monthTimeEntries.filter(e => e.employee_id === employee.id);
+    // Group entries by date
+    const entriesByDate = new Map<string, TimeEntry[]>();
+    employeeEntries.forEach(entry => {
+      const existing = entriesByDate.get(entry.entry_date) || [];
+      existing.push(entry);
+      entriesByDate.set(entry.entry_date, existing);
+    });
+    
+    let totalPreOpening = 0;
+    entriesByDate.forEach((entries, dateStr) => {
+      totalPreOpening += calculatePreOpeningMinutes(entries, dateStr);
+    });
+    return totalPreOpening;
+  }, [monthTimeEntries, employee.id, workingHours]);
+
+  // Real time = Total - pre-opening
+  const monthRealMinutes = Math.max(0, monthTotal - monthPreOpeningMinutes);
+
   const formatMinutes = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -182,7 +250,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const monthName = format(monthStartDate, 'LLLL', { locale: pl });
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-2">
       {/* Week navigation */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={handlePrevWeek}>
@@ -221,7 +289,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
               {/* Time cell - click to select for editing */}
               <button
                 onClick={() => handleCellClick(day)}
-                className={`border rounded-b p-2 text-center min-h-[48px] flex items-center justify-center transition-colors ${
+                className={`border rounded-b p-1 text-center min-h-[40px] flex items-center justify-center transition-colors ${
                   isSelected
                     ? 'ring-2 ring-primary border-primary bg-primary/10'
                     : isOff
@@ -248,7 +316,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
 
       {/* Editor panel - appears below the week grid when a day is selected */}
       {editingCell && (
-        <div className="border rounded-lg p-4 bg-card space-y-3">
+        <div className="border rounded-lg p-3 bg-card space-y-2">
           <div className="text-sm font-medium text-center capitalize">{editingDayLabel}</div>
           <div className="flex items-center justify-center gap-2">
             <Input
@@ -322,7 +390,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       )}
 
       {/* Week summary */}
-      <div className="space-y-2 pt-2 border-t">
+      <div className="space-y-1.5 pt-2 border-t">
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Suma tygodnia:</span>
           <span className="font-bold">{formatMinutes(weekTotal)}</span>
@@ -331,6 +399,18 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
           <span className="text-sm text-muted-foreground">Suma miesiąca ({monthName}):</span>
           <span className="font-bold">{formatMinutes(monthTotal)}</span>
         </div>
+        {monthPreOpeningMinutes > 0 && (
+          <>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">W tym przed otwarciem:</span>
+              <span className="text-muted-foreground">{formatMinutes(monthPreOpeningMinutes)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Czas realny:</span>
+              <span className="font-bold">{formatMinutes(monthRealMinutes)}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
