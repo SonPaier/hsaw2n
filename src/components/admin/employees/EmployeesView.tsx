@@ -493,7 +493,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleTileClick(employee)}
                     >
-                      <TableCell className="py-3">
+                      <TableCell className="py-3" style={{ width: '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
                           <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
@@ -504,13 +504,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           <span className="font-medium truncate">{employee.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="w-16 text-center py-3">
+                      <TableCell className="text-center py-3" style={{ width: '23%' }}>
                         <div className="text-sm leading-tight">
                           {hours > 0 && <div>{hours}h</div>}
                           <div>{mins}min</div>
                         </div>
                       </TableCell>
-                      <TableCell className="w-16 text-right py-3 whitespace-nowrap font-medium">
+                      <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '30%' }}>
                         {earnings ? `${earnings} zł` : '-'}
                       </TableCell>
                     </TableRow>
@@ -523,7 +523,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
                       Suma wypłat {isWeeklyMode ? 'tydzień' : format(currentDate, 'LLLL', { locale: pl })}:
                     </TableCell>
-                    <TableCell className="w-16 text-right py-3 font-bold whitespace-nowrap">
+                    <TableCell className="text-right py-3 font-bold whitespace-nowrap" style={{ width: '30%' }}>
                       {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                     </TableCell>
                   </TableRow>
