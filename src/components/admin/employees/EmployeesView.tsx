@@ -464,8 +464,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           {/* Table layout */}
-          <div className="overflow-hidden rounded-lg">
-            <Table className="bg-white table-fixed w-full">
+          <div className="overflow-hidden rounded-lg max-w-full">
+            <Table className="bg-white w-full" style={{ tableLayout: 'fixed' }}>
               <TableBody>
                 {activeEmployees.map((employee) => {
                   const summary = periodSummary.get(employee.id);
@@ -557,8 +557,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium">{employee.name}</div>
-                        <div className="text-sm space-y-0.5">
+                        <div className="font-medium mb-1">{employee.name}</div>
+                        <div className="text-sm space-y-1.5">
                           {daysOffLines.map((line, idx) => (
                             <div key={idx}>
                               {line.to ? (
