@@ -13,7 +13,7 @@ import { Employee } from '@/hooks/useEmployees';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
-import { Play, Square, Loader2, Calendar } from 'lucide-react';
+import { Play, Square, Loader2, Calendar, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import WeeklySchedule from './WeeklySchedule';
 
@@ -22,6 +22,8 @@ interface WorkerTimeDialogProps {
   onOpenChange: (open: boolean) => void;
   employee: Employee;
   instanceId: string;
+  showEditButton?: boolean;
+  onEditEmployee?: () => void;
 }
 
 const WorkerTimeDialog = ({
@@ -29,6 +31,8 @@ const WorkerTimeDialog = ({
   onOpenChange,
   employee,
   instanceId,
+  showEditButton = false,
+  onEditEmployee,
 }: WorkerTimeDialogProps) => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showSchedule, setShowSchedule] = useState(false);
@@ -167,7 +171,17 @@ const WorkerTimeDialog = ({
               </AvatarFallback>
             </Avatar>
             
-            <h2 className="text-lg font-semibold">{employee.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">{employee.name}</h2>
+              {showEditButton && onEditEmployee && (
+                <button
+                  onClick={onEditEmployee}
+                  className="p-1 rounded hover:bg-muted"
+                >
+                  <Pencil className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
             
             {totalMinutes > 0 && (
               <div className="text-center">
