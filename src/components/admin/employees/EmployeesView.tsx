@@ -467,14 +467,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
                     : null;
                   
+                  const hours = Math.floor(displayMinutes / 60);
+                  const mins = displayMinutes % 60;
+                  
                   return (
                     <TableRow 
                       key={employee.id} 
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleTileClick(employee)}
                     >
-                      <TableCell className="max-w-0">
-                        <div className="flex items-center gap-3 overflow-hidden">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-2 min-w-0">
                           <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
                             <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -482,18 +485,15 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium truncate">{employee.name}</span>
-                          {isAdmin && (
-                            <button
-                              onClick={(e) => handleEditEmployee(e, employee)}
-                              className="p-1 rounded hover:bg-muted flex-shrink-0"
-                            >
-                              <Pencil className="w-4 h-4 text-muted-foreground" />
-                            </button>
-                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{displayHours}</TableCell>
-                      <TableCell className="text-right font-medium whitespace-nowrap">
+                      <TableCell className="w-16 text-center py-3">
+                        <div className="text-sm leading-tight">
+                          {hours > 0 && <div>{hours}h</div>}
+                          <div>{mins}min</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-20 text-right py-3 whitespace-nowrap font-medium">
                         {earnings ? `${earnings} zł` : '-'}
                       </TableCell>
                     </TableRow>
@@ -503,9 +503,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               {isAdmin && totalEarnings > 0 && (
                 <TableFooter className="bg-white">
                   <TableRow>
-                    <TableCell colSpan={2}></TableCell>
-                    <TableCell className="text-right font-bold whitespace-nowrap">
-                      Suma wypłat {isWeeklyMode ? 'tygodnia' : format(currentDate, 'LLLL', { locale: pl })}: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
+                    <TableCell className="py-3"></TableCell>
+                    <TableCell className="py-3"></TableCell>
+                    <TableCell className="w-20 text-right py-3">
+                      <div className="text-xs text-muted-foreground">Suma wypłat {isWeeklyMode ? 'tyg.' : format(currentDate, 'LLL', { locale: pl })}:</div>
+                      <div className="font-bold">{totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł</div>
                     </TableCell>
                   </TableRow>
                 </TableFooter>
@@ -565,6 +567,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           onOpenChange={(open) => !open && setWorkerDialogEmployee(null)}
           employee={workerDialogEmployee}
           instanceId={instanceId}
+          showEditButton={isAdmin}
+          onEditEmployee={() => {
+            setEditingEmployee(workerDialogEmployee);
+            setDialogOpen(true);
+          }}
         />
       )}
 
