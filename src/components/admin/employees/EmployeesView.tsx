@@ -510,7 +510,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           <div>{mins}min</div>
                         </div>
                       </TableCell>
-                      <TableCell className="w-22 text-right py-3 whitespace-nowrap font-medium">
+                      <TableCell className="w-16 text-right py-3 whitespace-nowrap font-medium">
                         {earnings ? `${earnings} zł` : '-'}
                       </TableCell>
                     </TableRow>
@@ -523,7 +523,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
                       Suma wypłat {isWeeklyMode ? 'tydzień' : format(currentDate, 'LLLL', { locale: pl })}:
                     </TableCell>
-                    <TableCell className="w-22 text-right py-3 font-bold whitespace-nowrap">
+                    <TableCell className="w-16 text-right py-3 font-bold whitespace-nowrap">
                       {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                     </TableCell>
                   </TableRow>
