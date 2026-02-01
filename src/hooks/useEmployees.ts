@@ -30,8 +30,7 @@ export const useEmployees = (instanceId: string | null) => {
         .from('employees')
         .select('*')
         .eq('instance_id', instanceId)
-        .order('sort_order', { ascending: true, nullsFirst: false })
-        .order('name');
+        .order('sort_order', { ascending: true, nullsFirst: true });
       
       if (error) throw error;
       return data || [];
