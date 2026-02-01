@@ -249,6 +249,12 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     try {
       await deleteDayOff.mutateAsync(dayOffRecord.id);
       toast.success('Usunięto wolne');
+      // Reset editing cell to show empty state (not day off anymore)
+      setEditingCell({
+        ...editingCell,
+        hours: '0',
+        minutes: '0',
+      });
     } catch (error) {
       console.error('Remove day off error:', error);
       toast.error('Błąd podczas usuwania');
@@ -343,10 +349,9 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
           
           return (
             <div key={dateStr} className="flex flex-col">
-              {/* Day header - white background */}
               <div className={`text-center text-xs py-1 rounded-t ${
                 isToday ? 'bg-primary text-primary-foreground' : 
-                isWeekend ? 'bg-muted/50 text-muted-foreground' : 'bg-white dark:bg-card'
+                isWeekend ? 'bg-muted text-muted-foreground' : 'bg-white dark:bg-card'
               }`}>
                 <div className="font-medium">{format(day, 'EEE', { locale: pl })}</div>
                 <div>{format(day, 'd')}</div>
