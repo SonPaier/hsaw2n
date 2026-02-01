@@ -268,8 +268,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     return result;
   };
 
-  // Format days off as array of strings - each range is separate line
-  const formatDaysOffForPeriodLines = (employeeDaysOff: EmployeeDayOff[]): string[] => {
+  // Format days off as array of objects with from/to dates for display
+  type DayOffLine = { from: string; to: string | null };
+  
+  const formatDaysOffForPeriodLines = (employeeDaysOff: EmployeeDayOff[]): DayOffLine[] => {
     const allDates: Date[] = [];
     
     employeeDaysOff.forEach(item => {
@@ -295,7 +297,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     );
 
     // Group consecutive dates into ranges - each range is separate line
-    const lines: string[] = [];
+    const lines: DayOffLine[] = [];
     let rangeStart: Date | null = null;
     let rangeEnd: Date | null = null;
 
@@ -315,11 +317,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         rangeEnd = date;
       } else {
         if (rangeStart) {
-          if (rangeEnd) {
-            lines.push(`${formatDateWithDay(rangeStart)} - ${formatDateWithDay(rangeEnd)}`);
-          } else {
-            lines.push(formatDateWithDay(rangeStart));
-          }
+          lines.push({
+            from: formatDateWithDay(rangeStart),
+            to: rangeEnd ? formatDateWithDay(rangeEnd) : null
+          });
         }
         rangeStart = date;
         rangeEnd = null;
@@ -328,11 +329,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
 
     // Close last range
     if (rangeStart) {
-      if (rangeEnd) {
-        lines.push(`${formatDateWithDay(rangeStart)} - ${formatDateWithDay(rangeEnd)}`);
-      } else {
-        lines.push(formatDateWithDay(rangeStart));
-      }
+      lines.push({
+        from: formatDateWithDay(rangeStart),
+        to: rangeEnd ? formatDateWithDay(rangeEnd) : null
+      });
     }
 
     return lines;
@@ -558,9 +558,20 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium">{employee.name}</div>
-                        <div className="text-sm text-muted-foreground space-y-0.5">
+                        <div className="text-sm space-y-0.5">
                           {daysOffLines.map((line, idx) => (
-                            <div key={idx}>{line}</div>
+                            <div key={idx}>
+                              {line.to ? (
+                                <>
+                                  <span className="text-muted-foreground">od </span>
+                                  <span className="font-medium text-foreground">{line.from}</span>
+                                  <span className="text-muted-foreground"> do </span>
+                                  <span className="font-medium text-foreground">{line.to}</span>
+                                </>
+                              ) : (
+                                <span className="font-medium text-foreground">{line.from}</span>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>
