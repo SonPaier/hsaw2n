@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Upload, X, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { cn } from '@/lib/utils';
 
 interface AddEditEmployeeDialogProps {
   open: boolean;
@@ -235,7 +236,7 @@ const AddEditEmployeeDialog = ({
             )}
           </div>
 
-          <DialogFooter className="flex flex-row items-center gap-2">
+          <DialogFooter className="flex flex-row gap-2">
             {isEditing && isAdmin && (
               <Button 
                 variant="ghost" 
@@ -247,10 +248,10 @@ const AddEditEmployeeDialog = ({
                 <Trash2 className="w-5 h-5" />
               </Button>
             )}
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="bg-white">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className={cn("bg-white", !isEditing && "flex-1")}>
               Anuluj
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className={cn(!isEditing && "flex-1")}>
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEditing ? 'Zapisz' : 'Dodaj'}
             </Button>

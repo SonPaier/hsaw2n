@@ -88,13 +88,18 @@ const WorkersSettingsDrawer = ({
           ) : (
             <>
               {/* Switch: Start/Stop */}
-              <div className="flex items-center justify-between">
-                <Label htmlFor="start-stop">Włączona rejestracja Start/Stop</Label>
-                <Switch 
-                  id="start-stop"
-                  checked={startStopEnabled} 
-                  onCheckedChange={setStartStopEnabled} 
-                />
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="start-stop">Włączona rejestracja Start/Stop</Label>
+                  <Switch 
+                    id="start-stop"
+                    checked={startStopEnabled} 
+                    onCheckedChange={setStartStopEnabled} 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pracownicy mogą samodzielnie rejestrować czas pracy
+                </p>
               </div>
 
               {/* Time calculation mode - only when Start/Stop enabled */}
@@ -105,30 +110,45 @@ const WorkersSettingsDrawer = ({
                     value={timeCalculationMode} 
                     onValueChange={(v) => setTimeCalculationMode(v as 'start_to_stop' | 'opening_to_stop')}
                   >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="start_to_stop" id="start-to-stop" />
-                      <Label htmlFor="start-to-stop" className="font-normal cursor-pointer">
-                        Od kliknięcia start do stop
-                      </Label>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="start_to_stop" id="start-to-stop" />
+                        <Label htmlFor="start-to-stop" className="font-normal cursor-pointer">
+                          Od kliknięcia start do stop
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">
+                        Liczy pełny czas od naciśnięcia przycisku
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="opening_to_stop" id="opening-to-stop" />
-                      <Label htmlFor="opening-to-stop" className="font-normal cursor-pointer">
-                        Od otwarcia myjni do stop
-                      </Label>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="opening_to_stop" id="opening-to-stop" />
+                        <Label htmlFor="opening-to-stop" className="font-normal cursor-pointer">
+                          Od otwarcia myjni do stop
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">
+                        Ignoruje czas przed otwarciem salonu
+                      </p>
                     </div>
                   </RadioGroup>
                 </div>
               )}
 
               {/* Switch: Nadgodziny */}
-              <div className="flex items-center justify-between">
-                <Label htmlFor="overtime">Naliczanie nadgodzin</Label>
-                <Switch 
-                  id="overtime"
-                  checked={overtimeEnabled} 
-                  onCheckedChange={setOvertimeEnabled} 
-                />
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="overtime">Naliczanie nadgodzin</Label>
+                  <Switch 
+                    id="overtime"
+                    checked={overtimeEnabled} 
+                    onCheckedChange={setOvertimeEnabled} 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Automatycznie oznacza godziny ponad normę
+                </p>
               </div>
 
               {/* Number: Norma dzienna - TYLKO gdy nadgodziny włączone */}
@@ -154,17 +174,27 @@ const WorkersSettingsDrawer = ({
                   value={reportFrequency} 
                   onValueChange={(v) => setReportFrequency(v as 'monthly' | 'weekly')}
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="monthly" id="monthly" />
-                    <Label htmlFor="monthly" className="font-normal cursor-pointer">
-                      Miesięcznie
-                    </Label>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="monthly" id="monthly" />
+                      <Label htmlFor="monthly" className="font-normal cursor-pointer">
+                        Miesięcznie
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Podsumowanie raz w miesiącu
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="weekly" id="weekly" />
-                    <Label htmlFor="weekly" className="font-normal cursor-pointer">
-                      Tygodniowo
-                    </Label>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="weekly" id="weekly" />
+                      <Label htmlFor="weekly" className="font-normal cursor-pointer">
+                        Tygodniowo
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Podsumowanie co tydzień
+                    </p>
                   </div>
                 </RadioGroup>
               </div>
@@ -174,7 +204,7 @@ const WorkersSettingsDrawer = ({
 
         {/* Sticky white footer */}
         <div className="sticky bottom-0 bg-background border-t p-4 flex gap-3">
-          <Button variant="outline" onClick={handleClose} className="flex-1">
+          <Button variant="outline" onClick={handleClose} className="flex-1 bg-white">
             Anuluj
           </Button>
           <Button onClick={handleSave} disabled={saving || isLoading} className="flex-1">
