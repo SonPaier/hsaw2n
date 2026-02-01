@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCreateEmployee, useUpdateEmployee, useDeleteEmployee, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Upload, X, Trash2 } from 'lucide-react';
+import { Loader2, Upload, X, Trash2, Camera } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
+import { compressImage } from '@/lib/imageUtils';
 
 interface AddEditEmployeeDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ const AddEditEmployeeDialog = ({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createEmployee = useCreateEmployee(instanceId);
   const updateEmployee = useUpdateEmployee(instanceId);
@@ -58,6 +60,11 @@ const AddEditEmployeeDialog = ({
     }
   }, [employee, open]);
 
+  const handleAvatarClick = () => {
+    // CRITICAL: directly trigger file input from user gesture
+    fileInputRef.current?.click();
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !instanceId) return;
@@ -67,19 +74,22 @@ const AddEditEmployeeDialog = ({
       toast.error('Dozwolone są tylko pliki graficzne');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Maksymalny rozmiar pliku to 5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Maksymalny rozmiar pliku to 10MB');
       return;
     }
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressedBlob = await compressImage(file, 800, 0.8);
+      
+      const fileExt = 'jpg';
       const fileName = `${instanceId}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('employee-photos')
-        .upload(fileName, file);
+        .upload(fileName, compressedBlob, { contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
@@ -88,12 +98,28 @@ const AddEditEmployeeDialog = ({
         .getPublicUrl(fileName);
 
       setPhotoUrl(publicUrl);
-      toast.success('Zdjęcie zostało przesłane');
+      
+      // If editing, auto-save after photo upload
+      if (isEditing && employee) {
+        await updateEmployee.mutateAsync({ 
+          id: employee.id, 
+          photo_url: publicUrl,
+          name: name.trim() || employee.name,
+          hourly_rate: isAdmin && hourlyRate ? parseFloat(hourlyRate) : employee.hourly_rate,
+        });
+        toast.success('Zdjęcie zostało zapisane');
+      } else {
+        toast.success('Zdjęcie zostało przesłane');
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Błąd podczas przesyłania zdjęcia');
     } finally {
       setIsUploading(false);
+      // Reset input to allow re-selecting the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -167,19 +193,34 @@ const AddEditEmployeeDialog = ({
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Photo upload */}
+            {/* Photo upload - clickable avatar */}
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
+              <div 
+                className="relative cursor-pointer group"
+                onClick={handleAvatarClick}
+              >
+                <Avatar className="h-20 w-20 ring-2 ring-transparent group-hover:ring-primary/50 transition-all">
                   <AvatarImage src={photoUrl || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-lg">
                     {name.slice(0, 2).toUpperCase() || '??'}
                   </AvatarFallback>
                 </Avatar>
-                {photoUrl && (
+                {isUploading ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                    <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                )}
+                {photoUrl && !isUploading && (
                   <button
                     type="button"
-                    onClick={handleRemovePhoto}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemovePhoto();
+                    }}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90"
                   >
                     <X className="w-3 h-3" />
@@ -187,20 +228,14 @@ const AddEditEmployeeDialog = ({
                 )}
               </div>
               <div>
-                <Label htmlFor="photo" className="cursor-pointer">
-                  <div className="flex items-center gap-2 text-sm text-primary hover:text-primary/80">
-                    {isUploading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {photoUrl ? 'Zmień zdjęcie' : 'Dodaj zdjęcie'}
-                  </div>
-                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Kliknij zdjęcie aby zrobić nowe
+                </p>
                 <input
-                  id="photo"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   className="hidden"
                   onChange={handlePhotoUpload}
                   disabled={isUploading}
