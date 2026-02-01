@@ -90,7 +90,8 @@ const WorkerTimeDialog = ({
 
     setIsUploading(true);
     try {
-      const compressedBlob = await compressImage(file, 800, 0.8);
+      // Compress and crop to square for avatar
+      const compressedBlob = await compressImage(file, 400, 0.85, true);
       
       const fileName = `${instanceId}/${Date.now()}.jpg`;
 
