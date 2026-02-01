@@ -82,43 +82,13 @@ const AddEmployeeDayOffDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle>Dodaj nieobecność</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Employee select */}
-          <div className="space-y-2">
-            <Label>Pracownik *</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wybierz pracownika" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map(emp => (
-                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Day off type */}
-          <div className="space-y-2">
-            <Label>Typ nieobecności *</Label>
-            <Select value={dayOffType} onValueChange={(v) => setDayOffType(v as DayOffType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(DAY_OFF_TYPE_LABELS) as DayOffType[]).map(type => (
-                  <SelectItem key={type} value={type}>{DAY_OFF_TYPE_LABELS[type]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date range picker */}
+          {/* Date range picker - first */}
           <div className="space-y-2">
             <Label>Okres *</Label>
             <Popover>
@@ -126,7 +96,7 @@ const AddEmployeeDayOffDialog = ({
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal',
+                    'w-full justify-start text-left font-normal bg-white',
                     !dateRange?.from && 'text-muted-foreground'
                   )}
                 >
@@ -134,7 +104,7 @@ const AddEmployeeDayOffDialog = ({
                   {formatDateRange()}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 bg-white" align="start">
                 <Calendar
                   mode="range"
                   selected={dateRange}
@@ -145,13 +115,43 @@ const AddEmployeeDayOffDialog = ({
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* Day off type - second */}
+          <div className="space-y-2">
+            <Label>Typ nieobecności *</Label>
+            <Select value={dayOffType} onValueChange={(v) => setDayOffType(v as DayOffType)}>
+              <SelectTrigger className="bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(DAY_OFF_TYPE_LABELS) as DayOffType[]).map(type => (
+                  <SelectItem key={type} value={type}>{DAY_OFF_TYPE_LABELS[type]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Employee select - third */}
+          <div className="space-y-2">
+            <Label>Pracownik *</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Wybierz pracownika" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map(emp => (
+                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 bg-white">
             Anuluj
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1">
             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Dodaj
           </Button>
