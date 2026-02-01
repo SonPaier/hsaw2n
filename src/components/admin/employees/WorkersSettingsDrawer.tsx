@@ -98,7 +98,7 @@ const WorkersSettingsDrawer = ({
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Pracownicy mogą samodzielnie rejestrować czas pracy
+                  Pracownik "odbija się" na wejściu i wyjściu z pracy. Gdy wyłączone, podaje liczbę godzin i minut w danym dniu.
                 </p>
               </div>
 
