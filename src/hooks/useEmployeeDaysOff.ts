@@ -92,7 +92,11 @@ export const useDeleteEmployeeDayOff = (instanceId: string | null) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee_days_off', instanceId] });
+      // Invalidate all employee_days_off queries for this instance (any employee filter)
+      queryClient.invalidateQueries({ 
+        queryKey: ['employee_days_off', instanceId],
+        exact: false 
+      });
     },
   });
 };
