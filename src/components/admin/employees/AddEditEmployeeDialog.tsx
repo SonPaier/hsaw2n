@@ -221,7 +221,7 @@ const AddEditEmployeeDialog = ({
             {/* Hourly rate - admin only */}
             {isAdmin && (
               <div className="space-y-2">
-                <Label htmlFor="rate">Stawka godzinowa (zł)</Label>
+                <Label htmlFor="rate">Stawka godzinowa na rękę (zł)</Label>
                 <Input
                   id="rate"
                   type="number"
@@ -235,19 +235,19 @@ const AddEditEmployeeDialog = ({
             )}
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-row items-center gap-2">
             {isEditing && isAdmin && (
               <Button 
-                variant="destructive" 
+                variant="ghost" 
+                size="icon"
                 onClick={() => setDeleteConfirmOpen(true)}
                 disabled={isDeleting}
-                className="sm:mr-auto"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
               >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Usuń
+                <Trash2 className="w-5 h-5" />
               </Button>
             )}
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="bg-white">
               Anuluj
             </Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
