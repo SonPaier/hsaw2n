@@ -1,154 +1,169 @@
 
-# Plan: Poprawki UI w widoku Pracowników i dialogu edycji
+# Plan: Poprawki tabeli pracowników - layout i widoczność
 
-## Podsumowanie zmian
+## Podsumowanie problemów
 
-Zestaw poprawek wizualnych i UX dla widoku pracowników (`EmployeesView.tsx`) oraz dialogu edycji pracownika (`AddEditEmployeeDialog.tsx`).
+Na podstawie screena i opisu:
+1. **Scroll poziomy** - tabela ma nadal scroll, nie widać całej sumy wypłat
+2. **Imiona niewidoczne** - kolumna imion jest za wąska (tylko "I" lub "." widoczne)
+3. **Czas - format** - zmienić na godziny nad minutami (wertykalnie)
+4. **Suma wypłat** - ma być wyrównana pod kolumną kwot jak podsumowanie
+5. **Ołówek edycji** - usunąć z tabeli, przenieść do WorkerTimeDialog (ale nie na hall view)
 
 ---
 
-## 1. EmployeesView.tsx - Poprawki tabeli i layoutu
+## Zmiany w EmployeesView.tsx
 
-### 1.1 Większy padding na mobile (nieobecności pod bottom menu)
-**Problem:** Sekcja nieobecności wchodzi pod dolne menu na mobile.
+### 1. Nowy layout kolumn z fixed widths
 
-**Rozwiązanie:** Dodać `pb-24` (96px) do głównego kontenera, aby zapewnić przestrzeń powyżej bottom menu (który ma ~72px wysokości):
-```typescript
-// Linia 389:
-<div className="space-y-6 pb-24">
-```
-
-### 1.2 Tabela z białym tłem + usunięcie nagłówków
-**Zmiany:**
-- Dodać białe tło do tabeli: `className="bg-white rounded-lg"`
-- Usunąć sekcję `<TableHeader>` z nagłówkami "Pracownik", "Czas", "Kwota"
+Zmienić z `table-fixed` na zwykłą tabelę z określonymi szerokościami kolumn:
 
 ```typescript
-<Table className="bg-white rounded-lg">
-  {/* Usunięty TableHeader */}
-  <TableBody>
-    ...
-  </TableBody>
-</Table>
+// Struktura kolumn:
+// [Avatar + Imię] [Czas]  [Kwota]
+// flex-1           w-20    w-24
 ```
 
-### 1.3 Footer z sumą wypłat - w 1 linii + białe tło
-**Zmiany:**
-- Dodać `whitespace-nowrap` aby tekst był w jednej linii
-- Dodać białe tło do całego footera
+### 2. Usunięcie ołówka z tabeli
+
+Usunąć całą sekcję z przyciskiem edycji z wiersza tabeli (linie 485-492).
+
+### 3. Czas - format wertykalny (godziny nad minutami)
+
+Zmienić wyświetlanie z `"0h 13min"` na:
+```
+0h
+13min
+```
+
+```typescript
+// Zmiana formatMinutesToTime lub inline display:
+const hours = Math.floor(displayMinutes / 60);
+const mins = displayMinutes % 60;
+
+// W TableCell:
+<TableCell className="w-20 text-center">
+  <div className="text-sm">
+    {hours > 0 && <div>{hours}h</div>}
+    <div>{mins}min</div>
+  </div>
+</TableCell>
+```
+
+### 4. Suma wypłat - wyrównanie pod kwotami
+
+Zmienić strukturę TableFooter - usunąć `colSpan={2}` i dać sumę tylko w ostatniej kolumnie:
 
 ```typescript
 <TableFooter className="bg-white">
   <TableRow>
-    <TableCell colSpan={2}></TableCell>
-    <TableCell className="text-right font-bold whitespace-nowrap">
-      Suma wypłat {periodLabel}: {totalEarnings} zł
+    <TableCell></TableCell>
+    <TableCell></TableCell>
+    <TableCell className="text-right font-bold text-sm">
+      Suma wypłat {periodLabel}:
+      <br />
+      {totalEarnings} zł
     </TableCell>
   </TableRow>
 </TableFooter>
 ```
 
-### 1.4 Przycisk Settings z border i białym tłem
-```typescript
-<Button 
-  onClick={() => setSettingsDrawerOpen(true)} 
-  variant="outline" 
-  size="icon"
-  className="bg-white"
-  title="Ustawienia czasu pracy"
->
-  <Settings2 className="w-5 h-5" />
-</Button>
-```
+### 5. Poprawa szerokości kolumny imienia
 
-### 1.5 Przyciski nawigacji miesiąc/tydzień z białym tłem
+Usunąć `max-w-0` z TableCell imienia i dać `flex-1` aby zajęła całą dostępną przestrzeń:
+
 ```typescript
-<Button variant="outline" size="icon" onClick={handlePrevPeriod} className="bg-white">
-  <ChevronLeft className="w-4 h-4" />
-</Button>
-...
-<Button variant="outline" size="icon" onClick={handleNextPeriod} className="bg-white">
-  <ChevronRight className="w-4 h-4" />
-</Button>
+<TableCell className="py-3">
+  <div className="flex items-center gap-2">
+    <Avatar className="h-8 w-8 flex-shrink-0">...</Avatar>
+    <span className="font-medium truncate">{employee.name}</span>
+  </div>
+</TableCell>
+<TableCell className="w-16 text-center py-3">...</TableCell>
+<TableCell className="w-20 text-right py-3">...</TableCell>
 ```
 
 ---
 
-## 2. AddEditEmployeeDialog.tsx - Poprawki UX
+## Zmiany w WorkerTimeDialog.tsx
 
-### 2.1 Zmiana label "Stawka godzinowa"
-```typescript
-// Linia 224:
-<Label htmlFor="rate">Stawka godzinowa na rękę (zł)</Label>
-```
+### Dodanie przycisku edycji obok imienia
 
-### 2.2 Nowy układ przycisków w DialogFooter
-**Układ:** `[🗑️ czerwona ikonka] [Anuluj - białe tło] [Zapisz]`
-- Wszystkie przyciski w jednej linii
-- Usuń po lewej - tylko ikonka śmietnika (czerwona)
-- Anuluj - białe tło, po środku
-- Zapisz - po prawej
+Dodać przycisk ołówka obok imienia pracownika w dialogu (tylko dla admina, nie na hall view):
 
 ```typescript
-<DialogFooter className="flex flex-row items-center gap-2">
-  {isEditing && isAdmin && (
-    <Button 
-      variant="ghost" 
-      size="icon"
-      onClick={() => setDeleteConfirmOpen(true)}
-      disabled={isDeleting}
-      className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
-    >
-      <Trash2 className="w-5 h-5" />
-    </Button>
+// Dodać props:
+interface WorkerTimeDialogProps {
+  ...
+  showEditButton?: boolean;  // default true
+  onEditEmployee?: () => void;
+}
+
+// Obok imienia:
+<div className="flex items-center gap-2">
+  <h2 className="text-lg font-semibold">{employee.name}</h2>
+  {showEditButton && onEditEmployee && (
+    <button onClick={onEditEmployee} className="p-1 rounded hover:bg-muted">
+      <Pencil className="w-4 h-4 text-muted-foreground" />
+    </button>
   )}
-  <Button variant="outline" onClick={() => onOpenChange(false)} className="bg-white">
-    Anuluj
-  </Button>
-  <Button onClick={handleSubmit} disabled={isSubmitting}>
-    {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-    {isEditing ? 'Zapisz' : 'Dodaj'}
-  </Button>
-</DialogFooter>
+</div>
+```
+
+### Przekazanie propsów z EmployeesView.tsx
+
+```typescript
+<WorkerTimeDialog
+  open={!!workerDialogEmployee}
+  onOpenChange={(open) => !open && setWorkerDialogEmployee(null)}
+  employee={workerDialogEmployee}
+  instanceId={instanceId}
+  showEditButton={isAdmin}
+  onEditEmployee={() => {
+    setEditingEmployee(workerDialogEmployee);
+    setDialogOpen(true);
+  }}
+/>
 ```
 
 ---
 
-## Podsumowanie zmian w plikach
+## Pliki do modyfikacji
 
 | Plik | Zmiana |
 |------|--------|
-| `EmployeesView.tsx` | pb-24, białe tła (tabela, footer, przyciski), usunięte nagłówki, suma w 1 linii |
-| `AddEditEmployeeDialog.tsx` | Nowy label stawki, układ przycisków w 1 linii |
+| `EmployeesView.tsx` | Nowy layout kolumn, format czasu wertykalny, suma pod kwotami, usunięty ołówek |
+| `WorkerTimeDialog.tsx` | Dodany przycisk edycji obok imienia (opcjonalny) |
 
 ---
 
 ## Wizualizacja po zmianach
 
-### Tabela pracowników (mobile):
+### Tabela:
 ```text
-┌─────────────────────────────────────┐ ← białe tło
-│ [IW] Iwona ✏️     0h 13min   6.50 zł│
-│ [JA] Janek ✏️     8h 30min       -  │
-│ [RU] Rusland ✏️   0h 2min    1.67 zł│
-├─────────────────────────────────────┤
-│           Suma wypłat luty: 8,17 zł │ ← białe tło, 1 linia
-└─────────────────────────────────────┘
-
-  Nieobecności
-  ┌─────────────────────────────────┐
-  │ [IW] Iwona                      │
-  │ 12 - 14.02                      │
-  └─────────────────────────────────┘
-  
-  ← pb-24 zapewnia przestrzeń nad bottom menu
+┌────────────────────────────────────────────┐
+│ [IW] Iwona           0h      6.50 zł       │
+│                     13min                  │
+├────────────────────────────────────────────┤
+│ [JA] Janek           8h         -          │
+│                     52min                  │
+├────────────────────────────────────────────┤
+│ [R] Rusland          0h      1.67 zł       │
+│                      2min                  │
+├────────────────────────────────────────────┤
+│                           Suma wypłat luty:│
+│                               8.17 zł      │
+└────────────────────────────────────────────┘
 ```
 
-### Dialog edycji (przyciski):
+### WorkerTimeDialog z edycją:
 ```text
 ┌─────────────────────────────────────┐
-│ 🗑️        │  Anuluj  │   Zapisz    │
-│ czerwona  │ białe tło│   primary   │
-│ ikonka    │          │             │
+│            [Avatar]                 │
+│         Iwona  ✏️                   │  ← ołówek obok imienia
+│         Dzisiaj: 13 min             │
+│                                     │
+│       [    START    ]               │
+│       [  Zobacz grafik  ]           │
 └─────────────────────────────────────┘
 ```
