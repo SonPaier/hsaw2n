@@ -350,8 +350,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
           return (
             <div key={dateStr} className="flex flex-col">
               <div className={`text-center text-xs py-1 rounded-t ${
-                isToday ? 'bg-primary text-primary-foreground' : 
-                isWeekend ? 'bg-muted text-muted-foreground' : 'bg-white dark:bg-card'
+                isToday ? 'bg-primary text-primary-foreground' : 'bg-white dark:bg-card'
               }`}>
                 <div className="font-medium">{format(day, 'EEE', { locale: pl })}</div>
                 <div>{format(day, 'd')}</div>

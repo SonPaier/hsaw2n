@@ -90,9 +90,35 @@ export const useDeleteEmployeeDayOff = (instanceId: string | null) => {
         .eq('id', dayOffId);
       
       if (error) throw error;
+      return dayOffId;
     },
-    onSuccess: () => {
-      // Invalidate all employee_days_off queries for this instance (any employee filter)
+    onMutate: async (dayOffId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['employee_days_off', instanceId] });
+      
+      // Snapshot the previous value for all matching queries
+      const previousQueries: { queryKey: readonly unknown[]; data: EmployeeDayOff[] }[] = [];
+      queryClient.getQueriesData<EmployeeDayOff[]>({ queryKey: ['employee_days_off', instanceId] })
+        .forEach(([queryKey, data]) => {
+          if (data) {
+            previousQueries.push({ queryKey, data });
+            // Optimistically remove the day off
+            queryClient.setQueryData<EmployeeDayOff[]>(queryKey as readonly unknown[], 
+              data.filter(d => d.id !== dayOffId)
+            );
+          }
+        });
+      
+      return { previousQueries };
+    },
+    onError: (_err, _dayOffId, context) => {
+      // Rollback on error
+      context?.previousQueries?.forEach(({ queryKey, data }) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ 
         queryKey: ['employee_days_off', instanceId],
         exact: false 
