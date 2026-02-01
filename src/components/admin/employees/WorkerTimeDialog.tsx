@@ -68,6 +68,7 @@ const WorkerTimeDialog = ({
       });
       toast.success(`${employee.name} rozpoczął pracę`);
       refetchTimeEntries();
+      onOpenChange(false); // Close dialog after START
     } catch (error) {
       console.error('Start error:', error);
       toast.error('Błąd podczas rozpoczynania pracy');

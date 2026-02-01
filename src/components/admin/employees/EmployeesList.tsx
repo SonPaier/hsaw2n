@@ -58,14 +58,18 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
     );
   };
 
-  // Get start time of active work session
+  // Get start time of active work session - always use FIRST slot of the day
   const getWorkingFromTime = (employeeId: string) => {
-    const activeEntry = timeEntries.find(
-      (e) => e.employee_id === employeeId && !e.end_time
-    );
-    if (!activeEntry?.start_time) return null;
+    // Find all active entries and sort by start_time to get the first one
+    const activeEntries = timeEntries
+      .filter((e) => e.employee_id === employeeId && !e.end_time)
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    
+    const firstEntry = activeEntries[0];
+    if (!firstEntry?.start_time) return null;
+    
     try {
-      return format(new Date(activeEntry.start_time), 'HH:mm');
+      return format(new Date(firstEntry.start_time), 'HH:mm');
     } catch {
       return null;
     }
@@ -144,7 +148,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
                   </Avatar>
                   
                   <div className="flex items-center gap-1">
-                    <span className={`font-medium text-center truncate ${centered ? 'text-base max-w-[140px]' : 'text-sm max-w-[120px]'}`}>
+                    <span className={`font-medium text-center truncate ${centered ? 'text-2xl max-w-[160px]' : 'text-sm max-w-[120px]'}`}>
                       {employee.name}
                     </span>
                     {isAdmin && (
@@ -159,7 +163,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
 
                   {/* Working from time label - only show when start/stop enabled */}
                   {startStopEnabled && isWorking && workingFrom && (
-                    <span className="text-xs text-primary mt-1">
+                    <span className="text-lg text-primary mt-1">
                       W pracy od {workingFrom}
                     </span>
                   )}

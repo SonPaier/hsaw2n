@@ -36,8 +36,17 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  // Default to today selected
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return {
+      date: todayStr,
+      hours: '0',
+      minutes: '0',
+    };
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
@@ -59,6 +68,22 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
   const createDayOff = useCreateEmployeeDayOff(instanceId);
   const deleteDayOff = useDeleteEmployeeDayOff(instanceId);
+
+  // Update editing cell with actual data when time entries load (for default today selection)
+  useEffect(() => {
+    if (!initialLoadDone && editingCell && timeEntries.length > 0) {
+      const existing = minutesByDate.get(editingCell.date);
+      const totalMinutes = existing?.totalMinutes || 0;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      setEditingCell(prev => prev ? {
+        ...prev,
+        hours: hours.toString(),
+        minutes: minutes.toString(),
+      } : null);
+      setInitialLoadDone(true);
+    }
+  }, [timeEntries, initialLoadDone]);
 
   // Helper to get opening time for a given date
   const getOpeningTime = (dateStr: string): Date | null => {
@@ -297,7 +322,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         <Button variant="ghost" size="icon" onClick={handlePrevWeek}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <span className="font-semibold text-lg">
+        <span className="font-semibold text-2xl">
           {format(currentWeekStart, 'd MMM', { locale: pl })} - {format(weekEnd, 'd MMM yyyy', { locale: pl })}
         </span>
         <Button variant="ghost" size="icon" onClick={handleNextWeek}>
@@ -359,7 +384,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       {editingCell && (
         <div className="border rounded-lg p-4 bg-card space-y-3">
           {/* Day header - bigger */}
-          <div className="text-lg font-semibold text-center capitalize">{editingDayLabel}</div>
+          <div className="text-2xl font-semibold text-center capitalize">{editingDayLabel}</div>
           
           {/* Time selection with dropdowns */}
           <div className="flex items-center justify-center gap-2">
@@ -440,11 +465,11 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
 
       {/* Week and month summary - right aligned with bold black labels */}
       <div className="space-y-1.5 pt-2 border-t">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-end items-center gap-3">
           <span className="text-sm font-bold text-foreground">Suma tygodnia:</span>
           <span className="font-bold">{formatMinutes(weekTotal)}</span>
         </div>
-        <div className="flex justify-between items-center">
+        <div className="flex justify-end items-center gap-3">
           <span className="text-sm font-bold text-foreground">Suma miesiąca ({monthName}):</span>
           <span className="font-bold">{formatMinutes(monthTotal)}</span>
         </div>
