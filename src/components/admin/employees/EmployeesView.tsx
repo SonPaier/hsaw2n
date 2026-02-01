@@ -178,10 +178,9 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       if (d.employee_id !== employeeId) return false;
       const from = parseISO(d.date_from);
       const to = parseISO(d.date_to);
-      // Check if any day in the range overlaps with current period
-      return isWithinInterval(periodStart, { start: from, end: to }) ||
-             isWithinInterval(periodEnd, { start: from, end: to }) ||
-             (from <= periodStart && to >= periodEnd);
+      // Check if the day off range overlaps with the current period
+      // Overlap exists if: dayOff.from <= periodEnd AND dayOff.to >= periodStart
+      return from <= periodEnd && to >= periodStart;
     });
   };
 
