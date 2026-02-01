@@ -82,7 +82,7 @@ const AddEmployeeDayOffDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Dodaj nieobecność</DialogTitle>
         </DialogHeader>
