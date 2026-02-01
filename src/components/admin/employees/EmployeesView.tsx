@@ -389,12 +389,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Pracownicy i czas pracy</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Zarządzaj pracownikami i ich czasem pracy
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold">Pracownicy i czas pracy</h1>
         {isAdmin && (
           <div className="flex gap-2">
             <Button 
@@ -452,69 +447,71 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           {/* Table layout */}
-          <Table className="bg-white rounded-lg">
-            <TableBody>
-              {activeEmployees.map((employee) => {
-                const summary = periodSummary.get(employee.id);
-                const totalMinutes = summary?.total_minutes || 0;
-                const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-                
-                // Calculate display minutes based on time calculation mode
-                const displayMinutes = timeCalculationMode === 'opening_to_stop'
-                  ? Math.max(0, totalMinutes - preOpeningMinutes)
-                  : totalMinutes;
-                
-                const displayHours = formatMinutesToTime(displayMinutes);
-                
-                // Earnings based on display time
-                const earnings = employee.hourly_rate 
-                  ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
-                  : null;
-                
-                return (
-                  <TableRow 
-                    key={employee.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleTileClick(employee)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                            {employee.name.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{employee.name}</span>
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => handleEditEmployee(e, employee)}
-                            className="p-1 rounded hover:bg-muted"
-                          >
-                            <Pencil className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{displayHours}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {earnings ? `${earnings} zł` : '-'}
+          <div className="overflow-hidden rounded-lg">
+            <Table className="bg-white table-fixed w-full">
+              <TableBody>
+                {activeEmployees.map((employee) => {
+                  const summary = periodSummary.get(employee.id);
+                  const totalMinutes = summary?.total_minutes || 0;
+                  const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
+                  
+                  // Calculate display minutes based on time calculation mode
+                  const displayMinutes = timeCalculationMode === 'opening_to_stop'
+                    ? Math.max(0, totalMinutes - preOpeningMinutes)
+                    : totalMinutes;
+                  
+                  const displayHours = formatMinutesToTime(displayMinutes);
+                  
+                  // Earnings based on display time
+                  const earnings = employee.hourly_rate 
+                    ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
+                    : null;
+                  
+                  return (
+                    <TableRow 
+                      key={employee.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleTileClick(employee)}
+                    >
+                      <TableCell className="max-w-0">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {employee.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium truncate">{employee.name}</span>
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => handleEditEmployee(e, employee)}
+                              className="p-1 rounded hover:bg-muted flex-shrink-0"
+                            >
+                              <Pencil className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{displayHours}</TableCell>
+                      <TableCell className="text-right font-medium whitespace-nowrap">
+                        {earnings ? `${earnings} zł` : '-'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+              {isAdmin && totalEarnings > 0 && (
+                <TableFooter className="bg-white">
+                  <TableRow>
+                    <TableCell colSpan={2}></TableCell>
+                    <TableCell className="text-right font-bold whitespace-nowrap">
+                      Suma wypłat {isWeeklyMode ? 'tygodnia' : format(currentDate, 'LLLL', { locale: pl })}: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-            {isAdmin && totalEarnings > 0 && (
-              <TableFooter className="bg-white">
-                <TableRow>
-                  <TableCell colSpan={2}></TableCell>
-                  <TableCell className="text-right font-bold whitespace-nowrap">
-                    Suma wypłat {isWeeklyMode ? 'tygodnia' : format(currentDate, 'LLLL', { locale: pl })}: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            )}
-          </Table>
+                </TableFooter>
+              )}
+            </Table>
+          </div>
 
           {/* Vacations/Days off section */}
           {(() => {
