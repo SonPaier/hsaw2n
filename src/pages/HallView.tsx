@@ -758,50 +758,89 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   };
 
   // Map all reservations with services_data for calendar display (including service id for toggle)
-  // Primary source: service_items JSONB (already contains names), fallback to servicesMap
+  // Primary source: service_ids as canonical (like AdminDashboard), with names from service_items or servicesMap
   const reservationsWithServices = useMemo(() => {
     return reservations.map(reservation => {
-      // Use service_items as primary source (has names embedded)
       const serviceItems = reservation.service_items as any[] | undefined;
-      if (serviceItems && serviceItems.length > 0) {
-        return {
-          ...reservation,
-          services_data: serviceItems.map(item => ({
+      const serviceIds = reservation.service_ids;
+      
+      let services_data: Array<{ id: string; name: string }> = [];
+      
+      // service_ids to kanoniczne źródło (jak w AdminDashboard)
+      if (serviceIds && serviceIds.length > 0) {
+        const itemsById = new Map<string, any>();
+        (serviceItems || []).forEach(item => {
+          const id = item.id || item.service_id;
+          if (id) itemsById.set(id, item);
+        });
+        
+        services_data = serviceIds.map(id => {
+          const item = itemsById.get(id);
+          const globalName = servicesMap.get(id);
+          return {
+            id,
+            name: item?.name ?? globalName ?? 'Usługa',
+          };
+        });
+      } else if (serviceItems && serviceItems.length > 0) {
+        // Fallback z deduplicacją
+        const seen = new Set<string>();
+        services_data = serviceItems
+          .filter(item => {
+            const id = item.id || item.service_id;
+            if (!id || seen.has(id)) return false;
+            seen.add(id);
+            return true;
+          })
+          .map(item => ({
             id: item.id || item.service_id,
-            name: item.name || 'Usługa',
-          })),
-        };
+            name: item.name || servicesMap.get(item.id || item.service_id) || 'Usługa',
+          }));
       }
-      // Fallback to service_ids lookup
-      return {
-        ...reservation,
-        services_data: reservation.service_ids?.map(id => ({
-          id,
-          name: servicesMap.get(id) || 'Usługa',
-        })) || [],
-      };
+      
+      return { ...reservation, services_data };
     });
   }, [reservations, servicesMap]);
 
   // Map selected reservation with services_data (including service id for toggle)
-  // Primary source: service_items JSONB
+  // Primary source: service_ids as canonical
   const selectedReservationWithServices = useMemo(() => {
     if (!selectedReservation) return null;
     
-    // Use service_items as primary source (has names embedded)
     const serviceItems = selectedReservation.service_items as any[] | undefined;
-    let services_data: Array<{ id: string; name: string }>;
+    const serviceIds = selectedReservation.service_ids;
+    let services_data: Array<{ id: string; name: string }> = [];
     
-    if (serviceItems && serviceItems.length > 0) {
-      services_data = serviceItems.map(item => ({
-        id: item.id || item.service_id,
-        name: item.name || 'Usługa',
-      }));
-    } else {
-      services_data = selectedReservation.service_ids?.map(id => ({
-        id,
-        name: servicesMap.get(id) || 'Usługa',
-      })) || [];
+    // service_ids jako kanoniczne źródło
+    if (serviceIds && serviceIds.length > 0) {
+      const itemsById = new Map<string, any>();
+      (serviceItems || []).forEach(item => {
+        const id = item.id || item.service_id;
+        if (id) itemsById.set(id, item);
+      });
+      
+      services_data = serviceIds.map(id => {
+        const item = itemsById.get(id);
+        const globalName = servicesMap.get(id);
+        return {
+          id,
+          name: item?.name ?? globalName ?? 'Usługa',
+        };
+      });
+    } else if (serviceItems && serviceItems.length > 0) {
+      // Fallback z deduplicacją
+      const seen = new Set<string>();
+      services_data = serviceItems
+        .filter(item => {
+          const id = item.id || item.service_id;
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        })
+        .map(item => ({
+          id: item.id || item.service_id,
+          name: item.name || servicesMap.get(item.id || item.service_id) || 'Usługa',
+        }));
     }
 
     return {

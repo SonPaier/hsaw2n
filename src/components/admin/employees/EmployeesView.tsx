@@ -6,9 +6,9 @@ import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, ChevronLeft, ChevronRight, Loader2, User, Pencil, Clock, CalendarOff, Settings2 } from 'lucide-react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
+import { Plus, ChevronLeft, ChevronRight, Loader2, User, Pencil, CalendarOff, Settings2 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
@@ -269,6 +269,69 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     return result;
   };
 
+  // Format days off as a flat string with consecutive date ranges (for vacation section)
+  const formatDaysOffForPeriodFlat = (employeeDaysOff: EmployeeDayOff[]): string => {
+    const allDates: Date[] = [];
+    
+    employeeDaysOff.forEach(item => {
+      const from = parseISO(item.date_from);
+      const to = parseISO(item.date_to);
+      const daysInRange = eachDayOfInterval({ start: from, end: to });
+      daysInRange.forEach(day => {
+        const isInPeriod = isWeeklyMode 
+          ? isSameWeek(day, currentDate, { weekStartsOn: 1 })
+          : isSameMonth(day, currentDate);
+        if (isInPeriod) {
+          allDates.push(day);
+        }
+      });
+    });
+
+    if (allDates.length === 0) return '';
+
+    // Sort and deduplicate
+    allDates.sort((a, b) => a.getTime() - b.getTime());
+    const uniqueDates = allDates.filter((d, i, arr) => 
+      i === 0 || d.getTime() !== arr[i-1].getTime()
+    );
+
+    // Group consecutive dates into ranges
+    const parts: string[] = [];
+    let rangeStart: Date | null = null;
+    let rangeEnd: Date | null = null;
+
+    uniqueDates.forEach((date, idx) => {
+      const prevDate = uniqueDates[idx - 1];
+      const isConsecutive = prevDate && 
+        (date.getTime() - prevDate.getTime()) === 24 * 60 * 60 * 1000;
+
+      if (isConsecutive && rangeStart) {
+        rangeEnd = date;
+      } else {
+        if (rangeStart) {
+          if (rangeEnd) {
+            parts.push(`${format(rangeStart, 'd')} - ${format(rangeEnd, 'd.MM')}`);
+          } else {
+            parts.push(format(rangeStart, 'd.MM'));
+          }
+        }
+        rangeStart = date;
+        rangeEnd = null;
+      }
+    });
+
+    // Close last range
+    if (rangeStart) {
+      if (rangeEnd) {
+        parts.push(`${format(rangeStart, 'd')} - ${format(rangeEnd, 'd.MM')}`);
+      } else {
+        parts.push(format(rangeStart, 'd.MM'));
+      }
+    }
+
+    return parts.join(', ');
+  };
+
   const handlePrevPeriod = () => {
     if (isWeeklyMode) {
       setCurrentDate(subWeeks(currentDate, 1));
@@ -388,100 +451,112 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {activeEmployees.map((employee) => {
-              const summary = periodSummary.get(employee.id);
-              const totalMinutes = summary?.total_minutes || 0;
-              const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-              
-              // Calculate display minutes based on time calculation mode
-              const displayMinutes = timeCalculationMode === 'opening_to_stop'
-                ? Math.max(0, totalMinutes - preOpeningMinutes)
-                : totalMinutes;
-              
-              const displayHours = formatMinutesToTime(displayMinutes);
-              
-              // Earnings based on display time
-              const earnings = employee.hourly_rate 
-                ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
-                : null;
-              const employeeDaysOff = getDaysOffForEmployee(employee.id);
-              const formattedDaysOff = formatDaysOffForPeriod(employeeDaysOff);
-              
-              return (
-                <Card 
-                  key={employee.id} 
-                  className="cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => handleTileClick(employee)}
-                >
-                  <CardContent className="p-4 relative">
-                    {/* Edit pencil in top-right corner */}
-                    {isAdmin && (
-                      <button
-                        onClick={(e) => handleEditEmployee(e, employee)}
-                        className="absolute top-3 right-3 p-1.5 rounded hover:bg-muted"
-                      >
-                        <Pencil className="w-5 h-5 text-muted-foreground" />
-                      </button>
-                    )}
-                    
-                    <div className="flex items-start gap-3 pr-8">
-                      <Avatar className="h-12 w-12">
+          {/* Table layout */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pracownik</TableHead>
+                <TableHead>Czas</TableHead>
+                <TableHead className="text-right">Kwota</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeEmployees.map((employee) => {
+                const summary = periodSummary.get(employee.id);
+                const totalMinutes = summary?.total_minutes || 0;
+                const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
+                
+                // Calculate display minutes based on time calculation mode
+                const displayMinutes = timeCalculationMode === 'opening_to_stop'
+                  ? Math.max(0, totalMinutes - preOpeningMinutes)
+                  : totalMinutes;
+                
+                const displayHours = formatMinutesToTime(displayMinutes);
+                
+                // Earnings based on display time
+                const earnings = employee.hourly_rate 
+                  ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2)
+                  : null;
+                
+                return (
+                  <TableRow 
+                    key={employee.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleTileClick(employee)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                            {employee.name.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{employee.name}</span>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => handleEditEmployee(e, employee)}
+                            className="p-1 rounded hover:bg-muted"
+                          >
+                            <Pencil className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{displayHours}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {earnings ? `${earnings} zł` : '-'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+            {isAdmin && totalEarnings > 0 && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={2}></TableCell>
+                  <TableCell className="text-right font-bold">
+                    Suma wypłat {isWeeklyMode ? 'tygodnia' : format(currentDate, 'LLLL', { locale: pl })}: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+
+          {/* Vacations/Days off section */}
+          {(() => {
+            // Collect all employees with days off in this period
+            const employeesWithDaysOff = activeEmployees
+              .map(emp => ({
+                employee: emp,
+                daysOff: formatDaysOffForPeriodFlat(getDaysOffForEmployee(emp.id)),
+              }))
+              .filter(item => item.daysOff.length > 0);
+
+            if (employeesWithDaysOff.length === 0) return null;
+
+            return (
+              <div className="mt-6 space-y-3">
+                <h3 className="font-medium text-muted-foreground">Nieobecności</h3>
+                <div className="space-y-2">
+                  {employeesWithDaysOff.map(({ employee, daysOff }) => (
+                    <div key={employee.id} className="flex items-start gap-3 p-3 border rounded-lg bg-card">
+                      <Avatar className="h-8 w-8">
                         <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
                           {employee.name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium truncate block">{employee.name}</span>
-                        
-                        {/* Hours summary - simplified view with single "Czas" line */}
-                        {isAdmin ? (
-                          <div className="mt-1.5 space-y-1 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span>Czas: <span className="font-semibold">{displayHours}</span></span>
-                            </div>
-                            {earnings && (
-                              <div className="text-base font-semibold mt-1.5">
-                                {earnings} zł
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 mt-1 text-sm">
-                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="font-semibold">{displayHours}</span>
-                          </div>
-                        )}
-                        
-                        {/* Days off - detailed dates */}
-                        {formattedDaysOff.length > 0 && (
-                          <div className="mt-2 space-y-0.5">
-                            {formattedDaysOff.map((item, idx) => (
-                              <div key={idx} className="text-xs text-muted-foreground">
-                                <span className="font-medium">{item.label}:</span> {item.dates}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                      <div>
+                        <div className="font-medium">{employee.name}</div>
+                        <div className="text-sm text-muted-foreground">{daysOff}</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Total earnings - admin only */}
-          {isAdmin && totalEarnings > 0 && (
-            <div className="pt-4 border-t mt-4">
-              <div className="text-lg font-medium">
-                Suma wypłat: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </>
       )}
 
