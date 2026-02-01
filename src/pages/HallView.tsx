@@ -954,7 +954,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   onClick={handleCalendarFromSidebar}
                   title={t('navigation.calendar')}
                 >
-                  <Calendar className="w-4 h-4 shrink-0" />
+                  <Calendar className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
 
                 <Button
@@ -962,7 +962,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   className="w-full justify-center px-2"
                   title="Pracownicy"
                 >
-                  <Users className="w-4 h-4 shrink-0" />
+                  <Users className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
 
                 {canAccessProtocols && (
@@ -972,7 +972,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                     onClick={handleProtocolsNavigation}
                     title={t('navigation.protocols')}
                   >
-                    <FileText className="w-4 h-4 shrink-0" />
+                    <FileText className="w-4 h-4 shrink-0 text-primary" />
                   </Button>
                 )}
               </nav>
@@ -1020,7 +1020,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   onClick={handleCalendarFromSidebar}
                   title={t('navigation.calendar')}
                 >
-                  <Calendar className="w-4 h-4 shrink-0" />
+                  <Calendar className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
 
                 {/* Workers icon */}
@@ -1030,7 +1030,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   onClick={handleWorkersNavigation}
                   title="Pracownicy"
                 >
-                  <Users className="w-4 h-4 shrink-0" />
+                  <Users className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
 
                 {/* Protocols icon - active */}
@@ -1039,7 +1039,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   className="w-full justify-center px-2"
                   title={t('navigation.protocols')}
                 >
-                  <FileText className="w-4 h-4 shrink-0" />
+                  <FileText className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
               </nav>
 
@@ -1088,7 +1088,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 onClick={handleCalendarFromSidebar}
                 title={t('navigation.calendar')}
               >
-                <Calendar className="w-4 h-4 shrink-0" />
+                <Calendar className="w-4 h-4 shrink-0 text-primary" />
               </Button>
 
               {/* Workers icon */}
@@ -1098,7 +1098,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 onClick={handleWorkersNavigation}
                 title="Pracownicy"
               >
-                <Users className="w-4 h-4 shrink-0" />
+                <Users className="w-4 h-4 shrink-0 text-primary" />
               </Button>
 
               {/* Protocols icon */}
@@ -1109,7 +1109,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                   onClick={handleProtocolsNavigation}
                   title={t('navigation.protocols')}
                 >
-                  <FileText className="w-4 h-4 shrink-0" />
+                  <FileText className="w-4 h-4 shrink-0 text-primary" />
                 </Button>
               )}
             </nav>
@@ -1146,8 +1146,6 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
             instanceId={instanceId || undefined}
             yardVehicleCount={yardVehicleCount}
-            showProtocolsButton={canAccessProtocols}
-            onProtocolsClick={() => setShowProtocolsList(true)}
           />
         </div>
       </div>
