@@ -81,8 +81,8 @@ const AddEditEmployeeDialog = ({
 
     setIsUploading(true);
     try {
-      // Compress image before upload
-      const compressedBlob = await compressImage(file, 800, 0.8);
+      // Compress and crop to square for avatar
+      const compressedBlob = await compressImage(file, 400, 0.85, true);
       
       const fileExt = 'jpg';
       const fileName = `${instanceId}/${Date.now()}.${fileExt}`;
