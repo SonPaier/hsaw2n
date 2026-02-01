@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
-import { Employee } from '@/hooks/useEmployees';
+import { Employee, useUpdateEmployee } from '@/hooks/useEmployees';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { compressImage } from '@/lib/imageUtils';
 import { toast } from 'sonner';
-import { Play, Square, Loader2, Calendar, Pencil } from 'lucide-react';
+import { Play, Square, Loader2, Calendar, Pencil, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import WeeklySchedule from './WeeklySchedule';
 
@@ -36,7 +39,15 @@ const WorkerTimeDialog = ({
 }: WorkerTimeDialogProps) => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showSchedule, setShowSchedule] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(employee.photo_url);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  
+  const { hasRole } = useAuth();
+  const isHall = hasRole('hall');
+  const isAdmin = hasRole('admin') || hasRole('super_admin');
+  const canChangePhoto = isHall || isAdmin;
   
   const { data: workersSettings } = useWorkersSettings(instanceId);
   const startStopEnabled = workersSettings?.start_stop_enabled !== false; // default true
@@ -45,6 +56,7 @@ const WorkerTimeDialog = ({
   
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
+  const updateEmployee = useUpdateEmployee(instanceId);
   
   // Find active entry for this employee (no end_time)
   const activeEntry = timeEntries.find(
@@ -56,6 +68,63 @@ const WorkerTimeDialog = ({
   const isWorking = optimisticWorking !== null ? optimisticWorking : !!activeEntry;
   
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleAvatarClick = () => {
+    if (canChangePhoto) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !instanceId) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Dozwolone są tylko pliki graficzne');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Maksymalny rozmiar pliku to 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const compressedBlob = await compressImage(file, 800, 0.8);
+      
+      const fileName = `${instanceId}/${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('employee-photos')
+        .upload(fileName, compressedBlob, { contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('employee-photos')
+        .getPublicUrl(fileName);
+
+      // Update state immediately
+      setCurrentPhotoUrl(publicUrl);
+
+      // Save to database
+      await updateEmployee.mutateAsync({
+        id: employee.id,
+        photo_url: publicUrl,
+        name: employee.name,
+      });
+      
+      toast.success('Zdjęcie zostało zapisane');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Błąd podczas przesyłania zdjęcia');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleStart = async () => {
     // Optimistic update - show "Stop" button immediately
@@ -164,12 +233,38 @@ const WorkerTimeDialog = ({
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="flex flex-col items-center py-2 gap-2">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                {employee.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            {/* Clickable Avatar for photo change */}
+            <div 
+              className={`relative ${canChangePhoto ? 'cursor-pointer group' : ''}`}
+              onClick={handleAvatarClick}
+            >
+              <Avatar className="h-20 w-20 ring-2 ring-transparent group-hover:ring-primary/50 transition-all">
+                <AvatarImage src={currentPhotoUrl || undefined} alt={employee.name} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                  {employee.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {isUploading ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                </div>
+              ) : canChangePhoto && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              )}
+            </div>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              disabled={isUploading}
+            />
             
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">{employee.name}</h2>
