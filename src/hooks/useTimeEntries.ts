@@ -97,7 +97,47 @@ export const useCreateTimeEntry = (instanceId: string | null) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['time_entries', instanceId] });
+      
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData<TimeEntry[]>(['time_entries', instanceId, null, newEntry.entry_date, newEntry.entry_date]);
+      
+      // Optimistically add the new entry
+      if (previousEntries !== undefined) {
+        const optimisticEntry: TimeEntry = {
+          id: `temp-${Date.now()}`,
+          instance_id: instanceId,
+          employee_id: newEntry.employee_id,
+          entry_date: newEntry.entry_date,
+          entry_number: 999,
+          entry_type: newEntry.entry_type || 'manual',
+          start_time: newEntry.start_time || null,
+          end_time: newEntry.end_time || null,
+          total_minutes: null,
+          is_auto_closed: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        queryClient.setQueryData<TimeEntry[]>(
+          ['time_entries', instanceId, null, newEntry.entry_date, newEntry.entry_date],
+          [...previousEntries, optimisticEntry]
+        );
+      }
+      
+      return { previousEntries };
+    },
+    onError: (_err, newEntry, context) => {
+      // Rollback on error
+      if (context?.previousEntries) {
+        queryClient.setQueryData(
+          ['time_entries', instanceId, null, newEntry.entry_date, newEntry.entry_date],
+          context.previousEntries
+        );
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', instanceId] });
     },
   });
@@ -118,7 +158,14 @@ export const useUpdateTimeEntry = (instanceId: string | null) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onMutate: async (updatedEntry) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['time_entries', instanceId] });
+      
+      // Store previous for rollback if needed
+      return { updatedEntryId: updatedEntry.id };
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['time_entries', instanceId] });
     },
   });

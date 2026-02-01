@@ -8,9 +8,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry } from '@/hooks/useTimeEntries';
+import { useTimeEntries, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
 import { Employee } from '@/hooks/useEmployees';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { Play, Square, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -31,6 +32,7 @@ const WorkerTimeDialog = ({
 }: WorkerTimeDialogProps) => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [showSchedule, setShowSchedule] = useState(false);
+  const isMobile = useIsMobile();
   
   const { data: workersSettings } = useWorkersSettings(instanceId);
   const startStopEnabled = workersSettings?.start_stop_enabled !== false; // default true
@@ -42,15 +44,20 @@ const WorkerTimeDialog = ({
   
   // Find active entry for this employee (no end_time)
   const activeEntry = timeEntries.find(
-    (e) => e.employee_id === employee.id && !e.end_time
+    (e: TimeEntry) => e.employee_id === employee.id && !e.end_time
   );
   
-  const isWorking = !!activeEntry;
+  // Optimistic state for immediate UI feedback
+  const [optimisticWorking, setOptimisticWorking] = useState<boolean | null>(null);
+  const isWorking = optimisticWorking !== null ? optimisticWorking : !!activeEntry;
   
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStart = async () => {
+    // Optimistic update - show "Stop" button immediately
+    setOptimisticWorking(true);
     setIsLoading(true);
+    
     try {
       const now = new Date();
       await createTimeEntry.mutateAsync({
@@ -64,15 +71,22 @@ const WorkerTimeDialog = ({
     } catch (error) {
       console.error('Start error:', error);
       toast.error('Błąd podczas rozpoczynania pracy');
+      // Rollback optimistic update on error
+      setOptimisticWorking(null);
     } finally {
       setIsLoading(false);
+      // Reset optimistic state after data is refetched
+      setTimeout(() => setOptimisticWorking(null), 500);
     }
   };
 
   const handleStop = async () => {
     if (!activeEntry) return;
     
+    // Optimistic update - show "Start" button immediately
+    setOptimisticWorking(false);
     setIsLoading(true);
+    
     try {
       const now = new Date();
       await updateTimeEntry.mutateAsync({
@@ -85,8 +99,12 @@ const WorkerTimeDialog = ({
     } catch (error) {
       console.error('Stop error:', error);
       toast.error('Błąd podczas kończenia pracy');
+      // Rollback optimistic update on error
+      setOptimisticWorking(null);
     } finally {
       setIsLoading(false);
+      // Reset optimistic state after data is refetched
+      setTimeout(() => setOptimisticWorking(null), 500);
     }
   };
 
@@ -134,7 +152,7 @@ const WorkerTimeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${showSchedule || !startStopEnabled ? "sm:max-w-2xl" : "sm:max-w-sm"} max-h-[90vh] overflow-hidden flex flex-col`}>
+      <DialogContent className={`${showSchedule || !startStopEnabled ? "sm:max-w-2xl" : "sm:max-w-sm"} ${isMobile ? "h-[100dvh] max-h-[100dvh] rounded-none" : "max-h-[90vh]"} overflow-hidden flex flex-col`}>
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="sr-only">Czas pracy</DialogTitle>
         </DialogHeader>
@@ -152,17 +170,17 @@ const WorkerTimeDialog = ({
             
             {totalMinutes > 0 && (
               <div className="text-center">
-                <p className="text-2xl font-bold">
+                <p className="text-xl font-medium text-muted-foreground">
                   Dzisiaj: {formatDuration(totalMinutes)}
                 </p>
                 {todayEmployeeEntries.length > 0 && (
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">
-                    ({todayEmployeeEntries.map((e, i) => (
+                  <p className="text-2xl font-bold text-foreground mt-1">
+                    {todayEmployeeEntries.map((e, i) => (
                       <span key={e.id}>
                         {i > 0 && ', '}
                         {formatTimeFromISO(e.start_time)}-{formatTimeFromISO(e.end_time)}
                       </span>
-                    ))})
+                    ))}
                   </p>
                 )}
               </div>
