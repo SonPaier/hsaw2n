@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Check, X, Palmtree } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight, Palmtree, Trash2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, subWeeks, isSameDay, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useTimeEntries, useTimeEntriesForDateRange, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
-import { useEmployeeDaysOff, useCreateEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
+import { useEmployeeDaysOff, useCreateEmployeeDayOff, useDeleteEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
@@ -57,6 +58,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
   const createDayOff = useCreateEmployeeDayOff(instanceId);
+  const deleteDayOff = useDeleteEmployeeDayOff(instanceId);
 
   // Helper to get opening time for a given date
   const getOpeningTime = (dateStr: string): Date | null => {
@@ -92,9 +94,9 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     return preOpeningMinutes;
   };
 
-  // Check if a date is a day off
-  const isDayOff = (dateStr: string) => {
-    return daysOff.some(d => dateStr >= d.date_from && dateStr <= d.date_to);
+  // Check if a date is a day off and return the day off record
+  const getDayOffRecord = (dateStr: string) => {
+    return daysOff.find(d => dateStr >= d.date_from && dateStr <= d.date_to);
   };
 
   // Group entries by date and sum minutes
@@ -129,15 +131,35 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     });
   };
 
-  const handleSaveEdit = async () => {
+  // Auto-save when dropdown values change
+  const handleHoursChange = async (value: string) => {
     if (!editingCell) return;
+    const newHours = value;
+    setEditingCell({ ...editingCell, hours: newHours });
     
-    const hours = parseInt(editingCell.hours) || 0;
-    const minutes = parseInt(editingCell.minutes) || 0;
+    // Auto-save
+    await saveEntry(newHours, editingCell.minutes);
+  };
+
+  const handleMinutesChange = async (value: string) => {
+    if (!editingCell) return;
+    const newMinutes = value;
+    setEditingCell({ ...editingCell, minutes: newMinutes });
+    
+    // Auto-save
+    await saveEntry(editingCell.hours, newMinutes);
+  };
+
+  const saveEntry = async (hoursStr: string, minutesStr: string) => {
+    if (!editingCell || isSaving) return;
+    
+    const hours = parseInt(hoursStr) || 0;
+    const minutes = parseInt(minutesStr) || 0;
     const totalMinutes = hours * 60 + minutes;
     
     const existing = minutesByDate.get(editingCell.date);
     
+    setIsSaving(true);
     try {
       if (existing && existing.entries.length > 0) {
         // Update first entry with new total
@@ -167,15 +189,12 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       }
       
       toast.success('Zapisano');
-      setEditingCell(null);
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Błąd podczas zapisywania');
+    } finally {
+      setIsSaving(false);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCell(null);
   };
 
   const handleMarkDayOff = async () => {
@@ -193,6 +212,21 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     } catch (error) {
       console.error('Day off error:', error);
       toast.error('Błąd podczas zapisywania');
+    }
+  };
+
+  const handleRemoveDayOff = async () => {
+    if (!editingCell) return;
+    
+    const dayOffRecord = getDayOffRecord(editingCell.date);
+    if (!dayOffRecord) return;
+    
+    try {
+      await deleteDayOff.mutateAsync(dayOffRecord.id);
+      toast.success('Usunięto wolne');
+    } catch (error) {
+      console.error('Remove day off error:', error);
+      toast.error('Błąd podczas usuwania');
     }
   };
 
@@ -249,6 +283,13 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   // Month name for display
   const monthName = format(monthStartDate, 'LLLL', { locale: pl });
 
+  // Check if editing cell is a day off
+  const editingCellIsDayOff = editingCell ? !!getDayOffRecord(editingCell.date) : false;
+
+  // Generate options for hours (0-24) and minutes (0-59 in 5-minute increments)
+  const hourOptions = Array.from({ length: 25 }, (_, i) => i);
+  const minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5);
+
   return (
     <div className="w-full space-y-2">
       {/* Week navigation */}
@@ -256,7 +297,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         <Button variant="ghost" size="icon" onClick={handlePrevWeek}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <span className="font-medium text-sm">
+        <span className="font-semibold text-lg">
           {format(currentWeekStart, 'd MMM', { locale: pl })} - {format(weekEnd, 'd MMM yyyy', { locale: pl })}
         </span>
         <Button variant="ghost" size="icon" onClick={handleNextWeek}>
@@ -273,14 +314,14 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
           const totalMinutes = dayData?.totalMinutes || 0;
           const isToday = isSameDay(day, new Date());
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-          const isOff = isDayOff(dateStr);
+          const isOff = !!getDayOffRecord(dateStr);
           
           return (
             <div key={dateStr} className="flex flex-col">
-              {/* Day header */}
+              {/* Day header - white background */}
               <div className={`text-center text-xs py-1 rounded-t ${
                 isToday ? 'bg-primary text-primary-foreground' : 
-                isWeekend ? 'bg-muted/50 text-muted-foreground' : 'bg-muted'
+                isWeekend ? 'bg-muted/50 text-muted-foreground' : 'bg-white dark:bg-card'
               }`}>
                 <div className="font-medium">{format(day, 'EEE', { locale: pl })}</div>
                 <div>{format(day, 'd')}</div>
@@ -316,32 +357,59 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
 
       {/* Editor panel - appears below the week grid when a day is selected */}
       {editingCell && (
-        <div className="border rounded-lg p-3 bg-card space-y-2">
-          <div className="text-sm font-medium text-center capitalize">{editingDayLabel}</div>
+        <div className="border rounded-lg p-4 bg-card space-y-3">
+          {/* Day header - bigger */}
+          <div className="text-lg font-semibold text-center capitalize">{editingDayLabel}</div>
+          
+          {/* Time selection with dropdowns */}
           <div className="flex items-center justify-center gap-2">
-            <Input
-              type="number"
-              min="0"
-              max="24"
-              value={editingCell.hours}
-              onChange={(e) => setEditingCell({ ...editingCell, hours: e.target.value })}
-              className="h-12 w-20 text-center text-lg"
-              placeholder="h"
-              autoFocus
-            />
-            <span className="text-xl font-bold">:</span>
-            <Input
-              type="number"
-              min="0"
-              max="59"
-              value={editingCell.minutes}
-              onChange={(e) => setEditingCell({ ...editingCell, minutes: e.target.value })}
-              className="h-12 w-20 text-center text-lg"
-              placeholder="m"
-            />
+            <Select value={editingCell.hours} onValueChange={handleHoursChange}>
+              <SelectTrigger className="h-14 w-24 text-center text-xl font-medium">
+                <SelectValue placeholder="0" />
+              </SelectTrigger>
+              <SelectContent>
+                {hourOptions.map(h => (
+                  <SelectItem key={h} value={h.toString()}>{h}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-2xl font-bold">:</span>
+            <Select value={editingCell.minutes} onValueChange={handleMinutesChange}>
+              <SelectTrigger className="h-14 w-24 text-center text-xl font-medium">
+                <SelectValue placeholder="0" />
+              </SelectTrigger>
+              <SelectContent>
+                {minuteOptions.map(m => (
+                  <SelectItem key={m} value={m.toString()}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Wolne/Usuń Wolne button - closer to time selection */}
+            {editingCellIsDayOff ? (
+              <Button 
+                onClick={handleRemoveDayOff} 
+                size="sm" 
+                variant="outline" 
+                className="h-14 bg-red-50 border-red-200 text-red-700 hover:bg-red-100 ml-2"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Usuń Wolne
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleMarkDayOff} 
+                size="sm" 
+                variant="outline" 
+                className="h-14 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 ml-2"
+              >
+                <Palmtree className="w-4 h-4 mr-1" />
+                Wolne
+              </Button>
+            )}
           </div>
           
-          {/* Time slots for the selected day */}
+          {/* Time slots for the selected day - bigger and without parentheses */}
           {(() => {
             const dayData = minutesByDate.get(editingCell.date);
             const dayEntries = dayData?.entries || [];
@@ -357,46 +425,27 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
             };
             
             return (
-              <div className="text-center text-lg font-medium text-muted-foreground">
-                ({dayEntries.map((entry, idx) => (
+              <div className="text-center text-xl font-semibold text-foreground">
+                {dayEntries.map((entry, idx) => (
                   <span key={entry.id}>
                     {idx > 0 && ', '}
                     {formatTimeFromISO(entry.start_time)}-{formatTimeFromISO(entry.end_time)}
                   </span>
-                ))})
+                ))}
               </div>
             );
           })()}
-          
-          {/* Action buttons - Anuluj left, Zapisz right */}
-          <div className="flex gap-2 justify-between">
-            <Button onClick={handleCancelEdit} size="sm" variant="outline" className="px-6">
-              <X className="w-4 h-4 mr-1" />
-              Anuluj
-            </Button>
-            <Button onClick={handleSaveEdit} size="sm" className="px-6">
-              <Check className="w-4 h-4 mr-1" />
-              Zapisz
-            </Button>
-          </div>
-          {/* Wolne button centered below */}
-          <div className="flex justify-center">
-            <Button onClick={handleMarkDayOff} size="sm" variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
-              <Palmtree className="w-4 h-4 mr-1" />
-              Wolne
-            </Button>
-          </div>
         </div>
       )}
 
-      {/* Week summary */}
+      {/* Week and month summary - right aligned with bold black labels */}
       <div className="space-y-1.5 pt-2 border-t">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Suma tygodnia:</span>
+          <span className="text-sm font-bold text-foreground">Suma tygodnia:</span>
           <span className="font-bold">{formatMinutes(weekTotal)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Suma miesiąca ({monthName}):</span>
+          <span className="text-sm font-bold text-foreground">Suma miesiąca ({monthName}):</span>
           <span className="font-bold">{formatMinutes(monthTotal)}</span>
         </div>
         {monthPreOpeningMinutes > 0 && (
