@@ -386,7 +386,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -399,9 +399,9 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           <div className="flex gap-2">
             <Button 
               onClick={() => setSettingsDrawerOpen(true)} 
-              variant="ghost" 
+              variant="outline" 
               size="icon"
-              className="border-0"
+              className="bg-white"
               title="Ustawienia czasu pracy"
             >
               <Settings2 className="w-5 h-5" />
@@ -420,7 +420,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
 
       {/* Period picker (Month or Week) */}
       <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon" onClick={handlePrevPeriod}>
+        <Button variant="outline" size="icon" onClick={handlePrevPeriod} className="bg-white">
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <span className="font-medium min-w-[200px] text-center text-lg">
@@ -429,7 +429,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             : format(currentDate, 'LLLL yyyy', { locale: pl })
           }
         </span>
-        <Button variant="outline" size="icon" onClick={handleNextPeriod}>
+        <Button variant="outline" size="icon" onClick={handleNextPeriod} className="bg-white">
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
@@ -452,14 +452,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           {/* Table layout */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pracownik</TableHead>
-                <TableHead>Czas</TableHead>
-                <TableHead className="text-right">Kwota</TableHead>
-              </TableRow>
-            </TableHeader>
+          <Table className="bg-white rounded-lg">
             <TableBody>
               {activeEmployees.map((employee) => {
                 const summary = periodSummary.get(employee.id);
@@ -512,10 +505,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               })}
             </TableBody>
             {isAdmin && totalEarnings > 0 && (
-              <TableFooter>
+              <TableFooter className="bg-white">
                 <TableRow>
                   <TableCell colSpan={2}></TableCell>
-                  <TableCell className="text-right font-bold">
+                  <TableCell className="text-right font-bold whitespace-nowrap">
                     Suma wypłat {isWeeklyMode ? 'tygodnia' : format(currentDate, 'LLLL', { locale: pl })}: {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                   </TableCell>
                 </TableRow>
