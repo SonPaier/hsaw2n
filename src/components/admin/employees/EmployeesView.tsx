@@ -32,13 +32,13 @@ interface EmployeesViewProps {
 }
 
 const WEEKDAY_SHORT: Record<number, string> = {
-  0: 'nd',
-  1: 'pn',
-  2: 'wt',
-  3: 'śr',
-  4: 'cz',
-  5: 'pt',
-  6: 'sb',
+  0: 'ND',
+  1: 'PN',
+  2: 'WT',
+  3: 'ŚR',
+  4: 'CZ',
+  5: 'PT',
+  6: 'SB',
 };
 
 const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
@@ -269,8 +269,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     return result;
   };
 
-  // Format days off as a flat string with consecutive date ranges (for vacation section)
-  const formatDaysOffForPeriodFlat = (employeeDaysOff: EmployeeDayOff[]): string => {
+  // Format days off as array of strings - each range is separate line
+  const formatDaysOffForPeriodLines = (employeeDaysOff: EmployeeDayOff[]): string[] => {
     const allDates: Date[] = [];
     
     employeeDaysOff.forEach(item => {
@@ -287,7 +287,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       });
     });
 
-    if (allDates.length === 0) return '';
+    if (allDates.length === 0) return [];
 
     // Sort and deduplicate
     allDates.sort((a, b) => a.getTime() - b.getTime());
@@ -295,10 +295,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       i === 0 || d.getTime() !== arr[i-1].getTime()
     );
 
-    // Group consecutive dates into ranges
-    const parts: string[] = [];
+    // Group consecutive dates into ranges - each range is separate line
+    const lines: string[] = [];
     let rangeStart: Date | null = null;
     let rangeEnd: Date | null = null;
+
+    const formatDateWithDay = (date: Date) => {
+      const dayNum = format(date, 'd');
+      const monthName = format(date, 'LLLL', { locale: pl });
+      const weekday = WEEKDAY_SHORT[getDay(date)];
+      return `${dayNum} ${monthName} (${weekday})`;
+    };
 
     uniqueDates.forEach((date, idx) => {
       const prevDate = uniqueDates[idx - 1];
@@ -310,9 +317,9 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       } else {
         if (rangeStart) {
           if (rangeEnd) {
-            parts.push(`${format(rangeStart, 'd')} - ${format(rangeEnd, 'd.MM')}`);
+            lines.push(`${formatDateWithDay(rangeStart)} - ${formatDateWithDay(rangeEnd)}`);
           } else {
-            parts.push(format(rangeStart, 'd.MM'));
+            lines.push(formatDateWithDay(rangeStart));
           }
         }
         rangeStart = date;
@@ -323,13 +330,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
     // Close last range
     if (rangeStart) {
       if (rangeEnd) {
-        parts.push(`${format(rangeStart, 'd')} - ${format(rangeEnd, 'd.MM')}`);
+        lines.push(`${formatDateWithDay(rangeStart)} - ${formatDateWithDay(rangeEnd)}`);
       } else {
-        parts.push(format(rangeStart, 'd.MM'));
+        lines.push(formatDateWithDay(rangeStart));
       }
     }
 
-    return parts.join(', ');
+    return lines;
   };
 
   const handlePrevPeriod = () => {
@@ -366,6 +373,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setEditingEmployee(null);
+    // Also close worker time dialog when edit dialog closes
+    setWorkerDialogEmployee(null);
   };
 
   // Format week range display: "Tydzień 5 (27.01 - 02.02)"
@@ -396,18 +405,27 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               onClick={() => setSettingsDrawerOpen(true)} 
               variant="outline" 
               size="icon"
-              className="bg-white"
+              className="bg-white h-10 w-10"
               title="Ustawienia czasu pracy"
             >
               <Settings2 className="w-5 h-5" />
             </Button>
-            <Button onClick={() => setDayOffDialogOpen(true)} variant="outline" size="sm">
-              <CalendarOff className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Dodaj nieobecność</span>
+            <Button 
+              onClick={() => setDayOffDialogOpen(true)} 
+              variant="outline" 
+              size="icon"
+              className="bg-white h-10 w-10"
+              title="Dodaj nieobecność"
+            >
+              <CalendarOff className="w-5 h-5" />
             </Button>
-            <Button onClick={handleAddEmployee} size="sm">
-              <Plus className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Dodaj pracownika</span>
+            <Button 
+              onClick={handleAddEmployee} 
+              size="icon"
+              className="h-10 w-10"
+              title="Dodaj pracownika"
+            >
+              <Plus className="w-5 h-5" />
             </Button>
           </div>
         )}
@@ -503,11 +521,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               {isAdmin && totalEarnings > 0 && (
                 <TableFooter className="bg-white">
                   <TableRow>
-                    <TableCell className="py-3"></TableCell>
-                    <TableCell className="py-3"></TableCell>
-                    <TableCell className="w-20 text-right py-3">
-                      <div className="text-xs text-muted-foreground">Suma wypłat {isWeeklyMode ? 'tyg.' : format(currentDate, 'LLL', { locale: pl })}:</div>
-                      <div className="font-bold">{totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł</div>
+                    <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
+                      Suma wypłat {isWeeklyMode ? 'tydzień' : format(currentDate, 'LLLL', { locale: pl })}:
+                    </TableCell>
+                    <TableCell className="w-20 text-right py-3 font-bold whitespace-nowrap">
+                      {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
                     </TableCell>
                   </TableRow>
                 </TableFooter>
@@ -521,9 +539,9 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             const employeesWithDaysOff = activeEmployees
               .map(emp => ({
                 employee: emp,
-                daysOff: formatDaysOffForPeriodFlat(getDaysOffForEmployee(emp.id)),
+                daysOffLines: formatDaysOffForPeriodLines(getDaysOffForEmployee(emp.id)),
               }))
-              .filter(item => item.daysOff.length > 0);
+              .filter(item => item.daysOffLines.length > 0);
 
             if (employeesWithDaysOff.length === 0) return null;
 
@@ -531,7 +549,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
               <div className="mt-6 space-y-3">
                 <h3 className="font-medium text-muted-foreground">Nieobecności</h3>
                 <div className="space-y-2">
-                  {employeesWithDaysOff.map(({ employee, daysOff }) => (
+                  {employeesWithDaysOff.map(({ employee, daysOffLines }) => (
                     <div key={employee.id} className="flex items-start gap-3 p-3 border rounded-lg bg-card">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
@@ -539,9 +557,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           {employee.name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-medium">{employee.name}</div>
-                        <div className="text-sm text-muted-foreground">{daysOff}</div>
+                        <div className="text-sm text-muted-foreground space-y-0.5">
+                          {daysOffLines.map((line, idx) => (
+                            <div key={idx}>{line}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))}
