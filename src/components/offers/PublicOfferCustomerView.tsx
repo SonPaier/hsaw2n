@@ -293,6 +293,14 @@ export const PublicOfferCustomerView = ({
     }).format(Math.round(value));
   };
 
+  // For line items: show "Gratis!" for zero/null prices
+  const formatItemPrice = (value: number, prefix: string = '') => {
+    if (value === 0 || value === null || value === undefined) {
+      return 'Gratis!';
+    }
+    return `${prefix}${formatPrice(value)}`;
+  };
+
   // Calculate dynamic total based on selected items
   const calculateDynamicTotal = () => {
     let totalNet = 0;
@@ -877,7 +885,7 @@ export const PublicOfferCustomerView = ({
                                     className="font-medium"
                                     style={{ color: branding.offer_section_text_color }}
                                   >
-                                    +{formatPrice(itemTotal)}
+                                    {formatItemPrice(itemTotal, '+')}
                                   </span>
                                 )}
                                 {!readonlyMode && (
@@ -924,11 +932,11 @@ export const PublicOfferCustomerView = ({
                             }
                             <div className="flex items-center justify-end gap-3">
                               {!offer.hide_unit_prices && (
-                                <span 
-                                  className="font-medium"
-                                  style={{ color: branding.offer_section_text_color }}
-                                >
-                                  +{formatPrice(itemTotal)}
+                                  <span 
+                                    className="font-medium"
+                                    style={{ color: branding.offer_section_text_color }}
+                                  >
+                                    {formatItemPrice(itemTotal, '+')}
                                 </span>
                               )}
                               {!readonlyMode && (
@@ -1086,7 +1094,7 @@ export const PublicOfferCustomerView = ({
                                 <div className="flex items-center gap-3 shrink-0">
                                   {!offer.hide_unit_prices && (
                                     <span className="font-bold text-lg" style={{ color: branding.offer_section_text_color }}>
-                                      {formatPrice(itemTotal)}
+                                      {formatItemPrice(itemTotal)}
                                     </span>
                                   )}
                                   {!readonlyMode && (
@@ -1621,7 +1629,7 @@ export const PublicOfferCustomerView = ({
                     {idx + 1}. {item.name}
                   </span>
                   <span className="text-black font-medium text-sm whitespace-nowrap">
-                    {formatPrice(item.price)}
+                    {formatItemPrice(item.price)}
                   </span>
                 </div>
               ))}
