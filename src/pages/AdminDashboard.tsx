@@ -674,6 +674,7 @@ const AdminDashboard = () => {
         photo_urls,
         stations:station_id (name, type)
       `).eq('instance_id', instanceId)
+      .neq('status', 'cancelled')
       .gte('reservation_date', format(from, 'yyyy-MM-dd'));
     
     // If to is not null, add upper bound filter
@@ -749,6 +750,7 @@ const AdminDashboard = () => {
           photo_urls,
           stations:station_id (name, type)
         `).eq('instance_id', instanceId)
+        .neq('status', 'cancelled')
         .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
         .lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
       
