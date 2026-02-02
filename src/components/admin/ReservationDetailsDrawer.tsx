@@ -321,16 +321,31 @@ const ReservationDetailsDrawer = ({
     setSavingService(true);
     
     try {
-      // Merge existing + new service IDs
+      // Merge existing + new service IDs (deduplicate)
       const currentIds = reservation.service_ids || [];
       const mergedIds = [...new Set([...currentIds, ...newServiceIds])];
       
-      // Build service_items with prices
-      const newItems = newServiceIds.map(id => ({
-        service_id: id,
-        custom_price: null
-      }));
+      // Build service_items with full service data (including names for display)
       const existingItems = reservation.service_items || [];
+      const existingServiceIds = new Set(existingItems.map(item => item.service_id));
+      
+      const newItems = newServiceIds
+        .filter(id => !existingServiceIds.has(id))
+        .map(id => {
+          const svc = servicesData.find(s => s.id === id);
+          return {
+            service_id: id,
+            id: id,
+            name: svc?.name || 'Usługa',
+            short_name: svc?.short_name || null,
+            custom_price: null,
+            price_small: svc?.price_small ?? null,
+            price_medium: svc?.price_medium ?? null,
+            price_large: svc?.price_large ?? null,
+            price_from: svc?.price_from ?? null,
+          };
+        });
+      
       const mergedItems = [...existingItems, ...newItems];
       
       // Update database
