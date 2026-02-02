@@ -601,7 +601,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
           </div>
         ) : (
           <>
-            <div className="space-y-3">
+            <div className="space-y-3 pb-24 lg:pb-0">
               {paginatedOffers.map((offer) => (
                 <div 
                   key={offer.id}
