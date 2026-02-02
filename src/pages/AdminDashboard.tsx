@@ -2346,11 +2346,7 @@ const AdminDashboard = () => {
                       <FileText className="w-4 h-4 shrink-0" />
                       {!sidebarCollapsed && "Oferty"}
                     </Button>}
-                  {/* Halls - visible when feature is enabled (including employees) */}
-                  {hasFeature('hall_view') && <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('halls'); }} title={t('navigation.halls')}>
-                    <Building2 className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && t('navigation.halls')}
-                  </Button>}
+                  {/* Halls removed from sidebar - now in Settings */}
                   {/* Protocols - visible when feature is enabled (including employees) */}
                   {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('protocols'); }} title="Protokoły">
                     <ClipboardCheck className="w-4 h-4 shrink-0" />
@@ -2511,7 +2507,7 @@ const AdminDashboard = () => {
               onNotificationsChange={fetchUnreadNotificationsCount}
             />}
 
-            {currentView === 'halls' && instanceId && <HallsListView instanceId={instanceId} />}
+            {/* Halls view removed - now in Settings */}
 
             {currentView === 'protocols' && instanceId && <ProtocolsView instanceId={instanceId} onEditModeChange={setProtocolEditMode} />}
 

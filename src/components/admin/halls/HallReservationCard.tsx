@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, Loader2, FileText, Camera, Check } from 'lucide-react';
+import { X, Loader2, FileText, Camera, Check, Settings2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { useTranslation } from 'react-i18next';
 import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 
 interface HallReservationCardProps {
@@ -33,6 +34,8 @@ interface HallReservationCardProps {
   onAddProtocol?: (reservation: HallReservationCardProps['reservation']) => void;
   onAddPhotos?: (reservation: HallReservationCardProps['reservation']) => void;
   onServiceToggle?: (serviceId: string, checked: boolean) => Promise<void>;
+  onAddService?: (reservation: HallReservationCardProps['reservation']) => void;
+  onRemoveService?: (serviceId: string, serviceName: string) => Promise<void>;
 }
 
 const HallReservationCard = ({
@@ -45,10 +48,14 @@ const HallReservationCard = ({
   onAddProtocol,
   onAddPhotos,
   onServiceToggle,
+  onAddService,
+  onRemoveService,
 }: HallReservationCardProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | null>(null);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [confirmRemoveService, setConfirmRemoveService] = useState<{ id: string; name: string } | null>(null);
+  const [removingService, setRemovingService] = useState(false);
 
   if (!open || !reservation) return null;
 
@@ -114,13 +121,22 @@ const HallReservationCard = ({
     }
   };
 
+  const handleConfirmRemoveService = async () => {
+    if (!confirmRemoveService || !onRemoveService) return;
+    setRemovingService(true);
+    try {
+      await onRemoveService(confirmRemoveService.id, confirmRemoveService.name);
+    } finally {
+      setRemovingService(false);
+      setConfirmRemoveService(null);
+    }
+  };
 
   // Render action buttons based on status
   const renderActionButtons = () => {
     const isPendingOrConfirmed = normalizedStatus === 'pending' || normalizedStatus === 'confirmed';
     const isInProgress = normalizedStatus === 'in_progress';
     const isCompleted = normalizedStatus === 'completed';
-    const isCancelled = normalizedStatus === 'cancelled';
 
     if (isPendingOrConfirmed) {
       return (
@@ -195,22 +211,23 @@ const HallReservationCard = ({
           </button>
 
           <div className="space-y-6">
-            {/* Time and date - italic, black (foreground), NOT bold */}
-            <div className="text-[28px] italic text-foreground">
-              {formatTimeRange()} · {formatDateRange()}
+            {/* Time (bold) and date */}
+            <div className="text-[28px] text-foreground">
+              <span className="font-bold">{formatTimeRange()}</span>
+              <span className="text-muted-foreground"> · {formatDateRange()}</span>
             </div>
 
-            {/* Customer name with phone AND vehicle on same line */}
-            <div className="flex items-baseline gap-4 flex-wrap">
-              <span className="text-xl font-bold">
-                {customer_name} ({formatPhoneDisplay(customer_phone)})
-              </span>
-              <span className="text-lg font-semibold text-muted-foreground">
+            {/* Vehicle plate first, then customer */}
+            <div className="space-y-1">
+              <div className="text-xl font-bold text-foreground">
                 {vehicle_plate}
-              </span>
+              </div>
+              <div className="text-lg text-muted-foreground">
+                {customer_name}, {formatPhoneDisplay(customer_phone)}
+              </div>
             </div>
 
-            {/* Services list - clickable with checkmark toggle */}
+            {/* Services list - clickable with checkmark toggle and delete */}
             {services_data && services_data.length > 0 && (
               <div className="space-y-1">
                 {services_data.map((service, idx) => {
@@ -220,17 +237,31 @@ const HallReservationCard = ({
                   return (
                     <div 
                       key={service.id || idx} 
-                      className={cn(
-                        "text-2xl font-bold flex items-center gap-2",
-                        canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
-                        isChecked && "text-muted-foreground"
-                      )}
-                      onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}
+                      className="flex items-center justify-between gap-2"
                     >
-                      <span className={isChecked ? "line-through" : ""}>
-                        {idx + 1}. {service.name}
-                      </span>
-                      {isChecked && <Check className="w-6 h-6 text-success" />}
+                      <div 
+                        className={cn(
+                          "text-2xl font-bold flex items-center gap-2 flex-1",
+                          canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
+                          isChecked && "text-muted-foreground"
+                        )}
+                        onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}
+                      >
+                        <span className={isChecked ? "line-through" : ""}>
+                          {idx + 1}. {service.name}
+                        </span>
+                        {isChecked && <Check className="w-6 h-6 text-success" />}
+                      </div>
+                      
+                      {/* Red trash icon for delete */}
+                      {onRemoveService && service.id && (
+                        <button
+                          onClick={() => setConfirmRemoveService({ id: service.id!, name: service.name })}
+                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -259,13 +290,23 @@ const HallReservationCard = ({
               </div>
             )}
 
-            {/* Protocol and Photos buttons - always visible */}
-            {(onAddProtocol || onAddPhotos) && (
+            {/* Protocol, Photos, and Services buttons - white style */}
+            {(onAddProtocol || onAddPhotos || onAddService) && (
               <div className="flex gap-2">
+                {onAddService && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 bg-white hover:bg-gray-50"
+                    onClick={() => onAddService(reservation)}
+                  >
+                    <Settings2 className="w-5 h-5" />
+                    Usługi
+                  </Button>
+                )}
                 {onAddProtocol && (
                   <Button
                     variant="outline"
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 bg-white hover:bg-gray-50"
                     onClick={() => onAddProtocol(reservation)}
                   >
                     <FileText className="w-5 h-5" />
@@ -275,7 +316,7 @@ const HallReservationCard = ({
                 {onAddPhotos && (
                   <Button
                     variant="outline"
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 bg-white hover:bg-gray-50"
                     onClick={() => onAddPhotos(reservation)}
                   >
                     <Camera className="w-5 h-5" />
@@ -297,6 +338,18 @@ const HallReservationCard = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+      />
+
+      {/* Confirm remove service dialog */}
+      <ConfirmDialog
+        open={!!confirmRemoveService}
+        onOpenChange={(open) => !open && setConfirmRemoveService(null)}
+        title="Usunąć usługę?"
+        description={`Czy na pewno chcesz usunąć "${confirmRemoveService?.name}" z tej rezerwacji?`}
+        confirmLabel="Usuń"
+        variant="destructive"
+        loading={removingService}
+        onConfirm={handleConfirmRemoveService}
       />
     </>
   );

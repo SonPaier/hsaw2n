@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import HallReservationCard from '@/components/admin/halls/HallReservationCard';
 import AddReservationDialogV2 from '@/components/admin/AddReservationDialogV2';
+import ServiceSelectionDrawer from '@/components/admin/ServiceSelectionDrawer';
+import type { ServiceWithCategory } from '@/components/admin/ServiceSelectionDrawer';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import { EmployeesList } from '@/components/admin/employees';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
@@ -109,6 +111,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photosTargetReservation, setPhotosTargetReservation] = useState<Reservation | null>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
+  
+  // Service drawer state for hall view
+  const [serviceDrawerReservation, setServiceDrawerReservation] = useState<Reservation | null>(null);
 
   // CACHED HOOKS - using React Query with staleTime for static data
   const { data: cachedBreaks = [] } = useBreaks(instanceId);
@@ -300,6 +305,131 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       setPhotosTargetReservation(null);
       if (photosInputRef.current) photosInputRef.current.value = '';
     }
+  };
+
+  // Handle adding services to reservation from drawer (hall view)
+  const handleAddServicesToReservation = async (newServiceIds: string[], servicesData: ServiceWithCategory[]) => {
+    if (!serviceDrawerReservation) return;
+    
+    const currentIds = serviceDrawerReservation.service_ids || [];
+    const mergedIds = [...new Set([...currentIds, ...newServiceIds])];
+    
+    // Build full service_items with metadata
+    const existingItems = serviceDrawerReservation.service_items || [];
+    const newItems = newServiceIds
+      .filter(id => !currentIds.includes(id))
+      .map(id => {
+        const svc = servicesData.find(s => s.id === id);
+        return {
+          service_id: id,
+          name: svc?.name || 'Usługa',
+          short_name: svc?.short_name || null,
+          custom_price: null,
+          price_small: svc?.price_small ?? null,
+          price_medium: svc?.price_medium ?? null,
+          price_large: svc?.price_large ?? null,
+        };
+      });
+    
+    const mergedItems = [...existingItems, ...newItems];
+    
+    const { error } = await supabase
+      .from('reservations')
+      .update({ service_ids: mergedIds, service_items: mergedItems })
+      .eq('id', serviceDrawerReservation.id);
+    
+    if (error) {
+      toast.error(t('common.error'));
+      return;
+    }
+    
+    // Update local state
+    setReservations(prev => prev.map(r => {
+      if (r.id !== serviceDrawerReservation.id) return r;
+      
+      // Also update services_data for display
+      const newServicesData = newServiceIds
+        .filter(id => !currentIds.includes(id))
+        .map(id => {
+          const svc = servicesData.find(s => s.id === id);
+          return { id, name: svc?.name || 'Usługa', shortcut: svc?.short_name || null };
+        });
+      
+      return {
+        ...r,
+        service_ids: mergedIds,
+        service_items: mergedItems as any,
+        services_data: [...(r.services_data || []), ...newServicesData],
+      };
+    }));
+    
+    // Update selected reservation if it's the same one
+    if (selectedReservation?.id === serviceDrawerReservation.id) {
+      setSelectedReservation(prev => {
+        if (!prev) return prev;
+        const newServicesData = newServiceIds
+          .filter(id => !currentIds.includes(id))
+          .map(id => {
+            const svc = servicesData.find(s => s.id === id);
+            return { id, name: svc?.name || 'Usługa', shortcut: svc?.short_name || null };
+          });
+        return {
+          ...prev,
+          service_ids: mergedIds,
+          service_items: mergedItems as any,
+          services_data: [...(prev.services_data || []), ...newServicesData],
+        };
+      });
+    }
+    
+    toast.success(t('common.saved'));
+  };
+
+  // Handle removing service from reservation (hall view)
+  const handleRemoveServiceFromReservation = async (serviceId: string) => {
+    if (!selectedReservation) return;
+    
+    const currentIds = selectedReservation.service_ids || [];
+    const updatedIds = currentIds.filter(id => id !== serviceId);
+    const updatedItems = (selectedReservation.service_items || [])
+      .filter(item => (item.service_id || (item as any).id) !== serviceId);
+    
+    const { error } = await supabase
+      .from('reservations')
+      .update({ 
+        service_ids: updatedIds, 
+        service_items: updatedItems.length > 0 ? updatedItems : null 
+      })
+      .eq('id', selectedReservation.id);
+    
+    if (error) {
+      toast.error(t('common.error'));
+      return;
+    }
+    
+    // Update local state
+    setReservations(prev => prev.map(r => {
+      if (r.id !== selectedReservation.id) return r;
+      return {
+        ...r,
+        service_ids: updatedIds,
+        service_items: updatedItems.length > 0 ? updatedItems as any : undefined,
+        services_data: r.services_data?.filter(s => s.id !== serviceId),
+      };
+    }));
+    
+    // Update selected reservation
+    setSelectedReservation(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        service_ids: updatedIds,
+        service_items: updatedItems.length > 0 ? updatedItems as any : undefined,
+        services_data: prev.services_data?.filter(s => s.id !== serviceId),
+      };
+    });
+    
+    toast.success(t('common.saved'));
   };
 
   // Prevent navigation away - capture back button and history manipulation
@@ -1420,6 +1550,29 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           onAddProtocol={canAccessProtocols ? handleAddProtocol : undefined}
           onAddPhotos={handleAddPhotos}
           onServiceToggle={handleServiceToggle}
+          onAddService={(res) => setServiceDrawerReservation(res as Reservation)}
+          onRemoveService={handleRemoveServiceFromReservation}
+        />
+      )}
+
+      {/* Service Selection Drawer for hall view */}
+      {serviceDrawerReservation && instanceId && (
+        <ServiceSelectionDrawer
+          open={!!serviceDrawerReservation}
+          onClose={() => setServiceDrawerReservation(null)}
+          instanceId={instanceId}
+          carSize="medium"
+          selectedServiceIds={serviceDrawerReservation.service_ids || []}
+          hasUnifiedServices={serviceDrawerReservation.has_unified_services ?? true}
+          hideSelectedSection={true}
+          onConfirm={(serviceIds, _duration, servicesData) => {
+            const currentIds = serviceDrawerReservation.service_ids || [];
+            const newIds = serviceIds.filter(id => !currentIds.includes(id));
+            if (newIds.length > 0) {
+              handleAddServicesToReservation(newIds, servicesData);
+            }
+            setServiceDrawerReservation(null);
+          }}
         />
       )}
 

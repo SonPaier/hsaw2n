@@ -53,7 +53,8 @@
     "adminPanel": "Panel Admina",
     "clear": "Wyczyść",
     "hide": "Ukryj",
-    "total": "Razem"
+    "total": "Razem",
+    "saved": "Zapisano"
   },
   "carSearch": {
     "useCustom": "Użyj"

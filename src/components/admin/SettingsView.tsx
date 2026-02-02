@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Building2, Clock, Grid2X2, Settings2, Users, MessageSquare, Loader2, Save, Upload, Trash2, Image as ImageIcon,
-  ChevronDown, Code
+  ChevronDown, Code, Warehouse
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,10 @@ import SmsMessageSettings from './SmsMessageSettings';
 import { ReservationConfirmSettings } from './ReservationConfirmSettings';
 import InstanceUsersTab from './InstanceUsersTab';
 import WidgetSettings from './WidgetSettings';
+import HallsListView from './halls/HallsListView';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
+import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
 
 interface SettingsViewProps {
   instanceId: string | null;
@@ -27,12 +29,13 @@ interface SettingsViewProps {
   onWorkingHoursUpdate?: () => void;
 }
 
-type SettingsTab = 'company' | 'stations' | 'hours' | 'app' | 'sms' | 'users' | 'widget';
+type SettingsTab = 'company' | 'stations' | 'hours' | 'halls' | 'app' | 'sms' | 'users' | 'widget';
 
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const { currentVersion } = useAppUpdate();
+  const { hasFeature } = useCombinedFeatures(instanceId);
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -80,15 +83,18 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     }
   }, [instanceData]);
 
-  const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
+  const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode; visible?: boolean }[] = [
     { key: 'company', label: t('settings.tabs.company'), icon: <Building2 className="w-4 h-4" /> },
     { key: 'stations', label: t('settings.tabs.stations'), icon: <Grid2X2 className="w-4 h-4" /> },
     { key: 'hours', label: t('settings.tabs.hours'), icon: <Clock className="w-4 h-4" /> },
+    { key: 'halls', label: t('navigation.halls'), icon: <Warehouse className="w-4 h-4" />, visible: hasFeature('hall_view') },
     { key: 'app', label: t('settings.tabs.app'), icon: <Settings2 className="w-4 h-4" /> },
     { key: 'sms', label: t('settings.tabs.sms'), icon: <MessageSquare className="w-4 h-4" /> },
     { key: 'users', label: t('settings.tabs.users'), icon: <Users className="w-4 h-4" /> },
     { key: 'widget', label: t('settings.tabs.widget'), icon: <Code className="w-4 h-4" /> },
   ];
+  
+  const tabs = allTabs.filter(tab => tab.visible !== false);
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyForm(prev => ({ ...prev, [field]: value }));
@@ -420,6 +426,9 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
 
       case 'hours':
         return <WorkingHoursSettings instanceId={instanceId} onSave={onWorkingHoursUpdate} />;
+
+      case 'halls':
+        return instanceId ? <HallsListView instanceId={instanceId} /> : null;
 
       case 'app':
         return <ReservationConfirmSettings instanceId={instanceId} />;
