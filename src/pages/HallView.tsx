@@ -584,10 +584,105 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     }
   };
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates with polling fallback
   useEffect(() => {
     if (!instanceId) return;
 
+    let pollInterval = 3000; // Initial poll interval 3s
+    let pollTimeoutId: NodeJS.Timeout | null = null;
+    let lastPollTimestamp: string | null = null;
+    let realtimeWorking = false;
+
+    // Map helper for reservations
+    const mapReservationData = (data: any): Reservation => ({
+      ...data,
+      status: data.status || 'pending',
+      service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+      service_items: Array.isArray(data.service_items) ? data.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
+      service: undefined,
+      station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
+      has_unified_services: data.has_unified_services,
+      admin_notes: data.admin_notes,
+      checked_service_ids: Array.isArray(data.checked_service_ids) ? data.checked_service_ids as string[] : null,
+    });
+
+    // Polling fallback function
+    const pollForUpdates = async () => {
+      try {
+        // Fetch recent reservations (created/updated since last poll)
+        const query = supabase
+          .from('reservations')
+          .select(`
+            id,
+            instance_id,
+            customer_name,
+            customer_phone,
+            vehicle_plate,
+            reservation_date,
+            end_date,
+            start_time,
+            end_time,
+            station_id,
+            status,
+            confirmation_code,
+            price,
+            service_ids,
+            service_items,
+            has_unified_services,
+            admin_notes,
+            photo_urls,
+            checked_service_ids,
+            updated_at,
+            stations:station_id (name, type)
+          `)
+          .eq('instance_id', instanceId)
+          .order('updated_at', { ascending: false })
+          .limit(50);
+
+        // If we have a timestamp, only fetch newer records
+        if (lastPollTimestamp) {
+          query.gt('updated_at', lastPollTimestamp);
+        }
+
+        const { data } = await query;
+
+        if (data && data.length > 0) {
+          // Update last poll timestamp
+          lastPollTimestamp = data[0].updated_at;
+          
+          // Update local state with new/updated reservations
+          setReservations(prev => {
+            const updatedReservations = [...prev];
+            for (const newRes of data) {
+              const mappedRes = mapReservationData(newRes);
+              const existingIdx = updatedReservations.findIndex(r => r.id === newRes.id);
+              if (existingIdx >= 0) {
+                updatedReservations[existingIdx] = mappedRes;
+              } else {
+                updatedReservations.push(mappedRes);
+              }
+            }
+            return updatedReservations;
+          });
+
+          // Reset poll interval when changes detected
+          pollInterval = 3000;
+        } else if (!realtimeWorking) {
+          // Increase poll interval gradually when no changes and realtime not working
+          pollInterval = Math.min(pollInterval * 1.3, 15000); // Cap at 15s
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+
+      // Schedule next poll
+      pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+    };
+
+    // Start polling as fallback
+    pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+
+    // Realtime subscription
     const channel = supabase
       .channel('hall-reservations-changes')
       .on('postgres_changes', {
@@ -596,6 +691,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         table: 'reservations',
         filter: `instance_id=eq.${instanceId}`
       }, payload => {
+        realtimeWorking = true;
+        pollInterval = 3000; // Reset poll interval when realtime works
+
         if (payload.eventType === 'INSERT') {
           const newRecord = payload.new as any;
           
@@ -632,16 +730,12 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             .single()
             .then(({ data }) => {
               if (data) {
-                const newReservation = {
-                  ...data,
-                  status: data.status || 'pending',
-                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
-                  service: undefined, // Legacy relation removed
-                  station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
-                  admin_notes: data.admin_notes,
-                  has_unified_services: data.has_unified_services,
-                };
-                setReservations(prev => [...prev, newReservation as Reservation]);
+                const newReservation = mapReservationData(data);
+                setReservations(prev => {
+                  // Deduplicate by ID
+                  const filtered = prev.filter(r => r.id !== data.id);
+                  return [...filtered, newReservation];
+                });
                 
                 const isCustomerReservation = (data as any).source === 'customer';
                 toast.success(isCustomerReservation ? `🔔 ${t('notifications.newReservation')}!` : `${t('notifications.newReservation')}!`, {
@@ -679,21 +773,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             .single()
             .then(({ data }) => {
               if (data) {
-                const updatedReservation = {
-                  ...data,
-                  status: data.status || 'pending',
-                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
-                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
-                  service: undefined,
-                  station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
-                  admin_notes: data.admin_notes,
-                  has_unified_services: data.has_unified_services,
-                  checked_service_ids: Array.isArray(data.checked_service_ids) ? data.checked_service_ids as string[] : null,
-                };
-                setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation as Reservation : r));
+                const updatedReservation = mapReservationData(data);
+                setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation : r));
                 // Also update selectedReservation if it's the same
                 setSelectedReservation(prev => 
-                  prev?.id === data.id ? updatedReservation as Reservation : prev
+                  prev?.id === data.id ? updatedReservation : prev
                 );
               }
             });
@@ -701,12 +785,22 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           setReservations(prev => prev.filter(r => r.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          realtimeWorking = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          realtimeWorking = false;
+          pollInterval = 3000; // Reset to fast polling when realtime fails
+        }
+      });
 
     return () => {
+      if (pollTimeoutId) {
+        clearTimeout(pollTimeoutId);
+      }
       supabase.removeChannel(channel);
     };
-  }, [instanceId]);
+  }, [instanceId, t]);
 
   const handleReservationClick = (reservation: Reservation) => {
     setSelectedReservation(reservation);
