@@ -120,25 +120,22 @@ const MobileBottomNav = ({
             <Plus className="w-10 h-10" strokeWidth={2.5} />
           </Button>
 
-          {/* Powiadomienia */}
+          {/* Oferty */}
           <button
             className={cn(
-              "h-12 w-12 flex items-center justify-center relative",
-              currentView === 'notifications' ? "text-primary" : "text-muted-foreground"
+              "h-12 w-12 flex items-center justify-center",
+              currentView === 'offers' ? "text-primary" : "text-muted-foreground"
             )}
-            onClick={() => onViewChange('notifications')}
+            onClick={() => onViewChange('offers')}
           >
-            <Bell className="w-6 h-6" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-destructive rounded-full" />
-            )}
+            <FileText className="w-6 h-6" />
           </button>
 
           {/* Więcej */}
           <button
             className={cn(
               "h-12 w-12 flex items-center justify-center relative",
-              ['settings', 'offers', 'products', 'followup', 'notifications'].includes(currentView) ? "text-primary" : "text-muted-foreground"
+              ['settings', 'products', 'followup', 'notifications'].includes(currentView) ? "text-primary" : "text-muted-foreground"
             )}
             onClick={() => setMoreMenuOpen(true)}
           >

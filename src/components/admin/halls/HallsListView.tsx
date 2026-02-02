@@ -143,15 +143,15 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-3xl mx-auto px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t('halls.title')}</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {t('halls.description')}
           </p>
         </div>
-        <Button onClick={handleAddNew}>
+        <Button onClick={handleAddNew} className="w-full sm:w-auto">
           {t('halls.add')}
         </Button>
       </div>
@@ -168,7 +168,7 @@ const HallsListView = ({ instanceId }: HallsListViewProps) => {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           {halls.map((hall, index) => (
             <HallCard
               key={hall.id}
