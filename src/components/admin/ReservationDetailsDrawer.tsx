@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -204,6 +204,9 @@ const ReservationDetailsDrawer = ({
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
   const [savingService, setSavingService] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<{
     id: string;
     name: string;
@@ -396,6 +399,47 @@ const ReservationDetailsDrawer = ({
     } finally {
       setSavingService(false);
     }
+  };
+
+  // Inline save admin notes
+  const handleSaveAdminNotes = async () => {
+    if (!reservation) return;
+    setSavingNotes(true);
+    
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({ admin_notes: adminNotes || null })
+        .eq('id', reservation.id);
+      
+      if (error) throw error;
+      setEditingNotes(false);
+      toast.success(t('common.saved'));
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      toast.error(t('common.error'));
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  // Handle notes blur (click outside)
+  const handleNotesBlur = () => {
+    // Small delay to allow button clicks to register first
+    setTimeout(() => {
+      if (editingNotes) {
+        handleSaveAdminNotes();
+      }
+    }, 100);
+  };
+
+  // Start editing notes
+  const startEditingNotes = () => {
+    setEditingNotes(true);
+    // Focus textarea after render
+    setTimeout(() => {
+      notesTextareaRef.current?.focus();
+    }, 50);
   };
 
   const getSourceLabel = (source?: string | null, createdByUsername?: string | null) => {
@@ -799,13 +843,36 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Admin Notes - hide in hall mode if notes not configured */}
+            {/* Admin Notes - inline editable */}
             {(!isHallMode || visibleFields?.admin_notes) && (
               <div className="border-t border-border/30 pt-3">
                 <div className="text-xs text-muted-foreground mb-1">{t('reservations.adminNotes')}</div>
-                <div className="text-sm whitespace-pre-wrap">
-                  {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
-                </div>
+                {editingNotes ? (
+                  <div className="relative">
+                    <textarea
+                      ref={notesTextareaRef}
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      onBlur={handleNotesBlur}
+                      disabled={savingNotes}
+                      rows={3}
+                      className="w-full text-sm p-2 rounded-md border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      placeholder="Wpisz notatki wewnętrzne..."
+                    />
+                    {savingNotes && (
+                      <div className="absolute right-2 top-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div 
+                    onClick={startEditingNotes}
+                    className="text-sm whitespace-pre-wrap cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded transition-colors min-h-[2.5rem]"
+                  >
+                    {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
+                  </div>
+                )}
               </div>
             )}
 
