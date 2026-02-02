@@ -118,6 +118,7 @@ export const ServicesSection = ({
         selectedServiceIds={selectedServices}
         stationType="universal"
         hasUnifiedServices={!isEditMode}
+        hideSelectedSection={true}
         onConfirm={(serviceIds, duration, servicesData) => {
           markUserEditing();
           setSelectedServices(serviceIds);
