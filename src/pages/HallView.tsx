@@ -41,11 +41,16 @@ interface Reservation {
   status: string;
   confirmation_code: string;
   service_ids?: string[];
-  service_items?: Array<{ service_id: string; custom_price: number | null; name?: string; id?: string }>;
+  service_items?: Array<{ service_id: string; custom_price: number | null; name?: string; id?: string; short_name?: string }>;
   service?: {
     name: string;
     shortcut?: string | null;
   };
+  services_data?: Array<{
+    id?: string;
+    name: string;
+    shortcut?: string | null;
+  }>;
   station?: {
     name: string;
     type?: 'washing' | 'ppf' | 'detailing' | 'universal';
@@ -492,17 +497,66 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         .eq('instance_id', instanceId);
 
       if (reservationsData) {
-        setReservations(reservationsData.map(r => ({
-          ...r,
-          status: r.status || 'pending',
-          service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
-          service_items: Array.isArray(r.service_items) ? r.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
-          service: undefined, // Legacy relation removed
-          station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
-          has_unified_services: r.has_unified_services,
-          admin_notes: r.admin_notes,
-          checked_service_ids: Array.isArray(r.checked_service_ids) ? r.checked_service_ids as string[] : null,
-        })));
+        // Build services map from cached services
+        const svcMap = new Map<string, { id: string; name: string; shortcut?: string | null }>();
+        cachedServices.forEach(s => svcMap.set(s.id, { id: s.id, name: s.name, shortcut: s.short_name }));
+        
+        setReservations(reservationsData.map(r => {
+          // Map services_data using same logic as realtime
+          const serviceItems = r.service_items as unknown as Array<{ service_id: string; custom_price: number | null; name?: string; id?: string; short_name?: string }> | null;
+          const serviceIds = r.service_ids as string[] | null;
+          
+          let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null }> = [];
+          
+          if (serviceIds && serviceIds.length > 0) {
+            const itemsById = new Map<string, any>();
+            (serviceItems || []).forEach(item => {
+              const resolvedId = item.id || item.service_id;
+              if (resolvedId) itemsById.set(resolvedId, item);
+            });
+
+            servicesDataMapped = serviceIds.map(id => {
+              const item = itemsById.get(id);
+              const svc = svcMap.get(id);
+              return {
+                id,
+                name: item?.name ?? svc?.name ?? 'Usługa',
+                shortcut: item?.short_name ?? svc?.shortcut ?? null,
+              };
+            });
+          } else if (serviceItems && serviceItems.length > 0) {
+            const seen = new Set<string>();
+            servicesDataMapped = serviceItems
+              .map(item => {
+                const resolvedId = item.id || item.service_id;
+                const svc = resolvedId ? svcMap.get(resolvedId) : undefined;
+                return {
+                  id: resolvedId,
+                  name: item.name ?? svc?.name ?? 'Usługa',
+                  shortcut: item.short_name ?? svc?.shortcut ?? null,
+                };
+              })
+              .filter(svc => {
+                if (!svc.id) return false;
+                if (seen.has(svc.id)) return false;
+                seen.add(svc.id);
+                return true;
+              });
+          }
+
+          return {
+            ...r,
+            status: r.status || 'pending',
+            service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
+            service_items: Array.isArray(r.service_items) ? r.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
+            services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+            service: undefined,
+            station: r.stations ? { name: (r.stations as any).name, type: (r.stations as any).type } : undefined,
+            has_unified_services: r.has_unified_services,
+            admin_notes: r.admin_notes,
+            checked_service_ids: Array.isArray(r.checked_service_ids) ? r.checked_service_ids as string[] : null,
+          };
+        }));
       }
 
       // Fetch yard vehicles count (lazy-loaded)
@@ -520,7 +574,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     };
 
     fetchData();
-  }, [instanceId, hall]);
+  }, [instanceId, hall, cachedServices]);
 
   // Subscribe to yard vehicles changes for counter
   useEffect(() => {
@@ -584,7 +638,17 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     }
   };
 
-  // Subscribe to realtime updates with polling fallback
+  // Reference to services map for realtime updates (same pattern as AdminDashboard)
+  const servicesMapRef = useRef<Map<string, { id: string; name: string; shortcut?: string | null }>>(new Map());
+  
+  // Update servicesMapRef when cachedServices changes
+  useEffect(() => {
+    const map = new Map<string, { id: string; name: string; shortcut?: string | null }>();
+    cachedServices.forEach(s => map.set(s.id, { id: s.id, name: s.name, shortcut: s.short_name }));
+    servicesMapRef.current = map;
+  }, [cachedServices]);
+
+  // Subscribe to realtime updates with polling fallback - SYNCED with AdminDashboard logic
   useEffect(() => {
     if (!instanceId) return;
 
@@ -592,22 +656,76 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     let pollTimeoutId: NodeJS.Timeout | null = null;
     let lastPollTimestamp: string | null = null;
     let realtimeWorking = false;
+    let retryCount = 0;
+    const maxRetries = 10;
+    let currentChannel: ReturnType<typeof supabase.channel> | null = null;
+    let isCleanedUp = false;
 
-    // Map helper for reservations
-    const mapReservationData = (data: any): Reservation => ({
-      ...data,
-      status: data.status || 'pending',
-      service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
-      service_items: Array.isArray(data.service_items) ? data.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
-      service: undefined,
-      station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
-      has_unified_services: data.has_unified_services,
-      admin_notes: data.admin_notes,
-      checked_service_ids: Array.isArray(data.checked_service_ids) ? data.checked_service_ids as string[] : null,
-    });
+    // Map helper for reservations - SAME LOGIC AS AdminDashboard
+    const mapReservationData = (data: any): Reservation => {
+      // Primary source: service_items JSONB (already contains names)
+      const serviceItems = data.service_items as unknown as Array<{ service_id: string; custom_price: number | null; name?: string; id?: string; short_name?: string }> | null;
+      const serviceIds = data.service_ids as string[] | null;
+      
+      let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null }> = [];
+      
+      // Canonical list of selected services is `service_ids`
+      if (serviceIds && serviceIds.length > 0) {
+        const itemsById = new Map<string, any>();
+        (serviceItems || []).forEach(item => {
+          const resolvedId = item.id || item.service_id;
+          if (resolvedId) itemsById.set(resolvedId, item);
+        });
+
+        servicesDataMapped = serviceIds.map(id => {
+          const item = itemsById.get(id);
+          const svc = servicesMapRef.current.get(id);
+
+          return {
+            id,
+            name: item?.name ?? svc?.name ?? 'Usługa',
+            shortcut: item?.short_name ?? svc?.shortcut ?? null,
+          };
+        });
+      } else if (serviceItems && serviceItems.length > 0) {
+        // Fallback: no service_ids, use service_items directly
+        const seen = new Set<string>();
+        servicesDataMapped = serviceItems
+          .map(item => {
+            const resolvedId = item.id || item.service_id;
+            const svc = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+            return {
+              id: resolvedId,
+              name: item.name ?? svc?.name ?? 'Usługa',
+              shortcut: item.short_name ?? svc?.shortcut ?? null,
+            };
+          })
+          .filter(svc => {
+            if (!svc.id) return false;
+            if (seen.has(svc.id)) return false;
+            seen.add(svc.id);
+            return true;
+          });
+      }
+
+      return {
+        ...data,
+        status: data.status || 'pending',
+        service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+        service_items: Array.isArray(data.service_items) ? data.service_items as unknown as Array<{ service_id: string; custom_price: number | null }> : undefined,
+        services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+        service: undefined,
+        station: data.stations ? { name: (data.stations as any).name, type: (data.stations as any).type } : undefined,
+        has_unified_services: data.has_unified_services,
+        admin_notes: data.admin_notes,
+        checked_service_ids: Array.isArray(data.checked_service_ids) ? data.checked_service_ids as string[] : null,
+      };
+    };
 
     // Polling fallback function
     const pollForUpdates = async () => {
+      if (isCleanedUp) return;
+      
       try {
         // Fetch recent reservations (created/updated since last poll)
         const query = supabase
@@ -676,129 +794,162 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       }
 
       // Schedule next poll
-      pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+      if (!isCleanedUp) {
+        pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+      }
     };
 
+    // Setup realtime channel with retry logic (same as AdminDashboard)
+    const setupRealtimeChannel = () => {
+      if (isCleanedUp) return;
+      
+      // Remove previous channel if exists
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+        currentChannel = null;
+      }
+
+      currentChannel = supabase
+        .channel(`hall-reservations-changes-${Date.now()}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+          filter: `instance_id=eq.${instanceId}`
+        }, payload => {
+          console.log('[HallView] Realtime reservation update:', payload);
+          realtimeWorking = true;
+          pollInterval = 3000; // Reset poll interval when realtime works
+          retryCount = 0; // Reset retry count on successful message
+
+          if (payload.eventType === 'INSERT') {
+            const newRecord = payload.new as any;
+            
+            // Play sound only for customer reservations
+            if (newRecord.source === 'customer') {
+              playNotificationSound();
+            }
+
+            supabase
+              .from('reservations')
+              .select(`
+                id,
+                instance_id,
+                customer_name,
+                customer_phone,
+                vehicle_plate,
+                reservation_date,
+                end_date,
+                start_time,
+                end_time,
+                station_id,
+                status,
+                confirmation_code,
+                price,
+                source,
+                service_ids,
+                service_items,
+                admin_notes,
+                has_unified_services,
+                photo_urls,
+                checked_service_ids,
+                stations:station_id (name, type)
+              `)
+              .eq('id', payload.new.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  const newReservation = mapReservationData(data);
+                  setReservations(prev => {
+                    // Deduplicate by ID
+                    const filtered = prev.filter(r => r.id !== data.id);
+                    return [...filtered, newReservation];
+                  });
+                  
+                  const isCustomerReservation = (data as any).source === 'customer';
+                  toast.success(isCustomerReservation ? `🔔 ${t('notifications.newReservation')}!` : `${t('notifications.newReservation')}!`, {
+                    description: `${data.start_time.slice(0, 5)} - ${data.vehicle_plate}`
+                  });
+                }
+              });
+          } else if (payload.eventType === 'UPDATE') {
+            // Fetch full data from server to ensure complete object
+            supabase
+              .from('reservations')
+              .select(`
+                id,
+                instance_id,
+                customer_name,
+                customer_phone,
+                vehicle_plate,
+                reservation_date,
+                end_date,
+                start_time,
+                end_time,
+                station_id,
+                status,
+                confirmation_code,
+                price,
+                service_ids,
+                service_items,
+                admin_notes,
+                has_unified_services,
+                photo_urls,
+                checked_service_ids,
+                stations:station_id (name, type)
+              `)
+              .eq('id', payload.new.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  const updatedReservation = mapReservationData(data);
+                  setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation : r));
+                  // Also update selectedReservation if it's the same
+                  setSelectedReservation(prev => 
+                    prev?.id === data.id ? updatedReservation : prev
+                  );
+                }
+              });
+          } else if (payload.eventType === 'DELETE') {
+            setReservations(prev => prev.filter(r => r.id !== payload.old.id));
+          }
+        })
+        .subscribe((status, err) => {
+          console.log('[HallView] Channel status:', status, err);
+          if (status === 'SUBSCRIBED') {
+            realtimeWorking = true;
+            retryCount = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            realtimeWorking = false;
+            pollInterval = 3000; // Reset to fast polling when realtime fails
+            
+            // Auto-retry with exponential backoff
+            if (retryCount < maxRetries && !isCleanedUp) {
+              retryCount++;
+              const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+              console.log(`[HallView] Retrying realtime connection in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
+              setTimeout(setupRealtimeChannel, delay);
+            }
+          } else if (status === 'CLOSED') {
+            realtimeWorking = false;
+          }
+        });
+    };
+
+    // Start realtime subscription
+    setupRealtimeChannel();
+    
     // Start polling as fallback
     pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
 
-    // Realtime subscription
-    const channel = supabase
-      .channel('hall-reservations-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'reservations',
-        filter: `instance_id=eq.${instanceId}`
-      }, payload => {
-        realtimeWorking = true;
-        pollInterval = 3000; // Reset poll interval when realtime works
-
-        if (payload.eventType === 'INSERT') {
-          const newRecord = payload.new as any;
-          
-          // Play sound only for customer reservations
-          if (newRecord.source === 'customer') {
-            playNotificationSound();
-          }
-
-          supabase
-            .from('reservations')
-            .select(`
-              id,
-              instance_id,
-              customer_name,
-              customer_phone,
-              vehicle_plate,
-              reservation_date,
-              end_date,
-              start_time,
-              end_time,
-              station_id,
-              status,
-              confirmation_code,
-              price,
-              source,
-              service_ids,
-              admin_notes,
-              has_unified_services,
-              photo_urls,
-              checked_service_ids,
-              stations:station_id (name, type)
-            `)
-            .eq('id', payload.new.id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                const newReservation = mapReservationData(data);
-                setReservations(prev => {
-                  // Deduplicate by ID
-                  const filtered = prev.filter(r => r.id !== data.id);
-                  return [...filtered, newReservation];
-                });
-                
-                const isCustomerReservation = (data as any).source === 'customer';
-                toast.success(isCustomerReservation ? `🔔 ${t('notifications.newReservation')}!` : `${t('notifications.newReservation')}!`, {
-                  description: `${data.start_time.slice(0, 5)} - ${data.vehicle_plate}`
-                });
-              }
-            });
-        } else if (payload.eventType === 'UPDATE') {
-          // Fetch full data from server to ensure complete object (including photo_urls)
-          supabase
-            .from('reservations')
-            .select(`
-              id,
-              instance_id,
-              customer_name,
-              customer_phone,
-              vehicle_plate,
-              reservation_date,
-              end_date,
-              start_time,
-              end_time,
-              station_id,
-              status,
-              confirmation_code,
-              price,
-              service_ids,
-              service_items,
-              admin_notes,
-              has_unified_services,
-              photo_urls,
-              checked_service_ids,
-              stations:station_id (name, type)
-            `)
-            .eq('id', payload.new.id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                const updatedReservation = mapReservationData(data);
-                setReservations(prev => prev.map(r => r.id === data.id ? updatedReservation : r));
-                // Also update selectedReservation if it's the same
-                setSelectedReservation(prev => 
-                  prev?.id === data.id ? updatedReservation : prev
-                );
-              }
-            });
-        } else if (payload.eventType === 'DELETE') {
-          setReservations(prev => prev.filter(r => r.id !== payload.old.id));
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          realtimeWorking = true;
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          realtimeWorking = false;
-          pollInterval = 3000; // Reset to fast polling when realtime fails
-        }
-      });
-
     return () => {
+      isCleanedUp = true;
       if (pollTimeoutId) {
         clearTimeout(pollTimeoutId);
       }
-      supabase.removeChannel(channel);
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+      }
     };
   }, [instanceId, t]);
 
