@@ -74,6 +74,8 @@ interface ServiceSelectionDrawerProps {
   context?: 'reservation' | 'offer';
   /** When true, filter by service_type='both'. When false/undefined, filter by 'reservation' (legacy). */
   hasUnifiedServices?: boolean;
+  /** Hide the "Zaznaczone" selected services section */
+  hideSelectedSection?: boolean;
 }
 
 const ServiceSelectionDrawer = ({
@@ -86,6 +88,7 @@ const ServiceSelectionDrawer = ({
   stationType,
   context = 'reservation',
   hasUnifiedServices = false,
+  hideSelectedSection = false,
 }: ServiceSelectionDrawerProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -485,8 +488,8 @@ const ServiceSelectionDrawer = ({
             <p className="text-sm text-muted-foreground">{t('serviceDrawer.noMatches')}</p>
           )}
 
-          {/* Selected Services Chips */}
-          {selectedServices.length > 0 && (
+          {/* Selected Services Chips - conditionally hidden */}
+          {!hideSelectedSection && selectedServices.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground font-medium">
                 {t('serviceDrawer.selectedServices')} ({selectedServices.length})
