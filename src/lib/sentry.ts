@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/react";
-import { supabase } from "@/integrations/supabase/client";
 
 let sentryInitialized = false;
 
@@ -7,18 +6,11 @@ export const initSentry = async () => {
   if (sentryInitialized) return;
   
   try {
-    // Fetch DSN from edge function (secure way to get secret)
-    const { data, error } = await supabase.functions.invoke('get-public-config');
-    
-    if (error) {
-      console.warn('[Sentry] Failed to fetch config:', error.message);
-      return;
-    }
-    
-    const dsn = data?.sentryDsn;
+    // Use env variable instead of edge function call (cost optimization)
+    const dsn = import.meta.env.VITE_SENTRY_DSN;
     
     if (!dsn) {
-      console.warn('[Sentry] DSN not configured, error tracking disabled');
+      console.warn('[Sentry] VITE_SENTRY_DSN not configured, error tracking disabled');
       return;
     }
 

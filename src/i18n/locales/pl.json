@@ -878,9 +878,9 @@
         "exampleTemplate": "{{instanceName}}: Przypomnienie - jutro o 10:00 masz wizyte. Zmien lub anuluj: [link]"
       },
       "reminder_1hour": {
-        "label": "Przypomnienie 1 godzinę przed",
-        "description": "Automatyczne przypomnienie wysyłane godzinę przed wizytą.",
-        "exampleTemplate": "{{instanceName}}: Za godzine o 10:00 masz wizyte. Telefon: {{reservationPhone}}. Do zobaczenia!"
+        "label": "Przypomnienie w dniu wizyty",
+        "description": "Automatyczne przypomnienie wysyłane rano w dniu wizyty.",
+        "exampleTemplate": "{{instanceName}}: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :) Tel: {{reservationPhone}}"
       },
       "vehicle_ready": {
         "label": "Samochód do odbioru",
