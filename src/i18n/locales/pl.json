@@ -885,7 +885,7 @@
       "vehicle_ready": {
         "label": "Samochód do odbioru",
         "description": "SMS wysyłany gdy auto jest gotowe do odebrania.",
-        "exampleTemplate": "Twoj samochod jest gotowy do odbioru. Zapraszamy!"
+        "exampleTemplate": "{{instanceName}}: Twoj samochod jest gotowy do odbioru. Zapraszamy!"
       }
     },
     "templates": {
