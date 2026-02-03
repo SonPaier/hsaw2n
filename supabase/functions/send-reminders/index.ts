@@ -2,13 +2,18 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { captureException } from "../_shared/sentry.ts";
 import { normalizePhoneOrFallback } from "../_shared/phoneUtils.ts";
+import { 
+  buildReminderTodaySms, 
+  isInHourlyWindow, 
+  HOURLY_WINDOWS 
+} from "../_shared/reminderUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Force schema reload v2 - 2026-01-22 22:18
+// v01.27.09 - Window-based reminders with early exit
 
 // Backoff time in minutes - prevents retry spam
 const BACKOFF_MINUTES = 15;
@@ -34,10 +39,6 @@ interface Reservation {
   reminder_failure_reason: string | null;
 }
 
-interface Service {
-  name: string;
-}
-
 interface InstanceData {
   id: string;
   name: string;
@@ -58,16 +59,13 @@ interface SmsMessageSetting {
 // TIMEZONE HELPER FUNCTIONS
 // ========================
 
-/**
- * Get date/time components in a specific timezone using Intl.DateTimeFormat
- */
 function getDateTimeInTimezone(date: Date, timezone: string): {
   year: number;
   month: number;
   day: number;
   hours: number;
   minutes: number;
-  dateStr: string; // YYYY-MM-DD
+  dateStr: string;
 } {
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
@@ -93,56 +91,15 @@ function getDateTimeInTimezone(date: Date, timezone: string): {
   return { year, month, day, hours, minutes, dateStr };
 }
 
-/**
- * Get "tomorrow" date string in a specific timezone
- */
 function getTomorrowInTimezone(date: Date, timezone: string): string {
-  // Add 24 hours to the current date
   const tomorrow = new Date(date.getTime() + 24 * 60 * 60 * 1000);
   return getDateTimeInTimezone(tomorrow, timezone).dateStr;
 }
 
-/**
- * Calculate minutes until a reservation starts, accounting for timezone
- * The reservation_date + start_time are LOCAL times in the instance timezone
- */
-function calculateMinutesUntilStart(
-  nowUtc: Date,
-  reservationDate: string, // YYYY-MM-DD
-  startTime: string, // HH:MM:SS
-  timezone: string
-): number {
-  // Get current time in instance timezone
-  const nowLocal = getDateTimeInTimezone(nowUtc, timezone);
-  const nowTotalMinutes = nowLocal.hours * 60 + nowLocal.minutes;
-  
-  // Parse reservation start time
-  const [startHour, startMinute] = startTime.split(':').map(Number);
-  const startTotalMinutes = startHour * 60 + startMinute;
-  
-  // Get today in instance timezone
-  const todayLocal = nowLocal.dateStr;
-  
-  // If reservation is today
-  if (reservationDate === todayLocal) {
-    return startTotalMinutes - nowTotalMinutes;
-  }
-  
-  // If reservation is tomorrow, add 24*60 minutes
-  const tomorrowLocal = getTomorrowInTimezone(nowUtc, timezone);
-  if (reservationDate === tomorrowLocal) {
-    return (24 * 60) + startTotalMinutes - nowTotalMinutes;
-  }
-  
-  // Otherwise, reservation is not today or tomorrow - return large negative (skip)
-  return -9999;
-}
-
 // ========================
-// EXISTING HELPER FUNCTIONS
+// HELPER FUNCTIONS
 // ========================
 
-// Check if SMS edit link should be included for this phone
 const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: string): Promise<boolean> => {
   const { data: feature } = await supabase
     .from('instance_features')
@@ -155,30 +112,23 @@ const shouldIncludeEditLink = async (supabase: any, instanceId: string, phone: s
     return false;
   }
   
-  // If no phones specified, send to everyone
   const params = feature.parameters as { phones?: string[] } | null;
   if (!params || !params.phones || params.phones.length === 0) {
     return true;
   }
   
-  // Normalize phone for comparison using libphonenumber-js
   const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
   
-  // Check if phone is in allowed list
   return params.phones.some(p => {
     const normalizedAllowed = normalizePhoneOrFallback(p, "PL");
     return normalizedPhone === normalizedAllowed;
   });
 };
 
-// Atomic claim: attempt to "claim" a reservation for sending reminder
-// Returns true if claimed successfully, false otherwise
-// Using raw SQL to bypass PostgREST schema cache issues
 async function claimReservationFor1HourReminder(supabase: any, reservationId: string, backoffMinutes: number): Promise<boolean> {
   const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
   const nowIso = new Date().toISOString();
   
-  // Use raw SQL query via rpc to bypass PostgREST cache
   const { data, error } = await supabase.rpc('claim_reminder_1hour', {
     p_reservation_id: reservationId,
     p_now: nowIso,
@@ -186,7 +136,6 @@ async function claimReservationFor1HourReminder(supabase: any, reservationId: st
   });
   
   if (error) {
-    // Fallback to direct update if RPC doesn't exist
     console.log(`RPC claim_reminder_1hour failed, trying direct update: ${error.message}`);
     const { data: directData, error: directError } = await supabase
       .from("reservations")
@@ -211,7 +160,6 @@ async function claimReservationFor1DayReminder(supabase: any, reservationId: str
   const backoffThreshold = new Date(Date.now() - backoffMinutes * 60 * 1000).toISOString();
   const nowIso = new Date().toISOString();
   
-  // Use raw SQL query via rpc to bypass PostgREST cache
   const { data, error } = await supabase.rpc('claim_reminder_1day', {
     p_reservation_id: reservationId,
     p_now: nowIso,
@@ -219,7 +167,6 @@ async function claimReservationFor1DayReminder(supabase: any, reservationId: str
   });
   
   if (error) {
-    // Fallback to direct update if RPC doesn't exist
     console.log(`RPC claim_reminder_1day failed, trying direct update: ${error.message}`);
     const { data: directData, error: directError } = await supabase
       .from("reservations")
@@ -259,13 +206,48 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Parse request body for type and window parameters
+    let reminderType: '1day' | '1hour' | undefined;
+    let windowNumber: number | undefined;
+    
+    try {
+      const body = await req.json();
+      reminderType = body?.type as '1day' | '1hour' | undefined;
+      windowNumber = body?.window as number | undefined;
+    } catch {
+      // No body or invalid JSON - process all types (backwards compatibility)
+    }
+
     const now = new Date();
     console.log("=== SEND-REMINDERS START ===");
     console.log("UTC now:", now.toISOString());
+    console.log(`Parameters: type=${reminderType || 'all'}, window=${windowNumber || 'none'}`);
     
-    // Log Warsaw time for debugging
     const warsawTime = getDateTimeInTimezone(now, 'Europe/Warsaw');
     console.log(`Warsaw time: ${warsawTime.dateStr} ${String(warsawTime.hours).padStart(2,'0')}:${String(warsawTime.minutes).padStart(2,'0')}`);
+
+    // EARLY EXIT: Quick check if there are any candidates at all
+    const todayUtc = now.toISOString().split("T")[0];
+    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const maxDate = twoDaysFromNow.toISOString().split("T")[0];
+    
+    const { count: candidateCount } = await supabase
+      .from('reservations')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'confirmed')
+      .gte('reservation_date', todayUtc)
+      .lte('reservation_date', maxDate)
+      .or('reminder_1day_sent.is.null,reminder_1hour_sent.is.null')
+      .or('reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false');
+
+    if (candidateCount === 0) {
+      console.log("=== EARLY EXIT: No candidates ===");
+      return new Response(
+        JSON.stringify({ success: true, message: "No candidates, early exit", sentCount: 0 }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    console.log(`Found ${candidateCount} potential candidates`);
 
     // Get all SMS settings for instances
     const { data: smsSettings, error: smsSettingsError } = await supabase
@@ -276,9 +258,7 @@ serve(async (req: Request): Promise<Response> => {
     if (smsSettingsError) {
       console.error("Error fetching SMS settings:", smsSettingsError);
     }
-    console.log(`Fetched ${(smsSettings || []).length} SMS settings`);
 
-    // Create a map of instance settings
     const instanceSettings = new Map<string, { reminder1day: SmsMessageSetting | null; reminder1hour: SmsMessageSetting | null }>();
     for (const setting of (smsSettings || [])) {
       const instanceId = setting.instance_id as string;
@@ -288,13 +268,11 @@ serve(async (req: Request): Promise<Response> => {
       const instanceSetting = instanceSettings.get(instanceId)!;
       if (setting.message_type === "reminder_1day") {
         instanceSetting.reminder1day = setting as SmsMessageSetting;
-        console.log(`Instance ${instanceId}: reminder_1day enabled=${setting.enabled}, send_at_time=${setting.send_at_time}`);
       } else if (setting.message_type === "reminder_1hour") {
         instanceSetting.reminder1hour = setting as SmsMessageSetting;
       }
     }
 
-    // Cache instance info to avoid multiple queries (includes timezone!)
     const instanceCache: Record<string, InstanceData> = {};
     
     const getInstanceInfo = async (instanceId: string): Promise<InstanceData> => {
@@ -321,246 +299,216 @@ serve(async (req: Request): Promise<Response> => {
       return info;
     };
 
-    // Get candidate reservations for both types
-    // We'll filter them per-instance with proper timezone logic
-    
-    // Get ALL confirmed reservations not yet sent (for next 2 days)
-    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const todayUtc = now.toISOString().split("T")[0];
-    const maxDate = twoDaysFromNow.toISOString().split("T")[0];
-    
-    // Fetch candidates for 1-day reminders (tomorrow in any timezone)
-    const { data: candidateDayReminders, error: fetchDayError } = await supabase
-      .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
-      .eq("status", "confirmed")
-      .is("reminder_1day_sent", null)
-      .gte("reservation_date", todayUtc)
-      .lte("reservation_date", maxDate)
-      .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false");
-
-    if (fetchDayError) {
-      console.error("Error fetching day reminders:", fetchDayError);
-    }
-
-    // Fetch candidates for 1-hour reminders (today in any timezone)
-    const { data: candidateHourReminders, error: fetchHourError } = await supabase
-      .from("reservations")
-      .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
-      .eq("status", "confirmed")
-      .is("reminder_1hour_sent", null)
-      .gte("reservation_date", todayUtc)
-      .lte("reservation_date", maxDate)
-      .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false");
-
-    if (fetchHourError) {
-      console.error("Error fetching hour reminders:", fetchHourError);
-    }
-
     let sentCount = 0;
     let skippedClaimed = 0;
     let skippedTimezone = 0;
+    let skippedWindow = 0;
     const results: { type: string; reservationId: string; success: boolean; skipped?: string }[] = [];
 
     // ========================
     // PROCESS 1-DAY REMINDERS
     // ========================
-    console.log(`Processing ${(candidateDayReminders || []).length} candidate 1-day reminders`);
-    
-    for (const reservation of (candidateDayReminders || []) as Reservation[]) {
-      const instanceSetting = instanceSettings.get(reservation.instance_id);
-      const reminder1daySetting = instanceSetting?.reminder1day;
-      
-      console.log(`[1-day] Checking reservation ${reservation.id} (code=${reservation.confirmation_code}), instance=${reservation.instance_id}`);
-      console.log(`[1-day] Instance setting found: ${!!instanceSetting}, reminder1day: ${JSON.stringify(reminder1daySetting)}`);
-      
-      // Skip if 1-day reminder is disabled for this instance
-      if (reminder1daySetting && reminder1daySetting.enabled === false) {
-        console.log(`[1-day] SKIP: disabled for instance ${reservation.instance_id}`);
-        continue;
+    if (!reminderType || reminderType === '1day') {
+      const { data: candidateDayReminders, error: fetchDayError } = await supabase
+        .from("reservations")
+        .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1day_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
+        .eq("status", "confirmed")
+        .is("reminder_1day_sent", null)
+        .gte("reservation_date", todayUtc)
+        .lte("reservation_date", maxDate)
+        .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false");
+
+      if (fetchDayError) {
+        console.error("Error fetching day reminders:", fetchDayError);
       }
 
-      // Get instance info (with timezone)
-      const instanceInfo = await getInstanceInfo(reservation.instance_id);
-      const timezone = instanceInfo.timezone || 'Europe/Warsaw';
+      console.log(`Processing ${(candidateDayReminders || []).length} candidate 1-day reminders`);
       
-      // Get current time in instance timezone
-      const nowLocal = getDateTimeInTimezone(now, timezone);
-      const tomorrowLocal = getTomorrowInTimezone(now, timezone);
-      
-      console.log(`[1-day] res=${reservation.id}: tz=${timezone}, nowLocal=${nowLocal.dateStr} ${nowLocal.hours}:${nowLocal.minutes}, tomorrowLocal=${tomorrowLocal}, res_date=${reservation.reservation_date}`);
-      
-      // Check if reservation is for tomorrow in this timezone
-      if (reservation.reservation_date !== tomorrowLocal) {
-        console.log(`[1-day] SKIP: res_date=${reservation.reservation_date} != tomorrow=${tomorrowLocal}`);
-        continue;
-      }
-
-      // Get the configured send time (default to 19:00 if not set)
-      const sendAtTime = reminder1daySetting?.send_at_time || "19:00:00";
-      const [sendHour, sendMinute] = sendAtTime.split(":").map(Number);
-      
-      const currentTotalMinutes = nowLocal.hours * 60 + nowLocal.minutes;
-      const sendTotalMinutes = sendHour * 60 + sendMinute;
-      const timeDiff = Math.abs(currentTotalMinutes - sendTotalMinutes);
-      
-      console.log(`[1-day] res=${reservation.id}: currentMinutes=${currentTotalMinutes}, sendMinutes=${sendTotalMinutes}, diff=${timeDiff}`);
-      
-      // Only send if we're within a 5-minute window of the configured time
-      if (timeDiff > 5) {
-        console.log(`[1-day] SKIP: time diff ${timeDiff} > 5 minutes`);
-        skippedTimezone++;
-        continue;
-      }
-
-      console.log(`[1-day] MATCH! Attempting to send for ${reservation.id} (${reservation.confirmation_code})`);
-
-      // ATOMIC CLAIM: Try to claim this reservation for sending
-      const claimed = await claimReservationFor1DayReminder(supabase, reservation.id, BACKOFF_MINUTES);
-      if (!claimed) {
-        console.log(`1-day reminder for ${reservation.id}: skipped (already claimed or in backoff)`);
-        skippedClaimed++;
-        results.push({ type: "1day", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
-        continue;
-      }
-
-      // Get service name
-      const { data: service } = await supabase
-        .from("unified_services")
-        .select("name")
-        .eq("id", reservation.service_id)
-        .single() as { data: Service | null };
-
-      const reservationUrl = `https://${instanceInfo.slug}.n2wash.com/res?code=${reservation.confirmation_code}`;
-      const formattedTime = reservation.start_time.slice(0, 5);
-
-      // Check if edit link should be included
-      const includeEditLink = await shouldIncludeEditLink(supabase, reservation.instance_id, reservation.customer_phone);
-      const editLinkPart = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : "";
-
-      const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizyte.${editLinkPart}`;
-
-      const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
-      
-      if (success) {
-        await supabase
-          .from("reservations")
-          .update({ 
-            reminder_1day_sent: true,
-            reminder_failure_count: 0,
-            reminder_failure_reason: null
-          })
-          .eq("id", reservation.id);
-        sentCount++;
-      } else {
-        const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
-        const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+      for (const reservation of (candidateDayReminders || []) as Reservation[]) {
+        const instanceSetting = instanceSettings.get(reservation.instance_id);
+        const reminder1daySetting = instanceSetting?.reminder1day;
         
-        await supabase
-          .from("reservations")
-          .update({ 
-            reminder_failure_count: newFailureCount,
-            reminder_permanent_failure: isPermanentFailure,
-            reminder_failure_reason: errorReason || 'unknown_error'
-          })
-          .eq("id", reservation.id);
-        
-        if (isPermanentFailure) {
-          console.log(`1-day reminder for ${reservation.id}: marked as PERMANENT FAILURE after ${newFailureCount} attempts`);
+        if (reminder1daySetting && reminder1daySetting.enabled === false) {
+          continue;
         }
-      }
 
-      results.push({ type: "1day", reservationId: reservation.id, success });
-      console.log(`1-day reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
+        const instanceInfo = await getInstanceInfo(reservation.instance_id);
+        const timezone = instanceInfo.timezone || 'Europe/Warsaw';
+        
+        const nowLocal = getDateTimeInTimezone(now, timezone);
+        const tomorrowLocal = getTomorrowInTimezone(now, timezone);
+        
+        if (reservation.reservation_date !== tomorrowLocal) {
+          continue;
+        }
+
+        const sendAtTime = reminder1daySetting?.send_at_time || "19:00:00";
+        const [sendHour, sendMinute] = sendAtTime.split(":").map(Number);
+        
+        const currentTotalMinutes = nowLocal.hours * 60 + nowLocal.minutes;
+        const sendTotalMinutes = sendHour * 60 + sendMinute;
+        const timeDiff = Math.abs(currentTotalMinutes - sendTotalMinutes);
+        
+        if (timeDiff > 5) {
+          skippedTimezone++;
+          continue;
+        }
+
+        console.log(`[1-day] MATCH! res=${reservation.id} (${reservation.confirmation_code})`);
+
+        const claimed = await claimReservationFor1DayReminder(supabase, reservation.id, BACKOFF_MINUTES);
+        if (!claimed) {
+          skippedClaimed++;
+          results.push({ type: "1day", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
+          continue;
+        }
+
+        const reservationUrl = `https://${instanceInfo.slug}.n2wash.com/res?code=${reservation.confirmation_code}`;
+        const formattedTime = reservation.start_time.slice(0, 5);
+
+        const includeEditLink = await shouldIncludeEditLink(supabase, reservation.instance_id, reservation.customer_phone);
+        const editLinkPart = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : "";
+
+        const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizyte.${editLinkPart}`;
+
+        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
+        
+        if (success) {
+          await supabase
+            .from("reservations")
+            .update({ 
+              reminder_1day_sent: true,
+              reminder_failure_count: 0,
+              reminder_failure_reason: null
+            })
+            .eq("id", reservation.id);
+          sentCount++;
+        } else {
+          const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
+          const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+          
+          await supabase
+            .from("reservations")
+            .update({ 
+              reminder_failure_count: newFailureCount,
+              reminder_permanent_failure: isPermanentFailure,
+              reminder_failure_reason: errorReason || 'unknown_error'
+            })
+            .eq("id", reservation.id);
+        }
+
+        results.push({ type: "1day", reservationId: reservation.id, success });
+      }
     }
 
     // ========================
-    // PROCESS 1-HOUR REMINDERS
+    // PROCESS "TODAY" REMINDERS (window-based, replaces 1-hour)
     // ========================
-    console.log(`Processing ${(candidateHourReminders || []).length} candidate 1-hour reminders`);
-    
-    for (const reservation of (candidateHourReminders || []) as Reservation[]) {
-      const instanceSetting = instanceSettings.get(reservation.instance_id);
-      const reminder1hourSetting = instanceSetting?.reminder1hour;
-      
-      // Skip if 1-hour reminder is disabled for this instance
-      if (reminder1hourSetting && reminder1hourSetting.enabled === false) {
-        console.log(`1-hour disabled for instance ${reservation.instance_id}, skip ${reservation.id}`);
-        continue;
+    if (!reminderType || reminderType === '1hour') {
+      const { data: candidateHourReminders, error: fetchHourError } = await supabase
+        .from("reservations")
+        .select("id, customer_phone, customer_name, reservation_date, start_time, instance_id, service_id, confirmation_code, reminder_1hour_last_attempt_at, reminder_failure_count, reminder_permanent_failure, reminder_failure_reason")
+        .eq("status", "confirmed")
+        .is("reminder_1hour_sent", null)
+        .gte("reservation_date", todayUtc)
+        .lte("reservation_date", maxDate)
+        .or("reminder_permanent_failure.is.null,reminder_permanent_failure.eq.false");
+
+      if (fetchHourError) {
+        console.error("Error fetching today reminders:", fetchHourError);
       }
 
-      // Get instance info (with timezone)
-      const instanceInfo = await getInstanceInfo(reservation.instance_id);
-      const timezone = instanceInfo.timezone || 'Europe/Warsaw';
+      console.log(`Processing ${(candidateHourReminders || []).length} candidate today reminders (window=${windowNumber || 'all'})`);
       
-      // Calculate minutes until start in instance timezone
-      const minutesUntilStart = calculateMinutesUntilStart(
-        now,
-        reservation.reservation_date,
-        reservation.start_time,
-        timezone
-      );
-
-      // Send if between 55 and 65 minutes before
-      if (minutesUntilStart < 55 || minutesUntilStart > 65) {
-        continue;
-      }
-
-      console.log(`1-hour candidate: ${reservation.id}, tz=${timezone}, minutesUntil=${minutesUntilStart}, res_date=${reservation.reservation_date}, start=${reservation.start_time}`);
-
-      // ATOMIC CLAIM: Try to claim this reservation for sending
-      const claimed = await claimReservationFor1HourReminder(supabase, reservation.id, BACKOFF_MINUTES);
-      if (!claimed) {
-        console.log(`1-hour reminder for ${reservation.id}: skipped (already claimed or in backoff)`);
-        skippedClaimed++;
-        results.push({ type: "1hour", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
-        continue;
-      }
-
-      const formattedTime = reservation.start_time.slice(0, 5);
-      const phonePart = instanceInfo.reservation_phone ? ` Tel: ${instanceInfo.reservation_phone}.` : "";
-
-      const message = `${instanceInfo.name}: Za godzine o ${formattedTime} masz wizyte.${phonePart} Do zobaczenia!`;
-
-      const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
-      
-      if (success) {
-        await supabase
-          .from("reservations")
-          .update({ 
-            reminder_1hour_sent: true,
-            reminder_failure_count: 0,
-            reminder_failure_reason: null
-          })
-          .eq("id", reservation.id);
-        sentCount++;
-      } else {
-        const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
-        const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+      for (const reservation of (candidateHourReminders || []) as Reservation[]) {
+        const instanceSetting = instanceSettings.get(reservation.instance_id);
+        const reminder1hourSetting = instanceSetting?.reminder1hour;
         
-        await supabase
-          .from("reservations")
-          .update({ 
-            reminder_failure_count: newFailureCount,
-            reminder_permanent_failure: isPermanentFailure,
-            reminder_failure_reason: errorReason || 'unknown_error'
-          })
-          .eq("id", reservation.id);
-        
-        if (isPermanentFailure) {
-          console.log(`1-hour reminder for ${reservation.id}: marked as PERMANENT FAILURE after ${newFailureCount} attempts`);
+        if (reminder1hourSetting && reminder1hourSetting.enabled === false) {
+          continue;
         }
-      }
 
-      results.push({ type: "1hour", reservationId: reservation.id, success });
-      console.log(`1-hour reminder for ${reservation.id}: ${success ? "sent" : "failed (will retry after backoff)"}`);
+        const instanceInfo = await getInstanceInfo(reservation.instance_id);
+        const timezone = instanceInfo.timezone || 'Europe/Warsaw';
+        
+        const nowLocal = getDateTimeInTimezone(now, timezone);
+        
+        // Must be today
+        if (reservation.reservation_date !== nowLocal.dateStr) {
+          continue;
+        }
+
+        // If window specified, check if reservation is in that window
+        if (windowNumber !== undefined) {
+          if (!isInHourlyWindow(reservation.start_time, windowNumber)) {
+            skippedWindow++;
+            continue;
+          }
+        } else {
+          // Legacy mode (no window specified): use 55-65 minute logic
+          const [startHour, startMinute] = reservation.start_time.split(':').map(Number);
+          const startTotalMinutes = startHour * 60 + startMinute;
+          const nowTotalMinutes = nowLocal.hours * 60 + nowLocal.minutes;
+          const minutesUntilStart = startTotalMinutes - nowTotalMinutes;
+          
+          if (minutesUntilStart < 55 || minutesUntilStart > 65) {
+            continue;
+          }
+        }
+
+        console.log(`[today] MATCH! res=${reservation.id}, start=${reservation.start_time}, window=${windowNumber || 'legacy'}`);
+
+        const claimed = await claimReservationFor1HourReminder(supabase, reservation.id, BACKOFF_MINUTES);
+        if (!claimed) {
+          skippedClaimed++;
+          results.push({ type: "1hour", reservationId: reservation.id, success: false, skipped: "claimed_or_backoff" });
+          continue;
+        }
+
+        const formattedTime = reservation.start_time.slice(0, 5);
+
+        // Use new "Today" SMS template
+        const message = buildReminderTodaySms({
+          instanceName: instanceInfo.name,
+          time: formattedTime,
+          phone: instanceInfo.reservation_phone,
+        });
+
+        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
+        
+        if (success) {
+          await supabase
+            .from("reservations")
+            .update({ 
+              reminder_1hour_sent: true,
+              reminder_failure_count: 0,
+              reminder_failure_reason: null
+            })
+            .eq("id", reservation.id);
+          sentCount++;
+        } else {
+          const newFailureCount = (reservation.reminder_failure_count || 0) + 1;
+          const isPermanentFailure = newFailureCount >= MAX_FAILURE_COUNT;
+          
+          await supabase
+            .from("reservations")
+            .update({ 
+              reminder_failure_count: newFailureCount,
+              reminder_permanent_failure: isPermanentFailure,
+              reminder_failure_reason: errorReason || 'unknown_error'
+            })
+            .eq("id", reservation.id);
+        }
+
+        results.push({ type: "1hour", reservationId: reservation.id, success });
+      }
     }
 
     console.log(`=== SEND-REMINDERS COMPLETE ===`);
-    console.log(`Summary: sent=${sentCount}, skippedClaimed=${skippedClaimed}, skippedTimezone=${skippedTimezone}`);
+    console.log(`Summary: sent=${sentCount}, skippedClaimed=${skippedClaimed}, skippedTimezone=${skippedTimezone}, skippedWindow=${skippedWindow}`);
 
     return new Response(
-      JSON.stringify({ success: true, sentCount, skippedClaimed, skippedTimezone, results }),
+      JSON.stringify({ success: true, sentCount, skippedClaimed, skippedTimezone, skippedWindow, results }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 
@@ -594,11 +542,9 @@ async function sendSms(
   messageType: 'reminder_1day' | 'reminder_1hour'
 ): Promise<SmsResult> {
   try {
-    // Normalize phone using libphonenumber-js
     const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
     console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
 
-    // Validate phone length (should be 11-15 digits for E.164)
     const digitsOnly = normalizedPhone.replace(/\D/g, "");
     if (digitsOnly.length < 9 || digitsOnly.length > 15) {
       console.error(`Invalid phone number length: ${normalizedPhone} (${digitsOnly.length} digits)`);
@@ -634,10 +580,8 @@ async function sendSms(
     if (result.error) {
       console.error("SMSAPI error:", result);
       
-      // Determine error reason from SMSAPI response
       const errorCode = result.error?.toString() || 'api_error';
       
-      // Log failed SMS
       await supabase.from('sms_logs').insert({
         instance_id: instanceId,
         phone: normalizedPhone,
@@ -652,7 +596,6 @@ async function sendSms(
       return { success: false, errorReason: errorCode };
     }
 
-    // Log successful SMS
     await supabase.from('sms_logs').insert({
       instance_id: instanceId,
       phone: normalizedPhone,

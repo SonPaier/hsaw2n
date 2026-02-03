@@ -9,6 +9,9 @@ import {
   parseTimeToMinutes,
   buildReminder1DaySms,
   buildReminder1HourSms,
+  buildReminderTodaySms,
+  isInHourlyWindow,
+  HOURLY_WINDOWS,
   isInBackoffPeriod,
   shouldMarkPermanentFailure,
 } from "./reminderUtils.ts";
@@ -270,4 +273,98 @@ Deno.test("SRE-MSG-6: buildReminder1HourSms - with null editUrl", () => {
   });
   
   assertEquals(sms.includes("Zmien lub anuluj"), false);
+});
+
+// ============================================================================
+// New "Today" SMS and Hourly Window Tests
+// ============================================================================
+
+Deno.test("SRE-TODAY-1: buildReminderTodaySms - with phone", () => {
+  const sms = buildReminderTodaySms({
+    instanceName: "Armcar",
+    time: "10:00",
+    phone: "123456789",
+  });
+  
+  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :) Tel: 123456789");
+  assertEquals(sms.length <= 160, true); // Verify GSM-7 limit
+});
+
+Deno.test("SRE-TODAY-2: buildReminderTodaySms - without phone", () => {
+  const sms = buildReminderTodaySms({
+    instanceName: "Armcar",
+    time: "10:00",
+  });
+  
+  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :)");
+});
+
+Deno.test("SRE-TODAY-3: buildReminderTodaySms - with null phone", () => {
+  const sms = buildReminderTodaySms({
+    instanceName: "AutoSpa",
+    time: "14:30",
+    phone: null,
+  });
+  
+  assertEquals(sms.includes("Tel:"), false);
+  assertEquals(sms, "AutoSpa: Dzisiaj masz wizyte o 14:30 - czekamy na Ciebie i Twoje autko! :)");
+});
+
+Deno.test("SRE-TODAY-4: buildReminderTodaySms - max length check with long name", () => {
+  const sms = buildReminderTodaySms({
+    instanceName: "Super Długa Nazwa Myjni",
+    time: "10:00",
+    phone: "+48123456789",
+  });
+  
+  // Should still be under 160 chars
+  assertEquals(sms.length <= 160, true);
+});
+
+Deno.test("SRE-WINDOW-1: isInHourlyWindow - window 1 (08:00-10:59)", () => {
+  assertEquals(isInHourlyWindow("08:00:00", 1), true);
+  assertEquals(isInHourlyWindow("08:30:00", 1), true);
+  assertEquals(isInHourlyWindow("10:30:00", 1), true);
+  assertEquals(isInHourlyWindow("10:59:00", 1), true);
+  assertEquals(isInHourlyWindow("11:00:00", 1), false); // edge - belongs to window 2
+  assertEquals(isInHourlyWindow("07:59:00", 1), false); // too early
+});
+
+Deno.test("SRE-WINDOW-2: isInHourlyWindow - window 2 (11:00-13:59)", () => {
+  assertEquals(isInHourlyWindow("11:00:00", 2), true);
+  assertEquals(isInHourlyWindow("12:30:00", 2), true);
+  assertEquals(isInHourlyWindow("13:30:00", 2), true);
+  assertEquals(isInHourlyWindow("13:59:00", 2), true);
+  assertEquals(isInHourlyWindow("14:00:00", 2), false); // edge - belongs to window 3
+  assertEquals(isInHourlyWindow("10:59:00", 2), false); // belongs to window 1
+});
+
+Deno.test("SRE-WINDOW-3: isInHourlyWindow - window 3 (14:00-15:59)", () => {
+  assertEquals(isInHourlyWindow("14:00:00", 3), true);
+  assertEquals(isInHourlyWindow("15:00:00", 3), true);
+  assertEquals(isInHourlyWindow("15:30:00", 3), true);
+  assertEquals(isInHourlyWindow("15:59:00", 3), true);
+  assertEquals(isInHourlyWindow("16:00:00", 3), false); // outside window
+  assertEquals(isInHourlyWindow("13:59:00", 3), false); // belongs to window 2
+});
+
+Deno.test("SRE-WINDOW-4: isInHourlyWindow - invalid window number", () => {
+  assertEquals(isInHourlyWindow("10:00:00", 0), false);
+  assertEquals(isInHourlyWindow("10:00:00", 4), false);
+  assertEquals(isInHourlyWindow("10:00:00", 99), false);
+});
+
+Deno.test("SRE-WINDOW-5: isInHourlyWindow - HH:MM format (without seconds)", () => {
+  assertEquals(isInHourlyWindow("09:00", 1), true);
+  assertEquals(isInHourlyWindow("12:00", 2), true);
+  assertEquals(isInHourlyWindow("15:00", 3), true);
+});
+
+Deno.test("SRE-WINDOW-6: HOURLY_WINDOWS constants", () => {
+  assertEquals(HOURLY_WINDOWS[1].startHour, 8);
+  assertEquals(HOURLY_WINDOWS[1].endHour, 11);
+  assertEquals(HOURLY_WINDOWS[2].startHour, 11);
+  assertEquals(HOURLY_WINDOWS[2].endHour, 14);
+  assertEquals(HOURLY_WINDOWS[3].startHour, 14);
+  assertEquals(HOURLY_WINDOWS[3].endHour, 16);
 });

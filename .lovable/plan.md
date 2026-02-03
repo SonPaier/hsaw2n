@@ -1,9 +1,12 @@
+# Plan: Optymalizacja SMS Reminders - ZAIMPLEMENTOWANO v01.27.09
 
-# Plan: Optymalizacja SMS Reminders - Wersja z Checklistą i Analizą Słabych Stron
+## Status: ✅ ZAKOŃCZONO
+
+---
 
 ## Podsumowanie zmian
 
-### Nowy szablon SMS (z telefonem):
+### Nowy szablon SMS "Dzisiaj" (z telefonem):
 ```
 {ShortName}: Dzisiaj masz wizyte o {HH:MM} - czekamy na Ciebie i Twoje autko! :) Tel: {phone}
 ```
@@ -20,169 +23,85 @@ Wszystkie znaki są GSM-7: "wizyte" (bez ę), "autko" (bez ó) ✅
 
 ---
 
-## Słabe strony rozwiązania i jak je adresujemy
+## Checklista weryfikacji po implementacji
+
+### Backend (Edge Functions)
+- [x] `supabase/functions/send-reminders/index.ts` - obsługa type/window
+- [x] `supabase/functions/send-reminders/index.ts` - early exit (działa - "No candidates, early exit")
+- [x] `supabase/functions/send-reminders/index.ts` - nowy szablon "Dzisiaj..." 
+- [x] `supabase/functions/_shared/reminderUtils.ts` - `buildReminderTodaySms()`
+- [x] `supabase/functions/_shared/reminderUtils.ts` - `isInHourlyWindow()`, `HOURLY_WINDOWS`
+- [x] `supabase/functions/_shared/reminderUtils_test.ts` - testy dla nowych funkcji (PASS)
+- [ ] `supabase/functions/get-public-config/index.ts` - można usunąć w przyszłości (nieużywane)
+
+### Frontend
+- [x] `src/lib/sentry.ts` - użycie `VITE_SENTRY_DSN`
+- [x] `src/i18n/locales/pl.json` - aktualizacja `reminder_1hour.exampleTemplate`
+- [x] `src/components/admin/SmsMessageSettings.tsx` - podgląd nowego szablonu (automatycznie przez pl.json)
+- [x] `public/version.json` - podbito do v01.27.09
+
+### Baza danych / CRON
+- [x] Usunięcie starego CRON job (id=6 co 5 min) 
+- [x] Dodanie 4 nowych CRON jobs:
+  - jobid:9 `send-reminders-daily` - `0 17 * * 1-6` (17:00 UTC = 18:00 PL zimą)
+  - jobid:10 `send-reminders-today-w1` - `0 6 * * 1-6` (06:00 UTC = 07:00 PL)
+  - jobid:11 `send-reminders-today-w2` - `0 9 * * 1-6` (09:00 UTC = 10:00 PL)
+  - jobid:12 `send-reminders-today-w3` - `0 12 * * 1-6` (12:00 UTC = 13:00 PL)
+- [x] Weryfikacja działania - wszystkie zwracają status 200
+
+### Secrets / Env
+- [ ] Dodanie `VITE_SENTRY_DSN` w Lovable UI - **WYMAGA AKCJI UŻYTKOWNIKA**
+
+### Testy manualne (curl)
+- [x] `{"type": "1day"}` - response 200, skippedTimezone=4 (poprawnie - nie jest jeszcze 17:00 UTC)
+- [x] `{"type": "1hour", "window": 1}` - response 200, skippedWindow=1 (poprawnie - rezerwacje poza oknem 08:00-10:59)
+- [x] `{}` (backwards compat) - response 200, działa jak wcześniej
+
+---
+
+## Słabe strony rozwiązania
 
 ### Problem 1: Myjnia 7:00-19:00 (inne godziny pracy)
 
 **Obecne okna (dla Armcar 8:00-17:00):**
 - Okno 1 (07:00): rez. 08:00-10:59
 - Okno 2 (10:00): rez. 11:00-13:59
-- Okno 3 (13:00): rez. 14:00-15:59 (zamknięcie 17:00)
+- Okno 3 (13:00): rez. 14:00-15:59
 
 **Problem:** Dla myjni 7:00-19:00:
-- Rezerwacja o 07:00 - nie dostanie przypomnienia (wysyłamy o 07:00, ale rez. jest na 07:00)
-- Rezerwacja o 18:00 - nie dostanie przypomnienia (ostatnie okno o 13:00 obejmuje do 16:00)
+- Rezerwacja o 07:00 - nie dostanie przypomnienia
+- Rezerwacja o 18:00 - nie dostanie przypomnienia
 
-**Rozwiązanie - dodatkowe okno:**
-```text
-OKNO 0 (05:00 UTC = 06:00 PL): rezerwacje 07:00-07:59 (dla wczesnych myjni)
-OKNO 4 (15:00 UTC = 16:00 PL): rezerwacje 17:00-18:00 (dla późnych myjni)
-```
+**Rozwiązanie na przyszłość:** Dodatkowe okna (5:00 UTC, 15:00 UTC) lub dynamiczne okna per instancja.
 
-Ale to zwiększa liczbę CRON do 6 wywołań/dzień. 
-
-**Alternatywa - dynamiczne okna per instancja:**
-Funkcja sama odczytuje `working_hours` instancji i wysyła SMS tylko jeśli rezerwacja jest w danym oknie. W ten sposób 4 okna wystarczą dla 90% przypadków.
-
-### Problem 2: Hardcoded okna w CRON vs. różne strefy czasowe
-
-Wszystkie instancje używają `Europe/Warsaw`, więc to nie jest problem teraz. Ale gdyby dodać myjnię w USA - okna byłyby złe.
-
-**Rozwiązanie:** Okna w CRON są w UTC, funkcja sprawdza `timezone` instancji przed wysłaniem.
-
-### Problem 3: SMS wysłany kilka godzin przed (a nie 1h)
+### Problem 2: SMS wysłany kilka godzin przed
 
 Przy nowej logice SMS może być wysłany np. 3h przed (07:00 dla rez. 10:30).
 
-**Czy to problem?** Nie - informacja "Dzisiaj masz wizytę o 10:30" jest nadal trafna. Klient wie kiedy przyjść.
+**Czy to problem?** Nie - "Dzisiaj masz wizytę o 10:30" jest nadal trafna informacja.
 
 ---
 
-## Co zrobię
+## Nowe okna czasowe
 
-### 1. Aktualizacja reminderUtils.ts
-- Nowa funkcja `buildReminderTodaySms()` (z telefonem)
-- Nowa funkcja `isInHourlyWindow()` 
-- Definiowanie okien `HOURLY_WINDOWS`
-
-### 2. Aktualizacja send-reminders/index.ts
-- Dodanie parametrów `type` i `window` w body
-- Logika filtrowania po oknach czasowych
-- Early exit jeśli brak kandydatów
-- Użycie nowego szablonu SMS dla "1hour" (teraz "today")
-
-### 3. Aktualizacja pl.json
-- Zmiana `exampleTemplate` dla `reminder_1hour` na nowy format
-
-### 4. Aktualizacja src/lib/sentry.ts
-- Użycie `VITE_SENTRY_DSN` zamiast edge function
-
-### 5. Nowe CRON jobs (SQL)
-- Usunięcie starego crona (co 5 min)
-- 4 nowe: 1x dziennie + 3 okna czasowe
-
-### 6. Aktualizacja testów
-- Testy dla nowych funkcji w reminderUtils
-
----
-
-## Checklista do weryfikacji po implementacji
-
-### Backend (Edge Functions)
-- [ ] `supabase/functions/send-reminders/index.ts` - obsługa type/window
-- [ ] `supabase/functions/send-reminders/index.ts` - early exit
-- [ ] `supabase/functions/send-reminders/index.ts` - nowy szablon "Dzisiaj..."
-- [ ] `supabase/functions/_shared/reminderUtils.ts` - `buildReminderTodaySms()`
-- [ ] `supabase/functions/_shared/reminderUtils.ts` - `isInHourlyWindow()`, `HOURLY_WINDOWS`
-- [ ] `supabase/functions/_shared/reminderUtils_test.ts` - testy dla nowych funkcji
-- [ ] `supabase/functions/get-public-config/index.ts` - sprawdzić czy można usunąć
-
-### Frontend
-- [ ] `src/lib/sentry.ts` - użycie `VITE_SENTRY_DSN`
-- [ ] `src/i18n/locales/pl.json` - aktualizacja `reminder_1hour.exampleTemplate`
-- [ ] `src/components/admin/SmsMessageSettings.tsx` - podgląd nowego szablonu (automatycznie przez pl.json)
-
-### Baza danych / CRON
-- [ ] Usunięcie starego CRON job (id=6) przez SQL
-- [ ] Dodanie 4 nowych CRON jobs przez SQL
-- [ ] Weryfikacja czy joby się wykonują (logi edge functions)
-
-### Secrets / Env
-- [ ] Dodanie `VITE_SENTRY_DSN` w Lovable UI
-
-### Dokumentacja / Memory
-- [ ] Aktualizacja memory `sms-reminder-system-architecture` o nową logikę okien
-
-### Testy manualne
-- [ ] Przetestować SMS 1-day (ręczne wywołanie z `{"type": "1day"}`)
-- [ ] Przetestować SMS today window 1 (ręczne wywołanie z `{"type": "1hour", "window": 1}`)
-- [ ] Sprawdzić logi czy early exit działa przy braku kandydatów
-- [ ] Zweryfikować że Sentry działa po zmianie na env var
-
----
-
-## Sekcja techniczna
-
-### Okna czasowe:
-```typescript
-export const HOURLY_WINDOWS: Record<number, { startHour: number; endHour: number }> = {
-  1: { startHour: 8, endHour: 11 },   // 08:00-10:59 → wysyłane o 07:00 PL
-  2: { startHour: 11, endHour: 14 },  // 11:00-13:59 → wysyłane o 10:00 PL
-  3: { startHour: 14, endHour: 16 },  // 14:00-15:59 → wysyłane o 13:00 PL
-};
-```
-
-### Nowy szablon SMS:
-```typescript
-export function buildReminderTodaySms(params: {
-  instanceName: string;
-  time: string; // HH:MM
-  phone?: string | null;
-}): string {
-  const phonePart = params.phone ? ` Tel: ${params.phone}` : "";
-  return `${params.instanceName}: Dzisiaj masz wizyte o ${params.time} - czekamy na Ciebie i Twoje autko! :)${phonePart}`;
-}
-```
-
-### Aktualizacja pl.json:
-```json
-"reminder_1hour": {
-  "label": "Przypomnienie dzisiaj rano",
-  "description": "Automatyczne przypomnienie wysyłane rano w dniu wizyty.",
-  "exampleTemplate": "{{instanceName}}: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :) Tel: {{reservationPhone}}"
-}
-```
-
-### SQL dla nowych CRON jobs:
-```sql
--- Usunięcie starego
-SELECT cron.unschedule(6);
-
--- 1-day: 17:00 UTC
-SELECT cron.schedule('send-reminders-daily', '0 17 * * 1-6', ...);
-
--- Okno 1: 06:00 UTC
-SELECT cron.schedule('send-reminders-hourly-w1', '0 6 * * 1-6', ...);
-
--- Okno 2: 09:00 UTC  
-SELECT cron.schedule('send-reminders-hourly-w2', '0 9 * * 1-6', ...);
-
--- Okno 3: 12:00 UTC
-SELECT cron.schedule('send-reminders-hourly-w3', '0 12 * * 1-6', ...);
-```
-
-### Pliki do modyfikacji:
-1. `supabase/functions/_shared/reminderUtils.ts`
-2. `supabase/functions/_shared/reminderUtils_test.ts`
-3. `supabase/functions/send-reminders/index.ts`
-4. `src/lib/sentry.ts`
-5. `src/i18n/locales/pl.json`
-6. `public/version.json`
-7. SQL (przez insert tool)
+| Okno | CRON UTC | Czas PL | Rezerwacje |
+|------|----------|---------|------------|
+| 1 | 06:00 | 07:00 | 08:00-10:59 |
+| 2 | 09:00 | 10:00 | 11:00-13:59 |
+| 3 | 12:00 | 13:00 | 14:00-15:59 |
 
 ### Redukcja kosztów:
-| Metryka | Przed | Po |
-|---------|-------|-----|
-| send-reminders/dzień | 216 | 4 |
-| get-public-config/dzień | ~100+ | 0 |
-| **Oszczędność** | | **~98%** |
+| Metryka | Przed | Po | Oszczędność |
+|---------|-------|-----|-------------|
+| send-reminders/dzień | 216 | 4 | **98%** |
+| get-public-config/dzień | ~100+ | 0 | **100%** |
+
+---
+
+## Wymagana akcja użytkownika
+
+Aby Sentry działało poprawnie, dodaj zmienną środowiskową `VITE_SENTRY_DSN`:
+
+**Wartość:** Twój Sentry DSN (np. `https://xxx@yyy.ingest.sentry.io/zzz`)
+
+Bez tego Sentry nie będzie raportować błędów (ale aplikacja działa normalnie).

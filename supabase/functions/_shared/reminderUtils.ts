@@ -130,7 +130,59 @@ export function buildReminder1DaySms(params: {
 }
 
 /**
- * Build reminder SMS message for 1-hour reminder
+ * Build reminder SMS message for "today" reminder (replaces 1-hour logic)
+ * New format: "Dzisiaj masz wizyte o HH:MM - czekamy na Ciebie i Twoje autko! :) Tel: XXX"
+ */
+export function buildReminderTodaySms(params: {
+  instanceName: string;
+  time: string; // HH:MM
+  phone?: string | null;
+}): string {
+  const phonePart = params.phone ? ` Tel: ${params.phone}` : "";
+  return `${params.instanceName}: Dzisiaj masz wizyte o ${params.time} - czekamy na Ciebie i Twoje autko! :)${phonePart}`;
+}
+
+// ========================
+// HOURLY WINDOW HELPERS
+// ========================
+
+/**
+ * Hourly window definition for same-day reminders
+ */
+export interface HourlyWindow {
+  startHour: number;  // reservation start_time >= this
+  endHour: number;    // reservation start_time < this
+}
+
+/**
+ * Predefined hourly windows for same-day reminders
+ * Window 1: sent at 07:00 PL for reservations 08:00-10:59
+ * Window 2: sent at 10:00 PL for reservations 11:00-13:59
+ * Window 3: sent at 13:00 PL for reservations 14:00-15:59
+ */
+export const HOURLY_WINDOWS: Record<number, HourlyWindow> = {
+  1: { startHour: 8, endHour: 11 },
+  2: { startHour: 11, endHour: 14 },
+  3: { startHour: 14, endHour: 16 },
+};
+
+/**
+ * Check if a reservation's start time falls within a specific hourly window
+ */
+export function isInHourlyWindow(
+  reservationStartTime: string, // HH:MM:SS or HH:MM
+  windowNumber: number
+): boolean {
+  const window = HOURLY_WINDOWS[windowNumber];
+  if (!window) return false;
+  
+  const [hour] = reservationStartTime.split(':').map(Number);
+  return hour >= window.startHour && hour < window.endHour;
+}
+
+/**
+ * Build reminder SMS message for 1-hour reminder (legacy - kept for backwards compatibility)
+ * @deprecated Use buildReminderTodaySms instead
  */
 export function buildReminder1HourSms(params: {
   instanceName: string;
