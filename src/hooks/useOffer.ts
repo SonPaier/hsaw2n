@@ -248,13 +248,37 @@ export const useOffer = (instanceId: string) => {
       if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
         return prev;
       }
+      
+      // For persisted offers (has ID) that already have options loaded,
+      // DON'T regenerate from templates - preserve saved data
+      if (prev.id && prev.options.length > 0) {
+        const existingScopeIds = prev.options
+          .filter(opt => opt.scopeId)
+          .map(opt => opt.scopeId as string);
+        
+        // Check if all selected scopes already have options
+        const allScopesHaveOptions = scopeIds.every(id => existingScopeIds.includes(id));
+        
+        // Only regenerate if NEW scopes were added
+        const newScopes = scopeIds.filter(id => !existingScopeIds.includes(id));
+        
+        if (newScopes.length === 0 && allScopesHaveOptions) {
+          console.log('[updateSelectedScopes] Skipping regeneration - persisted offer with existing options');
+          return {
+            ...prev,
+            selectedScopeIds: scopeIds,
+          };
+        }
+      }
+      
+      // For new offers or when new scopes were added, generate options
+      generateOptionsFromScopes(scopeIds);
+      
       return {
         ...prev,
         selectedScopeIds: scopeIds,
       };
     });
-    // Generate options based on selected scopes (don't await - let it run async)
-    generateOptionsFromScopes(scopeIds);
   }, [generateOptionsFromScopes]);
 
   // Option handlers
