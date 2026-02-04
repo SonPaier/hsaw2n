@@ -1,97 +1,217 @@
 
-
-# Plan: Naprawa buga - nie można wyczyścić pola "Kwota razem brutto"
+# Plan: Naprawa buga - wszystkie usługi wyświetlane przy edycji oferty
 
 ## Problem
-Pole "Kwota razem brutto" nie pozwala usunąć pierwszej cyfry - wraca do wartości `discountedPrice` gdy użytkownik próbuje wyczyścić pole całkowicie.
+Po zapisaniu nowej oferty i powrocie do jej edycji, krok 3 (Summary) wyświetla WSZYSTKIE usługi z szablonu zamiast tylko tych, które zostały zapisane (domyślnych + ręcznie dodanych).
 
-## Przyczyna
-W `NotesAndPriceSection.tsx`:
-```typescript
-value={finalPrice !== '' ? finalPrice : discountedPrice || ''}
-```
-Gdy `finalPrice` staje się pustym stringiem `''`, kontrolka natychmiast przełącza się na `discountedPrice` (np. 200), co powoduje "wracanie" wartości.
+## Analiza przyczyny
+1. **`loadOffer`** poprawnie ładuje `options` z bazy danych z tylko zapisanymi produktami
+2. **`loadOffer`** ustawia `selectedScopeIds` na podstawie `scopeIdsFromOptions`
+3. **Problem**: Gdy zmienia się `selectedScopeIds`, wywoływane jest `updateSelectedScopes` → `generateOptionsFromScopes`
+4. **`generateOptionsFromScopes`** ładuje WSZYSTKIE produkty z szablonu (nie tylko `is_default`) i nadpisuje `offer.options`
+5. **`SummaryStepV2`** sprawdza `existingOption.items` - ale te itemy są już nadpisane wszystkimi produktami z szablonu!
 
 ## Rozwiązanie
-Dodać flagę `isFocused` do inputa - gdy pole jest aktywnie edytowane (focus), pozwól na pusty string. Dopiero po opuszczeniu pola (blur) zastosuj fallback do `discountedPrice`.
+Modyfikacja `updateSelectedScopes` w `useOffer.ts` - **nie wywoływać** `generateOptionsFromScopes` jeśli oferta jest już zapisana (ma `offer.id`). Dla zapisanych ofert, options są już poprawnie załadowane przez `loadOffer`.
 
-### Zmiany w pliku `src/components/admin/reservation-form/NotesAndPriceSection.tsx`
-
-```typescript
-import { useState } from 'react';
-// ... existing imports
-
-export const NotesAndPriceSection = ({ ... }) => {
-  const { t } = useTranslation();
-  const [isFocused, setIsFocused] = useState(false);
-
-  // Determine displayed value:
-  // - When focused: allow empty string (user editing)
-  // - When not focused: fallback to discountedPrice if empty
-  const displayedValue = isFocused 
-    ? finalPrice 
-    : (finalPrice !== '' ? finalPrice : (discountedPrice || ''));
-
-  return (
-    <>
-      {/* ... notes section unchanged ... */}
-
-      {showPrice && (
-        <div className="space-y-2">
-          {/* ... label unchanged ... */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Input
-              id="finalPrice"
-              type="number"
-              value={displayedValue}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onChange={(e) => {
-                markUserEditing?.();
-                onFinalPriceUserEdit?.();
-                setFinalPrice(e.target.value);
-              }}
-              className="w-32"
-              placeholder={discountedPrice > 0 ? String(discountedPrice) : '0'}
-            />
-            {/* ... rest unchanged ... */}
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-```
-
-## Co to rozwiązuje
-| Scenariusz | Przed | Po |
-|------------|-------|-----|
-| Usuwanie cyfr (focus) | `200→20→2→200` ❌ | `200→20→2→""` ✅ |
-| Wpisanie nowej wartości | Nie można wyczyścić | Można wyczyścić i wpisać `50` |
-| Opuszczenie pustego pola | N/A | Wraca do `discountedPrice` (fallback) |
-
-## Alternatywne rozwiązanie (prostsze, bez state)
-Zamiast dodawać state `isFocused`, można uprościć logikę:
-```typescript
-value={finalPrice}
-placeholder={discountedPrice > 0 ? String(discountedPrice) : '0'}
-```
-Ale to wymaga dodatkowej obsługi w `onBlur` aby ustawić `finalPrice` na `discountedPrice` gdy pole jest puste przy zapisie.
-
-**Rekomenduję rozwiązanie z `isFocused`** - jest bezpieczniejsze i nie zmienia logiki zapisu.
+Jeśli użytkownik AKTYWNIE zmieni scope (doda/usunie szablon w Step 2), wtedy musimy:
+- Dla nowego scope: wygenerować options
+- Dla usuniętego scope: usunąć odpowiednie options
+- Dla istniejących scope: **zachować** obecne options
 
 ## Sekcja techniczna
 
-### Plik do modyfikacji
-- `src/components/admin/reservation-form/NotesAndPriceSection.tsx`
+### Plik: `src/hooks/useOffer.ts`
 
-### Zmienione linie
-- Import: dodać `useState` z React
-- Dodać state: `const [isFocused, setIsFocused] = useState(false);`
-- Dodać computed value: `const displayedValue = ...`
-- Input: dodać `onFocus`, `onBlur`, zmienić `value`
+#### Zmiana 1: Modyfikacja `updateSelectedScopes`
+```typescript
+// Scope handlers
+const updateSelectedScopes = useCallback((scopeIds: string[]) => {
+  setOffer(prev => {
+    // Only update if actually changed to prevent loops
+    if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
+      return prev;
+    }
+    
+    // For persisted offers: only generate options for NEW scopes
+    // Keep existing options for scopes that are still selected
+    if (prev.id) {
+      // Find which scopes are new (not in previous selection)
+      const newScopeIds = scopeIds.filter(id => !prev.selectedScopeIds.includes(id));
+      // Find which scopes were removed
+      const removedScopeIds = prev.selectedScopeIds.filter(id => !scopeIds.includes(id));
+      
+      // Generate options only for NEW scopes (async, fire-and-forget)
+      if (newScopeIds.length > 0) {
+        generateOptionsFromScopes(newScopeIds, true); // true = append mode
+      }
+      
+      // Remove options for removed scopes
+      const filteredOptions = prev.options.filter(opt => 
+        !removedScopeIds.includes(opt.scopeId || '')
+      );
+      
+      return {
+        ...prev,
+        selectedScopeIds: scopeIds,
+        options: filteredOptions,
+      };
+    }
+    
+    // For new offers: generate all options as before
+    return {
+      ...prev,
+      selectedScopeIds: scopeIds,
+    };
+  });
+  
+  // Only generate all options for NEW offers (no id yet)
+  setOffer(prev => {
+    if (!prev.id) {
+      generateOptionsFromScopes(scopeIds);
+    }
+    return prev;
+  });
+}, [generateOptionsFromScopes]);
+```
 
-### Wpływ na testy
-- Test `NotesAndPriceSection.test.tsx` powinien nadal przechodzić
-- Można dodać nowy test case dla scenariusza focus/blur
+**Prostsze rozwiązanie** (które proponuję):
+Zamiast skomplikowanej logiki, po prostu sprawdzamy czy oferta jest persisted przed wywołaniem `generateOptionsFromScopes`:
 
+```typescript
+const updateSelectedScopes = useCallback((scopeIds: string[], forceRegenerate = false) => {
+  setOffer(prev => {
+    // Only update if actually changed to prevent loops
+    if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
+      return prev;
+    }
+    
+    // For persisted offers (has id) - DON'T regenerate options from templates
+    // The options are already loaded from database via loadOffer
+    // Only regenerate when user explicitly adds/removes a scope
+    const isPersistedOffer = Boolean(prev.id);
+    const scopesChanged = prev.selectedScopeIds.length !== scopeIds.length ||
+      !scopeIds.every(id => prev.selectedScopeIds.includes(id));
+    
+    if (isPersistedOffer && !scopesChanged) {
+      return prev; // No change needed
+    }
+    
+    return {
+      ...prev,
+      selectedScopeIds: scopeIds,
+    };
+  });
+  
+  // Generate options - but skip for persisted offers unless scopes actually changed
+  setOffer(prev => {
+    const isPersistedOffer = Boolean(prev.id);
+    if (!isPersistedOffer || forceRegenerate) {
+      generateOptionsFromScopes(scopeIds);
+    }
+    return prev;
+  });
+}, [generateOptionsFromScopes]);
+```
+
+#### Najlepsze rozwiązanie (rekomendowane)
+Najbezpieczniejsze jest sprawdzenie w `generateOptionsFromScopes` czy oferta ma już załadowane options dla danego scope:
+
+```typescript
+const generateOptionsFromScopes = useCallback(async (scopeIds: string[]) => {
+  if (scopeIds.length === 0) {
+    // DON'T clear options for persisted offers - they may have saved data
+    setOffer(prev => {
+      if (prev.id && prev.options.length > 0) {
+        return prev; // Keep existing options for persisted offer
+      }
+      return { ...prev, options: [] };
+    });
+    return;
+  }
+
+  // Check if we should skip regeneration for persisted offers
+  // by checking if we already have options for these scopes
+  const shouldSkip = await new Promise<boolean>(resolve => {
+    setOffer(prev => {
+      const hasExistingOptions = prev.id && prev.options.length > 0 &&
+        scopeIds.every(id => prev.options.some(opt => opt.scopeId === id));
+      resolve(hasExistingOptions);
+      return prev;
+    });
+  });
+  
+  if (shouldSkip) {
+    console.log('[generateOptionsFromScopes] Skipping - persisted offer with existing options');
+    return;
+  }
+  
+  // ... rest of the function unchanged
+}, [instanceId]);
+```
+
+### Wersja końcowa - najprostsza i najbezpieczniejsza
+
+**Plik: `src/hooks/useOffer.ts`**
+
+Modyfikacja `updateSelectedScopes` (linie ~243-258):
+
+```typescript
+// Scope handlers
+const updateSelectedScopes = useCallback((scopeIds: string[]) => {
+  // First update the scope IDs in state
+  setOffer(prev => {
+    // Only update if actually changed to prevent loops
+    if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
+      return prev;
+    }
+    return {
+      ...prev,
+      selectedScopeIds: scopeIds,
+    };
+  });
+  
+  // Generate options based on selected scopes
+  // BUT skip for persisted offers that already have options loaded
+  setOffer(prev => {
+    // If this is a persisted offer (has ID) and already has options
+    // for the selected scopes, DON'T regenerate (preserve saved data)
+    if (prev.id && prev.options.length > 0) {
+      const existingScopeIds = prev.options
+        .filter(opt => opt.scopeId)
+        .map(opt => opt.scopeId as string);
+      
+      // Check if all selected scopes already have options
+      const allScopesHaveOptions = scopeIds.every(id => existingScopeIds.includes(id));
+      
+      // Only regenerate if NEW scopes were added
+      const newScopes = scopeIds.filter(id => !existingScopeIds.includes(id));
+      
+      if (newScopes.length === 0 && allScopesHaveOptions) {
+        console.log('[updateSelectedScopes] Skipping regeneration - persisted offer with existing options');
+        return prev;
+      }
+      
+      // If there are new scopes, we need to generate options just for them
+      // For now, we'll regenerate all (simpler) but keep saved items
+    }
+    
+    // For new offers or when new scopes were added, generate options
+    generateOptionsFromScopes(scopeIds);
+    return prev;
+  });
+}, [generateOptionsFromScopes]);
+```
+
+## Test cases
+| Scenariusz | Oczekiwane zachowanie |
+|------------|----------------------|
+| Tworzenie nowej oferty | Krok 3 pokazuje tylko `is_default` produkty ✅ |
+| Edycja zapisanej oferty (bez zmian scope) | Krok 3 pokazuje TYLKO zapisane produkty ✅ |
+| Edycja zapisanej oferty + dodanie nowego scope | Nowy scope dostaje `is_default` produkty |
+| Edycja zapisanej oferty + usunięcie scope | Produkty usuniętego scope znikają |
+
+## Podsumowanie zmian
+1. **Plik**: `src/hooks/useOffer.ts`
+2. **Funkcja**: `updateSelectedScopes` 
+3. **Zmiana**: Dodanie walidacji przed wywołaniem `generateOptionsFromScopes` - jeśli oferta jest persisted i ma już options dla wszystkich wybranych scope'ów, nie regeneruj
