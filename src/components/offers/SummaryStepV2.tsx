@@ -476,7 +476,9 @@ export const SummaryStepV2 = ({
     };
 
     fetchData();
-  }, [instanceId, offer.selectedScopeIds]);
+    // Note: offer.id is included to re-run when switching between new/persisted offers
+    // offer.options is NOT included to avoid infinite loops (we update it via syncToOfferState)
+  }, [instanceId, offer.selectedScopeIds, offer.id]);
 
   // Add product to service
   const addProduct = (scopeId: string, scopeProduct: ScopeProduct) => {

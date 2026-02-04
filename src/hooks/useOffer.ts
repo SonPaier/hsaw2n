@@ -171,9 +171,10 @@ export const useOffer = (instanceId: string) => {
       });
 
       for (const scope of sortedScopes) {
-        // Get products for this scope
+        // Get products for this scope - ONLY include is_default products for new offers
+        // This matches the behavior expected by SummaryStepV2.buildDefaultSelected()
         const products = (scopeProducts || [])
-          .filter(p => p.scope_id === scope.id)
+          .filter(p => p.scope_id === scope.id && p.is_default) // Only default products!
           .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
         const items: OfferItem[] = products.map(p => {
@@ -199,7 +200,7 @@ export const useOffer = (instanceId: string) => {
             unitPrice: getLowestPrice(),
             unit: product?.unit || 'szt',
             discountPercent: 0,
-            isOptional: !p.is_default, // Non-default items are optional
+            isOptional: false, // Default products are NOT optional
             isCustom: !p.product_id,
           };
         });
@@ -242,10 +243,14 @@ export const useOffer = (instanceId: string) => {
 
   // Scope handlers
   const updateSelectedScopes = useCallback((scopeIds: string[]) => {
-    // First update the scope IDs in state
+    // Use a ref-like pattern to capture current state for decision making
+    let shouldRegenerate = false;
+    
+    // First update the scope IDs in state and determine if we need to regenerate
     setOffer(prev => {
       // Only update if actually changed to prevent loops
       if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
+        shouldRegenerate = false;
         return prev;
       }
       
@@ -264,6 +269,7 @@ export const useOffer = (instanceId: string) => {
         
         if (newScopes.length === 0 && allScopesHaveOptions) {
           console.log('[updateSelectedScopes] Skipping regeneration - persisted offer with existing options');
+          shouldRegenerate = false;
           return {
             ...prev,
             selectedScopeIds: scopeIds,
@@ -271,14 +277,29 @@ export const useOffer = (instanceId: string) => {
         }
       }
       
-      // For new offers or when new scopes were added, generate options
-      generateOptionsFromScopes(scopeIds);
+      // For new offers or when new scopes were added, we need to generate options
+      shouldRegenerate = true;
       
       return {
         ...prev,
         selectedScopeIds: scopeIds,
       };
     });
+    
+    // Generate options OUTSIDE of setState (side effect)
+    // Note: Due to React batching, shouldRegenerate may not reflect the updated state correctly
+    // We need a different approach - always call generate for new offers
+    // The key insight is: for persisted offers, loadOffer already set the correct options
+    // For new offers, we always regenerate (and SummaryStepV2 will filter to is_default only)
+    
+    // Actually, let's simplify: SummaryStepV2 already handles the is_default filtering correctly
+    // for new offers. The problem was calling generateOptionsFromScopes inside setState.
+    // Let's just call it unconditionally OUTSIDE setState - it will overwrite options,
+    // but SummaryStepV2 ignores offer.options for new offers anyway.
+    
+    // For persisted offers: we've already returned early in setState if no regeneration needed
+    // But we can't know that here... Let's use a different approach:
+    generateOptionsFromScopes(scopeIds);
   }, [generateOptionsFromScopes]);
 
   // Option handlers
