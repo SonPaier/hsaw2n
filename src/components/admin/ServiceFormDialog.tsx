@@ -256,7 +256,20 @@ const ServiceFormContent = ({
     adjustTextareaHeight();
   }, [formData.description]);
 
+  // Track service ID to only reset form when opening a different service
+  const initializedServiceIdRef = useRef<string | null | undefined>(undefined);
+
   useEffect(() => {
+    // Only reset form data when:
+    // 1. Opening a new service (service?.id changed)
+    // 2. First mount with a service
+    // Skip if it's the same service (prevents overwriting user edits during re-renders)
+    if (service?.id === initializedServiceIdRef.current) {
+      return;
+    }
+    
+    initializedServiceIdRef.current = service?.id || null;
+    
     if (service) {
       const hasSizes = !!(service.price_small || service.price_medium || service.price_large);
       const hasDurations = !!(service.duration_small || service.duration_medium || service.duration_large);
@@ -284,7 +297,7 @@ const ServiceFormContent = ({
         produkt_do_lakierow: (service.metadata?.produkt_do_lakierow as 'matowe' | 'ciemne' | 'dowolny' | null) ?? null,
       });
     }
-  }, [service, defaultCategoryId]);
+  }, [service?.id, defaultCategoryId]);
 
   const handleSave = async () => {
     // Clear previous errors
