@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,13 @@ export const NotesAndPriceSection = ({
   onFinalPriceUserEdit,
 }: NotesAndPriceSectionProps) => {
   const { t } = useTranslation();
+  const [isFocused, setIsFocused] = useState(false);
+
+  // When focused: allow empty string for editing
+  // When not focused: fallback to discountedPrice if empty
+  const displayedValue = isFocused 
+    ? finalPrice 
+    : (finalPrice !== '' ? finalPrice : (discountedPrice || ''));
 
   return (
     <>
@@ -59,7 +67,9 @@ export const NotesAndPriceSection = ({
             <Input
               id="finalPrice"
               type="number"
-              value={finalPrice !== '' ? finalPrice : discountedPrice || ''}
+              value={displayedValue}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               onChange={(e) => {
                 markUserEditing?.();
                 onFinalPriceUserEdit?.();
