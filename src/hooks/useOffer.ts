@@ -124,28 +124,24 @@ export const useOffer = (instanceId: string) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Generate options from selected scopes (simplified - no variants)
-  const generateOptionsFromScopes = useCallback(async (scopeIds: string[]) => {
-    if (scopeIds.length === 0) {
-      setOffer(prev => ({ ...prev, options: [] }));
-      return;
-    }
+  // Build options for given scopes (no state mutation)
+  const buildOptionsFromScopes = useCallback(async (scopeIds: string[]): Promise<OfferOption[]> => {
+    if (scopeIds.length === 0) return [];
 
-    try {
-      // Fetch selected scopes
-      const { data: scopes, error: scopesError } = await supabase
-        .from('offer_scopes')
-        .select('*')
-        .in('id', scopeIds)
-        .eq('active', true)
-        .order('sort_order');
+    // Fetch selected scopes
+    const { data: scopes, error: scopesError } = await supabase
+      .from('offer_scopes')
+      .select('*')
+      .in('id', scopeIds)
+      .eq('active', true)
+      .order('sort_order');
 
-      if (scopesError) throw scopesError;
+    if (scopesError) throw scopesError;
 
-      // Fetch scope products (new simplified structure)
-      const { data: scopeProducts, error: productsError } = await supabase
-        .from('offer_scope_products')
-        .select(`
+    // Fetch scope products (new simplified structure)
+    const { data: scopeProducts, error: productsError } = await supabase
+      .from('offer_scope_products')
+      .select(`
           id,
           scope_id,
           product_id,
@@ -154,76 +150,97 @@ export const useOffer = (instanceId: string) => {
           sort_order,
           product:unified_services!product_id(id, name, default_price, price_from, price_small, price_medium, price_large, unit, description)
         `)
-        .in('scope_id', scopeIds)
-        .order('sort_order');
+      .in('scope_id', scopeIds)
+      .order('sort_order');
 
-      if (productsError) throw productsError;
+    if (productsError) throw productsError;
 
-      // Generate one option per scope containing all its products
-      const newOptions: OfferOption[] = [];
-      let sortOrder = 0;
+    // Generate one option per scope containing all its DEFAULT products
+    // (matches SummaryStepV2.buildDefaultSelected() expectations)
+    const newOptions: OfferOption[] = [];
+    let sortOrder = 0;
 
-      // Sort scopes: extras last
-      const sortedScopes = [...(scopes || [])].sort((a, b) => {
-        if (a.is_extras_scope && !b.is_extras_scope) return 1;
-        if (!a.is_extras_scope && b.is_extras_scope) return -1;
-        return (a.sort_order || 0) - (b.sort_order || 0);
+    // Sort scopes: extras last
+    const sortedScopes = [...(scopes || [])].sort((a, b) => {
+      if (a.is_extras_scope && !b.is_extras_scope) return 1;
+      if (!a.is_extras_scope && b.is_extras_scope) return -1;
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+
+    for (const scope of sortedScopes) {
+      const products = (scopeProducts || [])
+        .filter(p => p.scope_id === scope.id && p.is_default)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      const items: OfferItem[] = products.map(p => {
+        const product = (p as any).product as {
+          id: string;
+          name: string;
+          default_price: number | null;
+          price_from: number | null;
+          price_small: number | null;
+          price_medium: number | null;
+          price_large: number | null;
+          unit: string | null;
+          description: string | null;
+        } | null;
+
+        // Helper: get lowest available price (price_from -> min(S/M/L) -> default_price)
+        const getLowestPrice = (): number => {
+          if (!product) return 0;
+          if (product.price_from != null) return product.price_from;
+          const sizes = [product.price_small, product.price_medium, product.price_large].filter(
+            (v: number | null): v is number => v != null
+          );
+          if (sizes.length > 0) return Math.min(...sizes);
+          return product.default_price ?? 0;
+        };
+
+        return {
+          id: crypto.randomUUID(),
+          productId: p.product_id || undefined,
+          customName: p.variant_name ? `${p.variant_name}\n${product?.name || ''}` : (product?.name || ''),
+          customDescription: '',
+          quantity: 1,
+          unitPrice: getLowestPrice(),
+          unit: product?.unit || 'szt',
+          discountPercent: 0,
+          isOptional: false,
+          isCustom: !p.product_id,
+        };
       });
 
-      for (const scope of sortedScopes) {
-        // Get products for this scope - ONLY include is_default products for new offers
-        // This matches the behavior expected by SummaryStepV2.buildDefaultSelected()
-        const products = (scopeProducts || [])
-          .filter(p => p.scope_id === scope.id && p.is_default) // Only default products!
-          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      newOptions.push({
+        id: crypto.randomUUID(),
+        name: scope.name,
+        description: scope.description || '',
+        items,
+        isSelected: true,
+        sortOrder,
+        scopeId: scope.id,
+        variantId: undefined,
+        isUpsell: scope.is_extras_scope || false,
+      });
+      sortOrder++;
+    }
 
-        const items: OfferItem[] = products.map(p => {
-          const product = (p as any).product;
-          // Helper: get lowest available price (price_from -> min(S/M/L) -> default_price)
-          const getLowestPrice = (): number => {
-            if (!product) return 0;
-            if (product.price_from != null) return product.price_from;
-            const sizes = [product.price_small, product.price_medium, product.price_large].filter(
-              (v: number | null): v is number => v != null
-            );
-            if (sizes.length > 0) return Math.min(...sizes);
-            return product.default_price ?? 0;
-          };
-          return {
-            id: crypto.randomUUID(),
-            productId: p.product_id || undefined,
-            customName: p.variant_name 
-              ? `${p.variant_name}\n${product?.name || ''}` 
-              : (product?.name || ''),
-            customDescription: '', // Description comes from unified_services via FK
-            quantity: 1,
-            unitPrice: getLowestPrice(),
-            unit: product?.unit || 'szt',
-            discountPercent: 0,
-            isOptional: false, // Default products are NOT optional
-            isCustom: !p.product_id,
-          };
-        });
+    return newOptions;
+  }, [instanceId]);
 
-        newOptions.push({
-          id: crypto.randomUUID(),
-          name: scope.name,
-          description: scope.description || '',
-          items,
-          isSelected: true,
-          sortOrder,
-          scopeId: scope.id,
-          variantId: undefined,
-          isUpsell: scope.is_extras_scope || false,
-        });
-        sortOrder++;
-      }
+  // Generate options from selected scopes (state mutation)
+  const generateOptionsFromScopes = useCallback(async (scopeIds: string[]) => {
+    if (scopeIds.length === 0) {
+      setOffer(prev => ({ ...prev, options: [] }));
+      return;
+    }
 
+    try {
+      const newOptions = await buildOptionsFromScopes(scopeIds);
       setOffer(prev => ({ ...prev, options: newOptions }));
     } catch (error) {
       console.error('Error generating options from scopes:', error);
     }
-  }, [instanceId]);
+  }, [buildOptionsFromScopes]);
 
   // Customer data handlers
   const updateCustomerData = useCallback((data: Partial<CustomerData>) => {
@@ -243,64 +260,100 @@ export const useOffer = (instanceId: string) => {
 
   // Scope handlers
   const updateSelectedScopes = useCallback((scopeIds: string[]) => {
-    // Use a ref-like pattern to capture current state for decision making
-    let shouldRegenerate = false;
-    
-    // First update the scope IDs in state and determine if we need to regenerate
+    type ScopeUpdateAction =
+      | { type: 'none' }
+      | { type: 'replace' }
+      | { type: 'append'; newScopeIds: string[] };
+
+    // TS note: we compute the action inside setOffer(prev => ...) and read it afterwards.
+    // Using a mutable holder avoids incorrect TS narrowing while keeping the functional update.
+    const holder: { action: ScopeUpdateAction } = { action: { type: 'none' } };
+
     setOffer(prev => {
       // Only update if actually changed to prevent loops
       if (JSON.stringify(prev.selectedScopeIds) === JSON.stringify(scopeIds)) {
-        shouldRegenerate = false;
         return prev;
       }
-      
-      // For persisted offers (has ID) that already have options loaded,
-      // DON'T regenerate from templates - preserve saved data
-      if (prev.id && prev.options.length > 0) {
-        const existingScopeIds = prev.options
-          .filter(opt => opt.scopeId)
-          .map(opt => opt.scopeId as string);
-        
-        // Check if all selected scopes already have options
-        const allScopesHaveOptions = scopeIds.every(id => existingScopeIds.includes(id));
-        
-        // Only regenerate if NEW scopes were added
-        const newScopes = scopeIds.filter(id => !existingScopeIds.includes(id));
-        
-        if (newScopes.length === 0 && allScopesHaveOptions) {
-          console.log('[updateSelectedScopes] Skipping regeneration - persisted offer with existing options');
-          shouldRegenerate = false;
-          return {
-            ...prev,
-            selectedScopeIds: scopeIds,
-          };
-        }
+
+      // NEW OFFER: replace options from templates
+      if (!prev.id) {
+        holder.action = { type: 'replace' };
+        return {
+          ...prev,
+          selectedScopeIds: scopeIds,
+        };
       }
-      
-      // For new offers or when new scopes were added, we need to generate options
-      shouldRegenerate = true;
-      
+
+      // PERSISTED OFFER: preserve existing options/items/prices.
+      // - Keep extras (Dodatki) regardless of step-2 selection
+      // - Remove options for deselected NON-extras scopes
+      // - Append options only for newly added scopes
+      const nextOptions = prev.options.filter(opt => {
+        if (!opt.scopeId) return true;
+        if (opt.isUpsell) return true;
+        return scopeIds.includes(opt.scopeId);
+      });
+
+      const existingRegularScopeIds = new Set(
+        nextOptions
+          .filter(opt => opt.scopeId && !opt.isUpsell)
+          .map(opt => opt.scopeId as string)
+      );
+
+      const newScopeIds = scopeIds.filter(id => !existingRegularScopeIds.has(id));
+      if (newScopeIds.length > 0) {
+        holder.action = { type: 'append', newScopeIds };
+      }
+
       return {
         ...prev,
         selectedScopeIds: scopeIds,
+        options: nextOptions,
       };
     });
-    
-    // Generate options OUTSIDE of setState (side effect)
-    // Note: Due to React batching, shouldRegenerate may not reflect the updated state correctly
-    // We need a different approach - always call generate for new offers
-    // The key insight is: for persisted offers, loadOffer already set the correct options
-    // For new offers, we always regenerate (and SummaryStepV2 will filter to is_default only)
-    
-    // Actually, let's simplify: SummaryStepV2 already handles the is_default filtering correctly
-    // for new offers. The problem was calling generateOptionsFromScopes inside setState.
-    // Let's just call it unconditionally OUTSIDE setState - it will overwrite options,
-    // but SummaryStepV2 ignores offer.options for new offers anyway.
-    
-    // For persisted offers: we've already returned early in setState if no regeneration needed
-    // But we can't know that here... Let's use a different approach:
-    generateOptionsFromScopes(scopeIds);
-  }, [generateOptionsFromScopes]);
+
+    const action = holder.action;
+
+    if (action.type === 'replace') {
+      void generateOptionsFromScopes(scopeIds);
+      return;
+    }
+
+    if (action.type === 'append') {
+      void (async () => {
+        const builtOptions = await buildOptionsFromScopes(action.newScopeIds);
+
+        setOffer(prev => {
+          const desiredScopeIds = new Set(prev.selectedScopeIds);
+          const existingScopeIds = new Set(
+            prev.options
+              .filter(o => o.scopeId)
+              .map(o => o.scopeId as string)
+          );
+
+          const safeToAdd = builtOptions.filter(o => {
+            if (!o.scopeId) return true;
+            if (!desiredScopeIds.has(o.scopeId)) return false; // selection changed while awaiting
+            return !existingScopeIds.has(o.scopeId);
+          });
+
+          if (safeToAdd.length === 0) return prev;
+
+          const merged = [...prev.options, ...safeToAdd].map((opt, idx) => ({
+            ...opt,
+            sortOrder: idx,
+          }));
+
+          return {
+            ...prev,
+            options: merged,
+          };
+        });
+      })().catch(err => {
+        console.error('[updateSelectedScopes] Failed to append scopes:', err);
+      });
+    }
+  }, [buildOptionsFromScopes, generateOptionsFromScopes]);
 
   // Option handlers
   const addOption = useCallback((option: Omit<OfferOption, 'id' | 'sortOrder'>) => {
