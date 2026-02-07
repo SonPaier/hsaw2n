@@ -111,8 +111,30 @@ export function getFieldIcon(fieldName: string): string {
     admin_notes: '📝',
     offer_number: '📋',
     change_request_note: '💬',
+    assigned_employee_ids: '👥',
   };
   return iconMap[fieldName] || '•';
+}
+
+/**
+ * Format employee IDs diff - show added/removed employees
+ */
+export function formatEmployeesDiff(
+  oldIds: string[] | null,
+  newIds: string[] | null,
+  employeesMap: Map<string, string>
+): { added: string[]; removed: string[] } {
+  const oldSet = new Set(oldIds || []);
+  const newSet = new Set(newIds || []);
+
+  const added = [...newSet]
+    .filter(id => !oldSet.has(id))
+    .map(id => employeesMap.get(id) || 'Usunięty');
+  const removed = [...oldSet]
+    .filter(id => !newSet.has(id))
+    .map(id => employeesMap.get(id) || 'Usunięty');
+
+  return { added, removed };
 }
 
 /**

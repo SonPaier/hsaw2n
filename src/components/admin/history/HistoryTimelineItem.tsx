@@ -4,6 +4,7 @@ import {
   GroupedChange,
   ReservationChange,
   formatServicesDiff,
+  formatEmployeesDiff,
   formatStatus,
   formatTimeShort,
 } from '@/services/reservationHistoryService';
@@ -12,9 +13,10 @@ interface Props {
   group: GroupedChange;
   servicesMap: Map<string, string>;
   stationsMap: Map<string, string>;
+  employeesMap?: Map<string, string>;
 }
 
-export function HistoryTimelineItem({ group, servicesMap, stationsMap }: Props) {
+export function HistoryTimelineItem({ group, servicesMap, stationsMap, employeesMap = new Map() }: Props) {
   const renderChange = (change: ReservationChange) => {
     // Skip car_size changes - don't display them
     if (change.field_name === 'car_size') {
@@ -100,6 +102,21 @@ export function HistoryTimelineItem({ group, servicesMap, stationsMap }: Props) 
       case 'offer_number':
         content = <div>• Oferta: #{change.old_value || '-'} → #{change.new_value || '-'}</div>;
         break;
+
+      case 'assigned_employee_ids': {
+        const { added, removed } = formatEmployeesDiff(
+          change.old_value,
+          change.new_value,
+          employeesMap
+        );
+        content = (
+          <div className="space-y-0.5">
+            {added.length > 0 && <div>• Dodano pracowników: {added.join(', ')}</div>}
+            {removed.length > 0 && <div>• Usunięto pracowników: {removed.join(', ')}</div>}
+          </div>
+        );
+        break;
+      }
 
       default:
         content = (
