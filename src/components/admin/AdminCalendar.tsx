@@ -82,6 +82,12 @@ export interface HallConfig {
   allowed_actions: HallAllowedActions;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  photo_url: string | null;
+}
+
 interface AdminCalendarProps {
   stations: Station[];
   reservations: Reservation[];
@@ -125,6 +131,11 @@ interface AdminCalendarProps {
   showProtocolsButton?: boolean;
   /** Callback when protocols button is clicked */
   onProtocolsClick?: () => void;
+  /** Employee assignment feature props */
+  employees?: Employee[];
+  stationEmployeesMap?: Map<string, string[]>;
+  showEmployeesOnStations?: boolean;
+  showEmployeesOnReservations?: boolean;
 }
 
 // Default hours from 9:00 to 19:00
@@ -225,7 +236,11 @@ const AdminCalendar = ({
   slotPreview,
   isLoadingMore = false,
   showProtocolsButton = false,
-  onProtocolsClick
+  onProtocolsClick,
+  employees = [],
+  stationEmployeesMap,
+  showEmployeesOnStations = false,
+  showEmployeesOnReservations = false
 }: AdminCalendarProps) => {
   const {
     t
@@ -1369,12 +1384,27 @@ const AdminCalendar = ({
             {/* Station headers container */}
             <div className={cn("flex", !isMobile && "flex-1")} style={getMobileStationsContainerStyle(visibleStations.length)}>
               {visibleStations.map((station, idx) => {
-            const freeTimeText = formatFreeTime(station.id, currentDateStr);
+            const stationEmployeeIds = stationEmployeesMap?.get(station.id) || [];
+            const stationEmployees = stationEmployeeIds
+              .map(id => employees.find(e => e.id === id))
+              .filter((e): e is Employee => !!e);
+            
             return <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border/50")} style={isMobile ? getMobileColumnStyle(visibleStations.length) : undefined}>
                     <div className="text-foreground truncate">{station.name}</div>
-                    {/* Always reserve height for free time text */}
-                    <div className="text-xs text-primary hidden md:block h-4">
-                      {freeTimeText || '\u00A0'}
+                    {/* Employee chips when feature enabled, otherwise reserve height */}
+                    <div className="text-xs hidden md:flex items-center justify-center gap-0.5 h-5 flex-wrap overflow-hidden">
+                      {showEmployeesOnStations && stationEmployees.length > 0 ? (
+                        stationEmployees.slice(0, 2).map(emp => (
+                          <span key={emp.id} className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded leading-none">
+                            {emp.name.split(' ')[0]}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-primary">{'\u00A0'}</span>
+                      )}
+                      {showEmployeesOnStations && stationEmployees.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground">+{stationEmployees.length - 2}</span>
+                      )}
                     </div>
                   </div>;
           })}
@@ -1676,6 +1706,27 @@ const AdminCalendar = ({
                               #{reservation.offer_number}
                             </div>
                           )}
+                          {/* Assigned employees chips - blue variant */}
+                          {showEmployeesOnReservations && reservation.assigned_employee_ids && reservation.assigned_employee_ids.length > 0 && (() => {
+                            const assignedEmps = reservation.assigned_employee_ids
+                              .map(id => employees.find(e => e.id === id))
+                              .filter((e): e is Employee => !!e);
+                            if (assignedEmps.length === 0) return null;
+                            return (
+                              <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                {assignedEmps.slice(0, 2).map(emp => (
+                                  <span key={emp.id} className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-blue-500 text-white rounded leading-none">
+                                    {emp.name.split(' ')[0]}
+                                  </span>
+                                ))}
+                                {assignedEmps.length > 2 && (
+                                  <span className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-blue-500/80 text-white rounded leading-none">
+                                    +{assignedEmps.length - 2}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {/* Line 4: Notes (only if duration > 30 minutes and visible) */}
                           {(() => {
                             const durationMinutes = (parseTime(displayEnd) - parseTime(displayStart)) * 60;

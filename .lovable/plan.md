@@ -2,7 +2,7 @@
 
 # Plan: Przypisywanie pracowników do stanowisk i rezerwacji
 
-## Status: Fazy 1-5 ukończone, Faza 6-7 częściowo
+## Status: UKOŃCZONE ✅
 
 ### Ukończone:
 - ✅ Faza 1: Rozszerzenie bazy danych (migracja)
@@ -10,10 +10,8 @@
 - ✅ Faza 3: Drawer wyboru pracowników (reużywalny)
 - ✅ Faza 4: Przypisanie pracowników do stanowisk (StationsSettings)
 - ✅ Faza 5: Przypisanie pracowników do rezerwacji (ReservationDetailsDrawer, AddReservationDialogV2)
-- ✅ Faza 6 (częściowo): HallReservationCard - wyświetlanie chipsów pracowników
-
-### Do dokończenia:
-- ⏳ AdminCalendar - chipsy pracowników w nagłówkach stanowisk i na kartach rezerwacji (wymaga modyfikacji props chain przez AdminDashboard)
+- ✅ Faza 6: HallReservationCard - wyświetlanie chipsów pracowników
+- ✅ Faza 7: AdminCalendar - chipsy pracowników w nagłówkach stanowisk i na kartach rezerwacji
 
 ## Zidentyfikowane problemy i rozwiązania
 
