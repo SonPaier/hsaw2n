@@ -1,6 +1,6 @@
 # Analiza bugu wyświetlania archiwalnych rezerwacji
 
-## Status: ✅ FAZA 1 ZAIMPLEMENTOWANA
+## Status: ✅ FAZA 1 ZAIMPLEMENTOWANA | ⏳ FAZA 2 W TOKU
 
 ## Symptomy zgłoszone przez użytkownika
 - Cofnięcie do 24 stycznia (2 tyg wstecz) - brak rezerwacji
@@ -9,57 +9,57 @@
 - Powrót na 24 - znowu pusto
 - **138+ requestów do tabeli reservations** przy nawigacji
 
-## Zidentyfikowane problemy w kodzie
+---
 
-### 1. Race condition w `loadMoreReservations` + `handleCalendarDateChange`
-**NAPRAWIONE ✅** - Dodano mutex `isLoadingMoreRef` (useRef) do synchronicznej blokady wielokrotnych wywołań.
+## ✅ Faza 1: Stabilizacja (ZAIMPLEMENTOWANA)
 
-### 2. Brak debounce na `handleCalendarDateChange`
-**NAPRAWIONE ✅** - Dodano 300ms debounce przez `loadMoreDebounceRef` z cleanup w useEffect.
+### Zmiany w `src/pages/AdminDashboard.tsx`:
+1. ✅ Mutex `isLoadingMoreRef` (useRef) - synchroniczna blokada
+2. ✅ Try/finally w `loadMoreReservations` - pewność zwolnienia mutex
+3. ✅ Debounce 300ms przez `loadMoreDebounceRef`
+4. ✅ Cleanup effect dla debounce timeout
 
-### 3. useEffect w AdminCalendar wywołuje `onDateChange` zbyt często
-**NAPRAWIONE ✅** - Użyto `onDateChangeRef` do stabilizacji callbacka i usunięto z dependencies.
+### Zmiany w `src/components/admin/AdminCalendar.tsx`:
+1. ✅ `onDateChangeRef` - stabilizacja callbacka
+2. ✅ useEffect bez `onDateChange` w dependencies
 
-### 4. Realtime retry wywołuje pełny `fetchReservations`
-Do rozważenia w Fazie 2.
-
-### 5. Brak cache dla starszych rezerwacji
-Do rozważenia w Fazie 2 (migracja na React Query).
+### Wynik testów:
+- ✅ 5 szybkich kliknięć wstecz = **1 request do reservations** (zamiast 138+)
+- ✅ Debounce i mutex działają poprawnie
 
 ---
 
-## Wprowadzone zmiany
+## ⏳ Faza 2: Optymalizacja (W TOKU)
 
-### `src/pages/AdminDashboard.tsx`
-1. Dodano `isLoadingMoreRef = useRef(false)` jako mutex
-2. `loadMoreReservations` używa ref zamiast state do blokady
-3. Dodano try/finally dla pewności zwolnienia mutex
-4. Dodano `loadMoreDebounceRef` z 300ms debounce
-5. Dodano cleanup effect dla debounce timeout
+### Utworzone pliki:
 
-### `src/components/admin/AdminCalendar.tsx`
-1. Dodano `onDateChangeRef = useRef(onDateChange)` 
-2. useEffect używa tylko `currentDate` w dependencies (bez `onDateChange`)
-
----
-
-## Faza 2: Optymalizacja (następny krok - opcjonalnie)
-
-**2.1. Migracja na React Query**
-- `queryKey: ['reservations', instanceId, { from, to }]`
-- Automatyczne deduplication requestów
+#### `src/hooks/useReservations.ts`
+Hook React Query z:
 - `staleTime: 5 * 60 * 1000` (5 minut)
+- `gcTime: 10 * 60 * 1000` (10 minut)
+- Automatyczne ładowanie starszych rezerwacji (`loadMoreReservations`)
+- Cache management (`updateReservationInCache`, `removeReservationFromCache`)
+- Windowed loading z buffer 7 dni
 
-**2.2. Rate-limiting realtime retry**
-- Dodać exponential backoff z max rate
+#### `src/hooks/useReservationsRealtime.ts`
+Hook do realtime z rate-limiting:
+- `maxRetries: 5`
+- `baseDelay: 1000ms`, `maxDelay: 30000ms`
+- `minRefetchInterval: 10000ms` (10s między pełnymi refetchami)
+- Exponential backoff (multiplier 1.5)
+- Debounce dla lokalnych zmian
 
-**2.3. Windowed loading**
-- Ładować tylko ±1 tydzień od aktualnej daty
+### Pozostało do zrobienia:
+- [ ] Integracja `useReservations` z AdminDashboard
+- [ ] Usunięcie starego kodu `fetchReservations`, `loadMoreReservations`
+- [ ] Migracja realtime logic do `useReservationsRealtime`
+- [ ] Testy pełnej integracji
 
 ---
 
-## Testy do wykonania po naprawie:
-1. ✅ Mobile: szybka nawigacja strzałkami wstecz o 3-4 tygodnie
-2. ✅ Sprawdzić Network tab - max 2-3 requesty przy nawigacji
-3. ✅ Włączyć flight mode → wyłączyć → sprawdzić czy dane się odświeżyły
-4. ✅ Przejść do starej daty → odświeżyć stronę → sprawdzić rezerwacje
+## Testy do wykonania po pełnej integracji:
+1. Mobile: szybka nawigacja strzałkami wstecz o 3-4 tygodnie
+2. Network tab - max 2-3 requesty przy nawigacji
+3. Flight mode → wyłączenie → sprawdzenie czy dane się odświeżyły
+4. Stara data → odświeżenie strony → weryfikacja rezerwacji
+5. Realtime: zmiana statusu rezerwacji z drugiego urządzenia
