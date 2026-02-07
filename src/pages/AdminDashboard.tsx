@@ -9,6 +9,9 @@ import { useClosedDays } from '@/hooks/useClosedDays';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
 import { useInstanceData } from '@/hooks/useInstanceData';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useInstanceSettings } from '@/hooks/useInstanceSettings';
+import { useStationEmployees } from '@/hooks/useStationEmployees';
 import HallsListView from '@/components/admin/halls/HallsListView';
 import {
   DropdownMenu,
@@ -303,6 +306,9 @@ const AdminDashboard = () => {
   const { data: cachedWorkingHours } = useWorkingHours(instanceId);
   const { data: cachedServices = [] } = useUnifiedServices(instanceId);
   const { data: cachedInstanceData } = useInstanceData(instanceId);
+  const { data: cachedEmployees = [] } = useEmployees(instanceId);
+  const { data: instanceSettings } = useInstanceSettings(instanceId);
+  const { data: stationEmployeesMap } = useStationEmployees(instanceId);
   
   // Use cached data (with local state fallback for realtime updates)
   const stations = cachedStations as Station[];
@@ -2492,7 +2498,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} employees={cachedEmployees} stationEmployeesMap={stationEmployeesMap} showEmployeesOnStations={instanceSettings?.assign_employees_to_stations ?? false} showEmployeesOnReservations={instanceSettings?.assign_employees_to_reservations ?? false} />
                 
                 {/* FAB removed - plus button is now in MobileBottomNav */}
               </div>}
