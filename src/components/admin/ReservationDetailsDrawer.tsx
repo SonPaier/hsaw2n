@@ -74,6 +74,7 @@ interface Reservation {
   offer_number?: string | null;
   has_unified_services?: boolean | null;
   photo_urls?: string[] | null;
+  assigned_employee_ids?: string[] | null;
   service?: {
     name: string;
   };

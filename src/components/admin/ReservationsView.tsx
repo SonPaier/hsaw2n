@@ -50,6 +50,7 @@ interface Reservation {
   };
   price: number | null;
   photo_urls?: string[] | null;
+  assigned_employee_ids?: string[] | null;
 }
 
 interface Customer {

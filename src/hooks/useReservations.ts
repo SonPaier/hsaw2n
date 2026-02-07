@@ -72,6 +72,7 @@ export interface Reservation {
   has_unified_services?: boolean | null;
   photo_urls?: string[] | null;
   checked_service_ids?: string[];
+  assigned_employee_ids?: string[] | null;
 }
 
 interface DateRange {

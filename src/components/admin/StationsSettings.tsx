@@ -14,6 +14,11 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useInstanceSettings } from '@/hooks/useInstanceSettings';
+import { useStationEmployees, useUpdateStationEmployees } from '@/hooks/useStationEmployees';
+import { useEmployees } from '@/hooks/useEmployees';
+import { AssignedEmployeesChips } from './AssignedEmployeesChips';
+import { EmployeeSelectionDrawer } from './EmployeeSelectionDrawer';
 
 interface Station {
   id: string;
@@ -42,6 +47,14 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const [saving, setSaving] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
+  
+  // Employee assignment settings and data
+  const { data: instanceSettings } = useInstanceSettings(instanceId);
+  const { data: stationEmployeesMap } = useStationEmployees(instanceId);
+  const { mutateAsync: updateStationEmployees } = useUpdateStationEmployees(instanceId);
+  const { data: employees = [] } = useEmployees(instanceId);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   
   // Subscription limit state
   const [maxStations, setMaxStations] = useState<number>(2);
@@ -105,11 +118,15 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       setFormData({
         name: station.name,
       });
+      // Load existing employee assignments for this station
+      const existingEmployees = stationEmployeesMap?.get(station.id) || [];
+      setSelectedEmployeeIds(existingEmployees);
     } else {
       setEditingStation(null);
       setFormData({
         name: '',
       });
+      setSelectedEmployeeIds([]);
     }
     setEditDialogOpen(true);
   };
@@ -152,6 +169,14 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       fetchStations();
       // Invalidate stations cache
       queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
+      
+      // Save employee assignments if editing and feature is enabled
+      if (editingStation && instanceSettings?.assign_employees_to_stations) {
+        await updateStationEmployees({
+          stationId: editingStation.id,
+          employeeIds: selectedEmployeeIds,
+        });
+      }
     } catch (error: any) {
       console.error('Error saving station:', error);
       // Handle station limit error from trigger
@@ -277,6 +302,18 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                 placeholder={t('stationsSettings.stationNamePlaceholder')}
               />
             </div>
+            {/* Employee assignment section - only when editing and feature enabled */}
+            {editingStation && instanceSettings?.assign_employees_to_stations && (
+              <div className="space-y-2">
+                <Label>Przypisani pracownicy</Label>
+                <AssignedEmployeesChips
+                  employeeIds={selectedEmployeeIds}
+                  employees={employees}
+                  onRemove={(id) => setSelectedEmployeeIds(prev => prev.filter(eid => eid !== id))}
+                  onAdd={() => setEmployeeDrawerOpen(true)}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -291,6 +328,17 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Employee Selection Drawer */}
+      {instanceId && (
+        <EmployeeSelectionDrawer
+          open={employeeDrawerOpen}
+          onOpenChange={setEmployeeDrawerOpen}
+          instanceId={instanceId}
+          selectedEmployeeIds={selectedEmployeeIds}
+          onSelect={setSelectedEmployeeIds}
+        />
+      )}
     </div>
   );
 };

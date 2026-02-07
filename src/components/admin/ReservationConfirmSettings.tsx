@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell, Loader2, Clock, Smartphone, Check } from 'lucide-react';
+import { Bell, Loader2, Clock, Smartphone, Check, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePushSubscription } from '@/hooks/usePushSubscription';
+import { useInstanceSettings, useUpdateInstanceSettings } from '@/hooks/useInstanceSettings';
 
 interface ReservationConfirmSettingsProps {
   instanceId: string | null;
@@ -19,6 +20,11 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [customerEditCutoffHours, setCustomerEditCutoffHours] = useState(1);
   const [saving, setSaving] = useState(false);
+
+  // Employee assignment settings
+  const { data: instanceSettings, isLoading: isSettingsLoading } = useInstanceSettings(instanceId);
+  const { updateSetting } = useUpdateInstanceSettings(instanceId);
+  const [savingEmployeeSettings, setSavingEmployeeSettings] = useState(false);
 
   // Push notification subscription
   const { 
@@ -50,6 +56,18 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
     fetchSettings();
     checkSubscription();
   }, [instanceId, checkSubscription]);
+
+  const handleToggleEmployeeSetting = async (key: 'assign_employees_to_stations' | 'assign_employees_to_reservations', checked: boolean) => {
+    setSavingEmployeeSettings(true);
+    try {
+      await updateSetting(key, checked);
+      toast.success('Ustawienia zapisane');
+    } catch (error) {
+      toast.error('Błąd podczas zapisywania ustawień');
+    } finally {
+      setSavingEmployeeSettings(false);
+    }
+  };
 
   const handleToggleAutoConfirm = async (checked: boolean) => {
     if (!instanceId) return;
@@ -171,6 +189,50 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
         </div>
       </div>
 
+      {/* Employee Assignment Settings */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold">Przypisywanie pracowników</h3>
+        </div>
+        
+        <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="assign-stations" className="font-medium">
+                Przypisanie do stanowisk
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Pozwala przypisać pracowników do konkretnych stanowisk
+              </p>
+            </div>
+            <Switch
+              id="assign-stations"
+              checked={instanceSettings?.assign_employees_to_stations ?? false}
+              onCheckedChange={(checked) => handleToggleEmployeeSetting('assign_employees_to_stations', checked)}
+              disabled={savingEmployeeSettings || isSettingsLoading}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="assign-reservations" className="font-medium">
+                Przypisanie do rezerwacji
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Pozwala przypisać pracowników wykonujących usługę do rezerwacji
+              </p>
+            </div>
+            <Switch
+              id="assign-reservations"
+              checked={instanceSettings?.assign_employees_to_reservations ?? false}
+              onCheckedChange={(checked) => handleToggleEmployeeSetting('assign_employees_to_reservations', checked)}
+              disabled={savingEmployeeSettings || isSettingsLoading}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Push Notifications Section - moved to bottom */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -204,7 +266,7 @@ export const ReservationConfirmSettings = ({ instanceId }: ReservationConfirmSet
               </p>
             </div>
             {isSubscribed ? (
-              <div className="flex items-center gap-2 text-green-600">
+              <div className="flex items-center gap-2 text-emerald-600">
                 <Check className="w-5 h-5" />
                 <span className="text-sm font-medium">{t('pushNotifications.enabled')}</span>
               </div>

@@ -861,6 +861,8 @@ export type Database = {
         Row: {
           active: boolean | null
           address: string | null
+          assign_employees_to_reservations: boolean | null
+          assign_employees_to_stations: boolean | null
           auto_confirm_reservations: boolean | null
           background_color: string | null
           booking_days_ahead: number
@@ -919,6 +921,8 @@ export type Database = {
         Insert: {
           active?: boolean | null
           address?: string | null
+          assign_employees_to_reservations?: boolean | null
+          assign_employees_to_stations?: boolean | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
           booking_days_ahead?: number
@@ -977,6 +981,8 @@ export type Database = {
         Update: {
           active?: boolean | null
           address?: string | null
+          assign_employees_to_reservations?: boolean | null
+          assign_employees_to_stations?: boolean | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
           booking_days_ahead?: number
@@ -2448,6 +2454,7 @@ export type Database = {
       reservations: {
         Row: {
           admin_notes: string | null
+          assigned_employee_ids: Json | null
           cancelled_at: string | null
           cancelled_by: string | null
           car_size: Database["public"]["Enums"]["car_size"] | null
@@ -2498,6 +2505,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          assigned_employee_ids?: Json | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
@@ -2548,6 +2556,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          assigned_employee_ids?: Json | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           car_size?: Database["public"]["Enums"]["car_size"] | null
@@ -2882,6 +2891,42 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      station_employees: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          id: string
+          station_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          station_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          station_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "station_employees_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "station_employees_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
             referencedColumns: ["id"]
           },
         ]
