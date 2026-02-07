@@ -195,6 +195,10 @@ const AdminDashboard = () => {
   });
   const [isLoadingMoreReservations, setIsLoadingMoreReservations] = useState(false);
   
+  // Mutex ref to prevent race condition in loadMoreReservations
+  // useState is async, so rapid navigation can trigger multiple calls before state updates
+  const isLoadingMoreRef = useRef(false);
+  
   // Realtime connection state
   const [realtimeConnected, setRealtimeConnected] = useState(true);
   
@@ -707,90 +711,118 @@ const AdminDashboard = () => {
   };
 
   // Load more reservations when user navigates to dates near the edge of loaded data
+  // Uses mutex ref to prevent race condition during rapid navigation
   const loadMoreReservations = useCallback(async (direction: 'past') => {
-    if (!instanceId || isLoadingMoreReservations) return;
-
+    // Use ref for synchronous check - prevents multiple calls during rapid navigation
+    if (!instanceId || isLoadingMoreRef.current) return;
+    
     if (direction === 'past') {
-      setIsLoadingMoreReservations(true);
+      // Set mutex immediately (synchronous)
+      isLoadingMoreRef.current = true;
+      setIsLoadingMoreReservations(true); // For UI feedback
       
-      const newFrom = subMonths(loadedDateRange.from, 1);
-      const oldFrom = loadedDateRange.from;
-      
-      // First fetch services to map service_ids
-      const servicesMap = servicesMapRef.current;
-      
-      // Fetch additional reservations
-      const { data, error } = await supabase.from('reservations').select(`
-          id,
-          instance_id,
-          customer_name,
-          customer_phone,
-          vehicle_plate,
-          reservation_date,
-          end_date,
-          start_time,
-          end_time,
-          station_id,
-          status,
-          confirmation_code,
-          price,
-          customer_notes,
-          admin_notes,
-          source,
-          car_size,
-          service_ids,
-          service_items,
-          original_reservation_id,
-          created_by,
-          created_by_username,
-          offer_number,
-          confirmation_sms_sent_at,
-          pickup_sms_sent_at,
-          has_unified_services,
-          photo_urls,
-          stations:station_id (name, type)
-        `).eq('instance_id', instanceId)
-        .neq('status', 'cancelled')
-        .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
-        .lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
-      
-      if (!error && data && data.length > 0) {
-        // Fetch original reservation data for change requests
-        const changeRequestIds = data
-          .filter(r => r.original_reservation_id)
-          .map(r => r.original_reservation_id);
+      try {
+        const newFrom = subMonths(loadedDateRange.from, 1);
+        const oldFrom = loadedDateRange.from;
         
-        const originalReservationsMap = new Map<string, any>();
-        if (changeRequestIds.length > 0) {
-          const { data: originals } = await supabase
-            .from('reservations')
-            .select('id, reservation_date, start_time, confirmation_code')
-            .in('id', changeRequestIds);
+        // First fetch services to map service_ids
+        const servicesMap = servicesMapRef.current;
+        
+        // Fetch additional reservations
+        const { data, error } = await supabase.from('reservations').select(`
+            id,
+            instance_id,
+            customer_name,
+            customer_phone,
+            vehicle_plate,
+            reservation_date,
+            end_date,
+            start_time,
+            end_time,
+            station_id,
+            status,
+            confirmation_code,
+            price,
+            customer_notes,
+            admin_notes,
+            source,
+            car_size,
+            service_ids,
+            service_items,
+            original_reservation_id,
+            created_by,
+            created_by_username,
+            offer_number,
+            confirmation_sms_sent_at,
+            pickup_sms_sent_at,
+            has_unified_services,
+            photo_urls,
+            stations:station_id (name, type)
+          `).eq('instance_id', instanceId)
+          .neq('status', 'cancelled')
+          .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
+          .lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
+        
+        if (!error && data && data.length > 0) {
+          // Fetch original reservation data for change requests
+          const changeRequestIds = data
+            .filter(r => r.original_reservation_id)
+            .map(r => r.original_reservation_id);
           
-          if (originals) {
-            originals.forEach(o => originalReservationsMap.set(o.id, o));
+          const originalReservationsMap = new Map<string, any>();
+          if (changeRequestIds.length > 0) {
+            const { data: originals } = await supabase
+              .from('reservations')
+              .select('id, reservation_date, start_time, confirmation_code')
+              .in('id', changeRequestIds);
+            
+            if (originals) {
+              originals.forEach(o => originalReservationsMap.set(o.id, o));
+            }
           }
+
+          const mappedData = mapReservationData(data, servicesMap, originalReservationsMap);
+          setReservations(prev => [...mappedData, ...prev]);
         }
-
-        const mappedData = mapReservationData(data, servicesMap, originalReservationsMap);
-        setReservations(prev => [...mappedData, ...prev]);
+        
+        setLoadedDateRange(prev => ({ ...prev, from: newFrom }));
+      } finally {
+        // Always release mutex in finally block
+        isLoadingMoreRef.current = false;
+        setIsLoadingMoreReservations(false);
       }
-      
-      setLoadedDateRange(prev => ({ ...prev, from: newFrom }));
-      setIsLoadingMoreReservations(false);
     }
-  }, [instanceId, isLoadingMoreReservations, loadedDateRange.from, mapReservationData]);
+  }, [instanceId, loadedDateRange.from, mapReservationData]);
 
+  // Debounced loadMoreReservations to prevent burst requests during rapid navigation
+  const loadMoreDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   // Handle calendar date change - load more data if approaching edge
+  // Uses debounce to prevent multiple requests during rapid scrolling/clicking
   const handleCalendarDateChange = useCallback((date: Date) => {
     setCalendarDate(date);
     
     // Check if we're approaching the edge of loaded data (within 7 days buffer)
     const bufferDays = 7;
     if (date < addDays(loadedDateRange.from, bufferDays)) {
-      loadMoreReservations('past');
+      // Debounce loadMore to prevent burst requests
+      if (loadMoreDebounceRef.current) {
+        clearTimeout(loadMoreDebounceRef.current);
+      }
+      loadMoreDebounceRef.current = setTimeout(() => {
+        loadMoreReservations('past');
+      }, 300);
     }
   }, [loadedDateRange.from, loadMoreReservations]);
+  
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (loadMoreDebounceRef.current) {
+        clearTimeout(loadMoreDebounceRef.current);
+      }
+    };
+  }, []);
 
   // Breaks and closed days now use cached hooks - invalidate cache instead of local state
   const invalidateBreaksCache = () => {

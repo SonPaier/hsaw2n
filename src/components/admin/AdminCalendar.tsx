@@ -289,10 +289,15 @@ const AdminCalendar = ({
     }
   }, []);
 
-  // Notify parent when currentDate changes
+  // Stabilize onDateChange callback to prevent unnecessary effect re-runs
+  // The parent's callback may recreate on every render, but we only care about currentDate changes
+  const onDateChangeRef = useRef(onDateChange);
+  onDateChangeRef.current = onDateChange;
+  
+  // Notify parent when currentDate changes (using ref to avoid callback in dependencies)
   useEffect(() => {
-    onDateChange?.(currentDate);
-  }, [currentDate, onDateChange]);
+    onDateChangeRef.current?.(currentDate);
+  }, [currentDate]);
 
   // Refs for synchronized horizontal scroll between headers and grid
   const headerScrollRef = useRef<HTMLDivElement>(null);
