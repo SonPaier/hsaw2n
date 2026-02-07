@@ -2,13 +2,18 @@
 
 # Plan: Przypisywanie pracowników do stanowisk i rezerwacji
 
-## Podsumowanie
+## Status: Fazy 1-5 ukończone, Faza 6-7 częściowo
 
-Implementacja funkcjonalności przypisywania pracowników do stanowisk oraz do rezerwacji. Feature kontrolowany przez dwa osobne ustawienia w zakładce "Ustawienia aplikacji". Gdy włączone:
-1. Przypisanie wielu pracowników do stanowiska (widoczne jako chipsy readonly w nagłówku)
-2. Przypisanie wielu pracowników do rezerwacji (widoczne jako niebieskie etykiety na kartach)
+### Ukończone:
+- ✅ Faza 1: Rozszerzenie bazy danych (migracja)
+- ✅ Faza 2: Ustawienia aplikacji (toggle'e)
+- ✅ Faza 3: Drawer wyboru pracowników (reużywalny)
+- ✅ Faza 4: Przypisanie pracowników do stanowisk (StationsSettings)
+- ✅ Faza 5: Przypisanie pracowników do rezerwacji (ReservationDetailsDrawer, AddReservationDialogV2)
+- ✅ Faza 6 (częściowo): HallReservationCard - wyświetlanie chipsów pracowników
 
----
+### Do dokończenia:
+- ⏳ AdminCalendar - chipsy pracowników w nagłówkach stanowisk i na kartach rezerwacji (wymaga modyfikacji props chain przez AdminDashboard)
 
 ## Zidentyfikowane problemy i rozwiązania
 
