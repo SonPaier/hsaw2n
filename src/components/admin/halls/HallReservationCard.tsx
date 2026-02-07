@@ -9,6 +9,12 @@ import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDia
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 
+interface Employee {
+  id: string;
+  name: string;
+  photo_url: string | null;
+}
+
 interface HallReservationCardProps {
   reservation: {
     id: string;
@@ -25,7 +31,10 @@ interface HallReservationCardProps {
     instance_id: string;
     photo_urls?: string[] | null;
     checked_service_ids?: string[] | null;
+    assigned_employee_ids?: string[] | null;
   };
+  showEmployees?: boolean;
+  employees?: Employee[];
   open: boolean;
   onClose: () => void;
   onStartWork: (id: string) => Promise<void>;
@@ -50,6 +59,8 @@ const HallReservationCard = ({
   onServiceToggle,
   onAddService,
   onRemoveService,
+  showEmployees = false,
+  employees = [],
 }: HallReservationCardProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<'start' | 'stop' | 'sms' | null>(null);
@@ -263,6 +274,25 @@ const HallReservationCard = ({
                         </button>
                       )}
                     </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Assigned employees - blue chips (readonly) */}
+            {showEmployees && reservation.assigned_employee_ids && reservation.assigned_employee_ids.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {reservation.assigned_employee_ids.map((empId) => {
+                  const employee = employees.find(e => e.id === empId);
+                  const displayName = employee?.name || empId.slice(0, 8);
+                  const shortName = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  return (
+                    <span
+                      key={empId}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                    >
+                      {shortName}: {displayName.split(' ')[0]}
+                    </span>
                   );
                 })}
               </div>

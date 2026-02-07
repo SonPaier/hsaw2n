@@ -62,6 +62,7 @@ interface Reservation {
   admin_notes?: string | null;
   photo_urls?: string[] | null;
   checked_service_ids?: string[] | null;
+  assigned_employee_ids?: string[] | null;
 }
 
 interface Break {

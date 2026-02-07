@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, X, CalendarIcon, ClipboardPaste, Plus } from 'lucide-react';
+import { useInstanceSettings } from '@/hooks/useInstanceSettings';
+import { useEmployees } from '@/hooks/useEmployees';
+import { Loader2, X, CalendarIcon, ClipboardPaste, Plus, Users } from 'lucide-react';
 import { format, addDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
@@ -22,6 +24,8 @@ import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
 import ServiceSelectionDrawer, { ServiceWithCategory } from './ServiceSelectionDrawer';
 import SelectedServicesList, { ServiceItem } from './SelectedServicesList';
+import { EmployeeSelectionDrawer } from './EmployeeSelectionDrawer';
+import { AssignedEmployeesChips } from './AssignedEmployeesChips';
 import {
   CustomerSection,
   VehicleSection,
@@ -99,6 +103,7 @@ interface EditingReservation {
   confirmation_code?: string;
   offer_number?: string | null;
   has_unified_services?: boolean | null;
+  assigned_employee_ids?: string[] | null;
 }
 
 export interface YardVehicle {
@@ -169,6 +174,13 @@ const AddReservationDialogV2 = ({
   
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  
+  // Employee assignment feature
+  const { data: instanceSettings } = useInstanceSettings(instanceId);
+  const showEmployeeAssignment = isReservationMode && (instanceSettings?.assign_employees_to_reservations ?? false);
+  const { data: employees = [] } = useEmployees(instanceId);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
+  const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
   
   // Mobile: toggle drawer visibility to peek at calendar
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
@@ -1568,6 +1580,23 @@ const AddReservationDialogV2 = ({
               />
               )}
 
+              {/* Assigned Employees Section - visible when feature enabled */}
+              {showEmployeeAssignment && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Przypisani pracownicy
+                  </Label>
+                  <AssignedEmployeesChips
+                    employeeIds={assignedEmployeeIds}
+                    employees={employees}
+                    onRemove={(id) => setAssignedEmployeeIds(prev => prev.filter(e => e !== id))}
+                    onAdd={() => setEmployeeDrawerOpen(true)}
+                    variant="blue"
+                  />
+                </div>
+              )}
+
               {/* Notes and Price Section */}
               <NotesAndPriceSection
                 adminNotes={adminNotes}
@@ -1616,6 +1645,15 @@ const AddReservationDialogV2 = ({
           )}
         </button>
       )}
+      
+      {/* Employee Selection Drawer */}
+      <EmployeeSelectionDrawer
+        open={employeeDrawerOpen}
+        onOpenChange={setEmployeeDrawerOpen}
+        instanceId={instanceId}
+        selectedEmployeeIds={assignedEmployeeIds}
+        onSelect={setAssignedEmployeeIds}
+      />
     </>
   );
 };

@@ -36,6 +36,7 @@ interface Reservation {
   customer_notes?: string | null;
   admin_notes?: string | null;
   offer_number?: string | null;
+  assigned_employee_ids?: string[] | null;
   service?: {
     name: string;
     shortcut?: string | null;

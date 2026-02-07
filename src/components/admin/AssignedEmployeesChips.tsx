@@ -1,4 +1,4 @@
-import { X, Plus, User } from 'lucide-react';
+import { X, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Employee } from '@/hooks/useEmployees';
 
@@ -10,6 +10,7 @@ interface AssignedEmployeesChipsProps {
   readonly?: boolean;
   variant?: 'default' | 'blue';
   maxVisible?: number;
+  loading?: boolean;
 }
 
 export function AssignedEmployeesChips({
@@ -20,6 +21,7 @@ export function AssignedEmployeesChips({
   readonly = false,
   variant = 'default',
   maxVisible,
+  loading = false,
 }: AssignedEmployeesChipsProps) {
   // Build a map for quick lookups
   const employeeMap = new Map(employees.map(e => [e.id, e]));
@@ -88,9 +90,14 @@ export function AssignedEmployeesChips({
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+          disabled={loading}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors disabled:opacity-50"
         >
-          <Plus className="w-3 h-3" />
+          {loading ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Plus className="w-3 h-3" />
+          )}
           Dodaj
         </button>
       )}
