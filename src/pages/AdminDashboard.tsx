@@ -604,6 +604,7 @@ const AdminDashboard = () => {
         status: r.status || 'pending',
         service_ids: Array.isArray(r.service_ids) ? r.service_ids as string[] : undefined,
         service_items: Array.isArray(r.service_items) ? r.service_items as unknown as ServiceItem[] : undefined,
+        assigned_employee_ids: Array.isArray(r.assigned_employee_ids) ? r.assigned_employee_ids as string[] : undefined,
         service: r.services ? {
           name: (r.services as any).name,
           shortcut: (r.services as any).shortcut
@@ -915,6 +916,7 @@ const AdminDashboard = () => {
             status: data.status || 'pending',
             service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
             service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
+            assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids as string[] : undefined,
             service: undefined, // Legacy relation removed - use service_ids/service_items instead
             station: data.stations ? {
               name: (data.stations as any).name,
@@ -1041,6 +1043,7 @@ const AdminDashboard = () => {
                   status: data.status || 'pending',
                   service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
                   service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
+                  assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
                   service: undefined, // Legacy relation removed - use service_ids/service_items instead
                   services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
                   station: data.stations ? {
@@ -1140,6 +1143,7 @@ const AdminDashboard = () => {
                   status: data.status || 'pending',
                   service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
                   service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
+                  assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
                   service: undefined, // Legacy relation removed
                   services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
                   station: data.stations ? {
