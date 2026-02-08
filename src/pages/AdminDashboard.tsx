@@ -113,6 +113,7 @@ interface Reservation {
   service_ids?: string[];
   has_unified_services?: boolean | null;
   photo_urls?: string[] | null;
+  assigned_employee_ids?: string[] | null;
 }
 interface Break {
   id: string;
@@ -674,6 +675,7 @@ const AdminDashboard = () => {
         car_size,
         service_ids,
         service_items,
+        assigned_employee_ids,
         original_reservation_id,
         created_by,
         created_by_username,
@@ -763,6 +765,7 @@ const AdminDashboard = () => {
             pickup_sms_sent_at,
             has_unified_services,
             photo_urls,
+            assigned_employee_ids,
             stations:station_id (name, type)
           `).eq('instance_id', instanceId)
           .neq('status', 'cancelled')
@@ -894,6 +897,7 @@ const AdminDashboard = () => {
             car_size,
             service_ids,
             service_items,
+            assigned_employee_ids,
             original_reservation_id,
             offer_number,
             confirmation_sms_sent_at,
@@ -1019,6 +1023,7 @@ const AdminDashboard = () => {
               created_by_username,
               offer_number,
               photo_urls,
+              assigned_employee_ids,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -1092,6 +1097,7 @@ const AdminDashboard = () => {
               photo_urls,
               has_unified_services,
               checked_service_ids,
+              assigned_employee_ids,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
@@ -1101,17 +1107,22 @@ const AdminDashboard = () => {
                 
                 let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
                 
-                // Use service_items as primary source (has names embedded)
+                // Use service_items as primary source (may or may not have names embedded)
                 if (serviceItems && serviceItems.length > 0) {
-                  servicesDataMapped = serviceItems.map(item => ({
-                    id: item.id || item.service_id,
-                    name: item.name || 'Usługa',
-                    shortcut: item.short_name || null,
-                    price_small: item.price_small ?? null,
-                    price_medium: item.price_medium ?? null,
-                    price_large: item.price_large ?? null,
-                    price_from: item.price_from ?? null
-                  }));
+                  servicesDataMapped = serviceItems.map(item => {
+                    const resolvedId = item.id || item.service_id;
+                    const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+
+                    return {
+                      id: resolvedId,
+                      name: item.name || cached?.name || 'Usługa',
+                      shortcut: item.short_name || cached?.shortcut || null,
+                      price_small: item.price_small ?? cached?.price_small ?? null,
+                      price_medium: item.price_medium ?? cached?.price_medium ?? null,
+                      price_large: item.price_large ?? cached?.price_large ?? null,
+                      price_from: item.price_from ?? cached?.price_from ?? null
+                    };
+                  });
                 } else if (serviceIds && serviceIds.length > 0) {
                   // Fallback to service_ids lookup (for legacy reservations)
                   serviceIds.forEach(id => {

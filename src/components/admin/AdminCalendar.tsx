@@ -1392,18 +1392,25 @@ const AdminCalendar = ({
             return <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1 min-w-[80px]", idx < visibleStations.length - 1 && "border-r border-border/50")} style={isMobile ? getMobileColumnStyle(visibleStations.length) : undefined}>
                     <div className="text-foreground truncate">{station.name}</div>
                     {/* Employee chips when feature enabled, otherwise reserve height */}
-                    <div className="text-xs hidden md:flex items-center justify-center gap-0.5 h-5 flex-wrap overflow-hidden">
+                    <div className="hidden md:flex items-center justify-center gap-1 h-8 flex-wrap overflow-hidden">
                       {showEmployeesOnStations && stationEmployees.length > 0 ? (
-                        stationEmployees.slice(0, 2).map(emp => (
-                          <span key={emp.id} className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded leading-none">
-                            {emp.name.split(' ')[0]}
-                          </span>
-                        ))
+                        <>
+                          {stationEmployees.slice(0, 2).map(emp => (
+                            <span
+                              key={emp.id}
+                              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-foreground text-background rounded-md leading-none"
+                            >
+                              {emp.name.split(' ')[0]}
+                            </span>
+                          ))}
+                          {stationEmployees.length > 2 && (
+                            <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-foreground text-background rounded-md leading-none">
+                              +{stationEmployees.length - 2}
+                            </span>
+                          )}
+                        </>
                       ) : (
-                        <span className="text-primary">{'\u00A0'}</span>
-                      )}
-                      {showEmployeesOnStations && stationEmployees.length > 2 && (
-                        <span className="text-[10px] text-muted-foreground">+{stationEmployees.length - 2}</span>
+                        <span className="opacity-0">.</span>
                       )}
                     </div>
                   </div>;
@@ -1713,14 +1720,17 @@ const AdminCalendar = ({
                               .filter((e): e is Employee => !!e);
                             if (assignedEmps.length === 0) return null;
                             return (
-                              <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              <div className="flex flex-wrap gap-1 mt-1">
                                 {assignedEmps.slice(0, 2).map(emp => (
-                                  <span key={emp.id} className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-blue-500 text-white rounded leading-none">
+                                  <span
+                                    key={emp.id}
+                                    className="inline-flex items-center px-2.5 py-1 text-[12px] md:text-[13px] font-semibold bg-primary text-primary-foreground rounded-md leading-none"
+                                  >
                                     {emp.name.split(' ')[0]}
                                   </span>
                                 ))}
                                 {assignedEmps.length > 2 && (
-                                  <span className="inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium bg-blue-500/80 text-white rounded leading-none">
+                                  <span className="inline-flex items-center px-2.5 py-1 text-[12px] md:text-[13px] font-semibold bg-primary/90 text-primary-foreground rounded-md leading-none">
                                     +{assignedEmps.length - 2}
                                   </span>
                                 )}

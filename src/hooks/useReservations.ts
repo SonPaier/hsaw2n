@@ -107,6 +107,7 @@ async function fetchReservationsForRange(
     car_size,
     service_ids,
     service_items,
+    assigned_employee_ids,
     original_reservation_id,
     created_by,
     created_by_username,
