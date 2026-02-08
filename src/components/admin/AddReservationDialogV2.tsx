@@ -505,6 +505,9 @@ const AddReservationDialogV2 = ({
         
         // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
         setUserModifiedEndTime(true);
+        
+        // Initialize assigned employees from reservation
+        setAssignedEmployeeIds(editingReservation.assigned_employee_ids || []);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click
         if (wasOpenRef.current) {
@@ -551,6 +554,7 @@ const AddReservationDialogV2 = ({
           setManualStartTime(initialTime);
           setManualEndTime('');
           setManualStationId(initialStationId);
+          setAssignedEmployeeIds([]);
         }
       } else {
         // Reservation create mode (FAB click)
@@ -577,6 +581,7 @@ const AddReservationDialogV2 = ({
         setManualStartTime('');
         setManualEndTime('');
         setManualStationId(null);
+        setAssignedEmployeeIds([]);
       }
       // Track that dialog is now open
       wasOpenRef.current = true;
@@ -1130,6 +1135,7 @@ const AddReservationDialogV2 = ({
           service_ids: selectedServices,
           service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
           offer_number: offerNumber || null,
+          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
         };
 
         const { error: updateError } = await supabase
@@ -1196,6 +1202,7 @@ const AddReservationDialogV2 = ({
           created_by: user?.id || null,
           created_by_username: currentUsername || null,
           has_unified_services: true,
+          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
         };
 
         const { error: reservationError } = await supabase
