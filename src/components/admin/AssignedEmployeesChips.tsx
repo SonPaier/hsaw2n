@@ -1,5 +1,6 @@
 import { X, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Employee } from '@/hooks/useEmployees';
 
 interface AssignedEmployeesChipsProps {
@@ -88,11 +89,11 @@ export function AssignedEmployeesChips({
       )}
 
       {!readonly && onAdd && (
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={onAdd}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -100,7 +101,7 @@ export function AssignedEmployeesChips({
             <Plus className="w-4 h-4" />
           )}
           Dodaj
-        </button>
+        </Button>
       )}
     </div>
   );
