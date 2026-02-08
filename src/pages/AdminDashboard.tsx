@@ -1029,12 +1029,35 @@ const AdminDashboard = () => {
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
               if (data) {
+                // Primary source: service_items JSONB (already contains names)
+                const serviceItems = data.service_items as unknown as ServiceItem[] | null;
                 const serviceIds = (data as any).service_ids as string[] | null;
-                const servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
-                if (serviceIds && serviceIds.length > 0) {
+                
+                let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
+                
+                // Use service_items as primary source (may or may not have names embedded)
+                if (serviceItems && serviceItems.length > 0) {
+                  servicesDataMapped = serviceItems.map(item => {
+                    const resolvedId = item.id || item.service_id;
+                    const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+
+                    return {
+                      id: resolvedId,
+                      name: item.name || cached?.name || 'Usługa',
+                      shortcut: item.short_name || cached?.shortcut || null,
+                      price_small: item.price_small ?? cached?.price_small ?? null,
+                      price_medium: item.price_medium ?? cached?.price_medium ?? null,
+                      price_large: item.price_large ?? cached?.price_large ?? null,
+                      price_from: item.price_from ?? cached?.price_from ?? null
+                    };
+                  });
+                } else if (serviceIds && serviceIds.length > 0) {
+                  // Fallback to service_ids lookup (for legacy reservations)
                   serviceIds.forEach(id => {
                     const svc = servicesMapRef.current.get(id);
-                    if (svc) servicesDataMapped.push(svc);
+                    if (svc) {
+                      servicesDataMapped.push(svc);
+                    }
                   });
                 }
 

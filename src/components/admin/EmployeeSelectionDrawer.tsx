@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, User, Check } from 'lucide-react';
+import { Search, X, User, Check, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Sheet,
@@ -84,7 +84,13 @@ export function EmployeeSelectionDrawer({
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="p-4 pb-2 border-b shrink-0">
           <SheetTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="p-1 -ml-1 hover:bg-muted rounded-md transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             Wybierz pracowników
           </SheetTitle>
         </SheetHeader>
