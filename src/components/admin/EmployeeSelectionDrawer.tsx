@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, User } from 'lucide-react';
+import { Search, X, User, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Sheet,
@@ -9,10 +9,10 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface EmployeeSelectionDrawerProps {
   open: boolean;
@@ -124,27 +124,40 @@ export function EmployeeSelectionDrawer({
               }
             </div>
           ) : (
-            <div className="space-y-1 py-2">
-              {filteredEmployees.map((employee) => (
-                <label
-                  key={employee.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <Checkbox
-                    checked={localSelectedIds.includes(employee.id)}
-                    onCheckedChange={() => toggleEmployee(employee.id)}
-                  />
-                  <Avatar className="w-9 h-9">
-                    {employee.photo_url ? (
-                      <AvatarImage src={employee.photo_url} alt={employee.name} />
-                    ) : null}
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {getInitials(employee.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">{employee.name}</span>
-                </label>
-              ))}
+            <div className="py-2">
+              {filteredEmployees.map((employee) => {
+                const isSelected = localSelectedIds.includes(employee.id);
+                return (
+                  <button
+                    key={employee.id}
+                    type="button"
+                    onClick={() => toggleEmployee(employee.id)}
+                    className={cn(
+                      "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
+                      isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                    )}
+                  >
+                    <Avatar className="w-9 h-9 mr-3">
+                      {employee.photo_url ? (
+                        <AvatarImage src={employee.photo_url} alt={employee.name} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        {getInitials(employee.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 text-left font-medium">{employee.name}</span>
+                    
+                    <div className={cn(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                      isSelected 
+                        ? "bg-primary border-primary" 
+                        : "border-muted-foreground/40"
+                    )}>
+                      {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
