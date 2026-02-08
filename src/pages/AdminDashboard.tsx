@@ -2681,6 +2681,7 @@ const AdminDashboard = () => {
             price: editingReservation.price,
             offer_number: editingReservation.offer_number,
             has_unified_services: editingReservation.has_unified_services,
+            assigned_employee_ids: editingReservation.assigned_employee_ids,
           } : null}
           currentUsername={username}
         />

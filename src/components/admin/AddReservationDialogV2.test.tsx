@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import i18n from '@/i18n/config';
 import AddReservationDialogV2 from './AddReservationDialogV2';
 import { CarModelsProvider } from '@/contexts/CarModelsContext';
@@ -147,14 +148,23 @@ const renderComponent = (props: Partial<React.ComponentProps<typeof AddReservati
     currentUsername: 'test-user',
   };
 
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
-    <I18nextProvider i18n={i18n}>
-      <MemoryRouter>
-        <CarModelsProvider>
-          <AddReservationDialogV2 {...defaultProps} {...props} />
-        </CarModelsProvider>
-      </MemoryRouter>
-    </I18nextProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter>
+          <CarModelsProvider>
+            <AddReservationDialogV2 {...defaultProps} {...props} />
+          </CarModelsProvider>
+        </MemoryRouter>
+      </I18nextProvider>
+    </QueryClientProvider>
   );
 };
 

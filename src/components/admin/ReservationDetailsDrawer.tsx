@@ -525,7 +525,13 @@ const ReservationDetailsDrawer = ({
 
   const handleEdit = () => {
     if (!reservation || !onEdit) return;
-    onEdit(reservation);
+
+    // Ensure the edit drawer receives the exact same employee state the user sees here
+    onEdit({
+      ...reservation,
+      assigned_employee_ids: localAssignedEmployeeIds,
+    });
+
     // Don't close here - let AdminDashboard handle closing both drawers after save
   };
 

@@ -181,8 +181,8 @@ const AddReservationDialogV2 = ({
   const { data: employees = [] } = useEmployees(instanceId);
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
-  
-  // Mobile: toggle drawer visibility to peek at calendar
+  const employeesDirtyRef = useRef(false);
+  const employeesSyncedFromBackendForReservationIdRef = useRef<string | null>(null);
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
@@ -506,7 +506,9 @@ const AddReservationDialogV2 = ({
         // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
         setUserModifiedEndTime(true);
         
-        // Initialize assigned employees from reservation
+        // Initialize assigned employees from reservation (optimistic) + allow backend to re-hydrate
+        employeesDirtyRef.current = false;
+        employeesSyncedFromBackendForReservationIdRef.current = null;
         setAssignedEmployeeIds(editingReservation.assigned_employee_ids || []);
       } else if (initialDate && initialTime && initialStationId && !editingReservation) {
         // Slot click
@@ -554,6 +556,8 @@ const AddReservationDialogV2 = ({
           setManualStartTime(initialTime);
           setManualEndTime('');
           setManualStationId(initialStationId);
+          employeesDirtyRef.current = false;
+          employeesSyncedFromBackendForReservationIdRef.current = null;
           setAssignedEmployeeIds([]);
         }
       } else {
@@ -581,6 +585,8 @@ const AddReservationDialogV2 = ({
         setManualStartTime('');
         setManualEndTime('');
         setManualStationId(null);
+        employeesDirtyRef.current = false;
+        employeesSyncedFromBackendForReservationIdRef.current = null;
         setAssignedEmployeeIds([]);
       }
       // Track that dialog is now open
@@ -595,6 +601,32 @@ const AddReservationDialogV2 = ({
       setServicesWithCategory([]); // Reset services list for next open
     }
   }, [open, getNextWorkingDay, editingReservation, isYardMode, editingYardVehicle, initialDate, initialTime, initialStationId, services, selectedServices, carSize]);
+
+
+  // Keep employee assignments in sync with backend when opening edit mode
+  useEffect(() => {
+    const reservationId = editingReservation?.id;
+    if (!open || !reservationId || !showEmployeeAssignment) return;
+
+    // Only once per reservation open - prevents loops
+    if (employeesSyncedFromBackendForReservationIdRef.current === reservationId) return;
+    employeesSyncedFromBackendForReservationIdRef.current = reservationId;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select('assigned_employee_ids')
+        .eq('id', reservationId)
+        .maybeSingle();
+
+      if (error) return;
+      if (employeesDirtyRef.current) return;
+
+      const raw = (data as any)?.assigned_employee_ids;
+      const ids = Array.isArray(raw) ? (raw as string[]) : [];
+      setAssignedEmployeeIds(ids);
+    })();
+  }, [open, editingReservation?.id, showEmployeeAssignment]);
 
   // NEW: Re-map servicesWithCategory when services are loaded (for edit mode)
   useEffect(() => {
@@ -1659,7 +1691,11 @@ const AddReservationDialogV2 = ({
         onOpenChange={setEmployeeDrawerOpen}
         instanceId={instanceId}
         selectedEmployeeIds={assignedEmployeeIds}
-        onSelect={setAssignedEmployeeIds}
+        onSelect={(employeeIds) => {
+          employeesDirtyRef.current = true;
+          markUserEditing();
+          setAssignedEmployeeIds(employeeIds);
+        }}
       />
     </>
   );

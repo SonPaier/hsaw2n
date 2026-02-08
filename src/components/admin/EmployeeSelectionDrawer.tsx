@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, X, User, Check, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -34,11 +34,19 @@ export function EmployeeSelectionDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(selectedEmployeeIds);
 
-  // Reset local state when drawer opens
-  useMemo(() => {
-    if (open) {
+  const wasOpenRef = useRef(false);
+
+  // Reset local state only when the drawer is opened (avoid resets on rerenders)
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      wasOpenRef.current = true;
       setLocalSelectedIds(selectedEmployeeIds);
       setSearchQuery('');
+      return;
+    }
+
+    if (!open) {
+      wasOpenRef.current = false;
     }
   }, [open, selectedEmployeeIds]);
 
