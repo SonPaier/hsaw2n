@@ -48,13 +48,14 @@ export function AssignedEmployeesChips({
     return null;
   }
 
-  const chipBaseClasses = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors';
-  
+  const chipBaseClasses =
+    'inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-colors leading-none';
+
   const variantClasses = {
-    default: readonly 
-      ? 'bg-slate-200 text-slate-700'
-      : 'bg-slate-700 text-white',
-    blue: 'bg-blue-500 text-white',
+    default: readonly
+      ? 'bg-muted text-muted-foreground'
+      : 'bg-foreground text-background',
+    blue: 'bg-primary text-primary-foreground',
   };
 
   return (
@@ -72,31 +73,31 @@ export function AssignedEmployeesChips({
                 e.stopPropagation();
                 onRemove(id);
               }}
-              className="ml-0.5 hover:opacity-70"
+              className="ml-1 hover:opacity-70"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </span>
       ))}
-      
+
       {hiddenCount > 0 && (
         <span className={cn(chipBaseClasses, variantClasses[variant])}>
           +{hiddenCount}
         </span>
       )}
-      
+
       {!readonly && onAdd && (
         <button
           type="button"
           onClick={onAdd}
           disabled={loading}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-muted hover:bg-muted/80 text-muted-foreground transition-colors disabled:opacity-50"
         >
           {loading ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Plus className="w-3 h-3" />
+            <Plus className="w-4 h-4" />
           )}
           Dodaj
         </button>
