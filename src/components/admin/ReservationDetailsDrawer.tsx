@@ -750,7 +750,7 @@ const ReservationDetailsDrawer = ({
                       reservation.services_data.map((svc, idx) => (
                         <span 
                           key={svc.id || idx} 
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/90 text-white rounded-full text-sm font-medium"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
                         >
                           {svc.name}
                           {svc.id && (
@@ -766,17 +766,18 @@ const ReservationDetailsDrawer = ({
                         </span>
                       ))
                     ) : reservation.service ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/90 text-white rounded-full text-sm font-medium">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium">
                         {reservation.service.name}
                       </span>
                     ) : null}
                     
-                    {/* Add button pill */}
-                    <button
+                    {/* Add button - same style as employee Add */}
+                    <Button
                       type="button"
+                      size="sm"
                       onClick={() => setServiceDrawerOpen(true)}
                       disabled={savingService}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="rounded-full"
                     >
                       {savingService ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -784,7 +785,7 @@ const ReservationDetailsDrawer = ({
                         <Plus className="w-4 h-4" />
                       )}
                       {t('common.add')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -797,14 +798,43 @@ const ReservationDetailsDrawer = ({
                 <div className="flex-1">
                   <div className="text-xs text-muted-foreground">Przypisani pracownicy</div>
                   <div className="flex flex-wrap gap-2 mt-1.5">
-                    <AssignedEmployeesChips
-                      employeeIds={localAssignedEmployeeIds}
-                      employees={employees}
-                      onRemove={handleRemoveEmployee}
-                      onAdd={() => setEmployeeDrawerOpen(true)}
-                      variant="blue"
-                      loading={savingEmployees}
-                    />
+                    {/* Employee chips - same style as services */}
+                    {localAssignedEmployeeIds.map(empId => {
+                      const emp = employees.find(e => e.id === empId);
+                      const name = emp?.name || 'Usunięty';
+                      return (
+                        <span
+                          key={empId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                        >
+                          {name}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEmployee(empId)}
+                            disabled={savingEmployees}
+                            className="hover:bg-white/20 rounded-full p-0.5 transition-colors disabled:opacity-50"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                    
+                    {/* Add button - same style as services Add */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setEmployeeDrawerOpen(true)}
+                      disabled={savingEmployees}
+                      className="rounded-full"
+                    >
+                      {savingEmployees ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                      Dodaj
+                    </Button>
                   </div>
                 </div>
               </div>

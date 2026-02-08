@@ -1398,13 +1398,13 @@ const AdminCalendar = ({
                           {stationEmployees.slice(0, 2).map(emp => (
                             <span
                               key={emp.id}
-                              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-foreground text-background rounded-md leading-none"
+                              className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none"
                             >
                               {emp.name.split(' ')[0]}
                             </span>
                           ))}
                           {stationEmployees.length > 2 && (
-                            <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold bg-foreground text-background rounded-md leading-none">
+                            <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none">
                               +{stationEmployees.length - 2}
                             </span>
                           )}
