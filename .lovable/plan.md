@@ -1,45 +1,55 @@
 
 
-# Usuwanie 3 zbednych Edge Functions
+# Kopiowanie danych ARMCAR -> Demo (zaktualizowany plan)
 
-## Co robimy
+## Zmiana wzgledem poprzedniego planu
 
-Usuwamy 3 funkcje backendowe ktore generuja niepotrzebne koszty:
+Zaktualizowane wartosci pol trust header i portfolio na fikcyjne dane N2Wash:
 
-1. **parse-voice-reservation** - parsowanie glosowe rezerwacji przez AI (Gemini)
-2. **analyze-damage** - analiza uszkodzen i czyszczenie transkrypcji przez AI (Gemini)
-3. **get-public-config** - zwraca Sentry DSN, ale frontend juz uzywa `VITE_SENTRY_DSN` z env
+| Pole | Wartosc dla Demo |
+|------|-----------------|
+| offer_trust_header_title | "Dlaczego warto nam zaufac?" |
+| offer_trust_description | "Profesjonalne studio detailingowe z wieloletnim doswiadczeniem. Setki zadowolonych klientow i najwyzszej jakosci materialy." |
+| offer_portfolio_url | https://n2wash.com/realizacje |
+| offer_google_reviews_url | https://n2wash.com/opinie |
 
-## Zakres zmian
+## Bezpieczenstwo danych ARMCAR
 
-### 1. Usun pliki Edge Functions
-- `supabase/functions/parse-voice-reservation/index.ts`
-- `supabase/functions/analyze-damage/index.ts`
-- `supabase/functions/get-public-config/index.ts`
+Funkcja `seed-demo-data` bedzie dzialac wylacznie w trybie **READ z ARMCAR, WRITE do Demo**:
 
-### 2. Usun wpisy z `supabase/config.toml`
-- Sekcja `[functions.parse-voice-reservation]`
-- Sekcja `[functions.get-public-config]`
-- (analyze-damage nie ma wpisu w config.toml)
+- ARMCAR (`4ce15650-...`): tylko SELECT - zadne INSERT/UPDATE/DELETE
+- Demo (`b3c29bfe-...`): DELETE starych danych + INSERT nowych + UPDATE instances (tylko wiersz demo)
+- Kazdy DELETE/INSERT/UPDATE bedzie mial explicit `WHERE instance_id = demoInstanceId`
+- Dane ARMCAR sa tylko zrodlem do odczytu
 
-### 3. Usun komponent `VoiceReservationInput`
-- `src/components/admin/VoiceReservationInput.tsx` - nie jest importowany nigdzie, to martwy kod
+## Pelny zakres operacji (bez zmian wzgledem poprzedniego planu)
 
-### 4. Zmodyfikuj `VoiceNoteInput` (protokoly uszkodzen)
-- Plik: `src/components/protocols/VoiceNoteInput.tsx`
-- Uzywany w: `DamagePointDrawer.tsx`
-- Zmiana: usun wywolanie `analyze-damage` (funkcja `cleanTranscriptWithAI`), zamiast tego przekazuj surowy transkrypt bezposrednio do `onTranscript` bez przetwarzania AI
+### 1. Czyszczenie demo (kolejnosc FK)
+- offer_option_items, offer_options, offer_history, offers
+- offer_scope_products, offer_scopes
+- unified_services, unified_categories
+- Wszystkie z `WHERE instance_id = demoInstanceId`
 
-### 5. Usun deployowane funkcje z backendu
-- Uzyj narzedzia do usuniecia deployowanych funkcji: `parse-voice-reservation`, `analyze-damage`, `get-public-config`
+### 2. Kopiowanie z ARMCAR (SELECT only)
+- unified_categories (type='both') -> INSERT do demo z nowymi UUID
+- unified_services (type='both') -> INSERT do demo z nowymi UUID
+- offer_scopes (has_unified_services=true) -> INSERT z nowymi UUID
+- offer_scope_products -> INSERT z przemapowanymi scope_id i product_id
+- offers (has_unified_services=true, LIMIT 10) -> INSERT z fikcyjnymi danymi klientow
+- offer_options -> INSERT z przemapowanymi offer_id i scope_id
+- offer_option_items -> INSERT z przemapowanymi option_id i product_id
 
-## Co sie nie zmienia
-- Sentry dziala dalej - korzysta z `VITE_SENTRY_DSN` w env (juz zaimplementowane)
-- Nagrywanie glosowe w protokolach dalej dziala - po prostu bez czyszczenia AI (surowy tekst)
-- Reszta Edge Functions bez zmian
+### 3. Update instances (tylko wiersz demo)
+- Branding: 8 pol kolorow (skopiowane z ARMCAR)
+- Trust header: 4 pola (fikcyjne dane N2Wash jak wyzej)
+- Dane bankowe: fikcyjne (N2Wash Demo Sp. z o.o., PKO, wymyslony numer konta)
+- Warunki platnosci: skopiowane z ARMCAR
+- Widget config: skopiowany z ARMCAR, przemapowane ID
 
-## Szacowany efekt
-- Eliminacja wywolan AI gateway (Gemini) z dwoch funkcji
-- Eliminacja wywolan `get-public-config` przy kazdym ladowaniu strony
-- Mniej deployowanych funkcji = mniejszy narzut
+### 4. Fikcyjne dane klientow w ofertach
+10 ofert z wymyslonymi danymi osobowymi, reszta (pojazd, kwoty, statusy) skopiowana 1:1.
+
+## Implementacja
+- Jednorazowa Edge Function `seed-demo-data`
+- Po wykonaniu i weryfikacji - usuniecie funkcji
 
