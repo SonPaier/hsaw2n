@@ -33,8 +33,6 @@ verify_jwt = false
 [functions.extract-price-list]
 verify_jwt = false
 
-[functions.parse-voice-reservation]
-verify_jwt = false
 
 [functions.manage-instance-users]
 verify_jwt = false
@@ -48,8 +46,6 @@ verify_jwt = false
 [functions.get-manifest]
 verify_jwt = false
 
-[functions.get-public-config]
-verify_jwt = false
 
 [functions.send-offer-email]
 verify_jwt = false
