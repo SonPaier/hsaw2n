@@ -1,55 +1,33 @@
 
+# Naprawa: opisy produktow nie widoczne w publicznej ofercie
 
-# Kopiowanie danych ARMCAR -> Demo (zaktualizowany plan)
+## Problem
+Na stronie publicznej oferty (np. `demo.n2wash.com/offers/xxx`) opisy produktow nie sa wyswietlane, mimo ze w podgladzie admina sa widoczne.
 
-## Zmiana wzgledem poprzedniego planu
+## Przyczyna
+Strona publiczna (`PublicOfferView.tsx`) pobiera opisy produktow z tabeli `unified_services` w osobnym zapytaniu (linie 96-108). Jednak tabela `unified_services` ma polityki RLS, ktore wymagaja zalogowanego uzytkownika (`can_access_instance` sprawdza `auth.uid()`).
 
-Zaktualizowane wartosci pol trust header i portfolio na fikcyjne dane N2Wash:
+Klient ogladajacy oferte publiczna **nie jest zalogowany**, wiec zapytanie do `unified_services` zwraca pusty wynik - brak opisow.
 
-| Pole | Wartosc dla Demo |
-|------|-----------------|
-| offer_trust_header_title | "Dlaczego warto nam zaufac?" |
-| offer_trust_description | "Profesjonalne studio detailingowe z wieloletnim doswiadczeniem. Setki zadowolonych klientow i najwyzszej jakosci materialy." |
-| offer_portfolio_url | https://n2wash.com/realizacje |
-| offer_google_reviews_url | https://n2wash.com/opinie |
+Admin widzi opisy, bo jest zalogowany i ma uprawnienia do instancji.
 
-## Bezpieczenstwo danych ARMCAR
+## Rozwiazanie
+Dodanie nowej polityki RLS na tabeli `unified_services` pozwalajacej na odczyt (SELECT) dla niezalogowanych uzytkownikow (rola `anon`). Jest to bezpieczne, poniewaz:
+- Opisy produktow to dane publiczne (wyswietlane klientom w ofertach)
+- Polityka dotyczy tylko odczytu (SELECT), nie modyfikacji
+- Cennik jest i tak prezentowany publicznie w widgecie rezerwacji
 
-Funkcja `seed-demo-data` bedzie dzialac wylacznie w trybie **READ z ARMCAR, WRITE do Demo**:
+### Szczegoly techniczne
 
-- ARMCAR (`4ce15650-...`): tylko SELECT - zadne INSERT/UPDATE/DELETE
-- Demo (`b3c29bfe-...`): DELETE starych danych + INSERT nowych + UPDATE instances (tylko wiersz demo)
-- Kazdy DELETE/INSERT/UPDATE bedzie mial explicit `WHERE instance_id = demoInstanceId`
-- Dane ARMCAR sa tylko zrodlem do odczytu
+**Migracja SQL:**
+```sql
+CREATE POLICY "Public can read service descriptions"
+  ON public.unified_services
+  FOR SELECT
+  TO anon
+  USING (true);
+```
 
-## Pelny zakres operacji (bez zmian wzgledem poprzedniego planu)
+Alternatywnie, jesli chcemy ograniczyc dostep tylko do `id` i `description` (zamiast calego wiersza), mozna uzyc SECURITY DEFINER function. Jednak prostsze podejscie z polityka RLS jest wystarczajace, bo dane w tej tabeli (nazwy uslug, opisy, ceny) sa i tak prezentowane publicznie w widgecie rezerwacji.
 
-### 1. Czyszczenie demo (kolejnosc FK)
-- offer_option_items, offer_options, offer_history, offers
-- offer_scope_products, offer_scopes
-- unified_services, unified_categories
-- Wszystkie z `WHERE instance_id = demoInstanceId`
-
-### 2. Kopiowanie z ARMCAR (SELECT only)
-- unified_categories (type='both') -> INSERT do demo z nowymi UUID
-- unified_services (type='both') -> INSERT do demo z nowymi UUID
-- offer_scopes (has_unified_services=true) -> INSERT z nowymi UUID
-- offer_scope_products -> INSERT z przemapowanymi scope_id i product_id
-- offers (has_unified_services=true, LIMIT 10) -> INSERT z fikcyjnymi danymi klientow
-- offer_options -> INSERT z przemapowanymi offer_id i scope_id
-- offer_option_items -> INSERT z przemapowanymi option_id i product_id
-
-### 3. Update instances (tylko wiersz demo)
-- Branding: 8 pol kolorow (skopiowane z ARMCAR)
-- Trust header: 4 pola (fikcyjne dane N2Wash jak wyzej)
-- Dane bankowe: fikcyjne (N2Wash Demo Sp. z o.o., PKO, wymyslony numer konta)
-- Warunki platnosci: skopiowane z ARMCAR
-- Widget config: skopiowany z ARMCAR, przemapowane ID
-
-### 4. Fikcyjne dane klientow w ofertach
-10 ofert z wymyslonymi danymi osobowymi, reszta (pojazd, kwoty, statusy) skopiowana 1:1.
-
-## Implementacja
-- Jednorazowa Edge Function `seed-demo-data`
-- Po wykonaniu i weryfikacji - usuniecie funkcji
-
+**Brak zmian w kodzie frontendu** - zapytanie w `PublicOfferView.tsx` jest poprawne, problem lezy wylacznie w uprawnieniach bazy danych.
