@@ -1,8 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceNoteInputProps {
   onTranscript: (text: string) => void;
@@ -11,27 +10,8 @@ interface VoiceNoteInputProps {
 
 export const VoiceNoteInput = ({ onTranscript, disabled = false }: VoiceNoteInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
-
-  const cleanTranscriptWithAI = async (rawTranscript: string): Promise<string> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-damage', {
-        body: { type: 'clean_transcript', transcript: rawTranscript }
-      });
-
-      if (error) {
-        console.error('AI cleaning error:', error);
-        return rawTranscript; // Fallback to raw transcript
-      }
-
-      return data?.result || rawTranscript;
-    } catch (err) {
-      console.error('AI cleaning error:', err);
-      return rawTranscript;
-    }
-  };
 
   const stopRecognition = useCallback(() => {
     if (recognitionRef.current) {
@@ -88,25 +68,14 @@ export const VoiceNoteInput = ({ onTranscript, disabled = false }: VoiceNoteInpu
       }
     };
 
-    recognition.onend = async () => {
+    recognition.onend = () => {
       recognitionRef.current = null;
       setIsRecording(false);
       
       const rawTranscript = transcriptRef.current;
       if (rawTranscript) {
-        setIsProcessing(true);
-        try {
-          // Clean transcript with AI
-          const cleanedTranscript = await cleanTranscriptWithAI(rawTranscript);
-          onTranscript(cleanedTranscript);
-          toast.success('Tekst przetworzony przez AI');
-        } catch {
-          // Fallback to raw transcript
-          onTranscript(rawTranscript);
-          toast.success('Tekst rozpoznany');
-        } finally {
-          setIsProcessing(false);
-        }
+        onTranscript(rawTranscript);
+        toast.success('Tekst rozpoznany');
       }
     };
 
@@ -127,13 +96,11 @@ export const VoiceNoteInput = ({ onTranscript, disabled = false }: VoiceNoteInpu
       variant="outline"
       size="icon"
       onClick={handleClick}
-      disabled={disabled || isProcessing}
+      disabled={disabled}
       className={`shrink-0 ${isRecording ? 'bg-red-500/20 border-red-500 text-red-500 hover:bg-red-500/30' : 'bg-white'}`}
-      title={isRecording ? 'Zatrzymaj nagrywanie' : isProcessing ? 'Przetwarzanie AI...' : 'Nagraj notatkę głosową'}
+      title={isRecording ? 'Zatrzymaj nagrywanie' : 'Nagraj notatkę głosową'}
     >
-      {isProcessing ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : isRecording ? (
+      {isRecording ? (
         <MicOff className="w-4 h-4" />
       ) : (
         <Mic className="w-4 h-4" />
