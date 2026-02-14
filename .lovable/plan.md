@@ -1,186 +1,45 @@
 
 
-# Plan: Ujednolicenie stylu przycisku Dodaj i drawera pracowników
+# Usuwanie 3 zbednych Edge Functions
 
-## Podsumowanie
+## Co robimy
 
-Dwie zmiany:
-1. Przycisk "Dodaj" w sekcji pracowników ma wyglądać identycznie jak przycisk "Dodaj" w usługach (niebieski/primary)
-2. Drawer wyboru pracowników ma używać designu zgodnego z ServiceSelectionDrawer (okrągłe radio po prawej, separator między pozycjami)
+Usuwamy 3 funkcje backendowe ktore generuja niepotrzebne koszty:
 
----
+1. **parse-voice-reservation** - parsowanie glosowe rezerwacji przez AI (Gemini)
+2. **analyze-damage** - analiza uszkodzen i czyszczenie transkrypcji przez AI (Gemini)
+3. **get-public-config** - zwraca Sentry DSN, ale frontend juz uzywa `VITE_SENTRY_DSN` z env
 
-## Zmiany
+## Zakres zmian
 
-### 1. AssignedEmployeesChips.tsx - styl przycisku Dodaj
+### 1. Usun pliki Edge Functions
+- `supabase/functions/parse-voice-reservation/index.ts`
+- `supabase/functions/analyze-damage/index.ts`
+- `supabase/functions/get-public-config/index.ts`
 
-**Aktualnie:**
-```tsx
-<button className="bg-muted hover:bg-muted/80 text-muted-foreground ...">
-```
+### 2. Usun wpisy z `supabase/config.toml`
+- Sekcja `[functions.parse-voice-reservation]`
+- Sekcja `[functions.get-public-config]`
+- (analyze-damage nie ma wpisu w config.toml)
 
-**Zmiana na:**
-```tsx
-<Button type="button" size="sm" onClick={onAdd} disabled={loading}>
-  {loading ? <Loader2 /> : <Plus />}
-  Dodaj
-</Button>
-```
+### 3. Usun komponent `VoiceReservationInput`
+- `src/components/admin/VoiceReservationInput.tsx` - nie jest importowany nigdzie, to martwy kod
 
-Użycie komponentu `Button` z wariantem primary (domyślny), identycznie jak w `SelectedServicesList.tsx` (linia 261-268).
+### 4. Zmodyfikuj `VoiceNoteInput` (protokoly uszkodzen)
+- Plik: `src/components/protocols/VoiceNoteInput.tsx`
+- Uzywany w: `DamagePointDrawer.tsx`
+- Zmiana: usun wywolanie `analyze-damage` (funkcja `cleanTranscriptWithAI`), zamiast tego przekazuj surowy transkrypt bezposrednio do `onTranscript` bez przetwarzania AI
 
----
+### 5. Usun deployowane funkcje z backendu
+- Uzyj narzedzia do usuniecia deployowanych funkcji: `parse-voice-reservation`, `analyze-damage`, `get-public-config`
 
-### 2. EmployeeSelectionDrawer.tsx - redesign listy
+## Co sie nie zmienia
+- Sentry dziala dalej - korzysta z `VITE_SENTRY_DSN` w env (juz zaimplementowane)
+- Nagrywanie glosowe w protokolach dalej dziala - po prostu bez czyszczenia AI (surowy tekst)
+- Reszta Edge Functions bez zmian
 
-**Aktualny design:**
-- Checkbox po lewej stronie
-- Brak separatorów
-- Hover na całym wierszu
-
-**Nowy design (zgodny z ServiceSelectionDrawer):**
-- Okrągły radio/checkmark po prawej stronie
-- Cienka szara linia (`border-b border-border/50`) między pozycjami
-- Avatar i imię po lewej
-- Highlight na zaznaczonych (`bg-primary/5`)
-
-```text
-+------------------------------------------+
-| [Avatar] Jan Kowalski                [○] |
-+------------------------------------------+  <- border-b border-border/50
-| [Avatar] Anna Nowak                  [●] |  <- zaznaczony: bg-primary/5, wypełniony circle
-+------------------------------------------+
-| [Avatar] Piotr Wiśniewski            [○] |
-+------------------------------------------+
-```
-
-**Kod nowego wiersza:**
-```tsx
-<button
-  key={employee.id}
-  type="button"
-  onClick={() => toggleEmployee(employee.id)}
-  className={cn(
-    "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-    isSelected ? "bg-primary/5" : "hover:bg-muted/30"
-  )}
->
-  {/* Avatar + name */}
-  <Avatar className="w-9 h-9 mr-3">
-    {employee.photo_url && <AvatarImage src={employee.photo_url} />}
-    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-      {getInitials(employee.name)}
-    </AvatarFallback>
-  </Avatar>
-  <span className="flex-1 text-left font-medium">{employee.name}</span>
-  
-  {/* Radio circle on the right */}
-  <div className={cn(
-    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-    isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
-  )}>
-    {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
-  </div>
-</button>
-```
-
-**Usunięcie:**
-- Import `Checkbox` z radix (nieużywany)
-- Wrapper `<label>` z klasą `rounded-lg` i padding
-
----
-
-## Pliki do edycji
-
-| Plik | Zmiana |
-|------|--------|
-| `src/components/admin/AssignedEmployeesChips.tsx` | Zmiana stylu przycisku Dodaj na `<Button size="sm">` |
-| `src/components/admin/EmployeeSelectionDrawer.tsx` | Redesign listy: radio po prawej, separator, usunięcie Checkbox |
-
----
-
-## Szczegóły techniczne
-
-### AssignedEmployeesChips.tsx
-
-**Dodaj import:**
-```tsx
-import { Button } from '@/components/ui/button';
-```
-
-**Zmień przycisk (linia 91-104):**
-```tsx
-{!readonly && onAdd && (
-  <Button
-    type="button"
-    size="sm"
-    onClick={onAdd}
-    disabled={loading}
-  >
-    {loading ? (
-      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-    ) : (
-      <Plus className="w-4 h-4 mr-1" />
-    )}
-    Dodaj
-  </Button>
-)}
-```
-
-### EmployeeSelectionDrawer.tsx
-
-**Usunięcie:**
-```tsx
-// Usuń:
-import { Checkbox } from '@/components/ui/checkbox';
-```
-
-**Dodaj:**
-```tsx
-import { Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
-```
-
-**Zmiana sekcji listy (linia 127-148):**
-
-Zamień `<div className="space-y-1 py-2">` i wewnętrzną `<label>` na:
-
-```tsx
-<div className="py-2">
-  {filteredEmployees.map((employee) => {
-    const isSelected = localSelectedIds.includes(employee.id);
-    return (
-      <button
-        key={employee.id}
-        type="button"
-        onClick={() => toggleEmployee(employee.id)}
-        className={cn(
-          "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-          isSelected ? "bg-primary/5" : "hover:bg-muted/30"
-        )}
-      >
-        <Avatar className="w-9 h-9 mr-3">
-          {employee.photo_url ? (
-            <AvatarImage src={employee.photo_url} alt={employee.name} />
-          ) : null}
-          <AvatarFallback className="bg-primary/10 text-primary text-sm">
-            {getInitials(employee.name)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="flex-1 text-left font-medium">{employee.name}</span>
-        
-        {/* Radio circle on the right */}
-        <div className={cn(
-          "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-          isSelected 
-            ? "bg-primary border-primary" 
-            : "border-muted-foreground/40"
-        )}>
-          {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
-        </div>
-      </button>
-    );
-  })}
-</div>
-```
+## Szacowany efekt
+- Eliminacja wywolan AI gateway (Gemini) z dwoch funkcji
+- Eliminacja wywolan `get-public-config` przy kazdym ladowaniu strony
+- Mniej deployowanych funkcji = mniejszy narzut
 
