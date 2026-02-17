@@ -588,7 +588,7 @@ const CustomerEditDrawer = ({
                       {visits.map((visit) => (
                         <div
                           key={visit.id}
-                          className="p-3 bg-background rounded-lg border border-border/50"
+                          className="p-3 bg-white dark:bg-card rounded-lg border border-border shadow-sm"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <div className="font-medium text-sm">
