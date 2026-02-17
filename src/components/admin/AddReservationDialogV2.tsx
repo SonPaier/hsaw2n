@@ -170,7 +170,7 @@ const AddReservationDialogV2 = ({
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isReservationMode = mode === 'reservation';
-  const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation;
+  const isEditMode = isYardMode ? !!editingYardVehicle : !!(editingReservation?.id);
   
   const { t } = useTranslation();
   const isMobile = useIsMobile();

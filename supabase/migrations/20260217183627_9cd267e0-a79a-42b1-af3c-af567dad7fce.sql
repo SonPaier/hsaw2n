@@ -1,0 +1,1 @@
+ALTER TABLE public.offers ADD COLUMN internal_notes text;
