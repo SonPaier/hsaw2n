@@ -1147,10 +1147,18 @@ const AddReservationDialogV2 = ({
           customerId = existingCustomer.id;
           // Update name if changed
           if (customerName.trim() !== existingCustomer.name) {
+            const normalizedName = customerName.trim();
+            // Update customer record
             await supabase
               .from('customers')
-              .update({ name: customerName.trim() })
+              .update({ name: normalizedName })
               .eq('id', existingCustomer.id);
+            // Also update customer_name in all existing reservations for this customer
+            await supabase
+              .from('reservations')
+              .update({ customer_name: normalizedName })
+              .eq('instance_id', instanceId)
+              .eq('customer_phone', normalizedPhone);
           }
         } else {
           const { data: newCustomer, error: customerError } = await supabase
