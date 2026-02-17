@@ -58,8 +58,8 @@ interface ReservationDateTimeSectionProps {
   markUserEditing: () => void;
   dateRangeRef: RefObject<HTMLDivElement>;
   timeRef: RefObject<HTMLDivElement>;
-  /** Is edit mode - controls station selector visibility */
-  isEditMode?: boolean;
+  /** Show station selector (edit mode or creating from offer) */
+  showStationSelector?: boolean;
 }
 
 export const ReservationDateTimeSection = ({
@@ -96,7 +96,7 @@ export const ReservationDateTimeSection = ({
   markUserEditing,
   dateRangeRef,
   timeRef,
-  isEditMode = false,
+  showStationSelector = false,
 }: ReservationDateTimeSectionProps) => {
   const { t } = useTranslation();
   
@@ -288,7 +288,7 @@ export const ReservationDateTimeSection = ({
         </div>
 
         {/* Station selector */}
-        {(
+        {showStationSelector && (
           <div className="space-y-2">
             <Label htmlFor="manualStation">
               {t('addReservation.selectStation')} <span className="text-destructive">*</span>
