@@ -1881,6 +1881,7 @@ export type Database = {
           id: string
           inquiry_notes: string | null
           instance_id: string
+          internal_notes: string | null
           notes: string | null
           offer_number: string
           paint_color: string | null
@@ -1923,6 +1924,7 @@ export type Database = {
           id?: string
           inquiry_notes?: string | null
           instance_id: string
+          internal_notes?: string | null
           notes?: string | null
           offer_number: string
           paint_color?: string | null
@@ -1965,6 +1967,7 @@ export type Database = {
           id?: string
           inquiry_notes?: string | null
           instance_id?: string
+          internal_notes?: string | null
           notes?: string | null
           offer_number?: string
           paint_color?: string | null

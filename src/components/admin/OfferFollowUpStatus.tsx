@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, StickyNote } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,8 @@ interface OfferFollowUpStatusProps {
   offerId: string;
   currentStatus: FollowUpPhoneStatus;
   onStatusChange: (offerId: string, newStatus: FollowUpPhoneStatus) => void;
+  hasInternalNote?: boolean;
+  onNoteClick?: () => void;
 }
 
 const STATUS_CONFIG: Record<NonNullable<FollowUpPhoneStatus>, { label: string; className: string }> = {
@@ -36,6 +38,8 @@ export function OfferFollowUpStatus({
   offerId,
   currentStatus,
   onStatusChange,
+  hasInternalNote = false,
+  onNoteClick,
 }: OfferFollowUpStatusProps) {
   const currentConfig = currentStatus ? STATUS_CONFIG[currentStatus] : null;
 
@@ -48,7 +52,7 @@ export function OfferFollowUpStatus({
   };
 
   return (
-    <div className="flex items-center" onClick={handleStatusClick}>
+    <div className="flex items-center gap-1.5" onClick={handleStatusClick}>
       {/* Status dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -82,6 +86,21 @@ export function OfferFollowUpStatus({
               </DropdownMenuItem>
             )
           )}
+          {/* Notatka option */}
+          <DropdownMenuItem
+            onClick={() => onNoteClick?.()}
+            className="p-1"
+          >
+            <span
+              className={cn(
+                'px-4 py-1.5 rounded-full text-sm font-medium w-full text-center flex items-center justify-center gap-1.5',
+                'bg-blue-500 text-white hover:bg-blue-600'
+              )}
+            >
+              <StickyNote className="w-3.5 h-3.5" />
+              Notatka
+            </span>
+          </DropdownMenuItem>
           {currentStatus && (
             <DropdownMenuItem
               onClick={() => handleStatusChange(null)}
@@ -99,6 +118,20 @@ export function OfferFollowUpStatus({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Note icon - visible when internal note exists */}
+      {hasInternalNote && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onNoteClick?.();
+          }}
+          className="p-1.5 rounded-full hover:bg-secondary/80 transition-colors"
+          title="Notatka wewnętrzna"
+        >
+          <StickyNote className="w-4 h-4 text-blue-500" />
+        </button>
+      )}
     </div>
   );
 }

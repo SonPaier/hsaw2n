@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers, Banknote, Phone } from 'lucide-react';
+import { Plus, FileText, Eye, Send, Trash2, Copy, MoreVertical, Loader2, Filter, Search, Settings, CopyPlus, ChevronLeft, ChevronRight, ArrowLeft, ClipboardCopy, RefreshCw, CheckCircle, CheckCheck, Bell, Receipt, Layers, Banknote, Phone, CalendarPlus } from 'lucide-react';
 import { normalizeSearchQuery, formatViewedDate } from '@/lib/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -40,10 +40,20 @@ import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApproval
 import { OfferFollowUpStatus } from './OfferFollowUpStatus';
 import { OfferPreviewDialogByToken } from './OfferPreviewDialogByToken';
 import { useOfferScopes } from '@/hooks/useOfferScopes';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import AddReservationDialogV2 from './AddReservationDialogV2';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
@@ -85,6 +95,7 @@ interface Offer {
   viewed_at?: string | null;
   selected_state?: SelectedState | null;
   follow_up_phone_status?: FollowUpPhoneStatus;
+  internal_notes?: string | null;
 }
 
 interface OfferWithOptions extends Offer {
@@ -100,6 +111,7 @@ interface OfferWithOptions extends Offer {
       unit_price?: number;
       quantity?: number;
       discount_percent?: number;
+      product_id?: string | null;
     }[];
   }[];
   offer_scopes?: {
@@ -189,8 +201,18 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // Preview dialog state
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; token: string | null }>({ open: false, token: null });
 
+  // Internal note drawer state
+  const [noteDrawer, setNoteDrawer] = useState<{ open: boolean; offerId: string; notes: string }>({ open: false, offerId: '', notes: '' });
+
+  // Reservation from offer state
+  const [reservationFromOffer, setReservationFromOffer] = useState<{
+    open: boolean;
+    offer: OfferWithOptions | null;
+  }>({ open: false, offer: null });
+
   // CACHED HOOK - offer scopes with 7-day staleTime
   const { data: cachedScopes = [] } = useOfferScopes(instanceId);
+  const { data: workingHours } = useWorkingHours(instanceId);
   
   // Build scopes map from cached data
   const scopesMap = useMemo(() => {
@@ -230,7 +252,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
               custom_name,
               unit_price,
               quantity,
-              discount_percent
+              discount_percent,
+              product_id
             )
           )
         `)
@@ -403,6 +426,59 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       console.error('Error updating follow-up status:', error);
       toast.error('Błąd aktualizacji statusu');
     }
+  };
+
+  const handleOpenNoteDrawer = (offer: OfferWithOptions) => {
+    setNoteDrawer({ open: true, offerId: offer.id, notes: offer.internal_notes || '' });
+  };
+
+  const handleSaveNote = async () => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ 
+          internal_notes: noteDrawer.notes || null,
+          follow_up_phone_status: 'called_discussed',
+        })
+        .eq('id', noteDrawer.offerId);
+      
+      if (error) throw error;
+      
+      setOffers(prev => prev.map(o => 
+        o.id === noteDrawer.offerId 
+          ? { ...o, internal_notes: noteDrawer.notes || null, follow_up_phone_status: 'called_discussed' as FollowUpPhoneStatus } 
+          : o
+      ));
+      setNoteDrawer({ open: false, offerId: '', notes: '' });
+      toast.success('Notatka zapisana');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Błąd zapisu notatki');
+    }
+  };
+
+  const handleReserveFromOffer = (offer: OfferWithOptions) => {
+    setReservationFromOffer({ open: true, offer });
+  };
+
+  const getReservationDataFromOffer = (offer: OfferWithOptions) => {
+    // Extract unique product_ids from offer_option_items
+    const serviceIds = [...new Set(
+      offer.offer_options?.flatMap(opt => 
+        opt.offer_option_items?.map(item => item.product_id).filter(Boolean) || []
+      ) || []
+    )] as string[];
+
+    return {
+      customer_name: offer.customer_data?.name || '',
+      customer_phone: offer.customer_data?.phone || '',
+      vehicle_plate: offer.vehicle_data?.brandModel || offer.vehicle_data?.plate || '',
+      admin_notes: offer.internal_notes || undefined,
+      offer_number: offer.offer_number,
+      price: offer.admin_approved_gross ?? offer.total_gross ?? undefined,
+      has_unified_services: true,
+      service_ids: serviceIds.length > 0 ? serviceIds : undefined,
+    };
   };
 
   const formatPrice = (value: number) => {
@@ -662,6 +738,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               offerId={offer.id}
                               currentStatus={offer.follow_up_phone_status ?? null}
                               onStatusChange={handleFollowUpStatusChange}
+                              hasInternalNote={!!offer.internal_notes}
+                              onNoteClick={() => handleOpenNoteDrawer(offer)}
                             />
                           </div>
                         )}
@@ -735,6 +813,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               offerId={offer.id}
                               currentStatus={offer.follow_up_phone_status ?? null}
                               onStatusChange={handleFollowUpStatusChange}
+                              hasInternalNote={!!offer.internal_notes}
+                              onNoteClick={() => handleOpenNoteDrawer(offer)}
                             />
                           </div>
                         )}
@@ -771,9 +851,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             <Copy className="w-4 h-4 mr-2" />
                             {t('offers.copyLink')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateOffer(offer.id); }}>
-                            <CopyPlus className="w-4 h-4 mr-2" />
-                            {t('offers.duplicate')}
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReserveFromOffer(offer); }}>
+                            <CalendarPlus className="w-4 h-4 mr-2" />
+                            Rezerwuj
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenSendEmailDialog(offer); }}>
                             <Send className="w-4 h-4 mr-2" />
@@ -1026,6 +1106,61 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
           open={previewDialog.open}
           onClose={() => setPreviewDialog({ open: false, token: null })}
           token={previewDialog.token}
+        />
+      )}
+
+      {/* Internal Note Drawer */}
+      <Sheet open={noteDrawer.open} onOpenChange={(open) => !open && setNoteDrawer({ open: false, offerId: '', notes: '' })}>
+        <SheetContent side="right" className="flex flex-col sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Notatka wewnętrzna</SheetTitle>
+            <SheetDescription className="sr-only">Dodaj notatkę wewnętrzną do oferty</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 py-4">
+            <Textarea
+              value={noteDrawer.notes}
+              onChange={(e) => setNoteDrawer(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Wpisz notatkę..."
+              className="h-full min-h-[200px] resize-none"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setNoteDrawer({ open: false, offerId: '', notes: '' })}
+            >
+              Anuluj
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleSaveNote}
+            >
+              Zapisz
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Reservation from Offer */}
+      {reservationFromOffer.offer && instanceId && (
+        <AddReservationDialogV2
+          open={reservationFromOffer.open}
+          onClose={() => setReservationFromOffer({ open: false, offer: null })}
+          instanceId={instanceId}
+          onSuccess={() => {
+            setReservationFromOffer({ open: false, offer: null });
+            toast.success('Rezerwacja utworzona z oferty');
+          }}
+          workingHours={workingHours}
+          editingReservation={{
+            id: '',
+            ...getReservationDataFromOffer(reservationFromOffer.offer),
+            reservation_date: '',
+            start_time: '',
+            end_time: '',
+            station_id: null,
+          }}
         />
       )}
     </>
