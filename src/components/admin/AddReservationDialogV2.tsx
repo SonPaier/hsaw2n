@@ -1134,21 +1134,30 @@ const AddReservationDialogV2 = ({
       let customerId = selectedCustomerId;
       
       if (customerName && !customerId && phone) {
+        const normalizedPhone = normalizePhoneForStorage(phone);
         const { data: existingCustomer } = await supabase
           .from('customers')
-          .select('id')
+          .select('id, name')
           .eq('instance_id', instanceId)
-          .eq('phone', phone)
+          .eq('phone', normalizedPhone)
+          .limit(1)
           .maybeSingle();
         
         if (existingCustomer) {
           customerId = existingCustomer.id;
+          // Update name if changed
+          if (customerName.trim() !== existingCustomer.name) {
+            await supabase
+              .from('customers')
+              .update({ name: customerName.trim() })
+              .eq('id', existingCustomer.id);
+          }
         } else {
           const { data: newCustomer, error: customerError } = await supabase
             .from('customers')
             .insert({
               instance_id: instanceId,
-              phone: normalizePhoneForStorage(phone),
+              phone: normalizedPhone,
               name: customerName,
             })
             .select('id')

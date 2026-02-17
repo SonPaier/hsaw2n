@@ -416,6 +416,7 @@
     "fullName": "Imię i nazwisko",
     "notesPlaceholder": "Notatki o kliencie...",
     "saved": "Dane klienta zapisane",
+    "updatedExisting": "Klient z tym numerem już istniał — dane zostały zaktualizowane",
     "visitHistory": "Historia wizyt",
     "noVisitHistory": "Brak historii wizyt",
     "deleted": "Klient został usunięty",

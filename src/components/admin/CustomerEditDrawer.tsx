@@ -244,25 +244,55 @@ const CustomerEditDrawer = ({
       let customerId: string | undefined;
 
       if (isAddMode) {
-        // Create new customer
-        const { data: newCustomer, error } = await supabase
-          .from('customers')
-          .insert({
-            instance_id: instanceId,
-            name: editName.trim(),
-            phone: normalizePhone(editPhone.trim()),
-            email: editEmail.trim() || null,
-            notes: editNotes.trim() || null,
-            company: editCompany.trim() || null,
-            nip: editNip.trim() || null,
-            discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
-            source: 'myjnia',
-          })
-          .select('id')
-          .single();
+        const normalizedPhone = normalizePhone(editPhone.trim());
         
-        if (error) throw error;
-        customerId = newCustomer?.id;
+        // Check if customer with this phone already exists (any source)
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('instance_id', instanceId)
+          .eq('phone', normalizedPhone)
+          .limit(1)
+          .maybeSingle();
+        
+        if (existingCustomer) {
+          // Update existing customer instead of creating duplicate
+          const { error } = await supabase
+            .from('customers')
+            .update({
+              name: editName.trim(),
+              email: editEmail.trim() || null,
+              notes: editNotes.trim() || null,
+              company: editCompany.trim() || null,
+              nip: editNip.trim() || null,
+              discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
+            })
+            .eq('id', existingCustomer.id);
+          
+          if (error) throw error;
+          customerId = existingCustomer.id;
+          toast.success(t('customers.updatedExisting'));
+        } else {
+          // Create new customer
+          const { data: newCustomer, error } = await supabase
+            .from('customers')
+            .insert({
+              instance_id: instanceId,
+              name: editName.trim(),
+              phone: normalizedPhone,
+              email: editEmail.trim() || null,
+              notes: editNotes.trim() || null,
+              company: editCompany.trim() || null,
+              nip: editNip.trim() || null,
+              discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
+              source: 'myjnia',
+            })
+            .select('id')
+            .single();
+          
+          if (error) throw error;
+          customerId = newCustomer?.id;
+        }
       } else if (customer) {
         // Update existing customer
         const { error } = await supabase
