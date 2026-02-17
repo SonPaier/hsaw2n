@@ -126,10 +126,10 @@ export function OfferFollowUpStatus({
             e.stopPropagation();
             onNoteClick?.();
           }}
-          className="p-1.5 rounded-full hover:bg-secondary/80 transition-colors"
+          className="w-8 h-8 rounded-full bg-green-500 hover:bg-gray-600 flex items-center justify-center transition-colors"
           title="Notatka wewnętrzna"
         >
-          <StickyNote className="w-4 h-4 text-blue-500" />
+          <StickyNote className="w-4 h-4 text-white" />
         </button>
       )}
     </div>
