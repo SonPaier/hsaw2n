@@ -4,6 +4,7 @@ import { Camera, X, Loader2, ImagePlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 
 interface ProtocolPhotosUploaderProps {
   photos: string[];
@@ -63,6 +64,7 @@ export const ProtocolPhotosUploader = ({
   disabled = false,
 }: ProtocolPhotosUploaderProps) => {
   const [uploading, setUploading] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +141,7 @@ export const ProtocolPhotosUploader = ({
       {photos.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
           {photos.map((url, index) => (
-            <div key={index} className="relative aspect-square group">
+            <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(url)}>
               <img
                 src={url}
                 alt={`Zdjęcie ${index + 1}`}
@@ -148,7 +150,7 @@ export const ProtocolPhotosUploader = ({
               {!disabled && (
                 <button
                   type="button"
-                  onClick={() => handleRemovePhoto(index)}
+                  onClick={(e) => { e.stopPropagation(); handleRemovePhoto(index); }}
                   className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
                 >
                   <X className="h-3 w-3" />
@@ -189,6 +191,11 @@ export const ProtocolPhotosUploader = ({
           </Button>
         </>
       )}
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
+        photoUrl={fullscreenPhoto}
+      />
     </div>
   );
 };
