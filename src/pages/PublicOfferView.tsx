@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useOfferViewTracking } from '@/hooks/useOfferViewTracking';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -20,6 +21,13 @@ const PublicOfferView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingState, setSavingState] = useState(false);
+
+  // Track offer view duration
+  useOfferViewTracking(
+    offer?.id,
+    offer?.instance_id,
+    isAdminPreview
+  );
 
   useEffect(() => {
     const fetchOffer = async () => {

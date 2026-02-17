@@ -1863,6 +1863,44 @@ export type Database = {
           },
         ]
       }
+      offer_views: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          instance_id: string
+          is_admin_preview: boolean
+          offer_id: string
+          started_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          instance_id: string
+          is_admin_preview?: boolean
+          offer_id: string
+          started_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          instance_id?: string
+          is_admin_preview?: boolean
+          offer_id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_views_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offers: {
         Row: {
           admin_approved_gross: number | null
