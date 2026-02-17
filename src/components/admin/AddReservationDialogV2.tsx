@@ -193,6 +193,7 @@ const AddReservationDialogV2 = ({
     carModel?: string;
     services?: string;
     time?: string;
+    station?: string;
     dateRange?: string;
   }>({});
   
@@ -1113,8 +1114,11 @@ const AddReservationDialogV2 = ({
     if (!dateRange?.from) {
       errors.dateRange = 'Wybierz datę';
     }
-    if (!manualStartTime || !manualEndTime || !manualStationId) {
-      errors.time = 'Wypełnij wszystkie pola terminu';
+    if (!manualStartTime || !manualEndTime) {
+      errors.time = 'Wybierz godzinę rozpoczęcia i zakończenia';
+    }
+    if (!manualStationId) {
+      errors.station = 'Wybierz stanowisko';
     }
     
     if (Object.keys(errors).length > 0) {
@@ -1608,7 +1612,7 @@ const AddReservationDialogV2 = ({
                 stations={stations}
                 startTimeOptions={startTimeOptions}
                 endTimeOptions={endTimeOptions}
-                timeError={validationErrors.time}
+                timeError={validationErrors.time || validationErrors.station}
                 offerNumber={offerNumber}
                 setOfferNumber={setOfferNumber}
                 customerName={customerName}
