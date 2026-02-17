@@ -122,6 +122,15 @@ export const ReservationDateTimeSection = ({
             if (val === 'single' && dateRange?.from) {
               setDateRange({ from: dateRange.from, to: dateRange.from });
             }
+            // When switching to multi and no times set, prefill from working hours
+            if (val === 'multi' && !manualStartTime && !manualEndTime && workingHours && dateRange?.from) {
+              const dayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][dateRange.from.getDay()];
+              const dayHours = workingHours[dayName];
+              if (dayHours) {
+                setManualStartTime(dayHours.open.substring(0, 5));
+                setManualEndTime(dayHours.close.substring(0, 5));
+              }
+            }
           }}
           className="flex gap-4"
         >
