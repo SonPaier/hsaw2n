@@ -632,7 +632,11 @@
       "scheduled": "Zaplanowane",
       "failed": "Nieudane"
     },
-    "selectedOption": "Wybrano"
+    "selectedOption": "Wybrano",
+    "viewHistory": "Historia oglądania",
+    "viewCount": "Wyświetlenia",
+    "totalTime": "Łączny czas",
+    "noViewData": "Brak danych o oglądaniu"
   },
   "sendEmailDialog": {
     "title": "Wyślij ofertę",

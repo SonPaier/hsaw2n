@@ -39,6 +39,7 @@ import { OfferServiceEditView } from '@/components/offers/services/OfferServiceE
 import { AdminOfferApprovalDialog } from '@/components/offers/AdminOfferApprovalDialog';
 import { OfferFollowUpStatus } from './OfferFollowUpStatus';
 import { OfferPreviewDialogByToken } from './OfferPreviewDialogByToken';
+import { OfferViewsDialog } from '@/components/offers/OfferViewsDialog';
 import { useOfferScopes } from '@/hooks/useOfferScopes';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { toast } from 'sonner';
@@ -201,8 +202,11 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // Preview dialog state
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; token: string | null }>({ open: false, token: null });
 
-  // Internal note drawer state
+   // Internal note drawer state
   const [noteDrawer, setNoteDrawer] = useState<{ open: boolean; offerId: string; notes: string }>({ open: false, offerId: '', notes: '' });
+
+  // View history dialog state
+  const [viewsDialog, setViewsDialog] = useState<{ open: boolean; offerId: string; viewedAt: string | null }>({ open: false, offerId: '', viewedAt: null });
 
   // Reservation from offer state
   const [reservationFromOffer, setReservationFromOffer] = useState<{
@@ -703,9 +707,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                           </button>
                           {offer.status === 'viewed' && offer.viewed_at ? (
-                            <Badge className={cn('text-xs', statusColors[offer.status])}>
-                              Obejrzana {formatViewedDate(offer.viewed_at)}
-                            </Badge>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
+                              className="inline-flex"
+                            >
+                              <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
+                                <Eye className="w-3 h-3 mr-1" />
+                                Obejrzana {formatViewedDate(offer.viewed_at)}
+                              </Badge>
+                            </button>
                           ) : (
                             <Badge className={cn('text-xs', statusColors[offer.status])}>
                               {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
@@ -766,9 +776,15 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             </Badge>
                           )}
                           {offer.status === 'viewed' && offer.viewed_at ? (
-                            <Badge className={cn('text-xs', statusColors[offer.status])}>
-                              Obejrzana {formatViewedDate(offer.viewed_at)}
-                            </Badge>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
+                              className="inline-flex"
+                            >
+                              <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
+                                <Eye className="w-3 h-3 mr-1" />
+                                Obejrzana {formatViewedDate(offer.viewed_at)}
+                              </Badge>
+                            </button>
                           ) : (
                             <Badge className={cn('text-xs', statusColors[offer.status])}>
                               {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
@@ -1163,6 +1179,13 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
           }}
         />
       )}
+      {/* Offer Views History Dialog */}
+      <OfferViewsDialog
+        offerId={viewsDialog.offerId}
+        viewedAt={viewsDialog.viewedAt}
+        open={viewsDialog.open}
+        onOpenChange={(open) => setViewsDialog(prev => ({ ...prev, open }))}
+      />
     </>
   );
 }
