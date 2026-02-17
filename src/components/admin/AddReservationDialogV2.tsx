@@ -459,16 +459,23 @@ const AddReservationDialogV2 = ({
           setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
         }
         
-        // Date range - use reservation_date and end_date
-        const fromDate = new Date(editingReservation.reservation_date);
-        const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
-        setDateRange({ from: fromDate, to: toDate });
-        
-        // Auto-detect reservation type based on date range
-        if (editingReservation.end_date && 
-            editingReservation.reservation_date !== editingReservation.end_date) {
-          setReservationType('multi');
+        // Date range - use reservation_date and end_date (handle empty for prefill mode)
+        if (editingReservation.reservation_date) {
+          const fromDate = new Date(editingReservation.reservation_date);
+          const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
+          setDateRange({ from: fromDate, to: toDate });
+          
+          // Auto-detect reservation type based on date range
+          if (editingReservation.end_date && 
+              editingReservation.reservation_date !== editingReservation.end_date) {
+            setReservationType('multi');
+          } else {
+            setReservationType('single');
+          }
         } else {
+          // No date provided (e.g. creating from offer) - use next working day
+          const nextDay = getNextWorkingDay();
+          setDateRange({ from: nextDay, to: nextDay });
           setReservationType('single');
         }
         
@@ -486,11 +493,11 @@ const AddReservationDialogV2 = ({
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
         
-        // Set manual time from editing reservation
+        // Set manual time from editing reservation (skip if empty - e.g. prefill from offer)
         const startTimeStr = editingReservation.start_time?.substring(0, 5) || '';
         const endTimeStr = editingReservation.end_time?.substring(0, 5) || '';
-        setManualStartTime(startTimeStr);
-        setManualEndTime(endTimeStr);
+        if (startTimeStr) setManualStartTime(startTimeStr);
+        if (endTimeStr) setManualEndTime(endTimeStr);
         setManualStationId(editingReservation.station_id);
         
         // Calculate and store original duration for automatic end time adjustment
