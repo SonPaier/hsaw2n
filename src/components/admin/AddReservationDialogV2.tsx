@@ -1117,7 +1117,7 @@ const AddReservationDialogV2 = ({
     if (!manualStartTime || !manualEndTime) {
       errors.time = 'Wybierz godzinę rozpoczęcia i zakończenia';
     }
-    if (!manualStationId) {
+    if (!manualStationId && (isEditMode || initialStationId === undefined)) {
       errors.station = 'Wybierz stanowisko';
     }
     
@@ -1626,7 +1626,7 @@ const AddReservationDialogV2 = ({
                 markUserEditing={markUserEditing}
                 dateRangeRef={dateRangeRef}
                 timeRef={timeRef}
-                isEditMode={isEditMode || !initialStationId}
+                showStationSelector={isEditMode || initialStationId === undefined}
               />
               )}
 
