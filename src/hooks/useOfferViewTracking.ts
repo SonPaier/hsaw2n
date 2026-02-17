@@ -16,21 +16,25 @@ export function useOfferViewTracking(
   useEffect(() => {
     if (!offerId || !instanceId) return;
 
-    // Insert view record
+    // Generate ID client-side to avoid needing SELECT after INSERT
+    const clientId = crypto.randomUUID();
+
+    // Insert view record (fire-and-forget, no .select() needed)
     const insertView = async () => {
-      const { data } = await supabase
+      const { error } = await supabase
         .from('offer_views')
         .insert({
+          id: clientId,
           offer_id: offerId,
           instance_id: instanceId,
           is_admin_preview: isAdminPreview,
-        })
-        .select('id')
-        .single();
+        });
 
-      if (data) {
-        viewIdRef.current = data.id;
+      if (!error) {
+        viewIdRef.current = clientId;
         startTimeRef.current = Date.now();
+      } else {
+        console.error('offer_views insert failed:', error.message);
       }
     };
 
