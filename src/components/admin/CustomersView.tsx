@@ -344,7 +344,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   // If offers feature is not enabled, don't show tabs
   if (!hasOffers) {
     return (
-      <div className="space-y-4 max-w-3xl mx-auto">
+      <div className="space-y-4 max-w-3xl mx-auto pb-28">
         {/* Header with title and add button */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
@@ -392,7 +392,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4 max-w-3xl mx-auto pb-28">
       {/* Header with title and add button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>

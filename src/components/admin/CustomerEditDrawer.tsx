@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Phone, MessageSquare, Mail, Car, Clock, X } from 'lucide-react';
@@ -146,7 +146,8 @@ const CustomerEditDrawer = ({
         vehicle_plate,
         price,
         status,
-        service_ids
+        service_ids,
+        service_items
       `)
       .eq('instance_id', instanceId)
       .eq('customer_phone', customer.phone)
@@ -154,15 +155,63 @@ const CustomerEditDrawer = ({
       .order('start_time', { ascending: false });
     
     if (!error && data) {
-      setVisits(data.map(v => ({
-        id: v.id,
-        reservation_date: v.reservation_date,
-        start_time: v.start_time,
-        vehicle_plate: v.vehicle_plate,
-        service_name: null, // Legacy relation removed - would need to lookup from service_ids
-        price: v.price,
-        status: v.status,
-      })));
+      // Collect unique service IDs to resolve names
+      const allServiceIds = new Set<string>();
+      data.forEach(v => {
+        const items = v.service_items as any[];
+        if (items?.length) {
+          items.forEach((item: any) => {
+            if (item.service_id) allServiceIds.add(item.service_id);
+          });
+        }
+        const ids = v.service_ids as string[];
+        if (ids?.length) {
+          ids.forEach(id => allServiceIds.add(id));
+        }
+      });
+
+      // Fetch service names from unified_services
+      let serviceNamesMap = new Map<string, string>();
+      if (allServiceIds.size > 0) {
+        const { data: services } = await supabase
+          .from('unified_services')
+          .select('id, name, short_name')
+          .in('id', Array.from(allServiceIds));
+        if (services) {
+          services.forEach(s => serviceNamesMap.set(s.id, s.short_name || s.name));
+        }
+      }
+
+      setVisits(data.map(v => {
+        // Resolve service name: first from service_items JSONB metadata, then from DB lookup
+        let serviceName: string | null = null;
+        const items = v.service_items as any[];
+        if (items?.length) {
+          serviceName = items
+            .map((item: any) => item.short_name || item.name || serviceNamesMap.get(item.service_id) || null)
+            .filter(Boolean)
+            .join(', ') || null;
+        }
+        if (!serviceName) {
+          const ids = v.service_ids as string[];
+          if (ids?.length) {
+            serviceName = ids
+              .map(id => serviceNamesMap.get(id) || null)
+              .filter(Boolean)
+              .join(', ') || null;
+          }
+        }
+
+        return {
+          id: v.id,
+          reservation_date: v.reservation_date,
+          start_time: v.start_time,
+          vehicle_plate: v.vehicle_plate,
+          service_name: serviceName,
+          price: v.price,
+          status: v.status,
+        };
+      }));
     }
     setLoading(false);
   };
@@ -539,7 +588,7 @@ const CustomerEditDrawer = ({
                       {visits.map((visit) => (
                         <div
                           key={visit.id}
-                          className="p-3 bg-muted/30 rounded-lg border border-border/50"
+                          className="p-3 bg-background rounded-lg border border-border/50"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <div className="font-medium text-sm">
@@ -552,7 +601,7 @@ const CustomerEditDrawer = ({
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <div className="text-muted-foreground">
-                              {visit.service_name || t('reservations.service')} • {visit.vehicle_plate}
+                              {visit.service_name ? `${visit.service_name} • ${visit.vehicle_plate}` : visit.vehicle_plate}
                             </div>
                             {visit.price && (
                               <div className="font-medium">
