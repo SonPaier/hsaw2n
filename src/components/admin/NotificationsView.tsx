@@ -82,22 +82,33 @@ export default function NotificationsView({
         .from('reservations')
         .select(`
           *,
-          station:stations(name, type),
-          service:services(name)
+          station:stations(name, type)
         `)
         .eq('id', notification.entity_id)
         .single();
 
       if (reservationData) {
-        // Fetch services data if service_ids exist
-        let servicesData = null;
+        // Resolve service names from service_items JSONB or service_ids via unified_services
+        let servicesData: any[] | null = null;
+        const serviceItems = reservationData.service_items as any[] | null;
         const serviceIds = reservationData.service_ids as string[] | null;
-        if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
+        
+        if (serviceItems && Array.isArray(serviceItems) && serviceItems.length > 0) {
+          // Use embedded names from service_items
+          servicesData = serviceItems.map((item: any) => ({
+            name: item.name || 'Usługa',
+            shortcut: item.short_name || null,
+          }));
+        } else if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
           const { data: services } = await supabase
             .from('unified_services')
-            .select('name, shortcut, price_small, price_medium, price_large, price_from')
+            .select('id, name, short_name')
             .in('id', serviceIds);
-          servicesData = services;
+          servicesData = (services || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            shortcut: s.short_name,
+          }));
         }
 
         onReservationClick({

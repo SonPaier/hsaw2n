@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, startOfWeek, subWeeks, addDays, parseISO } from 'date-fns';
+import type { ServiceMapEntry } from '@/hooks/useServiceDictionary';
 
 interface ServiceItem {
   service_id: string;
@@ -15,15 +16,8 @@ interface ServiceItem {
   price_from?: number | null;
 }
 
-interface ServiceMap {
-  id: string;
-  name: string;
-  shortcut?: string | null;
-  price_small?: number | null;
-  price_medium?: number | null;
-  price_large?: number | null;
-  price_from?: number | null;
-}
+// Re-export ServiceMapEntry as ServiceMap for backward compat
+type ServiceMap = ServiceMapEntry;
 
 export interface Reservation {
   id: string;

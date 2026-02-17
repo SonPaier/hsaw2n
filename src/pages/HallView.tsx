@@ -15,6 +15,7 @@ import { useInstancePlan } from '@/hooks/useInstancePlan';
 import { useBreaks } from '@/hooks/useBreaks';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
+import { useServiceDictionary, buildServicesMapFromDictionary } from '@/hooks/useServiceDictionary';
 import { Loader2, Calendar, FileText, LogOut, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -120,15 +121,18 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   const { data: cachedBreaks = [] } = useBreaks(instanceId);
   const { data: cachedWorkingHours } = useWorkingHours(instanceId);
   const { data: cachedServices = [] } = useUnifiedServices(instanceId);
+  const { map: serviceDictMap } = useServiceDictionary(instanceId);
   
   // Use cached data
   const breaks = cachedBreaks as Break[];
   const workingHours = cachedWorkingHours;
   const servicesMap = useMemo(() => {
     const map = new Map<string, string>();
-    cachedServices.forEach(s => map.set(s.id, s.name));
+    for (const [id, s] of serviceDictMap) {
+      map.set(id, s.name);
+    }
     return map;
-  }, [cachedServices]);
+  }, [serviceDictMap]);
 
   // Check if user has hall role (kiosk mode)
   const hasHallRole = roles.some(r => r.role === 'hall');
@@ -628,9 +632,8 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         .eq('instance_id', instanceId);
 
       if (reservationsData) {
-        // Build services map from cached services
-        const svcMap = new Map<string, { id: string; name: string; shortcut?: string | null }>();
-        cachedServices.forEach(s => svcMap.set(s.id, { id: s.id, name: s.name, shortcut: s.short_name }));
+        // Build services map from central dictionary
+        const svcMap = buildServicesMapFromDictionary(serviceDictMap);
         
         setReservations(reservationsData.map(r => {
           // Map services_data using same logic as realtime
@@ -772,12 +775,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   // Reference to services map for realtime updates (same pattern as AdminDashboard)
   const servicesMapRef = useRef<Map<string, { id: string; name: string; shortcut?: string | null }>>(new Map());
   
-  // Update servicesMapRef when cachedServices changes
+  // Update servicesMapRef when dictionary changes
   useEffect(() => {
-    const map = new Map<string, { id: string; name: string; shortcut?: string | null }>();
-    cachedServices.forEach(s => map.set(s.id, { id: s.id, name: s.name, shortcut: s.short_name }));
-    servicesMapRef.current = map;
-  }, [cachedServices]);
+    servicesMapRef.current = buildServicesMapFromDictionary(serviceDictMap);
+  }, [serviceDictMap]);
 
   // Subscribe to realtime updates with polling fallback - SYNCED with AdminDashboard logic
   useEffect(() => {

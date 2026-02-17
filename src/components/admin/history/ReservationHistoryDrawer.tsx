@@ -6,21 +6,31 @@ import { fetchReservationHistory, GroupedChange } from '@/services/reservationHi
 import { HistoryCreatedCard } from './HistoryCreatedCard';
 import { HistoryTimelineItem } from './HistoryTimelineItem';
 import { supabase } from '@/integrations/supabase/client';
+import { useServiceDictionary } from '@/hooks/useServiceDictionary';
 
 interface Props {
   reservationId: string | null;
   instanceId: string;
   open: boolean;
   onClose: () => void;
-  /** When true, fetch 'both' service_type; when false, fetch 'reservation' */
+  /** @deprecated No longer needed – dictionary loads all service types */
   hasUnifiedServices?: boolean;
 }
 
-export function ReservationHistoryDrawer({ reservationId, instanceId, open, onClose, hasUnifiedServices = true }: Props) {
+export function ReservationHistoryDrawer({ reservationId, instanceId, open, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<GroupedChange[]>([]);
-  const [servicesMap, setServicesMap] = useState<Map<string, string>>(new Map());
   const [stationsMap, setStationsMap] = useState<Map<string, string>>(new Map());
+
+  // Use central dictionary – covers ALL service types, always in sync
+  const { map: serviceDictMap } = useServiceDictionary(instanceId);
+  const servicesMap = (() => {
+    const m = new Map<string, string>();
+    for (const [id, s] of serviceDictMap) {
+      m.set(id, s.short_name || s.name);
+    }
+    return m;
+  })();
 
   useEffect(() => {
     if (!open || !reservationId) return;
@@ -28,36 +38,12 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     const loadData = async () => {
       setLoading(true);
       try {
-        // Fetch services based on has_unified_services:
-        // - unified → fetch 'both' AND 'reservation' to cover all IDs
-        // - legacy → fetch only 'reservation'
-        let servicesQuery = supabase
-          .from('unified_services')
-          .select('id, name, short_name')
-          .eq('instance_id', instanceId);
-        
-        if (hasUnifiedServices) {
-          // Unified: fetch both types to cover all historical service IDs
-          servicesQuery = servicesQuery.in('service_type', ['both', 'reservation']);
-        } else {
-          // Legacy: only reservation services
-          servicesQuery = servicesQuery.eq('service_type', 'reservation');
-        }
-
-        // Parallel fetch for performance
-        const [historyData, servicesRes, stationsRes] = await Promise.all([
+        const [historyData, stationsRes] = await Promise.all([
           fetchReservationHistory(reservationId),
-          servicesQuery,
           supabase.from('stations').select('id, name').eq('instance_id', instanceId),
         ]);
 
         setHistory(historyData);
-
-        const sMap = new Map<string, string>();
-        for (const s of servicesRes.data || []) {
-          sMap.set(s.id, s.short_name || s.name);
-        }
-        setServicesMap(sMap);
 
         const stMap = new Map<string, string>();
         for (const st of stationsRes.data || []) {
@@ -72,7 +58,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
     };
 
     loadData();
-  }, [open, reservationId, instanceId, hasUnifiedServices]);
+  }, [open, reservationId, instanceId]);
 
   // Handle close with explicit callback
   const handleClose = (isOpen: boolean) => {
