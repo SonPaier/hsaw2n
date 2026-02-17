@@ -447,7 +447,7 @@ const ReservationsView = ({
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4 max-w-3xl mx-auto pb-28">
       {/* Title */}
       <h1 className="text-2xl font-bold text-foreground">{t('reservations.title')}</h1>
       
