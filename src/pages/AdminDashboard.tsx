@@ -8,6 +8,7 @@ import { useBreaks } from '@/hooks/useBreaks';
 import { useClosedDays } from '@/hooks/useClosedDays';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
+import { useServiceDictionary, buildServicesMapFromDictionary } from '@/hooks/useServiceDictionary';
 import { useInstanceData } from '@/hooks/useInstanceData';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useInstanceSettings } from '@/hooks/useInstanceSettings';
@@ -306,6 +307,7 @@ const AdminDashboard = () => {
   const { data: cachedClosedDays = [] } = useClosedDays(instanceId);
   const { data: cachedWorkingHours } = useWorkingHours(instanceId);
   const { data: cachedServices = [] } = useUnifiedServices(instanceId);
+  const { map: serviceDictMap } = useServiceDictionary(instanceId);
   const { data: cachedInstanceData } = useInstanceData(instanceId);
   const { data: cachedEmployees = [] } = useEmployees(instanceId);
   const { data: instanceSettings } = useInstanceSettings(instanceId);
@@ -632,26 +634,8 @@ const AdminDashboard = () => {
     const from = fromDate || loadedDateRange.from;
     const to = toDate === undefined ? loadedDateRange.to : toDate;
 
-    // Use cached services from hook instead of fetching each time
-    // Build map from cached services (for realtime updates)
-    const servicesMap = new Map<string, {
-      id: string;
-      name: string;
-      shortcut?: string | null;
-      price_small?: number | null;
-      price_medium?: number | null;
-      price_large?: number | null;
-      price_from?: number | null;
-    }>();
-    cachedServices.forEach(s => servicesMap.set(s.id, {
-      id: s.id,
-      name: s.name,
-      shortcut: s.short_name,
-      price_small: s.price_small,
-      price_medium: s.price_medium,
-      price_large: s.price_large,
-      price_from: s.price_from
-    }));
+    // Use central dictionary for service name resolution (covers ALL service types)
+    const servicesMap = buildServicesMapFromDictionary(serviceDictMap);
     // Save for realtime updates
     servicesMapRef.current = servicesMap;
 
@@ -843,12 +827,12 @@ const AdminDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ['closed_days', instanceId] });
   };
   
-  // Initial fetch - wait for cached services to be loaded first
+  // Initial fetch - wait for dictionary to be loaded first
   useEffect(() => {
-    if (instanceId && cachedServices.length > 0) {
+    if (instanceId && serviceDictMap.size > 0) {
       fetchReservations();
     }
-  }, [instanceId, cachedServices.length]);
+  }, [instanceId, serviceDictMap.size]);
 
   // Deep linking: auto-open reservation from URL param
   // If reservation is not in loaded range, fetch it directly
@@ -2524,7 +2508,7 @@ const AdminDashboard = () => {
 
           {/* Content */}
           <div className={cn(
-            "flex-1 space-y-6 overflow-auto pb-20 lg:pb-8",
+            "flex-1 space-y-6 overflow-auto pb-28 lg:pb-8",
             currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4"
           )}>
             {/* Header - only shown for settings view */}

@@ -1562,7 +1562,15 @@ const AddReservationDialogV2 = ({
                   const existingItemIds = serviceItems.map(si => si.service_id);
                   const newItems = serviceIds
                     .filter(id => !existingItemIds.includes(id))
-                    .map(id => ({ service_id: id, custom_price: null }));
+                    .map(id => {
+                      const svc = servicesWithCategory.find(s => s.id === id);
+                      return {
+                        service_id: id,
+                        custom_price: null,
+                        name: svc?.name || undefined,
+                        short_name: svc?.short_name || undefined,
+                      };
+                    });
                   
                   setServiceItems(prev => {
                     const kept = prev.filter(si => serviceIds.includes(si.service_id));
