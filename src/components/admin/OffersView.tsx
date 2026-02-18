@@ -705,7 +705,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                       </div>
 
                       {/* Line 2: Offer number + created date (secondary) */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
                         <span>{offer.offer_number}</span>
                         <span>·</span>
                         <span>Utworzono {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}</span>
@@ -719,13 +719,12 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
 
                       {/* Line 3: Service pills with price */}
                       {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
+                        <div className="flex flex-wrap gap-1 mt-3">
                           {offer.offer_scopes.map((scope) => {
-                            // Find matching option subtotal_net for this scope
                             const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
                             const scopePrice = matchingOption?.subtotal_net;
                             return (
-                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/60 text-foreground">
+                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/30 text-muted-foreground font-normal">
                                 {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
                               </Badge>
                             );
@@ -740,7 +739,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
 
                       {/* Follow-up phone status */}
                       {offer.customer_data?.phone && (
-                        <div className="mt-2">
+                        <div className="mt-3">
                           <OfferFollowUpStatus
                             offerId={offer.id}
                             currentStatus={offer.follow_up_phone_status ?? null}
@@ -752,8 +751,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                       )}
                     </div>
 
-                    {/* Right: status + price + menu */}
-                    <div className="flex flex-col items-end gap-1 shrink-0">
+                    {/* Right: status + menu */}
+                    <div className="flex items-center gap-1 shrink-0">
                       {/* Status badge aligned right */}
                       {offer.status === 'viewed' && offer.viewed_at ? (
                         <button
@@ -772,21 +771,14 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                       )}
                       {/* Price */}
                       {(offer.admin_approved_gross || offer.approved_at) && (
-                        <div className="text-sm font-medium text-right">
+                        <span className="text-sm font-medium ml-1">
                           {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
-                        </div>
+                        </span>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Menu button row */}
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="hidden">
-                      {/* kept for spacing compat */}
-                    </div>
+                      {/* Ellipsis menu — top right, inline with status */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2" onClick={e => e.stopPropagation()}>
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -825,7 +817,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                                   key={status}
                                   onClick={(e) => { 
                                     e.stopPropagation(); 
-                                    // For 'accepted' status, open approval dialog instead of direct change
                                     if (status === 'accepted') {
                                       setApprovalDialog({ open: true, offer, mode: 'approve' });
                                     } else {
@@ -839,7 +830,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                                   </Badge>
                                 </DropdownMenuItem>
                               ))}
-                              {/* Completed status opens dialog instead of direct change */}
                               <DropdownMenuItem
                                 onClick={(e) => { 
                                   e.stopPropagation(); 
@@ -880,16 +870,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                               </DropdownMenuItem>
                             </>
                           )}
-                          {/* "Zobacz wybór" - temporarily hidden for readonly mode */}
-                          {/* {(offer.status === 'accepted' || offer.status === 'completed') && offer.selected_state && (
-                            <DropdownMenuItem 
-                              onClick={(e) => { e.stopPropagation(); setSelectionDialog({ open: true, offer }); }}
-                            >
-                              <Receipt className="w-4 h-4 mr-2" />
-                              {t('offers.viewSelection', 'Zobacz wybór')}
-                            </DropdownMenuItem>
-                          )} */}
-                          {/* Change amount option for accepted/completed offers */}
                           {(offer.status === 'accepted' || offer.status === 'completed') && (
                             <DropdownMenuItem 
                               onClick={(e) => { 
@@ -912,6 +892,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  </div>
                 </div>
               ))}
             </div>
