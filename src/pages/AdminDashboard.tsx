@@ -1909,8 +1909,6 @@ const AdminDashboard = () => {
       updateData.released_at = null;
     } else if (newStatus === 'completed') {
       updateData.released_at = null;
-      const now = new Date();
-      updateData.end_time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     }
     
     const { error: updateError } = await supabase
@@ -1924,7 +1922,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: newStatus, ...(newStatus === 'completed' ? { end_time: updateData.end_time } : {}) } : r));
+    setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r));
     toast.success(t('reservations.statusChanged'));
   };
 
