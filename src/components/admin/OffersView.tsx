@@ -688,164 +688,102 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                   className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
                   onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
                 >
-                  <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start sm:items-center gap-4 min-w-0">
-                    {/* Icon - hidden on mobile */}
-                    <div className="hidden sm:flex w-10 h-10 rounded-lg bg-primary/10 items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-primary" />
-                    </div>
+                  <div className="flex items-start justify-between gap-3 w-full">
+                    {/* Left: main content */}
                     <div className="min-w-0 flex-1">
-                      {/* Desktop layout */}
-                      <div className="hidden sm:block">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{offer.offer_number}</span>
-                          <button
-                            onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
-                            className="p-1 hover:bg-secondary/80 rounded transition-colors"
-                            title={t('offers.copyOfferNumber')}
-                          >
-                            <ClipboardCopy className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          {offer.status === 'viewed' && offer.viewed_at ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
-                              className="inline-flex"
-                            >
-                              <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
-                                <Eye className="w-3 h-3 mr-1" />
-                                Obejrzana {formatViewedDate(offer.viewed_at)}
+                      {/* Line 1: Customer name + vehicle */}
+                      <div className="flex items-baseline gap-1 font-semibold text-base leading-tight">
+                        <span className="truncate">
+                          {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
+                        </span>
+                        {offer.vehicle_data?.brandModel && (
+                          <>
+                            <span className="text-muted-foreground font-normal">·</span>
+                            <span className="text-muted-foreground font-normal truncate">{offer.vehicle_data.brandModel}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Line 2: Offer number + created date (secondary) */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <span>{offer.offer_number}</span>
+                        <span>·</span>
+                        <span>Utworzono {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}</span>
+                        {offer.source === 'website' && (
+                          <>
+                            <span>·</span>
+                            <span className="text-blue-600">WWW</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Line 3: Service pills with price */}
+                      {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {offer.offer_scopes.map((scope) => {
+                            // Find matching option subtotal_net for this scope
+                            const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
+                            const scopePrice = matchingOption?.subtotal_net;
+                            return (
+                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/60 text-foreground">
+                                {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
                               </Badge>
-                            </button>
-                          ) : (
-                            <Badge className={cn('text-xs', statusColors[offer.status])}>
-                              {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                            </Badge>
-                          )}
-                          {/* Selected option label for accepted offers */}
+                            );
+                          })}
                           {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
                             <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
                               {offer.selectedOptionName}
                             </Badge>
                           )}
                         </div>
-                        <div className="text-base text-foreground mt-2 mb-1">
-                          {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
-                          {offer.vehicle_data?.brandModel && <span className="text-muted-foreground"> • {offer.vehicle_data.brandModel}</span>}
+                      )}
+
+                      {/* Follow-up phone status */}
+                      {offer.customer_data?.phone && (
+                        <div className="mt-2">
+                          <OfferFollowUpStatus
+                            offerId={offer.id}
+                            currentStatus={offer.follow_up_phone_status ?? null}
+                            onStatusChange={handleFollowUpStatusChange}
+                            hasInternalNote={!!offer.internal_notes}
+                            onNoteClick={() => handleOpenNoteDrawer(offer)}
+                          />
                         </div>
-                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {offer.offer_scopes.map((scope) => (
-                              <Badge key={scope.id} variant="secondary" className="text-xs">
-                                {scope.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        {/* Follow-up phone status - Desktop */}
-                        {offer.customer_data?.phone && (
-                          <div className="mt-2">
-                            <OfferFollowUpStatus
-                              offerId={offer.id}
-                              currentStatus={offer.follow_up_phone_status ?? null}
-                              onStatusChange={handleFollowUpStatusChange}
-                              hasInternalNote={!!offer.internal_notes}
-                              onNoteClick={() => handleOpenNoteDrawer(offer)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Mobile layout - 5 lines */}
-                      <div className="sm:hidden space-y-1">
-                        {/* Line 1: Offer number */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{offer.offer_number}</span>
-                          <button
-                            onClick={(e) => handleCopyOfferNumber(offer.offer_number, e)}
-                            className="p-1 hover:bg-secondary/80 rounded transition-colors"
-                            title={t('offers.copyOfferNumber')}
-                          >
-                            <ClipboardCopy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                          </button>
+                      )}
+                    </div>
+
+                    {/* Right: status + price + menu */}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {/* Status badge aligned right */}
+                      {offer.status === 'viewed' && offer.viewed_at ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
+                          className="inline-flex"
+                        >
+                          <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
+                            <Eye className="w-3 h-3 mr-1" />
+                            Obejrzana {formatViewedDate(offer.viewed_at)}
+                          </Badge>
+                        </button>
+                      ) : (
+                        <Badge className={cn('text-xs', statusColors[offer.status])}>
+                          {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                        </Badge>
+                      )}
+                      {/* Price */}
+                      {(offer.admin_approved_gross || offer.approved_at) && (
+                        <div className="text-sm font-medium text-right">
+                          {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
                         </div>
-                        {/* Line 2: Status and selected option */}
-                        <div className="flex flex-wrap gap-1">
-                          {offer.source === 'website' && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              WWW
-                            </Badge>
-                          )}
-                          {offer.status === 'viewed' && offer.viewed_at ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
-                              className="inline-flex"
-                            >
-                              <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
-                                <Eye className="w-3 h-3 mr-1" />
-                                Obejrzana {formatViewedDate(offer.viewed_at)}
-                              </Badge>
-                            </button>
-                          ) : (
-                            <Badge className={cn('text-xs', statusColors[offer.status])}>
-                              {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                            </Badge>
-                          )}
-                          {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
-                            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                              {offer.selectedOptionName}
-                            </Badge>
-                          )}
-                        </div>
-                        {/* Line 3: Customer and vehicle */}
-                        <div className="text-base text-foreground mt-2 mb-1">
-                          {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
-                          {offer.vehicle_data?.brandModel && <span className="text-muted-foreground"> • {offer.vehicle_data.brandModel}</span>}
-                        </div>
-                        {/* Line 4: Services */}
-                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {offer.offer_scopes.map((scope) => (
-                              <Badge key={scope.id} variant="secondary" className="text-xs">
-                                {scope.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        {/* Line 5: Amount (Net + VAT / Gross) */}
-                        {(offer.admin_approved_gross || offer.approved_at) && (
-                          <div className="pt-2 border-t mt-2 text-right">
-                            <div className="text-xs text-muted-foreground">
-                              {formatPrice(offer.admin_approved_net ?? offer.total_net)} + 23% VAT
-                            </div>
-                            <div className="font-semibold text-sm">
-                              {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
-                            </div>
-                          </div>
-                        )}
-                        {/* Follow-up phone status - Mobile */}
-                        {offer.customer_data?.phone && (
-                          <div className="pt-2">
-                            <OfferFollowUpStatus
-                              offerId={offer.id}
-                              currentStatus={offer.follow_up_phone_status ?? null}
-                              onStatusChange={handleFollowUpStatusChange}
-                              hasInternalNote={!!offer.internal_notes}
-                              onNoteClick={() => handleOpenNoteDrawer(offer)}
-                            />
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <div className="font-medium">
-                          {(offer.admin_approved_gross || offer.approved_at) ? formatPrice(offer.admin_approved_gross ?? offer.total_gross) : <span className="text-muted-foreground text-sm">—</span>}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Utworzono: {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}
-                        </div>
-                      </div>
+
+                  {/* Menu button row */}
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="hidden">
+                      {/* kept for spacing compat */}
+                    </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
@@ -974,7 +912,6 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </div>
                 </div>
               ))}
             </div>
