@@ -56,7 +56,7 @@ export function AssignedEmployeesChips({
     default: readonly
       ? 'bg-muted text-muted-foreground'
       : 'bg-foreground text-background',
-    blue: 'bg-primary text-primary-foreground',
+    blue: 'bg-muted text-foreground border border-border',
   };
 
   return (
@@ -89,9 +89,10 @@ export function AssignedEmployeesChips({
       )}
 
       {!readonly && onAdd && (
-        <Button
+      <Button
           type="button"
           size="sm"
+          variant="secondary"
           onClick={onAdd}
           disabled={loading}
         >

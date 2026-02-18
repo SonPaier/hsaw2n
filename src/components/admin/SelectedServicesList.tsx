@@ -133,6 +133,7 @@ const SelectedServicesList = ({
     return (
       <Button
         type="button"
+        variant="secondary"
         onClick={onAddMore}
         className="w-full"
         data-testid="add-services-button"
