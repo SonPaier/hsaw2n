@@ -54,6 +54,7 @@ interface Station {
   id: string;
   name: string;
   type: string;
+  color?: string | null;
 }
 interface ServiceItem {
   service_id: string;
