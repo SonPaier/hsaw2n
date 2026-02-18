@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Car, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound } from 'lucide-react';
+import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
@@ -2349,16 +2349,12 @@ const AdminDashboard = () => {
                 }} 
                 className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", (sidebarCollapsed || userRole === 'hall') ? "justify-center" : "gap-3")}
               >
-                {instanceData?.logo_url ? (
+                {instanceData?.logo_url && (
                   <img 
                     src={instanceData.logo_url} 
                     alt={instanceData.name} 
                     className="w-10 h-10 rounded-xl object-contain shrink-0 bg-white"
                   />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shrink-0">
-                    <Car className="w-5 h-5 text-primary-foreground" />
-                  </div>
                 )}
                 {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left">
                     <h1 className="font-bold text-foreground">{instanceData?.name || 'Panel Admina'}</h1>

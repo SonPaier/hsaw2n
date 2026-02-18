@@ -1431,28 +1431,23 @@ const AdminCalendar = ({
                       ...(station.color ? { backgroundColor: station.color } : {}),
                     }}>
                     <div className={cn("text-foreground", isMobile ? "truncate" : "whitespace-normal break-words")}>{station.name}</div>
-                    {/* Employee chips when feature enabled, otherwise reserve height */}
-                    <div className="hidden md:flex items-center justify-center gap-1 h-8 flex-wrap overflow-hidden">
-                      {showEmployeesOnStations && stationEmployees.length > 0 ?
-                <>
-                          {stationEmployees.slice(0, 2).map((emp) =>
-                  <span
-                    key={emp.id}
-                    className="inline-flex items-center py-1.5 text-sm font-semibold rounded-md leading-none text-secondary bg-[#0f1729]/0 px-[6px]">
-
-                              {emp.name.split(' ')[0]}
-                            </span>
-                  )}
-                          {stationEmployees.length > 2 &&
-                  <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none">
-                              +{stationEmployees.length - 2}
-                            </span>
-                  }
-                        </> :
-
-                <span className="opacity-0">.</span>
-                }
-                    </div>
+                    {/* Employee chips when feature enabled and employees assigned */}
+                    {showEmployeesOnStations && stationEmployees.length > 0 && (
+                      <div className="hidden md:flex items-center justify-center gap-1 mt-1 flex-wrap overflow-hidden">
+                        {stationEmployees.slice(0, 2).map((emp) =>
+                          <span
+                            key={emp.id}
+                            className="inline-flex items-center py-1.5 text-sm font-semibold rounded-md leading-none text-secondary bg-[#0f1729]/0 px-[6px]">
+                            {emp.name.split(' ')[0]}
+                          </span>
+                        )}
+                        {stationEmployees.length > 2 &&
+                          <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none">
+                            +{stationEmployees.length - 2}
+                          </span>
+                        }
+                      </div>
+                    )}
                   </div>;
           })}
             </div>
