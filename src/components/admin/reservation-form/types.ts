@@ -24,6 +24,12 @@ export interface Service {
 export interface ServiceItem {
   service_id: string;
   custom_price: number | null;
+  name?: string;
+  short_name?: string | null;
+  price_small?: number | null;
+  price_medium?: number | null;
+  price_large?: number | null;
+  price_from?: number | null;
 }
 
 export interface CustomerVehicle {
