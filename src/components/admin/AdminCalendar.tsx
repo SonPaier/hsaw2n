@@ -1398,7 +1398,7 @@ const AdminCalendar = ({
                           {stationEmployees.slice(0, 2).map((emp) =>
                   <span
                     key={emp.id}
-                    className="inline-flex items-center py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none px-[6px]">
+                    className="inline-flex items-center py-1.5 text-sm font-semibold rounded-md leading-none text-secondary bg-[#0f1729]/0 px-[6px]">
 
                               {emp.name.split(' ')[0]}
                             </span>
