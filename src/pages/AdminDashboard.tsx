@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound } from 'lucide-react';
+import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
@@ -2424,7 +2424,7 @@ const AdminDashboard = () => {
                   </Button>}
                   {/* 7. Usługi - admin only */}
                   {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Usługi">
-                    <FileText className="w-4 h-4 shrink-0" />
+                    <BadgeDollarSign className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Usługi"}
                   </Button>}
                   {/* 8. Powiadomienia - ukryte */}
