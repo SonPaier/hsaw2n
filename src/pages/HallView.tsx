@@ -1543,11 +1543,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           }}
           onEndWork={async (id) => {
             const now = new Date();
-            const currentEndTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-            const { error } = await supabase.from('reservations').update({ status: 'completed', completed_at: now.toISOString(), end_time: currentEndTime }).eq('id', id);
+            const { error } = await supabase.from('reservations').update({ status: 'completed', completed_at: now.toISOString() }).eq('id', id);
             if (!error) {
-              setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'completed', end_time: currentEndTime } : r));
-              setSelectedReservation(prev => prev?.id === id ? { ...prev, status: 'completed', end_time: currentEndTime } : prev);
+              setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' } : r));
+              setSelectedReservation(prev => prev?.id === id ? { ...prev, status: 'completed' } : prev);
             } else {
               toast.error(t('common.error'));
             }
