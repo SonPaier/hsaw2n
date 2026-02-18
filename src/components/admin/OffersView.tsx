@@ -859,7 +859,27 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                       )}
                     </div>
 
-                    {/* Line 4: Follow-up phone status */}
+                    {/* Line 4: Service pills */}
+                    {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {offer.offer_scopes.map((scope) => {
+                          const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
+                          const scopePrice = matchingOption?.subtotal_net;
+                          return (
+                            <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/20 text-foreground font-normal">
+                              {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
+                            </Badge>
+                          );
+                        })}
+                        {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
+                          <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                            {offer.selectedOptionName}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Line 5: Follow-up phone status */}
                     {offer.customer_data?.phone && (
                       <div className="mt-3">
                         <OfferFollowUpStatus
