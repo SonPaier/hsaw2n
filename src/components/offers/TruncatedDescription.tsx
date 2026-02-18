@@ -38,7 +38,7 @@ export const TruncatedDescription = ({
       {/* Hidden element to measure full height */}
       <div
         ref={measureRef}
-        className="absolute invisible pointer-events-none w-full text-sm prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+        className="absolute invisible pointer-events-none w-full text-[15px] md:text-sm prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
         dangerouslySetInnerHTML={{ __html: parsed }}
         aria-hidden="true"
       />
@@ -47,7 +47,7 @@ export const TruncatedDescription = ({
       <div
         ref={contentRef}
         className={cn(
-          "text-sm text-foreground/70 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 overflow-hidden transition-all duration-200",
+          "text-[15px] md:text-sm text-foreground/70 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 overflow-hidden transition-all duration-200",
           !isExpanded && isTruncated && "line-clamp-3"
         )}
         style={{ color: textColor }}

@@ -815,14 +815,14 @@ export const PublicOfferCustomerView = ({
                           <IconComponent className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
                         </div>
                         <h3 
-                          className="font-semibold text-sm"
+                          className="font-semibold text-base md:text-sm"
                           style={{ color: branding.offer_section_text_color }}
                         >
                           {tile.title}
                         </h3>
                       </div>
                       <p 
-                        className="text-xs opacity-70"
+                        className="text-sm md:text-xs opacity-70"
                         style={{ color: branding.offer_section_text_color }}
                       >
                         {tile.description}
@@ -1263,7 +1263,7 @@ export const PublicOfferCustomerView = ({
                     Warunki płatności
                   </div>
                   <div 
-                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-[15px] md:text-sm"
                     dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.payment_terms) }}
                   />
                 </div>
@@ -1276,7 +1276,7 @@ export const PublicOfferCustomerView = ({
                     Warunki gwarancji
                   </div>
                   <div 
-                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-[15px] md:text-sm"
                     dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.warranty) }}
                   />
                 </div>
@@ -1289,7 +1289,7 @@ export const PublicOfferCustomerView = ({
                     Oferta obejmuje
                   </div>
                   <div 
-                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-[15px] md:text-sm"
                     dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.service_info) }}
                   />
                 </div>
@@ -1302,7 +1302,7 @@ export const PublicOfferCustomerView = ({
                     Inne informacje
                   </div>
                   <div 
-                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+                    className="pl-6 opacity-80 prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-[15px] md:text-sm"
                     dangerouslySetInnerHTML={{ __html: parseMarkdownLists(offer.notes) }}
                   />
                 </div>
