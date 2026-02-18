@@ -679,7 +679,7 @@ export const PublicOfferCustomerView = ({
           className="border"
           style={{ 
             backgroundColor: branding.offer_section_bg_color,
-            borderColor: `${branding.offer_primary_color}33`,
+            borderColor: '#e0e0e0',
           }}
         >
           <CardHeader className="pb-3">
@@ -731,7 +731,7 @@ export const PublicOfferCustomerView = ({
             )}
             {/* Vehicle info integrated with customer */}
             {(offer.vehicle_data?.brand || offer.vehicle_data?.brandModel) && (
-              <div className="pt-2 mt-2 border-t" style={{ borderColor: `${branding.offer_primary_color}20` }}>
+              <div className="pt-2 mt-2 border-t" style={{ borderColor: '#e0e0e0' }}>
                 <p 
                   className="flex items-center gap-1 font-medium"
                   style={{ color: branding.offer_section_text_color }}
@@ -755,7 +755,7 @@ export const PublicOfferCustomerView = ({
             className="border"
             style={{ 
               backgroundColor: branding.offer_section_bg_color,
-              borderColor: `${branding.offer_primary_color}33`,
+              borderColor: '#e0e0e0',
             }}
           >
             <CardContent className="pt-6">
@@ -804,7 +804,7 @@ export const PublicOfferCustomerView = ({
                       className="rounded p-4 border shadow-sm"
                       style={{ 
                         backgroundColor: branding.offer_section_bg_color,
-                        borderColor: `${branding.offer_primary_color}1a`,
+                        borderColor: '#e0e0e0',
                       }}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -815,14 +815,14 @@ export const PublicOfferCustomerView = ({
                           <IconComponent className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
                         </div>
                         <h3 
-                          className="font-semibold text-base md:text-sm"
+                          className="font-semibold text-[17px] md:text-sm"
                           style={{ color: branding.offer_section_text_color }}
                         >
                           {tile.title}
                         </h3>
                       </div>
                       <p 
-                        className="text-sm md:text-xs opacity-70"
+                        className="text-[15px] md:text-xs opacity-70"
                         style={{ color: branding.offer_section_text_color }}
                       >
                         {tile.description}
@@ -877,7 +877,7 @@ export const PublicOfferCustomerView = ({
                         className="rounded-lg border p-4 transition-all"
                         style={{
                           backgroundColor: branding.offer_section_bg_color,
-                          borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                          borderColor: isItemSelected ? branding.offer_primary_color : '#e0e0e0',
                         }}
                       >
                           {/* Desktop: Name + price/button on one line, description below */}
@@ -1074,7 +1074,7 @@ export const PublicOfferCustomerView = ({
                                 !readonlyMode && !isItemSelected && "opacity-70 hover:opacity-100"
                               )}
                               style={{
-                                borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
+                                borderColor: isItemSelected ? branding.offer_primary_color : '#e0e0e0',
                                 backgroundColor: branding.offer_section_bg_color,
                               }}
                               onClick={() => {
@@ -1172,7 +1172,7 @@ export const PublicOfferCustomerView = ({
             className="border"
             style={{ 
               backgroundColor: branding.offer_section_bg_color,
-              borderColor: `${branding.offer_primary_color}33`,
+              borderColor: '#e0e0e0',
             }}
           >
             <CardHeader className="pb-3">
@@ -1241,7 +1241,7 @@ export const PublicOfferCustomerView = ({
             className="border"
             style={{ 
               backgroundColor: branding.offer_section_bg_color,
-              borderColor: `${branding.offer_primary_color}33`,
+              borderColor: '#e0e0e0',
             }}
           >
             <CardContent className="pt-6 space-y-4 text-sm">
@@ -1317,7 +1317,7 @@ export const PublicOfferCustomerView = ({
                 className="border"
                 style={{ 
                   backgroundColor: branding.offer_section_bg_color,
-                  borderColor: `${branding.offer_primary_color}33`,
+                  borderColor: '#e0e0e0',
                 }}
               >
                 <CardContent className="pt-6">
