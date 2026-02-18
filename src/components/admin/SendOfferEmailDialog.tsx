@@ -46,20 +46,13 @@ interface SendOfferEmailDialogProps {
 
 const defaultEmailTemplate = `Dzień dobry,
 
-przygotowaliśmy dla Państwa indywidualną ofertę usług Car Detailingu & Wrappingu, dopasowaną do wcześniejszych ustaleń.
-
-Aby zapoznać się ze szczegółami, prosimy kliknąć poniższy link z ofertą:
-{{offerUrl}}
+przygotowaliśmy dla Państwa indywidualną ofertę usług, dopasowaną do wcześniejszych ustaleń.
 
 W razie pytań chętnie doradzimy i dopasujemy ofertę do Państwa oczekiwań.
 
 Pozdrawiamy serdecznie,
 {{instanceName}}
-{{contactPerson}}
-
-📞 {{phone}}
-📍 {{address}}
-🌐 {{website}}`;
+{{contactPerson}}`;
 
 export function SendOfferEmailDialog({ 
   open, 

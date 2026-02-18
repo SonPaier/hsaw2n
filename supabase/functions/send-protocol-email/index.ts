@@ -39,7 +39,8 @@ serve(async (req) => {
           phone,
           address,
           website,
-          contact_person
+          contact_person,
+          logo_url
         )
       `)
       .eq("id", protocolId)
@@ -52,59 +53,67 @@ serve(async (req) => {
     const instance = protocol.instances;
     const publicUrl = `https://${instance.slug}.n2wash.com/protocols/${protocol.public_token}`;
 
-    // Build email HTML with company footer matching offer emails
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .content { padding: 20px 0; }
-          .button { 
-            display: inline-block; 
-            background-color: #000; 
-            color: #fff !important; 
-            padding: 12px 24px; 
-            text-decoration: none; 
-            border-radius: 6px;
-            margin: 20px 0;
-          }
-          .footer { 
-            margin-top: 30px; 
-            padding-top: 20px; 
-            border-top: 1px solid #e5e5e5; 
-            font-size: 13px; 
-            color: #666; 
-          }
-          .footer-row { margin-bottom: 8px; }
-          a { color: #2563eb; text-decoration: none; }
-          a:hover { text-decoration: underline; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="content">
-            <p>${message.replace(/\n/g, '<br>').replace('[Link do protokołu zostanie automatycznie dołączony]', '')}</p>
-            <p style="text-align: center;">
-              <a href="${publicUrl}" class="button">Zobacz protokół</a>
-            </p>
-            <p style="font-size: 12px; color: #666; text-align: center;">
-              Lub skopiuj link: <a href="${publicUrl}">${publicUrl}</a>
-            </p>
-          </div>
-          <div class="footer">
-            <p style="margin-bottom: 15px;">Pozdrawiamy serdecznie,<br><strong>${instance.name}</strong>${instance.contact_person ? `<br>${instance.contact_person}` : ''}</p>
-            ${instance.phone ? `<div class="footer-row">📞 ${instance.phone}</div>` : ''}
-            ${instance.address ? `<div class="footer-row">📍 ${instance.address}</div>` : ''}
-            ${instance.website ? `<div class="footer-row">🌐 <a href="${instance.website}">${instance.website}</a></div>` : ''}
-            ${instance.email ? `<div class="footer-row">📧 ${instance.email}</div>` : ''}
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    const logoHtml = instance.logo_url
+      ? `<div style="text-align:center;padding:30px 0 20px;">
+          <img src="${instance.logo_url}" alt="${instance.name || ''}" style="max-height:60px;max-width:200px;" />
+        </div>`
+      : `<div style="text-align:center;padding:30px 0 20px;">
+          <h1 style="font-family:'Inter',Arial,sans-serif;font-size:22px;font-weight:700;color:#111;margin:0;">${instance.name || ''}</h1>
+        </div>`;
+
+    const footerParts: string[] = [];
+    if (instance.phone) footerParts.push(`<span style="margin:0 8px;">📞 ${instance.phone}</span>`);
+    if (instance.address) footerParts.push(`<span style="margin:0 8px;">📍 ${instance.address}</span>`);
+    if (instance.website) footerParts.push(`<span style="margin:0 8px;">🌐 <a href="${instance.website}" style="color:#555;text-decoration:underline;">${instance.website}</a></span>`);
+    if (instance.email) footerParts.push(`<span style="margin:0 8px;">📧 ${instance.email}</span>`);
+
+    const messageHtml = message.replace(/\n/g, '<br>').replace('[Link do protokołu zostanie automatycznie dołączony]', '');
+
+    // Build email HTML with branded layout
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background-color:#f0f0f0;font-family:'Inter',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f0;padding:20px 0;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<tr><td>
+  ${logoHtml}
+</td></tr>
+<tr><td>
+  <div style="background:#ffffff;border-radius:12px;padding:36px 32px;margin:0 12px;">
+    <div style="font-size:15px;line-height:1.7;color:#333;">
+      <p style="margin:0 0 8px;">${messageHtml}</p>
+    </div>
+    <div style="text-align:center;margin:28px 0 12px;">
+      <a href="${publicUrl}" style="display:inline-block;background-color:#111;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;font-family:'Inter',Arial,sans-serif;">Zobacz protokół</a>
+    </div>
+    <p style="font-size:12px;color:#999;text-align:center;margin-top:16px;">
+      Lub skopiuj link: <a href="${publicUrl}" style="color:#666;">${publicUrl}</a>
+    </p>
+  </div>
+</td></tr>
+<tr><td style="padding:24px 12px 8px;text-align:center;">
+  <p style="margin:0 0 6px;font-size:14px;color:#555;font-weight:600;">${instance.name || ''}</p>
+  ${instance.contact_person ? `<p style="margin:0 0 10px;font-size:13px;color:#777;">${instance.contact_person}</p>` : ''}
+  <div style="font-size:12px;color:#888;line-height:1.8;">
+    ${footerParts.join('<br>')}
+  </div>
+</td></tr>
+<tr><td style="padding:20px 12px 30px;text-align:center;border-top:1px solid #e0e0e0;margin-top:16px;">
+  <p style="margin:0;font-size:11px;color:#bbb;font-family:'Inter',Arial,sans-serif;">
+    Wygenerowano przy użyciu systemu dla myjni i studio detailingu <a href="https://n2wash.com" style="color:#999;text-decoration:underline;">n2wash.com</a>
+  </p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 
     // Get SMTP config from secrets
     const smtpHost = Deno.env.get("SMTP_HOST");
