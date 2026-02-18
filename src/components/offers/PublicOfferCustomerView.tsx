@@ -872,15 +872,14 @@ export const PublicOfferCustomerView = ({
                     const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
                     
                     return (
-                      <Card 
+                      <div 
                         key={item.id}
-                        className="transition-all border"
+                        className="rounded-lg border p-4 transition-all"
                         style={{
                           backgroundColor: branding.offer_section_bg_color,
                           borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
                         }}
                       >
-                        <CardContent className="py-4">
                           {/* Desktop: Name + price/button on one line, description below */}
                           <div className="hidden md:block">
                             <div className="flex items-center justify-between">
@@ -974,8 +973,7 @@ export const PublicOfferCustomerView = ({
                               )}
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                      </div>
                     );
                   };
 
