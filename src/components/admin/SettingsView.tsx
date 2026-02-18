@@ -286,7 +286,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="name"
                 value={companyForm.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="ARM CAR AUTO SPA"
               />
             </div>
 
@@ -297,7 +296,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="short_name"
                 value={companyForm.short_name}
                 onChange={(e) => handleInputChange('short_name', e.target.value)}
-                placeholder="ARM CAR"
                 maxLength={20}
               />
               <p className="text-xs text-muted-foreground">
@@ -312,7 +310,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="invoice_company_name"
                 value={companyForm.invoice_company_name}
                 onChange={(e) => handleInputChange('invoice_company_name', e.target.value)}
-                placeholder="ARM CAR Sp. z o.o."
               />
             </div>
 
@@ -323,7 +320,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="nip"
                 value={companyForm.nip}
                 onChange={(e) => handleInputChange('nip', e.target.value)}
-                placeholder="123-456-78-90"
                 maxLength={13}
               />
             </div>
@@ -336,7 +332,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 type="tel"
                 value={companyForm.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+48 123 456 789"
               />
             </div>
 
@@ -348,7 +343,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 type="tel"
                 value={companyForm.reservation_phone}
                 onChange={(e) => handleInputChange('reservation_phone', e.target.value)}
-                placeholder="+48 123 456 789"
               />
               <p className="text-xs text-muted-foreground">
                 {t('instanceSettings.reservationPhoneDescription')}
@@ -363,7 +357,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 type="email"
                 value={companyForm.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="kontakt@firma.pl"
               />
             </div>
 
@@ -374,7 +367,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="address"
                 value={companyForm.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="ul. Przykładowa 123, 80-000 Gdańsk"
               />
             </div>
 
@@ -385,7 +377,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="contact_person"
                 value={companyForm.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
-                placeholder="Jan Kowalski"
               />
             </div>
 
@@ -397,7 +388,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 type="url"
                 value={companyForm.website}
                 onChange={(e) => handleInputChange('website', e.target.value)}
-                placeholder="https://www.firma.pl"
               />
             </div>
 
@@ -408,7 +398,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="social_facebook"
                 value={companyForm.social_facebook}
                 onChange={(e) => handleInputChange('social_facebook', e.target.value)}
-                placeholder="https://facebook.com/firma"
               />
             </div>
 
@@ -418,7 +407,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="social_instagram"
                 value={companyForm.social_instagram}
                 onChange={(e) => handleInputChange('social_instagram', e.target.value)}
-                placeholder="https://instagram.com/firma"
               />
             </div>
 
@@ -428,7 +416,6 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 id="google_maps_url"
                 value={companyForm.google_maps_url}
                 onChange={(e) => handleInputChange('google_maps_url', e.target.value)}
-                placeholder="https://maps.google.com/..."
               />
             </div>
 

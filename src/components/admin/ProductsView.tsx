@@ -369,8 +369,8 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
 
   return (
     <div>
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center justify-between">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold">{t('products.title')}</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => setShowCategoriesDialog(true)} className="sm:w-auto sm:px-4 w-10 h-10">
@@ -383,7 +383,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
             </Button>
           </div>
         </div>
-        <p className="text-muted-foreground text-sm w-full">
+        <p className="text-muted-foreground text-sm">
           Na ich podstawie możesz tworzyć własne szablony oraz wykorzystywać je w ofertach.
         </p>
       </div>
