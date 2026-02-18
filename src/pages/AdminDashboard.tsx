@@ -2359,7 +2359,7 @@ const AdminDashboard = () => {
                     )}
                   />
                 )}
-                {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left min-w-0 flex-1">
+                {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left min-w-0 flex-1 pr-2">
                     <h1 className="font-bold text-foreground truncate">{instanceData?.name || 'Panel Admina'}</h1>
                   </div>}
               </button>
