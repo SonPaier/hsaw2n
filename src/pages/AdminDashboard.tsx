@@ -1631,14 +1631,12 @@ const AdminDashboard = () => {
     if (!reservation) return;
     
     const now = new Date();
-    const currentEndTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'completed',
-      completed_at: now.toISOString(),
-      end_time: currentEndTime
+      completed_at: now.toISOString()
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -1650,8 +1648,7 @@ const AdminDashboard = () => {
     // Update local state
     setReservations(prev => prev.map(r => r.id === reservationId ? {
       ...r,
-      status: 'completed',
-      end_time: currentEndTime
+      status: 'completed'
     } : r));
 
     toast.success(t('reservations.workEnded'), {
