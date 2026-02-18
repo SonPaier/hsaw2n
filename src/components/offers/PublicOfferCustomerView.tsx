@@ -577,7 +577,7 @@ export const PublicOfferCustomerView = ({
         style={{ backgroundColor: branding.offer_header_bg_color }}
       >
         <div className="max-w-4xl w-full mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {instance?.logo_url ? (
                 <img
@@ -608,6 +608,21 @@ export const PublicOfferCustomerView = ({
                   Oferta nr {offer.offer_number}
                 </p>
               </div>
+            </div>
+            {/* Company contact info - right side */}
+            <div className="hidden md:flex flex-col items-end gap-0.5 text-xs" style={{ color: branding.offer_header_text_color }}>
+              {instance?.phone && (
+                <a href={`tel:${instance.phone}`} className="hover:underline opacity-80">{instance.phone}</a>
+              )}
+              {instance?.email && (
+                <a href={`mailto:${instance.email}`} className="hover:underline opacity-80">{instance.email}</a>
+              )}
+              {instance?.address && (
+                <span className="opacity-80">{instance.address}</span>
+              )}
+              {instance?.website && (
+                <a href={instance.website} target="_blank" rel="noopener noreferrer" className="hover:underline opacity-80">{instance.website}</a>
+              )}
             </div>
             {/* Admin controls in public mode */}
             {mode === 'public' && isAdmin && (
@@ -859,14 +874,10 @@ export const PublicOfferCustomerView = ({
                     return (
                       <Card 
                         key={item.id}
-                        className={cn(
-                          "transition-all border",
-                          isItemSelected && "ring-2"
-                        )}
+                        className="transition-all border"
                         style={{
                           backgroundColor: branding.offer_section_bg_color,
                           borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                          ...(isItemSelected ? { '--tw-ring-color': branding.offer_primary_color } as React.CSSProperties : {}),
                         }}
                       >
                         <CardContent className="py-4">
@@ -1045,14 +1056,7 @@ export const PublicOfferCustomerView = ({
                     </div>
 
                     {/* Products - single or multiple items with toggle selection */}
-                    <Card 
-                      className="border"
-                      style={{
-                        backgroundColor: branding.offer_section_bg_color,
-                        borderColor: isScopeSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
-                      }}
-                    >
-                      <CardContent className="py-4 space-y-3">
+                    <div className="space-y-3">
                         {allItems.map((item) => {
                           const isItemSelected = selectedItemId === item.id && isScopeSelected;
                           const itemTotal = item.quantity * item.unit_price * (1 - item.discount_percent / 100);
@@ -1069,11 +1073,10 @@ export const PublicOfferCustomerView = ({
                               className={cn(
                                 "rounded-lg border p-4 transition-all",
                                 !readonlyMode && "cursor-pointer",
-                                isItemSelected ? "ring-2" : (!readonlyMode && "opacity-70 hover:opacity-100")
+                                !readonlyMode && !isItemSelected && "opacity-70 hover:opacity-100"
                               )}
                               style={{
-                                borderColor: isItemSelected ? branding.offer_primary_color : undefined,
-                                boxShadow: isItemSelected ? `0 0 0 2px ${branding.offer_primary_color}` : undefined,
+                                borderColor: isItemSelected ? branding.offer_primary_color : `${branding.offer_primary_color}33`,
                                 backgroundColor: branding.offer_section_bg_color,
                               }}
                               onClick={() => {
@@ -1122,8 +1125,7 @@ export const PublicOfferCustomerView = ({
                             </div>
                           );
                         })}
-                      </CardContent>
-                    </Card>
+                    </div>
                   </section>
                 );
               });

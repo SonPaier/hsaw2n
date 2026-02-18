@@ -21,10 +21,10 @@ const buildEmailHtml = (
       </div>`;
 
   const footerParts: string[] = [];
-  if (instance.phone) footerParts.push(`<span style="margin:0 8px;">📞 ${instance.phone}</span>`);
-  if (instance.address) footerParts.push(`<span style="margin:0 8px;">📍 ${instance.address}</span>`);
-  if (instance.website) footerParts.push(`<span style="margin:0 8px;">🌐 <a href="${instance.website}" style="color:#555;text-decoration:underline;">${instance.website}</a></span>`);
-  if (instance.email) footerParts.push(`<span style="margin:0 8px;">📧 ${instance.email}</span>`);
+  if (instance.phone) footerParts.push(`<span style="margin:0 8px;"><a href="tel:${instance.phone}" style="color:#555;text-decoration:none;">${instance.phone}</a></span>`);
+  if (instance.address) footerParts.push(`<span style="margin:0 8px;">${instance.address}</span>`);
+  if (instance.website) footerParts.push(`<span style="margin:0 8px;"><a href="${instance.website}" style="color:#555;text-decoration:underline;">${instance.website}</a></span>`);
+  if (instance.email) footerParts.push(`<span style="margin:0 8px;">${instance.email}</span>`);
 
   return `<!DOCTYPE html>
 <html>
@@ -74,7 +74,7 @@ const buildEmailHtml = (
 
 const defaultEmailTemplate = `Dzień dobry,
 
-przygotowaliśmy dla Państwa indywidualną ofertę usług, dopasowaną do wcześniejszych ustaleń.
+przygotowaliśmy indywidualną ofertę usług car detailing, zgodnie z Państwa zapytaniem.
 
 W razie pytań chętnie doradzimy i dopasujemy ofertę do Państwa oczekiwań.`;
 

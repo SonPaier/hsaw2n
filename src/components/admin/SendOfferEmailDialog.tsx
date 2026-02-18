@@ -46,7 +46,7 @@ interface SendOfferEmailDialogProps {
 
 const defaultEmailTemplate = `Dzień dobry,
 
-przygotowaliśmy dla Państwa indywidualną ofertę usług, dopasowaną do wcześniejszych ustaleń.
+przygotowaliśmy indywidualną ofertę usług car detailing, zgodnie z Państwa zapytaniem.
 
 W razie pytań chętnie doradzimy i dopasujemy ofertę do Państwa oczekiwań.
 
