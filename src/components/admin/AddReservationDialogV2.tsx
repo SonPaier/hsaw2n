@@ -12,8 +12,8 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet';
+  SheetFooter } from
+'@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,8 +31,8 @@ import {
   VehicleSection,
   YardDateTimeSection,
   ReservationDateTimeSection,
-  NotesAndPriceSection,
-} from './reservation-form';
+  NotesAndPriceSection } from
+'./reservation-form';
 
 type CarSize = 'small' | 'medium' | 'large';
 type DialogMode = 'reservation' | 'yard';
@@ -166,15 +166,15 @@ const AddReservationDialogV2 = ({
   initialTime,
   initialStationId,
   onSlotPreviewChange,
-  currentUsername = null,
+  currentUsername = null
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isReservationMode = mode === 'reservation';
-  const isEditMode = isYardMode ? !!editingYardVehicle : !!(editingReservation?.id);
-  
+  const isEditMode = isYardMode ? !!editingYardVehicle : !!editingReservation?.id;
+
   const { t } = useTranslation();
   const isMobile = useIsMobile();
-  
+
   // Employee assignment feature
   const { data: instanceSettings } = useInstanceSettings(instanceId);
   const showEmployeeAssignment = isReservationMode && (instanceSettings?.assign_employees_to_reservations ?? false);
@@ -186,7 +186,7 @@ const AddReservationDialogV2 = ({
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
-  
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<{
     phone?: string;
@@ -196,7 +196,7 @@ const AddReservationDialogV2 = ({
     station?: string;
     dateRange?: string;
   }>({});
-  
+
   // Refs for scroll-to-error
   const phoneInputRef = useRef<HTMLDivElement>(null);
   const carModelRef = useRef<HTMLDivElement>(null);
@@ -209,10 +209,10 @@ const AddReservationDialogV2 = ({
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  
+
   // Ref to suppress phone search after programmatic phone value set (edit mode)
   const suppressPhoneSearchRef = useRef(false);
-  
+
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -228,11 +228,11 @@ const AddReservationDialogV2 = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isCustomCarModel, setIsCustomCarModel] = useState(false);
   const [customerDiscountPercent, setCustomerDiscountPercent] = useState<number | null>(null);
-  
+
   // Customer vehicles pills state
   const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  
+
   // Services dropdown
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
 
@@ -240,17 +240,17 @@ const AddReservationDialogV2 = ({
   const [manualStartTime, setManualStartTime] = useState('');
   const [manualEndTime, setManualEndTime] = useState('');
   const [manualStationId, setManualStationId] = useState<string | null>(null);
-  
+
   // Track the last totalDurationMinutes to detect changes
   const prevTotalDurationRef = useRef<number>(0);
 
   // Protection against Realtime overwriting form during active editing
   const isUserEditingRef = useRef(false);
   const lastEditingReservationIdRef = useRef<string | null>(null);
-  
+
   // Flag to prevent auto-calculation from overwriting manual end time
   const [userModifiedEndTime, setUserModifiedEndTime] = useState(false);
-  
+
   // Track original duration for edit mode - to adjust end time when start time changes
   const originalDurationMinutesRef = useRef<number | null>(null);
   // Track previous manual start time to detect user-initiated changes
@@ -272,7 +272,7 @@ const AddReservationDialogV2 = ({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [offerNumber, setOfferNumber] = useState('');
-  
+
   // Reservation type: single (1 day) or multi (date range)
   const [reservationType, setReservationType] = useState<'single' | 'multi'>('single');
 
@@ -280,67 +280,67 @@ const AddReservationDialogV2 = ({
   useEffect(() => {
     const fetchData = async () => {
       if (!open || !instanceId) return;
-      
+
       // Fetch services based on has_unified_services flag:
       // - unified (has_unified_services=true) → only 'both'
       // - legacy (has_unified_services=false) → only 'reservation'
-      const serviceTypeFilter = editingReservation?.has_unified_services === false 
-        ? 'reservation' 
-        : 'both';
-      
-      const servicesQuery = supabase
-        .from('unified_services')
-        .select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular')
-        .eq('instance_id', instanceId)
-        .eq('service_type', serviceTypeFilter)
-        .eq('active', true);
-      
+      const serviceTypeFilter = editingReservation?.has_unified_services === false ?
+      'reservation' :
+      'both';
+
+      const servicesQuery = supabase.
+      from('unified_services').
+      select('id, name, short_name, category_id, duration_minutes, duration_small, duration_medium, duration_large, price_from, price_small, price_medium, price_large, station_type, is_popular').
+      eq('instance_id', instanceId).
+      eq('service_type', serviceTypeFilter).
+      eq('active', true);
+
       const { data: servicesData } = await servicesQuery.order('sort_order');
-      
+
       if (servicesData) {
         setServices(servicesData);
       }
-      
+
       // Fetch all active stations (for reservation mode)
       if (isReservationMode) {
-        const { data: stationsData } = await supabase
-          .from('stations')
-          .select('id, name, type')
-          .eq('instance_id', instanceId)
-          .eq('active', true)
-          .order('sort_order');
-        
+        const { data: stationsData } = await supabase.
+        from('stations').
+        select('id, name, type').
+        eq('instance_id', instanceId).
+        eq('active', true).
+        order('sort_order');
+
         if (stationsData) {
           setStations(stationsData);
         }
       }
     };
-    
+
     fetchData();
   }, [open, instanceId, mode, isReservationMode]);
 
   // Calculate the next working day based on working hours
   const getNextWorkingDay = useCallback((): Date => {
     if (!workingHours) return new Date();
-    
+
     const now = new Date();
     let checkDate = startOfDay(now);
-    
+
     // Check if today is still a valid working day
     const todayName = format(now, 'EEEE').toLowerCase();
     const todayHours = workingHours[todayName];
-    
+
     if (todayHours?.close && todayHours.close.includes(':')) {
       const [closeH, closeM] = todayHours.close.split(':').map(Number);
       const closeTime = new Date(now);
       closeTime.setHours(closeH, closeM, 0, 0);
-      
+
       // If current time is before closing, today is valid
       if (isBefore(now, closeTime)) {
         return checkDate;
       }
     }
-    
+
     // Find next working day
     for (let i = 1; i <= 7; i++) {
       checkDate = addDays(startOfDay(now), i);
@@ -349,7 +349,7 @@ const AddReservationDialogV2 = ({
         return checkDate;
       }
     }
-    
+
     return addDays(startOfDay(now), 1);
   }, [workingHours]);
 
@@ -364,15 +364,15 @@ const AddReservationDialogV2 = ({
         console.log('[ReservationDialog] Skipping re-init - user is actively editing');
         return;
       }
-      
+
       // Track which reservation we're editing
       lastEditingReservationIdRef.current = editingReservation?.id || null;
-      
+
       // Reset user editing flags for new dialog session
       setUserModifiedEndTime(false);
       setUserModifiedFinalPrice(false);
       setValidationErrors({});
-      
+
       if (isYardMode && editingYardVehicle) {
         // Yard edit mode
         suppressPhoneSearchRef.current = true;
@@ -420,16 +420,16 @@ const AddReservationDialogV2 = ({
         setCarModel(editingReservation.vehicle_plate || '');
         setCarSize(editingReservation.car_size || 'medium');
         // Use service_ids if not empty, otherwise fallback to service_id
-        const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
-          ? editingReservation.service_ids 
-          : (editingReservation.service_id ? [editingReservation.service_id] : []);
+        const serviceIds = editingReservation.service_ids && editingReservation.service_ids.length > 0 ?
+        editingReservation.service_ids :
+        editingReservation.service_id ? [editingReservation.service_id] : [];
         setSelectedServices(serviceIds);
-        
+
         // Load servicesWithCategory from services list for backwards compatibility
         if (services.length > 0 && serviceIds.length > 0) {
           const loadedServicesWithCategory: ServiceWithCategory[] = [];
-          serviceIds.forEach(id => {
-            const service = services.find(s => s.id === id);
+          serviceIds.forEach((id) => {
+            const service = services.find((s) => s.id === id);
             if (service) {
               loadedServicesWithCategory.push({
                 id: service.id,
@@ -444,31 +444,31 @@ const AddReservationDialogV2 = ({
                 price_small: service.price_small,
                 price_medium: service.price_medium,
                 price_large: service.price_large,
-                category_prices_are_net: false,
+                category_prices_are_net: false
               });
             }
           });
           setServicesWithCategory(loadedServicesWithCategory);
         }
-        
+
         // Load serviceItems from reservation's service_items column if available
         const reservationServiceItems = editingReservation.service_items as ServiceItem[] | null;
         if (reservationServiceItems && Array.isArray(reservationServiceItems) && reservationServiceItems.length > 0) {
           setServiceItems(reservationServiceItems);
         } else {
           // Initialize serviceItems for legacy reservations without service_items
-          setServiceItems(serviceIds.map(id => ({ service_id: id, custom_price: null })));
+          setServiceItems(serviceIds.map((id) => ({ service_id: id, custom_price: null })));
         }
-        
+
         // Date range - use reservation_date and end_date (handle empty for prefill mode)
         if (editingReservation.reservation_date) {
           const fromDate = new Date(editingReservation.reservation_date);
           const toDate = editingReservation.end_date ? new Date(editingReservation.end_date) : fromDate;
           setDateRange({ from: fromDate, to: toDate });
-          
+
           // Auto-detect reservation type based on date range
-          if (editingReservation.end_date && 
-              editingReservation.reservation_date !== editingReservation.end_date) {
+          if (editingReservation.end_date &&
+          editingReservation.reservation_date !== editingReservation.end_date) {
             setReservationType('multi');
           } else {
             setReservationType('single');
@@ -479,7 +479,7 @@ const AddReservationDialogV2 = ({
           setDateRange({ from: nextDay, to: nextDay });
           setReservationType('single');
         }
-        
+
         setAdminNotes(editingReservation.admin_notes || '');
         setFinalPrice(editingReservation.price?.toString() || '');
         // Mark as user-modified if editing reservation with existing price
@@ -493,14 +493,14 @@ const AddReservationDialogV2 = ({
         setShowCustomerDropdown(false);
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
-        
+
         // Set manual time from editing reservation (skip if empty - e.g. prefill from offer)
         const startTimeStr = editingReservation.start_time?.substring(0, 5) || '';
         const endTimeStr = editingReservation.end_time?.substring(0, 5) || '';
         if (startTimeStr) setManualStartTime(startTimeStr);
         if (endTimeStr) setManualEndTime(endTimeStr);
         setManualStationId(editingReservation.station_id);
-        
+
         // Calculate and store original duration for automatic end time adjustment
         if (startTimeStr && endTimeStr && startTimeStr.includes(':') && endTimeStr.includes(':')) {
           const [startH, startM] = startTimeStr.split(':').map(Number);
@@ -510,10 +510,10 @@ const AddReservationDialogV2 = ({
           originalDurationMinutesRef.current = endMinutes - startMinutes;
           prevManualStartTimeRef.current = startTimeStr;
         }
-        
+
         // CRITICAL: Mark end time as user-modified to prevent useEffect from recalculating it
         setUserModifiedEndTime(true);
-        
+
         // Initialize assigned employees from reservation (optimistic) + allow backend to re-hydrate
         employeesDirtyRef.current = false;
         employeesSyncedFromBackendForReservationIdRef.current = null;
@@ -528,7 +528,7 @@ const AddReservationDialogV2 = ({
           setManualStationId(initialStationId);
           // Recalculate end time based on current services duration
           const currentDuration = selectedServices.reduce((total, serviceId) => {
-            const service = services.find(s => s.id === serviceId);
+            const service = services.find((s) => s.id === serviceId);
             if (!service) return total;
             if (carSize === 'small' && service.duration_small) return total + service.duration_small;
             if (carSize === 'large' && service.duration_large) return total + service.duration_large;
@@ -621,17 +621,17 @@ const AddReservationDialogV2 = ({
     employeesSyncedFromBackendForReservationIdRef.current = reservationId;
 
     (async () => {
-      const { data, error } = await supabase
-        .from('reservations')
-        .select('assigned_employee_ids')
-        .eq('id', reservationId)
-        .maybeSingle();
+      const { data, error } = await supabase.
+      from('reservations').
+      select('assigned_employee_ids').
+      eq('id', reservationId).
+      maybeSingle();
 
       if (error) return;
       if (employeesDirtyRef.current) return;
 
       const raw = (data as any)?.assigned_employee_ids;
-      const ids = Array.isArray(raw) ? (raw as string[]) : [];
+      const ids = Array.isArray(raw) ? raw as string[] : [];
       setAssignedEmployeeIds(ids);
     })();
   }, [open, editingReservation?.id, showEmployeeAssignment]);
@@ -639,21 +639,21 @@ const AddReservationDialogV2 = ({
   // NEW: Re-map servicesWithCategory when services are loaded (for edit mode)
   useEffect(() => {
     if (!open || services.length === 0) return;
-    
+
     // Skip if servicesWithCategory is already populated (user already editing)
     if (servicesWithCategory.length > 0) return;
-    
+
     // Handle reservation edit mode
     if (editingReservation) {
-      const serviceIds = (editingReservation.service_ids && editingReservation.service_ids.length > 0) 
-        ? editingReservation.service_ids 
-        : (editingReservation.service_id ? [editingReservation.service_id] : []);
-      
+      const serviceIds = editingReservation.service_ids && editingReservation.service_ids.length > 0 ?
+      editingReservation.service_ids :
+      editingReservation.service_id ? [editingReservation.service_id] : [];
+
       if (serviceIds.length === 0) return;
-      
+
       const loadedServicesWithCategory: ServiceWithCategory[] = [];
-      serviceIds.forEach(id => {
-        const service = services.find(s => s.id === id);
+      serviceIds.forEach((id) => {
+        const service = services.find((s) => s.id === id);
         if (service) {
           loadedServicesWithCategory.push({
             id: service.id,
@@ -668,11 +668,11 @@ const AddReservationDialogV2 = ({
             price_small: service.price_small,
             price_medium: service.price_medium,
             price_large: service.price_large,
-            category_prices_are_net: false,
+            category_prices_are_net: false
           });
         }
       });
-      
+
       if (loadedServicesWithCategory.length > 0) {
         setServicesWithCategory(loadedServicesWithCategory);
         // Also initialize serviceItems from editingReservation if available
@@ -693,7 +693,7 @@ const AddReservationDialogV2 = ({
 
   // Calculate total duration from selected services
   const totalDurationMinutes = selectedServices.reduce((total, serviceId) => {
-    const service = services.find(s => s.id === serviceId);
+    const service = services.find((s) => s.id === serviceId);
     return total + (service ? getServiceDuration(service) : 0);
   }, 0);
 
@@ -707,33 +707,33 @@ const AddReservationDialogV2 = ({
 
   // Calculate total price from selected services (using custom prices from serviceItems if available)
   const totalPrice = selectedServices.reduce((total, serviceId) => {
-    const service = services.find(s => s.id === serviceId);
+    const service = services.find((s) => s.id === serviceId);
     if (!service) return total;
-    
+
     // Check if there's a custom price in serviceItems
-    const serviceItem = serviceItems.find(si => si.service_id === serviceId);
+    const serviceItem = serviceItems.find((si) => si.service_id === serviceId);
     if (serviceItem?.custom_price !== null && serviceItem?.custom_price !== undefined) {
       return total + serviceItem.custom_price;
     }
-    
+
     return total + getServicePrice(service);
   }, 0);
 
   // Calculate discounted price
-  const discountedPrice = customerDiscountPercent && customerDiscountPercent > 0 
-    ? Math.round(totalPrice * (1 - customerDiscountPercent / 100))
-    : totalPrice;
+  const discountedPrice = customerDiscountPercent && customerDiscountPercent > 0 ?
+  Math.round(totalPrice * (1 - customerDiscountPercent / 100)) :
+  totalPrice;
 
   // Auto-update end time when start time or duration changes (for reservation mode)
   useEffect(() => {
     if (!isReservationMode || !open) return;
-    
+
     // Skip if user manually modified end time
     if (userModifiedEndTime) return;
-    
+
     // Skip if no start time
     if (!manualStartTime || !manualStartTime.includes(':')) return;
-    
+
     // Calculate new end time based on total duration
     if (totalDurationMinutes > 0) {
       const [h, m] = manualStartTime.split(':').map(Number);
@@ -741,60 +741,60 @@ const AddReservationDialogV2 = ({
       const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
       setManualEndTime(newEndTime);
     }
-    
+
     prevTotalDurationRef.current = totalDurationMinutes;
   }, [open, isReservationMode, manualStartTime, totalDurationMinutes, userModifiedEndTime]);
 
   // Auto-adjust end time when start time changes in edit mode (preserve duration)
   useEffect(() => {
     if (!isReservationMode || !open || !isEditMode) return;
-    
+
     // Skip if user manually modified end time
     if (userModifiedEndTime) return;
-    
+
     // Skip if no original duration stored
     if (originalDurationMinutesRef.current === null) return;
-    
+
     // Skip if start time hasn't actually changed
     if (manualStartTime === prevManualStartTimeRef.current) return;
-    
+
     // Skip if start time is empty or invalid
     if (!manualStartTime || !manualStartTime.includes(':')) return;
-    
+
     // Calculate new end time preserving original duration
     const [h, m] = manualStartTime.split(':').map(Number);
     const endMinutes = h * 60 + m + originalDurationMinutesRef.current;
     const newEndTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
     setManualEndTime(newEndTime);
-    
+
     prevManualStartTimeRef.current = manualStartTime;
   }, [open, isReservationMode, isEditMode, manualStartTime, userModifiedEndTime]);
 
   // Emit slot preview for calendar highlighting (reservation mode only)
   useEffect(() => {
     if (!open || !isReservationMode || !onSlotPreviewChange) return;
-    
+
     // In edit mode, always show preview based on current manual values
     if (manualStartTime && manualEndTime && manualStationId && dateRange?.from) {
       onSlotPreviewChange({
         date: format(dateRange.from, 'yyyy-MM-dd'),
         startTime: manualStartTime,
         endTime: manualEndTime,
-        stationId: manualStationId,
+        stationId: manualStationId
       });
     } else {
       onSlotPreviewChange(null);
     }
   }, [
-    open,
-    isReservationMode,
-    isEditMode,
-    dateRange,
-    manualStartTime,
-    manualEndTime,
-    manualStationId,
-    onSlotPreviewChange
-  ]);
+  open,
+  isReservationMode,
+  isEditMode,
+  dateRange,
+  manualStartTime,
+  manualEndTime,
+  manualStationId,
+  onSlotPreviewChange]
+  );
 
   // Normalize phone: remove spaces and country code (+48, 0048, 48 at start)
   const normalizePhone = (phone: string): string => {
@@ -812,39 +812,39 @@ const AddReservationDialogV2 = ({
       setShowPhoneDropdown(false);
       return;
     }
-    
+
     setSearchingCustomer(true);
     try {
-      const { data, error } = await supabase
-        .from('customer_vehicles')
-        .select('id, phone, model, plate, customer_id')
-        .eq('instance_id', instanceId)
-        .or(`phone.ilike.%${normalizedSearch}%`)
-        .order('last_used_at', { ascending: false })
-        .limit(5);
-      
+      const { data, error } = await supabase.
+      from('customer_vehicles').
+      select('id, phone, model, plate, customer_id').
+      eq('instance_id', instanceId).
+      or(`phone.ilike.%${normalizedSearch}%`).
+      order('last_used_at', { ascending: false }).
+      limit(5);
+
       if (!error && data) {
-        const customerIds = data.filter(v => v.customer_id).map(v => v.customer_id!);
+        const customerIds = data.filter((v) => v.customer_id).map((v) => v.customer_id!);
         let customerNames: Record<string, string> = {};
-        
+
         if (customerIds.length > 0) {
-          const { data: customersData } = await supabase
-            .from('customers')
-            .select('id, name')
-            .in('id', customerIds);
-          
+          const { data: customersData } = await supabase.
+          from('customers').
+          select('id, name').
+          in('id', customerIds);
+
           if (customersData) {
-            customersData.forEach(c => {
+            customersData.forEach((c) => {
               customerNames[c.id] = c.name;
             });
           }
         }
-        
-        const vehiclesWithNames: CustomerVehicle[] = data.map(v => ({
+
+        const vehiclesWithNames: CustomerVehicle[] = data.map((v) => ({
           ...v,
           customer_name: v.customer_id ? customerNames[v.customer_id] : undefined
         }));
-        
+
         setFoundVehicles(vehiclesWithNames);
         setShowPhoneDropdown(vehiclesWithNames.length > 0);
       }
@@ -856,13 +856,13 @@ const AddReservationDialogV2 = ({
   // Debounced phone search
   useEffect(() => {
     if (selectedCustomerId) return;
-    
+
     // Skip search if suppressed (e.g. after programmatic value set in edit mode)
     if (suppressPhoneSearchRef.current) {
       suppressPhoneSearchRef.current = false;
       return;
     }
-    
+
     const timer = setTimeout(() => {
       searchByPhone(phone);
     }, 300);
@@ -877,15 +877,15 @@ const AddReservationDialogV2 = ({
       setSelectedVehicleId(null);
       return;
     }
-    
+
     try {
-      const { data } = await supabase
-        .from('customer_vehicles')
-        .select('id, phone, model, plate, customer_id, car_size, last_used_at')
-        .eq('instance_id', instanceId)
-        .or(`phone.eq.${normalized},phone.eq.+48${normalized}`)
-        .order('last_used_at', { ascending: false });
-      
+      const { data } = await supabase.
+      from('customer_vehicles').
+      select('id, phone, model, plate, customer_id, car_size, last_used_at').
+      eq('instance_id', instanceId).
+      or(`phone.eq.${normalized},phone.eq.+48${normalized}`).
+      order('last_used_at', { ascending: false });
+
       if (data && data.length > 0) {
         setCustomerVehicles(data);
         // Default select the first (most recently used)
@@ -893,9 +893,9 @@ const AddReservationDialogV2 = ({
         // Auto-fill model from first vehicle
         setCarModel(data[0].model);
         // Set car size
-        if (data[0].car_size === 'S') setCarSize('small');
-        else if (data[0].car_size === 'L') setCarSize('large');
-        else setCarSize('medium');
+        if (data[0].car_size === 'S') setCarSize('small');else
+        if (data[0].car_size === 'L') setCarSize('large');else
+        setCarSize('medium');
       } else {
         setCustomerVehicles([]);
         setSelectedVehicleId(null);
@@ -908,7 +908,7 @@ const AddReservationDialogV2 = ({
   // Effect to load vehicles when phone has 9 digits
   useEffect(() => {
     if (isEditMode) return; // Don't auto-load in edit mode
-    
+
     const normalized = normalizePhone(phone);
     if (normalized.length === 9) {
       loadCustomerVehicles(phone);
@@ -922,27 +922,27 @@ const AddReservationDialogV2 = ({
     setPhone(vehicle.phone);
     setCarModel(vehicle.model);
     setShowPhoneDropdown(false);
-    
+
     // Fetch car_size from customer_vehicles
-    const { data: vehicleData } = await supabase
-      .from('customer_vehicles')
-      .select('car_size')
-      .eq('id', vehicle.id)
-      .maybeSingle();
-    
+    const { data: vehicleData } = await supabase.
+    from('customer_vehicles').
+    select('car_size').
+    eq('id', vehicle.id).
+    maybeSingle();
+
     if (vehicleData?.car_size) {
-      if (vehicleData.car_size === 'S') setCarSize('small');
-      else if (vehicleData.car_size === 'L') setCarSize('large');
-      else setCarSize('medium');
+      if (vehicleData.car_size === 'S') setCarSize('small');else
+      if (vehicleData.car_size === 'L') setCarSize('large');else
+      setCarSize('medium');
     }
-    
+
     if (vehicle.customer_id) {
-      const { data } = await supabase
-        .from('customers')
-        .select('name, discount_percent')
-        .eq('id', vehicle.customer_id)
-        .maybeSingle();
-      
+      const { data } = await supabase.
+      from('customers').
+      select('name, discount_percent').
+      eq('id', vehicle.customer_id).
+      maybeSingle();
+
       if (data?.name) {
         setCustomerName(data.name);
         setSelectedCustomerId(vehicle.customer_id);
@@ -952,7 +952,7 @@ const AddReservationDialogV2 = ({
     } else {
       setCustomerDiscountPercent(null);
     }
-    
+
     // Also load all vehicles for this phone
     loadCustomerVehicles(vehicle.phone);
   };
@@ -988,19 +988,19 @@ const AddReservationDialogV2 = ({
       const size = carSizeValue === 'small' ? 'S' : carSizeValue === 'large' ? 'L' : 'M';
 
       // Insert as proposal - use upsert to avoid duplicates
-      await supabase
-        .from('car_models')
-        .upsert({
-          brand,
-          name: name || brand,
-          size,
-          status: 'proposal',
-          active: true,
-        }, { 
-          onConflict: 'brand,name',
-          ignoreDuplicates: true 
-        });
-        
+      await supabase.
+      from('car_models').
+      upsert({
+        brand,
+        name: name || brand,
+        size,
+        status: 'proposal',
+        active: true
+      }, {
+        onConflict: 'brand,name',
+        ignoreDuplicates: true
+      });
+
       console.log('Car model proposal saved:', { brand, name, size });
     } catch (error) {
       // Silent failure - don't interrupt user flow
@@ -1031,11 +1031,11 @@ const AddReservationDialogV2 = ({
   const handleSubmit = async () => {
     // Clear slot preview immediately as first action
     onSlotPreviewChange?.(null);
-    
+
     // Yard mode validation and submit
     if (isYardMode) {
       const errors: typeof validationErrors = {};
-      
+
       if (!phone.trim()) {
         errors.phone = 'Telefon jest wymagany';
       }
@@ -1045,14 +1045,14 @@ const AddReservationDialogV2 = ({
       if (selectedServices.length === 0) {
         errors.services = 'Wybierz co najmniej jedną usługę';
       }
-      
+
       if (Object.keys(errors).length > 0) {
         setValidationErrors(errors);
         scrollToFirstError(errors);
         return;
       }
       setValidationErrors({});
-      
+
       setLoading(true);
       try {
         const vehicleData = {
@@ -1065,24 +1065,24 @@ const AddReservationDialogV2 = ({
           arrival_date: format(arrivalDate, 'yyyy-MM-dd'),
           pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
           deadline_time: deadlineTime || null,
-          notes: adminNotes.trim() || null,
+          notes: adminNotes.trim() || null
         };
 
         if (editingYardVehicle) {
-          const { error } = await supabase
-            .from('yard_vehicles')
-            .update(vehicleData)
-            .eq('id', editingYardVehicle.id);
+          const { error } = await supabase.
+          from('yard_vehicles').
+          update(vehicleData).
+          eq('id', editingYardVehicle.id);
 
           if (error) throw error;
           toast.success(t('addReservation.yardVehicleUpdated'));
         } else {
-          const { error } = await supabase
-            .from('yard_vehicles')
-            .insert({
-              ...vehicleData,
-              status: 'waiting'
-            });
+          const { error } = await supabase.
+          from('yard_vehicles').
+          insert({
+            ...vehicleData,
+            status: 'waiting'
+          });
 
           if (error) throw error;
           toast.success(t('addReservation.yardVehicleAdded'));
@@ -1098,10 +1098,10 @@ const AddReservationDialogV2 = ({
       }
       return;
     }
-    
+
     // Reservation mode validation and submit
     const errors: typeof validationErrors = {};
-    
+
     if (!phone.trim()) {
       errors.phone = 'Telefon jest wymagany';
     }
@@ -1120,7 +1120,7 @@ const AddReservationDialogV2 = ({
     if (!manualStationId && (isEditMode || initialStationId === undefined)) {
       errors.station = 'Wybierz stanowisko';
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       scrollToFirstError(errors);
@@ -1132,45 +1132,45 @@ const AddReservationDialogV2 = ({
     try {
       // Create customer if needed
       let customerId = selectedCustomerId;
-      
+
       if (customerName && !customerId && phone) {
         const normalizedPhone = normalizePhoneForStorage(phone);
-        const { data: existingCustomer } = await supabase
-          .from('customers')
-          .select('id, name')
-          .eq('instance_id', instanceId)
-          .eq('phone', normalizedPhone)
-          .limit(1)
-          .maybeSingle();
-        
+        const { data: existingCustomer } = await supabase.
+        from('customers').
+        select('id, name').
+        eq('instance_id', instanceId).
+        eq('phone', normalizedPhone).
+        limit(1).
+        maybeSingle();
+
         if (existingCustomer) {
           customerId = existingCustomer.id;
           // Update name if changed
           if (customerName.trim() !== existingCustomer.name) {
             const normalizedName = customerName.trim();
             // Update customer record
-            await supabase
-              .from('customers')
-              .update({ name: normalizedName })
-              .eq('id', existingCustomer.id);
+            await supabase.
+            from('customers').
+            update({ name: normalizedName }).
+            eq('id', existingCustomer.id);
             // Also update customer_name in all existing reservations for this customer
-            await supabase
-              .from('reservations')
-              .update({ customer_name: normalizedName })
-              .eq('instance_id', instanceId)
-              .eq('customer_phone', normalizedPhone);
+            await supabase.
+            from('reservations').
+            update({ customer_name: normalizedName }).
+            eq('instance_id', instanceId).
+            eq('customer_phone', normalizedPhone);
           }
         } else {
-          const { data: newCustomer, error: customerError } = await supabase
-            .from('customers')
-            .insert({
-              instance_id: instanceId,
-              phone: normalizedPhone,
-              name: customerName,
-            })
-            .select('id')
-            .single();
-          
+          const { data: newCustomer, error: customerError } = await supabase.
+          from('customers').
+          insert({
+            instance_id: instanceId,
+            phone: normalizedPhone,
+            name: customerName
+          }).
+          select('id').
+          single();
+
           if (!customerError && newCustomer) {
             customerId = newCustomer.id;
           }
@@ -1195,13 +1195,13 @@ const AddReservationDialogV2 = ({
           service_ids: selectedServices,
           service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
           offer_number: offerNumber || null,
-          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
+          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null
         };
 
-        const { error: updateError } = await supabase
-          .from('reservations')
-          .update(updateData)
-          .eq('id', editingReservation.id);
+        const { error: updateError } = await supabase.
+        from('reservations').
+        update(updateData).
+        eq('id', editingReservation.id);
 
         if (updateError) throw updateError;
 
@@ -1216,7 +1216,7 @@ const AddReservationDialogV2 = ({
                 _model: carModel.trim(),
                 _plate: null,
                 _customer_id: customerId || null,
-                _car_size: carSizeCode,
+                _car_size: carSizeCode
               });
               console.log('Customer vehicle upserted on edit:', carModel);
             } catch (err) {
@@ -1231,14 +1231,14 @@ const AddReservationDialogV2 = ({
           title: `✏️ Rezerwacja zmieniona`,
           body: `${customerName.trim() || phone || 'Klient'} - ${formatDateForPush(dateRange!.from!)} o ${manualStartTime}`,
           url: `/admin?reservationCode=${editingReservation.confirmation_code || ''}`,
-          tag: `edited-reservation-${editingReservation.id}`,
+          tag: `edited-reservation-${editingReservation.id}`
         });
 
         toast.success(t('addReservation.reservationUpdated'));
       } else {
         // Create new reservation
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         const reservationData = {
           instance_id: instanceId,
           station_id: manualStationId,
@@ -1262,12 +1262,12 @@ const AddReservationDialogV2 = ({
           created_by: user?.id || null,
           created_by_username: currentUsername || null,
           has_unified_services: true,
-          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
+          assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null
         };
 
-        const { error: reservationError } = await supabase
-          .from('reservations')
-          .insert([reservationData]);
+        const { error: reservationError } = await supabase.
+        from('reservations').
+        insert([reservationData]);
 
         if (reservationError) throw reservationError;
 
@@ -1277,11 +1277,11 @@ const AddReservationDialogV2 = ({
           title: `📅 Nowa rezerwacja (admin)`,
           body: `${customerName.trim() || 'Klient'} - ${formatDateForPush(dateRange!.from!)} o ${manualStartTime}`,
           url: `/admin?reservationCode=${reservationData.confirmation_code}`,
-          tag: `new-reservation-admin-${Date.now()}`,
+          tag: `new-reservation-admin-${Date.now()}`
         });
 
         toast.success(t('addReservation.reservationCreated'));
-        
+
         // Upsert customer vehicle (silently in background)
         if (carModel && carModel.trim() && carModel.trim() !== 'BRAK' && phone) {
           const carSizeCode = carSize === 'small' ? 'S' : carSize === 'large' ? 'L' : 'M';
@@ -1293,7 +1293,7 @@ const AddReservationDialogV2 = ({
                 _model: carModel.trim(),
                 _plate: null,
                 _customer_id: customerId || null,
-                _car_size: carSizeCode,
+                _car_size: carSizeCode
               });
               console.log('Customer vehicle upserted on create:', carModel);
             } catch (err) {
@@ -1301,13 +1301,13 @@ const AddReservationDialogV2 = ({
             }
           })();
         }
-        
+
         // Save custom car model as proposal (silently in background)
         if (isCustomCarModel && carModel.trim() && carModel.trim() !== 'BRAK') {
           saveCarModelProposal(carModel.trim(), carSize);
         }
       }
-      
+
       // Pass reservation ID for debounce marking (only in edit mode - new reservations don't have ID yet)
       onSuccess(editingReservation?.id);
       onClose();
@@ -1320,9 +1320,9 @@ const AddReservationDialogV2 = ({
   };
 
   // Get selected service names for display
-  const selectedServiceNames = services
-    .filter(s => selectedServices.includes(s.id))
-    .map(s => s.short_name || s.name);
+  const selectedServiceNames = services.
+  filter((s) => selectedServices.includes(s.id)).
+  map((s) => s.short_name || s.name);
 
   // Get dialog title based on mode
   const getDialogTitle = () => {
@@ -1335,7 +1335,7 @@ const AddReservationDialogV2 = ({
   return (
     <>
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
-        <SheetContent 
+        <SheetContent
           side="right"
           className={cn(
             "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]",
@@ -1344,19 +1344,19 @@ const AddReservationDialogV2 = ({
           hideOverlay
           hideCloseButton
           onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
+          onEscapeKeyDown={(e) => e.preventDefault()}>
+
           {/* Fixed Header with Close button */}
           <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <div className="flex items-center justify-between">
               <SheetTitle>
                 {getDialogTitle()}
               </SheetTitle>
-              <button 
+              <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
-              >
+                className="p-2 rounded-full hover:bg-muted transition-colors">
+
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -1380,7 +1380,7 @@ const AddReservationDialogV2 = ({
                   setSelectedCustomerId(null);
                   setCustomerDiscountPercent(null);
                   if (validationErrors.phone) {
-                    setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                    setValidationErrors((prev) => ({ ...prev, phone: undefined }));
                   }
                 }}
                 phoneError={validationErrors.phone}
@@ -1396,11 +1396,11 @@ const AddReservationDialogV2 = ({
                   setCustomerName(customer.name);
                   setPhone(customer.phone);
                   setSelectedCustomerId(customer.id);
-                  const { data: customerData } = await supabase
-                    .from('customers')
-                    .select('discount_percent')
-                    .eq('id', customer.id)
-                    .maybeSingle();
+                  const { data: customerData } = await supabase.
+                  from('customers').
+                  select('discount_percent').
+                  eq('id', customer.id).
+                  maybeSingle();
                   setCustomerDiscountPercent(customerData?.discount_percent || null);
                 }}
                 onClearCustomer={() => {
@@ -1410,8 +1410,8 @@ const AddReservationDialogV2 = ({
                 suppressAutoSearch={isEditMode}
                 phoneInputRef={phoneInputRef}
                 setCarModel={setCarModel}
-                setCarSize={setCarSize}
-              />
+                setCarSize={setCarSize} />
+
 
               {/* Vehicle Section */}
               <VehicleSection
@@ -1431,13 +1431,13 @@ const AddReservationDialogV2 = ({
                     setIsCustomCarModel(false);
                     setSelectedVehicleId(null);
                     if ('size' in val) {
-                      if (val.size === 'S') setCarSize('small');
-                      else if (val.size === 'M') setCarSize('medium');
-                      else if (val.size === 'L') setCarSize('large');
+                      if (val.size === 'S') setCarSize('small');else
+                      if (val.size === 'M') setCarSize('medium');else
+                      if (val.size === 'L') setCarSize('large');
                     }
                   }
                   if (validationErrors.carModel) {
-                    setValidationErrors(prev => ({ ...prev, carModel: undefined }));
+                    setValidationErrors((prev) => ({ ...prev, carModel: undefined }));
                   }
                 }}
                 carSize={carSize}
@@ -1452,13 +1452,13 @@ const AddReservationDialogV2 = ({
                   markUserEditing();
                   setSelectedVehicleId(vehicle.id);
                   setCarModel(vehicle.model);
-                  if (vehicle.car_size === 'S') setCarSize('small');
-                  else if (vehicle.car_size === 'L') setCarSize('large');
-                  else setCarSize('medium');
+                  if (vehicle.car_size === 'S') setCarSize('small');else
+                  if (vehicle.car_size === 'L') setCarSize('large');else
+                  setCarSize('medium');
                 }}
                 suppressAutoOpen={isEditMode}
-                carModelRef={carModelRef}
-              />
+                carModelRef={carModelRef} />
+
 
               {/* Services Section */}
               <div className="space-y-2" ref={servicesRef}>
@@ -1466,53 +1466,53 @@ const AddReservationDialogV2 = ({
                   {t('addReservation.services')} <span className="text-destructive">*</span>
                 </Label>
                 
-                {validationErrors.services && (
-                  <p className="text-sm text-destructive">{validationErrors.services}</p>
-                )}
+                {validationErrors.services &&
+                <p className="text-sm text-destructive">{validationErrors.services}</p>
+                }
 
                 {/* Popular service shortcuts - quick add pills */}
-                {services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {services
-                      .filter((s) => s.is_popular && !selectedServices.includes(s.id))
-                      .map((service) => (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => {
-                            markUserEditing();
-                            setSelectedServices((prev) => [...prev, service.id]);
-                            // Add to servicesWithCategory if not already there
-                            if (!servicesWithCategory.some(s => s.id === service.id)) {
-                              setServicesWithCategory(prev => [...prev, {
-                                id: service.id,
-                                name: service.name,
-                                short_name: service.short_name,
-                                category_id: service.category_id,
-                                category_name: null,
-                                duration_minutes: service.duration_minutes,
-                                duration_small: service.duration_small,
-                                duration_medium: service.duration_medium,
-                                duration_large: service.duration_large,
-                                price_from: service.price_from,
-                                price_small: service.price_small,
-                                price_medium: service.price_medium,
-                                price_large: service.price_large,
-                                station_type: service.station_type,
-                              }]);
-                            }
-                            // Initialize service item
-                            if (!serviceItems.some(si => si.service_id === service.id)) {
-                              setServiceItems(prev => [...prev, { service_id: service.id, custom_price: null }]);
-                            }
-                          }}
-                          className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
+                {services.filter((s) => s.is_popular && !selectedServices.includes(s.id)).length > 0 &&
+                <div className="flex flex-wrap gap-2">
+                    {services.
+                  filter((s) => s.is_popular && !selectedServices.includes(s.id)).
+                  map((service) =>
+                  <button
+                    key={service.id}
+                    type="button"
+                    onClick={() => {
+                      markUserEditing();
+                      setSelectedServices((prev) => [...prev, service.id]);
+                      // Add to servicesWithCategory if not already there
+                      if (!servicesWithCategory.some((s) => s.id === service.id)) {
+                        setServicesWithCategory((prev) => [...prev, {
+                          id: service.id,
+                          name: service.name,
+                          short_name: service.short_name,
+                          category_id: service.category_id,
+                          category_name: null,
+                          duration_minutes: service.duration_minutes,
+                          duration_small: service.duration_small,
+                          duration_medium: service.duration_medium,
+                          duration_large: service.duration_large,
+                          price_from: service.price_from,
+                          price_small: service.price_small,
+                          price_medium: service.price_medium,
+                          price_large: service.price_large,
+                          station_type: service.station_type
+                        }]);
+                      }
+                      // Initialize service item
+                      if (!serviceItems.some((si) => si.service_id === service.id)) {
+                        setServiceItems((prev) => [...prev, { service_id: service.id, custom_price: null }]);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium text-primary-foreground bg-secondary">
+
                           {service.short_name || service.name}
                         </button>
-                      ))}
+                  )}
                   </div>
-                )}
+                }
                 
                 {/* Services list with inline price edit */}
                 <SelectedServicesList
@@ -1522,19 +1522,19 @@ const AddReservationDialogV2 = ({
                   carSize={carSize}
                   onRemoveService={(serviceId) => {
                     markUserEditing();
-                    setSelectedServices(prev => prev.filter(id => id !== serviceId));
-                    setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
-                    setServicesWithCategory(prev => prev.filter(s => s.id !== serviceId));
+                    setSelectedServices((prev) => prev.filter((id) => id !== serviceId));
+                    setServiceItems((prev) => prev.filter((si) => si.service_id !== serviceId));
+                    setServicesWithCategory((prev) => prev.filter((s) => s.id !== serviceId));
                   }}
                   onPriceChange={(serviceId, price) => {
                     markUserEditing();
-                    setServiceItems(prev => {
-                      const existing = prev.find(si => si.service_id === serviceId);
+                    setServiceItems((prev) => {
+                      const existing = prev.find((si) => si.service_id === serviceId);
                       if (existing) {
-                        return prev.map(si => 
-                          si.service_id === serviceId 
-                            ? { ...si, custom_price: price }
-                            : si
+                        return prev.map((si) =>
+                        si.service_id === serviceId ?
+                        { ...si, custom_price: price } :
+                        si
                         );
                       }
                       return [...prev, { service_id: serviceId, custom_price: price }];
@@ -1546,8 +1546,8 @@ const AddReservationDialogV2 = ({
                       setFinalPrice(newTotal.toString());
                     }
                   }}
-                  onAddMore={() => setServiceDrawerOpen(true)}
-                />
+                  onAddMore={() => setServiceDrawerOpen(true)} />
+
               </div>
 
               {/* Service Selection Drawer */}
@@ -1558,65 +1558,65 @@ const AddReservationDialogV2 = ({
                 carSize={carSize}
                 selectedServiceIds={selectedServices}
                 stationType="universal"
-                hasUnifiedServices={isEditMode ? (editingReservation?.has_unified_services ?? false) : true}
+                hasUnifiedServices={isEditMode ? editingReservation?.has_unified_services ?? false : true}
                 hideSelectedSection={true}
                 onConfirm={(serviceIds, duration, servicesData) => {
                   markUserEditing();
                   setSelectedServices(serviceIds);
-                  
+
                   if (validationErrors.services) {
-                    setValidationErrors(prev => ({ ...prev, services: undefined }));
+                    setValidationErrors((prev) => ({ ...prev, services: undefined }));
                   }
-                  
+
                   const newServicesWithCategory = servicesData.filter(
-                    s => !servicesWithCategory.some(existing => existing.id === s.id)
+                    (s) => !servicesWithCategory.some((existing) => existing.id === s.id)
                   );
-                  setServicesWithCategory(prev => {
-                    const kept = prev.filter(s => serviceIds.includes(s.id));
+                  setServicesWithCategory((prev) => {
+                    const kept = prev.filter((s) => serviceIds.includes(s.id));
                     return [...kept, ...newServicesWithCategory];
                   });
-                  
-                  const existingItemIds = serviceItems.map(si => si.service_id);
-                  const newItems = serviceIds
-                    .filter(id => !existingItemIds.includes(id))
-                    .map(id => {
-                      const svc = servicesWithCategory.find(s => s.id === id);
-                      return {
-                        service_id: id,
-                        custom_price: null,
-                        name: svc?.name || undefined,
-                        short_name: svc?.short_name || undefined,
-                      };
-                    });
-                  
-                  setServiceItems(prev => {
-                    const kept = prev.filter(si => serviceIds.includes(si.service_id));
+
+                  const existingItemIds = serviceItems.map((si) => si.service_id);
+                  const newItems = serviceIds.
+                  filter((id) => !existingItemIds.includes(id)).
+                  map((id) => {
+                    const svc = servicesWithCategory.find((s) => s.id === id);
+                    return {
+                      service_id: id,
+                      custom_price: null,
+                      name: svc?.name || undefined,
+                      short_name: svc?.short_name || undefined
+                    };
+                  });
+
+                  setServiceItems((prev) => {
+                    const kept = prev.filter((si) => serviceIds.includes(si.service_id));
                     return [...kept, ...newItems];
                   });
-                }}
-              />
+                }} />
+
 
               <Separator className="my-2" />
 
               {/* YARD MODE - Date/Time Section */}
-              {isYardMode && (
-                <YardDateTimeSection
-                  arrivalDate={arrivalDate}
-                  setArrivalDate={setArrivalDate}
-                  arrivalDateOpen={arrivalDateOpen}
-                  setArrivalDateOpen={setArrivalDateOpen}
-                  pickupDate={pickupDate}
-                  setPickupDate={setPickupDate}
-                  pickupDateOpen={pickupDateOpen}
-                  setPickupDateOpen={setPickupDateOpen}
-                  deadlineTime={deadlineTime}
-                  setDeadlineTime={setDeadlineTime}
-                  timeOptions={yardTimeOptions}
-                />
-              )}
+              {isYardMode &&
+              <YardDateTimeSection
+                arrivalDate={arrivalDate}
+                setArrivalDate={setArrivalDate}
+                arrivalDateOpen={arrivalDateOpen}
+                setArrivalDateOpen={setArrivalDateOpen}
+                pickupDate={pickupDate}
+                setPickupDate={setPickupDate}
+                pickupDateOpen={pickupDateOpen}
+                setPickupDateOpen={setPickupDateOpen}
+                deadlineTime={deadlineTime}
+                setDeadlineTime={setDeadlineTime}
+                timeOptions={yardTimeOptions} />
+
+              }
 
               {/* RESERVATION MODE - Date/Time Section */}
-              {isReservationMode && (
+              {isReservationMode &&
               <ReservationDateTimeSection
                 instanceId={instanceId}
                 reservationType={reservationType}
@@ -1626,7 +1626,7 @@ const AddReservationDialogV2 = ({
                 dateRangeOpen={dateRangeOpen}
                 setDateRangeOpen={setDateRangeOpen}
                 dateRangeError={validationErrors.dateRange}
-                onClearDateRangeError={() => setValidationErrors(prev => ({ ...prev, dateRange: undefined }))}
+                onClearDateRangeError={() => setValidationErrors((prev) => ({ ...prev, dateRange: undefined }))}
                 manualStartTime={manualStartTime}
                 setManualStartTime={setManualStartTime}
                 manualEndTime={manualEndTime}
@@ -1651,26 +1651,26 @@ const AddReservationDialogV2 = ({
                 markUserEditing={markUserEditing}
                 dateRangeRef={dateRangeRef}
                 timeRef={timeRef}
-                showStationSelector={isEditMode || initialStationId === undefined}
-              />
-              )}
+                showStationSelector={isEditMode || initialStationId === undefined} />
+
+              }
 
               {/* Assigned Employees Section - visible when feature enabled */}
-              {showEmployeeAssignment && (
-                <div className="space-y-2">
+              {showEmployeeAssignment &&
+              <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Przypisani pracownicy
                   </Label>
                   <AssignedEmployeesChips
-                    employeeIds={assignedEmployeeIds}
-                    employees={employees}
-                    onRemove={(id) => setAssignedEmployeeIds(prev => prev.filter(e => e !== id))}
-                    onAdd={() => setEmployeeDrawerOpen(true)}
-                    variant="blue"
-                  />
+                  employeeIds={assignedEmployeeIds}
+                  employees={employees}
+                  onRemove={(id) => setAssignedEmployeeIds((prev) => prev.filter((e) => e !== id))}
+                  onAdd={() => setEmployeeDrawerOpen(true)}
+                  variant="blue" />
+
                 </div>
-              )}
+              }
 
               {/* Notes and Price Section */}
               <NotesAndPriceSection
@@ -1683,8 +1683,8 @@ const AddReservationDialogV2 = ({
                 discountedPrice={discountedPrice}
                 customerDiscountPercent={customerDiscountPercent}
                 markUserEditing={markUserEditing}
-                onFinalPriceUserEdit={() => setUserModifiedFinalPrice(true)}
-              />
+                onFinalPriceUserEdit={() => setUserModifiedFinalPrice(true)} />
+
             </div>
           </div>
 
@@ -1694,12 +1694,12 @@ const AddReservationDialogV2 = ({
               type="button"
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full"
-            >
+              className="w-full">
+
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isYardMode
-                ? (isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle'))
-                : (isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation'))
+              {isYardMode ?
+              isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle') :
+              isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation')
               }
             </Button>
           </SheetFooter>
@@ -1707,19 +1707,19 @@ const AddReservationDialogV2 = ({
       </Sheet>
 
       {/* Mobile FAB to toggle drawer visibility - always on the right */}
-      {isMobile && open && (
-        <button
-          type="button"
-          onClick={() => setIsDrawerHidden(!isDrawerHidden)}
-          className="fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center bottom-20 right-4"
-        >
-          {isDrawerHidden ? (
-            <ClipboardPaste className="w-6 h-6" />
-          ) : (
-            <CalendarIcon className="w-6 h-6" />
-          )}
+      {isMobile && open &&
+      <button
+        type="button"
+        onClick={() => setIsDrawerHidden(!isDrawerHidden)}
+        className="fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center bottom-20 right-4">
+
+          {isDrawerHidden ?
+        <ClipboardPaste className="w-6 h-6" /> :
+
+        <CalendarIcon className="w-6 h-6" />
+        }
         </button>
-      )}
+      }
       
       {/* Employee Selection Drawer */}
       <EmployeeSelectionDrawer
@@ -1731,10 +1731,10 @@ const AddReservationDialogV2 = ({
           employeesDirtyRef.current = true;
           markUserEditing();
           setAssignedEmployeeIds(employeeIds);
-        }}
-      />
-    </>
-  );
+        }} />
+
+    </>);
+
 };
 
 export default AddReservationDialogV2;
