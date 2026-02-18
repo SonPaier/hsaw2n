@@ -149,7 +149,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
       if (updateError) throw updateError;
       
       // Invalidate instance data cache so sidebar picks it up
-      queryClient.invalidateQueries({ queryKey: ['instance-data', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] });
       
       toast.success(t('instanceSettings.logoUploaded'));
     } catch (error) {
@@ -172,7 +172,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
       
       // Auto-save removal to database
       await supabase.from('instances').update({ logo_url: null }).eq('id', instanceId);
-      queryClient.invalidateQueries({ queryKey: ['instance-data', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] });
       
       toast.success(t('instanceSettings.logoRemoved'));
     } catch (error) {
