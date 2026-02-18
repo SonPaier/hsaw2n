@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Phone, MessageSquare, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { formatPhoneDisplay } from '@/lib/phoneUtils';
 
 export interface CustomerListItem {
   id: string;
@@ -94,7 +95,7 @@ export const CustomersList = ({
             <div
               key={customer.id || customer.phone}
               onClick={() => onCustomerClick(customer)}
-              className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground hover:bg-muted/50"
+              className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground hover:bg-accent/30"
             >
               <div className="min-w-0 flex-1 space-y-0.5">
                 {/* Line 1: Name */}
@@ -103,7 +104,7 @@ export const CustomersList = ({
                 </div>
                 {/* Line 2: Phone */}
                 <div className="text-sm text-muted-foreground">
-                  {customer.phone}
+                  {formatPhoneDisplay(customer.phone)}
                 </div>
                 {/* Line 3: Vehicles */}
                 {customerVehicles.length > 0 && (

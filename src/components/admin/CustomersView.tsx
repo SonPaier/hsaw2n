@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, User, Building2, Plus, Trash2 } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
+import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -240,7 +241,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     setIsAddMode(false);
                     setSelectedCustomer(customer);
                   }}
-                  className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground hover:bg-muted/50"
+                  className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer bg-primary-foreground hover:bg-accent/30"
                 >
                   <div className="min-w-0 flex-1 space-y-0.5">
                     {/* Line 1: Name */}
@@ -249,7 +250,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     </div>
                     {/* Line 2: Phone */}
                     <div className="text-sm text-muted-foreground">
-                      {customer.phone}
+                      {formatPhoneDisplay(customer.phone)}
                     </div>
                     {/* Line 3: Vehicles */}
                     {customerVehicles.length > 0 && (
