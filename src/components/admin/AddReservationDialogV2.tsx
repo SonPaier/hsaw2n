@@ -1177,6 +1177,13 @@ const AddReservationDialogV2 = ({
         }
       }
 
+      // Enrich service_items with names before saving (ensure no "Usługa" fallback)
+      const enrichedServiceItems = serviceItems.map(si => {
+        if (si.name) return si;
+        const svc = servicesWithCategory.find(s => s.id === si.service_id);
+        return { ...si, name: svc?.name, short_name: svc?.short_name };
+      });
+
       if (isEditMode && editingReservation) {
         // Update existing reservation
         const updateData = {
@@ -1193,7 +1200,7 @@ const AddReservationDialogV2 = ({
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: editingReservation.has_unified_services ? null : selectedServices[0],
           service_ids: selectedServices,
-          service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
+          service_items: enrichedServiceItems.length > 0 ? JSON.parse(JSON.stringify(enrichedServiceItems)) : null,
           offer_number: offerNumber || null,
           assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null
         };
@@ -1254,7 +1261,7 @@ const AddReservationDialogV2 = ({
           price: finalPrice ? parseFloat(finalPrice) : totalPrice,
           service_id: null,
           service_ids: selectedServices,
-          service_items: serviceItems.length > 0 ? JSON.parse(JSON.stringify(serviceItems)) : null,
+          service_items: enrichedServiceItems.length > 0 ? JSON.parse(JSON.stringify(enrichedServiceItems)) : null,
           offer_number: offerNumber || null,
           confirmation_code: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10)).join(''),
           status: 'confirmed' as const,
@@ -1501,9 +1508,9 @@ const AddReservationDialogV2 = ({
                           station_type: service.station_type
                         }]);
                       }
-                      // Initialize service item
+                      // Initialize service item with name metadata
                       if (!serviceItems.some((si) => si.service_id === service.id)) {
-                        setServiceItems((prev) => [...prev, { service_id: service.id, custom_price: null }]);
+                        setServiceItems((prev) => [...prev, { service_id: service.id, custom_price: null, name: service.name, short_name: service.short_name }]);
                       }
                     }}
                     className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium text-primary-foreground bg-secondary">
@@ -1580,7 +1587,7 @@ const AddReservationDialogV2 = ({
                   const newItems = serviceIds.
                   filter((id) => !existingItemIds.includes(id)).
                   map((id) => {
-                    const svc = servicesWithCategory.find((s) => s.id === id);
+                    const svc = servicesData.find((s) => s.id === id) || servicesWithCategory.find((s) => s.id === id);
                     return {
                       service_id: id,
                       custom_price: null,
