@@ -786,7 +786,7 @@ export const PublicOfferCustomerView = ({
                   return (
                     <div 
                       key={idx}
-                      className="rounded-lg p-4 border shadow-sm"
+                      className="rounded p-4 border shadow-sm"
                       style={{ 
                         backgroundColor: branding.offer_section_bg_color,
                         borderColor: `${branding.offer_primary_color}1a`,
@@ -794,7 +794,7 @@ export const PublicOfferCustomerView = ({
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          className="w-10 h-10 rounded flex items-center justify-center"
                           style={{ backgroundColor: `${branding.offer_primary_color}1a` }}
                         >
                           <IconComponent className="w-5 h-5" style={{ color: branding.offer_primary_color }} />
