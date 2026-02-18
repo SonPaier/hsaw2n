@@ -1629,11 +1629,15 @@ const AdminDashboard = () => {
     const reservation = reservations.find(r => r.id === reservationId);
     if (!reservation) return;
     
+    const now = new Date();
+    const currentEndTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'completed',
-      completed_at: new Date().toISOString()
+      completed_at: now.toISOString(),
+      end_time: currentEndTime
     }).eq('id', reservationId);
     
     if (updateError) {
@@ -1645,7 +1649,8 @@ const AdminDashboard = () => {
     // Update local state
     setReservations(prev => prev.map(r => r.id === reservationId ? {
       ...r,
-      status: 'completed'
+      status: 'completed',
+      end_time: currentEndTime
     } : r));
 
     toast.success(t('reservations.workEnded'), {
@@ -1903,6 +1908,8 @@ const AdminDashboard = () => {
       updateData.released_at = null;
     } else if (newStatus === 'completed') {
       updateData.released_at = null;
+      const now = new Date();
+      updateData.end_time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     }
     
     const { error: updateError } = await supabase
@@ -1916,7 +1923,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r));
+    setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: newStatus, ...(newStatus === 'completed' ? { end_time: updateData.end_time } : {}) } : r));
     toast.success(t('reservations.statusChanged'));
   };
 
