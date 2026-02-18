@@ -869,6 +869,7 @@ export type Database = {
           contact_person: string | null
           created_at: string | null
           customer_edit_cutoff_hours: number | null
+          deleted_at: string | null
           email: string | null
           google_maps_url: string | null
           id: string
@@ -929,6 +930,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string | null
           customer_edit_cutoff_hours?: number | null
+          deleted_at?: string | null
           email?: string | null
           google_maps_url?: string | null
           id?: string
@@ -989,6 +991,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string | null
           customer_edit_cutoff_hours?: number | null
+          deleted_at?: string | null
           email?: string | null
           google_maps_url?: string | null
           id?: string

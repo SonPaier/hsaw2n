@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car, CreditCard
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car, CreditCard, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -75,6 +75,7 @@ const SuperAdminDashboard = () => {
       const { data, error } = await supabase
         .from('instances')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -132,6 +133,23 @@ const SuperAdminDashboard = () => {
       toast.success(`Instancja ${currentState ? 'wyłączona' : 'włączona'}`);
     } catch (error) {
       toast.error('Błąd podczas zmiany statusu instancji');
+    }
+  };
+
+  const handleDeleteInstance = async (instance: Instance) => {
+    if (!confirm(`Czy na pewno chcesz usunąć instancję "${instance.name}"? Instancja zostanie ukryta, ale dane pozostaną w bazie.`)) return;
+    try {
+      const { error } = await supabase
+        .from('instances')
+        .update({ deleted_at: new Date().toISOString(), active: false })
+        .eq('id', instance.id);
+
+      if (error) throw error;
+
+      setInstances(prev => prev.filter(i => i.id !== instance.id));
+      toast.success('Instancja została usunięta');
+    } catch (error) {
+      toast.error('Błąd podczas usuwania instancji');
     }
   };
 
@@ -423,6 +441,13 @@ const SuperAdminDashboard = () => {
                                 >
                                   <Power className="w-4 h-4 mr-2" />
                                   {instance.active ? 'Wyłącz instancję' : 'Włącz instancję'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteInstance(instance)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Usuń instancję
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
