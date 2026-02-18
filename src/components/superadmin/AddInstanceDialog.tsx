@@ -197,7 +197,7 @@ export function AddInstanceDialog({ open, onOpenChange, onSuccess }: AddInstance
           instance_id: instance.id,
           name: 'Stanowisko 1',
           type: 'universal',
-          is_active: true,
+          active: true,
         });
 
       if (stationError) throw stationError;
