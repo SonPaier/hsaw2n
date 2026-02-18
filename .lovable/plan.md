@@ -1,39 +1,62 @@
 
 
-# Nadpisywanie end_time przy STOP (zaokraglanie do pelnych minut)
+## Plan: Kolumny kalendarza, kolory stanowisk i tryb kompaktowy (Admin + Hala)
 
-## Cel
-Gdy uzytkownik klika STOP na rezerwacji, pole `end_time` zostaje nadpisane aktualnym czasem zaokraglonym do pelnych minut (np. 15:23, bez sekund). Karta na kalendarzu natychmiast sie skraca do rzeczywistego czasu pracy.
+### 1. Migracja bazy danych
+Dodanie kolumny `color` (text, nullable) do tabeli `stations`.
 
-## Format czasu
-Czas zapisywany jako `HH:MM` (bez sekund). Przyklad: jesli STOP klikniety o 15:23:47, zapisujemy `15:23`.
+### 2. Ustawienia stanowisk (StationsSettings.tsx)
+- Color picker w dialogu edycji/dodawania: 8 pastelowych bloczkow 32x32px + opcja "brak koloru"
+- Kolory: `#E2EFFF`, `#E5D5F1`, `#FEE0D6`, `#FEF1D6`, `#D8EBE4`, `#F5E6D0`, `#E8E8E8`, `#FDDEDE`
+- Zaznaczony bloczek ma obwodke i checkmark
+- Zapis `color` do bazy przy save
 
-## Miejsca zmian
+### 3. Pobranie koloru stanowiska
+- **useStations.ts**: dodanie `color` do `.select('id, name, type, color')`
+- **HallView.tsx**: dodanie `color` do selecta stacji: `.select('id, name, type, color')`
+- **Station interface** w AdminDashboard, HallView i AdminCalendar: rozszerzenie o `color?: string | null`
 
-### 1. AdminDashboard.tsx -- `handleEndWork`
-Dodanie `end_time` do update w bazie i aktualizacji lokalnego stanu.
+### 4. AdminCalendar.tsx - zmiany wspolne dla Admin i Hala
 
-### 2. AdminDashboard.tsx -- `handleStatusChange`
-Gdy `newStatus === 'completed'`, rowniez dodajemy `end_time`.
+#### Minimalna szerokosc kolumn (desktop)
+- Na desktop: kazda kolumna stanowiska dostaje `min-width: 220px`
+- Na mobile: bez zmian (obecna logika 40% ekranu)
+- Horizontal scroll gdy kolumny nie mieszcza sie na ekranie (naglowki i grid scrolluja razem)
 
-### 3. HallView.tsx -- `onEndWork`
-Analogiczna zmiana jak w AdminDashboard.
+#### Zawijanie nazw stanowisk
+- Desktop: `whitespace-normal break-words` zamiast `truncate`
+- Dluga nazwa np. "Myjnia stanowisko 1" zawinie sie na 2 linie
 
-## Szczegoly techniczne
-
-W kazdym z 3 miejsc:
-1. Obliczamy aktualny czas:
+#### Kolory naglowkow i tla kolumn
+- Naglowek stanowiska: tlo = kolor stanowiska (jesli ustawiony)
+- Komorki gridu: tlo = kolor stanowiska zmieszany 5/95% z bialym
+- Funkcja pomocnicza `getStationCellBg(color)`:
 ```text
-const now = new Date();
-const currentEndTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+r * 0.05 + 255 * 0.95 (analogicznie g, b)
 ```
-2. Dodajemy `end_time: currentEndTime` do obiektu update wysylanego do bazy danych.
-3. Dodajemy `end_time: currentEndTime` do aktualizacji lokalnego stanu (setReservations), zeby kafelek na kalendarzu natychmiast sie zmniejszyl.
 
-## Bez zmian w bazie
-Pole `end_time` (time without time zone) juz istnieje w tabeli `reservations`. Nie potrzeba migracji.
+#### Przycisk "Zwin" (tryb kompaktowy) - desktop, Admin i Hala
+- Ikona w headerze kalendarza, obok "Plac", przed nia
+- Dostepny tylko na desktop (ukryty na mobile)
+- Dostepny zarowno w widoku Admin jak i w widoku Hala (hallMode)
+- Stan `isCompact` w localStorage
+- Gdy wlaczony: kolumny traca min-width 220px, dopasowuja sie do ekranu, brak scrolla
+- Gdy wylaczony: min-width 220px, horizontal scroll jesli potrzebny
 
-## Pliki do edycji
-- `src/pages/AdminDashboard.tsx` (2 miejsca)
-- `src/pages/HallView.tsx` (1 miejsce)
+### 5. Pliki do modyfikacji
+
+| Plik | Zmiany |
+|------|--------|
+| `supabase/migrations/` | Nowa migracja: `ALTER TABLE stations ADD COLUMN color text DEFAULT NULL` |
+| `src/hooks/useStations.ts` | Dodanie `color` do select i interface |
+| `src/components/admin/StationsSettings.tsx` | Color picker, zapis koloru |
+| `src/components/admin/AdminCalendar.tsx` | min-width 220px, compact mode (widoczny w Admin i Hala), kolory naglowkow/tla, zawijanie nazw |
+| `src/pages/AdminDashboard.tsx` | Rozszerzenie Station interface o `color` |
+| `src/pages/HallView.tsx` | Rozszerzenie Station interface o `color`, dodanie `color` do selecta stacji |
+
+### Szczegoly techniczne
+
+- AdminCalendar jest wspolnym komponentem dla obu widokow (Admin i Hala), wiec zmiany CSS (min-width, kolory, compact mode) dzialaja automatycznie w obu kontekstach
+- HallView pobiera stacje bezposrednio z bazy (nie uzywa hooka useStations), dlatego trzeba dodac `color` do selecta w HallView.tsx osobno
+- Tryb kompaktowy jest dostepny zarowno w Admin jak i w Hala -- jedyny warunek ukrycia to mobile
 
