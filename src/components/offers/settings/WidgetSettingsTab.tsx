@@ -35,6 +35,10 @@ interface Service {
   name: string;
   short_name: string | null;
   default_price: number | null;
+  price_from: number | null;
+  price_small: number | null;
+  price_medium: number | null;
+  price_large: number | null;
   category_id: string | null;
 }
 
@@ -178,7 +182,7 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
         // Fetch services for extras selection
         const { data: servicesData } = await supabase
           .from('unified_services')
-          .select('id, name, short_name, default_price, category_id')
+          .select('id, name, short_name, default_price, price_from, price_small, price_medium, price_large, category_id')
           .eq('instance_id', instanceId)
           .eq('service_type', 'both')
           .eq('active', true)
@@ -284,7 +288,12 @@ export function WidgetSettingsTab({ instanceId, onChange }: WidgetSettingsTabPro
       productName: s.name,
       productShortName: s.short_name,
       variantName: null,
-      price: s.default_price ?? 0,
+      price: (() => {
+        if (s.price_from != null && s.price_from > 0) return s.price_from;
+        const sizes = [s.price_small, s.price_medium, s.price_large].filter((p): p is number => p != null && p > 0);
+        if (sizes.length > 0) return Math.min(...sizes);
+        return s.default_price ?? 0;
+      })(),
       category: s.category_id ? categoryNameMap[s.category_id] || null : null,
     }));
   }, [services, categories]);
