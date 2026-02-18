@@ -2353,11 +2353,14 @@ const AdminDashboard = () => {
                   <img 
                     src={instanceData.logo_url} 
                     alt={instanceData.name} 
-                    className="w-10 h-10 rounded-xl object-contain shrink-0 bg-white"
+                    className={cn(
+                      "rounded-xl object-contain shrink-0 bg-white",
+                      (sidebarCollapsed || userRole === 'hall') ? "w-10 h-10" : "w-[40%] max-h-10"
+                    )}
                   />
                 )}
-                {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left">
-                    <h1 className="font-bold text-foreground">{instanceData?.name || 'Panel Admina'}</h1>
+                {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left min-w-0 flex-1">
+                    <h1 className="font-bold text-foreground truncate">{instanceData?.name || 'Panel Admina'}</h1>
                   </div>}
               </button>
             </div>
