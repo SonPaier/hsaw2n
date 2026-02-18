@@ -724,7 +724,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                             const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
                             const scopePrice = matchingOption?.subtotal_net;
                             return (
-                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/30 text-muted-foreground font-normal">
+                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/20 text-foreground font-normal">
                                 {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
                               </Badge>
                             );
