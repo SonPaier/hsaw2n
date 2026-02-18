@@ -5,6 +5,7 @@ interface Station {
   id: string;
   name: string;
   type: string;
+  color?: string | null;
 }
 
 export const useStations = (instanceId: string | null) => {
@@ -14,7 +15,7 @@ export const useStations = (instanceId: string | null) => {
       if (!instanceId) return [];
       const { data, error } = await supabase
         .from('stations')
-        .select('id, name, type')
+        .select('id, name, type, color')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .order('sort_order');

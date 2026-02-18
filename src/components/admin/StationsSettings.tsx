@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, Droplets } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, Droplets, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useInstanceSettings } from '@/hooks/useInstanceSettings';
 import { useStationEmployees, useUpdateStationEmployees } from '@/hooks/useStationEmployees';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -26,6 +27,7 @@ interface Station {
   type: 'washing' | 'ppf' | 'detailing' | 'universal';
   active: boolean | null;
   sort_order: number | null;
+  color?: string | null;
 }
 
 interface StationsSettingsProps {
@@ -60,8 +62,14 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const [maxStations, setMaxStations] = useState<number>(2);
   const [currentPlanName, setCurrentPlanName] = useState<string>('');
   
+  const STATION_COLORS = [
+    '#E2EFFF', '#E5D5F1', '#FEE0D6', '#FEF1D6',
+    '#D8EBE4', '#F5E6D0', '#E8E8E8', '#FDDEDE',
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
+    color: null as string | null,
   });
 
   const fetchStations = async () => {
@@ -117,6 +125,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       setEditingStation(station);
       setFormData({
         name: station.name,
+        color: station.color || null,
       });
       // Load existing employee assignments for this station
       const existingEmployees = stationEmployeesMap?.get(station.id) || [];
@@ -125,6 +134,7 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
       setEditingStation(null);
       setFormData({
         name: '',
+        color: null,
       });
       setSelectedEmployeeIds([]);
     }
@@ -146,12 +156,13 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
         type: 'universal' as const,
         active: true,
         sort_order: editingStation?.sort_order ?? stations.length,
+        color: formData.color,
       };
 
       if (editingStation) {
         const { error } = await supabase
           .from('stations')
-          .update({ name: formData.name.trim() })
+          .update({ name: formData.name.trim(), color: formData.color })
           .eq('id', editingStation.id);
         
         if (error) throw error;
@@ -253,8 +264,8 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
               className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg"
             >
               <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className="p-2 rounded-lg shrink-0 bg-primary/10">
-                  <Droplets className="w-5 h-5 text-primary" />
+                <div className={cn("p-2 rounded-lg shrink-0", !station.color && "bg-primary/10")} style={station.color ? { backgroundColor: station.color } : undefined}>
+                  <Droplets className={cn("w-5 h-5", !station.color && "text-primary")} style={station.color ? { color: '#475569' } : undefined} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="font-medium text-sm sm:text-base">{station.name}</span>
@@ -301,6 +312,39 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder={t('stationsSettings.stationNamePlaceholder')}
               />
+            </div>
+            {/* Color picker */}
+            <div className="space-y-2">
+              <Label>Kolor stanowiska</Label>
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* No color option */}
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, color: null }))}
+                  className={cn(
+                    "w-8 h-8 rounded-md border-2 flex items-center justify-center transition-all",
+                    formData.color === null ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/50"
+                  )}
+                  title="Brak koloru"
+                >
+                  {formData.color === null ? <X className="w-3.5 h-3.5 text-muted-foreground" /> : <X className="w-3 h-3 text-muted-foreground/40" />}
+                </button>
+                {STATION_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, color }))}
+                    className={cn(
+                      "w-8 h-8 rounded-md border-2 flex items-center justify-center transition-all",
+                      formData.color === color ? "border-foreground ring-2 ring-foreground/20" : "border-border hover:border-foreground/50"
+                    )}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  >
+                    {formData.color === color && <Check className="w-4 h-4 text-slate-700" />}
+                  </button>
+                ))}
+              </div>
             </div>
             {/* Employee assignment section - only when editing and feature enabled */}
             {editingStation && instanceSettings?.assign_employees_to_stations && (

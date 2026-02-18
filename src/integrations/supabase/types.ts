@@ -2978,6 +2978,7 @@ export type Database = {
       stations: {
         Row: {
           active: boolean | null
+          color: string | null
           created_at: string | null
           id: string
           instance_id: string
@@ -2987,6 +2988,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          color?: string | null
           created_at?: string | null
           id?: string
           instance_id: string
@@ -2996,6 +2998,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          color?: string | null
           created_at?: string | null
           id?: string
           instance_id?: string

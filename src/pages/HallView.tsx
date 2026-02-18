@@ -28,6 +28,7 @@ interface Station {
   id: string;
   name: string;
   type: string;
+  color?: string | null;
 }
 
 interface Reservation {
@@ -583,7 +584,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       // Fetch stations - filter by hall config
       const { data: stationsData } = await supabase
         .from('stations')
-        .select('id, name, type')
+        .select('id, name, type, color')
         .eq('instance_id', instanceId)
         .eq('active', true)
         .in('id', hall.station_ids.length > 0 ? hall.station_ids : ['__none__'])
