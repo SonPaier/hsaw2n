@@ -1137,7 +1137,7 @@ export const PublicOfferCustomerView = ({
           className="border sticky bottom-4 shadow-lg z-10"
           style={{ 
             backgroundColor: branding.offer_section_bg_color,
-            borderColor: branding.offer_primary_color,
+            borderColor: '#e0e0e0',
           }}
         >
           <CardContent className="py-3 md:py-4">
