@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, List, Plus, MoreHorizontal, Bell, Users, FileText, Package, RefreshCw, Settings, LogOut, X, ClipboardCheck, UsersRound } from 'lucide-react';
+import { Building2, Calendar, List, Plus, MoreHorizontal, Users, FileText, Settings, LogOut, X, ClipboardCheck, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -61,27 +61,26 @@ const MobileBottomNav = ({
         ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
       ]
     : [
-        // Full menu for admin/employee - EXACT same order as desktop sidebar
+        // Full menu for admin/employee - nowa kolejność
         // 1. Kalendarz
         { id: 'calendar' as ViewType, icon: Calendar, label: 'Kalendarz' },
         // 2. Rezerwacje
         { id: 'reservations' as ViewType, icon: List, label: 'Rezerwacje' },
-        // 3. Klienci
-        { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
-        // 4. Usługi (admin only)
-        ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Usługi' }] : []),
-        // 5. Oferty (when enabled)
+        // 3. Oferty (when enabled)
         ...(offersEnabled ? [{ id: 'offers' as ViewType, icon: FileText, label: t('navigation.offers') }] : []),
-        // 6. Hale (when enabled, including employees)
-        ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
-        // 7. Protokoły (when enabled, including employees)
+        // 4. Protokoły (when enabled)
         ...(protocolsEnabled ? [{ id: 'protocols' as ViewType, icon: ClipboardCheck, label: 'Protokoły' }] : []),
-        // 8. Pracownicy (admin only)
+        // 5. Klienci
+        { id: 'customers' as ViewType, icon: Users, label: t('navigation.customers') },
+        // 6. Pracownicy (admin only)
         ...(userRole !== 'employee' ? [{ id: 'employees' as ViewType, icon: UsersRound, label: 'Pracownicy' }] : []),
-        // 9. Powiadomienia (second to last)
-        { id: 'notifications' as ViewType, icon: Bell, label: t('navigation.notifications'), badge: unreadNotificationsCount },
-        // 10. Ustawienia (always last, admin only)
+        // 7. Usługi (admin only)
+        ...(userRole !== 'employee' ? [{ id: 'pricelist' as ViewType, icon: FileText, label: 'Usługi' }] : []),
+        // 8. Powiadomienia - ukryte
+        // 9. Ustawienia (admin only, always last)
         ...(userRole !== 'employee' ? [{ id: 'settings' as ViewType, icon: Settings, label: t('navigation.settings') }] : []),
+        // Hale (when enabled)
+        ...(hallViewEnabled ? [{ id: 'halls' as ViewType, icon: Building2, label: t('navigation.halls') }] : []),
       ];
 
   return (
@@ -179,11 +178,6 @@ const MobileBottomNav = ({
                   >
                     <item.icon className="w-5 h-5" />
                     <span className="flex-1 text-base">{item.label}</span>
-                    {item.badge && item.badge > 0 && (
-                      <span className="bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>

@@ -2379,10 +2379,12 @@ const AdminDashboard = () => {
               ) : (
                 <>
                   {/* Full navigation for admin/employee */}
+                  {/* 1. Kalendarz */}
                   <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('calendar'); }} title="Kalendarz">
                     <Calendar className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Kalendarz"}
                   </Button>
+                  {/* 2. Rezerwacje */}
                   <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('reservations'); }} title="Rezerwacje">
                     <div className="relative">
                       <Users className="w-4 h-4 shrink-0" />
@@ -2397,46 +2399,33 @@ const AdminDashboard = () => {
                           </span>}
                       </>}
                   </Button>
-                  <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('customers'); }} title="Klienci">
-                    <UserCircle className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && "Klienci"}
-                  </Button>
-                  {/* Usługi - after Klienci, before Oferty */}
-                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Usługi">
-                    <FileText className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && "Usługi"}
-                  </Button>}
+                  {/* 3. Oferty */}
                   {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('offers'); }} title="Oferty">
                       <FileText className="w-4 h-4 shrink-0" />
                       {!sidebarCollapsed && "Oferty"}
                     </Button>}
-                  {/* Halls removed from sidebar - now in Settings */}
-                  {/* Protocols - visible when feature is enabled (including employees) */}
+                  {/* 4. Protokoły */}
                   {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('protocols'); }} title="Protokoły">
                     <ClipboardCheck className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Protokoły"}
                   </Button>}
-                  {/* Pracownicy - admin only */}
+                  {/* 5. Klienci */}
+                  <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('customers'); }} title="Klienci">
+                    <UserCircle className="w-4 h-4 shrink-0" />
+                    {!sidebarCollapsed && "Klienci"}
+                  </Button>
+                  {/* 6. Pracownicy - admin only */}
                   {userRole !== 'employee' && <Button variant={currentView === 'employees' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('employees'); }} title="Pracownicy">
                     <UsersRound className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Pracownicy"}
                   </Button>}
-                  {/* Notifications - second to last */}
-                  <Button variant={currentView === 'notifications' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('notifications'); }} title="Powiadomienia">
-                    <div className="relative">
-                      <Bell className="w-4 h-4 shrink-0" />
-                      {sidebarCollapsed && unreadNotificationsCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
-                          {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                        </span>}
-                    </div>
-                    {!sidebarCollapsed && <>
-                        <span className="flex-1 text-left">Powiadomienia</span>
-                        {unreadNotificationsCount > 0 && <span className="min-w-[20px] h-5 px-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-full flex items-center justify-center">
-                            {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                          </span>}
-                      </>}
-                  </Button>
-                  {/* Hide settings for employees - always last */}
+                  {/* 7. Usługi - admin only */}
+                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Usługi">
+                    <FileText className="w-4 h-4 shrink-0" />
+                    {!sidebarCollapsed && "Usługi"}
+                  </Button>}
+                  {/* 8. Powiadomienia - ukryte */}
+                  {/* 9. Ustawienia - admin only, always last */}
                   {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('settings'); }} title="Ustawienia">
                     <Settings className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Ustawienia"}
