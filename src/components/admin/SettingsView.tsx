@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import StationsSettings from './StationsSettings';
 import WorkingHoursSettings from './WorkingHoursSettings';
@@ -34,6 +35,7 @@ type SettingsTab = 'company' | 'stations' | 'hours' | 'halls' | 'app' | 'sms' | 
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const { currentVersion } = useAppUpdate();
   const { hasFeature } = useCombinedFeatures(instanceId);
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
@@ -137,6 +139,18 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         .getPublicUrl(fileName);
 
       setCompanyForm(prev => ({ ...prev, logo_url: publicUrl }));
+      
+      // Auto-save logo_url to database immediately
+      const { error: updateError } = await supabase
+        .from('instances')
+        .update({ logo_url: publicUrl })
+        .eq('id', instanceId);
+      
+      if (updateError) throw updateError;
+      
+      // Invalidate instance data cache so sidebar picks it up
+      queryClient.invalidateQueries({ queryKey: ['instance-data', instanceId] });
+      
       toast.success(t('instanceSettings.logoUploaded'));
     } catch (error) {
       console.error('Error uploading logo:', error);
@@ -155,6 +169,11 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         await supabase.storage.from('instance-logos').remove([urlParts[1]]);
       }
       setCompanyForm(prev => ({ ...prev, logo_url: '' }));
+      
+      // Auto-save removal to database
+      await supabase.from('instances').update({ logo_url: null }).eq('id', instanceId);
+      queryClient.invalidateQueries({ queryKey: ['instance-data', instanceId] });
+      
       toast.success(t('instanceSettings.logoRemoved'));
     } catch (error) {
       console.error('Error removing logo:', error);
