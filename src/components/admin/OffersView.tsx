@@ -685,100 +685,16 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
               {paginatedOffers.map((offer) => (
                 <div 
                   key={offer.id}
-                  className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+                  className="glass-card p-4 hover:border-primary/30 transition-colors cursor-pointer relative"
                   onClick={() => { setEditingOfferId(offer.id); setShowGenerator(true); }}
                 >
-                  <div className="flex items-start justify-between gap-3 w-full">
-                    {/* Left: main content */}
-                    <div className="min-w-0 flex-1">
-                      {/* Line 1: Customer name + vehicle */}
-                      <div className="flex items-baseline gap-1 font-semibold text-base leading-tight">
-                        <span className="truncate">
-                          {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
-                        </span>
-                        {offer.vehicle_data?.brandModel && (
-                          <>
-                            <span className="text-muted-foreground font-normal">·</span>
-                            <span className="text-muted-foreground font-normal truncate">{offer.vehicle_data.brandModel}</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Line 2: Offer number + created date (secondary) */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                        <span>{offer.offer_number}</span>
-                        <span>·</span>
-                        <span>Utworzono {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}</span>
-                        {offer.source === 'website' && (
-                          <>
-                            <span>·</span>
-                            <span className="text-blue-600">WWW</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Line 3: Service pills with price */}
-                      {offer.offer_scopes && offer.offer_scopes.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {offer.offer_scopes.map((scope) => {
-                            const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
-                            const scopePrice = matchingOption?.subtotal_net;
-                            return (
-                              <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/20 text-foreground font-normal">
-                                {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
-                              </Badge>
-                            );
-                          })}
-                          {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
-                            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                              {offer.selectedOptionName}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Follow-up phone status */}
-                      {offer.customer_data?.phone && (
-                        <div className="mt-3">
-                          <OfferFollowUpStatus
-                            offerId={offer.id}
-                            currentStatus={offer.follow_up_phone_status ?? null}
-                            onStatusChange={handleFollowUpStatusChange}
-                            hasInternalNote={!!offer.internal_notes}
-                            onNoteClick={() => handleOpenNoteDrawer(offer)}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: status + menu */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* Status badge aligned right */}
-                      {offer.status === 'viewed' && offer.viewed_at ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
-                          className="inline-flex"
-                        >
-                          <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
-                            <Eye className="w-3 h-3 mr-1" />
-                            Obejrzana {formatViewedDate(offer.viewed_at)}
-                          </Badge>
-                        </button>
-                      ) : (
-                        <Badge className={cn('text-xs', statusColors[offer.status])}>
-                          {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
-                        </Badge>
-                      )}
-                      {/* Price */}
-                      {(offer.admin_approved_gross || offer.approved_at) && (
-                        <span className="text-sm font-medium ml-1">
-                          {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
-                        </span>
-                      )}
-                      {/* Ellipsis menu — top right, inline with status */}
+                  {/* MOBILE LAYOUT */}
+                  <div className="md:hidden">
+                    {/* Ellipsis menu — absolute top right */}
+                    <div className="absolute top-3 right-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => e.stopPropagation()}>
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -891,6 +807,274 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    </div>
+
+                    {/* Line 1: Customer name + vehicle */}
+                    <div className="flex items-baseline gap-1 font-semibold text-base leading-tight pr-10">
+                      <span className="truncate">
+                        {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
+                      </span>
+                      {offer.vehicle_data?.brandModel && (
+                        <>
+                          <span className="text-muted-foreground font-normal">·</span>
+                          <span className="text-muted-foreground font-normal truncate">{offer.vehicle_data.brandModel}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Line 2: Status badge */}
+                    <div className="mt-2">
+                      {offer.status === 'viewed' && offer.viewed_at ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
+                          className="inline-flex"
+                        >
+                          <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
+                            <Eye className="w-3 h-3 mr-1" />
+                            Obejrzana {formatViewedDate(offer.viewed_at)}
+                          </Badge>
+                        </button>
+                      ) : (
+                        <Badge className={cn('text-xs', statusColors[offer.status])}>
+                          {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                        </Badge>
+                      )}
+                      {(offer.admin_approved_gross || offer.approved_at) && (
+                        <span className="text-sm font-medium ml-2">
+                          {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Line 3: Offer number + created date */}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                      <span>{offer.offer_number}</span>
+                      <span>·</span>
+                      <span>Utworzono {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}</span>
+                      {offer.source === 'website' && (
+                        <>
+                          <span>·</span>
+                          <span className="text-blue-600">WWW</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Line 4: Follow-up phone status */}
+                    {offer.customer_data?.phone && (
+                      <div className="mt-3">
+                        <OfferFollowUpStatus
+                          offerId={offer.id}
+                          currentStatus={offer.follow_up_phone_status ?? null}
+                          onStatusChange={handleFollowUpStatusChange}
+                          hasInternalNote={!!offer.internal_notes}
+                          onNoteClick={() => handleOpenNoteDrawer(offer)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DESKTOP LAYOUT (unchanged) */}
+                  <div className="hidden md:block">
+                    <div className="flex items-start justify-between gap-3 w-full">
+                      <div className="min-w-0 flex-1">
+                        {/* Line 1: Customer name + vehicle */}
+                        <div className="flex items-baseline gap-1 font-semibold text-base leading-tight">
+                          <span className="truncate">
+                            {offer.customer_data?.name || offer.customer_data?.company || t('offers.noCustomer')}
+                          </span>
+                          {offer.vehicle_data?.brandModel && (
+                            <>
+                              <span className="text-muted-foreground font-normal">·</span>
+                              <span className="text-muted-foreground font-normal truncate">{offer.vehicle_data.brandModel}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Line 2: Offer number + created date */}
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                          <span>{offer.offer_number}</span>
+                          <span>·</span>
+                          <span>Utworzono {format(new Date(offer.created_at), 'dd.MM.yyyy', { locale: pl })}</span>
+                          {offer.source === 'website' && (
+                            <>
+                              <span>·</span>
+                              <span className="text-blue-600">WWW</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Line 3: Service pills */}
+                        {offer.offer_scopes && offer.offer_scopes.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {offer.offer_scopes.map((scope) => {
+                              const matchingOption = offer.offer_options?.find(opt => opt.scope_id === scope.id && !opt.is_upsell);
+                              const scopePrice = matchingOption?.subtotal_net;
+                              return (
+                                <Badge key={scope.id} variant="secondary" className="text-xs bg-muted/20 text-foreground font-normal">
+                                  {scope.name}{scopePrice != null && scopePrice > 0 ? `: ${Math.round(scopePrice)} zł` : ''}
+                                </Badge>
+                              );
+                            })}
+                            {(offer.approved_at || offer.status === 'accepted' || offer.status === 'completed') && offer.selectedOptionName && (
+                              <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                                {offer.selectedOptionName}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Follow-up phone status */}
+                        {offer.customer_data?.phone && (
+                          <div className="mt-3">
+                            <OfferFollowUpStatus
+                              offerId={offer.id}
+                              currentStatus={offer.follow_up_phone_status ?? null}
+                              onStatusChange={handleFollowUpStatusChange}
+                              hasInternalNote={!!offer.internal_notes}
+                              onNoteClick={() => handleOpenNoteDrawer(offer)}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: status + menu */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {offer.status === 'viewed' && offer.viewed_at ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewsDialog({ open: true, offerId: offer.id, viewedAt: offer.viewed_at ?? null }); }}
+                            className="inline-flex"
+                          >
+                            <Badge className={cn('text-xs cursor-pointer hover:opacity-80', statusColors[offer.status])}>
+                              <Eye className="w-3 h-3 mr-1" />
+                              Obejrzana {formatViewedDate(offer.viewed_at)}
+                            </Badge>
+                          </button>
+                        ) : (
+                          <Badge className={cn('text-xs', statusColors[offer.status])}>
+                            {t(`offers.status${offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}`, offer.status)}
+                          </Badge>
+                        )}
+                        {(offer.admin_approved_gross || offer.approved_at) && (
+                          <span className="text-sm font-medium ml-1">
+                            {formatPrice(offer.admin_approved_gross ?? offer.total_gross)}
+                          </span>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2" onClick={e => e.stopPropagation()}>
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {offer.customer_data?.phone && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${offer.customer_data.phone}`; }}>
+                                <Phone className="w-4 h-4 mr-2" />
+                                Zadzwoń
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setPreviewDialog({ open: true, token: offer.public_token }); }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              {t('offers.preview')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCopyLink(offer.public_token); }}>
+                              <Copy className="w-4 h-4 mr-2" />
+                              {t('offers.copyLink')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReserveFromOffer(offer); }}>
+                              <CalendarPlus className="w-4 h-4 mr-2" />
+                              Rezerwuj
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenSendEmailDialog(offer); }}>
+                              <Send className="w-4 h-4 mr-2" />
+                              {t('offers.send')}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                {t('offers.changeStatus')}
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {STATUS_OPTIONS.filter(s => s !== 'completed').map((status) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      if (status === 'accepted') {
+                                        setApprovalDialog({ open: true, offer, mode: 'approve' });
+                                      } else {
+                                        handleChangeStatus(offer.id, status);
+                                      }
+                                    }}
+                                    disabled={offer.status === status}
+                                  >
+                                    <Badge className={cn('text-xs mr-2', statusColors[status])}>
+                                      {t(`offers.status${status.charAt(0).toUpperCase() + status.slice(1)}`)}
+                                    </Badge>
+                                  </DropdownMenuItem>
+                                ))}
+                                <DropdownMenuItem
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if (offer.status === 'accepted' || offer.approved_at) {
+                                      setCompleteOfferDialog({ open: true, offer });
+                                    } else {
+                                      handleChangeStatus(offer.id, 'completed');
+                                    }
+                                  }}
+                                  disabled={offer.status === 'completed'}
+                                >
+                                  <Badge className={cn('text-xs mr-2', statusColors['completed'])}>
+                                    {t('offers.statusCompleted')}
+                                  </Badge>
+                                </DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            {(offer.status === 'accepted' || offer.approved_at) && offer.status !== 'completed' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); setCompleteOfferDialog({ open: true, offer }); }}
+                                  className="text-emerald-600 focus:text-emerald-600"
+                                >
+                                  <CheckCheck className="w-4 h-4 mr-2" />
+                                  {t('offers.markAsCompleted')}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {offer.status === 'completed' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); setRemindersDialog({ open: true, offer }); }}
+                                >
+                                  <Bell className="w-4 h-4 mr-2" />
+                                  {t('offers.reminders')}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {(offer.status === 'accepted' || offer.status === 'completed') && (
+                              <DropdownMenuItem 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setApprovalDialog({ open: true, offer, mode: 'edit' }); 
+                                }}
+                              >
+                                <Banknote className="w-4 h-4 mr-2" />
+                                Zmień kwotę
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={(e) => { e.stopPropagation(); setDeleteOfferDialog({ open: true, offer }); }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {t('offers.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </div>
