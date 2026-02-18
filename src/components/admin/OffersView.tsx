@@ -619,11 +619,11 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 className="text-2xl font-bold">{t('offers.title')}</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setShowServicesView(true)} className="sm:w-auto sm:px-4 w-10 h-10">
+            <Button variant="outline" size="icon" onClick={() => setShowServicesView(true)} className="sm:w-auto sm:px-4 w-10 h-10 bg-white">
               <Layers className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">Twoje Szablony</span>
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setShowScopesSettings(true)} className="sm:w-auto sm:px-4 w-10 h-10">
+            <Button variant="outline" size="icon" onClick={() => setShowScopesSettings(true)} className="sm:w-auto sm:px-4 w-10 h-10 bg-white">
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">{t('offers.settings')}</span>
             </Button>
