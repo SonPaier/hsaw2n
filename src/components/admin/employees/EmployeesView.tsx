@@ -394,7 +394,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="max-w-3xl mx-auto space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Pracownicy i czas pracy</h1>
@@ -420,31 +420,33 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             </Button>
             <Button 
               onClick={handleAddEmployee} 
-              size="icon"
-              className="h-10 w-10"
+              className="h-10"
               title="Dodaj pracownika"
             >
               <Plus className="w-5 h-5" />
+              Dodaj pracownika
             </Button>
           </div>
         )}
       </div>
 
-      {/* Period picker (Month or Week) */}
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="icon" onClick={handlePrevPeriod} className="bg-white">
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <span className="font-medium min-w-[200px] text-center text-lg">
-          {isWeeklyMode 
-            ? formatWeekDisplay()
-            : format(currentDate, 'LLLL yyyy', { locale: pl })
-          }
-        </span>
-        <Button variant="outline" size="icon" onClick={handleNextPeriod} className="bg-white">
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* Period picker (Month or Week) - only show when there are employees */}
+      {activeEmployees.length > 0 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="icon" onClick={handlePrevPeriod} className="bg-white">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="font-medium min-w-[200px] text-center text-lg">
+            {isWeeklyMode 
+              ? formatWeekDisplay()
+              : format(currentDate, 'LLLL yyyy', { locale: pl })
+            }
+          </span>
+          <Button variant="outline" size="icon" onClick={handleNextPeriod} className="bg-white">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Empty state */}
       {activeEmployees.length === 0 ? (
@@ -466,6 +468,13 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           {/* Table layout */}
           <div className="overflow-hidden rounded-lg max-w-full">
             <Table className="bg-white w-full" style={{ tableLayout: 'fixed' }}>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead style={{ width: '47%' }}>Imię</TableHead>
+                  <TableHead className="text-center" style={{ width: '23%' }}>Przepracowano</TableHead>
+                  <TableHead className="text-right" style={{ width: '30%' }}>Wypłata</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {activeEmployees.map((employee) => {
                   const summary = periodSummary.get(employee.id);

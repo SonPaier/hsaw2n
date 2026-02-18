@@ -369,7 +369,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
 
   return (
     <div>
-      <div className="flex flex-col gap-2 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t('products.title')}</h1>
           <div className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function ProductsView({ instanceId }: ProductsViewProps) {
             </Button>
           </div>
         </div>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm w-full">
           Na ich podstawie możesz tworzyć własne szablony oraz wykorzystywać je w ofertach.
         </p>
       </div>
