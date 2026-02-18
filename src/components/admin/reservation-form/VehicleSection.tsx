@@ -62,7 +62,7 @@ export const VehicleSection = ({
                   <Button
                     type="button"
                     size="sm"
-                    variant={carSize === size ? 'default' : 'outline'}
+                    variant={carSize === size ? 'secondary' : 'outline'}
                     className="w-9 h-9 font-bold p-0"
                     onClick={() => onCarSizeChange(size)}
                   >
