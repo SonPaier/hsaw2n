@@ -27,6 +27,8 @@ interface CustomerDataStepProps {
   onCustomerChange: (data: Partial<CustomerData>) => void;
   onVehicleChange: (data: Partial<VehicleData>) => void;
   validationErrors?: ValidationErrors;
+  internalNotes?: string;
+  onInternalNotesChange?: (value: string) => void;
 }
 
 // Parse address from API format: "ULICA NR, KOD MIASTO" or "ULICA NR/LOKAL, KOD MIASTO"
@@ -81,7 +83,7 @@ const AutoResizeTextarea = ({ value, minRows = 3, className, ...props }: AutoRes
 };
 
 export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataStepProps>(
-  ({ customerData, vehicleData, onCustomerChange, onVehicleChange, validationErrors }, ref) => {
+  ({ customerData, vehicleData, onCustomerChange, onVehicleChange, validationErrors, internalNotes, onInternalNotesChange }, ref) => {
   const { t } = useTranslation();
   const [nipLoading, setNipLoading] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -268,16 +270,30 @@ export const CustomerDataStep = forwardRef<CustomerDataStepHandle, CustomerDataS
           </div>
         </div>
         
-        {/* Inquiry Content - auto-sizing textarea */}
-        <div className="md:w-1/2 space-y-2">
-          <Label htmlFor="inquiryContent">Treść zapytania</Label>
-          <AutoResizeTextarea
-            id="inquiryContent"
-            value={customerData.inquiryContent || ''}
-            onChange={(e) => onCustomerChange({ inquiryContent: e.target.value })}
-            placeholder="Treść zapytania od klienta..."
-            minRows={3}
-          />
+        {/* Inquiry Content & Internal Notes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="inquiryContent">Treść zapytania</Label>
+            <AutoResizeTextarea
+              id="inquiryContent"
+              value={customerData.inquiryContent || ''}
+              onChange={(e) => onCustomerChange({ inquiryContent: e.target.value })}
+              placeholder="Treść zapytania od klienta..."
+              minRows={3}
+            />
+          </div>
+          {onInternalNotesChange && (
+            <div className="space-y-2">
+              <Label htmlFor="internalNotes">Notatka wewnętrzna (tylko dla admina)</Label>
+              <AutoResizeTextarea
+                id="internalNotes"
+                value={internalNotes || ''}
+                onChange={(e) => onInternalNotesChange(e.target.value)}
+                placeholder="Notatki widoczne tylko w panelu admina..."
+                minRows={3}
+              />
+            </div>
+          )}
         </div>
       </div>
 
