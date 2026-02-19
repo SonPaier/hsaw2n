@@ -74,6 +74,7 @@ export interface OfferState {
   hideUnitPrices: boolean;
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
   defaultSelectedState?: DefaultSelectedState;
+  internalNotes?: string;
   // Widget selections for auto-preselection in Step 3
   widgetSelectedExtras?: string[];          // uuid[] from widget
   widgetDurationSelections?: Record<string, number | null>; // templateId → months
@@ -574,6 +575,7 @@ export const useOffer = (instanceId: string) => {
         payment_terms?: string;
         warranty?: string;
         service_info?: string;
+        internal_notes?: string | null;
         valid_until?: string;
         vat_rate: number;
         total_net: number;
@@ -591,6 +593,7 @@ export const useOffer = (instanceId: string) => {
         payment_terms: offer.paymentTerms,
         warranty: offer.warranty,
         service_info: offer.serviceInfo,
+        internal_notes: offer.internalNotes || null,
         valid_until: offer.validUntil,
         vat_rate: offer.vatRate,
         total_net: totalNet,
@@ -1253,6 +1256,7 @@ export const useOffer = (instanceId: string) => {
         paymentTerms: offerData.payment_terms,
         warranty: (offerData as any).warranty || '',
         serviceInfo: (offerData as any).service_info || '',
+        internalNotes: (offerData as any).internal_notes || '',
         validUntil: offerData.valid_until,
         vatRate: Number(offerData.vat_rate),
         hideUnitPrices: offerData.hide_unit_prices || false,

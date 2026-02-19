@@ -491,7 +491,6 @@ export const OfferGenerator = ({
             vehicleData={offer.vehicleData}
             onCustomerChange={(data) => {
               updateCustomerData(data);
-              // Clear validation error when field is edited
               if (data.name !== undefined && validationErrors.name) {
                 setValidationErrors(prev => ({ ...prev, name: undefined }));
               }
@@ -501,12 +500,13 @@ export const OfferGenerator = ({
             }}
             onVehicleChange={(data) => {
               updateVehicleData(data);
-              // Clear validation error when field is edited
               if (data.brandModel !== undefined && validationErrors.brandModel) {
                 setValidationErrors(prev => ({ ...prev, brandModel: undefined }));
               }
             }}
             validationErrors={validationErrors}
+            internalNotes={offer.internalNotes}
+            onInternalNotesChange={(value) => updateOffer({ internalNotes: value })}
           />
         </Card>
       )}
