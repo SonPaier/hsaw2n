@@ -556,12 +556,14 @@ const ServiceSelectionDrawer = ({
                         >
                           {/* Service info */}
                           <div className="flex-1 text-left">
-                            <p className="font-medium text-foreground">
-                              {service.short_name && (
-                                <span className="text-primary font-bold mr-2">{service.short_name}</span>
-                              )}
-                              {service.name}
-                            </p>
+                            {service.short_name ? (
+                              <>
+                                <p className="font-bold text-primary">{service.short_name}</p>
+                                <p className="text-muted-foreground" style={{ fontSize: '11px', lineHeight: '1.3' }}>{service.name}</p>
+                              </>
+                            ) : (
+                              <p className="font-medium text-foreground">{service.name}</p>
+                            )}
                           </div>
                           
                           {/* Price & Duration */}
