@@ -302,7 +302,7 @@ export const PublicOfferCustomerView = ({
   };
 
   // VAT annotation shown below each item price
-  const vatAnnotation = `netto + ${offer.vat_rate}% VAT`;
+  const vatAnnotation = `netto + VAT`;
 
   // Calculate dynamic total based on selected items
   const calculateDynamicTotal = () => {
