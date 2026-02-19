@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,6 +138,19 @@ export const SummaryStepV2 = ({
   const [editingProduct, setEditingProduct] = useState<ServiceData | null>(null);
   const [productCategories, setProductCategories] = useState<{ id: string; name: string }[]>([]);
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
+  
+  // Track whether conditions have been initialized from a loaded offer
+  // so we don't overwrite user-edited notes/warranty/etc on first load
+  const conditionsInitializedRef = useRef(false);
+  
+  // Reset the flag when switching to a different offer
+  const prevOfferIdRef = useRef(offer.id);
+  useEffect(() => {
+    if (prevOfferIdRef.current !== offer.id) {
+      conditionsInitializedRef.current = false;
+      prevOfferIdRef.current = offer.id;
+    }
+  }, [offer.id]);
 
   // Load scope data and products for selected scopes + always include extras scopes
   useEffect(() => {
@@ -461,15 +474,23 @@ export const SummaryStepV2 = ({
         return parts.join('\n\n');
       };
 
-      // Always update conditions based on selected scopes (regenerate on scope change)
-      const updates: Partial<OfferState> = {
-        warranty: combineWithHeaders('default_warranty'),
-        paymentTerms: combineWithHeaders('default_payment_terms'),
-        notes: combineWithHeaders('default_notes'),
-        serviceInfo: combineWithHeaders('default_service_info'),
-      };
-      
-      onUpdateOffer(updates);
+      // Update conditions based on selected scopes
+      // BUT: skip overwriting on first load of an existing offer (preserves user edits)
+      if (offer.id && !conditionsInitializedRef.current) {
+        // First load of existing offer - don't overwrite saved values
+        conditionsInitializedRef.current = true;
+      } else {
+        // New offer OR scope change on existing offer - apply defaults
+        conditionsInitializedRef.current = true;
+        const updates: Partial<OfferState> = {
+          warranty: combineWithHeaders('default_warranty'),
+          paymentTerms: combineWithHeaders('default_payment_terms'),
+          notes: combineWithHeaders('default_notes'),
+          serviceInfo: combineWithHeaders('default_service_info'),
+        };
+        
+        onUpdateOffer(updates);
+      }
 
 
       setLoading(false);
