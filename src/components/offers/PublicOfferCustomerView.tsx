@@ -301,6 +301,9 @@ export const PublicOfferCustomerView = ({
     return `${prefix}${formatPrice(value)}`;
   };
 
+  // VAT annotation shown below each item price
+  const vatAnnotation = `netto + ${offer.vat_rate}% VAT`;
+
   // Calculate dynamic total based on selected items
   const calculateDynamicTotal = () => {
     let totalNet = 0;
@@ -891,12 +894,15 @@ export const PublicOfferCustomerView = ({
                               </p>
                               <div className="flex items-center gap-3">
                                 {!offer.hide_unit_prices && (
-                                  <span 
-                                    className="font-medium"
-                                    style={{ color: branding.offer_section_text_color }}
-                                  >
-                                    {formatItemPrice(itemTotal, '+')}
-                                  </span>
+                                  <div className="text-right">
+                                    <span 
+                                      className="font-medium"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
+                                      {formatItemPrice(itemTotal, '+')}
+                                    </span>
+                                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                  </div>
                                 )}
                                 {!readonlyMode && (
                                   <Button
@@ -942,12 +948,15 @@ export const PublicOfferCustomerView = ({
                             }
                             <div className="flex items-center justify-end gap-3">
                               {!offer.hide_unit_prices && (
-                                  <span 
-                                    className="font-medium"
-                                    style={{ color: branding.offer_section_text_color }}
-                                  >
-                                    {formatItemPrice(itemTotal, '+')}
-                                </span>
+                                  <div className="text-right">
+                                    <span 
+                                      className="font-medium"
+                                      style={{ color: branding.offer_section_text_color }}
+                                    >
+                                      {formatItemPrice(itemTotal, '+')}
+                                    </span>
+                                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                  </div>
                               )}
                               {!readonlyMode && (
                                 <Button
@@ -1094,9 +1103,12 @@ export const PublicOfferCustomerView = ({
                                 </span>
                                 <div className="flex items-center gap-3 shrink-0">
                                   {!offer.hide_unit_prices && (
-                                    <span className="font-bold text-lg" style={{ color: branding.offer_section_text_color }}>
-                                      {formatItemPrice(itemTotal)}
-                                    </span>
+                                    <div className="text-right">
+                                      <span className="font-bold text-lg" style={{ color: branding.offer_section_text_color }}>
+                                        {formatItemPrice(itemTotal)}
+                                      </span>
+                                      <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                    </div>
                                   )}
                                   {!readonlyMode && (
                                     <Button
@@ -1628,9 +1640,12 @@ export const PublicOfferCustomerView = ({
                   <span className="text-black text-sm flex-1">
                     {idx + 1}. {item.name}
                   </span>
-                  <span className="text-black font-medium text-sm whitespace-nowrap">
-                    {formatItemPrice(item.price)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-black font-medium text-sm whitespace-nowrap">
+                      {formatItemPrice(item.price)}
+                    </span>
+                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                  </div>
                 </div>
               ))}
             </div>
