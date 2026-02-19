@@ -901,7 +901,7 @@ export const PublicOfferCustomerView = ({
                                     >
                                       {formatItemPrice(itemTotal, '+')}
                                     </span>
-                                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                    <div className="text-[12px] text-muted-foreground">{vatAnnotation}</div>
                                   </div>
                                 )}
                                 {!readonlyMode && (
@@ -955,7 +955,7 @@ export const PublicOfferCustomerView = ({
                                     >
                                       {formatItemPrice(itemTotal, '+')}
                                     </span>
-                                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                    <div className="text-[12px] text-muted-foreground">{vatAnnotation}</div>
                                   </div>
                               )}
                               {!readonlyMode && (
@@ -1107,7 +1107,7 @@ export const PublicOfferCustomerView = ({
                                       <span className="font-bold text-lg" style={{ color: branding.offer_section_text_color }}>
                                         {formatItemPrice(itemTotal)}
                                       </span>
-                                      <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                                      <div className="text-[12px] text-muted-foreground">{vatAnnotation}</div>
                                     </div>
                                   )}
                                   {!readonlyMode && (
@@ -1644,7 +1644,7 @@ export const PublicOfferCustomerView = ({
                     <span className="text-black font-medium text-sm whitespace-nowrap">
                       {formatItemPrice(item.price)}
                     </span>
-                    <div className="text-[10px] text-muted-foreground">{vatAnnotation}</div>
+                    <div className="text-[12px] text-muted-foreground">{vatAnnotation}</div>
                   </div>
                 </div>
               ))}
