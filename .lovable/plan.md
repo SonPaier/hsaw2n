@@ -1,45 +1,32 @@
 
 
-## Plan: 3 zmiany (hover klientow, przypomnienia PPF, usuwanie Widget)
+## Problem
 
-### 1. Jasniejszy hover na kartach klientow + formatowanie telefonu
+Ikonka zielonego notesu na liscie ofert pojawia sie **tylko** gdy pole `internal_notes` jest wypelnione. Tymczasem klient zapisywal notatki w polu `notes` (publiczne notatki widoczne na ofercie dla klienta) - to jest inne pole.
 
-**CustomersList.tsx** i **CustomersView.tsx**:
-- Zmiana klasy hover z `hover:bg-muted/50` na `hover:bg-accent/30` (jasniejszy, subtelniejszy efekt)
-- Import `formatPhoneDisplay` z `@/lib/phoneUtils` i uzycie go do wyswietlania numeru telefonu zamiast surowego `customer.phone`
-- Dotyczy obu plikow (CustomersList uzywa wlasnego renderowania, CustomersView ma swoj renderCustomerList)
+Stan w bazie:
+- **10 ofert** ma wypelnione `notes` (publiczne)
+- **Tylko 1 oferta** ma wypelnione `internal_notes` ("aaaa" w DEM/001/2026)
 
-### 2. Skopiowanie szablonow przypomnien PPF z ARMCAR do ULTRAFIT
+Kod listy ofert dziala poprawnie - pobiera `*` (wszystkie kolumny), ikonka sprawdza `!!offer.internal_notes`. Problem polega na tym, ze pole `internal_notes` nie jest dostepne w edytorze ofert (OfferGenerator), wiec jedyny sposob jego wypelnienia to drawer "Notatka" z dropdownu statusu kontaktu.
 
-Z ARMCAR istnieje szablon **"PPF Folia"** (id: `f6d18a1f`):
-- Kontrola (bezplatna) po 1 miesiacu
-- Serwis (platny) po 12 miesiacach
-- SMS template: `{short_name}: Przypominamy o {service_type} dla {vehicle_info}. {paid_info}. Zadzwon: {reservation_phone}`
+## Rozwiazanie
 
-Tworzymy **2 szablony** w instancji ultrafit (`29f15eeb-5ada-446c-9351-0194dbc886fd`):
+### 1. `src/hooks/useOffer.ts`
+- Dodac `internalNotes?: string` do interfejsu `OfferState`
+- W `loadOffer`: mapowac `internal_notes` z bazy na `internalNotes` w stanie
+- W `saveOffer`: wstawiac `internal_notes: offer.internalNotes || null` do obiektu zapisywanego do bazy
+- Dzieki temu edycja oferty nie nadpisze istniejacych notatek wewnetrznych
 
-| Szablon | Elementy |
-|---------|----------|
-| **Serwis PPF** | Kontrola (bezplatna, 1 mies.) + Serwis (platny, 12 mies.) |
-| **Przeglad PPF** | Kontrola (bezplatna, 1 mies.) |
+### 2. `src/components/offers/CustomerDataStep.tsx`
+- Dodac nowe propsy: `internalNotes?: string` i `onInternalNotesChange?: (value: string) => void`
+- Dodac pole `Textarea` z etykieta **"Notatka wewnetrzna (tylko dla admina)"** obok istniejacego pola "Tresc zapytania" (`inquiry_notes`)
+- Pole widoczne tylko w panelu admina, nie na publicznej ofercie
 
-Oba z tym samym szablonem SMS co w ARMCAR.
+### 3. `src/components/offers/OfferGenerator.tsx`
+- Przekazac `offer.internalNotes` i handler `updateOffer({ internalNotes: value })` do `CustomerDataStep`
 
-### 3. Usuniecie zakladki Widget z Ustawien
-
-**SettingsView.tsx**:
-- Usuniecie wpisu `{ key: 'widget', ... }` z tablicy `allTabs`
-- Usuniecie `case 'widget'` z `renderTabContent()`
-- Usuniecie importu `WidgetSettings`
-
----
-
-### Szczegoly techniczne
-
-**Pliki do edycji:**
-- `src/components/admin/CustomersList.tsx` -- import formatPhoneDisplay, hover
-- `src/components/admin/CustomersView.tsx` -- import formatPhoneDisplay, hover
-- `src/components/admin/SettingsView.tsx` -- usun widget tab
-
-**Operacje bazodanowe:**
-- 2x INSERT do `reminder_templates` (instancja ultrafit)
+Po tych zmianach:
+- Notatki wewnetrzne beda widoczne i edytowalne w generatorze ofert
+- Zapis oferty nie zgubi istniejacych notatek
+- Ikonka zielonego notesu na liscie ofert bedzie sie poprawnie wyswietlac
