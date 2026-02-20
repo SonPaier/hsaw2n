@@ -129,7 +129,7 @@ export function TrainingDetailsDrawer({
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
-              {/* Type badge + status */}
+              {/* Status label - matching calendar card colors */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge
                   variant="secondary"
@@ -138,10 +138,7 @@ export function TrainingDetailsDrawer({
                     : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
                   }
                 >
-                  {training.training_type_record?.name || training.training_type || training.title}
-                </Badge>
-                <Badge variant={isSoldOut ? 'destructive' : 'outline'}>
-                  {isSoldOut ? t('trainings.statusSoldOut') : t('trainings.statusOpen')}
+                  {isSoldOut ? 'Zamknięte' : 'Otwarte'}
                 </Badge>
               </div>
 
