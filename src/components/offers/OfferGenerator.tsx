@@ -16,7 +16,7 @@ import {
   Loader2,
   Download,
   Eye,
-  Link2
+  Printer
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOffer } from '@/hooks/useOffer';
@@ -364,28 +364,7 @@ export const OfferGenerator = ({
     setShowPreview(true);
   };
 
-  const handleCopyLink = async () => {
-    try {
-      // Save first to get the offer ID and public_token
-      const savedId = await saveOffer(true);
-      if (savedId) {
-        const { data: savedOffer } = await supabase
-          .from('offers')
-          .select('public_token')
-          .eq('id', savedId)
-          .single();
-        
-        if (savedOffer?.public_token) {
-          const baseUrl = window.location.origin;
-          const offerUrl = `${baseUrl}/offers/${savedOffer.public_token}`;
-          await navigator.clipboard.writeText(offerUrl);
-          toast.success('Link skopiowany do schowka');
-        }
-      }
-    } catch (error) {
-      toast.error('Nie udało się skopiować linku');
-    }
-  };
+
 
   const handleDownloadPdf = async () => {
     if (!offer.id) {
@@ -598,14 +577,14 @@ export const OfferGenerator = ({
             <span className="hidden sm:inline">{t('offers.preview')}</span>
           </Button>
 
-          {/* Copy link button - always visible */}
+          {/* Print button - always visible */}
           <Button
             variant="outline"
-            onClick={handleCopyLink}
+            onClick={() => window.print()}
             className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
           >
-            <Link2 className="w-5 h-5" />
-            <span className="hidden sm:inline">Skopiuj link</span>
+            <Printer className="w-5 h-5" />
+            <span className="hidden sm:inline">Drukuj</span>
           </Button>
 
           {currentStep < 3 ? (

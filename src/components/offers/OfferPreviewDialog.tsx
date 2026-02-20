@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Send, Loader2, X } from 'lucide-react';
+import { ChevronLeft, Send, Loader2, X, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -318,18 +318,28 @@ export const OfferPreviewDialog = ({
             <ChevronLeft className="w-4 h-4" />
             {t('offers.backToEdit')}
           </Button>
-          <Button
-            onClick={handleSend}
-            disabled={sending}
-            className="gap-2"
-          >
-            {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            {t('offers.sendOffer')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => window.print()}
+              className="gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Drukuj
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={sending}
+              className="gap-2"
+            >
+              {sending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {t('offers.sendOffer')}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -32,7 +32,8 @@ import {
   Zap,
   Trophy,
   ThumbsUp,
-  Eye
+  Eye,
+  Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -604,12 +605,22 @@ export const PublicOfferCustomerView = ({
                   <span className="sr-only">Oferta </span>
                   {instance?.name}
                 </h1>
-                <p 
-                  className="text-sm opacity-70"
-                  style={{ color: branding.offer_header_text_color }}
-                >
-                  Oferta nr {offer.offer_number}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p 
+                    className="text-sm opacity-70"
+                    style={{ color: branding.offer_header_text_color }}
+                  >
+                    Oferta nr {offer.offer_number}
+                  </p>
+                  <button
+                    onClick={() => window.print()}
+                    className="p-1 rounded hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
+                    title="Drukuj"
+                    style={{ color: branding.offer_header_text_color }}
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
             {/* Company contact info - right side */}
