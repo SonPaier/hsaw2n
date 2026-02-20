@@ -256,21 +256,21 @@ export function TrainingDetailsDrawer({
                       return (
                         <span
                           key={empId}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none"
                         >
                           {name}
                         </span>
                       );
                     })}
                     {!readOnly && (
-                      <Button
-                        size="sm"
-                        className="rounded-full"
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none hover:bg-primary/90 transition-colors"
                         onClick={() => setEmployeeDrawerOpen(true)}
                       >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="w-3.5 h-3.5" />
                         Dodaj
-                      </Button>
+                      </button>
                     )}
                   </div>
                 </div>
