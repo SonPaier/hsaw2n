@@ -1933,23 +1933,13 @@ const AdminCalendar = ({
                             {trainingEmps.slice(0, 2).map((emp) => (
                               <span
                                 key={emp.id}
-                                className={cn(
-                                  "inline-flex items-center px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded-md leading-none",
-                                  training.status === 'sold_out'
-                                    ? "bg-white/20 text-white"
-                                    : "bg-pink-900/15 text-pink-900"
-                                )}
+                                className="inline-flex items-center px-2.5 py-1 text-[12px] md:text-[13px] font-semibold bg-primary text-primary-foreground rounded-md leading-none"
                               >
                                 {emp.name.split(' ')[0]}
                               </span>
                             ))}
                             {trainingEmps.length > 2 && (
-                              <span className={cn(
-                                "inline-flex items-center px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded-md leading-none",
-                                training.status === 'sold_out'
-                                  ? "bg-white/20 text-white"
-                                  : "bg-pink-900/15 text-pink-900"
-                              )}>
+                              <span className="inline-flex items-center px-2.5 py-1 text-[12px] md:text-[13px] font-semibold bg-primary/90 text-primary-foreground rounded-md leading-none">
                                 +{trainingEmps.length - 2}
                               </span>
                             )}

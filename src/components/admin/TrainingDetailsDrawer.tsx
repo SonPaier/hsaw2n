@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { GraduationCap, Pencil, Trash2, MapPin, Clock, Calendar, Users } from 'lucide-react';
+import { GraduationCap, Pencil, Trash2, MapPin, Clock, Calendar, Users, X } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -120,9 +120,9 @@ export function TrainingDetailsDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-md hover:bg-muted transition-colors"
+                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
           </SheetHeader>
