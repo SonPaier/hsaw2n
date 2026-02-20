@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AssignedEmployeesChips } from './AssignedEmployeesChips';
+
 import { useEmployees } from '@/hooks/useEmployees';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Training } from './AddTrainingDrawer';
@@ -211,11 +211,20 @@ export function TrainingDetailsDrawer({
                   {t('trainings.employees')}
                 </Label>
                 {training.assigned_employee_ids?.length > 0 ? (
-                  <AssignedEmployeesChips
-                    employeeIds={training.assigned_employee_ids}
-                    employees={employees}
-                    variant="default"
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    {training.assigned_employee_ids.map(empId => {
+                      const emp = employees.find(e => e.id === empId);
+                      const name = emp?.name || 'Usunięty';
+                      return (
+                        <span
+                          key={empId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                        >
+                          {name}
+                        </span>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">{t('trainings.noEmployees')}</p>
                 )}
