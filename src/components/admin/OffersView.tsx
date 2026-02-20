@@ -225,6 +225,31 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
     return map;
   }, [cachedScopes]);
 
+  // Reactively map scope names onto offers — recalculates when scopesMap arrives from React Query
+  // This fixes the race condition where fetchOffers runs before cachedScopes are loaded
+  const offersWithMappedScopes = useMemo(() => {
+    return offers.map(o => {
+      let selectedOptionName: string | undefined;
+      const selectedState = o.selected_state as unknown as SelectedState | null;
+      if (selectedState?.selectedVariants && o.offer_options) {
+        const selectedOptionIds = Object.values(selectedState.selectedVariants).filter(Boolean);
+        if (selectedOptionIds.length > 0) {
+          const selectedOption = o.offer_options.find(opt => selectedOptionIds.includes(opt.id));
+          selectedOptionName = selectedOption?.name;
+        }
+      }
+      return {
+        ...o,
+        offer_scopes: [...new Set(
+          o.offer_options?.map(opt => opt.scope_id).filter(Boolean) || []
+        )]
+          .map(id => ({ id, name: scopesMap[id as string] || '' }))
+          .filter(s => s.name && s.name !== 'Dodatki'),
+        selectedOptionName,
+      };
+    });
+  }, [offers, scopesMap]);
+
   // Reset generator state when clicking sidebar link (same route navigation)
   useEffect(() => {
     if (showGenerator || showServicesView) {
@@ -266,33 +291,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       
       if (error) throw error;
 
-      // Use cached scopes instead of fetching each time
-      // Attach scope names and selected option name to offers
-      const offersWithScopes = (data || []).map(o => {
-        // Get selected option name from selected_state
-        let selectedOptionName: string | undefined;
-        const selectedState = o.selected_state as unknown as SelectedState | null;
-        if (selectedState?.selectedVariants && o.offer_options) {
-          // Get first selected variant's option name
-          const selectedOptionIds = Object.values(selectedState.selectedVariants).filter(Boolean);
-          if (selectedOptionIds.length > 0) {
-            const selectedOption = o.offer_options.find((opt: { id: string; name?: string }) => 
-              selectedOptionIds.includes(opt.id)
-            );
-            selectedOptionName = selectedOption?.name;
-          }
-        }
-        
-        return {
-          ...o,
-          offer_scopes: [...new Set(o.offer_options?.map((opt: { scope_id?: string | null }) => opt.scope_id).filter(Boolean) || [])]
-            .map(id => ({ id, name: scopesMap[id as string] || '' }))
-            .filter(s => s.name && s.name !== 'Dodatki'),
-          selectedOptionName
-        };
-      });
-
-      setOffers(offersWithScopes as OfferWithOptions[]);
+      // Store raw offers — scope name mapping is done reactively in useMemo below
+      setOffers((data || []) as OfferWithOptions[]);
     } catch (error) {
       console.error('Error fetching offers:', error);
       toast.error(t('offers.errors.fetchError'));
@@ -492,9 +492,9 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
     }).format(value);
   };
 
-  // Search and filter
+  // Search and filter — use offersWithMappedScopes so scope pills are always reactive
   const filteredOffers = useMemo(() => {
-    let result = offers;
+    let result = offersWithMappedScopes;
     
     // Status filter
     if (statusFilter !== 'all') {
@@ -530,7 +530,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
     }
     
     return result;
-  }, [offers, statusFilter, searchQuery]);
+  }, [offersWithMappedScopes, statusFilter, searchQuery]);
 
   // Pagination
   const totalPages = Math.ceil(filteredOffers.length / pageSize);

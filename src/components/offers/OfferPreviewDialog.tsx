@@ -321,6 +321,7 @@ export const OfferPreviewDialog = ({
             {t('offers.backToEdit')}
           </Button>
           <div className="flex items-center gap-2">
+            {/* TODO: Print feature - to be refined in future
             <Button
               variant="outline"
               onClick={onPrint}
@@ -329,6 +330,7 @@ export const OfferPreviewDialog = ({
               <Printer className="w-4 h-4" />
               Drukuj
             </Button>
+            */}
             <Button
               onClick={handleSend}
               disabled={sending}
