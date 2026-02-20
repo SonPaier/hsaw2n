@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Building2, ClipboardCheck, FileText, Link2, TrendingUp } from 'lucide-react';
+import { Building2, ClipboardCheck, FileText, GraduationCap, Link2, TrendingUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInstancePlan } from '@/hooks/useInstancePlan';
@@ -86,6 +86,13 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
     description: 'Automatyczne wysyłanie przypomnień SMS do klientów',
     icon: FileText,
     isPaid: true,
+  },
+  {
+    key: 'trainings',
+    name: 'Szkolenia',
+    description: 'Zarządzanie szkoleniami w kalendarzu',
+    icon: GraduationCap,
+    isPaid: false,
   },
 ];
 

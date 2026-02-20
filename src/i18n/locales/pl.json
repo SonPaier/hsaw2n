@@ -2088,5 +2088,32 @@
     "completed": "Oferta oznaczona jako zrealizowana",
     "completedWithReminders": "Oferta zrealizowana. Utworzono {{count}} przypomnień.",
     "completeError": "Błąd podczas realizacji oferty"
+  },
+  "trainings": {
+    "newTraining": "Nowe szkolenie",
+    "addTraining": "Dodaj szkolenie",
+    "saveTraining": "Zapisz szkolenie",
+    "editTraining": "Edytuj szkolenie",
+    "deleteTraining": "Usuń szkolenie",
+    "deleteConfirm": "Czy na pewno chcesz usunąć to szkolenie?",
+    "type": "Typ szkolenia",
+    "description": "Opis",
+    "title": "Tytuł",
+    "statusOpen": "Otwarte",
+    "statusSoldOut": "Wyprzedane",
+    "trainingDeleted": "Szkolenie usunięte",
+    "trainingSaved": "Szkolenie zapisane",
+    "trainingUpdated": "Szkolenie zaktualizowane",
+    "employees": "Pracownicy",
+    "noEmployees": "Brak przypisanych pracowników",
+    "selectEmployees": "Wybierz pracowników",
+    "status": "Status",
+    "dates": "Daty",
+    "photos": "Zdjęcia",
+    "types": {
+      "group_basic": "Grupowe podstawowe",
+      "individual": "Indywidualne",
+      "master": "MASTER z instruktorem"
+    }
   }
 }

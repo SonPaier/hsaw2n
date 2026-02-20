@@ -3165,6 +3165,66 @@ export type Database = {
           },
         ]
       }
+      trainings: {
+        Row: {
+          assigned_employee_ids: Json | null
+          created_at: string | null
+          created_by: string | null
+          created_by_username: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string
+          id: string
+          instance_id: string
+          photo_urls: string[] | null
+          start_date: string
+          start_time: string
+          station_id: string | null
+          status: string
+          title: string
+          training_type: Database["public"]["Enums"]["training_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_employee_ids?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          created_by_username?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time: string
+          id?: string
+          instance_id: string
+          photo_urls?: string[] | null
+          start_date: string
+          start_time: string
+          station_id?: string | null
+          status?: string
+          title: string
+          training_type?: Database["public"]["Enums"]["training_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_employee_ids?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          created_by_username?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string
+          id?: string
+          instance_id?: string
+          photo_urls?: string[] | null
+          start_date?: string
+          start_time?: string
+          station_id?: string | null
+          status?: string
+          title?: string
+          training_type?: Database["public"]["Enums"]["training_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       unified_categories: {
         Row: {
           active: boolean | null
@@ -3740,6 +3800,7 @@ export type Database = {
         | "upholstery"
         | "other"
       station_type: "washing" | "ppf" | "detailing" | "universal"
+      training_type: "group_basic" | "individual" | "master"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3881,6 +3942,7 @@ export const Constants = {
       ],
       service_category: ["car_wash", "ppf", "detailing", "upholstery", "other"],
       station_type: ["washing", "ppf", "detailing", "universal"],
+      training_type: ["group_basic", "individual", "master"],
     },
   },
 } as const
