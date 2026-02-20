@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, Droplets, Check, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, Droplets, Check, X, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,9 +44,47 @@ interface SubscriptionData {
   } | null;
 }
 
+function SortableStationItem({ station, onEdit, onDelete }: { station: Station; onEdit: () => void; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: station.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg bg-white dark:bg-card",
+        isDragging && "opacity-50 shadow-lg"
+      )}
+    >
+      <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+        <button type="button" className="cursor-grab active:cursor-grabbing touch-none p-1 text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
+          <GripVertical className="w-5 h-5" />
+        </button>
+        <div className={cn("p-2 rounded-lg shrink-0", !station.color && "bg-primary/10")} style={station.color ? { backgroundColor: station.color } : undefined}>
+          <Droplets className={cn("w-5 h-5", !station.color && "text-primary")} style={station.color ? { color: '#475569' } : undefined} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="font-medium text-sm sm:text-base">{station.name}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 justify-end sm:justify-start pl-10 sm:pl-0 shrink-0">
+        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={onEdit}>
+          <Edit2 className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 text-destructive" onClick={onDelete}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -201,6 +242,29 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = stations.findIndex(s => s.id === active.id);
+    const newIndex = stations.findIndex(s => s.id === over.id);
+    const reordered = arrayMove(stations, oldIndex, newIndex);
+    setStations(reordered);
+
+    // Persist new sort_order
+    try {
+      const updates = reordered.map((s, i) =>
+        supabase.from('stations').update({ sort_order: i }).eq('id', s.id)
+      );
+      await Promise.all(updates);
+      queryClient.invalidateQueries({ queryKey: ['stations', instanceId] });
+    } catch (error) {
+      console.error('Error reordering stations:', error);
+      toast.error('Błąd zmiany kolejności');
+      fetchStations();
+    }
+  };
+
   const handleDelete = async (stationId: string) => {
     if (!confirm(t('stationsSettings.deleteConfirm'))) return;
 
@@ -257,42 +321,20 @@ const StationsSettings = ({ instanceId }: StationsSettingsProps) => {
           <p>{t('stationsSettings.noStations')}</p>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {stations.map(station => (
-            <div
-              key={station.id}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border/50 rounded-lg"
-            >
-              <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                <div className={cn("p-2 rounded-lg shrink-0", !station.color && "bg-primary/10")} style={station.color ? { backgroundColor: station.color } : undefined}>
-                  <Droplets className={cn("w-5 h-5", !station.color && "text-primary")} style={station.color ? { color: '#475569' } : undefined} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="font-medium text-sm sm:text-base">{station.name}</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 justify-end sm:justify-start pl-10 sm:pl-0 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 sm:h-10 sm:w-10"
-                  onClick={() => openEditDialog(station)}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 sm:h-10 sm:w-10 text-destructive"
-                  onClick={() => handleDelete(station.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={stations.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="grid gap-3">
+              {stations.map(station => (
+                <SortableStationItem
+                  key={station.id}
+                  station={station}
+                  onEdit={() => openEditDialog(station)}
+                  onDelete={() => handleDelete(station.id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* Edit/Add Dialog */}
