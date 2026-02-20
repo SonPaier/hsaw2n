@@ -17,6 +17,9 @@ import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useUnifiedServices } from '@/hooks/useUnifiedServices';
 import { useServiceDictionary, buildServicesMapFromDictionary } from '@/hooks/useServiceDictionary';
 import { Loader2, Calendar, FileText, LogOut, Users } from 'lucide-react';
+import { TrainingDetailsDrawer } from '@/components/admin/TrainingDetailsDrawer';
+import type { Training } from '@/components/admin/AddTrainingDrawer';
+import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Hall } from '@/components/admin/halls/HallCard';
@@ -118,6 +121,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   // Service drawer state for hall view
   const [serviceDrawerReservation, setServiceDrawerReservation] = useState<Reservation | null>(null);
 
+  // Trainings state
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
+  const [trainingDetailsOpen, setTrainingDetailsOpen] = useState(false);
+
   // CACHED HOOKS - using React Query with staleTime for static data
   const { data: cachedBreaks = [] } = useBreaks(instanceId);
   const { data: cachedWorkingHours } = useWorkingHours(instanceId);
@@ -146,6 +154,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   // Check subscription plan for protocols access
   const { hasFeature, planSlug } = useInstancePlan(instanceId);
   const canAccessProtocols = hasFeature('vehicle_reception_protocol') || planSlug === 'detailing';
+
+  // Combined features (includes plan + instance features)
+  const { hasFeature: hasCombinedFeature } = useCombinedFeatures(instanceId);
+  const trainingsEnabled = hasCombinedFeature('trainings');
 
   // Handle navigation based on role
   const handleCalendarNavigation = () => {
@@ -711,6 +723,27 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     fetchData();
   }, [instanceId, hall, cachedServices]);
 
+  // Fetch trainings
+  useEffect(() => {
+    if (!instanceId || !trainingsEnabled) {
+      setTrainings([]);
+      return;
+    }
+    const fetchTrainings = async () => {
+      const { data } = await supabase
+        .from('trainings')
+        .select('*')
+        .eq('instance_id', instanceId) as any;
+      if (data) {
+        setTrainings(data.map((t: any) => ({
+          ...t,
+          assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
+        })));
+      }
+    };
+    fetchTrainings();
+  }, [instanceId, trainingsEnabled]);
+
   // Subscribe to yard vehicles changes for counter
   useEffect(() => {
     if (!instanceId) return;
@@ -1047,6 +1080,34 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             setReservations(prev => prev.filter(r => r.id !== payload.old.id));
           }
         })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'trainings',
+          filter: `instance_id=eq.${instanceId}`
+        }, async (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const { data } = await supabase
+              .from('trainings')
+              .select('*')
+              .eq('id', payload.new.id)
+              .single() as any;
+            if (data) {
+              const mapped: Training = {
+                ...data,
+                assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
+              };
+              if (payload.eventType === 'INSERT') {
+                setTrainings(prev => prev.some(t => t.id === mapped.id) ? prev : [...prev, mapped]);
+              } else {
+                setTrainings(prev => prev.map(t => t.id === mapped.id ? mapped : t));
+                setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
+              }
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setTrainings(prev => prev.filter(t => t.id !== payload.old.id));
+          }
+        })
         .subscribe((status, err) => {
           console.log('[HallView] Channel status:', status, err);
           if (status === 'SUBSCRIBED') {
@@ -1087,7 +1148,15 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
   }, [instanceId, t]);
 
   const handleReservationClick = (reservation: Reservation) => {
+    setSelectedTraining(null);
+    setTrainingDetailsOpen(false);
     setSelectedReservation(reservation);
+  };
+
+  const handleTrainingClick = (training: Training) => {
+    setSelectedReservation(null);
+    setSelectedTraining(training);
+    setTrainingDetailsOpen(true);
   };
 
   const handleStatusChange = (reservationId: string, newStatus: string) => {
@@ -1524,6 +1593,9 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             onToggleHallDataVisibility={() => setHallDataVisible(prev => !prev)}
             instanceId={instanceId || undefined}
             yardVehicleCount={yardVehicleCount}
+            trainings={trainings}
+            onTrainingClick={handleTrainingClick}
+            trainingsEnabled={trainingsEnabled}
           />
         </div>
       </div>
@@ -1578,6 +1650,26 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             }
             setServiceDrawerReservation(null);
           }}
+        />
+      )}
+
+      {/* Training Details Drawer (read-only for hall) */}
+      {selectedTraining && instanceId && (
+        <TrainingDetailsDrawer
+          open={trainingDetailsOpen}
+          onClose={() => {
+            setTrainingDetailsOpen(false);
+            setSelectedTraining(null);
+          }}
+          training={selectedTraining}
+          instanceId={instanceId}
+          onEdit={() => {}}
+          onDeleted={() => {
+            setTrainings(prev => prev.filter(t => t.id !== selectedTraining.id));
+            setSelectedTraining(null);
+            setTrainingDetailsOpen(false);
+          }}
+          readOnly={true}
         />
       )}
 
