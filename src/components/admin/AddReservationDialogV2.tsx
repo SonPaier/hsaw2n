@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useInstanceSettings } from '@/hooks/useInstanceSettings';
 import { useEmployees } from '@/hooks/useEmployees';
-import { Loader2, X, CalendarIcon, ClipboardPaste, Plus, Users } from 'lucide-react';
+import { Loader2, X, CalendarIcon, ClipboardPaste, Plus, Users, ChevronDown, GraduationCap } from 'lucide-react';
 import { format, addDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
 import ServiceSelectionDrawer, { ServiceWithCategory } from './ServiceSelectionDrawer';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import SelectedServicesList, { ServiceItem } from './SelectedServicesList';
 import { EmployeeSelectionDrawer } from './EmployeeSelectionDrawer';
 import { AssignedEmployeesChips } from './AssignedEmployeesChips';
@@ -150,6 +151,9 @@ interface AddReservationDialogV2Props {
   } | null) => void;
   /** Current user's username to save with new reservations */
   currentUsername?: string | null;
+  /** Trainings feature props */
+  trainingsEnabled?: boolean;
+  onSwitchToTraining?: () => void;
 }
 
 const AddReservationDialogV2 = ({
@@ -166,7 +170,9 @@ const AddReservationDialogV2 = ({
   initialTime,
   initialStationId,
   onSlotPreviewChange,
-  currentUsername = null
+  currentUsername = null,
+  trainingsEnabled = false,
+  onSwitchToTraining
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isReservationMode = mode === 'reservation';
@@ -1339,6 +1345,9 @@ const AddReservationDialogV2 = ({
     return isEditMode ? t('reservations.editReservation') : t('addReservation.title');
   };
 
+  // Show dropdown for switching to training when conditions met
+  const showTrainingDropdown = trainingsEnabled && !editingReservation && mode === 'reservation';
+
   return (
     <>
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
@@ -1356,9 +1365,30 @@ const AddReservationDialogV2 = ({
           {/* Fixed Header with Close button */}
           <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <div className="flex items-center justify-between">
-              <SheetTitle>
-                {getDialogTitle()}
-              </SheetTitle>
+              {showTrainingDropdown ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 text-lg font-semibold text-foreground hover:text-primary transition-colors">
+                      {getDialogTitle()}
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem className="font-medium">
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      {t('addReservation.title')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSwitchToTraining?.()}>
+                      <GraduationCap className="w-4 h-4 mr-2" />
+                      {t('trainings.newTraining')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <SheetTitle>
+                  {getDialogTitle()}
+                </SheetTitle>
+              )}
               <button
                 type="button"
                 onClick={onClose}

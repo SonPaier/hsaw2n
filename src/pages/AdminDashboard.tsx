@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign } from 'lucide-react';
+import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign, GraduationCap } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
@@ -47,6 +47,9 @@ import PriceListSettings from '@/components/admin/PriceListSettings';
 import { ProtocolsView } from '@/components/protocols/ProtocolsView';
 import RemindersView from '@/components/admin/RemindersView';
 import { EmployeesView } from '@/components/admin/employees';
+import { AddTrainingDrawer } from '@/components/admin/AddTrainingDrawer';
+import { TrainingDetailsDrawer } from '@/components/admin/TrainingDetailsDrawer';
+import type { Training } from '@/components/admin/AddTrainingDrawer';
 import { toast } from 'sonner';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
@@ -298,6 +301,13 @@ const AdminDashboard = () => {
 
   // Protocol editing mode - used to hide sidebar/mobile nav
   const [protocolEditMode, setProtocolEditMode] = useState(false);
+
+  // Trainings state
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
+  const [trainingDetailsOpen, setTrainingDetailsOpen] = useState(false);
+  const [addTrainingOpen, setAddTrainingOpen] = useState(false);
+  const [editingTraining, setEditingTraining] = useState<Training | null>(null);
 
   // Combined feature check: checks both plan features and instance-level features
   const { hasFeature } = useCombinedFeatures(instanceId);
@@ -835,6 +845,33 @@ const AdminDashboard = () => {
     }
   }, [instanceId, serviceDictMap.size]);
 
+  // Trainings enabled flag
+  const trainingsEnabled = hasFeature('trainings');
+
+  // Fetch trainings
+  const fetchTrainings = useCallback(async () => {
+    if (!instanceId || !trainingsEnabled) {
+      setTrainings([]);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('trainings')
+      .select('*, stations:station_id (name, type)')
+      .eq('instance_id', instanceId) as any;
+
+    if (!error && data) {
+      setTrainings(data.map((t: any) => ({
+        ...t,
+        assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
+        station: t.stations ? { name: t.stations.name, type: t.stations.type } : null,
+      })));
+    }
+  }, [instanceId, trainingsEnabled]);
+
+  useEffect(() => {
+    fetchTrainings();
+  }, [fetchTrainings]);
+
   // Deep linking: auto-open reservation from URL param
   // If reservation is not in loaded range, fetch it directly
   // Reset handled flag when reservation code changes
@@ -1173,37 +1210,64 @@ const AdminDashboard = () => {
             setReservations(prev => prev.filter(r => r.id !== payload.old.id));
           }
         })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'trainings',
+          filter: `instance_id=eq.${instanceId}`
+        }, async (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const { data } = await supabase
+              .from('trainings')
+              .select('*, stations:station_id (name, type)')
+              .eq('id', payload.new.id)
+              .single() as any;
+            if (data) {
+              const mapped: Training = {
+                ...data,
+                assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
+                station: data.stations ? { name: data.stations.name, type: data.stations.type } : null,
+              };
+              if (payload.eventType === 'INSERT') {
+                setTrainings(prev => prev.some(t => t.id === mapped.id) ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped]);
+              } else {
+                setTrainings(prev => prev.map(t => t.id === mapped.id ? mapped : t));
+                setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
+              }
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setTrainings(prev => prev.filter(t => t.id !== payload.old.id));
+          }
+        })
         .subscribe((status) => {
           console.log('Realtime subscription status:', status);
           
           if (status === 'SUBSCRIBED') {
             setRealtimeConnected(true);
-            retryCount = 0; // Reset on successful connection
+            retryCount = 0;
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
             setRealtimeConnected(false);
             
             if (isCleanedUp) return;
             
-            // Silent retry with exponential backoff
             if (retryCount < maxRetries) {
               retryCount++;
-              const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000); // Max 30 seconds
+              const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000);
               console.log(`Realtime retry ${retryCount}/${maxRetries} in ${delay}ms`);
               
               retryTimeoutId = setTimeout(() => {
                 if (isCleanedUp) return;
-                // Fetch data in case events were missed
                 fetchReservations();
-                // Setup new WebSocket connection
+                fetchTrainings();
                 setupRealtimeChannel();
               }, delay);
             } else {
               console.error('Max realtime retries reached, falling back to periodic fetch');
-              // Fallback: periodic fetch every 30s and retry connection
               retryTimeoutId = setTimeout(() => {
                 if (isCleanedUp) return;
                 fetchReservations();
-                retryCount = 0; // Reset and try again
+                fetchTrainings();
+                retryCount = 0;
                 setupRealtimeChannel();
               }, 30000);
             }
@@ -1296,7 +1360,26 @@ const AdminDashboard = () => {
     setAddReservationV2Open(false);
     setEditingReservation(null);
     setSlotPreview(null);
+    setTrainingDetailsOpen(false);
+    setSelectedTraining(null);
     setSelectedReservation(reservation);
+  };
+
+  const handleTrainingClick = (training: Training) => {
+    setSelectedReservation(null);
+    setAddReservationOpen(false);
+    setAddTrainingOpen(false);
+    setSelectedTraining(training);
+    setTrainingDetailsOpen(true);
+  };
+
+  const handleSwitchToTraining = () => {
+    setAddReservationOpen(false);
+    setAddReservationV2Open(false);
+    setEditingReservation(null);
+    setSlotPreview(null);
+    setEditingTraining(null);
+    setAddTrainingOpen(true);
   };
   const handleDeleteReservation = async (reservationId: string, customerData: {
     name: string;
@@ -2511,7 +2594,7 @@ const AdminDashboard = () => {
 
             {/* View Content */}
             {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} employees={cachedEmployees} stationEmployeesMap={stationEmployeesMap} showEmployeesOnStations={instanceSettings?.assign_employees_to_stations ?? false} showEmployeesOnReservations={instanceSettings?.assign_employees_to_reservations ?? false} />
+                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} employees={cachedEmployees} stationEmployeesMap={stationEmployeesMap} showEmployeesOnStations={instanceSettings?.assign_employees_to_stations ?? false} showEmployeesOnReservations={instanceSettings?.assign_employees_to_reservations ?? false} trainings={trainings} onTrainingClick={handleTrainingClick} trainingsEnabled={trainingsEnabled} />
                 
                 {/* FAB removed - plus button is now in MobileBottomNav */}
               </div>}
@@ -2659,6 +2742,52 @@ const AdminDashboard = () => {
             assigned_employee_ids: editingReservation.assigned_employee_ids,
           } : null}
           currentUsername={username}
+          trainingsEnabled={trainingsEnabled}
+          onSwitchToTraining={handleSwitchToTraining}
+        />
+      )}
+
+      {/* Add Training Drawer */}
+      {instanceId && trainingsEnabled && (
+        <AddTrainingDrawer
+          open={addTrainingOpen}
+          onClose={() => {
+            setAddTrainingOpen(false);
+            setEditingTraining(null);
+          }}
+          instanceId={instanceId}
+          onSuccess={() => {
+            fetchTrainings();
+            setEditingTraining(null);
+          }}
+          editingTraining={editingTraining}
+          currentUsername={username}
+          initialDate={newReservationData.date}
+          initialTime={newReservationData.time}
+          initialStationId={newReservationData.stationId}
+        />
+      )}
+
+      {/* Training Details Drawer */}
+      {instanceId && trainingsEnabled && selectedTraining && (
+        <TrainingDetailsDrawer
+          open={trainingDetailsOpen}
+          onClose={() => {
+            setTrainingDetailsOpen(false);
+            setSelectedTraining(null);
+          }}
+          training={selectedTraining}
+          instanceId={instanceId}
+          onEdit={(training) => {
+            setTrainingDetailsOpen(false);
+            setEditingTraining(training);
+            setAddTrainingOpen(true);
+          }}
+          onDeleted={() => {
+            setTrainingDetailsOpen(false);
+            setSelectedTraining(null);
+            setTrainings(prev => prev.filter(t => t.id !== selectedTraining.id));
+          }}
         />
       )}
 

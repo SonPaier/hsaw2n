@@ -34,6 +34,9 @@ interface UseReservationsRealtimeOptions {
   onDelete: (reservationId: string) => void;
   onRefetch: () => void;
   onNewCustomerReservation?: (reservation: Reservation) => void;
+  onTrainingInsert?: (training: any) => void;
+  onTrainingUpdate?: (training: any) => void;
+  onTrainingDelete?: (trainingId: string) => void;
 }
 
 // Rate limiting configuration
@@ -55,7 +58,10 @@ export function useReservationsRealtime({
   onUpdate,
   onDelete,
   onRefetch,
-  onNewCustomerReservation
+  onNewCustomerReservation,
+  onTrainingInsert,
+  onTrainingUpdate,
+  onTrainingDelete
 }: UseReservationsRealtimeOptions) {
   const [isConnected, setIsConnected] = useState(true);
   
@@ -167,6 +173,26 @@ export function useReservationsRealtime({
 
       currentChannel = supabase
         .channel(`reservations-${instanceId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'trainings',
+            filter: `instance_id=eq.${instanceId}`
+          },
+          async (payload) => {
+            if (payload.eventType === 'INSERT' && onTrainingInsert) {
+              const { data } = await supabase.from('trainings').select('*, stations:station_id (name, type)').eq('id', payload.new.id).single();
+              if (data) onTrainingInsert(data);
+            } else if (payload.eventType === 'UPDATE' && onTrainingUpdate) {
+              const { data } = await supabase.from('trainings').select('*, stations:station_id (name, type)').eq('id', payload.new.id).single();
+              if (data) onTrainingUpdate(data);
+            } else if (payload.eventType === 'DELETE' && onTrainingDelete) {
+              onTrainingDelete(payload.old.id);
+            }
+          }
+        )
         .on(
           'postgres_changes',
           {

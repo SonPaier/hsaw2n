@@ -1,8 +1,9 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
+import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay, eachDayOfInterval, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2, ClipboardCheck, Maximize2, Minimize2, ChevronsLeftRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Car, Clock, Plus, Eye, EyeOff, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Check, Ban, CalendarOff, ParkingSquare, MessageSquare, FileText, RefreshCw, Loader2, ClipboardCheck, Maximize2, Minimize2, ChevronsLeftRight, GraduationCap } from 'lucide-react';
+import type { Training } from './AddTrainingDrawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { YardVehiclesList, YardVehicle } from './YardVehiclesList';
@@ -137,6 +138,10 @@ interface AdminCalendarProps {
   stationEmployeesMap?: Map<string, string[]>;
   showEmployeesOnStations?: boolean;
   showEmployeesOnReservations?: boolean;
+  /** Trainings feature props */
+  trainings?: Training[];
+  onTrainingClick?: (training: Training) => void;
+  trainingsEnabled?: boolean;
 }
 
 // Default hours from 9:00 to 19:00
@@ -241,7 +246,10 @@ const AdminCalendar = ({
   employees = [],
   stationEmployeesMap,
   showEmployeesOnStations = false,
-  showEmployeesOnReservations = false
+  showEmployeesOnReservations = false,
+  trainings = [],
+  onTrainingClick,
+  trainingsEnabled = false
 }: AdminCalendarProps) => {
   const {
     t
@@ -687,6 +695,42 @@ const AdminCalendar = ({
   // Get breaks for a specific date and station
   const getBreaksForStationAndDate = (stationId: string, dateStr: string) => {
     return breaks.filter((b) => b.break_date === dateStr && b.station_id === stationId);
+  };
+
+  // Get trainings for a specific date and station (including multi-day trainings)
+  const getTrainingsForStationAndDate = (stationId: string, dateStr: string): Training[] => {
+    if (!trainingsEnabled) return [];
+    return trainings.filter((tr) => {
+      if (tr.station_id !== stationId) return false;
+      const startDate = tr.start_date;
+      const endDate = tr.end_date || tr.start_date;
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+  };
+
+  // Get trainings without station for a specific date (shown on first visible station or all)
+  const getUnstationedTrainingsForDate = (dateStr: string): Training[] => {
+    if (!trainingsEnabled) return [];
+    return trainings.filter((tr) => {
+      if (tr.station_id) return false;
+      const startDate = tr.start_date;
+      const endDate = tr.end_date || tr.start_date;
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+  };
+
+  // Get all trainings for a station+date (including unstationed ones on first visible station)
+  const getAllTrainingsForStationAndDate = (stationId: string, dateStr: string, stationIndex: number): Training[] => {
+    const stationTrainings = getTrainingsForStationAndDate(stationId, dateStr);
+    // Show unstationed trainings on first visible station
+    const unstationedTrainings = stationIndex === 0 ? getUnstationedTrainingsForDate(dateStr) : [];
+    return [...stationTrainings, ...unstationedTrainings];
+  };
+
+  const getTrainingStatusColor = (status: string) => {
+    return status === 'sold_out'
+      ? 'bg-fuchsia-600 border-fuchsia-700 text-white'
+      : 'bg-pink-200 border-pink-300 text-pink-900';
   };
 
   // Get reservations for current day grouped by station (day view)
@@ -1826,6 +1870,40 @@ const AdminCalendar = ({
                           </div>}
                       </div>;
                 })}
+
+                  {/* Trainings */}
+                  {trainingsEnabled && getAllTrainingsForStationAndDate(station.id, currentDateStr, idx).map((training) => {
+                    const style = getReservationStyle(training.start_time.substring(0, 5), training.end_time.substring(0, 5), DISPLAY_START_TIME);
+                    return <div
+                      key={`training-${training.id}`}
+                      className={cn(
+                        "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-1 cursor-pointer",
+                        "transition-all duration-150 hover:shadow-lg hover:z-20 overflow-hidden select-none",
+                        getTrainingStatusColor(training.status)
+                      )}
+                      style={{
+                        ...style,
+                        zIndex: getTimeBasedZIndex(training.start_time)
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTrainingClick?.(training);
+                      }}
+                    >
+                      <div className="px-0.5">
+                        <div className="flex items-center gap-1 text-[13px] md:text-[15px] font-bold pb-0.5">
+                          <GraduationCap className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{t(`trainings.types.${training.training_type}`)}</span>
+                        </div>
+                        {training.title !== t(`trainings.types.${training.training_type}`) && (
+                          <div className="text-[11px] md:text-xs truncate">{training.title}</div>
+                        )}
+                        <div className="text-[10px] md:text-[11px] opacity-80 mt-0.5">
+                          {training.start_time.substring(0, 5)} - {training.end_time.substring(0, 5)}
+                        </div>
+                      </div>
+                    </div>;
+                  })}
                 </div>;
             })}
               </div>
