@@ -244,45 +244,37 @@ export function TrainingDetailsDrawer({
                 </div>
               )}
 
-              <Separator />
-
               {/* Employees */}
               <div className="flex items-start gap-3">
                 <Users className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <div className="text-xs text-muted-foreground mb-1">Przypisani pracownicy</div>
-                  {training.assigned_employee_ids?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {training.assigned_employee_ids.map(empId => {
-                        const emp = employees.find(e => e.id === empId);
-                        const name = emp?.name || 'Usunięty';
-                        return (
-                          <span
-                            key={empId}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
-                          >
-                            {name}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">Brak przypisanych pracowników</p>
-                  )}
-                  {!readOnly && (
-                    <Button
-                      size="sm"
-                      className="rounded-full mt-2"
-                      onClick={() => setEmployeeDrawerOpen(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Dodaj
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {training.assigned_employee_ids?.length > 0 && training.assigned_employee_ids.map(empId => {
+                      const emp = employees.find(e => e.id === empId);
+                      const name = emp?.name || 'Usunięty';
+                      return (
+                        <span
+                          key={empId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                        >
+                          {name}
+                        </span>
+                      );
+                    })}
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        className="rounded-full"
+                        onClick={() => setEmployeeDrawerOpen(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Dodaj
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <Separator />
 
               {/* Internal Notes */}
               <div className="flex items-start gap-3">
