@@ -594,7 +594,7 @@ export const OfferGenerator = ({
             <span className="hidden sm:inline">{t('offers.preview')}</span>
           </Button>
 
-          {/* Print button - always visible */}
+          {/* TODO: Print feature - to be refined in future
           <Button
             variant="outline"
             onClick={handlePrint}
@@ -603,6 +603,7 @@ export const OfferGenerator = ({
             <Printer className="w-5 h-5" />
             <span className="hidden sm:inline">Drukuj</span>
           </Button>
+          */}
 
           {currentStep < 3 ? (
             <Button
@@ -655,11 +656,11 @@ export const OfferGenerator = ({
       </AlertDialog>
 
       {/* Preview Dialog */}
+      {/* TODO: Print feature - to be refined in future — onPrint prop removed from OfferPreviewDialog */}
       <OfferPreviewDialog
         open={showPreview}
         onClose={() => setShowPreview(false)}
         onSendAndClose={handleSendFromPreview}
-        onPrint={handlePrint}
         offer={offer}
         instanceId={instanceId}
         calculateTotalNet={calculateTotalNet}

@@ -612,6 +612,7 @@ export const PublicOfferCustomerView = ({
                   >
                     Oferta nr {offer.offer_number}
                   </p>
+                  {/* TODO: Print feature - to be refined in future
                   {mode === 'public' && (
                   <button
                     onClick={() => window.print()}
@@ -622,6 +623,7 @@ export const PublicOfferCustomerView = ({
                     <Printer className="w-4 h-4" />
                   </button>
                   )}
+                  */}
                 </div>
               </div>
             </div>
