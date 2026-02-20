@@ -144,8 +144,8 @@ const PublicOfferView = () => {
         const fetchedOffer = enrichedData as unknown as PublicOfferData;
         setOffer(fetchedOffer);
 
-        // Mark as viewed if not already (skip for admin previews)
-        if (data.status === 'sent' && !isAdminPreview) {
+        // Mark as viewed if not already (skip for admin previews and print mode)
+        if (data.status === 'sent' && !isAdminPreview && !shouldPrint) {
           await supabase
             .from('offers')
             .update({ status: 'viewed', viewed_at: new Date().toISOString() })
