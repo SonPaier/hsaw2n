@@ -3223,7 +3223,7 @@ export type Database = {
           station_id: string | null
           status: string
           title: string
-          training_type: Database["public"]["Enums"]["training_type"]
+          training_type: string
           training_type_id: string | null
           updated_at: string | null
         }
@@ -3243,7 +3243,7 @@ export type Database = {
           station_id?: string | null
           status?: string
           title: string
-          training_type?: Database["public"]["Enums"]["training_type"]
+          training_type?: string
           training_type_id?: string | null
           updated_at?: string | null
         }
@@ -3263,7 +3263,7 @@ export type Database = {
           station_id?: string | null
           status?: string
           title?: string
-          training_type?: Database["public"]["Enums"]["training_type"]
+          training_type?: string
           training_type_id?: string | null
           updated_at?: string | null
         }
