@@ -612,6 +612,7 @@ export const PublicOfferCustomerView = ({
                   >
                     Oferta nr {offer.offer_number}
                   </p>
+                  {mode === 'public' && (
                   <button
                     onClick={() => window.print()}
                     className="p-1 rounded hover:bg-black/10 transition-colors opacity-70 hover:opacity-100"
@@ -620,6 +621,7 @@ export const PublicOfferCustomerView = ({
                   >
                     <Printer className="w-4 h-4" />
                   </button>
+                  )}
                 </div>
               </div>
             </div>
