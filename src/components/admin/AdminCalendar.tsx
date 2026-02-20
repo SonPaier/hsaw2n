@@ -1908,9 +1908,9 @@ const AdminCalendar = ({
                     >
                       <div className="px-0.5">
                         {/* Time - same font as reservation */}
-                        <div className="text-[9px] md:text-[10px] font-semibold truncate">
+                        <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
                           {training.start_time.substring(0, 5)} - {training.end_time.substring(0, 5)}{dayRangeLabel}
-                        </div>
+                        </span>
                         {/* Name with prefix */}
                         <div className="flex items-center gap-1 text-[11px] md:text-[13px] font-bold truncate mt-0.5">
                           <GraduationCap className="w-3 h-3 shrink-0" />
