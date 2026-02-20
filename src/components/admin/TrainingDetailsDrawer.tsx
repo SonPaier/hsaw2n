@@ -120,7 +120,7 @@ export function TrainingDetailsDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
+                className="p-2 rounded-md hover:bg-muted transition-colors"
               >
                 ✕
               </button>
@@ -158,8 +158,6 @@ export function TrainingDetailsDrawer({
                   </div>
                 </div>
               )}
-
-              <Separator />
 
               {/* Dates */}
               <div className="space-y-1">
@@ -206,8 +204,6 @@ export function TrainingDetailsDrawer({
                 </>
               )}
 
-              <Separator />
-
               {/* Employees */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-muted-foreground">
@@ -218,6 +214,7 @@ export function TrainingDetailsDrawer({
                   <AssignedEmployeesChips
                     employeeIds={training.assigned_employee_ids}
                     employees={employees}
+                    variant="default"
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">{t('trainings.noEmployees')}</p>
@@ -251,7 +248,7 @@ export function TrainingDetailsDrawer({
               <div className="flex gap-2 w-full">
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 bg-white dark:bg-card"
                   onClick={() => {
                     onEdit(training);
                     onClose();

@@ -160,7 +160,7 @@ export const ReservationDateTimeSection = ({
             <Button
               variant="outline"
               className={cn(
-                'w-full justify-start text-left font-normal',
+                'w-full justify-start text-left font-normal bg-white dark:bg-card',
                 !dateRange?.from && 'text-muted-foreground',
                 dateRangeError && 'border-destructive'
               )}
@@ -294,7 +294,7 @@ export const ReservationDateTimeSection = ({
               {t('addReservation.selectStation')} <span className="text-destructive">*</span>
             </Label>
             <Select value={manualStationId || ''} onValueChange={(val) => { markUserEditing(); setManualStationId(val); }}>
-              <SelectTrigger className={cn(!manualStationId && timeError && 'border-destructive')}>
+              <SelectTrigger className={cn("bg-white dark:bg-card", !manualStationId && timeError && 'border-destructive')}>
                 <SelectValue placeholder={t('addReservation.selectStation')} />
               </SelectTrigger>
               <SelectContent className="bg-white">
