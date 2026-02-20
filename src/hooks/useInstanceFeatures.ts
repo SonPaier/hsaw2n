@@ -10,6 +10,7 @@ interface InstanceFeatures {
   hall_view: boolean;
   vehicle_reception_protocol: boolean;
   reminders: boolean;
+  trainings: boolean;
 }
 
 const defaultFeatures: InstanceFeatures = {
@@ -20,6 +21,7 @@ const defaultFeatures: InstanceFeatures = {
   hall_view: false,
   vehicle_reception_protocol: false,
   reminders: false,
+  trainings: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
