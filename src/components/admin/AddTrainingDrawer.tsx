@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 import { GraduationCap, Users } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Sheet,
   SheetContent,
@@ -14,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -93,8 +93,9 @@ export function AddTrainingDrawer({
   const { data: workingHoursData } = useWorkingHours(instanceId);
   const { data: employees = [] } = useEmployees(instanceId);
 
-  const [trainingType, setTrainingType] = useState<TrainingType>('individual');
+  const [trainingType, setTrainingType] = useState<TrainingType>('group_basic');
   const [title, setTitle] = useState('');
+  const [status, setStatus] = useState<'open' | 'sold_out'>('open');
   const [description, setDescription] = useState('');
   const [reservationType, setReservationType] = useState<ReservationType>('multi');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -133,6 +134,7 @@ export function AddTrainingDrawer({
       setTrainingType(editingTraining.training_type);
       setTitle(editingTraining.title);
       setDescription(editingTraining.description || '');
+      setStatus(editingTraining.status === 'sold_out' ? 'sold_out' : 'open');
       const startDate = new Date(editingTraining.start_date + 'T00:00:00');
       const endDate = editingTraining.end_date
         ? new Date(editingTraining.end_date + 'T00:00:00')
@@ -148,16 +150,17 @@ export function AddTrainingDrawer({
       setManualStationId(editingTraining.station_id);
       setSelectedEmployeeIds(editingTraining.assigned_employee_ids || []);
     } else {
-      setTrainingType('individual');
+      setTrainingType('group_basic');
       setTitle('');
       setDescription('');
-      setReservationType('multi');
+      setReservationType('single');
       setSelectedEmployeeIds([]);
       setManualStationId(initialStationId || null);
+      setStatus('open');
 
       if (initialDate) {
         const d = new Date(initialDate + 'T00:00:00');
-        const defaults = TRAINING_TYPE_DEFAULTS['individual'];
+        const defaults = TRAINING_TYPE_DEFAULTS['group_basic'];
         const endD = new Date(d);
         endD.setDate(endD.getDate() + defaults.days - 1);
         setDateRange({ from: d, to: endD });
@@ -182,9 +185,7 @@ export function AddTrainingDrawer({
   const handleTrainingTypeChange = (type: TrainingType) => {
     setTrainingType(type);
     const label = t(`trainings.types.${type}`);
-    if (!isEditMode) {
-      setTitle(label);
-    }
+    setTitle(label);
     const defaults = TRAINING_TYPE_DEFAULTS[type];
     if (defaults.days === 1) {
       setReservationType('single');
@@ -212,7 +213,8 @@ export function AddTrainingDrawer({
   };
 
   const handleSave = async () => {
-    if (!dateRange?.from || !manualStartTime || !manualEndTime || !title.trim()) {
+    const effectiveTitle = title.trim() || t(`trainings.types.${trainingType}`);
+    if (!dateRange?.from || !manualStartTime || !manualEndTime) {
       toast.error('Uzupełnij wymagane pola');
       return;
     }
@@ -225,7 +227,7 @@ export function AddTrainingDrawer({
       const payload = {
         instance_id: instanceId,
         training_type: trainingType,
-        title: title.trim(),
+        title: effectiveTitle,
         description: description.trim() || null,
         start_date: startDate,
         end_date: endDate,
@@ -234,6 +236,7 @@ export function AddTrainingDrawer({
         station_id: manualStationId,
         assigned_employee_ids: selectedEmployeeIds,
         created_by_username: currentUsername || null,
+        status,
       };
 
       if (isEditMode && editingTraining) {
@@ -300,7 +303,7 @@ export function AddTrainingDrawer({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-card">
                     <SelectItem value="group_basic">{t('trainings.types.group_basic')}</SelectItem>
                     <SelectItem value="individual">{t('trainings.types.individual')}</SelectItem>
                     <SelectItem value="master">{t('trainings.types.master')}</SelectItem>
@@ -308,14 +311,23 @@ export function AddTrainingDrawer({
                 </Select>
               </div>
 
-              {/* Title */}
+              {/* Status: Open / Sold Out */}
               <div className="space-y-2">
-                <Label>{t('trainings.title')}</Label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t('trainings.title')}
-                />
+                <Label>{t('trainings.status')}</Label>
+                <RadioGroup
+                  value={status}
+                  onValueChange={(v) => setStatus(v as 'open' | 'sold_out')}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="open" id="status-open" />
+                    <Label htmlFor="status-open" className="cursor-pointer font-normal">{t('trainings.statusOpen')}</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="sold_out" id="status-sold-out" />
+                    <Label htmlFor="status-sold-out" className="cursor-pointer font-normal">{t('trainings.statusSoldOut')}</Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               {/* Date & Time */}
@@ -391,7 +403,7 @@ export function AddTrainingDrawer({
           <SheetFooter className="px-6 py-4 border-t shrink-0">
             <Button
               onClick={handleSave}
-              disabled={saving || !title.trim() || !dateRange?.from || !manualStartTime || !manualEndTime}
+              disabled={saving || !dateRange?.from || !manualStartTime || !manualEndTime}
               className="w-full"
             >
               {saving ? '...' : isEditMode ? t('trainings.saveTraining') : t('trainings.addTraining')}
