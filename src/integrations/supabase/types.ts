@@ -3165,6 +3165,47 @@ export type Database = {
           },
         ]
       }
+      training_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_days: number
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_types_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainings: {
         Row: {
           assigned_employee_ids: Json | null
@@ -3183,6 +3224,7 @@ export type Database = {
           status: string
           title: string
           training_type: Database["public"]["Enums"]["training_type"]
+          training_type_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3202,6 +3244,7 @@ export type Database = {
           status?: string
           title: string
           training_type?: Database["public"]["Enums"]["training_type"]
+          training_type_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3221,6 +3264,7 @@ export type Database = {
           status?: string
           title?: string
           training_type?: Database["public"]["Enums"]["training_type"]
+          training_type_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3229,6 +3273,13 @@ export type Database = {
             columns: ["station_id"]
             isOneToOne: false
             referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_training_type_id_fkey"
+            columns: ["training_type_id"]
+            isOneToOne: false
+            referencedRelation: "training_types"
             referencedColumns: ["id"]
           },
         ]

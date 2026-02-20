@@ -856,7 +856,7 @@ const AdminDashboard = () => {
     }
     const { data, error } = await supabase
       .from('trainings')
-      .select('*, stations:station_id (name, type)')
+      .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
       .eq('instance_id', instanceId) as any;
 
     if (!error && data) {
@@ -864,6 +864,7 @@ const AdminDashboard = () => {
         ...t,
         assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
         station: t.stations ? { name: t.stations.name, type: t.stations.type } : null,
+        training_type_record: t.training_type_record || null,
       })));
     }
   }, [instanceId, trainingsEnabled]);
@@ -1219,7 +1220,7 @@ const AdminDashboard = () => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const { data } = await supabase
               .from('trainings')
-              .select('*, stations:station_id (name, type)')
+              .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
               .eq('id', payload.new.id)
               .single() as any;
             if (data) {
@@ -1227,6 +1228,7 @@ const AdminDashboard = () => {
                 ...data,
                 assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
                 station: data.stations ? { name: data.stations.name, type: data.stations.type } : null,
+                training_type_record: data.training_type_record || null,
               };
               if (payload.eventType === 'INSERT') {
                 setTrainings(prev => prev.some(t => t.id === mapped.id) ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped]);

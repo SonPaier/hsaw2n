@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Building2, Clock, Grid2X2, Settings2, Users, MessageSquare, Loader2, Save, Upload, Trash2, Image as ImageIcon,
-  ChevronDown, Warehouse
+  ChevronDown, Warehouse, GraduationCap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { ReservationConfirmSettings } from './ReservationConfirmSettings';
 import InstanceUsersTab from './InstanceUsersTab';
 
 import HallsListView from './halls/HallsListView';
+import TrainingTypesSettings from './TrainingTypesSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useCombinedFeatures } from '@/hooks/useCombinedFeatures';
@@ -30,7 +31,7 @@ interface SettingsViewProps {
   onWorkingHoursUpdate?: () => void;
 }
 
-type SettingsTab = 'company' | 'stations' | 'hours' | 'halls' | 'app' | 'sms' | 'users';
+type SettingsTab = 'company' | 'stations' | 'hours' | 'halls' | 'trainings' | 'app' | 'sms' | 'users';
 
 const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHoursUpdate }: SettingsViewProps) => {
   const { t } = useTranslation();
@@ -90,6 +91,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     { key: 'stations', label: t('settings.tabs.stations'), icon: <Grid2X2 className="w-4 h-4" /> },
     { key: 'hours', label: t('settings.tabs.hours'), icon: <Clock className="w-4 h-4" /> },
     { key: 'halls', label: t('navigation.halls'), icon: <Warehouse className="w-4 h-4" />, visible: hasFeature('hall_view') },
+    { key: 'trainings', label: 'Szkolenia', icon: <GraduationCap className="w-4 h-4" />, visible: hasFeature('trainings') },
     { key: 'app', label: t('settings.tabs.app'), icon: <Settings2 className="w-4 h-4" /> },
     { key: 'sms', label: t('settings.tabs.sms'), icon: <MessageSquare className="w-4 h-4" /> },
     { key: 'users', label: t('settings.tabs.users'), icon: <Users className="w-4 h-4" /> },
@@ -435,6 +437,9 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
 
       case 'halls':
         return instanceId ? <HallsListView instanceId={instanceId} /> : null;
+
+      case 'trainings':
+        return <TrainingTypesSettings instanceId={instanceId} />;
 
       case 'app':
         return <ReservationConfirmSettings instanceId={instanceId} />;
