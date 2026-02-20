@@ -310,7 +310,7 @@ export function AddTrainingDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
+                className="p-2 rounded-md hover:bg-muted transition-colors"
               >
                 <span className="sr-only">Close</span>
                 ✕
@@ -324,7 +324,7 @@ export function AddTrainingDrawer({
               <div className="space-y-2">
                 <Label>{t('trainings.type')}</Label>
                 <Select value={selectedTypeId} onValueChange={handleTypeChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-card">
                     <SelectValue placeholder="Wybierz typ szkolenia" />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-card z-50">
@@ -398,7 +398,6 @@ export function AddTrainingDrawer({
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Notatki wewnętrzne..."
                   rows={3}
                 />
               </div>
@@ -413,15 +412,8 @@ export function AddTrainingDrawer({
                   employeeIds={selectedEmployeeIds}
                   employees={employees}
                   onRemove={(id) => setSelectedEmployeeIds(prev => prev.filter(e => e !== id))}
+                  onAdd={() => setEmployeeDrawerOpen(true)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEmployeeDrawerOpen(true)}
-                >
-                  {t('trainings.selectEmployees')}
-                </Button>
               </div>
             </div>
           </div>
