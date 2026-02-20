@@ -138,7 +138,7 @@ export function TrainingDetailsDrawer({
                     : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
                   }
                 >
-                  {t(`trainings.types.${training.training_type}`)}
+                  {training.training_type_record?.name || training.training_type || training.title}
                 </Badge>
                 <Badge variant={isSoldOut ? 'destructive' : 'outline'}>
                   {isSoldOut ? t('trainings.statusSoldOut') : t('trainings.statusOpen')}

@@ -33,12 +33,20 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useEmployees } from '@/hooks/useEmployees';
 import type { ReservationType } from './reservation-form/types';
 
-export type TrainingType = 'group_basic' | 'individual' | 'master';
+export interface TrainingTypeRecord {
+  id: string;
+  instance_id: string;
+  name: string;
+  duration_days: number;
+  sort_order: number;
+  active: boolean;
+}
 
 export interface Training {
   id: string;
   instance_id: string;
-  training_type: TrainingType;
+  training_type: string;
+  training_type_id: string | null;
   title: string;
   description: string | null;
   start_date: string;
@@ -54,6 +62,7 @@ export interface Training {
   created_at: string;
   updated_at: string;
   station?: { name: string; type: string } | null;
+  training_type_record?: TrainingTypeRecord | null;
 }
 
 interface AddTrainingDrawerProps {
@@ -67,12 +76,6 @@ interface AddTrainingDrawerProps {
   initialTime?: string;
   initialStationId?: string;
 }
-
-const TRAINING_TYPE_DEFAULTS: Record<TrainingType, { days: number }> = {
-  group_basic: { days: 1 },
-  individual: { days: 2 },
-  master: { days: 2 },
-};
 
 export function AddTrainingDrawer({
   open,
@@ -93,8 +96,8 @@ export function AddTrainingDrawer({
   const { data: workingHoursData } = useWorkingHours(instanceId);
   const { data: employees = [] } = useEmployees(instanceId);
 
-  const [trainingType, setTrainingType] = useState<TrainingType>('group_basic');
-  const [title, setTitle] = useState('');
+  const [trainingTypes, setTrainingTypes] = useState<TrainingTypeRecord[]>([]);
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('');
   const [status, setStatus] = useState<'open' | 'sold_out'>('open');
   const [description, setDescription] = useState('');
   const [reservationType, setReservationType] = useState<ReservationType>('multi');
@@ -113,6 +116,21 @@ export function AddTrainingDrawer({
 
   const workingHours = workingHoursData as Record<string, { open: string; close: string } | null> | null;
 
+  // Fetch training types
+  useEffect(() => {
+    if (!instanceId) return;
+    const fetch = async () => {
+      const { data } = await supabase
+        .from('training_types')
+        .select('*')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order') as any;
+      if (data) setTrainingTypes(data);
+    };
+    fetch();
+  }, [instanceId]);
+
   // Generate time options (every 15 min)
   const generateTimeOptions = useCallback(() => {
     const options: string[] = [];
@@ -126,13 +144,14 @@ export function AddTrainingDrawer({
 
   const timeOptions = generateTimeOptions();
 
+  const getSelectedType = () => trainingTypes.find(t => t.id === selectedTypeId);
+
   // Reset form when opening
   useEffect(() => {
     if (!open) return;
 
     if (editingTraining) {
-      setTrainingType(editingTraining.training_type);
-      setTitle(editingTraining.title);
+      setSelectedTypeId(editingTraining.training_type_id || '');
       setDescription(editingTraining.description || '');
       setStatus(editingTraining.status === 'sold_out' ? 'sold_out' : 'open');
       const startDate = new Date(editingTraining.start_date + 'T00:00:00');
@@ -150,8 +169,7 @@ export function AddTrainingDrawer({
       setManualStationId(editingTraining.station_id);
       setSelectedEmployeeIds(editingTraining.assigned_employee_ids || []);
     } else {
-      setTrainingType('group_basic');
-      setTitle('');
+      setSelectedTypeId(trainingTypes[0]?.id || '');
       setDescription('');
       setReservationType('single');
       setSelectedEmployeeIds([]);
@@ -160,10 +178,12 @@ export function AddTrainingDrawer({
 
       if (initialDate) {
         const d = new Date(initialDate + 'T00:00:00');
-        const defaults = TRAINING_TYPE_DEFAULTS['group_basic'];
+        const firstType = trainingTypes[0];
+        const days = firstType?.duration_days || 1;
         const endD = new Date(d);
-        endD.setDate(endD.getDate() + defaults.days - 1);
+        endD.setDate(endD.getDate() + Math.ceil(days) - 1);
         setDateRange({ from: d, to: endD });
+        if (days > 1) setReservationType('multi');
       } else {
         setDateRange(undefined);
       }
@@ -179,15 +199,16 @@ export function AddTrainingDrawer({
         }
       }
     }
-  }, [open, editingTraining, initialDate, initialTime, initialStationId, workingHours]);
+  }, [open, editingTraining, initialDate, initialTime, initialStationId, workingHours, trainingTypes]);
 
-  // When training type changes (and not editing), auto-set title and dates
-  const handleTrainingTypeChange = (type: TrainingType) => {
-    setTrainingType(type);
-    const label = t(`trainings.types.${type}`);
-    setTitle(label);
-    const defaults = TRAINING_TYPE_DEFAULTS[type];
-    if (defaults.days === 1) {
+  // When training type changes, auto-set dates
+  const handleTypeChange = (typeId: string) => {
+    setSelectedTypeId(typeId);
+    const type = trainingTypes.find(t => t.id === typeId);
+    if (!type) return;
+
+    const days = type.duration_days;
+    if (days <= 1) {
       setReservationType('single');
       if (dateRange?.from) {
         setDateRange({ from: dateRange.from, to: dateRange.from });
@@ -196,7 +217,7 @@ export function AddTrainingDrawer({
       setReservationType('multi');
       if (dateRange?.from) {
         const endD = new Date(dateRange.from);
-        endD.setDate(endD.getDate() + defaults.days - 1);
+        endD.setDate(endD.getDate() + Math.ceil(days) - 1);
         setDateRange({ from: dateRange.from, to: endD });
       }
     }
@@ -213,7 +234,9 @@ export function AddTrainingDrawer({
   };
 
   const handleSave = async () => {
-    const effectiveTitle = title.trim() || t(`trainings.types.${trainingType}`);
+    const selectedType = getSelectedType();
+    const title = selectedType ? `Szkolenie ${selectedType.name}` : 'Szkolenie';
+    
     if (!dateRange?.from || !manualStartTime || !manualEndTime) {
       toast.error('Uzupełnij wymagane pola');
       return;
@@ -226,8 +249,9 @@ export function AddTrainingDrawer({
 
       const payload = {
         instance_id: instanceId,
-        training_type: trainingType,
-        title: effectiveTitle,
+        training_type: selectedType?.name || 'custom',
+        training_type_id: selectedTypeId || null,
+        title,
         description: description.trim() || null,
         start_date: startDate,
         end_date: endDate,
@@ -299,14 +323,16 @@ export function AddTrainingDrawer({
               {/* Training Type */}
               <div className="space-y-2">
                 <Label>{t('trainings.type')}</Label>
-                <Select value={trainingType} onValueChange={(v) => handleTrainingTypeChange(v as TrainingType)}>
+                <Select value={selectedTypeId} onValueChange={handleTypeChange}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Wybierz typ szkolenia" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-card">
-                    <SelectItem value="group_basic">{t('trainings.types.group_basic')}</SelectItem>
-                    <SelectItem value="individual">{t('trainings.types.individual')}</SelectItem>
-                    <SelectItem value="master">{t('trainings.types.master')}</SelectItem>
+                  <SelectContent className="bg-white dark:bg-card z-50">
+                    {trainingTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -366,13 +392,13 @@ export function AddTrainingDrawer({
                 showStationSelector
               />
 
-              {/* Description */}
+              {/* Internal Notes */}
               <div className="space-y-2">
-                <Label>{t('trainings.description')}</Label>
+                <Label>Notatki wewnętrzne</Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t('trainings.description')}
+                  placeholder="Notatki wewnętrzne..."
                   rows={3}
                 />
               </div>

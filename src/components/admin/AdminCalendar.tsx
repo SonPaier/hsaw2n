@@ -1874,10 +1874,26 @@ const AdminCalendar = ({
                   {/* Trainings */}
                   {trainingsEnabled && getAllTrainingsForStationAndDate(station.id, currentDateStr, idx).map((training) => {
                     const style = getReservationStyle(training.start_time.substring(0, 5), training.end_time.substring(0, 5), DISPLAY_START_TIME);
+                    const isMultiDayTraining = training.end_date && training.end_date !== training.start_date;
+                    const statusLabel = training.status === 'sold_out' ? 'Zamknięte' : 'Otwarte';
+                    // Day abbreviation for multi-day trainings
+                    const getDayAbbr = (dateStr: string) => {
+                      const dayNames = ['ND', 'PN', 'WT', 'ŚR', 'CZ', 'PT', 'SB'];
+                      const d = new Date(dateStr + 'T00:00:00');
+                      return dayNames[d.getDay()];
+                    };
+                    const dayRangeLabel = isMultiDayTraining
+                      ? ` (${getDayAbbr(training.start_date)} - ${getDayAbbr(training.end_date!)})`
+                      : '';
+                    // Assigned employees
+                    const trainingEmps = (training.assigned_employee_ids || [])
+                      .map((id: string) => employees.find((e) => e.id === id))
+                      .filter((e): e is Employee => !!e);
+
                     return <div
                       key={`training-${training.id}`}
                       className={cn(
-                        "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0 md:py-1 cursor-pointer",
+                        "absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-lg border px-1 md:px-2 py-0.5 md:py-1 cursor-pointer",
                         "transition-all duration-150 hover:shadow-lg hover:z-20 overflow-hidden select-none",
                         getTrainingStatusColor(training.status)
                       )}
@@ -1891,16 +1907,54 @@ const AdminCalendar = ({
                       }}
                     >
                       <div className="px-0.5">
-                        <div className="flex items-center gap-1 text-[13px] md:text-[15px] font-bold pb-0.5">
+                        {/* Time - same font as reservation */}
+                        <div className="text-[9px] md:text-[10px] font-semibold truncate">
+                          {training.start_time.substring(0, 5)} - {training.end_time.substring(0, 5)}{dayRangeLabel}
+                        </div>
+                        {/* Name with prefix */}
+                        <div className="flex items-center gap-1 text-[11px] md:text-[13px] font-bold truncate mt-0.5">
                           <GraduationCap className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{t(`trainings.types.${training.training_type}`)}</span>
+                          <span className="truncate">Szkolenie {training.title.replace(/^Szkolenie\s*/i, '')}</span>
                         </div>
-                        {training.title !== t(`trainings.types.${training.training_type}`) && (
-                          <div className="text-[11px] md:text-xs truncate">{training.title}</div>
+                        {/* Status label */}
+                        <div className="flex flex-wrap gap-0.5 mt-0.5">
+                          <span className={cn(
+                            "inline-block px-1 py-0.5 text-[9px] md:text-[10px] font-medium rounded leading-none",
+                            training.status === 'sold_out'
+                              ? "bg-white/30 text-white"
+                              : "bg-pink-900/20 text-pink-900"
+                          )}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        {/* Employees */}
+                        {trainingEmps.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {trainingEmps.slice(0, 2).map((emp) => (
+                              <span
+                                key={emp.id}
+                                className={cn(
+                                  "inline-flex items-center px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded-md leading-none",
+                                  training.status === 'sold_out'
+                                    ? "bg-white/20 text-white"
+                                    : "bg-pink-900/15 text-pink-900"
+                                )}
+                              >
+                                {emp.name.split(' ')[0]}
+                              </span>
+                            ))}
+                            {trainingEmps.length > 2 && (
+                              <span className={cn(
+                                "inline-flex items-center px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded-md leading-none",
+                                training.status === 'sold_out'
+                                  ? "bg-white/20 text-white"
+                                  : "bg-pink-900/15 text-pink-900"
+                              )}>
+                                +{trainingEmps.length - 2}
+                              </span>
+                            )}
+                          </div>
                         )}
-                        <div className="text-[10px] md:text-[11px] opacity-80 mt-0.5">
-                          {training.start_time.substring(0, 5)} - {training.end_time.substring(0, 5)}
-                        </div>
                       </div>
                     </div>;
                   })}
@@ -2476,6 +2530,16 @@ const AdminCalendar = ({
           <div className="w-3 h-3 rounded bg-slate-400/80 border border-slate-500/70" />
           <span className="text-xs text-muted-foreground">Zakończony</span>
         </div>
+        {trainingsEnabled && <>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-pink-300/80 border border-pink-400/70" />
+            <span className="text-xs text-muted-foreground">Szkolenie (otwarte)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-fuchsia-600 border border-fuchsia-700" />
+            <span className="text-xs text-muted-foreground">Szkolenie (zamknięte)</span>
+          </div>
+        </>}
       </div>
 
       {/* Plac Sheet - from right side, no overlay, non-modal for drag & drop */}
