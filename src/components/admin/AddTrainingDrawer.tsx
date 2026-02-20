@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
-import { GraduationCap, Users } from 'lucide-react';
+import { GraduationCap, Users, X } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Sheet,
@@ -310,10 +310,10 @@ export function AddTrainingDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-md hover:bg-muted transition-colors"
+                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
               >
                 <span className="sr-only">Close</span>
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
           </SheetHeader>
