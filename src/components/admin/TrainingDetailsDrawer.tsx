@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { GraduationCap, Pencil, Trash2, MapPin, Clock, Calendar, Users, X } from 'lucide-react';
+import { GraduationCap, Pencil, Trash2, MapPin, Clock, Calendar, Users, X, CircleDot, FileText, Plus } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -14,12 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 import { useEmployees } from '@/hooks/useEmployees';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { EmployeeSelectionDrawer } from '@/components/admin/EmployeeSelectionDrawer';
 import type { Training } from './AddTrainingDrawer';
 
 interface TrainingDetailsDrawerProps {
@@ -45,7 +46,25 @@ export function TrainingDetailsDrawer({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [localDescription, setLocalDescription] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
   const { data: employees = [] } = useEmployees(instanceId);
+
+  useEffect(() => {
+    if (training) {
+      setLocalDescription(training.description || '');
+      setEditingNotes(false);
+    }
+  }, [training]);
+
+  useEffect(() => {
+    if (editingNotes && notesRef.current) {
+      notesRef.current.focus();
+    }
+  }, [editingNotes]);
 
   if (!training) return null;
 
@@ -90,6 +109,42 @@ export function TrainingDetailsDrawer({
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (localDescription === (training.description || '')) {
+      setEditingNotes(false);
+      return;
+    }
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from('trainings')
+        .update({ description: localDescription || null } as any)
+        .eq('id', training.id);
+      if (error) throw error;
+      toast.success('Notatki zapisane');
+    } catch (err) {
+      console.error('Error saving notes:', err);
+      toast.error('Błąd zapisu notatek');
+    } finally {
+      setSavingNotes(false);
+      setEditingNotes(false);
+    }
+  };
+
+  const handleEmployeeSelect = async (employeeIds: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('trainings')
+        .update({ assigned_employee_ids: employeeIds } as any)
+        .eq('id', training.id);
+      if (error) throw error;
+      toast.success('Pracownicy zaktualizowani');
+    } catch (err) {
+      console.error('Error updating employees:', err);
+      toast.error('Błąd aktualizacji pracowników');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       return format(parseISO(dateStr), 'EEEE, d MMM yyyy', { locale: pl });
@@ -129,105 +184,132 @@ export function TrainingDetailsDrawer({
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
-              {/* Status label - matching calendar card colors */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  variant="secondary"
-                  className={isSoldOut
-                    ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
-                    : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
-                  }
-                >
-                  {isSoldOut ? 'Zamknięte' : 'Otwarte'}
-                </Badge>
-              </div>
-
-              {/* Status toggle */}
-              {!readOnly && (
-                <div className="flex items-center justify-between py-2">
-                  <Label>{t('trainings.status')}</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {isSoldOut ? t('trainings.statusSoldOut') : t('trainings.statusOpen')}
-                    </span>
-                    <Switch
-                      checked={isSoldOut}
-                      onCheckedChange={handleToggleStatus}
-                      disabled={togglingStatus}
-                    />
+              {/* Status */}
+              <div className="flex items-start gap-3">
+                <CircleDot className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-xs text-muted-foreground">{t('trainings.status')}</div>
+                  <div className="flex items-center justify-between mt-1">
+                    <Badge
+                      variant="secondary"
+                      className={isSoldOut
+                        ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                        : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
+                      }
+                    >
+                      {isSoldOut ? 'Zamknięte' : 'Otwarte'}
+                    </Badge>
+                    {!readOnly && (
+                      <Switch
+                        checked={isSoldOut}
+                        onCheckedChange={handleToggleStatus}
+                        disabled={togglingStatus}
+                      />
+                    )}
                   </div>
                 </div>
-              )}
-
-              {/* Dates */}
-              <div className="space-y-1">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  {t('trainings.dates')}
-                </Label>
-                <p className="text-sm font-medium">
-                  {formatDate(training.start_date)}
-                  {isMultiDay && ` — ${formatDate(training.end_date!)}`}
-                </p>
               </div>
 
-              {/* Times */}
-              <div className="space-y-1">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  {t('common.time')}
-                </Label>
-                <p className="text-sm font-medium">
-                  {formatTime(training.start_time)} - {formatTime(training.end_time)}
-                </p>
+              {/* Dates */}
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-xs text-muted-foreground">{t('trainings.dates')}</div>
+                  <div className="font-medium">
+                    {formatDate(training.start_date)}
+                    {isMultiDay && ` — ${formatDate(training.end_date!)}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time */}
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-xs text-muted-foreground">{t('common.time')}</div>
+                  <div className="font-medium">
+                    {formatTime(training.start_time)} - {formatTime(training.end_time)}
+                  </div>
+                </div>
               </div>
 
               {/* Station */}
               {training.station && (
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    Stanowisko
-                  </Label>
-                  <p className="text-sm font-medium">{training.station.name}</p>
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Stanowisko</div>
+                    <div className="font-medium">{training.station.name}</div>
+                  </div>
                 </div>
               )}
 
-              {/* Description */}
-              {training.description && (
-                <>
-                  <Separator />
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">{t('trainings.description')}</Label>
-                    <p className="text-sm whitespace-pre-wrap">{training.description}</p>
-                  </div>
-                </>
-              )}
+              <Separator />
 
               {/* Employees */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  {t('trainings.employees')}
-                </Label>
-                {training.assigned_employee_ids?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {training.assigned_employee_ids.map(empId => {
-                      const emp = employees.find(e => e.id === empId);
-                      const name = emp?.name || 'Usunięty';
-                      return (
-                        <span
-                          key={empId}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
-                        >
-                          {name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t('trainings.noEmployees')}</p>
-                )}
+              <div className="flex items-start gap-3">
+                <Users className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-xs text-muted-foreground mb-1">Przypisani pracownicy</div>
+                  {training.assigned_employee_ids?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {training.assigned_employee_ids.map(empId => {
+                        const emp = employees.find(e => e.id === empId);
+                        const name = emp?.name || 'Usunięty';
+                        return (
+                          <span
+                            key={empId}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                          >
+                            {name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Brak przypisanych pracowników</p>
+                  )}
+                  {!readOnly && (
+                    <Button
+                      size="sm"
+                      className="rounded-full mt-2"
+                      onClick={() => setEmployeeDrawerOpen(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Dodaj
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Internal Notes */}
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-xs text-muted-foreground mb-1">Notatki wewnętrzne</div>
+                  {editingNotes ? (
+                    <Textarea
+                      ref={notesRef}
+                      value={localDescription}
+                      onChange={(e) => setLocalDescription(e.target.value)}
+                      onBlur={() => setTimeout(handleSaveNotes, 100)}
+                      rows={3}
+                      disabled={savingNotes}
+                      className="text-sm"
+                    />
+                  ) : (
+                    <p
+                      className={`text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 ${
+                        !localDescription ? 'text-muted-foreground italic' : 'whitespace-pre-wrap'
+                      }`}
+                      onClick={() => !readOnly && setEditingNotes(true)}
+                    >
+                      {localDescription || 'Brak notatek wewnętrznych'}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Photos */}
@@ -235,7 +317,7 @@ export function TrainingDetailsDrawer({
                 <>
                   <Separator />
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">{t('trainings.photos')}</Label>
+                    <div className="text-xs text-muted-foreground">{t('trainings.photos')}</div>
                     <div className="grid grid-cols-3 gap-2">
                       {training.photo_urls.map((url, i) => (
                         <img
@@ -287,6 +369,14 @@ export function TrainingDetailsDrawer({
         onConfirm={handleDelete}
         loading={deleting}
         variant="destructive"
+      />
+
+      <EmployeeSelectionDrawer
+        open={employeeDrawerOpen}
+        onOpenChange={setEmployeeDrawerOpen}
+        instanceId={instanceId}
+        selectedEmployeeIds={training.assigned_employee_ids || []}
+        onSelect={handleEmployeeSelect}
       />
     </>
   );
