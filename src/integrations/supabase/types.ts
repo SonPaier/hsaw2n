@@ -3223,7 +3223,15 @@ export type Database = {
           training_type?: Database["public"]["Enums"]["training_type"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainings_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unified_categories: {
         Row: {
