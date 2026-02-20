@@ -1945,6 +1945,16 @@ const AdminCalendar = ({
                             )}
                           </div>
                         )}
+                        {/* Internal notes */}
+                        {(() => {
+                          const tDur = (parseTime(training.end_time.substring(0, 5)) - parseTime(training.start_time.substring(0, 5))) * 60;
+                          if (training.description && tDur > 30) {
+                            return <div className="text-[14px] opacity-80 truncate mt-0.5">
+                              {training.description}
+                            </div>;
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>;
                   })}
