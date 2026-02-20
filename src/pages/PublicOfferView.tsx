@@ -21,6 +21,17 @@ const PublicOfferView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingState, setSavingState] = useState(false);
+  const shouldPrint = searchParams.get('print') === 'true';
+
+  // Auto-print when ?print=true is in the URL
+  useEffect(() => {
+    if (shouldPrint && !loading && offer) {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldPrint, loading, offer]);
 
   // Track offer view duration
   useOfferViewTracking(

@@ -364,6 +364,23 @@ export const OfferGenerator = ({
     setShowPreview(true);
   };
 
+  const handlePrint = async () => {
+    try {
+      const savedId = await saveOffer(true);
+      if (savedId) {
+        const { data: savedOffer } = await supabase
+          .from('offers')
+          .select('public_token')
+          .eq('id', savedId)
+          .single();
+        if (savedOffer?.public_token) {
+          window.open(`/offers/${savedOffer.public_token}?print=true`, '_blank');
+        }
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+    }
+  };
 
 
   const handleDownloadPdf = async () => {
@@ -580,7 +597,7 @@ export const OfferGenerator = ({
           {/* Print button - always visible */}
           <Button
             variant="outline"
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="gap-2 h-12 w-12 sm:w-auto sm:px-4 bg-white"
           >
             <Printer className="w-5 h-5" />
@@ -642,6 +659,7 @@ export const OfferGenerator = ({
         open={showPreview}
         onClose={() => setShowPreview(false)}
         onSendAndClose={handleSendFromPreview}
+        onPrint={handlePrint}
         offer={offer}
         instanceId={instanceId}
         calculateTotalNet={calculateTotalNet}

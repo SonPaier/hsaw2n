@@ -17,6 +17,7 @@ interface OfferPreviewDialogProps {
   open: boolean;
   onClose: () => void;
   onSendAndClose: () => Promise<void>;
+  onPrint?: () => Promise<void>;
   offer: OfferState;
   instanceId: string;
   calculateTotalNet: () => number;
@@ -68,6 +69,7 @@ export const OfferPreviewDialog = ({
   open,
   onClose,
   onSendAndClose,
+  onPrint,
   offer,
   instanceId,
   calculateTotalNet,
@@ -321,7 +323,7 @@ export const OfferPreviewDialog = ({
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => window.print()}
+              onClick={onPrint}
               className="gap-2"
             >
               <Printer className="w-4 h-4" />
