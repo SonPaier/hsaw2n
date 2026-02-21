@@ -895,8 +895,11 @@ export const useOffer = (instanceId: string) => {
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,
                 address: fullAddress,
+                billing_street: offer.customerData.companyAddress || null,
+                billing_postal_code: offer.customerData.companyPostalCode || null,
+                billing_city: offer.customerData.companyCity || null,
                 updated_at: new Date().toISOString(),
-              })
+              } as any)
               .eq('id', existingCustomerId);
             console.log('Updated offer customer:', existingCustomerId);
           } else {
@@ -911,8 +914,11 @@ export const useOffer = (instanceId: string) => {
                 company: offer.customerData.company || null,
                 nip: offer.customerData.nip || null,
                 address: fullAddress,
+                billing_street: offer.customerData.companyAddress || null,
+                billing_postal_code: offer.customerData.companyPostalCode || null,
+                billing_city: offer.customerData.companyCity || null,
                 source: 'oferty',
-              })
+              } as any)
               .select('id')
               .maybeSingle();
             
