@@ -776,6 +776,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 photos={protocolPhotoUrls}
                 onPhotosChange={setProtocolPhotoUrls}
                 onPhotoUploaded={handlePhotoUploaded}
+                protocolId={protocolId}
               />
             </div>
           )}
@@ -1023,18 +1024,41 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
-        onAnnotate={(newUrl) => {
+        onAnnotate={async (newUrl) => {
           const oldUrl = fullscreenPhoto;
           if (!oldUrl) return;
           // Replace URL in protocol photos
-          setProtocolPhotoUrls(prev => prev.map(u => u === oldUrl ? newUrl : u));
+          const newPhotos = protocolPhotoUrls.map(u => u === oldUrl ? newUrl : u);
+          setProtocolPhotoUrls(newPhotos);
           // Replace URL in damage points
-          setDamagePoints(prev => prev.map(p => ({
+          const newPoints = damagePoints.map(p => ({
             ...p,
             photo_url: p.photo_url === oldUrl ? newUrl : p.photo_url,
             photo_urls: p.photo_urls?.map(u => u === oldUrl ? newUrl : u),
-          })));
+          }));
+          setDamagePoints(newPoints);
           setFullscreenPhoto(newUrl);
+          // Auto-persist to database in edit mode
+          if (isEditMode && protocolId) {
+            try {
+              await supabase
+                .from('vehicle_protocols')
+                .update({ photo_urls: newPhotos })
+                .eq('id', protocolId);
+              // Update damage points photo URLs in DB
+              const savedPoints = newPoints.filter(p => !('isNew' in p && (p as any).isNew));
+              for (const p of savedPoints) {
+                if ('id' in p && p.id) {
+                  await supabase
+                    .from('protocol_damage_points')
+                    .update({ photo_url: p.photo_url, photo_urls: p.photo_urls })
+                    .eq('id', p.id);
+                }
+              }
+            } catch (err) {
+              console.error('Error auto-saving annotation:', err);
+            }
+          }
         }}
       />
     </div>

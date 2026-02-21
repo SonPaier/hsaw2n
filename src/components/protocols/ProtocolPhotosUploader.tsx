@@ -14,6 +14,7 @@ interface ProtocolPhotosUploaderProps {
   maxPhotos?: number;
   label?: string;
   disabled?: boolean;
+  protocolId?: string | null;
 }
 
 const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
@@ -63,6 +64,7 @@ export const ProtocolPhotosUploader = ({
   maxPhotos = 20,
   label = 'Zrób zdjęcie lub wybierz z galerii',
   disabled = false,
+  protocolId,
 }: ProtocolPhotosUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
@@ -193,11 +195,23 @@ export const ProtocolPhotosUploader = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
         photoUrl={fullscreenPhoto}
-        onAnnotate={(newUrl) => {
+        onAnnotate={async (newUrl) => {
           const oldUrl = fullscreenPhoto;
           if (!oldUrl) return;
-          onPhotosChange(photos.map(u => u === oldUrl ? newUrl : u));
+          const newPhotos = photos.map(u => u === oldUrl ? newUrl : u);
+          onPhotosChange(newPhotos);
           setFullscreenPhoto(newUrl);
+          // Auto-persist to database
+          if (protocolId) {
+            try {
+              await supabase
+                .from('vehicle_protocols')
+                .update({ photo_urls: newPhotos })
+                .eq('id', protocolId);
+            } catch (err) {
+              console.error('Error auto-saving annotation:', err);
+            }
+          }
         }}
       />
     </div>
