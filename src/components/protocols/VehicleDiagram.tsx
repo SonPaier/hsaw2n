@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export type VehicleView = 'full';
 export type BodyType = 'sedan' | 'suv' | 'coupe' | 'cabrio' | 'van' | 'kombi' | 'hatchback';
@@ -27,6 +26,9 @@ interface VehicleDiagramProps {
   readOnly?: boolean;
 }
 
+// Consistent large dot size across all devices: 3rem (48px)
+const POINT_SIZE = '3rem';
+
 export const VehicleDiagram = ({
   bodyType,
   damagePoints,
@@ -38,20 +40,54 @@ export const VehicleDiagram = ({
 }: VehicleDiagramProps) => {
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const isMobile = useIsMobile();
-  
-  // Point size: larger in readOnly mode (public view) or on mobile for better touch/visibility
-  // 1.875rem (30px) for public/mobile, 0.75rem (12px) for admin desktop
-  const pointSize = (readOnly || isMobile) ? '1.875rem' : '0.75rem';
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (readOnly || draggingPointId) return;
-    if (!onAddPoint) return;
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFiredRef = useRef(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Long-press to add point (mobile-friendly, prevents accidental adds)
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (readOnly || !onAddPoint) return;
+    // Only handle primary pointer on the container itself (not on dots)
+    if (e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('diagram-bg')) return;
+    
+    longPressFiredRef.current = false;
+    touchStartPosRef.current = { x: e.clientX, y: e.clientY };
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onAddPoint('full', x, y);
-  };
+
+    longPressTimerRef.current = setTimeout(() => {
+      longPressFiredRef.current = true;
+      onAddPoint('full', x, y);
+    }, 500); // 500ms long-press
+  }, [readOnly, onAddPoint]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Cancel long-press if finger moved too much
+    if (touchStartPosRef.current && longPressTimerRef.current) {
+      const dx = e.clientX - touchStartPosRef.current.x;
+      const dy = e.clientY - touchStartPosRef.current.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 10) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
 
   const updatePosition = useCallback((clientX: number, clientY: number) => {
     if (!draggingPointId) return;
@@ -119,13 +155,16 @@ export const VehicleDiagram = ({
         readOnly ? "cursor-default max-w-[600px] mx-auto" : "cursor-crosshair"
       )}
       ref={containerRef}
-      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
+      onPointerCancel={handlePointerUp}
     >
       <div className="relative w-full" style={{ paddingBottom: '100%' }}>
         <img
           src={imagePath}
           alt="Diagram pojazdu"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          className="diagram-bg absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           draggable={false}
         />
         
@@ -142,8 +181,8 @@ export const VehicleDiagram = ({
             style={{
               left: `${point.x_percent}%`,
               top: `${point.y_percent}%`,
-              width: pointSize,
-              height: pointSize,
+              width: POINT_SIZE,
+              height: POINT_SIZE,
             }}
             onMouseDown={(e) => !readOnly && handlePointMouseDown(e, point)}
             onTouchStart={(e) => !readOnly && handlePointMouseDown(e, point)}
