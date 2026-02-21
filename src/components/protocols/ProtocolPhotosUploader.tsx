@@ -195,6 +195,8 @@ export const ProtocolPhotosUploader = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
         photoUrl={fullscreenPhoto}
+        allPhotos={photos}
+        initialIndex={fullscreenPhoto ? photos.indexOf(fullscreenPhoto) : 0}
         onAnnotate={async (newUrl) => {
           const oldUrl = fullscreenPhoto;
           if (!oldUrl) return;

@@ -1077,6 +1077,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+        allPhotos={[...protocolPhotoUrls, ...damagePoints.flatMap(p => p.photo_urls || [])]}
+        initialIndex={fullscreenPhoto ? [...protocolPhotoUrls, ...damagePoints.flatMap(p => p.photo_urls || [])].indexOf(fullscreenPhoto) : 0}
         onAnnotate={async (newUrl) => {
           const oldUrl = fullscreenPhoto;
           if (!oldUrl) return;
