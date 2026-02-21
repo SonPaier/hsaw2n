@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useInstanceFeatures } from './useInstanceFeatures';
 import { useInstancePlan } from './useInstancePlan';
 
-type FeatureKey = 'offers' | 'upsell' | 'followup' | 'sms_edit_link' | 'hall_view' | 'vehicle_reception_protocol' | 'trainings';
+type FeatureKey = 'offers' | 'upsell' | 'followup' | 'sms_edit_link' | 'hall_view' | 'vehicle_reception_protocol' | 'trainings' | 'sales_crm';
 
 /**
  * Combined feature check hook that checks both:
