@@ -1,38 +1,51 @@
 
+# Widok Zamowienia - Panel Sprzedazy
 
-## Poprawki: rysik (1 klik) + kafelki zdjec w DamagePointDrawer
+## Zakres
 
-### Problem 1: Rysik wymaga 2 klikniec
+Stworzenie statycznego widoku "Zamowienia" w panelu Sales CRM z tabela zamowien, wyszukiwarka, przyciskiem dodawania i fejkowymi danymi opartymi o produkty ULTRAFIT.
 
-Przyczyna: W `PhotoFullscreenDialog.tsx` linia 30 ustawia `open={open && !annotationOpen}`. Gdy klikasz olowek, `annotationOpen` staje sie `true`, co zamyka dialog podgladu (`onOpenChange(false)`) i resetuje stan rodzica -- zdjecie "znika".
+## Co zostanie zrobione
 
-Rozwiazanie: Nie zamykac dialogu podgladu gdy otwieramy rysik. Zamiast tego uzywac osobnego stanu i nie wiazac `open` z `annotationOpen`.
+### 1. Plik danych mockowych: `src/data/salesMockData.ts`
 
-```
-// Zamiast:
-open={open && !annotationOpen}
+Nowy plik z typami i danymi:
 
-// Bedzie:
-open={open}
-// + ukrycie contentu podgladu gdy annotationOpen=true (display: none lub conditional render)
-```
+- **Typ `SalesOrder`** -- nr zamowienia, data utworzenia, nazwa klienta, kwota netto/brutto, produkty (tablica), komentarz (opcjonalny), status (`nowy` | `wyslany`)
+- **Typ `SalesOrderProduct`** -- nazwa produktu, ilosc, cena netto, cena brutto
+- **~12 fejkowych zamowien** z produktami ULTRAFIT:
+  - Folia ochronna PPF ULTRAFIT (rozne modele: Premium, Matte, Gloss)
+  - Folia przyciemniajaca ULTRAFIT (IR Nano, Hybrid)
+  - Folia ochronna przedniej szyby ULTRAFIT
+  - Rozne ilosci produktow (1-4 na zamowienie)
+  - Numery w formacie `45/12/26` (nr/miesiac/rok)
+  - Statusy mieszane: czesc `nowy`, czesc `wyslany`
 
-Plik: `src/components/protocols/PhotoFullscreenDialog.tsx`
+### 2. Komponent widoku: `src/components/sales/SalesOrdersView.tsx`
 
-### Problem 2: "Dodaj zdjecie" nie jest kafelkiem w DamagePointDrawer
+Nowy komponent zawierajacy:
 
-Aktualnie `DamagePointDrawer.tsx` uzywa pelnej szerokosci buttona "Zrob zdjecie lub wybierz z galerii" + poziomego ScrollArea na zdjecia. Trzeba to zamienic na `grid-cols-4` z kafelkiem "Dodaj zdjecie" jako pierwszym elementem -- identycznie jak w `ProtocolPhotosUploader.tsx`.
+- **Naglowek**: tytul "Zamowienia" po lewej
+- **Toolbar**:
+  - Lewa strona: pole wyszukiwania (Input z ikona Search) -- filtruje po nazwie klienta lub nr zamowienia
+  - Prawa strona: przycisk "Dodaj zamowienie" (na razie bez akcji, ewentualnie toast "w przygotowaniu")
+- **Tabela** (uzycie istniejacych komponentow Table/TableHeader/TableBody/TableRow/TableCell):
+  - Kolumny: Nr zamowienia | Data utworzenia | Klient | Netto | Brutto | Produkty | Komentarz | Status
+  - **Expandable rows**: jesli zamowienie ma wiecej niz 1 produkt, wyswietlany jest pierwszy + badge "+N", klikniecie rozwija wiersz z lista wszystkich produktow (Collapsible)
+  - **Komentarz**: ikona MessageSquare jesli komentarz istnieje, hover/tooltip z trescia
+  - **Status**: Badge kolorowy (`nowy` = zolty/outline, `wyslany` = zielony); klikniecie otwiera dropdown z mozliwoscia zmiany (DropdownMenu) -- zmiana lokalna w state
+- **Filtrowanie**: proste `filter()` na tablicy mockow po `searchQuery`
 
-Plik: `src/components/protocols/DamagePointDrawer.tsx`
+### 3. Integracja z SalesDashboard
 
-Zmiany:
-- Usunac label/button pelnej szerokosci i ScrollArea
-- Dodac `grid grid-cols-4 gap-2` z kafelkiem "Dodaj zdjecie" (aspect-square, border-dashed, Camera icon + label) jako pierwszy element
-- Zdjecia jako kolejne kafelki aspect-square z przyciskiem usuwania
+W `src/pages/SalesDashboard.tsx`:
+- Import `SalesOrdersView`
+- W `renderContent()` case `'orders'` zwraca `<SalesOrdersView />` zamiast placeholdera
 
-### Podsumowanie zmian
+## Szczegoly techniczne
 
-| Plik | Zmiana |
-|------|--------|
-| `PhotoFullscreenDialog.tsx` | Nie zamykac podgladu gdy rysik otwarty |
-| `DamagePointDrawer.tsx` | Grid 4 kolumny z kafelkiem "Dodaj zdjecie" |
+- Uzycie istniejacych komponentow UI: `Table`, `Badge`, `Input`, `Button`, `DropdownMenu`, `Collapsible`, `Tooltip`
+- Formatowanie kwot: `toLocaleString('pl-PL')` z sufksem "zl"
+- Formatowanie dat: `date-fns` format `dd.MM.yyyy`
+- Brak logiki backendowej -- wszystko statyczne/lokalne
+- Responsive: na mobile tabela w `overflow-auto` kontenerze
