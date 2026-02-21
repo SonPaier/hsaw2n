@@ -274,10 +274,10 @@ export const PhotoAnnotationDialog = ({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/95" />
-        <DialogPrimitive.Content className="fixed inset-0 z-[9999] flex flex-col outline-none">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[10001] bg-black/95" />
+        <DialogPrimitive.Content className="fixed inset-0 z-[10002] flex flex-col outline-none">
           {/* Top bar */}
-          <div className="fixed top-4 left-4 right-4 z-[10000] flex items-center justify-between">
+          <div className="fixed top-4 left-4 right-4 z-[10003] flex items-center justify-between">
             {/* Left: colors (when drawing) */}
             <div className="flex items-center gap-2">
               {isDrawingMode && COLORS.map(c => (
@@ -332,7 +332,7 @@ export const PhotoAnnotationDialog = ({
 
           {/* Bottom bar: undo/redo/clear on left, save on right - only when drawing */}
           {isDrawingMode && hasStrokes && (
-            <div className="fixed bottom-4 left-4 right-4 z-[10000] flex items-center justify-between">
+            <div className="fixed bottom-4 left-4 right-4 z-[10003] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button type="button" className={circleButtonClass} onClick={handleUndo} disabled={!canUndo} aria-label="Cofnij">
                   <Undo2 className="h-5 w-5" />
