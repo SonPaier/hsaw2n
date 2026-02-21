@@ -209,6 +209,8 @@ const ReservationPhotosDialog = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+        allPhotos={photos}
+        initialIndex={fullscreenPhoto ? photos.indexOf(fullscreenPhoto) : 0}
       />
 
       <AlertDialog open={deleteConfirmIndex !== null} onOpenChange={(open) => !open && setDeleteConfirmIndex(null)}>

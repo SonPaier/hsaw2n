@@ -279,6 +279,8 @@ export const DamagePointDrawer = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+        allPhotos={photoUrls}
+        initialIndex={fullscreenPhoto ? photoUrls.indexOf(fullscreenPhoto) : 0}
         onAnnotate={(newUrl) => {
           const oldUrl = fullscreenPhoto;
           if (!oldUrl) return;
