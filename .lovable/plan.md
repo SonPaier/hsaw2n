@@ -1,46 +1,60 @@
 
 
-# Migracja tabeli `customers` -- nowe pola dla Sales CRM
+## Poprawki w module protokolow
 
-## Co robimy
+### 1. Labelka nad diagramem (CreateProtocolForm.tsx)
 
-Dodajemy nowe kolumny do tabeli `customers` bez migracji danych (brak istniejacych rekordow z adresem/NIP).
+Zmiana tekstu labeli z:
+"Zaznacz ewentualne usterki na diagramie pojazdu"
+na:
+"Zaznacz ewentualne usterki na diagramie pojazdu przetrzymujac palec w danym miejscu"
 
-## Migracja SQL
+Linia 813 w `CreateProtocolForm.tsx`.
 
-```sql
-ALTER TABLE public.customers
-  ADD COLUMN IF NOT EXISTS short_name text,
-  ADD COLUMN IF NOT EXISTS contact_person text,
-  ADD COLUMN IF NOT EXISTS contact_phone text,
-  ADD COLUMN IF NOT EXISTS contact_email text,
-  ADD COLUMN IF NOT EXISTS billing_street text,
-  ADD COLUMN IF NOT EXISTS billing_postal_code text,
-  ADD COLUMN IF NOT EXISTS billing_city text,
-  ADD COLUMN IF NOT EXISTS shipping_street text,
-  ADD COLUMN IF NOT EXISTS shipping_postal_code text,
-  ADD COLUMN IF NOT EXISTS shipping_city text,
-  ADD COLUMN IF NOT EXISTS sales_notes text;
+---
+
+### 2. Klikanie na kompie nie dodaje usterki
+
+**Problem**: W `VehicleDiagram.tsx` linia 50 sprawdza:
 ```
-
-Wszystkie kolumny sa `NULL`-owalne -- zero wplywu na istniejace dane i kod Studio.
-
-## Aktualizacja `useOffer.ts`
-
-Przy zapisie klienta z oferty -- obok sklejonego `address` -- zapisujemy tez rozbite pola:
-
-```typescript
-billing_street: offer.customerData.companyAddress || null,
-billing_postal_code: offer.customerData.companyPostalCode || null,
-billing_city: offer.customerData.companyCity || null,
+if (e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('diagram-bg'))
 ```
+Obraz `<img>` ma klase `diagram-bg`, ale ma tez `pointer-events-none` (linia ~155). To powoduje, ze klikniecia na obrazek "przelatuja" do kontenera -- co powinno dzialac. Jednak problem moze byc w tym, ze klikniecie trafia na wewnetrzny `<div>` (wrapper z `paddingBottom: 100%`), ktory **nie jest** `e.currentTarget` (zewnetrzny div) i **nie ma** klasy `diagram-bg`.
 
-Dzieki temu nowe oferty beda od razu wypelniac strukturalne pola adresowe.
+**Rozwiazanie**: Dodac klase `diagram-bg` rowniez do wewnetrznego diva z `paddingBottom`, lub zmienic warunek tak, aby akceptowal klikniecia na dowolnym elemencie wewnatrz kontenera, ktory nie jest kropka (damage point). Najlepsza opcja: uzyc `e.currentTarget.contains(e.target)` i wykluczyc tylko kropki damage points (ktore maja np. klase `damage-dot`).
 
-## Podsumowanie
+---
 
-- 1 migracja SQL (11 nowych kolumn)
-- 1 zmiana w `useOffer.ts` (zapis rozbitych pol adresowych)
-- Bez migracji danych
-- Bez wplywu na istniejacy kod Studio
+### 3. Zdjecia w trybie edycji nie sa klikalne
+
+Dwa miejsca wymagaja poprawki:
+
+**a) CreateProtocolForm.tsx (linie 828-841)** -- sekcja "Zdjecia usterek" pod diagramem. Brak `onClick` i `cursor-pointer`. Trzeba dodac stan `fullscreenPhoto` + `PhotoFullscreenDialog` oraz `onClick={() => setFullscreenPhoto(url)}`.
+
+**b) DamagePointDrawer.tsx (linie 237-240)** -- zdjecia w szufladzie edycji usterki. Tak samo brak `onClick` do powiekszania. Trzeba dodac `PhotoFullscreenDialog` i `onClick` na kazde zdjecie.
+
+---
+
+### 4. Przycisk X w PhotoFullscreenDialog
+
+Komponent juz uzywa `z-[10000]` i bialego tla. Sprawdze czy styl jest odpowiedni -- wyglada poprawnie w kodzie. Problem mogl byc w tym, ze dialog nie byl w ogole otwierany (brak onClick na zdjeciach), co sprawia wrazenie ze "X nie dziala".
+
+---
+
+### Szczegoly techniczne
+
+**Pliki do zmiany:**
+
+1. **`src/components/protocols/VehicleDiagram.tsx`** -- poprawka warunku w `handlePointerDown` (linia 50), aby klikniecie mysza na wewnetrzny div tez dodawalo punkt.
+
+2. **`src/components/protocols/CreateProtocolForm.tsx`**:
+   - Zmiana labelki (linia 813)
+   - Dodanie stanu `fullscreenPhoto` + import `PhotoFullscreenDialog`
+   - Dodanie `onClick` + `cursor-pointer` do zdjec usterek (linie 832-838)
+   - Render `PhotoFullscreenDialog` na koncu komponentu
+
+3. **`src/components/protocols/DamagePointDrawer.tsx`**:
+   - Dodanie stanu `fullscreenPhoto` + import `PhotoFullscreenDialog`
+   - Dodanie `onClick` na zdjecia (linia 237-240)
+   - Render `PhotoFullscreenDialog`
 
