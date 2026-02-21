@@ -108,13 +108,13 @@ const SalesOrdersView = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px]">Nr</TableHead>
               <TableHead>Klient</TableHead>
-              <TableHead className="w-[120px]">
+              <TableHead className="w-[130px]">
                 <div className="leading-tight">
-                  <div>Data utworzenia</div>
-                  <div>Data wysyłki</div>
+                  <div>Data utw.</div>
+                  <div>Data wys.</div>
                 </div>
               </TableHead>
-              <TableHead className="w-[110px]">Status</TableHead>
+              <TableHead className="w-[100px]">Status</TableHead>
               <TableHead className="w-[180px]">Nr listu przewozowego</TableHead>
               <TableHead className="text-right w-[120px]">Kwota netto</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -132,12 +132,13 @@ const SalesOrdersView = () => {
                 const isExpanded = expandedRows.has(order.id);
 
                 return (
-                  <tbody key={order.id}>
+                  <>
                     <TableRow
+                      key={order.id}
                       className="group hover:bg-[#F1F5F9] cursor-pointer"
                       onClick={() => toggleExpand(order.id)}
                     >
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="text-sm">
                         <div className="flex items-center gap-1.5">
                           {isExpanded ? (
                             <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
@@ -234,8 +235,8 @@ const SalesOrdersView = () => {
                     </TableRow>
 
                     {isExpanded && (
-                      <tr>
-                        <td colSpan={7} className="p-0">
+                      <TableRow key={`${order.id}-expanded`} className="hover:bg-transparent">
+                        <TableCell colSpan={7} className="p-0">
                           <div className="bg-white px-6 py-4 border-t border-border/50">
                             {order.comment && (
                               <p className="text-sm text-muted-foreground mb-3">{order.comment}</p>
@@ -257,10 +258,10 @@ const SalesOrdersView = () => {
                               ))}
                             </div>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </tbody>
+                  </>
                 );
               })
             )}
