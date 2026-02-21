@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, generateTimeSlots, getWorkingHoursRange } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { sendPushNotification, formatDateForPush } from '@/lib/pushNotifications';
 import { normalizePhone as normalizePhoneForStorage } from '@/lib/phoneUtils';
@@ -963,23 +963,10 @@ const AddReservationDialogV2 = ({
     loadCustomerVehicles(vehicle.phone);
   };
 
-  // Generate time options for start time (every 15 min from 6:00 to 22:00)
-  const startTimeOptions = [];
-  for (let h = 6; h <= 22; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      startTimeOptions.push(timeStr);
-    }
-  }
-
-  // Generate time options for end time (every 5 min from 6:00 to 22:00) - allows precise service durations
-  const endTimeOptions = [];
-  for (let h = 6; h <= 22; h++) {
-    for (let m = 0; m < 60; m += 5) {
-      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      endTimeOptions.push(timeStr);
-    }
-  }
+  // Dynamic time range based on working hours for selected day
+  const { min: timeMin, max: timeMax } = getWorkingHoursRange(workingHours, dateRange?.from);
+  const startTimeOptions = generateTimeSlots(timeMin, timeMax, 15);
+  const endTimeOptions = generateTimeSlots(timeMin, timeMax, 15);
 
   // Alias for yard deadline (keep 15 min intervals)
   const yardTimeOptions = startTimeOptions;
