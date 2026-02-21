@@ -168,16 +168,16 @@ export const ProtocolPhotosUploader = ({
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 bg-white hover:border-muted-foreground/50 transition-colors",
+              "aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 bg-background hover:border-muted-foreground/50 transition-colors",
               uploading && "opacity-50"
             )}
           >
             {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
-                <Camera className="h-10 w-10 text-muted-foreground" />
-                <span className="text-[10px] leading-tight text-center text-muted-foreground">Dodaj zdjęcie</span>
+                <Camera className="h-14 w-14 text-muted-foreground" />
+                <span className="text-xs font-medium leading-tight text-center text-muted-foreground">Dodaj zdjęcie</span>
               </>
             )}
           </button>
