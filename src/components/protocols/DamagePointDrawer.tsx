@@ -177,8 +177,8 @@ export const DamagePointDrawer = ({
       photo_url: photoUrls[0] || null,
       photo_urls: photoUrls,
     });
-    setCustomNote('');
-    setPhotoUrls([]);
+    // Don't clear state here - let useEffect on `open` handle it on next open
+    // Clearing here causes a brief thumbnail flicker before drawer animates closed
   };
 
   const handleClose = () => {

@@ -39,7 +39,7 @@ export const PhotoAnnotationDialog = ({
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const [activeColor, setActiveColor] = useState('#FF0000');
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState<{ x: number; y: number }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -55,7 +55,7 @@ export const PhotoAnnotationDialog = ({
     setStrokes([]);
     setRedoStack([]);
     setActiveColor('#FF0000');
-    setIsDrawingMode(false);
+    setIsDrawingMode(true);
     setImageLoaded(false);
 
     const img = new Image();
