@@ -26,8 +26,8 @@ interface VehicleDiagramProps {
   readOnly?: boolean;
 }
 
-// Consistent large dot size across all devices: 3rem (48px)
-const POINT_SIZE = '3rem';
+// Consistent dot size across all devices: 1.5rem (24px)
+const POINT_SIZE = '1.5rem';
 
 export const VehicleDiagram = ({
   bodyType,
@@ -44,10 +44,9 @@ export const VehicleDiagram = ({
   const longPressFiredRef = useRef(false);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Long-press to add point (mobile-friendly, prevents accidental adds)
+  // Add point: instant click on mouse, long-press on touch
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (readOnly || !onAddPoint) return;
-    // Only handle primary pointer on the container itself (not on dots)
     if (e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('diagram-bg')) return;
     
     longPressFiredRef.current = false;
@@ -57,10 +56,16 @@ export const VehicleDiagram = ({
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    longPressTimerRef.current = setTimeout(() => {
-      longPressFiredRef.current = true;
+    if (e.pointerType === 'mouse') {
+      // Mouse: instant click
       onAddPoint('full', x, y);
-    }, 500); // 500ms long-press
+    } else {
+      // Touch: long-press 500ms to prevent accidental adds
+      longPressTimerRef.current = setTimeout(() => {
+        longPressFiredRef.current = true;
+        onAddPoint('full', x, y);
+      }, 500);
+    }
   }, [readOnly, onAddPoint]);
 
   const handlePointerUp = useCallback(() => {
