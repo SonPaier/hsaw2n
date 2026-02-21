@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { Pencil, Undo2, Redo2, Trash2, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,6 +15,9 @@ const COLORS = [
 
 const STROKE_WIDTH = 4;
 const MAX_UNDO = 20;
+
+const circleButtonClass =
+  'flex items-center justify-center h-12 w-12 rounded-full bg-white text-black shadow-2xl border-2 border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none';
 
 interface PhotoAnnotationDialogProps {
   open: boolean;
@@ -81,7 +83,6 @@ export const PhotoAnnotationDialog = ({
     const containerW = container.clientWidth;
     const containerH = container.clientHeight;
 
-    // Fit image to container
     const scale = Math.min(containerW / img.width, containerH / img.height);
     const drawW = img.width * scale;
     const drawH = img.height * scale;
@@ -96,7 +97,6 @@ export const PhotoAnnotationDialog = ({
 
     ctx.drawImage(img, 0, 0, drawW, drawH);
 
-    // Draw all strokes with active color
     const allStrokes = [...strokes, ...(currentStroke.length > 1 ? [{ points: currentStroke }] : [])];
     for (const stroke of allStrokes) {
       if (stroke.points.length < 2) continue;
@@ -117,7 +117,6 @@ export const PhotoAnnotationDialog = ({
     if (imageLoaded) redrawCanvas();
   }, [imageLoaded, redrawCanvas]);
 
-  // Resize handler
   useEffect(() => {
     if (!open || !imageLoaded) return;
     const handler = () => redrawCanvas();
@@ -196,7 +195,6 @@ export const PhotoAnnotationDialog = ({
 
     setSaving(true);
     try {
-      // Render to offscreen canvas at original resolution (max 1200px)
       const offscreen = document.createElement('canvas');
       let w = img.width;
       let h = img.height;
@@ -211,7 +209,6 @@ export const PhotoAnnotationDialog = ({
 
       ctx.drawImage(img, 0, 0, w, h);
 
-      // Draw strokes
       for (const stroke of strokes) {
         if (stroke.points.length < 2) continue;
         ctx.beginPath();
@@ -245,7 +242,6 @@ export const PhotoAnnotationDialog = ({
         .from('protocol-photos')
         .getPublicUrl(fileName);
 
-      // Delete old file from storage
       try {
         const oldParts = photoUrl.split('/');
         const oldFileName = oldParts[oldParts.length - 1];
@@ -280,85 +276,59 @@ export const PhotoAnnotationDialog = ({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/95" />
         <DialogPrimitive.Content className="fixed inset-0 z-[9999] flex flex-col outline-none">
-          {/* Top toolbar */}
-          <div className="flex items-center justify-between p-2 bg-black/80 gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              {/* Drawing mode toggle */}
-              <Button
-                variant={isDrawingMode ? 'default' : 'outline'}
-                size="icon"
-                className="h-10 w-10 shrink-0"
-                onClick={() => setIsDrawingMode(!isDrawingMode)}
-              >
-                <Pencil className="h-5 w-5" />
-              </Button>
+          {/* Top-right buttons: pencil + actions + close */}
+          <div className="fixed top-4 right-4 z-[10000] flex items-center gap-2">
+            {/* Undo/Redo/Clear - only when drawing mode on */}
+            {isDrawingMode && (
+              <>
+                <button type="button" className={circleButtonClass} onClick={handleUndo} disabled={!canUndo} aria-label="Cofnij">
+                  <Undo2 className="h-5 w-5" />
+                </button>
+                <button type="button" className={circleButtonClass} onClick={handleRedo} disabled={!canRedo} aria-label="Ponów">
+                  <Redo2 className="h-5 w-5" />
+                </button>
+                <button type="button" className={circleButtonClass} onClick={handleClear} disabled={!hasStrokes} aria-label="Wyczyść">
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </>
+            )}
 
-              {/* Colors - only visible when drawing mode on */}
-              {isDrawingMode && (
-                <div className="flex gap-1">
-                  {COLORS.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      className="h-8 w-8 rounded-full border-2 transition-transform"
-                      style={{
-                        backgroundColor: c.value,
-                        borderColor: activeColor === c.value ? 'white' : 'transparent',
-                        transform: activeColor === c.value ? 'scale(1.2)' : 'scale(1)',
-                      }}
-                      onClick={() => setActiveColor(c.value)}
-                      aria-label={c.label}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Pencil toggle */}
+            <button
+              type="button"
+              className={circleButtonClass}
+              style={isDrawingMode ? { backgroundColor: '#000', color: '#fff', borderColor: '#000' } : undefined}
+              onClick={() => setIsDrawingMode(!isDrawingMode)}
+              aria-label="Rysik"
+            >
+              <Pencil className="h-6 w-6" />
+            </button>
 
-            <div className="flex items-center gap-1">
-              {/* Undo/Redo/Clear - only when drawing mode on */}
-              {isDrawingMode && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 text-white hover:bg-white/20"
-                    onClick={handleUndo}
-                    disabled={!canUndo}
-                  >
-                    <Undo2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 text-white hover:bg-white/20"
-                    onClick={handleRedo}
-                    disabled={!canRedo}
-                  >
-                    <Redo2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 text-white hover:bg-white/20"
-                    onClick={handleClear}
-                    disabled={!hasStrokes}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </>
-              )}
-
-              {/* Close */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 text-white hover:bg-white/20"
-                onClick={handleClose}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+            {/* Close */}
+            <button type="button" className={circleButtonClass} onClick={handleClose} aria-label="Zamknij">
+              <X className="h-7 w-7" />
+            </button>
           </div>
+
+          {/* Color picker - top left, only when drawing */}
+          {isDrawingMode && (
+            <div className="fixed top-4 left-4 z-[10000] flex gap-2">
+              {COLORS.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  className="h-10 w-10 rounded-full border-2 transition-transform shadow-lg"
+                  style={{
+                    backgroundColor: c.value,
+                    borderColor: activeColor === c.value ? 'white' : 'transparent',
+                    transform: activeColor === c.value ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                  onClick={() => setActiveColor(c.value)}
+                  aria-label={c.label}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Canvas area */}
           <div
@@ -376,17 +346,18 @@ export const PhotoAnnotationDialog = ({
             />
           </div>
 
-          {/* Save button - only when drawing mode on AND has strokes */}
+          {/* Save button - fixed at bottom, only when drawing mode on AND has strokes */}
           {isDrawingMode && hasStrokes && (
-            <div className="p-4 bg-black/80 flex justify-center shrink-0">
-              <Button
+            <div className="fixed bottom-4 left-4 right-4 z-[10000] flex justify-center pointer-events-none">
+              <button
+                type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full max-w-xs"
+                className="pointer-events-auto px-8 py-3 rounded-full bg-white text-black font-medium shadow-2xl border-2 border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
               >
-                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Zapisz
-              </Button>
+              </button>
             </div>
           )}
         </DialogPrimitive.Content>
