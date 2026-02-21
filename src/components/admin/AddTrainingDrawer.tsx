@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { generateTimeSlots, getWorkingHoursRange } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -131,18 +132,11 @@ export function AddTrainingDrawer({
     fetch();
   }, [instanceId]);
 
-  // Generate time options (every 15 min)
-  const generateTimeOptions = useCallback(() => {
-    const options: string[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        options.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-      }
-    }
-    return options;
-  }, []);
-
-  const timeOptions = generateTimeOptions();
+  // Dynamic time range based on working hours (30 min step for trainings)
+  const timeOptions = useMemo(() => {
+    const { min, max } = getWorkingHoursRange(workingHours, dateRange?.from);
+    return generateTimeSlots(min, max, 30);
+  }, [workingHours, dateRange?.from]);
 
   const getSelectedType = () => trainingTypes.find(t => t.id === selectedTypeId);
 
