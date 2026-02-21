@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useInstanceData } from '@/hooks/useInstanceData';
+import SalesOrdersView from '@/components/sales/SalesOrdersView';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -84,15 +85,7 @@ const SalesDashboard = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'orders':
-        return (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center space-y-2">
-              <ShoppingCart className="w-12 h-12 mx-auto opacity-30" />
-              <p className="text-lg font-medium">Zamówienia</p>
-              <p className="text-sm">Moduł w przygotowaniu</p>
-            </div>
-          </div>
-        );
+        return <SalesOrdersView />;
       case 'customers':
         return (
           <div className="flex items-center justify-center h-full text-muted-foreground">
