@@ -137,61 +137,58 @@ export const ProtocolPhotosUploader = ({
   };
 
   return (
-    <div className="space-y-3">
-      {/* Photo grid */}
-      {photos.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
-          {photos.map((url, index) => (
-            <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(url)}>
-              <img
-                src={url}
-                alt={`Zdjęcie ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg"
-              />
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleRemovePhoto(index); }}
-                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Upload button */}
-      {!disabled && photos.length < maxPhotos && (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            capture="environment"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <Button
+    <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        capture="environment"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <div className="grid grid-cols-4 gap-2">
+        {/* Add photo tile */}
+        {!disabled && photos.length < maxPhotos && (
+          <button
             type="button"
-            variant="outline"
-            className={cn("w-full border-dashed", uploading && "opacity-50")}
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-muted-foreground/50 transition-colors",
+              uploading && "opacity-50"
+            )}
           >
             {uploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : photos.length > 0 ? (
-              <ImagePlus className="h-4 w-4 mr-2" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Camera className="h-4 w-4 mr-2" />
+              <>
+                <Camera className="h-5 w-5" />
+                <span className="text-[10px] leading-tight text-center">Dodaj zdjęcie</span>
+              </>
             )}
-            {uploading ? 'Przesyłanie...' : label}
-          </Button>
-        </>
-      )}
+          </button>
+        )}
+        {/* Photo thumbnails */}
+        {photos.map((url, index) => (
+          <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(url)}>
+            <img
+              src={url}
+              alt={`Zdjęcie ${index + 1}`}
+              className="w-full h-full object-cover rounded-lg"
+            />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleRemovePhoto(index); }}
+                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
       <PhotoFullscreenDialog
         open={!!fullscreenPhoto}
         onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
