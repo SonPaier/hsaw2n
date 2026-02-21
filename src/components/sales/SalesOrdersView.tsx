@@ -108,10 +108,10 @@ const SalesOrdersView = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px]">Nr</TableHead>
               <TableHead>Klient</TableHead>
-              <TableHead className="w-[110px]">
+              <TableHead className="w-[120px]">
                 <div className="leading-tight">
                   <div>Data utworzenia</div>
-                  <div className="text-xs font-normal text-muted-foreground">Data wysyłki</div>
+                  <div>Data wysyłki</div>
                 </div>
               </TableHead>
               <TableHead className="w-[110px]">Status</TableHead>
@@ -152,9 +152,7 @@ const SalesOrdersView = () => {
                         <div className="leading-tight">
                           <div>{format(parseISO(order.createdAt), 'dd.MM.yyyy')}</div>
                           {order.shippedAt && (
-                            <div className="text-xs text-muted-foreground">
-                              {format(parseISO(order.shippedAt), 'dd.MM.yyyy')}
-                            </div>
+                            <div>{format(parseISO(order.shippedAt), 'dd.MM.yyyy')}</div>
                           )}
                         </div>
                       </TableCell>
