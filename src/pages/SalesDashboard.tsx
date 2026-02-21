@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useInstanceData } from '@/hooks/useInstanceData';
 import SalesOrdersView from '@/components/sales/SalesOrdersView';
+import SalesProductsView from '@/components/sales/SalesProductsView';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -97,15 +98,7 @@ const SalesDashboard = () => {
           </div>
         );
       case 'products':
-        return (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center space-y-2">
-              <Package className="w-12 h-12 mx-auto opacity-30" />
-              <p className="text-lg font-medium">Produkty</p>
-              <p className="text-sm">Moduł w przygotowaniu</p>
-            </div>
-          </div>
-        );
+        return <SalesProductsView />;
     }
   };
 

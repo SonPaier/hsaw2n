@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import AddSalesOrderDrawer from './AddSalesOrderDrawer';
-import { Search, Plus, ChevronDown, ChevronRight, MessageSquare, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Search, Plus, ChevronDown, ChevronRight, MessageSquare, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -113,7 +114,7 @@ const SalesOrdersView = () => {
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[120px]">Nr zamówienia</TableHead>
               <TableHead className="w-[110px]">Data</TableHead>
               <TableHead>Klient</TableHead>
@@ -122,12 +123,13 @@ const SalesOrdersView = () => {
               <TableHead>Produkty</TableHead>
               <TableHead className="w-[50px] text-center">Uwagi</TableHead>
               <TableHead className="w-[110px]">Status</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Brak zamówień spełniających kryteria
                 </TableCell>
               </TableRow>
@@ -139,7 +141,7 @@ const SalesOrdersView = () => {
                 return (
                   <Collapsible key={order.id} open={isExpanded} onOpenChange={() => toggleExpand(order.id)} asChild>
                     <>
-                      <TableRow className="group">
+                      <TableRow className="group hover:bg-[#F1F5F9]">
                         <TableCell className="font-mono text-sm">{order.orderNumber}</TableCell>
                         <TableCell className="text-sm">
                           {format(parseISO(order.createdAt), 'dd.MM.yyyy')}
@@ -216,12 +218,32 @@ const SalesOrdersView = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => toast.info('Edycja zamówienia w przygotowaniu')}>
+                                Edytuj
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => toast.info('Usuwanie zamówienia w przygotowaniu')}
+                              >
+                                Usuń
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
 
                       {hasMultipleProducts && (
                         <CollapsibleContent asChild>
                           <tr>
-                            <td colSpan={8} className="p-0">
+                            <td colSpan={9} className="p-0">
                               <div className="bg-muted/30 px-6 py-3 border-t border-border/50">
                                 <div className="space-y-1.5">
                                   {order.products.map((product, idx) => (
