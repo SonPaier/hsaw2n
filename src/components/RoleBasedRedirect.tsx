@@ -41,9 +41,16 @@ const RoleBasedRedirect = () => {
     return <Navigate to="/super-admin" replace />;
   }
 
+  // Sales-only users -> redirect to sales CRM
+  const hasSalesRole = roles.some(r => r.role === 'sales');
+  const hasStudioAccess = roles.some(r => r.role === 'admin' || r.role === 'employee');
+
+  if (hasSalesRole && !hasStudioAccess) {
+    return <Navigate to="/sales-crm" replace />;
+  }
+
   // Check for admin or employee
-  const hasAdminAccess = roles.some(r => r.role === 'admin' || r.role === 'employee');
-  if (hasAdminAccess) {
+  if (hasStudioAccess) {
     return <Navigate to="/admin" replace />;
   }
 

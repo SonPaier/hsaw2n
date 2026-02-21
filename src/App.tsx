@@ -12,6 +12,7 @@ import MojaRezerwacja from "./pages/MojaRezerwacja";
 import InstanceAuth from "./pages/InstanceAuth";
 import SuperAdminAuth from "./pages/SuperAdminAuth";
 import AdminDashboard from "./pages/AdminDashboard";
+import SalesDashboard from "./pages/SalesDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import HallView from "./pages/HallView";
 import PublicOfferView from "./pages/PublicOfferView";
@@ -147,6 +148,16 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       } 
     />
+
+    {/* Sales CRM routes - BEFORE catch-all /:view? */}
+    <Route 
+      path="/sales-crm/:view?" 
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <SalesDashboard />
+        </ProtectedRoute>
+      } 
+    />
     
     {/* Admin dashboard with optional view param - handles both / and /:view */}
     <Route 
@@ -220,6 +231,15 @@ const DevRoutes = () => (
           </Suspense>
         </ProtectedRoute>
       } 
+    />
+    {/* Sales CRM routes - BEFORE /admin/:view */}
+    <Route
+      path="/admin/sales-crm/:view?"
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <SalesDashboard />
+        </ProtectedRoute>
+      }
     />
     <Route
       path="/admin/:view" 

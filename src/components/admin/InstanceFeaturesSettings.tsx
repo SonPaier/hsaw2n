@@ -94,6 +94,13 @@ const AVAILABLE_FEATURES: FeatureDefinition[] = [
     icon: GraduationCap,
     isPaid: false,
   },
+  {
+    key: 'sales_crm',
+    name: 'CRM Sprzedaży',
+    description: 'Moduł CRM do zarządzania sprzedażą produktów',
+    icon: TrendingUp,
+    isPaid: true,
+  },
 ];
 
 export const InstanceFeaturesSettings = ({ instanceId }: InstanceFeaturesSettingsProps) => {

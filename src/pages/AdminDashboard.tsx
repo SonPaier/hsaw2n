@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign, GraduationCap } from 'lucide-react';
+import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign, GraduationCap, ArrowLeftRight } from 'lucide-react';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { useStations } from '@/hooks/useStations';
 import { useBreaks } from '@/hooks/useBreaks';
@@ -2516,6 +2516,25 @@ const AdminDashboard = () => {
                 </>
               )}
             </nav>
+
+            {/* Sales CRM switch button */}
+            {hasFeature('sales_crm') && roles.some(r => r.role === 'sales') && (
+              <div className={cn(sidebarCollapsed ? 'px-1 pb-1' : 'px-3 pb-1')}>
+                <Separator className="mb-2" />
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full gap-3',
+                    sidebarCollapsed ? 'justify-center px-2' : 'justify-start'
+                  )}
+                  onClick={() => navigate(adminBasePath + '/sales-crm')}
+                  title="Przejdź do Panelu Sprzedaży"
+                >
+                  <ArrowLeftRight className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && 'Panel Sprzedaży'}
+                </Button>
+              </div>
+            )}
 
             {/* Collapse toggle & User menu */}
             <div className={cn((sidebarCollapsed || userRole === 'hall') ? "p-2 space-y-2" : "p-4 space-y-3")}>

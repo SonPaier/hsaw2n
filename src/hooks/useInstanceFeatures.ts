@@ -11,6 +11,7 @@ interface InstanceFeatures {
   vehicle_reception_protocol: boolean;
   reminders: boolean;
   trainings: boolean;
+  sales_crm: boolean;
 }
 
 const defaultFeatures: InstanceFeatures = {
@@ -22,6 +23,7 @@ const defaultFeatures: InstanceFeatures = {
   vehicle_reception_protocol: false,
   reminders: false,
   trainings: false,
+  sales_crm: false,
 };
 
 export const useInstanceFeatures = (instanceId: string | null) => {
