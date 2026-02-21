@@ -96,7 +96,7 @@ const SalesCustomersView = () => {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
