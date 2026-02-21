@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { Search, Plus, ChevronDown, ChevronRight, MessageSquare, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,10 +35,13 @@ import { toast } from 'sonner';
 const formatCurrency = (value: number) =>
   value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 
+const ITEMS_PER_PAGE = 10;
+
 const SalesOrdersView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState<SalesOrder[]>(mockSalesOrders);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders;
@@ -49,6 +52,18 @@ const SalesOrdersView = () => {
         o.orderNumber.toLowerCase().includes(q)
     );
   }, [orders, searchQuery]);
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOrders.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  // Reset page when search changes
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedRows((prev) => {
@@ -79,7 +94,7 @@ const SalesOrdersView = () => {
           <Input
             placeholder="Szukaj klienta lub nr zamówienia..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -115,7 +130,7 @@ const SalesOrdersView = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => {
+              paginatedOrders.map((order) => {
                 const isExpanded = expandedRows.has(order.id);
                 const hasMultipleProducts = order.products.length > 1;
 
@@ -145,9 +160,9 @@ const SalesOrdersView = () => {
                                     <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                                   )}
                                   <span className="truncate max-w-[200px]">{order.products[0].name}</span>
-                                  <Badge variant="secondary" className="text-xs shrink-0">
+                                  <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full shrink-0">
                                     +{order.products.length - 1}
-                                  </Badge>
+                                  </span>
                                 </button>
                               </CollapsibleTrigger>
                             ) : (
@@ -236,6 +251,46 @@ const SalesOrdersView = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            Strona {currentPage} z {totalPages} ({filteredOrders.length} zamówień)
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              Poprzednia
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={page === currentPage ? 'default' : 'outline'}
+                size="sm"
+                className="w-9"
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Następna
+              <ChevronRightIcon className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
