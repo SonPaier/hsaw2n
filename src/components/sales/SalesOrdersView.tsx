@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import AddSalesOrderDrawer from './AddSalesOrderDrawer';
-import { Search, Plus, ChevronDown, ChevronRight, MessageSquare, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, ChevronDown, ChevronRight, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,22 +20,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { mockSalesOrders, type SalesOrder } from '@/data/salesMockData';
 
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+const formatCurrency = (value: number, currency: 'PLN' | 'EUR') => {
+  if (currency === 'EUR') {
+    return value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+  return value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+};
 
 const ITEMS_PER_PAGE = 10;
 
@@ -62,7 +54,6 @@ const SalesOrdersView = () => {
     return filteredOrders.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredOrders, currentPage]);
 
-  // Reset page when search changes
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
@@ -115,160 +106,163 @@ const SalesOrdersView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[120px]">Nr zamówienia</TableHead>
-              <TableHead className="w-[110px]">Data</TableHead>
+              <TableHead className="w-[100px]">Nr</TableHead>
               <TableHead>Klient</TableHead>
-              <TableHead className="text-right w-[110px]">Netto</TableHead>
-              <TableHead className="text-right w-[110px]">Brutto</TableHead>
-              <TableHead>Produkty</TableHead>
-              <TableHead className="w-[50px] text-center">Uwagi</TableHead>
+              <TableHead className="w-[110px]">
+                <div className="leading-tight">
+                  <div>Data utworzenia</div>
+                  <div className="text-xs font-normal text-muted-foreground">Data wysyłki</div>
+                </div>
+              </TableHead>
               <TableHead className="w-[110px]">Status</TableHead>
+              <TableHead className="w-[180px]">Nr listu przewozowego</TableHead>
+              <TableHead className="text-right w-[120px]">Kwota netto</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Brak zamówień spełniających kryteria
                 </TableCell>
               </TableRow>
             ) : (
               paginatedOrders.map((order) => {
                 const isExpanded = expandedRows.has(order.id);
-                const hasMultipleProducts = order.products.length > 1;
 
                 return (
-                  <Collapsible key={order.id} open={isExpanded} onOpenChange={() => toggleExpand(order.id)} asChild>
-                    <>
-                      <TableRow className="group hover:bg-[#F1F5F9]">
-                        <TableCell className="font-mono text-sm">{order.orderNumber}</TableCell>
-                        <TableCell className="text-sm">
-                          {format(parseISO(order.createdAt), 'dd.MM.yyyy')}
-                        </TableCell>
-                        <TableCell className="font-medium">{order.customerName}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">
-                          {formatCurrency(order.totalNet)}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">
-                          {formatCurrency(order.totalGross)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {hasMultipleProducts ? (
-                              <CollapsibleTrigger asChild>
-                                <button className="flex items-center gap-1.5 text-sm text-left hover:text-primary transition-colors">
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                                  ) : (
-                                    <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-                                  )}
-                                  <span className="truncate max-w-[200px]">{order.products[0].name}</span>
-                                  <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: '#F1F5F9', color: '#64748B' }}>
-                                    +{order.products.length - 1}
-                                  </span>
-                                </button>
-                              </CollapsibleTrigger>
-                            ) : (
-                              <span className="text-sm truncate max-w-[260px]">{order.products[0].name}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {order.comment ? (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <MessageSquare className="w-4 h-4 text-muted-foreground mx-auto cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <p className="text-sm">{order.comment}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : null}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="focus:outline-none">
-                                <Badge
-                                  variant={order.status === 'wysłany' ? 'default' : 'outline'}
-                                  className={
-                                    order.status === 'wysłany'
-                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
-                                      : 'border-amber-500 text-amber-600 cursor-pointer'
-                                  }
-                                >
-                                  {order.status}
-                                </Badge>
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => changeStatus(order.id, 'nowy')}>
-                                <Badge variant="outline" className="border-amber-500 text-amber-600 mr-2">
-                                  nowy
-                                </Badge>
-                                Oznacz jako nowy
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => changeStatus(order.id, 'wysłany')}>
-                                <Badge className="bg-emerald-600 text-white mr-2">wysłany</Badge>
-                                Oznacz jako wysłany
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => toast.info('Edycja zamówienia w przygotowaniu')}>
-                                Edytuj
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => toast.info('Usuwanie zamówienia w przygotowaniu')}
+                  <tbody key={order.id}>
+                    <TableRow
+                      className="group hover:bg-[#F1F5F9] cursor-pointer"
+                      onClick={() => toggleExpand(order.id)}
+                    >
+                      <TableCell className="font-mono text-sm">
+                        <div className="flex items-center gap-1.5">
+                          {isExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          )}
+                          {order.orderNumber}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{order.customerName}</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="leading-tight">
+                          <div>{format(parseISO(order.createdAt), 'dd.MM.yyyy')}</div>
+                          {order.shippedAt && (
+                            <div className="text-xs text-muted-foreground">
+                              {format(parseISO(order.shippedAt), 'dd.MM.yyyy')}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                              <Badge
+                                variant={order.status === 'wysłany' ? 'default' : 'outline'}
+                                className={
+                                  order.status === 'wysłany'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                                    : 'border-amber-500 text-amber-600 cursor-pointer'
+                                }
                               >
-                                Usuń
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
+                                {order.status}
+                              </Badge>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => changeStatus(order.id, 'nowy')}>
+                              <Badge variant="outline" className="border-amber-500 text-amber-600 mr-2">
+                                nowy
+                              </Badge>
+                              Oznacz jako nowy
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => changeStatus(order.id, 'wysłany')}>
+                              <Badge className="bg-emerald-600 text-white mr-2">wysłany</Badge>
+                              Oznacz jako wysłany
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell>
+                        {order.trackingNumber ? (
+                          <a
+                            href="#"
+                            className="text-sm text-primary hover:underline truncate block max-w-[160px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              toast.info('Śledzenie przesyłki w przygotowaniu');
+                            }}
+                          >
+                            {order.trackingNumber}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {formatCurrency(order.totalNet, order.currency)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => toast.info('Edycja zamówienia w przygotowaniu')}>
+                              Edytuj
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => toast.info('Usuwanie zamówienia w przygotowaniu')}
+                            >
+                              Usuń
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
 
-                      {hasMultipleProducts && (
-                        <CollapsibleContent asChild>
-                          <tr>
-                            <td colSpan={9} className="p-0">
-                              <div className="bg-muted/30 px-6 py-3 border-t border-border/50">
-                                <div className="space-y-1.5">
-                                  {order.products.map((product, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="flex items-center justify-between text-sm gap-4"
-                                    >
-                                      <span className="text-muted-foreground min-w-0 truncate">
-                                        {product.name}
-                                      </span>
-                                      <div className="flex items-center gap-4 shrink-0 tabular-nums text-xs text-muted-foreground">
-                                        <span>{product.quantity} szt.</span>
-                                        <span className="w-24 text-right">{formatCurrency(product.priceNet)}</span>
-                                        <span className="w-24 text-right">{formatCurrency(product.priceGross)}</span>
-                                      </div>
-                                    </div>
-                                  ))}
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={7} className="p-0">
+                          <div className="bg-white px-6 py-4 border-t border-border/50">
+                            {order.comment && (
+                              <p className="text-sm text-muted-foreground mb-3">{order.comment}</p>
+                            )}
+                            <div className="space-y-1.5">
+                              {order.products.map((product, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between text-sm gap-4"
+                                >
+                                  <span className="text-muted-foreground min-w-0 truncate">
+                                    {product.name}
+                                  </span>
+                                  <div className="flex items-center gap-4 shrink-0 tabular-nums text-xs text-muted-foreground">
+                                    <span>{product.quantity} szt.</span>
+                                    <span className="w-24 text-right">{formatCurrency(product.priceNet, order.currency)}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                          </tr>
-                        </CollapsibleContent>
-                      )}
-                    </>
-                  </Collapsible>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
                 );
               })
             )}
