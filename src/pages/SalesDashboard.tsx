@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
   X,
 } from 'lucide-react';
+import { useInstanceData } from '@/hooks/useInstanceData';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -71,8 +72,8 @@ const SalesDashboard = () => {
     navigate('/login');
   };
 
-  // Get instance_id from roles
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+  const { data: instanceData } = useInstanceData(instanceId);
 
   const navItems: { key: SalesViewType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: 'orders', label: 'Zamówienia', icon: ShoppingCart },
@@ -137,15 +138,25 @@ const SalesDashboard = () => {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           )}
         >
-          {/* Logo / header */}
-          <div className={cn('flex items-center border-b border-border', sidebarCollapsed ? 'p-2 justify-center' : 'p-4')}>
-            {!sidebarCollapsed && (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <ShoppingCart className="w-5 h-5 text-primary shrink-0" />
-                <span className="font-semibold text-sm truncate">Panel Sprzedaży</span>
-              </div>
-            )}
-            {sidebarCollapsed && <ShoppingCart className="w-5 h-5 text-primary" />}
+          {/* Logo / header - same as AdminDashboard */}
+          <div className={cn('border-b border-border/50 flex items-center justify-between', sidebarCollapsed ? 'p-3' : 'p-6')}>
+            <button 
+              className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
+            >
+              {instanceData?.logo_url && (
+                <img 
+                  src={instanceData.logo_url} 
+                  alt={instanceData.name} 
+                  className={cn(
+                    "rounded-xl object-contain shrink-0 bg-white",
+                    sidebarCollapsed ? "w-10 h-10" : "w-[40%] max-h-10"
+                  )}
+                />
+              )}
+              {!sidebarCollapsed && <div className="text-left min-w-0 flex-1 pr-2">
+                <h1 className="font-bold text-foreground truncate">{instanceData?.name || 'Panel Sprzedaży'}</h1>
+              </div>}
+            </button>
             {/* Mobile close */}
             <Button
               variant="ghost"
@@ -177,26 +188,26 @@ const SalesDashboard = () => {
                 </Button>
               );
             })}
-
-            {/* Switch to Studio */}
-            {hasStudioAccess && (
-              <>
-                <Separator className="my-3" />
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full gap-3',
-                    sidebarCollapsed ? 'justify-center px-2' : 'justify-start'
-                  )}
-                  onClick={() => navigate(studioBasePath)}
-                  title="Przejdź do Panelu Studio"
-                >
-                  <ArrowLeftRight className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && 'Panel Studio'}
-                </Button>
-              </>
-            )}
           </nav>
+
+          {/* Panel Studio switch - above collapse toggle */}
+          {hasStudioAccess && (
+            <div className={cn(sidebarCollapsed ? 'px-1 pb-1' : 'px-3 pb-1')}>
+              <Separator className="mb-2" />
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full gap-3',
+                  sidebarCollapsed ? 'justify-center px-2' : 'justify-start'
+                )}
+                onClick={() => navigate(studioBasePath)}
+                title="Przejdź do Panelu Studio"
+              >
+                <ArrowLeftRight className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && 'Panel Studio'}
+              </Button>
+            </div>
+          )}
 
           {/* Footer: collapse + user */}
           <div className={cn(sidebarCollapsed ? 'p-2 space-y-2' : 'p-4 space-y-3')}>
