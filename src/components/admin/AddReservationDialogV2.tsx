@@ -480,9 +480,8 @@ const AddReservationDialogV2 = ({
             setReservationType('single');
           }
         } else {
-          // No date provided (e.g. creating from offer) - use next working day
-          const nextDay = getNextWorkingDay();
-          setDateRange({ from: nextDay, to: nextDay });
+          // No date provided (e.g. creating from offer) - leave empty so user must pick
+          setDateRange(undefined);
           setReservationType('single');
         }
 
