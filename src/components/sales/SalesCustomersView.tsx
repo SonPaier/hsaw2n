@@ -78,7 +78,12 @@ const SalesCustomersView = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Title */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xl font-semibold text-foreground">Klienci</h2>
+      </div>
+
+      {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
