@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import AddSalesProductDrawer from './AddSalesProductDrawer';
 
 export interface SalesProduct {
   id: string;
@@ -64,6 +65,7 @@ const SalesProductsView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [products] = useState<SalesProduct[]>(generateMockProducts);
   const [currentPage, setCurrentPage] = useState(1);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -107,7 +109,7 @@ const SalesProductsView = () => {
         </div>
         <Button
           size="sm"
-          onClick={() => toast.info('Moduł dodawania produktów w przygotowaniu')}
+          onClick={() => setDrawerOpen(true)}
         >
           <Plus className="w-4 h-4" />
           Dodaj produkt
@@ -221,6 +223,7 @@ const SalesProductsView = () => {
           </div>
         </div>
       )}
+      <AddSalesProductDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   );
 };
