@@ -107,7 +107,7 @@ const SalesOrdersView = () => {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px]">Nr</TableHead>
-              <TableHead>Klient</TableHead>
+              <TableHead className="w-[200px]">Klient</TableHead>
               <TableHead className="w-[130px]">
                 <div className="leading-tight">
                   <div>Data utw.</div>
