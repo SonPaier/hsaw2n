@@ -101,14 +101,13 @@ export const PublicProtocolCustomerView = ({
   }, [damagePoints]);
 
   // Generate notes from damage points
-  const generatedNotes = damagePoints.length > 0 
-    ? damagePoints.map(point => {
-        const viewLabel = VIEW_LABELS[point.view];
-        const damageLabel = point.damage_type ? DAMAGE_TYPE_LABELS[point.damage_type] || point.damage_type : 'usterka';
-        const customNote = point.custom_note ? ` - ${point.custom_note}` : '';
-        return `• ${viewLabel}: ${damageLabel}${customNote}`;
-      }).join('\n')
-    : null;
+  const generatedNotes = useMemo(() => {
+    if (damagePoints.length === 0) return null;
+    const notesWithContent = damagePoints
+      .filter(point => point.custom_note && point.custom_note.trim())
+      .map(point => `• ${point.custom_note!.trim()}`);
+    return notesWithContent.length > 0 ? notesWithContent.join('\n') : null;
+  }, [damagePoints]);
 
   // Protocol type label
   const protocolTypeLabel = PROTOCOL_TYPE_LABELS[protocol.protocol_type || 'reception'];
@@ -310,7 +309,10 @@ export const PublicProtocolCustomerView = ({
 
           {/* App footer */}
           <div className="text-center text-xs text-muted-foreground pt-4">
-            Protokół sporządzono przy użyciu aplikacji n2wash.com
+            Protokół sporządzono przy użyciu aplikacji{' '}
+            <a href="https://n2wash.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">
+              n2wash.com
+            </a>
           </div>
         </div>
       </main>
