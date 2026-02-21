@@ -327,6 +327,8 @@ export const PublicProtocolCustomerView = ({
         open={photoDialogOpen}
         onOpenChange={setPhotoDialogOpen}
         photoUrl={fullscreenPhoto}
+        allPhotos={[...(protocol.photo_urls || []), ...allDamagePhotos]}
+        initialIndex={fullscreenPhoto ? [...(protocol.photo_urls || []), ...allDamagePhotos].indexOf(fullscreenPhoto) : 0}
       />
     </div>
   );
