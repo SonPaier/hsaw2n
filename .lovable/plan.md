@@ -1,60 +1,101 @@
 
 
-## Poprawki w module protokolow
+## Tryb "Rysik" + nowe nazewnictwo plikow
 
-### 1. Labelka nad diagramem (CreateProtocolForm.tsx)
+### Nazewnictwo plikow
 
-Zmiana tekstu labeli z:
-"Zaznacz ewentualne usterki na diagramie pojazdu"
-na:
-"Zaznacz ewentualne usterki na diagramie pojazdu przetrzymujac palec w danym miejscu"
+Format:
 
-Linia 813 w `CreateProtocolForm.tsx`.
-
----
-
-### 2. Klikanie na kompie nie dodaje usterki
-
-**Problem**: W `VehicleDiagram.tsx` linia 50 sprawdza:
 ```
-if (e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('diagram-bg'))
+protokol-szkoda-{YYYYMMDD-HHmmss}.jpg
 ```
-Obraz `<img>` ma klase `diagram-bg`, ale ma tez `pointer-events-none` (linia ~155). To powoduje, ze klikniecia na obrazek "przelatuja" do kontenera -- co powinno dzialac. Jednak problem moze byc w tym, ze klikniecie trafia na wewnetrzny `<div>` (wrapper z `paddingBottom: 100%`), ktory **nie jest** `e.currentTarget` (zewnetrzny div) i **nie ma** klasy `diagram-bg`.
 
-**Rozwiazanie**: Dodac klase `diagram-bg` rowniez do wewnetrznego diva z `paddingBottom`, lub zmienic warunek tak, aby akceptowal klikniecia na dowolnym elemencie wewnatrz kontenera, ktory nie jest kropka (damage point). Najlepsza opcja: uzyc `e.currentTarget.contains(e.target)` i wykluczyc tylko kropki damage points (ktore maja np. klase `damage-dot`).
+Przyklady:
+- `protokol-szkoda-20260221-143052.jpg`
+- `protokol-szkoda-20260221-143055.jpg`
 
----
-
-### 3. Zdjecia w trybie edycji nie sa klikalne
-
-Dwa miejsca wymagaja poprawki:
-
-**a) CreateProtocolForm.tsx (linie 828-841)** -- sekcja "Zdjecia usterek" pod diagramem. Brak `onClick` i `cursor-pointer`. Trzeba dodac stan `fullscreenPhoto` + `PhotoFullscreenDialog` oraz `onClick={() => setFullscreenPhoto(url)}`.
-
-**b) DamagePointDrawer.tsx (linie 237-240)** -- zdjecia w szufladzie edycji usterki. Tak samo brak `onClick` do powiekszania. Trzeba dodac `PhotoFullscreenDialog` i `onClick` na kazde zdjecie.
+Zmiana w 3 miejscach: `ProtocolPhotosUploader.tsx`, `DamagePointDrawer.tsx`, nowy `PhotoAnnotationDialog.tsx`.
 
 ---
 
-### 4. Przycisk X w PhotoFullscreenDialog
+### Tryb "Rysik"
 
-Komponent juz uzywa `z-[10000]` i bialego tla. Sprawdze czy styl jest odpowiedni -- wyglada poprawnie w kodzie. Problem mogl byc w tym, ze dialog nie byl w ogole otwierany (brak onClick na zdjeciach), co sprawia wrazenie ze "X nie dziala".
+**UX Flow:**
+
+```text
+[Klikam zdjecie] -> [Podglad pelnoekranowy]
+                         |
+                    [Przycisk "Rysik" (ikona olowka)]
+                         |
+                    [Tryb rysowania - toolbar widoczny]
+                         |
+              +------------ Toolbar u gory -------------+
+              | [Czerwony] [Zolty] [Niebieski] | [Cofnij] [Ponow] [Wyczysc] | [X]
+              +-----------------------------------------+
+                         |
+              [Rysujesz palcem/mysza po zdjeciu]
+                         |
+              [Przycisk "Zapisz" na dole -- widoczny tylko gdy sa stroki]
+                         |
+              [Nowy JPEG -> stary usuniety ze storage]
+              [URL w photo_urls[] zastapiony nowym]
+```
+
+**Widocznosc przyciskow:**
+
+- Toolbar (kolory, Cofnij, Ponow, Wyczysc) -- widoczny tylko gdy rysik jest wlaczony
+- Przycisk "Zapisz" -- widoczny tylko gdy rysik wlaczony ORAZ jest co najmniej 1 stroke
+- Cofnij -- aktywny gdy `strokes.length > 0`
+- Ponow -- aktywny gdy `redoStack.length > 0`
+- Wyczysc -- aktywny gdy `strokes.length > 0`
+
+**Kolory -- jeden kolor dla calego rysunku:**
+
+Zmiana koloru zmienia kolor **wszystkich** narysowanych kresek naraz. Implementacja: historia strokow przechowuje tylko sciezki (punkty), bez koloru. Przy renderowaniu wszystkie stroki rysowane sa aktualnie wybranym kolorem.
+
+- Czerwony (`#FF0000`) -- domyslny
+- Zolty (`#FFD600`)
+- Niebieski (`#0066FF`)
+- Grubosc: 4px
+
+**Undo / Redo / Clear:**
+
+- **Cofnij (Undo):** przenosi ostatni stroke ze `strokes[]` na `redoStack[]`
+- **Ponow (Redo):** przenosi ostatni element z `redoStack[]` z powrotem na `strokes[]`
+- **Wyczysc (Clear):** czysci `strokes[]` i `redoStack[]` -- czysta kartka
+- Nowy stroke czysci `redoStack[]` (jak w kazdym edytorze)
+- Max 20 krokow wstecz
+
+**Zapis:** JPEG 0.85 quality, max 1200px. Nowy plik zastepuje stary (stary usuwany ze storage).
 
 ---
 
 ### Szczegoly techniczne
 
+**Stan komponentu PhotoAnnotationDialog:**
+
+```typescript
+type Stroke = { points: { x: number; y: number }[] };
+
+const [strokes, setStrokes] = useState<Stroke[]>([]);
+const [redoStack, setRedoStack] = useState<Stroke[]>([]);
+const [activeColor, setActiveColor] = useState('#FF0000');
+const [isDrawingMode, setIsDrawingMode] = useState(false);
+
+const hasStrokes = strokes.length > 0;
+const canUndo = strokes.length > 0;
+const canRedo = redoStack.length > 0;
+```
+
+Kazdy `pointerup` dodaje nowy Stroke i czysci `redoStack`. Renderowanie: iteracja po `strokes[]` -- kazdy rysowany kolorem `activeColor`. Zmiana koloru = przerysowanie calego canvasa.
+
+**Nowy plik:**
+- `src/components/protocols/PhotoAnnotationDialog.tsx`
+
 **Pliki do zmiany:**
 
-1. **`src/components/protocols/VehicleDiagram.tsx`** -- poprawka warunku w `handlePointerDown` (linia 50), aby klikniecie mysza na wewnetrzny div tez dodawalo punkt.
-
-2. **`src/components/protocols/CreateProtocolForm.tsx`**:
-   - Zmiana labelki (linia 813)
-   - Dodanie stanu `fullscreenPhoto` + import `PhotoFullscreenDialog`
-   - Dodanie `onClick` + `cursor-pointer` do zdjec usterek (linie 832-838)
-   - Render `PhotoFullscreenDialog` na koncu komponentu
-
-3. **`src/components/protocols/DamagePointDrawer.tsx`**:
-   - Dodanie stanu `fullscreenPhoto` + import `PhotoFullscreenDialog`
-   - Dodanie `onClick` na zdjecia (linia 237-240)
-   - Render `PhotoFullscreenDialog`
+1. **`PhotoFullscreenDialog.tsx`** -- nowy prop `onAnnotate?: (newUrl: string) => void`, przycisk "Rysik" (toggle wlacz/wylacz tryb rysowania)
+2. **`DamagePointDrawer.tsx`** -- nazewnictwo `protokol-szkoda-{timestamp}.jpg`, callback `onAnnotate` do zastapienia URL w `photoUrls[]`
+3. **`ProtocolPhotosUploader.tsx`** -- nazewnictwo `protokol-szkoda-{timestamp}.jpg`
+4. **`CreateProtocolForm.tsx`** -- przekazanie `onAnnotate` do `PhotoFullscreenDialog` dla zdjec pod diagramem
 
