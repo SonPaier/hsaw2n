@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, MoreHorizontal, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -30,29 +30,27 @@ interface SalesCustomer {
 }
 
 const caretakers = [
-  { name: 'Tomasz Kowalski', avatar: 'https://i.pravatar.cc/40?img=1' },
   { name: 'Anna Nowak', avatar: 'https://i.pravatar.cc/40?img=5' },
-  { name: 'Piotr Wiśniewski', avatar: 'https://i.pravatar.cc/40?img=3' },
   { name: 'Katarzyna Zielińska', avatar: 'https://i.pravatar.cc/40?img=9' },
-  { name: 'Marek Szymański', avatar: 'https://i.pravatar.cc/40?img=7' },
+  { name: 'Tomasz Kowalski', avatar: 'https://i.pravatar.cc/40?img=1' },
 ];
 
 const mockCustomers: SalesCustomer[] = [
   { id: '1', name: 'Auto Detailing Kraków Sp. z o.o.', nip: '6793218745', city: 'Kraków', caretaker: caretakers[0], phone: '+48 512 345 678', email: 'biuro@autodetailing-krakow.pl' },
   { id: '2', name: 'Wrap Studio Warszawa', nip: '5272987431', city: 'Warszawa', caretaker: caretakers[1], phone: '+48 501 234 567', email: 'kontakt@wrapstudio.pl' },
   { id: '3', name: 'PPF Master Poznań', nip: '7822156390', city: 'Poznań', caretaker: caretakers[2], phone: '+48 600 111 222', email: 'info@ppfmaster.pl' },
-  { id: '4', name: 'FolioTech Wrocław', nip: '8982314567', city: 'Wrocław', caretaker: caretakers[3], phone: '+48 510 987 654', email: 'zamowienia@foliotech.pl' },
-  { id: '5', name: 'CarWrap Pro Gdańsk', nip: '5841276543', city: 'Gdańsk', caretaker: caretakers[4], phone: '+48 533 444 555', email: 'biuro@carwrappro.pl' },
-  { id: '6', name: 'Detailing Center Łódź', nip: '7251498372', city: 'Łódź', caretaker: caretakers[0], phone: '+48 509 876 543', email: 'kontakt@detailingcenter.pl' },
-  { id: '7', name: 'Auto Spa Premium Katowice', nip: '6342178905', city: 'Katowice', caretaker: caretakers[1], phone: '+48 502 333 444', email: 'info@autospa-premium.pl' },
-  { id: '8', name: 'Shield Car Studio Lublin', nip: '7123465890', city: 'Lublin', caretaker: caretakers[2], phone: '+48 515 222 333', email: 'studio@shieldcar.pl' },
-  { id: '9', name: 'MaxProtect Szczecin', nip: '8512347689', city: 'Szczecin', caretaker: caretakers[3], phone: '+48 601 555 666', email: 'biuro@maxprotect.pl' },
-  { id: '10', name: 'Elite Detailing Białystok', nip: '5421389076', city: 'Białystok', caretaker: caretakers[4], phone: '+48 512 777 888', email: 'kontakt@elitedetailing.pl' },
-  { id: '11', name: 'ProWrap Bydgoszcz', nip: '5541267834', city: 'Bydgoszcz', caretaker: caretakers[0], phone: '+48 504 111 999', email: 'info@prowrap.pl' },
-  { id: '12', name: 'PPF Expert Rzeszów', nip: '8131456723', city: 'Rzeszów', caretaker: caretakers[1], phone: '+48 530 222 111', email: 'biuro@ppfexpert.pl' },
-  { id: '13', name: 'GlassGuard Opole', nip: '7541238906', city: 'Opole', caretaker: caretakers[2], phone: '+48 511 333 222', email: 'zamowienia@glassguard.pl' },
-  { id: '14', name: 'FilmPro Kielce', nip: '6571234890', city: 'Kielce', caretaker: caretakers[3], phone: '+48 508 444 333', email: 'kontakt@filmpro.pl' },
-  { id: '15', name: 'WrapMaster Toruń', nip: '8792134567', city: 'Toruń', caretaker: caretakers[4], phone: '+48 516 555 444', email: 'biuro@wrapmaster.pl' },
+  { id: '4', name: 'FolioTech Wrocław', nip: '8982314567', city: 'Wrocław', caretaker: caretakers[0], phone: '+48 510 987 654', email: 'zamowienia@foliotech.pl' },
+  { id: '5', name: 'CarWrap Pro Gdańsk', nip: '5841276543', city: 'Gdańsk', caretaker: caretakers[1], phone: '+48 533 444 555', email: 'biuro@carwrappro.pl' },
+  { id: '6', name: 'Detailing Center Łódź', nip: '7251498372', city: 'Łódź', caretaker: caretakers[2], phone: '+48 509 876 543', email: 'kontakt@detailingcenter.pl' },
+  { id: '7', name: 'Auto Spa Premium Katowice', nip: '6342178905', city: 'Katowice', caretaker: caretakers[0], phone: '+48 502 333 444', email: 'info@autospa-premium.pl' },
+  { id: '8', name: 'Shield Car Studio Lublin', nip: '7123465890', city: 'Lublin', caretaker: caretakers[1], phone: '+48 515 222 333', email: 'studio@shieldcar.pl' },
+  { id: '9', name: 'MaxProtect Szczecin', nip: '8512347689', city: 'Szczecin', caretaker: caretakers[2], phone: '+48 601 555 666', email: 'biuro@maxprotect.pl' },
+  { id: '10', name: 'Elite Detailing Białystok', nip: '5421389076', city: 'Białystok', caretaker: caretakers[0], phone: '+48 512 777 888', email: 'kontakt@elitedetailing.pl' },
+  { id: '11', name: 'ProWrap Bydgoszcz', nip: '5541267834', city: 'Bydgoszcz', caretaker: caretakers[1], phone: '+48 504 111 999', email: 'info@prowrap.pl' },
+  { id: '12', name: 'PPF Expert Rzeszów', nip: '8131456723', city: 'Rzeszów', caretaker: caretakers[2], phone: '+48 530 222 111', email: 'biuro@ppfexpert.pl' },
+  { id: '13', name: 'GlassGuard Opole', nip: '7541238906', city: 'Opole', caretaker: caretakers[0], phone: '+48 511 333 222', email: 'zamowienia@glassguard.pl' },
+  { id: '14', name: 'FilmPro Kielce', nip: '6571234890', city: 'Kielce', caretaker: caretakers[1], phone: '+48 508 444 333', email: 'kontakt@filmpro.pl' },
+  { id: '15', name: 'WrapMaster Toruń', nip: '8792134567', city: 'Toruń', caretaker: caretakers[2], phone: '+48 516 555 444', email: 'biuro@wrapmaster.pl' },
 ];
 
 const ITEMS_PER_PAGE = 10;
@@ -169,17 +167,39 @@ const SalesCustomersView = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-muted-foreground">
-            {filtered.length} klientów
+            Strona {page} z {totalPages} ({filtered.length} klientów)
           </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              Poprzednia
             </Button>
-            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-              <ChevronRight className="w-4 h-4" />
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? 'default' : 'outline'}
+                size="sm"
+                className="w-9"
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Następna
+              <ChevronRightIcon className="w-4 h-4" />
             </Button>
           </div>
         </div>
