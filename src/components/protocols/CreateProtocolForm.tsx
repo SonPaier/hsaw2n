@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { normalizePhone } from '@/lib/phoneUtils';
 import { VehicleDiagram, type BodyType, type VehicleView, type DamagePoint } from './VehicleDiagram';
 import { DamagePointDrawer } from './DamagePointDrawer';
+import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 import { OfferSearchAutocomplete } from './OfferSearchAutocomplete';
 import { SignatureDialog } from './SignatureDialog';
 import { SendProtocolEmailDialog } from './SendProtocolEmailDialog';
@@ -126,6 +127,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
   const [pendingPoint, setPendingPoint] = useState<{ view: VehicleView; x_percent: number; y_percent: number } | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<DamagePoint | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   // Signature
   const [customerSignature, setCustomerSignature] = useState<string | null>(null);
@@ -810,7 +812,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
 
               {/* Vehicle diagram */}
               <div className="space-y-2">
-                <Label>Zaznacz ewentualne usterki na diagramie pojazdu</Label>
+                <Label>Zaznacz ewentualne usterki na diagramie pojazdu przetrzymując palec w danym miejscu</Label>
                 <VehicleDiagram
                   bodyType={bodyType}
                   damagePoints={damagePoints}
@@ -833,7 +835,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                           <img
                             src={url}
                             alt={`Zdjęcie usterki`}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setFullscreenPhoto(url)}
                           />
                         </div>
                       ));
@@ -1015,6 +1018,12 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => !open && setFullscreenPhoto(null)}
+        photoUrl={fullscreenPhoto}
+      />
     </div>
   );
 };

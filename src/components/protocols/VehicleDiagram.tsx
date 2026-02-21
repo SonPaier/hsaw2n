@@ -47,7 +47,7 @@ export const VehicleDiagram = ({
   // Add point: instant click on mouse, long-press on touch
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (readOnly || !onAddPoint) return;
-    if (e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('diagram-bg')) return;
+    if ((e.target as HTMLElement).closest('.damage-dot')) return;
     
     longPressFiredRef.current = false;
     touchStartPosRef.current = { x: e.clientX, y: e.clientY };
@@ -177,7 +177,7 @@ export const VehicleDiagram = ({
           <div
             key={point.id}
             className={cn(
-              "absolute rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all bg-blue-500",
+              "damage-dot absolute rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all bg-blue-500",
               readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
               point.isNew && "animate-pulse",
               selectedPointId === point.id && "ring-2 ring-offset-2 ring-primary scale-125",
