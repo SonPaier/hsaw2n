@@ -27,12 +27,13 @@ export const PhotoFullscreenDialog = ({
 
   return (
     <>
-      <DialogPrimitive.Root open={open && !annotationOpen} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/95" onClick={() => onOpenChange(false)} />
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/95" onClick={() => onOpenChange(false)} style={{ display: annotationOpen ? 'none' : undefined }} />
           <DialogPrimitive.Content
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4 outline-none"
             onClick={() => onOpenChange(false)}
+            style={{ display: annotationOpen ? 'none' : undefined }}
           >
             {/* Top buttons */}
             <div className="fixed top-4 right-4 z-[10000] flex gap-2">

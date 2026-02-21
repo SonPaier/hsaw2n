@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
 import { VoiceNoteInput } from './VoiceNoteInput';
 import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 
@@ -200,60 +200,48 @@ export const DamagePointDrawer = ({
         </DrawerHeader>
 
         <div className="px-4 space-y-4 pb-4 overflow-y-auto">
-          {/* Photos at the top */}
+          {/* Photos grid */}
           <div className="space-y-2">
             <Label>Zdjęcia</Label>
-            
-            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer bg-white hover:bg-muted/30 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={uploading}
-              />
-              {uploading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <Camera className="h-8 w-8 text-muted-foreground mb-1" />
-                  <span className="text-sm text-muted-foreground font-medium">
-                    Zrób zdjęcie lub wybierz z galerii
-                  </span>
-                </>
-              )}
-            </label>
-
-            {photoUrls.length > 0 && (
-              <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                <div className="flex gap-3 pb-2 pr-2">
-                  {photoUrls.map((url, index) => (
-                    <div 
-                      key={index} 
-                      className="relative shrink-0 w-[calc(25%-10px)] min-w-[80px] aspect-square group"
-                    >
-                      <img 
-                        src={url} 
-                        alt={`Zdjęcie ${index + 1}`} 
-                        className="w-full h-full object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); setFullscreenPhoto(url); }}
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                        onClick={() => handleRemovePhoto(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-4 gap-2">
+              {/* Add photo tile */}
+              <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-muted-foreground/50 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                />
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="h-5 w-5" />
+                    <span className="text-[10px] leading-tight text-center">Dodaj zdjęcie</span>
+                  </>
+                )}
+              </label>
+              {/* Photo thumbnails */}
+              {photoUrls.map((url, index) => (
+                <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(url)}>
+                  <img
+                    src={url}
+                    alt={`Zdjęcie ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRemovePhoto(index); }}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            )}
+              ))}
+            </div>
           </div>
 
           {/* Note with voice input */}
