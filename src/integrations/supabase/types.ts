@@ -269,8 +269,20 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          billing_city: string | null
+          billing_country_code: string | null
+          billing_postal_code: string | null
+          billing_region: string | null
+          billing_street: string | null
+          billing_street_line2: string | null
           company: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          contact_phone_country_code: string | null
+          country_code: string | null
           created_at: string | null
+          default_currency: string | null
           discount_percent: number | null
           email: string | null
           id: string
@@ -279,14 +291,36 @@ export type Database = {
           nip: string | null
           notes: string | null
           phone: string
+          phone_country_code: string | null
           phone_verified: boolean | null
+          sales_notes: string | null
+          shipping_city: string | null
+          shipping_country_code: string | null
+          shipping_postal_code: string | null
+          shipping_region: string | null
+          shipping_street: string | null
+          shipping_street_line2: string | null
+          short_name: string | null
           source: string
           updated_at: string | null
+          vat_eu_number: string | null
         }
         Insert: {
           address?: string | null
+          billing_city?: string | null
+          billing_country_code?: string | null
+          billing_postal_code?: string | null
+          billing_region?: string | null
+          billing_street?: string | null
+          billing_street_line2?: string | null
           company?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          contact_phone_country_code?: string | null
+          country_code?: string | null
           created_at?: string | null
+          default_currency?: string | null
           discount_percent?: number | null
           email?: string | null
           id?: string
@@ -295,14 +329,36 @@ export type Database = {
           nip?: string | null
           notes?: string | null
           phone: string
+          phone_country_code?: string | null
           phone_verified?: boolean | null
+          sales_notes?: string | null
+          shipping_city?: string | null
+          shipping_country_code?: string | null
+          shipping_postal_code?: string | null
+          shipping_region?: string | null
+          shipping_street?: string | null
+          shipping_street_line2?: string | null
+          short_name?: string | null
           source?: string
           updated_at?: string | null
+          vat_eu_number?: string | null
         }
         Update: {
           address?: string | null
+          billing_city?: string | null
+          billing_country_code?: string | null
+          billing_postal_code?: string | null
+          billing_region?: string | null
+          billing_street?: string | null
+          billing_street_line2?: string | null
           company?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          contact_phone_country_code?: string | null
+          country_code?: string | null
           created_at?: string | null
+          default_currency?: string | null
           discount_percent?: number | null
           email?: string | null
           id?: string
@@ -311,9 +367,19 @@ export type Database = {
           nip?: string | null
           notes?: string | null
           phone?: string
+          phone_country_code?: string | null
           phone_verified?: boolean | null
+          sales_notes?: string | null
+          shipping_city?: string | null
+          shipping_country_code?: string | null
+          shipping_postal_code?: string | null
+          shipping_region?: string | null
+          shipping_street?: string | null
+          shipping_street_line2?: string | null
+          short_name?: string | null
           source?: string
           updated_at?: string | null
+          vat_eu_number?: string | null
         }
         Relationships: [
           {
