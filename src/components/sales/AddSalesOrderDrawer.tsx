@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Plus, Percent, Minus } from 'lucide-react';
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-  DrawerClose,
-} from '@/components/ui/drawer';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -123,9 +122,13 @@ const AddSalesOrderDrawer = ({ open, onOpenChange }: AddSalesOrderDrawerProps) =
   const totalNet = Math.max(0, subtotalNet - discountAmount);
   const totalGross = totalNet * (1 + VAT_RATE);
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
   const handleSubmit = () => {
     toast.info('Moduł dodawania zamówień w przygotowaniu');
-    onOpenChange(false);
+    handleClose();
   };
 
   const resetForm = () => {
@@ -139,24 +142,37 @@ const AddSalesOrderDrawer = ({ open, onOpenChange }: AddSalesOrderDrawerProps) =
   };
 
   return (
-    <Drawer
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) resetForm();
-        onOpenChange(o);
-      }}
-      direction="right"
-    >
-      <DrawerContent
-        className="fixed inset-y-0 right-0 left-auto w-full sm:w-[480px] rounded-none rounded-l-lg"
-        hideOverlay={false}
+    <Sheet open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        resetForm();
+        onOpenChange(false);
+      }
+    }} modal={false}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+        hideOverlay
+        hideCloseButton
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <div className="flex flex-col h-full overflow-hidden">
-          <DrawerHeader className="text-left border-b border-border pb-4">
-            <DrawerTitle>Dodaj zamówienie</DrawerTitle>
-          </DrawerHeader>
+        {/* Fixed Header */}
+        <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle>Dodaj zamówienie</SheetTitle>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
             {/* Customer selection */}
             <div className="space-y-2">
               <Label>Klient</Label>
@@ -409,21 +425,21 @@ const AddSalesOrderDrawer = ({ open, onOpenChange }: AddSalesOrderDrawerProps) =
               />
             </div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <DrawerFooter className="border-t border-border pt-4 flex-row gap-3">
-            <DrawerClose asChild>
-              <Button variant="outline" className="flex-1">
-                Anuluj
-              </Button>
-            </DrawerClose>
+        {/* Fixed Footer */}
+        <SheetFooter className="px-6 py-4 border-t shrink-0">
+          <div className="flex gap-3 w-full">
+            <Button variant="outline" className="flex-1" onClick={handleClose}>
+              Anuluj
+            </Button>
             <Button className="flex-1" onClick={handleSubmit}>
               Dodaj zamówienie
             </Button>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
+          </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };
 
