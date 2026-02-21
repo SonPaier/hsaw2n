@@ -133,8 +133,8 @@ const SalesDashboard = () => {
         {/* Sidebar */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-300 lg:relative',
-            sidebarCollapsed ? 'w-14' : 'w-60',
+            'fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/50 transition-all duration-300 lg:relative',
+            sidebarCollapsed ? 'lg:w-16' : 'w-64',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           )}
         >
