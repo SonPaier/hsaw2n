@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import AddSalesOrderDrawer from './AddSalesOrderDrawer';
 import { Search, Plus, ChevronDown, ChevronRight, MessageSquare, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { mockSalesOrders, type SalesOrder } from '@/data/salesMockData';
-import { toast } from 'sonner';
+
 
 const formatCurrency = (value: number) =>
   value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
@@ -42,6 +43,7 @@ const SalesOrdersView = () => {
   const [orders, setOrders] = useState<SalesOrder[]>(mockSalesOrders);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const filteredOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders;
@@ -100,7 +102,7 @@ const SalesOrdersView = () => {
         </div>
         <Button
           size="sm"
-          onClick={() => toast.info('Moduł dodawania zamówień w przygotowaniu')}
+          onClick={() => setDrawerOpen(true)}
         >
           <Plus className="w-4 h-4" />
           Dodaj zamówienie
@@ -160,7 +162,7 @@ const SalesOrdersView = () => {
                                     <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                                   )}
                                   <span className="truncate max-w-[200px]">{order.products[0].name}</span>
-                                  <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full shrink-0">
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: '#F1F5F9', color: '#64748B' }}>
                                     +{order.products.length - 1}
                                   </span>
                                 </button>
@@ -291,6 +293,7 @@ const SalesOrdersView = () => {
           </div>
         </div>
       )}
+      <AddSalesOrderDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   );
 };
