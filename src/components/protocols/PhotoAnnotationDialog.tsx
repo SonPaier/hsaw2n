@@ -276,59 +276,43 @@ export const PhotoAnnotationDialog = ({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/95" />
         <DialogPrimitive.Content className="fixed inset-0 z-[9999] flex flex-col outline-none">
-          {/* Top-right buttons: pencil + actions + close */}
-          <div className="fixed top-4 right-4 z-[10000] flex items-center gap-2">
-            {/* Undo/Redo/Clear - only when drawing mode on */}
-            {isDrawingMode && (
-              <>
-                <button type="button" className={circleButtonClass} onClick={handleUndo} disabled={!canUndo} aria-label="Cofnij">
-                  <Undo2 className="h-5 w-5" />
-                </button>
-                <button type="button" className={circleButtonClass} onClick={handleRedo} disabled={!canRedo} aria-label="Ponów">
-                  <Redo2 className="h-5 w-5" />
-                </button>
-                <button type="button" className={circleButtonClass} onClick={handleClear} disabled={!hasStrokes} aria-label="Wyczyść">
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </>
-            )}
-
-            {/* Pencil toggle */}
-            <button
-              type="button"
-              className={circleButtonClass}
-              style={isDrawingMode ? { backgroundColor: '#000', color: '#fff', borderColor: '#000' } : undefined}
-              onClick={() => setIsDrawingMode(!isDrawingMode)}
-              aria-label="Rysik"
-            >
-              <Pencil className="h-6 w-6" />
-            </button>
-
-            {/* Close */}
-            <button type="button" className={circleButtonClass} onClick={handleClose} aria-label="Zamknij">
-              <X className="h-7 w-7" />
-            </button>
-          </div>
-
-          {/* Color picker - top left, only when drawing */}
-          {isDrawingMode && (
-            <div className="fixed top-4 left-4 z-[10000] flex gap-2">
-              {COLORS.map(c => (
+          {/* Top bar */}
+          <div className="fixed top-4 left-4 right-4 z-[10000] flex items-center justify-between">
+            {/* Left: colors (when drawing) */}
+            <div className="flex items-center gap-2">
+              {isDrawingMode && COLORS.map(c => (
                 <button
                   key={c.value}
                   type="button"
-                  className="h-10 w-10 rounded-full border-2 transition-transform shadow-lg"
+                  className="h-10 w-10 rounded-full border transition-transform shadow-lg"
                   style={{
                     backgroundColor: c.value,
-                    borderColor: activeColor === c.value ? 'white' : 'transparent',
-                    transform: activeColor === c.value ? 'scale(1.2)' : 'scale(1)',
+                    borderColor: activeColor === c.value ? 'white' : 'rgba(255,255,255,0.3)',
+                    borderWidth: activeColor === c.value ? '2px' : '1px',
+                    transform: activeColor === c.value ? 'scale(1.15)' : 'scale(1)',
                   }}
                   onClick={() => setActiveColor(c.value)}
                   aria-label={c.label}
                 />
               ))}
             </div>
-          )}
+
+            {/* Right: pencil + X */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={circleButtonClass}
+                style={isDrawingMode ? { backgroundColor: 'transparent', borderColor: 'white', color: 'white' } : undefined}
+                onClick={() => setIsDrawingMode(!isDrawingMode)}
+                aria-label="Rysik"
+              >
+                <Pencil className="h-6 w-6" />
+              </button>
+              <button type="button" className={circleButtonClass} onClick={handleClose} aria-label="Zamknij">
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+          </div>
 
           {/* Canvas area */}
           <div
@@ -346,14 +330,25 @@ export const PhotoAnnotationDialog = ({
             />
           </div>
 
-          {/* Save button - fixed at bottom, only when drawing mode on AND has strokes */}
+          {/* Bottom bar: undo/redo/clear on left, save on right - only when drawing */}
           {isDrawingMode && hasStrokes && (
-            <div className="fixed bottom-4 left-4 right-4 z-[10000] flex justify-center pointer-events-none">
+            <div className="fixed bottom-4 left-4 right-4 z-[10000] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button type="button" className={circleButtonClass} onClick={handleUndo} disabled={!canUndo} aria-label="Cofnij">
+                  <Undo2 className="h-5 w-5" />
+                </button>
+                <button type="button" className={circleButtonClass} onClick={handleRedo} disabled={!canRedo} aria-label="Ponów">
+                  <Redo2 className="h-5 w-5" />
+                </button>
+                <button type="button" className={circleButtonClass} onClick={handleClear} disabled={!hasStrokes} aria-label="Wyczyść">
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="pointer-events-auto px-8 py-3 rounded-full bg-white text-black font-medium shadow-2xl border-2 border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-3 rounded-full bg-white text-black font-medium shadow-2xl border-2 border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
               >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Zapisz
