@@ -92,7 +92,6 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
               <Label htmlFor="product-code">Kod produktu</Label>
               <Input
                 id="product-code"
-                placeholder="np. UF-481"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
@@ -102,7 +101,6 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
               <Label htmlFor="product-full-name">Pełna nazwa produktu</Label>
               <Input
                 id="product-full-name"
-                placeholder="np. Folia ochronna PPF ULTRAFIT Premium 152cm"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
@@ -112,7 +110,6 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
               <Label htmlFor="product-short-name">Skrócona nazwa produktu</Label>
               <Input
                 id="product-short-name"
-                placeholder="np. PPF Premium 152"
                 value={shortName}
                 onChange={(e) => setShortName(e.target.value)}
               />
@@ -122,7 +119,6 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
               <Label htmlFor="product-description">Opis</Label>
               <Textarea
                 id="product-description"
-                placeholder="Opcjonalny opis produktu..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -164,17 +160,17 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
               </RadioGroup>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="space-y-2">
               <Label htmlFor="product-status">Status</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {available ? 'Dostępny' : 'Niedostępny'}
-                </span>
                 <Switch
                   id="product-status"
                   checked={available}
                   onCheckedChange={setAvailable}
                 />
+                <span className="text-sm text-muted-foreground">
+                  {available ? 'Dostępny' : 'Niedostępny'}
+                </span>
               </div>
             </div>
           </div>
