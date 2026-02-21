@@ -6,6 +6,16 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ProtocolPhotosUploaderProps {
   photos: string[];
@@ -68,6 +78,7 @@ export const ProtocolPhotosUploader = ({
 }: ProtocolPhotosUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,16 +168,16 @@ export const ProtocolPhotosUploader = ({
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-muted-foreground/50 transition-colors",
+              "aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 bg-white hover:border-muted-foreground/50 transition-colors",
               uploading && "opacity-50"
             )}
           >
             {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             ) : (
               <>
-                <Camera className="h-5 w-5" />
-                <span className="text-[10px] leading-tight text-center">Dodaj zdjęcie</span>
+                <Camera className="h-10 w-10 text-muted-foreground" />
+                <span className="text-[10px] leading-tight text-center text-muted-foreground">Dodaj zdjęcie</span>
               </>
             )}
           </button>
@@ -182,7 +193,7 @@ export const ProtocolPhotosUploader = ({
             {!disabled && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); handleRemovePhoto(index); }}
+                onClick={(e) => { e.stopPropagation(); setDeleteConfirmIndex(index); }}
                 className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
               >
                 <X className="h-3 w-3" />
@@ -216,6 +227,25 @@ export const ProtocolPhotosUploader = ({
           }
         }}
       />
+      <AlertDialog open={deleteConfirmIndex !== null} onOpenChange={(open) => !open && setDeleteConfirmIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń zdjęcie</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć to zdjęcie? Tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteConfirmIndex !== null) { handleRemovePhoto(deleteConfirmIndex); setDeleteConfirmIndex(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
