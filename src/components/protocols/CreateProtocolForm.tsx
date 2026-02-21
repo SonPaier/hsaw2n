@@ -419,14 +419,31 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
     );
   };
 
-  const handleSavePoint = (data: { damage_type: string; custom_note: string; photo_url: string | null; photo_urls: string[] }) => {
+  const handleSavePoint = async (data: { damage_type: string; custom_note: string; photo_url: string | null; photo_urls: string[] }) => {
     if (selectedPoint) {
       // Update existing point - remove isNew flag
+      const updatedPoint = { ...selectedPoint, ...data, isNew: false };
       setDamagePoints(prev => 
-        prev.map(p => p.id === selectedPoint.id ? { ...p, ...data, isNew: false } : p)
+        prev.map(p => p.id === selectedPoint.id ? updatedPoint : p)
       );
+      // Auto-persist to database in edit mode
+      if (isEditMode && protocolId && selectedPoint.id && !selectedPoint.id.startsWith('temp-')) {
+        try {
+          await supabase
+            .from('protocol_damage_points')
+            .update({
+              damage_type: data.damage_type || null,
+              custom_note: data.custom_note || null,
+              photo_url: data.photo_url,
+              photo_urls: data.photo_urls,
+            })
+            .eq('id', selectedPoint.id);
+        } catch (err) {
+          console.error('Error auto-saving damage point:', err);
+        }
+      }
     } else if (pendingPoint) {
-      // Add new point (legacy path)
+      // Add new point
       const newPoint: DamagePoint = {
         id: `temp-${Date.now()}`,
         view: pendingPoint.view,
@@ -435,15 +452,51 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         ...data,
       };
       setDamagePoints(prev => [...prev, newPoint]);
+      // Auto-persist new point to database in edit mode
+      if (isEditMode && protocolId) {
+        try {
+          const { data: inserted } = await supabase
+            .from('protocol_damage_points')
+            .insert({
+              protocol_id: protocolId,
+              view: pendingPoint.view,
+              x_percent: pendingPoint.x_percent,
+              y_percent: pendingPoint.y_percent,
+              damage_type: data.damage_type || null,
+              custom_note: data.custom_note || null,
+              photo_url: data.photo_url,
+              photo_urls: data.photo_urls,
+            } as any)
+            .select('id')
+            .single();
+          // Update the temp ID with the real one
+          if (inserted) {
+            setDamagePoints(prev => prev.map(p => p.id === newPoint.id ? { ...p, id: inserted.id } : p));
+          }
+        } catch (err) {
+          console.error('Error auto-saving new damage point:', err);
+        }
+      }
     }
     setDrawerOpen(false);
     setPendingPoint(null);
     setSelectedPoint(null);
   };
 
-  const handleDeletePoint = () => {
+  const handleDeletePoint = async () => {
     if (selectedPoint) {
       setDamagePoints(prev => prev.filter(p => p.id !== selectedPoint.id));
+      // Auto-persist deletion in edit mode
+      if (isEditMode && protocolId && selectedPoint.id && !selectedPoint.id.startsWith('temp-')) {
+        try {
+          await supabase
+            .from('protocol_damage_points')
+            .delete()
+            .eq('id', selectedPoint.id);
+        } catch (err) {
+          console.error('Error auto-deleting damage point:', err);
+        }
+      }
     }
     setDrawerOpen(false);
     setSelectedPoint(null);
