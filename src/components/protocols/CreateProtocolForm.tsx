@@ -1023,6 +1023,19 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+        onAnnotate={(newUrl) => {
+          const oldUrl = fullscreenPhoto;
+          if (!oldUrl) return;
+          // Replace URL in protocol photos
+          setProtocolPhotoUrls(prev => prev.map(u => u === oldUrl ? newUrl : u));
+          // Replace URL in damage points
+          setDamagePoints(prev => prev.map(p => ({
+            ...p,
+            photo_url: p.photo_url === oldUrl ? newUrl : p.photo_url,
+            photo_urls: p.photo_urls?.map(u => u === oldUrl ? newUrl : u),
+          })));
+          setFullscreenPhoto(newUrl);
+        }}
       />
     </div>
   );

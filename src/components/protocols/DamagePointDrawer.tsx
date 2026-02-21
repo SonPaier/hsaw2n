@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { VoiceNoteInput } from './VoiceNoteInput';
@@ -130,10 +131,7 @@ export const DamagePointDrawer = ({
         // Compress image before upload
         const compressedBlob = await compressImage(file);
         
-        const timestamp = Date.now();
-        const fileName = offerNumber 
-          ? `${offerNumber}_${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`
-          : `protocol_${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const fileName = `protokol-szkoda-${format(new Date(), 'yyyyMMdd-HHmmss')}.jpg`;
 
         const { data, error } = await supabase.storage
           .from('protocol-photos')
@@ -293,6 +291,12 @@ export const DamagePointDrawer = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => !open && setFullscreenPhoto(null)}
         photoUrl={fullscreenPhoto}
+        onAnnotate={(newUrl) => {
+          const oldUrl = fullscreenPhoto;
+          if (!oldUrl) return;
+          setPhotoUrls(prev => prev.map(u => u === oldUrl ? newUrl : u));
+          setFullscreenPhoto(newUrl);
+        }}
       />
     </Drawer>
   );

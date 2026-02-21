@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, X, Loader2, ImagePlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 
@@ -85,7 +86,7 @@ export const ProtocolPhotosUploader = ({
 
       for (const file of filesToUpload) {
         const compressed = await compressImage(file);
-        const fileName = `protocol-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+        const fileName = `protokol-szkoda-${format(new Date(), 'yyyyMMdd-HHmmss')}.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('protocol-photos')
@@ -195,6 +196,12 @@ export const ProtocolPhotosUploader = ({
         open={!!fullscreenPhoto}
         onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
         photoUrl={fullscreenPhoto}
+        onAnnotate={(newUrl) => {
+          const oldUrl = fullscreenPhoto;
+          if (!oldUrl) return;
+          onPhotosChange(photos.map(u => u === oldUrl ? newUrl : u));
+          setFullscreenPhoto(newUrl);
+        }}
       />
     </div>
   );
