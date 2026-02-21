@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { VoiceNoteInput } from './VoiceNoteInput';
+import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 
 interface DamagePointDrawerProps {
   open: boolean;
@@ -97,6 +98,7 @@ export const DamagePointDrawer = ({
   const [customNote, setCustomNote] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -237,7 +239,8 @@ export const DamagePointDrawer = ({
                       <img 
                         src={url} 
                         alt={`Zdjęcie ${index + 1}`} 
-                        className="w-full h-full object-cover rounded-lg border"
+                        className="w-full h-full object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); setFullscreenPhoto(url); }}
                       />
                       <Button
                         variant="destructive"
@@ -285,6 +288,12 @@ export const DamagePointDrawer = ({
           </Button>
         </DrawerFooter>
       </DrawerContent>
+
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => !open && setFullscreenPhoto(null)}
+        photoUrl={fullscreenPhoto}
+      />
     </Drawer>
   );
 };
