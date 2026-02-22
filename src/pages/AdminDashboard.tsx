@@ -18,8 +18,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger } from
+'@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { view } = useParams<{ view?: string }>();
+  const { view } = useParams<{view?: string;}>();
   const {
     user,
     roles,
@@ -162,7 +162,7 @@ const AdminDashboard = () => {
 
   // Derive currentView from URL param
   const currentView: ViewType =
-    view && validViews.includes(view as ViewType) ? (view as ViewType) : 'calendar';
+  view && validViews.includes(view as ViewType) ? view as ViewType : 'calendar';
 
   // Check for updates when view changes
   useEffect(() => {
@@ -192,9 +192,9 @@ const AdminDashboard = () => {
 
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  
+
   // Loaded date range for reservations - 1 week back from Monday initially, null = all future
-  const [loadedDateRange, setLoadedDateRange] = useState<{ from: Date; to: null }>(() => {
+  const [loadedDateRange, setLoadedDateRange] = useState<{from: Date;to: null;}>(() => {
     const today = new Date();
     const mondayThisWeek = startOfWeek(today, { weekStartsOn: 1 });
     return {
@@ -203,14 +203,14 @@ const AdminDashboard = () => {
     };
   });
   const [isLoadingMoreReservations, setIsLoadingMoreReservations] = useState(false);
-  
+
   // Mutex ref to prevent race condition in loadMoreReservations
   // useState is async, so rapid navigation can trigger multiple calls before state updates
   const isLoadingMoreRef = useRef(false);
-  
+
   // Realtime connection state
   const [realtimeConnected, setRealtimeConnected] = useState(true);
-  
+
   // Ref to track loadedDateRange for realtime handler (avoids re-subscribing on date change)
   const loadedDateRangeRef = useRef(loadedDateRange);
   useEffect(() => {
@@ -219,7 +219,7 @@ const AdminDashboard = () => {
 
   // Debounce mechanism to prevent realtime updates from overwriting local changes
   const recentlyUpdatedReservationsRef = useRef<Map<string, number>>(new Map());
-  
+
   const markAsLocallyUpdated = useCallback((reservationId: string, durationMs = 3000) => {
     recentlyUpdatedReservationsRef.current.set(reservationId, Date.now());
     setTimeout(() => {
@@ -229,7 +229,7 @@ const AdminDashboard = () => {
 
   // Deep link handling ref to prevent infinite loops
   const deepLinkHandledRef = useRef(false);
-  
+
   const [allServices, setAllServices] = useState<Array<{
     id: string;
     name: string;
@@ -259,7 +259,7 @@ const AdminDashboard = () => {
     endTime: string;
     stationId: string;
   } | null>(null);
-  
+
   // Memoized callback to prevent re-renders in AddReservationDialogV2
   const handleSlotPreviewChange = useCallback((preview: {
     date: string;
@@ -289,13 +289,13 @@ const AdminDashboard = () => {
 
   // Get user's instance ID from user_roles
   const [instanceId, setInstanceId] = useState<string | null>(null);
-  
+
   // User role (admin, employee, or hall)
   const [userRole, setUserRole] = useState<'admin' | 'employee' | 'hall' | null>(null);
 
   // Use username from auth context (combined with roles fetch)
   const username = authUsername;
-  
+
   // Instance settings dialog
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false);
 
@@ -323,7 +323,7 @@ const AdminDashboard = () => {
   const { data: cachedEmployees = [] } = useEmployees(instanceId);
   const { data: instanceSettings } = useInstanceSettings(instanceId);
   const { data: stationEmployeesMap } = useStationEmployees(instanceId);
-  
+
   // Use cached data (with local state fallback for realtime updates)
   const stations = cachedStations as Station[];
   const breaks = cachedBreaks as Break[];
@@ -345,42 +345,42 @@ const AdminDashboard = () => {
   // Derive instanceId and userRole from auth roles (avoid duplicate fetch)
   useEffect(() => {
     if (!user) return;
-    
+
     // Check admin role first
-    const adminRole = roles.find(r => r.role === 'admin' && r.instance_id);
+    const adminRole = roles.find((r) => r.role === 'admin' && r.instance_id);
     if (adminRole?.instance_id) {
       setInstanceId(adminRole.instance_id);
       setUserRole('admin');
       return;
     }
-    
+
     // Check employee role
-    const employeeRole = roles.find(r => r.role === 'employee' && r.instance_id);
+    const employeeRole = roles.find((r) => r.role === 'employee' && r.instance_id);
     if (employeeRole?.instance_id) {
       setInstanceId(employeeRole.instance_id);
       setUserRole('employee');
       return;
     }
-    
+
     // Check hall role
-    const hallRole = roles.find(r => r.role === 'hall' && r.instance_id);
+    const hallRole = roles.find((r) => r.role === 'hall' && r.instance_id);
     if (hallRole?.instance_id) {
       setInstanceId(hallRole.instance_id);
       setUserRole('hall');
       return;
     }
-    
+
     // Check super_admin - need to fetch first instance
-    const isSuperAdmin = roles.some(r => r.role === 'super_admin');
+    const isSuperAdmin = roles.some((r) => r.role === 'super_admin');
     if (isSuperAdmin) {
       setUserRole('admin');
       const fetchFirstInstance = async () => {
-        const { data: instances } = await supabase
-          .from('instances')
-          .select('id')
-          .eq('active', true)
-          .limit(1)
-          .maybeSingle();
+        const { data: instances } = await supabase.
+        from('instances').
+        select('id').
+        eq('active', true).
+        limit(1).
+        maybeSingle();
         if (instances?.id) {
           setInstanceId(instances.id);
         }
@@ -403,11 +403,11 @@ const AdminDashboard = () => {
   // Fetch yard vehicle count for badge (lazy-loaded only when needed)
   const fetchYardVehicleCount = async () => {
     if (!instanceId) return;
-    const { count, error } = await supabase
-      .from('yard_vehicles')
-      .select('*', { count: 'exact', head: true })
-      .eq('instance_id', instanceId)
-      .eq('status', 'waiting');
+    const { count, error } = await supabase.
+    from('yard_vehicles').
+    select('*', { count: 'exact', head: true }).
+    eq('instance_id', instanceId).
+    eq('status', 'waiting');
     if (!error && count !== null) {
       setYardVehicleCount(count);
     }
@@ -416,11 +416,11 @@ const AdminDashboard = () => {
   // Fetch unread notifications count for badge
   const fetchUnreadNotificationsCount = async () => {
     if (!instanceId) return;
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('instance_id', instanceId)
-      .eq('read', false);
+    const { count, error } = await supabase.
+    from('notifications').
+    select('*', { count: 'exact', head: true }).
+    eq('instance_id', instanceId).
+    eq('read', false);
     if (!error && count !== null) {
       setUnreadNotificationsCount(count);
     }
@@ -434,20 +434,20 @@ const AdminDashboard = () => {
   }, [instanceId]);
 
   // Helper to find nearest working day
-  const findNearestWorkingDay = (date: Date, hours: Record<string, { open: string; close: string } | null>): Date => {
+  const findNearestWorkingDay = (date: Date, hours: Record<string, {open: string;close: string;} | null>): Date => {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    
+
     for (let i = 0; i < 7; i++) {
       const checkDate = addDays(date, i);
       const dayName = dayNames[getDay(checkDate)];
       const dayConfig = hours[dayName];
-      
+
       // Day is open if it has valid open/close times
       if (dayConfig && dayConfig.open && dayConfig.close) {
         return checkDate;
       }
     }
-    
+
     // Fallback to original date if no working day found
     return date;
   };
@@ -455,15 +455,15 @@ const AdminDashboard = () => {
   // Set calendar to nearest working day when working hours are loaded
   useEffect(() => {
     if (!workingHours) return;
-    
+
     const today = new Date();
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayDayName = dayNames[getDay(today)];
     const todayConfig = workingHours[todayDayName];
-    
+
     // Check if today is a working day
     const isTodayWorkingDay = todayConfig && todayConfig.open && todayConfig.close;
-    
+
     if (!isTodayWorkingDay) {
       const nearestWorkingDay = findNearestWorkingDay(today, workingHours);
       setCalendarDate(nearestWorkingDay);
@@ -474,22 +474,22 @@ const AdminDashboard = () => {
   // Subscribe to yard_vehicles changes for real-time count updates
   useEffect(() => {
     if (!instanceId) return;
-    
-    const channel = supabase
-      .channel('yard-count-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'yard_vehicles',
-          filter: `instance_id=eq.${instanceId}`
-        },
-        () => {
-          fetchYardVehicleCount();
-        }
-      )
-      .subscribe();
+
+    const channel = supabase.
+    channel('yard-count-changes').
+    on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'yard_vehicles',
+        filter: `instance_id=eq.${instanceId}`
+      },
+      () => {
+        fetchYardVehicleCount();
+      }
+    ).
+    subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -499,22 +499,22 @@ const AdminDashboard = () => {
   // Subscribe to notifications changes for real-time count updates
   useEffect(() => {
     if (!instanceId) return;
-    
-    const channel = supabase
-      .channel('notifications-count-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `instance_id=eq.${instanceId}`
-        },
-        () => {
-          fetchUnreadNotificationsCount();
-        }
-      )
-      .subscribe();
+
+    const channel = supabase.
+    channel('notifications-count-changes').
+    on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `instance_id=eq.${instanceId}`
+      },
+      () => {
+        fetchUnreadNotificationsCount();
+      }
+    ).
+    subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -535,21 +535,21 @@ const AdminDashboard = () => {
       data
     } = await supabase.from('unified_services').select('id, name, short_name, duration_minutes, duration_small, duration_medium, duration_large').eq('instance_id', instanceId).eq('active', true).eq('service_type', 'reservation');
     if (data) {
-      setAllServices(data.map(s => ({ ...s, shortcut: s.short_name })));
+      setAllServices(data.map((s) => ({ ...s, shortcut: s.short_name })));
     }
   };
 
   // Map raw reservation data to Reservation type
   const mapReservationData = useCallback((
-    data: any[],
-    servicesMap: Map<string, { id: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>,
-    originalReservationsMap: Map<string, any>
-  ): Reservation[] => {
-    return data.map(r => {
+  data: any[],
+  servicesMap: Map<string, {id: string;name: string;shortcut?: string | null;price_small?: number | null;price_medium?: number | null;price_large?: number | null;price_from?: number | null;}>,
+  originalReservationsMap: Map<string, any>)
+  : Reservation[] => {
+    return data.map((r) => {
       // Primary source: service_items JSONB (already contains names)
       const serviceItems = r.service_items as unknown as ServiceItem[] | null;
       const serviceIds = (r as any).service_ids as string[] | null;
-      
+
       let servicesDataMapped: Array<{
         id?: string;
         name: string;
@@ -559,17 +559,17 @@ const AdminDashboard = () => {
         price_large?: number | null;
         price_from?: number | null;
       }> = [];
-      
+
       // Canonical list of selected services is `service_ids`.
       // `service_items` may contain stale/legacy entries (e.g. after edits), so use it only to enrich.
       if (serviceIds && serviceIds.length > 0) {
         const itemsById = new Map<string, ServiceItem>();
-        (serviceItems || []).forEach(item => {
+        (serviceItems || []).forEach((item) => {
           const resolvedId = item.id || item.service_id;
           if (resolvedId) itemsById.set(resolvedId, item);
         });
 
-        servicesDataMapped = serviceIds.map(id => {
+        servicesDataMapped = serviceIds.map((id) => {
           const item = itemsById.get(id);
           const svc = servicesMap.get(id);
 
@@ -586,31 +586,31 @@ const AdminDashboard = () => {
       } else if (serviceItems && serviceItems.length > 0) {
         // Fallback: no service_ids, use service_items directly (dedupe by id)
         const seen = new Set<string>();
-        servicesDataMapped = serviceItems
-          .map(item => {
-            const resolvedId = item.id || item.service_id;
-            const svc = resolvedId ? servicesMap.get(resolvedId) : undefined;
-            return {
-              id: resolvedId,
-              name: item.name ?? svc?.name ?? 'Usługa',
-              shortcut: item.short_name ?? svc?.shortcut ?? null,
-              price_small: item.price_small ?? svc?.price_small ?? null,
-              price_medium: item.price_medium ?? svc?.price_medium ?? null,
-              price_large: item.price_large ?? svc?.price_large ?? null,
-              price_from: item.price_from ?? svc?.price_from ?? null
-            };
-          })
-          .filter(svc => {
-            if (!svc.id) return false;
-            if (seen.has(svc.id)) return false;
-            seen.add(svc.id);
-            return true;
-          });
+        servicesDataMapped = serviceItems.
+        map((item) => {
+          const resolvedId = item.id || item.service_id;
+          const svc = resolvedId ? servicesMap.get(resolvedId) : undefined;
+          return {
+            id: resolvedId,
+            name: item.name ?? svc?.name ?? 'Usługa',
+            shortcut: item.short_name ?? svc?.shortcut ?? null,
+            price_small: item.price_small ?? svc?.price_small ?? null,
+            price_medium: item.price_medium ?? svc?.price_medium ?? null,
+            price_large: item.price_large ?? svc?.price_large ?? null,
+            price_from: item.price_from ?? svc?.price_from ?? null
+          };
+        }).
+        filter((svc) => {
+          if (!svc.id) return false;
+          if (seen.has(svc.id)) return false;
+          seen.add(svc.id);
+          return true;
+        });
       }
-      
-      const originalReservation = r.original_reservation_id 
-        ? originalReservationsMap.get(r.original_reservation_id) 
-        : null;
+
+      const originalReservation = r.original_reservation_id ?
+      originalReservationsMap.get(r.original_reservation_id) :
+      null;
 
       return {
         ...r,
@@ -635,7 +635,7 @@ const AdminDashboard = () => {
   }, []);
 
   // Reference to services map for realtime updates
-  const servicesMapRef = useRef<Map<string, { id: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }>>(new Map());
+  const servicesMapRef = useRef<Map<string, {id: string;name: string;shortcut?: string | null;price_small?: number | null;price_medium?: number | null;price_large?: number | null;price_from?: number | null;}>>(new Map());
 
   // Fetch reservations from database with date range filter
   // Initial load: 2 months back + all future reservations
@@ -681,32 +681,32 @@ const AdminDashboard = () => {
         has_unified_services,
         photo_urls,
         stations:station_id (name, type)
-      `).eq('instance_id', instanceId)
-      .neq('status', 'cancelled')
-      .gte('reservation_date', format(from, 'yyyy-MM-dd'));
-    
+      `).eq('instance_id', instanceId).
+    neq('status', 'cancelled').
+    gte('reservation_date', format(from, 'yyyy-MM-dd'));
+
     // If to is not null, add upper bound filter
     if (to !== null) {
       query = query.lte('reservation_date', format(to, 'yyyy-MM-dd'));
     }
 
     const { data, error } = await query;
-    
+
     if (!error && data) {
       // Fetch original reservation data for change requests
-      const changeRequestIds = data
-        .filter(r => r.original_reservation_id)
-        .map(r => r.original_reservation_id);
-      
+      const changeRequestIds = data.
+      filter((r) => r.original_reservation_id).
+      map((r) => r.original_reservation_id);
+
       const originalReservationsMap = new Map<string, any>();
       if (changeRequestIds.length > 0) {
-        const { data: originals } = await supabase
-          .from('reservations')
-          .select('id, reservation_date, start_time, confirmation_code')
-          .in('id', changeRequestIds);
-        
+        const { data: originals } = await supabase.
+        from('reservations').
+        select('id, reservation_date, start_time, confirmation_code').
+        in('id', changeRequestIds);
+
         if (originals) {
-          originals.forEach(o => originalReservationsMap.set(o.id, o));
+          originals.forEach((o) => originalReservationsMap.set(o.id, o));
         }
       }
 
@@ -719,19 +719,19 @@ const AdminDashboard = () => {
   const loadMoreReservations = useCallback(async (direction: 'past') => {
     // Use ref for synchronous check - prevents multiple calls during rapid navigation
     if (!instanceId || isLoadingMoreRef.current) return;
-    
+
     if (direction === 'past') {
       // Set mutex immediately (synchronous)
       isLoadingMoreRef.current = true;
       setIsLoadingMoreReservations(true); // For UI feedback
-      
+
       try {
         const newFrom = subMonths(loadedDateRange.from, 1);
         const oldFrom = loadedDateRange.from;
-        
+
         // First fetch services to map service_ids
         const servicesMap = servicesMapRef.current;
-        
+
         // Fetch additional reservations
         const { data, error } = await supabase.from('reservations').select(`
             id,
@@ -763,34 +763,34 @@ const AdminDashboard = () => {
             photo_urls,
             assigned_employee_ids,
             stations:station_id (name, type)
-          `).eq('instance_id', instanceId)
-          .neq('status', 'cancelled')
-          .gte('reservation_date', format(newFrom, 'yyyy-MM-dd'))
-          .lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
-        
+          `).eq('instance_id', instanceId).
+        neq('status', 'cancelled').
+        gte('reservation_date', format(newFrom, 'yyyy-MM-dd')).
+        lt('reservation_date', format(oldFrom, 'yyyy-MM-dd'));
+
         if (!error && data && data.length > 0) {
           // Fetch original reservation data for change requests
-          const changeRequestIds = data
-            .filter(r => r.original_reservation_id)
-            .map(r => r.original_reservation_id);
-          
+          const changeRequestIds = data.
+          filter((r) => r.original_reservation_id).
+          map((r) => r.original_reservation_id);
+
           const originalReservationsMap = new Map<string, any>();
           if (changeRequestIds.length > 0) {
-            const { data: originals } = await supabase
-              .from('reservations')
-              .select('id, reservation_date, start_time, confirmation_code')
-              .in('id', changeRequestIds);
-            
+            const { data: originals } = await supabase.
+            from('reservations').
+            select('id, reservation_date, start_time, confirmation_code').
+            in('id', changeRequestIds);
+
             if (originals) {
-              originals.forEach(o => originalReservationsMap.set(o.id, o));
+              originals.forEach((o) => originalReservationsMap.set(o.id, o));
             }
           }
 
           const mappedData = mapReservationData(data, servicesMap, originalReservationsMap);
-          setReservations(prev => [...mappedData, ...prev]);
+          setReservations((prev) => [...mappedData, ...prev]);
         }
-        
-        setLoadedDateRange(prev => ({ ...prev, from: newFrom }));
+
+        setLoadedDateRange((prev) => ({ ...prev, from: newFrom }));
       } finally {
         // Always release mutex in finally block
         isLoadingMoreRef.current = false;
@@ -801,12 +801,12 @@ const AdminDashboard = () => {
 
   // Debounced loadMoreReservations to prevent burst requests during rapid navigation
   const loadMoreDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Handle calendar date change - load more data if approaching edge
   // Uses debounce to prevent multiple requests during rapid scrolling/clicking
   const handleCalendarDateChange = useCallback((date: Date) => {
     setCalendarDate(date);
-    
+
     // Check if we're approaching the edge of loaded data (within 7 days buffer)
     const bufferDays = 7;
     if (date < addDays(loadedDateRange.from, bufferDays)) {
@@ -819,7 +819,7 @@ const AdminDashboard = () => {
       }, 300);
     }
   }, [loadedDateRange.from, loadMoreReservations]);
-  
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
@@ -833,11 +833,11 @@ const AdminDashboard = () => {
   const invalidateBreaksCache = () => {
     queryClient.invalidateQueries({ queryKey: ['breaks', instanceId] });
   };
-  
+
   const invalidateClosedDaysCache = () => {
     queryClient.invalidateQueries({ queryKey: ['closed_days', instanceId] });
   };
-  
+
   // Initial fetch - wait for dictionary to be loaded first
   useEffect(() => {
     if (instanceId && serviceDictMap.size > 0) {
@@ -854,17 +854,17 @@ const AdminDashboard = () => {
       setTrainings([]);
       return;
     }
-    const { data, error } = await supabase
-      .from('trainings')
-      .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
-      .eq('instance_id', instanceId) as any;
+    const { data, error } = (await supabase.
+    from('trainings').
+    select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)').
+    eq('instance_id', instanceId)) as any;
 
     if (!error && data) {
       setTrainings(data.map((t: any) => ({
         ...t,
         assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
         station: t.stations ? { name: t.stations.name, type: t.stations.type } : null,
-        training_type_record: t.training_type_record || null,
+        training_type_record: t.training_type_record || null
       })));
     }
   }, [instanceId, trainingsEnabled]);
@@ -884,9 +884,9 @@ const AdminDashboard = () => {
     const handleDeepLink = async () => {
       if (!reservationCodeFromUrl || !instanceId) return;
       if (deepLinkHandledRef.current) return; // Already handled this code
-      
+
       // First check if reservation is already in state
-      const existingReservation = reservations.find(r => r.confirmation_code === reservationCodeFromUrl);
+      const existingReservation = reservations.find((r) => r.confirmation_code === reservationCodeFromUrl);
       if (existingReservation) {
         deepLinkHandledRef.current = true;
         setSelectedReservation(existingReservation);
@@ -894,14 +894,14 @@ const AdminDashboard = () => {
         setSearchParams(searchParams, { replace: true });
         return;
       }
-      
+
       // If not found in state (might be outside loaded date range), fetch directly
       // Only try once when reservations are loaded
       if (reservations.length > 0) {
         deepLinkHandledRef.current = true;
-        const { data } = await supabase
-          .from('reservations')
-          .select(`
+        const { data } = await supabase.
+        from('reservations').
+        select(`
             id,
             instance_id,
             customer_name,
@@ -928,11 +928,11 @@ const AdminDashboard = () => {
             pickup_sms_sent_at,
             photo_urls,
             stations:station_id (name, type)
-          `)
-          .eq('instance_id', instanceId)
-          .eq('confirmation_code', reservationCodeFromUrl)
-          .maybeSingle();
-        
+          `).
+        eq('instance_id', instanceId).
+        eq('confirmation_code', reservationCodeFromUrl).
+        maybeSingle();
+
         if (data) {
           const mappedReservation: Reservation = {
             ...data,
@@ -947,14 +947,14 @@ const AdminDashboard = () => {
             } : undefined
           };
           // Add to state temporarily so drawer can open
-          setReservations(prev => [...prev, mappedReservation]);
+          setReservations((prev) => [...prev, mappedReservation]);
           setSelectedReservation(mappedReservation);
           searchParams.delete('reservationCode');
           setSearchParams(searchParams, { replace: true });
         }
       }
     };
-    
+
     handleDeepLink();
     // IMPORTANT: Removed 'reservations' from dependencies to prevent infinite loop
   }, [reservationCodeFromUrl, instanceId, searchParams, setSearchParams]);
@@ -986,7 +986,7 @@ const AdminDashboard = () => {
   // IMPORTANT: Only instanceId as dependency to maintain stable WebSocket connection
   useEffect(() => {
     if (!instanceId) return;
-    
+
     let retryCount = 0;
     const maxRetries = 10;
     let currentChannel: ReturnType<typeof supabase.channel> | null = null;
@@ -995,40 +995,40 @@ const AdminDashboard = () => {
 
     const setupRealtimeChannel = () => {
       if (isCleanedUp) return;
-      
+
       // Remove previous channel if exists
       if (currentChannel) {
         supabase.removeChannel(currentChannel);
         currentChannel = null;
       }
 
-      currentChannel = supabase.channel(`reservations-changes-${Date.now()}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'reservations',
-          filter: `instance_id=eq.${instanceId}`
-        }, payload => {
-          console.log('Realtime reservation update:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newRecord = payload.new as any;
-            const reservationDate = parseISO(newRecord.reservation_date);
-            
-            // Use ref to check date range without causing re-subscription
-            const isWithinRange = reservationDate >= loadedDateRangeRef.current.from;
-            
-            if (!isWithinRange) {
-              return;
-            }
+      currentChannel = supabase.channel(`reservations-changes-${Date.now()}`).
+      on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reservations',
+        filter: `instance_id=eq.${instanceId}`
+      }, (payload) => {
+        console.log('Realtime reservation update:', payload);
 
-            // Play sound only for customer reservations
-            if (newRecord.source === 'customer') {
-              playNotificationSound();
-            }
+        if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new as any;
+          const reservationDate = parseISO(newRecord.reservation_date);
 
-            // Fetch the new reservation with service and station info
-            supabase.from('reservations').select(`
+          // Use ref to check date range without causing re-subscription
+          const isWithinRange = reservationDate >= loadedDateRangeRef.current.from;
+
+          if (!isWithinRange) {
+            return;
+          }
+
+          // Play sound only for customer reservations
+          if (newRecord.source === 'customer') {
+            playNotificationSound();
+          }
+
+          // Fetch the new reservation with service and station info
+          supabase.from('reservations').select(`
               id,
               instance_id,
               customer_name,
@@ -1051,78 +1051,78 @@ const AdminDashboard = () => {
               assigned_employee_ids,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
-              if (data) {
-                // Primary source: service_items JSONB (already contains names)
-                const serviceItems = data.service_items as unknown as ServiceItem[] | null;
-                const serviceIds = (data as any).service_ids as string[] | null;
-                
-                let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
-                
-                // Use service_items as primary source (may or may not have names embedded)
-                if (serviceItems && serviceItems.length > 0) {
-                  servicesDataMapped = serviceItems.map(item => {
-                    const resolvedId = item.id || item.service_id;
-                    const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+            if (data) {
+              // Primary source: service_items JSONB (already contains names)
+              const serviceItems = data.service_items as unknown as ServiceItem[] | null;
+              const serviceIds = (data as any).service_ids as string[] | null;
 
-                    return {
-                      id: resolvedId,
-                      name: item.name || cached?.name || 'Usługa',
-                      shortcut: item.short_name || cached?.shortcut || null,
-                      price_small: item.price_small ?? cached?.price_small ?? null,
-                      price_medium: item.price_medium ?? cached?.price_medium ?? null,
-                      price_large: item.price_large ?? cached?.price_large ?? null,
-                      price_from: item.price_from ?? cached?.price_from ?? null
-                    };
-                  });
-                } else if (serviceIds && serviceIds.length > 0) {
-                  // Fallback to service_ids lookup (for legacy reservations)
-                  serviceIds.forEach(id => {
-                    const svc = servicesMapRef.current.get(id);
-                    if (svc) {
-                      servicesDataMapped.push(svc);
-                    }
-                  });
-                }
+              let servicesDataMapped: Array<{id?: string;name: string;shortcut?: string | null;price_small?: number | null;price_medium?: number | null;price_large?: number | null;price_from?: number | null;}> = [];
 
-                const newReservation = {
-                  ...data,
-                  status: data.status || 'pending',
-                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
-                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
-                  assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
-                  service: undefined, // Legacy relation removed - use service_ids/service_items instead
-                  services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-                  station: data.stations ? {
-                    name: (data.stations as any).name,
-                    type: (data.stations as any).type
-                  } : undefined,
-                  created_by_username: (data as any).created_by_username || null
-                };
-                setReservations(prev => {
-                  // Prevent duplicates (in case fetch also returned this reservation)
-                  if (prev.some(r => r.id === data.id)) {
-                    return prev.map(r => r.id === data.id ? newReservation as Reservation : r);
-                  }
-                  return [...prev, newReservation as Reservation];
+              // Use service_items as primary source (may or may not have names embedded)
+              if (serviceItems && serviceItems.length > 0) {
+                servicesDataMapped = serviceItems.map((item) => {
+                  const resolvedId = item.id || item.service_id;
+                  const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+
+                  return {
+                    id: resolvedId,
+                    name: item.name || cached?.name || 'Usługa',
+                    shortcut: item.short_name || cached?.shortcut || null,
+                    price_small: item.price_small ?? cached?.price_small ?? null,
+                    price_medium: item.price_medium ?? cached?.price_medium ?? null,
+                    price_large: item.price_large ?? cached?.price_large ?? null,
+                    price_from: item.price_from ?? cached?.price_from ?? null
+                  };
                 });
-                
-                const isCustomerReservation = (data as any).source === 'customer';
-                if (isCustomerReservation) {
-                  toast.success('🔔 Nowa rezerwacja od klienta!', {
-                    description: `${data.customer_name} - ${data.start_time}`
-                  });
-                }
+              } else if (serviceIds && serviceIds.length > 0) {
+                // Fallback to service_ids lookup (for legacy reservations)
+                serviceIds.forEach((id) => {
+                  const svc = servicesMapRef.current.get(id);
+                  if (svc) {
+                    servicesDataMapped.push(svc);
+                  }
+                });
               }
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            // Skip if recently updated locally (debounce to prevent flickering)
-            const lastLocalUpdate = recentlyUpdatedReservationsRef.current.get(payload.new.id);
-            if (lastLocalUpdate && Date.now() - lastLocalUpdate < 3000) {
-              console.log('[Realtime] Skipping update for locally modified reservation:', payload.new.id);
-              return;
+
+              const newReservation = {
+                ...data,
+                status: data.status || 'pending',
+                service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+                service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
+                assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
+                service: undefined, // Legacy relation removed - use service_ids/service_items instead
+                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                station: data.stations ? {
+                  name: (data.stations as any).name,
+                  type: (data.stations as any).type
+                } : undefined,
+                created_by_username: (data as any).created_by_username || null
+              };
+              setReservations((prev) => {
+                // Prevent duplicates (in case fetch also returned this reservation)
+                if (prev.some((r) => r.id === data.id)) {
+                  return prev.map((r) => r.id === data.id ? newReservation as Reservation : r);
+                }
+                return [...prev, newReservation as Reservation];
+              });
+
+              const isCustomerReservation = (data as any).source === 'customer';
+              if (isCustomerReservation) {
+                toast.success('🔔 Nowa rezerwacja od klienta!', {
+                  description: `${data.customer_name} - ${data.start_time}`
+                });
+              }
             }
-            
-            supabase.from('reservations').select(`
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          // Skip if recently updated locally (debounce to prevent flickering)
+          const lastLocalUpdate = recentlyUpdatedReservationsRef.current.get(payload.new.id);
+          if (lastLocalUpdate && Date.now() - lastLocalUpdate < 3000) {
+            console.log('[Realtime] Skipping update for locally modified reservation:', payload.new.id);
+            return;
+          }
+
+          supabase.from('reservations').select(`
               id,
               instance_id,
               customer_name,
@@ -1149,132 +1149,132 @@ const AdminDashboard = () => {
               assigned_employee_ids,
               stations:station_id (name, type)
             `).eq('id', payload.new.id).single().then(({ data }) => {
-              if (data) {
-                // Primary source: service_items JSONB (already contains names)
-                const serviceItems = data.service_items as unknown as ServiceItem[] | null;
-                const serviceIds = (data as any).service_ids as string[] | null;
-                
-                let servicesDataMapped: Array<{ id?: string; name: string; shortcut?: string | null; price_small?: number | null; price_medium?: number | null; price_large?: number | null; price_from?: number | null }> = [];
-                
-                // Use service_items as primary source (may or may not have names embedded)
-                if (serviceItems && serviceItems.length > 0) {
-                  servicesDataMapped = serviceItems.map(item => {
-                    const resolvedId = item.id || item.service_id;
-                    const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
-
-                    return {
-                      id: resolvedId,
-                      name: item.name || cached?.name || 'Usługa',
-                      shortcut: item.short_name || cached?.shortcut || null,
-                      price_small: item.price_small ?? cached?.price_small ?? null,
-                      price_medium: item.price_medium ?? cached?.price_medium ?? null,
-                      price_large: item.price_large ?? cached?.price_large ?? null,
-                      price_from: item.price_from ?? cached?.price_from ?? null
-                    };
-                  });
-                } else if (serviceIds && serviceIds.length > 0) {
-                  // Fallback to service_ids lookup (for legacy reservations)
-                  serviceIds.forEach(id => {
-                    const svc = servicesMapRef.current.get(id);
-                    if (svc) {
-                      servicesDataMapped.push(svc);
-                    }
-                    // Don't show "usługa usunięta" - just skip if not found in cache
-                    // The reservation still has the data, just wait for cache to load
-                  });
-                }
-
-                const updatedReservation = {
-                  ...data,
-                  status: data.status || 'pending',
-                  service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
-                  service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
-                  assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
-                  service: undefined, // Legacy relation removed
-                  services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
-                  station: data.stations ? {
-                    name: (data.stations as any).name,
-                    type: (data.stations as any).type
-                  } : undefined,
-                  has_unified_services: (data as any).has_unified_services,
-                  photo_urls: (data as any).photo_urls,
-                  checked_service_ids: Array.isArray((data as any).checked_service_ids) ? (data as any).checked_service_ids as string[] : undefined
-                };
-                setReservations(prev => prev.map(r => r.id === payload.new.id ? updatedReservation as Reservation : r));
-                // Also update selectedReservation if viewing the same reservation
-                setSelectedReservation(prev => 
-                  prev?.id === payload.new.id ? updatedReservation as Reservation : prev
-                );
-              }
-            });
-          } else if (payload.eventType === 'DELETE') {
-            setReservations(prev => prev.filter(r => r.id !== payload.old.id));
-          }
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'trainings',
-          filter: `instance_id=eq.${instanceId}`
-        }, async (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const { data } = await supabase
-              .from('trainings')
-              .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
-              .eq('id', payload.new.id)
-              .single() as any;
             if (data) {
-              const mapped: Training = {
-                ...data,
-                assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
-                station: data.stations ? { name: data.stations.name, type: data.stations.type } : null,
-                training_type_record: data.training_type_record || null,
-              };
-              if (payload.eventType === 'INSERT') {
-                setTrainings(prev => prev.some(t => t.id === mapped.id) ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped]);
-              } else {
-                setTrainings(prev => prev.map(t => t.id === mapped.id ? mapped : t));
-                setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
+              // Primary source: service_items JSONB (already contains names)
+              const serviceItems = data.service_items as unknown as ServiceItem[] | null;
+              const serviceIds = (data as any).service_ids as string[] | null;
+
+              let servicesDataMapped: Array<{id?: string;name: string;shortcut?: string | null;price_small?: number | null;price_medium?: number | null;price_large?: number | null;price_from?: number | null;}> = [];
+
+              // Use service_items as primary source (may or may not have names embedded)
+              if (serviceItems && serviceItems.length > 0) {
+                servicesDataMapped = serviceItems.map((item) => {
+                  const resolvedId = item.id || item.service_id;
+                  const cached = resolvedId ? servicesMapRef.current.get(resolvedId) : undefined;
+
+                  return {
+                    id: resolvedId,
+                    name: item.name || cached?.name || 'Usługa',
+                    shortcut: item.short_name || cached?.shortcut || null,
+                    price_small: item.price_small ?? cached?.price_small ?? null,
+                    price_medium: item.price_medium ?? cached?.price_medium ?? null,
+                    price_large: item.price_large ?? cached?.price_large ?? null,
+                    price_from: item.price_from ?? cached?.price_from ?? null
+                  };
+                });
+              } else if (serviceIds && serviceIds.length > 0) {
+                // Fallback to service_ids lookup (for legacy reservations)
+                serviceIds.forEach((id) => {
+                  const svc = servicesMapRef.current.get(id);
+                  if (svc) {
+                    servicesDataMapped.push(svc);
+                  }
+                  // Don't show "usługa usunięta" - just skip if not found in cache
+                  // The reservation still has the data, just wait for cache to load
+                });
               }
+
+              const updatedReservation = {
+                ...data,
+                status: data.status || 'pending',
+                service_ids: Array.isArray(data.service_ids) ? data.service_ids as string[] : undefined,
+                service_items: Array.isArray(data.service_items) ? data.service_items as unknown as ServiceItem[] : undefined,
+                assigned_employee_ids: Array.isArray((data as any).assigned_employee_ids) ? (data as any).assigned_employee_ids as string[] : undefined,
+                service: undefined, // Legacy relation removed
+                services_data: servicesDataMapped.length > 0 ? servicesDataMapped : undefined,
+                station: data.stations ? {
+                  name: (data.stations as any).name,
+                  type: (data.stations as any).type
+                } : undefined,
+                has_unified_services: (data as any).has_unified_services,
+                photo_urls: (data as any).photo_urls,
+                checked_service_ids: Array.isArray((data as any).checked_service_ids) ? (data as any).checked_service_ids as string[] : undefined
+              };
+              setReservations((prev) => prev.map((r) => r.id === payload.new.id ? updatedReservation as Reservation : r));
+              // Also update selectedReservation if viewing the same reservation
+              setSelectedReservation((prev) =>
+              prev?.id === payload.new.id ? updatedReservation as Reservation : prev
+              );
             }
-          } else if (payload.eventType === 'DELETE') {
-            setTrainings(prev => prev.filter(t => t.id !== payload.old.id));
-          }
-        })
-        .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
-          
-          if (status === 'SUBSCRIBED') {
-            setRealtimeConnected(true);
-            retryCount = 0;
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            setRealtimeConnected(false);
-            
-            if (isCleanedUp) return;
-            
-            if (retryCount < maxRetries) {
-              retryCount++;
-              const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000);
-              console.log(`Realtime retry ${retryCount}/${maxRetries} in ${delay}ms`);
-              
-              retryTimeoutId = setTimeout(() => {
-                if (isCleanedUp) return;
-                fetchReservations();
-                fetchTrainings();
-                setupRealtimeChannel();
-              }, delay);
+          });
+        } else if (payload.eventType === 'DELETE') {
+          setReservations((prev) => prev.filter((r) => r.id !== payload.old.id));
+        }
+      }).
+      on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'trainings',
+        filter: `instance_id=eq.${instanceId}`
+      }, async (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const { data } = (await supabase.
+          from('trainings').
+          select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)').
+          eq('id', payload.new.id).
+          single()) as any;
+          if (data) {
+            const mapped: Training = {
+              ...data,
+              assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
+              station: data.stations ? { name: data.stations.name, type: data.stations.type } : null,
+              training_type_record: data.training_type_record || null
+            };
+            if (payload.eventType === 'INSERT') {
+              setTrainings((prev) => prev.some((t) => t.id === mapped.id) ? prev.map((t) => t.id === mapped.id ? mapped : t) : [...prev, mapped]);
             } else {
-              console.error('Max realtime retries reached, falling back to periodic fetch');
-              retryTimeoutId = setTimeout(() => {
-                if (isCleanedUp) return;
-                fetchReservations();
-                fetchTrainings();
-                retryCount = 0;
-                setupRealtimeChannel();
-              }, 30000);
+              setTrainings((prev) => prev.map((t) => t.id === mapped.id ? mapped : t));
+              setSelectedTraining((prev) => prev?.id === mapped.id ? mapped : prev);
             }
           }
-        });
+        } else if (payload.eventType === 'DELETE') {
+          setTrainings((prev) => prev.filter((t) => t.id !== payload.old.id));
+        }
+      }).
+      subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+
+        if (status === 'SUBSCRIBED') {
+          setRealtimeConnected(true);
+          retryCount = 0;
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setRealtimeConnected(false);
+
+          if (isCleanedUp) return;
+
+          if (retryCount < maxRetries) {
+            retryCount++;
+            const delay = Math.min(1000 * Math.pow(1.5, retryCount), 30000);
+            console.log(`Realtime retry ${retryCount}/${maxRetries} in ${delay}ms`);
+
+            retryTimeoutId = setTimeout(() => {
+              if (isCleanedUp) return;
+              fetchReservations();
+              fetchTrainings();
+              setupRealtimeChannel();
+            }, delay);
+          } else {
+            console.error('Max realtime retries reached, falling back to periodic fetch');
+            retryTimeoutId = setTimeout(() => {
+              if (isCleanedUp) return;
+              fetchReservations();
+              fetchTrainings();
+              retryCount = 0;
+              setupRealtimeChannel();
+            }, 30000);
+          }
+        }
+      });
     };
 
     // Initial connection
@@ -1299,8 +1299,8 @@ const AdminDashboard = () => {
     const workStart = 8 * 60; // 8:00 in minutes
     const workEnd = 18 * 60; // 18:00 in minutes
 
-    return stations.map(station => {
-      const stationReservations = reservations.filter(r => r.station_id === station.id && r.reservation_date === today).map(r => ({
+    return stations.map((station) => {
+      const stationReservations = reservations.filter((r) => r.station_id === station.id && r.reservation_date === today).map((r) => ({
         start: parseInt(r.start_time.split(':')[0]) * 60 + parseInt(r.start_time.split(':')[1]),
         end: parseInt(r.end_time.split(':')[0]) * 60 + parseInt(r.end_time.split(':')[1])
       })).sort((a, b) => a.start - b.start);
@@ -1330,7 +1330,7 @@ const AdminDashboard = () => {
       }
 
       // Format gaps as readable strings
-      const freeRanges = gaps.map(gap => {
+      const freeRanges = gaps.map((gap) => {
         const startHour = Math.floor(gap.start / 60);
         const startMin = gap.start % 60;
         const endHour = Math.floor(gap.end / 60);
@@ -1415,7 +1415,7 @@ const AdminDashboard = () => {
         cancelled_at: new Date().toISOString(),
         cancelled_by: user?.id || null
       }).eq('id', reservationId);
-      
+
       if (updateError) {
         toast.error(t('errors.generic'));
         console.error('Error cancelling reservation:', updateError);
@@ -1429,12 +1429,12 @@ const AdminDashboard = () => {
           title: `🚫 Rezerwacja anulowana`,
           body: `${customerData.name} - anulowana przez admina`,
           url: '/admin',
-          tag: `deleted-reservation-${reservationId}`,
+          tag: `deleted-reservation-${reservationId}`
         });
       }
 
       // Remove from local state (cancelled reservations hidden from calendar)
-      setReservations(prev => prev.filter(r => r.id !== reservationId));
+      setReservations((prev) => prev.filter((r) => r.id !== reservationId));
       setSelectedReservation(null);
       toast.success(t('reservations.reservationRejected'));
     } catch (error) {
@@ -1442,14 +1442,14 @@ const AdminDashboard = () => {
       toast.error(t('errors.generic'));
     }
   };
-  
+
   // Reject reservation - soft delete with undo option
   const handleRejectReservation = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation || !instanceId) return;
 
     // Immediately hide from UI
-    setReservations(prev => prev.filter(r => r.id !== reservationId));
+    setReservations((prev) => prev.filter((r) => r.id !== reservationId));
 
     // Store timeout ID so we can cancel if user clicks Cofnij
     let deleteExecuted = false;
@@ -1457,14 +1457,14 @@ const AdminDashboard = () => {
     const executeDelete = async () => {
       if (deleteExecuted) return;
       deleteExecuted = true;
-      
+
       try {
         // Save customer data before deleting
         await supabase.from('customers').upsert({
           instance_id: instanceId,
           name: reservation.customer_name,
           phone: reservation.customer_phone,
-          source: 'myjnia',
+          source: 'myjnia'
         }, {
           onConflict: 'instance_id,source,phone',
           ignoreDuplicates: false
@@ -1476,16 +1476,16 @@ const AdminDashboard = () => {
           cancelled_at: new Date().toISOString(),
           cancelled_by: user?.id || null
         }).eq('id', reservationId);
-        
+
         if (error) {
           console.error('Error rejecting reservation:', error);
           // Restore if update failed
-          setReservations(prev => [...prev, reservation]);
+          setReservations((prev) => [...prev, reservation]);
           toast.error(t('errors.generic'));
         }
       } catch (error) {
         console.error('Error rejecting reservation:', error);
-        setReservations(prev => [...prev, reservation]);
+        setReservations((prev) => [...prev, reservation]);
         toast.error(t('errors.generic'));
       }
     };
@@ -1496,9 +1496,9 @@ const AdminDashboard = () => {
         label: t('common.undo'),
         onClick: () => {
           deleteExecuted = true; // Prevent delete
-          setReservations(prev => [...prev, reservation]);
+          setReservations((prev) => [...prev, reservation]);
           toast.success(t('common.success'));
-        },
+        }
       },
       duration: 5000,
       onDismiss: () => {
@@ -1506,11 +1506,11 @@ const AdminDashboard = () => {
       },
       onAutoClose: () => {
         executeDelete();
-      },
+      }
     });
   };
   const handleReservationSave = (reservationId: string, data: Partial<Reservation>) => {
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       ...data
     } : r));
@@ -1518,7 +1518,7 @@ const AdminDashboard = () => {
     toast.success(t('reservations.reservationUpdated'));
   };
   const handleAddReservation = (stationId: string, date: string, time: string) => {
-    const station = stations.find(s => s.id === stationId);
+    const station = stations.find((s) => s.id === stationId);
     // Close details drawer when opening add drawer
     setSelectedReservation(null);
     setEditingReservation(null); // Clear editing mode
@@ -1533,7 +1533,7 @@ const AdminDashboard = () => {
 
   // Open edit reservation dialog (keeps details drawer open, edit drawer goes on top)
   const handleEditReservation = (reservation: Reservation) => {
-    const station = stations.find(s => s.id === reservation.station_id);
+    const station = stations.find((s) => s.id === reservation.station_id);
     setEditingReservation(reservation);
     setNewReservationData({
       stationId: reservation.station_id || '',
@@ -1592,7 +1592,7 @@ const AdminDashboard = () => {
   };
   const handleToggleClosedDay = async (date: string) => {
     if (!instanceId) return;
-    const existingClosedDay = closedDays.find(cd => cd.closed_date === date);
+    const existingClosedDay = closedDays.find((cd) => cd.closed_date === date);
     if (existingClosedDay) {
       // Day is closed - open it (delete from closed_days)
       const {
@@ -1625,33 +1625,33 @@ const AdminDashboard = () => {
     }
   };
   const handleConfirmReservation = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
 
     const previousStatus = reservation.status;
 
     // Optimistic UI update (so it disappears from "Niepotwierdzone" instantly)
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'confirmed'
     } : r));
-    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+    setSelectedReservation((prev) => prev && prev.id === reservationId ? {
       ...prev,
       status: 'confirmed'
     } : prev);
 
-    const { error } = await supabase
-      .from('reservations')
-      .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-      .eq('id', reservationId);
+    const { error } = await supabase.
+    from('reservations').
+    update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).
+    eq('id', reservationId);
 
     if (error) {
       // Rollback optimistic update
-      setReservations(prev => prev.map(r => r.id === reservationId ? {
+      setReservations((prev) => prev.map((r) => r.id === reservationId ? {
         ...r,
         status: previousStatus
       } : r));
-      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      setSelectedReservation((prev) => prev && prev.id === reservationId ? {
         ...prev,
         status: previousStatus
       } : prev);
@@ -1684,16 +1684,16 @@ const AdminDashboard = () => {
     }
   };
   const handleStartWork = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'in_progress',
       started_at: new Date().toISOString()
     }).eq('id', reservationId);
-    
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -1701,29 +1701,29 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'in_progress'
     } : r));
 
     toast.success(t('reservations.workStarted'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   const handleEndWork = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const now = new Date();
-    
+
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'completed',
       completed_at: now.toISOString()
     }).eq('id', reservationId);
-    
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -1731,27 +1731,27 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'completed'
     } : r));
 
     toast.success(t('reservations.workEnded'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   const handleReleaseVehicle = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const {
       error: updateError
     } = await supabase.from('reservations').update({
       status: 'released',
       released_at: new Date().toISOString()
     }).eq('id', reservationId);
-    
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -1759,30 +1759,30 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'released'
     } : r));
 
     toast.success(t('reservations.vehicleReleased'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   const handleSendPickupSms = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
 
     const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
-    
+
     // Optimistic update - set timestamp immediately
     const now = new Date().toISOString();
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       pickup_sms_sent_at: now
     } : r));
     // Also update selectedReservation for drawer UI
-    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+    setSelectedReservation((prev) => prev && prev.id === reservationId ? {
       ...prev,
       pickup_sms_sent_at: now
     } : prev);
@@ -1795,22 +1795,22 @@ const AdminDashboard = () => {
           instanceId
         }
       });
-      
+
       // Save pickup SMS sent timestamp to DB
-      await supabase
-        .from('reservations')
-        .update({ pickup_sms_sent_at: now })
-        .eq('id', reservationId);
-      
+      await supabase.
+      from('reservations').
+      update({ pickup_sms_sent_at: now }).
+      eq('id', reservationId);
+
       toast.success(t('reservations.pickupSmsSent', { customerName: reservation.customer_name }));
     } catch (error) {
       console.error('SMS error:', error);
       // Rollback optimistic update on error
-      setReservations(prev => prev.map(r => r.id === reservationId ? {
+      setReservations((prev) => prev.map((r) => r.id === reservationId ? {
         ...r,
         pickup_sms_sent_at: reservation.pickup_sms_sent_at
       } : r));
-      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      setSelectedReservation((prev) => prev && prev.id === reservationId ? {
         ...prev,
         pickup_sms_sent_at: reservation.pickup_sms_sent_at
       } : prev);
@@ -1819,43 +1819,43 @@ const AdminDashboard = () => {
   };
 
   const handleSendConfirmationSms = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation || !reservation.customer_phone) return;
 
     // Optimistic update - set timestamp immediately
     const now = new Date().toISOString();
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       confirmation_sms_sent_at: now
     } : r));
     // Also update selectedReservation for drawer UI
-    setSelectedReservation(prev => prev && prev.id === reservationId ? {
+    setSelectedReservation((prev) => prev && prev.id === reservationId ? {
       ...prev,
       confirmation_sms_sent_at: now
     } : prev);
 
     try {
       // Fetch instance data for SMS
-      const { data: instData } = await supabase
-        .from('instances')
-        .select('name, short_name, google_maps_url, slug')
-        .eq('id', instanceId)
-        .single();
+      const { data: instData } = await supabase.
+      from('instances').
+      select('name, short_name, google_maps_url, slug').
+      eq('id', instanceId).
+      single();
 
       if (!instData) return;
 
       // Check if SMS edit link feature is enabled
-      const { data: smsEditLinkFeature } = await supabase
-        .from('instance_features')
-        .select('enabled, parameters')
-        .eq('instance_id', instanceId)
-        .eq('feature_key', 'sms_edit_link')
-        .maybeSingle();
-      
+      const { data: smsEditLinkFeature } = await supabase.
+      from('instance_features').
+      select('enabled, parameters').
+      eq('instance_id', instanceId).
+      eq('feature_key', 'sms_edit_link').
+      maybeSingle();
+
       // Determine if edit link should be included
       let includeEditLink = false;
       if (smsEditLinkFeature?.enabled) {
-        const params = smsEditLinkFeature.parameters as { phones?: string[] } | null;
+        const params = smsEditLinkFeature.parameters as {phones?: string[];} | null;
         if (!params || !params.phones || params.phones.length === 0) {
           includeEditLink = true;
         } else {
@@ -1863,7 +1863,7 @@ const AdminDashboard = () => {
           if (!normalizedPhone.startsWith("+")) {
             normalizedPhone = "+48" + normalizedPhone;
           }
-          includeEditLink = params.phones.some(p => {
+          includeEditLink = params.phones.some((p) => {
             let normalizedAllowed = p.replace(/\s+/g, "").replace(/[^\d+]/g, "");
             if (!normalizedAllowed.startsWith("+")) {
               normalizedAllowed = "+48" + normalizedAllowed;
@@ -1883,8 +1883,8 @@ const AdminDashboard = () => {
       const mapsLink = instData.google_maps_url ? ` Dojazd: ${instData.google_maps_url}` : '';
       const reservationUrl = `https://${instData.slug}.n2wash.com/res?code=${reservation.confirmation_code}`;
       const editLink = includeEditLink ? ` Zmien lub anuluj: ${reservationUrl}` : '';
-      
-      const smsMessage = `${instName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${reservation.start_time.slice(0,5)}.${mapsLink}${editLink}`;
+
+      const smsMessage = `${instName}: Rezerwacja potwierdzona! ${dayNum} ${monthNameFull} o ${reservation.start_time.slice(0, 5)}.${mapsLink}${editLink}`;
 
       await supabase.functions.invoke('send-sms-message', {
         body: {
@@ -1895,20 +1895,20 @@ const AdminDashboard = () => {
       });
 
       // Save confirmation SMS sent timestamp to DB
-      await supabase
-        .from('reservations')
-        .update({ confirmation_sms_sent_at: now })
-        .eq('id', reservationId);
-      
+      await supabase.
+      from('reservations').
+      update({ confirmation_sms_sent_at: now }).
+      eq('id', reservationId);
+
       toast.success(t('reservations.confirmationSmsSent', { customerName: reservation.customer_name }));
     } catch (error) {
       console.error('SMS error:', error);
       // Rollback optimistic update on error
-      setReservations(prev => prev.map(r => r.id === reservationId ? {
+      setReservations((prev) => prev.map((r) => r.id === reservationId ? {
         ...r,
         confirmation_sms_sent_at: reservation.confirmation_sms_sent_at
       } : r));
-      setSelectedReservation(prev => prev && prev.id === reservationId ? {
+      setSelectedReservation((prev) => prev && prev.id === reservationId ? {
         ...prev,
         confirmation_sms_sent_at: reservation.confirmation_sms_sent_at
       } : prev);
@@ -1917,9 +1917,9 @@ const AdminDashboard = () => {
   };
 
   const handleRevertToConfirmed = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const {
       error: updateError
     } = await supabase.from('reservations').update({
@@ -1927,7 +1927,7 @@ const AdminDashboard = () => {
       started_at: null,
       completed_at: null
     }).eq('id', reservationId);
-    
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -1935,20 +1935,20 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'confirmed'
     } : r));
 
     toast.success(t('reservations.revertedToConfirmed'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   const handleRevertToInProgress = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const {
       error: updateError
     } = await supabase.from('reservations').update({
@@ -1956,7 +1956,7 @@ const AdminDashboard = () => {
       completed_at: null,
       released_at: null
     }).eq('id', reservationId);
-    
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
@@ -1964,23 +1964,23 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       status: 'in_progress'
     } : r));
 
     toast.success(t('reservations.revertedToInProgress'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   // Generic status change - allows jumping to any status
   const handleStatusChange = async (reservationId: string, newStatus: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
-    
+
     const updateData: Record<string, any> = { status: newStatus };
-    
+
     // Reset timestamps appropriately based on target status
     if (newStatus === 'confirmed') {
       updateData.started_at = null;
@@ -1992,26 +1992,26 @@ const AdminDashboard = () => {
     } else if (newStatus === 'completed') {
       updateData.released_at = null;
     }
-    
-    const { error: updateError } = await supabase
-      .from('reservations')
-      .update(updateData)
-      .eq('id', reservationId);
-    
+
+    const { error: updateError } = await supabase.
+    from('reservations').
+    update(updateData).
+    eq('id', reservationId);
+
     if (updateError) {
       toast.error(t('errors.generic'));
       console.error('Update error:', updateError);
       return;
     }
 
-    setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r));
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? { ...r, status: newStatus } : r));
     toast.success(t('reservations.statusChanged'));
   };
 
   const handleApproveChangeRequest = async (changeRequestId: string) => {
-    const changeRequest = reservations.find(r => r.id === changeRequestId);
+    const changeRequest = reservations.find((r) => r.id === changeRequestId);
     if (!changeRequest || !instanceId) return;
-    
+
     const originalId = (changeRequest as any).original_reservation_id;
     if (!originalId) {
       toast.error(t('errors.generic'));
@@ -2019,11 +2019,11 @@ const AdminDashboard = () => {
     }
 
     // Get original reservation
-    const { data: originalReservation, error: fetchError } = await supabase
-      .from('reservations')
-      .select('confirmation_code, reservation_date, start_time')
-      .eq('id', originalId)
-      .single();
+    const { data: originalReservation, error: fetchError } = await supabase.
+    from('reservations').
+    select('confirmation_code, reservation_date, start_time').
+    eq('id', originalId).
+    single();
 
     if (fetchError || !originalReservation) {
       toast.error(t('errors.generic'));
@@ -2036,10 +2036,10 @@ const AdminDashboard = () => {
     const tempCode = `TEMP_${Date.now()}`;
 
     // Step 1: Change original's code to temp (to avoid unique constraint conflict)
-    const { error: tempError } = await supabase
-      .from('reservations')
-      .update({ confirmation_code: tempCode })
-      .eq('id', originalId);
+    const { error: tempError } = await supabase.
+    from('reservations').
+    update({ confirmation_code: tempCode }).
+    eq('id', originalId);
 
     if (tempError) {
       console.error('Error setting temp code:', tempError);
@@ -2048,15 +2048,15 @@ const AdminDashboard = () => {
     }
 
     // Step 2: Update change request: set original's code, clear link, set to confirmed
-    const { error: updateNewError } = await supabase
-      .from('reservations')
-      .update({
-        confirmation_code: originalCode,
-        original_reservation_id: null,
-        status: 'confirmed',
-        confirmed_at: new Date().toISOString()
-      })
-      .eq('id', changeRequestId);
+    const { error: updateNewError } = await supabase.
+    from('reservations').
+    update({
+      confirmation_code: originalCode,
+      original_reservation_id: null,
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString()
+    }).
+    eq('id', changeRequestId);
 
     if (updateNewError) {
       console.error('Error updating change request:', updateNewError);
@@ -2065,14 +2065,14 @@ const AdminDashboard = () => {
     }
 
     // Step 3: Cancel original reservation with the new code
-    const { error: cancelError } = await supabase
-      .from('reservations')
-      .update({
-        status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
-        confirmation_code: newCode
-      })
-      .eq('id', originalId);
+    const { error: cancelError } = await supabase.
+    from('reservations').
+    update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      confirmation_code: newCode
+    }).
+    eq('id', originalId);
 
     if (cancelError) {
       console.error('Error cancelling original:', cancelError);
@@ -2083,11 +2083,11 @@ const AdminDashboard = () => {
       const dateFormatted = format(new Date(changeRequest.reservation_date), 'd MMMM', { locale: pl });
       const timeFormatted = changeRequest.start_time.slice(0, 5);
       const manageUrl = `https://${instanceData?.slug || 'demo'}.n2wash.com/res?code=${originalCode}`;
-      
+
       // Use short_name if available, fallback to name
       const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
       const smsMessage = `${instanceName}: Potwierdzamy nowy termin: ${dateFormatted} o ${timeFormatted}. Zmien lub anuluj: ${manageUrl}`;
-      
+
       await supabase.functions.invoke('send-sms-message', {
         body: {
           phone: changeRequest.customer_phone,
@@ -2100,44 +2100,44 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev
-      .filter(r => r.id !== originalId)
-      .map(r => r.id === changeRequestId ? {
-        ...r,
-        confirmation_code: originalCode,
-        status: 'confirmed',
-        original_reservation_id: null
-      } as any : r)
+    setReservations((prev) => prev.
+    filter((r) => r.id !== originalId).
+    map((r) => r.id === changeRequestId ? {
+      ...r,
+      confirmation_code: originalCode,
+      status: 'confirmed',
+      original_reservation_id: null
+    } as any : r)
     );
 
     toast.success(t('myReservation.changeApproved'), {
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />
     });
   };
 
   // Reject change request - delete request, keep original
   const handleRejectChangeRequest = async (changeRequestId: string) => {
-    const changeRequest = reservations.find(r => r.id === changeRequestId);
+    const changeRequest = reservations.find((r) => r.id === changeRequestId);
     if (!changeRequest || !instanceId) return;
-    
+
     const originalId = (changeRequest as any).original_reservation_id;
 
     // Get original reservation for SMS
     let originalReservation: any = null;
     if (originalId) {
-      const { data } = await supabase
-        .from('reservations')
-        .select('reservation_date, start_time, confirmation_code')
-        .eq('id', originalId)
-        .single();
+      const { data } = await supabase.
+      from('reservations').
+      select('reservation_date, start_time, confirmation_code').
+      eq('id', originalId).
+      single();
       originalReservation = data;
     }
 
     // Delete the change request
-    const { error: deleteError } = await supabase
-      .from('reservations')
-      .delete()
-      .eq('id', changeRequestId);
+    const { error: deleteError } = await supabase.
+    from('reservations').
+    delete().
+    eq('id', changeRequestId);
 
     if (deleteError) {
       toast.error(t('errors.generic'));
@@ -2150,11 +2150,11 @@ const AdminDashboard = () => {
         const dateFormatted = format(new Date(originalReservation.reservation_date), 'd MMMM', { locale: pl });
         const timeFormatted = originalReservation.start_time.slice(0, 5);
         const manageUrl = `https://${instanceData?.slug || 'demo'}.n2wash.com/res?code=${originalReservation.confirmation_code}`;
-        
+
         // Use short_name if available, fallback to name
         const instanceName = instanceData?.short_name || instanceData?.name || 'Myjnia';
         const smsMessage = `${instanceName}: Niestety nie mozemy zmienic terminu rezerwacji: ${dateFormatted} o ${timeFormatted}. Wybierz inny lub anuluj: ${manageUrl}`;
-        
+
         await supabase.functions.invoke('send-sms-message', {
           body: {
             phone: changeRequest.customer_phone,
@@ -2168,13 +2168,13 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.filter(r => r.id !== changeRequestId));
+    setReservations((prev) => prev.filter((r) => r.id !== changeRequestId));
 
     toast.success(t('myReservation.changeRejected'));
   };
 
   const handleNoShow = async (reservationId: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation || !instanceId) return;
 
     // Save customer data before updating
@@ -2182,7 +2182,7 @@ const AdminDashboard = () => {
       instance_id: instanceId,
       name: reservation.customer_name,
       phone: reservation.customer_phone,
-      source: 'myjnia',
+      source: 'myjnia'
     }, {
       onConflict: 'instance_id,source,phone',
       ignoreDuplicates: false
@@ -2200,13 +2200,13 @@ const AdminDashboard = () => {
     }
 
     // Update local state - remove from visible list (no_show hides from calendar)
-    setReservations(prev => prev.filter(r => r.id !== reservationId));
+    setReservations((prev) => prev.filter((r) => r.id !== reservationId));
     setSelectedReservation(null);
     toast.success(t('reservations.noShowMarked'));
   };
 
   const handleReservationMove = async (reservationId: string, newStationId: string, newDate: string, newTime?: string) => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = reservations.find((r) => r.id === reservationId);
     if (!reservation) return;
 
     // Store original state for undo
@@ -2247,7 +2247,7 @@ const AdminDashboard = () => {
     }
 
     // Update local state
-    setReservations(prev => prev.map(r => r.id === reservationId ? {
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
       ...updates
     } : r));
@@ -2256,12 +2256,12 @@ const AdminDashboard = () => {
 
     // Show toast with reservation details
     toast.success(t('reservations.reservationMoved'), {
-      description: (
-        <div className="flex flex-col">
+      description:
+      <div className="flex flex-col">
           <span>{updates.start_time} - {updates.end_time}</span>
           <span>{vehicleModel}</span>
-        </div>
-      ),
+        </div>,
+
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       duration: 5000,
       action: {
@@ -2278,7 +2278,7 @@ const AdminDashboard = () => {
           }
 
           // Restore local state
-          setReservations(prev => prev.map(r => r.id === reservationId ? {
+          setReservations((prev) => prev.map((r) => r.id === reservationId ? {
             ...r,
             ...originalState
           } : r));
@@ -2289,23 +2289,23 @@ const AdminDashboard = () => {
   };
 
   // Handle yard vehicle drop onto calendar
-  const handleYardVehicleDrop = async (vehicle: { id: string; customer_name: string; customer_phone: string; vehicle_plate: string; car_size: 'small' | 'medium' | 'large' | null; service_ids: string[]; notes: string | null }, stationId: string, date: string, time: string) => {
+  const handleYardVehicleDrop = async (vehicle: {id: string;customer_name: string;customer_phone: string;vehicle_plate: string;car_size: 'small' | 'medium' | 'large' | null;service_ids: string[];notes: string | null;}, stationId: string, date: string, time: string) => {
     if (!instanceId) return;
-    
+
     // Default car size to 'medium' if not set
     const effectiveCarSize = vehicle.car_size || 'medium';
-    
+
     // Calculate total duration based on services
     let totalDuration = 60; // Default 1 hour if no services
-    
+
     if (vehicle.service_ids && vehicle.service_ids.length > 0) {
       totalDuration = vehicle.service_ids.reduce((total, serviceId) => {
-        const service = allServices.find(s => s.id === serviceId);
+        const service = allServices.find((s) => s.id === serviceId);
         if (!service) {
           console.warn(`Service ${serviceId} not found in allServices`);
           return total;
         }
-        
+
         // Get duration based on car size (with fallback chain)
         let duration = 0;
         if (effectiveCarSize === 'small') {
@@ -2316,33 +2316,33 @@ const AdminDashboard = () => {
           // medium or fallback
           duration = service.duration_medium || service.duration_minutes || 60;
         }
-        
+
         return total + duration;
       }, 0);
-      
+
       // Minimum 30 minutes
       if (totalDuration < 30) totalDuration = 30;
     }
-    
+
     // Calculate end time based on duration
     const [hours, mins] = time.split(':').map(Number);
     const endMinutes = hours * 60 + mins + totalDuration;
     const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-    
+
     // Generate confirmation code
     const confirmationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
+
     // Get first service ID or fetch a default one
     let primaryServiceId = vehicle.service_ids?.[0];
     if (!primaryServiceId && allServices.length > 0) {
       primaryServiceId = allServices[0].id;
     }
-    
+
     if (!primaryServiceId) {
       toast.error('Brak usług - dodaj usługę do pojazdu lub utwórz usługę w systemie');
       return;
     }
-    
+
     try {
       // Create reservation from yard vehicle data
       const { error: reservationError } = await supabase.from('reservations').insert([{
@@ -2362,13 +2362,13 @@ const AdminDashboard = () => {
         status: 'confirmed' as const,
         source: 'admin'
       }]);
-      
+
       if (reservationError) throw reservationError;
-      
+
       // Delete from yard_vehicles
       const { error: deleteError } = await supabase.from('yard_vehicles').delete().eq('id', vehicle.id);
       if (deleteError) console.error('Error deleting yard vehicle:', deleteError);
-      
+
       fetchReservations();
       toast.success('Rezerwacja utworzona z placu');
     } catch (error) {
@@ -2377,9 +2377,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const pendingCount = reservations.filter(r => (r.status || 'pending') === 'pending').length;
-  
-  
+  const pendingCount = reservations.filter((r) => (r.status || 'pending') === 'pending').length;
+
+
   return <>
       <Helmet>
         <title>Panel Admina - {instanceData?.name || 'N2Wash'}</title>
@@ -2387,58 +2387,58 @@ const AdminDashboard = () => {
       </Helmet>
 
       {/* PWA Update Banner */}
-      {updateAvailable && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-primary text-primary-foreground p-3 flex items-center justify-between shadow-lg">
+      {updateAvailable &&
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-primary text-primary-foreground p-3 flex items-center justify-between shadow-lg">
           <div className="flex flex-col">
             <span className="text-sm font-medium">
               Dostępna nowa wersja aplikacji
             </span>
-            {currentVersion && (
-              <span className="text-xs opacity-80">
+            {currentVersion &&
+        <span className="text-xs opacity-80">
                 Wersja {currentVersion}
               </span>
-            )}
+        }
           </div>
           <Button
-            size="sm"
-            className="bg-white text-black hover:bg-white/90"
-            onClick={applyUpdate}
-            disabled={isUpdating}
-          >
+        size="sm"
+        className="bg-white text-black hover:bg-white/90"
+        onClick={applyUpdate}
+        disabled={isUpdating}>
+
             {isUpdating ? 'Aktualizuję...' : 'Aktualizuj'}
           </Button>
         </div>
-      )}
+    }
 
       <div className={cn("min-h-screen h-screen bg-background flex overflow-hidden", updateAvailable && "pt-14")}>
         {/* Sidebar - Mobile Overlay */}
         {sidebarOpen && !protocolEditMode && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
         {/* Sidebar - fixed height, never scrolls */}
-        <aside className={cn("fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", (sidebarCollapsed || userRole === 'hall') ? "lg:w-16" : "w-64", protocolEditMode && "hidden")}>
+        <aside className={cn("fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0", sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0", sidebarCollapsed || userRole === 'hall' ? "lg:w-16" : "w-64", protocolEditMode && "hidden")}>
           <div className="flex flex-col h-full overflow-hidden">
             {/* Logo */}
-            <div className={cn("border-b border-border/50 flex items-center justify-between", (sidebarCollapsed || userRole === 'hall') ? "p-3" : "p-6")}>
-              <button 
-                onClick={() => {
-                  if (userRole === 'hall') {
-                    navigate(adminBasePath ? '/admin/halls/1' : '/halls/1');
-                  } else {
-                    setCurrentView('calendar');
-                  }
-                }} 
-                className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", (sidebarCollapsed || userRole === 'hall') ? "justify-center" : "gap-3")}
-              >
-                {instanceData?.logo_url && (
-                  <img 
-                    src={instanceData.logo_url} 
-                    alt={instanceData.name} 
-                    className={cn(
-                      "rounded-xl object-contain shrink-0 bg-white",
-                      (sidebarCollapsed || userRole === 'hall') ? "w-10 h-10" : "w-[40%] max-h-10"
-                    )}
-                  />
-                )}
+            <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed || userRole === 'hall' ? "p-3" : "p-6")}>
+              <button
+              onClick={() => {
+                if (userRole === 'hall') {
+                  navigate(adminBasePath ? '/admin/halls/1' : '/halls/1');
+                } else {
+                  setCurrentView('calendar');
+                }
+              }}
+              className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed || userRole === 'hall' ? "justify-center" : "gap-3")}>
+
+                {instanceData?.logo_url &&
+              <img
+                src={instanceData.logo_url}
+                alt={instanceData.name}
+                className={cn("object-contain shrink-0 bg-white",
+
+                sidebarCollapsed || userRole === 'hall' ? "w-10 h-10" : "w-[40%] max-h-10"
+                )} />
+
+              }
                 {!(sidebarCollapsed || userRole === 'hall') && <div className="text-left min-w-0 flex-1 pr-2">
                     <h1 className="font-bold text-foreground truncate">{instanceData?.name || 'Panel Admina'}</h1>
                   </div>}
@@ -2446,29 +2446,29 @@ const AdminDashboard = () => {
             </div>
 
             {/* Navigation */}
-            <nav className={cn("flex-1 space-y-2", (sidebarCollapsed || userRole === 'hall') ? "p-2" : "p-4")}>
+            <nav className={cn("flex-1 space-y-2", sidebarCollapsed || userRole === 'hall' ? "p-2" : "p-4")}>
               {/* Hall role: simplified menu - only Halls and Protocols */}
-              {userRole === 'hall' ? (
-                <>
+              {userRole === 'hall' ?
+            <>
                   {/* Halls - always visible for hall role */}
-                  <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => { setSidebarOpen(false); navigate(adminBasePath ? '/admin/halls/1' : '/halls/1'); }} title={t('navigation.halls')}>
+                  <Button variant={currentView === 'halls' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => {setSidebarOpen(false);navigate(adminBasePath ? '/admin/halls/1' : '/halls/1');}} title={t('navigation.halls')}>
                     <Building2 className="w-4 h-4 shrink-0" />
                   </Button>
                   {/* Protocols */}
-                  {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => { setSidebarOpen(false); setCurrentView('protocols'); }} title="Protokoły">
+                  {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className="w-full justify-center px-2" onClick={() => {setSidebarOpen(false);setCurrentView('protocols');}} title="Protokoły">
                     <ClipboardCheck className="w-4 h-4 shrink-0" />
                   </Button>}
-                </>
-              ) : (
-                <>
+                </> :
+
+            <>
                   {/* Full navigation for admin/employee */}
                   {/* 1. Kalendarz */}
-                  <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('calendar'); }} title="Kalendarz">
+                  <Button variant={currentView === 'calendar' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('calendar');}} title="Kalendarz">
                     <Calendar className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Kalendarz"}
                   </Button>
                   {/* 2. Rezerwacje */}
-                  <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('reservations'); }} title="Rezerwacje">
+                  <Button variant={currentView === 'reservations' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('reservations');}} title="Rezerwacje">
                     <div className="relative">
                       <Users className="w-4 h-4 shrink-0" />
                       {sidebarCollapsed && pendingCount > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-amber-500 text-white rounded-full flex items-center justify-center">
@@ -2483,104 +2483,104 @@ const AdminDashboard = () => {
                       </>}
                   </Button>
                   {/* 3. Oferty */}
-                  {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('offers'); }} title="Oferty">
+                  {hasFeature('offers') && <Button variant={currentView === 'offers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('offers');}} title="Oferty">
                       <FileText className="w-4 h-4 shrink-0" />
                       {!sidebarCollapsed && "Oferty"}
                     </Button>}
                   {/* 4. Protokoły */}
-                  {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('protocols'); }} title="Protokoły">
+                  {hasFeature('vehicle_reception_protocol') && <Button variant={currentView === 'protocols' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('protocols');}} title="Protokoły">
                     <ClipboardCheck className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Protokoły"}
                   </Button>}
                   {/* 5. Klienci */}
-                  <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('customers'); }} title="Klienci">
+                  <Button variant={currentView === 'customers' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('customers');}} title="Klienci">
                     <UserCircle className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Klienci"}
                   </Button>
                   {/* 6. Pracownicy - admin only */}
-                  {userRole !== 'employee' && <Button variant={currentView === 'employees' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('employees'); }} title="Pracownicy">
+                  {userRole !== 'employee' && <Button variant={currentView === 'employees' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('employees');}} title="Pracownicy">
                     <UsersRound className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Pracownicy"}
                   </Button>}
                   {/* 7. Usługi - admin only */}
-                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('pricelist'); }} title="Usługi">
+                  {userRole !== 'employee' && <Button variant={currentView === 'pricelist' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('pricelist');}} title="Usługi">
                     <BadgeDollarSign className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Usługi"}
                   </Button>}
                   {/* 8. Powiadomienia - ukryte */}
                   {/* 9. Ustawienia - admin only, always last */}
-                  {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => { setSidebarOpen(false); setCurrentView('settings'); }} title="Ustawienia">
+                  {userRole !== 'employee' && <Button variant={currentView === 'settings' ? 'secondary' : 'ghost'} className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")} onClick={() => {setSidebarOpen(false);setCurrentView('settings');}} title="Ustawienia">
                     <Settings className="w-4 h-4 shrink-0" />
                     {!sidebarCollapsed && "Ustawienia"}
                   </Button>}
                 </>
-              )}
+            }
             </nav>
 
             {/* Sales CRM switch button */}
-            {hasFeature('sales_crm') && roles.some(r => r.role === 'sales') && (
-              <div className={cn(sidebarCollapsed ? 'px-1 pb-1' : 'px-3 pb-1')}>
+            {hasFeature('sales_crm') && roles.some((r) => r.role === 'sales') &&
+          <div className={cn(sidebarCollapsed ? 'px-1 pb-1' : 'px-3 pb-1')}>
                 <Separator className="mb-2" />
                 <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full gap-3',
-                    sidebarCollapsed ? 'justify-center px-2' : 'justify-start'
-                  )}
-                  onClick={() => navigate(adminBasePath + '/sales-crm')}
-                  title="Przejdź do Panelu Sprzedaży"
-                >
+              variant="outline"
+              className={cn(
+                'w-full gap-3',
+                sidebarCollapsed ? 'justify-center px-2' : 'justify-start'
+              )}
+              onClick={() => navigate(adminBasePath + '/sales-crm')}
+              title="Przejdź do Panelu Sprzedaży">
+
                   <ArrowLeftRight className="w-4 h-4 shrink-0" />
                   {!sidebarCollapsed && 'Panel Sprzedaży'}
                 </Button>
               </div>
-            )}
+          }
 
             {/* Collapse toggle & User menu */}
-            <div className={cn((sidebarCollapsed || userRole === 'hall') ? "p-2 space-y-2" : "p-4 space-y-3")}>
+            <div className={cn(sidebarCollapsed || userRole === 'hall' ? "p-2 space-y-2" : "p-4 space-y-3")}>
               {/* Collapse button - desktop only, hidden for hall role */}
-              {userRole !== 'hall' && (
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full text-muted-foreground hidden lg:flex gap-3",
-                    sidebarCollapsed ? "justify-center px-2" : "justify-start",
-                  )}
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}
-                >
-                  {sidebarCollapsed ? (
-                    <PanelLeft className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <>
+              {userRole !== 'hall' &&
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full text-muted-foreground hidden lg:flex gap-3",
+                sidebarCollapsed ? "justify-center px-2" : "justify-start"
+              )}
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? "Rozwiń menu" : "Zwiń menu"}>
+
+                  {sidebarCollapsed ?
+              <PanelLeft className="w-4 h-4 shrink-0" /> :
+
+              <>
                       <PanelLeftClose className="w-4 h-4 shrink-0" />
                       Zwiń menu
                     </>
-                  )}
+              }
                 </Button>
-              )}
+            }
 
               {/* Divider between collapse button and user menu */}
               {!(sidebarCollapsed || userRole === 'hall') && <Separator className="my-3 -mx-4 w-[calc(100%+2rem)] bg-border/30" />}
 
               {/* Email -> dropdown (logout) - For hall role always show icon only */}
-              {(sidebarCollapsed || userRole === 'hall') ? (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center px-2 text-muted-foreground"
-                  onClick={handleLogout}
-                  title="Wyloguj się"
-                >
+              {sidebarCollapsed || userRole === 'hall' ?
+            <Button
+              variant="ghost"
+              className="w-full justify-center px-2 text-muted-foreground"
+              onClick={handleLogout}
+              title="Wyloguj się">
+
                   <LogOut className="w-4 h-4 shrink-0" />
-                </Button>
-              ) : (
-                user && (
-                  <DropdownMenu>
+                </Button> :
+
+            user &&
+            <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant="ghost"
-                        className="w-full justify-between text-muted-foreground px-3 h-auto py-2"
-                      >
+                  variant="ghost"
+                  className="w-full justify-between text-muted-foreground px-3 h-auto py-2">
+
                         <span className="text-sm truncate">{username || user.email}</span>
                         <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
                       </Button>
@@ -2592,8 +2592,8 @@ const AdminDashboard = () => {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                )
-              )}
+
+            }
             </div>
           </div>
         </aside>
@@ -2603,9 +2603,9 @@ const AdminDashboard = () => {
 
           {/* Content */}
           <div className={cn(
-            "flex-1 space-y-6 overflow-auto pb-28 lg:pb-8",
-            currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4"
-          )}>
+          "flex-1 space-y-6 overflow-auto pb-28 lg:pb-8",
+          currentView === 'calendar' ? "p-0 lg:p-4 lg:pt-0" : "p-4"
+        )}>
             {/* Header - only shown for settings view */}
             {currentView === 'settings' && <h1 className="text-2xl font-bold text-foreground">
                 {t('settings.title')}
@@ -2620,32 +2620,32 @@ const AdminDashboard = () => {
                 {/* FAB removed - plus button is now in MobileBottomNav */}
               </div>}
 
-            {currentView === 'reservations' && (
-              <ReservationsView
-                reservations={reservations}
-                allServices={allServices}
-                onReservationClick={handleReservationClick}
-                onConfirmReservation={handleConfirmReservation}
-                onRejectReservation={handleRejectReservation}
-              />
-            )}
+            {currentView === 'reservations' &&
+          <ReservationsView
+            reservations={reservations}
+            allServices={allServices}
+            onReservationClick={handleReservationClick}
+            onConfirmReservation={handleConfirmReservation}
+            onRejectReservation={handleRejectReservation} />
+
+          }
 
             {currentView === 'customers' && <CustomersView instanceId={instanceId} />}
 
-            {currentView === 'pricelist' && instanceId && (
-              <div className="max-w-3xl mx-auto">
+            {currentView === 'pricelist' && instanceId &&
+          <div className="max-w-3xl mx-auto">
                 <PriceListSettings instanceId={instanceId} />
               </div>
-            )}
+          }
 
-            {currentView === 'settings' && (
-              <SettingsView 
-                instanceId={instanceId} 
-                instanceData={instanceData}
-                onInstanceUpdate={() => queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] })}
-                onWorkingHoursUpdate={() => queryClient.invalidateQueries({ queryKey: ['working_hours', instanceId] })}
-              />
-            )}
+            {currentView === 'settings' &&
+          <SettingsView
+            instanceId={instanceId}
+            instanceData={instanceData}
+            onInstanceUpdate={() => queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] })}
+            onWorkingHoursUpdate={() => queryClient.invalidateQueries({ queryKey: ['working_hours', instanceId] })} />
+
+          }
 
             {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} />}
 
@@ -2653,14 +2653,14 @@ const AdminDashboard = () => {
 
             {currentView === 'followup' && <FollowUpView instanceId={instanceId} />}
 
-            {currentView === 'notifications' && <NotificationsView 
-              instanceId={instanceId} 
-              onNavigateBack={() => setCurrentView('calendar')} 
-              onNavigateToOffers={() => setCurrentView('offers')}
-              onNavigateToReservations={() => setCurrentView('reservations')}
-              onReservationClick={handleReservationClick}
-              onNotificationsChange={fetchUnreadNotificationsCount}
-            />}
+            {currentView === 'notifications' && <NotificationsView
+            instanceId={instanceId}
+            onNavigateBack={() => setCurrentView('calendar')}
+            onNavigateToOffers={() => setCurrentView('offers')}
+            onNavigateToReservations={() => setCurrentView('reservations')}
+            onReservationClick={handleReservationClick}
+            onNotificationsChange={fetchUnreadNotificationsCount} />
+          }
 
             {/* Halls view removed - now in Settings */}
 
@@ -2674,167 +2674,167 @@ const AdminDashboard = () => {
       </div>
 
       {/* Reservation Details Drawer */}
-      <ReservationDetailsDrawer 
-        reservation={selectedReservation} 
-        open={!!selectedReservation} 
-        onClose={() => setSelectedReservation(null)} 
-        onDelete={handleDeleteReservation} 
-        onEdit={handleEditReservation}
-        onNoShow={handleNoShow}
-        onConfirm={async id => {
-          await handleConfirmReservation(id);
-          setSelectedReservation(null);
-        }} 
-        onStartWork={async id => {
-          await handleStartWork(id);
-          setSelectedReservation(null);
-        }}
-        onEndWork={async id => {
-          await handleEndWork(id);
-          setSelectedReservation(null);
-        }}
-        onRelease={async id => {
-          await handleReleaseVehicle(id);
-          setSelectedReservation(null);
-        }}
-        onRevertToConfirmed={async id => {
-          await handleRevertToConfirmed(id);
-          setSelectedReservation(null);
-        }}
-        onRevertToInProgress={async id => {
-          await handleRevertToInProgress(id);
-          setSelectedReservation(null);
-        }}
-        onApproveChangeRequest={async id => {
-          await handleApproveChangeRequest(id);
-          setSelectedReservation(null);
-        }}
-        onRejectChangeRequest={async id => {
-          await handleRejectChangeRequest(id);
-          setSelectedReservation(null);
-        }}
-        onStatusChange={async (id, status) => {
-          await handleStatusChange(id, status);
-          setSelectedReservation(null);
-        }}
-        onSendPickupSms={handleSendPickupSms}
-        onSendConfirmationSms={handleSendConfirmationSms}
-      />
+      <ReservationDetailsDrawer
+      reservation={selectedReservation}
+      open={!!selectedReservation}
+      onClose={() => setSelectedReservation(null)}
+      onDelete={handleDeleteReservation}
+      onEdit={handleEditReservation}
+      onNoShow={handleNoShow}
+      onConfirm={async (id) => {
+        await handleConfirmReservation(id);
+        setSelectedReservation(null);
+      }}
+      onStartWork={async (id) => {
+        await handleStartWork(id);
+        setSelectedReservation(null);
+      }}
+      onEndWork={async (id) => {
+        await handleEndWork(id);
+        setSelectedReservation(null);
+      }}
+      onRelease={async (id) => {
+        await handleReleaseVehicle(id);
+        setSelectedReservation(null);
+      }}
+      onRevertToConfirmed={async (id) => {
+        await handleRevertToConfirmed(id);
+        setSelectedReservation(null);
+      }}
+      onRevertToInProgress={async (id) => {
+        await handleRevertToInProgress(id);
+        setSelectedReservation(null);
+      }}
+      onApproveChangeRequest={async (id) => {
+        await handleApproveChangeRequest(id);
+        setSelectedReservation(null);
+      }}
+      onRejectChangeRequest={async (id) => {
+        await handleRejectChangeRequest(id);
+        setSelectedReservation(null);
+      }}
+      onStatusChange={async (id, status) => {
+        await handleStatusChange(id, status);
+        setSelectedReservation(null);
+      }}
+      onSendPickupSms={handleSendPickupSms}
+      onSendConfirmationSms={handleSendConfirmationSms} />
+
 
       {/* Add/Edit Reservation Dialog V2 */}
-      {instanceId && (
-        <AddReservationDialogV2
-          open={addReservationOpen || addReservationV2Open}
-          onClose={() => {
-            setAddReservationOpen(false);
-            setAddReservationV2Open(false);
-            setEditingReservation(null);
-            setSlotPreview(null);
-            // Close details drawer too when edit drawer closes (after save or cancel)
-            setSelectedReservation(null);
-          }}
-          onSlotPreviewChange={handleSlotPreviewChange}
-          instanceId={instanceId}
-          onSuccess={handleReservationAdded}
-          workingHours={workingHours}
-          mode="reservation"
-          stationId={newReservationData.stationId}
-          initialDate={newReservationData.date}
-          initialTime={newReservationData.time}
-          initialStationId={newReservationData.stationId}
-          editingReservation={editingReservation ? {
-            id: editingReservation.id,
-            customer_name: editingReservation.customer_name,
-            customer_phone: editingReservation.customer_phone,
-            vehicle_plate: editingReservation.vehicle_plate,
-            car_size: (editingReservation as any).car_size || null,
-            reservation_date: editingReservation.reservation_date,
-            end_date: editingReservation.end_date,
-            start_time: editingReservation.start_time,
-            end_time: editingReservation.end_time,
-            station_id: editingReservation.station_id,
-            service_ids: editingReservation.service_ids,
-            service_id: (editingReservation as any).service_id,
-            service_items: editingReservation.service_items,
-            admin_notes: (editingReservation as any).admin_notes,
-            price: editingReservation.price,
-            offer_number: editingReservation.offer_number,
-            has_unified_services: editingReservation.has_unified_services,
-            assigned_employee_ids: editingReservation.assigned_employee_ids,
-          } : null}
-          currentUsername={username}
-          trainingsEnabled={trainingsEnabled}
-          onSwitchToTraining={handleSwitchToTraining}
-        />
-      )}
+      {instanceId &&
+    <AddReservationDialogV2
+      open={addReservationOpen || addReservationV2Open}
+      onClose={() => {
+        setAddReservationOpen(false);
+        setAddReservationV2Open(false);
+        setEditingReservation(null);
+        setSlotPreview(null);
+        // Close details drawer too when edit drawer closes (after save or cancel)
+        setSelectedReservation(null);
+      }}
+      onSlotPreviewChange={handleSlotPreviewChange}
+      instanceId={instanceId}
+      onSuccess={handleReservationAdded}
+      workingHours={workingHours}
+      mode="reservation"
+      stationId={newReservationData.stationId}
+      initialDate={newReservationData.date}
+      initialTime={newReservationData.time}
+      initialStationId={newReservationData.stationId}
+      editingReservation={editingReservation ? {
+        id: editingReservation.id,
+        customer_name: editingReservation.customer_name,
+        customer_phone: editingReservation.customer_phone,
+        vehicle_plate: editingReservation.vehicle_plate,
+        car_size: (editingReservation as any).car_size || null,
+        reservation_date: editingReservation.reservation_date,
+        end_date: editingReservation.end_date,
+        start_time: editingReservation.start_time,
+        end_time: editingReservation.end_time,
+        station_id: editingReservation.station_id,
+        service_ids: editingReservation.service_ids,
+        service_id: (editingReservation as any).service_id,
+        service_items: editingReservation.service_items,
+        admin_notes: (editingReservation as any).admin_notes,
+        price: editingReservation.price,
+        offer_number: editingReservation.offer_number,
+        has_unified_services: editingReservation.has_unified_services,
+        assigned_employee_ids: editingReservation.assigned_employee_ids
+      } : null}
+      currentUsername={username}
+      trainingsEnabled={trainingsEnabled}
+      onSwitchToTraining={handleSwitchToTraining} />
+
+    }
 
       {/* Add Training Drawer */}
-      {instanceId && trainingsEnabled && (
-        <AddTrainingDrawer
-          open={addTrainingOpen}
-          onClose={() => {
-            setAddTrainingOpen(false);
-            setEditingTraining(null);
-          }}
-          instanceId={instanceId}
-          onSuccess={() => {
-            fetchTrainings();
-            setEditingTraining(null);
-          }}
-          editingTraining={editingTraining}
-          currentUsername={username}
-          initialDate={newReservationData.date}
-          initialTime={newReservationData.time}
-          initialStationId={newReservationData.stationId}
-        />
-      )}
+      {instanceId && trainingsEnabled &&
+    <AddTrainingDrawer
+      open={addTrainingOpen}
+      onClose={() => {
+        setAddTrainingOpen(false);
+        setEditingTraining(null);
+      }}
+      instanceId={instanceId}
+      onSuccess={() => {
+        fetchTrainings();
+        setEditingTraining(null);
+      }}
+      editingTraining={editingTraining}
+      currentUsername={username}
+      initialDate={newReservationData.date}
+      initialTime={newReservationData.time}
+      initialStationId={newReservationData.stationId} />
+
+    }
 
       {/* Training Details Drawer */}
-      {instanceId && trainingsEnabled && selectedTraining && (
-        <TrainingDetailsDrawer
-          open={trainingDetailsOpen}
-          onClose={() => {
-            setTrainingDetailsOpen(false);
-            setSelectedTraining(null);
-          }}
-          training={selectedTraining}
-          instanceId={instanceId}
-          onEdit={(training) => {
-            setTrainingDetailsOpen(false);
-            setEditingTraining(training);
-            setAddTrainingOpen(true);
-          }}
-          onDeleted={() => {
-            setTrainingDetailsOpen(false);
-            setSelectedTraining(null);
-            setTrainings(prev => prev.filter(t => t.id !== selectedTraining.id));
-          }}
-        />
-      )}
+      {instanceId && trainingsEnabled && selectedTraining &&
+    <TrainingDetailsDrawer
+      open={trainingDetailsOpen}
+      onClose={() => {
+        setTrainingDetailsOpen(false);
+        setSelectedTraining(null);
+      }}
+      training={selectedTraining}
+      instanceId={instanceId}
+      onEdit={(training) => {
+        setTrainingDetailsOpen(false);
+        setEditingTraining(training);
+        setAddTrainingOpen(true);
+      }}
+      onDeleted={() => {
+        setTrainingDetailsOpen(false);
+        setSelectedTraining(null);
+        setTrainings((prev) => prev.filter((t) => t.id !== selectedTraining.id));
+      }} />
+
+    }
 
       {/* Add Break Dialog */}
       {instanceId && <AddBreakDialog open={addBreakOpen} onOpenChange={setAddBreakOpen} instanceId={instanceId} stations={stations} initialData={newBreakData} onBreakAdded={handleBreakAdded} />}
 
       <InstanceSettingsDialog open={instanceSettingsOpen} onOpenChange={setInstanceSettingsOpen} instance={instanceData} onUpdate={() => {
-        queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] });
-      }} />
+      queryClient.invalidateQueries({ queryKey: ['instance_data', instanceId] });
+    }} />
 
       {/* Mobile Bottom Navigation - hidden when editing protocols */}
-      {!protocolEditMode && (
-        <MobileBottomNav 
-          currentView={currentView} 
-          onViewChange={setCurrentView} 
-          onAddReservation={handleQuickAddReservation} 
-          onLogout={handleLogout}
-          unreadNotificationsCount={unreadNotificationsCount}
-          offersEnabled={hasFeature('offers')}
-          followupEnabled={hasFeature('followup')}
-          hallViewEnabled={hasFeature('hall_view')}
-          protocolsEnabled={hasFeature('vehicle_reception_protocol')}
-          userRole={userRole}
-          currentVersion={currentVersion}
-        />
-      )}
+      {!protocolEditMode &&
+    <MobileBottomNav
+      currentView={currentView}
+      onViewChange={setCurrentView}
+      onAddReservation={handleQuickAddReservation}
+      onLogout={handleLogout}
+      unreadNotificationsCount={unreadNotificationsCount}
+      offersEnabled={hasFeature('offers')}
+      followupEnabled={hasFeature('followup')}
+      hallViewEnabled={hasFeature('hall_view')}
+      protocolsEnabled={hasFeature('vehicle_reception_protocol')}
+      userRole={userRole}
+      currentVersion={currentVersion} />
+
+    }
     </>;
 };
 export default AdminDashboard;
