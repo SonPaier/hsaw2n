@@ -313,7 +313,7 @@ const InstanceAuth = ({
           
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
-            <div className="max-w-md text-center space-y-6">
+            <div className="max-w-md text-center space-y-6 flex flex-col items-center">
               <img src="/n2wash-logo.svg" alt="N2Wash" className="h-12 brightness-0 invert" />
               <p className="text-white/70 text-lg">
                 Zarządzaj rezerwacjami, usługami i klientami w jednym miejscu.
