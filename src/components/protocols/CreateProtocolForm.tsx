@@ -950,7 +950,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label>Przyjął</Label>
+              <Label>Sporządził</Label>
               <Select value={receivedBy} onValueChange={setReceivedBy}>
                 <SelectTrigger>
                   <SelectValue placeholder="Wybierz pracownika" />
