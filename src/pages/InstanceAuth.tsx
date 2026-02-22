@@ -314,12 +314,7 @@ const InstanceAuth = ({
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
             <div className="max-w-md text-center space-y-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
-                <Car className="w-10 h-10" />
-              </div>
-              <h2 className="text-3xl font-bold">
-                N2Wash.com
-              </h2>
+              <img src="/n2wash-logo.svg" alt="N2Wash" className="h-12 brightness-0 invert" />
               <p className="text-white/70 text-lg">
                 Zarządzaj rezerwacjami, usługami i klientami w jednym miejscu.
               </p>
