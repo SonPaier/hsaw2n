@@ -302,6 +302,7 @@ export type Database = {
           shipping_street: string | null
           shipping_street_line2: string | null
           short_name: string | null
+          sms_consent: boolean
           source: string
           updated_at: string | null
           vat_eu_number: string | null
@@ -341,6 +342,7 @@ export type Database = {
           shipping_street?: string | null
           shipping_street_line2?: string | null
           short_name?: string | null
+          sms_consent?: boolean
           source?: string
           updated_at?: string | null
           vat_eu_number?: string | null
@@ -380,6 +382,7 @@ export type Database = {
           shipping_street?: string | null
           shipping_street_line2?: string | null
           short_name?: string | null
+          sms_consent?: boolean
           source?: string
           updated_at?: string | null
           vat_eu_number?: string | null
