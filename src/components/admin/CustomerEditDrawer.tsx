@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,6 +78,7 @@ const CustomerEditDrawer = ({
   const [editNip, setEditNip] = useState('');
   const [editDiscountPercent, setEditDiscountPercent] = useState('');
   const [editVehicles, setEditVehicles] = useState<VehicleChip[]>([]);
+  const [editSmsConsent, setEditSmsConsent] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -91,6 +93,7 @@ const CustomerEditDrawer = ({
         setEditCompany('');
         setEditNip('');
         setEditDiscountPercent('');
+        setEditSmsConsent(false);
         setEditVehicles([]);
         setVisits([]);
         setActiveTab('info');
@@ -105,6 +108,7 @@ const CustomerEditDrawer = ({
         setEditCompany(customer.company || '');
         setEditNip(customer.nip || '');
         setEditDiscountPercent((customer as any).discount_percent?.toString() || '');
+        setEditSmsConsent((customer as any).sms_consent ?? false);
         setActiveTab('info');
       }
     }
@@ -266,6 +270,7 @@ const CustomerEditDrawer = ({
               company: editCompany.trim() || null,
               nip: editNip.trim() || null,
               discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
+              sms_consent: editSmsConsent,
             })
             .eq('id', existingCustomer.id);
           
@@ -285,6 +290,7 @@ const CustomerEditDrawer = ({
               company: editCompany.trim() || null,
               nip: editNip.trim() || null,
               discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
+              sms_consent: editSmsConsent,
               source: 'myjnia',
             })
             .select('id')
@@ -305,6 +311,7 @@ const CustomerEditDrawer = ({
             company: editCompany.trim() || null,
             nip: editNip.trim() || null,
             discount_percent: editDiscountPercent ? parseInt(editDiscountPercent, 10) : null,
+            sms_consent: editSmsConsent,
           })
           .eq('id', customer.id);
         
@@ -538,6 +545,19 @@ const CustomerEditDrawer = ({
                   onChange={setEditVehicles}
                   disabled={saving}
                 />
+
+                {/* SMS Consent */}
+                <div className="flex items-start gap-3 pt-2">
+                  <Checkbox
+                    id="sms-consent"
+                    checked={editSmsConsent}
+                    onCheckedChange={(checked) => setEditSmsConsent(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="sms-consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                    Wyrażam zgodę na otrzymywanie drogą elektroniczną (SMS/E-mail) przypomnień o terminach obowiązkowych przeglądów i konserwacji powłok ochronnych oraz informacji o statusie mojego zamówienia.
+                  </label>
+                </div>
               </div>
             ) : (
               // View mode with tabs
