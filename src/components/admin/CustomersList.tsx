@@ -50,7 +50,8 @@ export const CustomersList = ({
   const isMobile = useIsMobile();
 
   const getVehiclesForCustomer = (phone: string) => {
-    return vehicles.filter(v => v.phone === phone);
+    const normalized = phone.replace(/^\+/, '');
+    return vehicles.filter(v => v.phone === phone || v.phone === normalized || v.phone === `+${normalized}`);
   };
 
   const handleCall = (phone: string, e: React.MouseEvent) => {

@@ -94,9 +94,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     fetchCustomers();
   }, [instanceId]);
 
-  // Get vehicles for a customer by phone
+  // Get vehicles for a customer by phone (normalize: strip leading '+')
   const getVehiclesForCustomer = (phone: string) => {
-    return vehicles.filter(v => v.phone === phone);
+    const normalized = phone.replace(/^\+/, '');
+    return vehicles.filter(v => v.phone === phone || v.phone === normalized || v.phone === `+${normalized}`);
   };
 
   // Filter by source (tab)
