@@ -555,7 +555,7 @@ const CustomerEditDrawer = ({
                     className="mt-0.5"
                   />
                   <label htmlFor="sms-consent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                    Wyrażam zgodę na otrzymywanie drogą elektroniczną (SMS/E-mail) przypomnień o terminach obowiązkowych przeglądów i konserwacji powłok ochronnych oraz informacji o statusie mojego zamówienia.
+                    Klient wyraża zgodę na otrzymywanie drogą elektroniczną (SMS/E-mail) przypomnień o terminach obowiązkowych przeglądów i konserwacji powłok ochronnych oraz informacji o statusie zleconej usługi.
                   </label>
                 </div>
               </div>
