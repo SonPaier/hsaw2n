@@ -119,11 +119,12 @@ export function AddCustomerReminderDialog({
     setLoadingVehicles(true);
     try {
       const normalizedPhone = normalizePhone(customerPhone);
+      const strippedPhone = normalizedPhone.replace(/^\+/, '');
       const { data, error } = await supabase
         .from('customer_vehicles')
         .select('id, model, plate')
         .eq('instance_id', instanceId)
-        .eq('phone', normalizedPhone)
+        .or(`phone.eq.${normalizedPhone},phone.eq.${strippedPhone}`)
         .order('last_used_at', { ascending: false });
       
       if (error) throw error;
