@@ -1,62 +1,71 @@
 
+## Ostrzezenie o nieobecnosci klienta (No-Show Warning)
 
-## Dynamiczny zakres Select dropdownow dla time pickerow
+### Cel
+Po wybraniu klienta (przez wyszukiwarke imienia lub po telefonie) w drawerze rezerwacji, jesli klient mial kiedys nieobecnosc -- wyswietlic czerwony banner pod telefonem.
 
-### Co sie zmieni
+### Krok 1: Migracja bazy danych
 
-Selecty do wyboru godzin (start/end time) beda generowaly opcje na podstawie godzin pracy instancji (cache z `useWorkingHours`, bez dodatkowych HTTP). Zostaja Select dropdowny.
+Dodanie kolumny `has_no_show` (boolean, default false) do tabeli `customers` oraz triggera:
 
-### Zasady
-
-| Komponent | Zakres | Krok |
-|-----------|--------|------|
-| AddReservationDialogV2 - start time | open ... close+1h | 15 min |
-| AddReservationDialogV2 - end time | open ... close+1h | 15 min |
-| AddTrainingDrawer - start/end | open ... close+1h | 30 min |
-
-Fallback gdy brak workingHours: 06:00 - 22:00.
-
----
-
-### Szczegoly techniczne
-
-#### 1. Nowa funkcja `generateTimeSlots` w `src/lib/utils.ts`
+- **Kolumna:** `ALTER TABLE customers ADD COLUMN has_no_show boolean NOT NULL DEFAULT false;`
+- **Trigger:** Na `AFTER UPDATE ON reservations` -- gdy `no_show_at` zmieni sie z NULL na wartosc, ustawia `has_no_show = true` na kliencie o tym samym `customer_phone` i `instance_id`.
+- **Backfill:** Jednorazowy UPDATE oznaczajacy istniejacych klientow z no-show (z wylaczeniem "nastaly"/"tomek"):
 
 ```text
-export function generateTimeSlots(min: string, max: string, stepMinutes: number): string[]
+UPDATE customers c SET has_no_show = true
+WHERE EXISTS (
+  SELECT 1 FROM reservations r
+  WHERE r.customer_phone = c.phone
+    AND r.instance_id = c.instance_id
+    AND r.no_show_at IS NOT NULL
+)
+AND c.name NOT ILIKE '%nastaly%'
+AND c.name NOT ILIKE '%nastalyax%';
 ```
 
-Generuje tablice np. `["09:00", "09:15", "09:30", ...]` od `min` do `max` wlacznie, z krokiem `stepMinutes`.
+To oznakuje 4 klientow: Teresa Kunicka, Rafal Grzybowski, +48888031031, AGNIESZKA LESNA.
 
-#### 2. `src/components/admin/AddReservationDialogV2.tsx`
+### Krok 2: `client-search-autocomplete.tsx`
 
-Linie 966-985 - zamiana hardcoded petli na dynamiczne obliczanie zakresu:
+- Dodanie `has_no_show` do selecta z tabeli `customers` (linia ~97: dodanie do `.select()`).
+- Rozszerzenie interfejsu `Customer` o `has_no_show: boolean`.
+- Przekazanie `has_no_show` w callbacku `onSelect` (rozszerzenie `ClientSearchValue`).
 
-- Wyciagniecie `open`/`close` z `workingHours` dla dnia wybranego w `dateRange.from`
-- `timeMin` = `open` (np. "09:00")
-- `timeMax` = `close + 1h` (np. "18:00" jesli close="17:00"), max "23:59"
-- Fallback: "06:00" / "22:00"
-- `startTimeOptions = generateTimeSlots(timeMin, timeMax, 15)`
-- `endTimeOptions = generateTimeSlots(timeMin, timeMax, 15)` (zmiana z 5 min na 15 min)
-- `yardTimeOptions` = `startTimeOptions` (bez zmian w logice)
+### Krok 3: `AddReservationDialogV2.tsx`
 
-#### 3. `src/components/admin/AddTrainingDrawer.tsx`
+- Nowy state: `noShowWarning: { customerName: string; date: string; serviceName: string } | null`
+- W `onCustomerSelect` (linia ~1417): po wybraniu klienta -- sprawdzic `has_no_show` z klienta. Jesli true, wykonac zapytanie:
 
-Linie 134-145 - zamiana `generateTimeOptions` (0-24h co 15min) na:
+```text
+SELECT reservation_date, service_items, service_ids
+FROM reservations
+WHERE instance_id = X AND customer_phone = Y AND no_show_at IS NOT NULL
+ORDER BY no_show_at DESC LIMIT 1
+```
 
-- Wyciagniecie `open`/`close` z `workingHoursData` dla dnia z `dateRange?.from` (fallback: monday)
-- `timeMin` = `open`, `timeMax` = `close + 1h`
-- Fallback: "06:00" / "22:00"
-- `timeOptions = generateTimeSlots(timeMin, timeMax, 30)` - krok 30 min
-- Uzycie `useMemo` z deps `[workingHoursData, dateRange?.from]`
+I ustawic `noShowWarning` z data i nazwa uslugi.
 
-#### 4. Pliki bez zmian
+- W `selectVehicle` (linia ~926): po pobraniu danych klienta -- sprawdzic `has_no_show` z tabeli customers i analogicznie ustawic warning.
+- Czyszczenie `noShowWarning` przy: `onPhoneChange`, `onClearCustomer`.
+- Przekazanie `noShowWarning` jako prop do `CustomerSection`.
 
-- `ReservationDateTimeSection.tsx` - interfejs props bez zmian (nadal `startTimeOptions: string[]`, `endTimeOptions: string[]`)
-- `YardDateTimeSection.tsx` - bez zmian
-- `WorkingHoursSettings.tsx`, `AddBreakDialog.tsx`, `WeeklySchedule.tsx` - bez zmian
+### Krok 4: `CustomerSection.tsx`
 
-### Kompatybilnosc wsteczna
+- Nowy prop: `noShowWarning?: { customerName: string; date: string; serviceName: string } | null`
+- Renderowanie bannera pod polem telefonu (przed dropdown wynikow):
 
-Brak ryzyka - format `"HH:MM"` identyczny, zmiana dotyczy tylko zakresu i kroku opcji w Select.
+```text
++---------------------------------------------------+
+| /!\ Klient Teresa Kunicka byl nieobecny na        |
+|     wizycie 2026-02-23, usluga: Mycie podstawowe  |
++---------------------------------------------------+
+```
 
+Styl: `bg-red-50 border border-red-200 text-red-700 rounded-lg p-3`, ikona `AlertTriangle` z lucide-react.
+
+### Pliki do zmiany
+1. Nowa migracja SQL (kolumna + trigger + backfill)
+2. `src/components/ui/client-search-autocomplete.tsx` -- `has_no_show` w select i interfejsie
+3. `src/components/admin/AddReservationDialogV2.tsx` -- state + logika fetchowania no-show details
+4. `src/components/admin/reservation-form/CustomerSection.tsx` -- nowy prop + czerwony banner
