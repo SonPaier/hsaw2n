@@ -234,6 +234,7 @@ const AddReservationDialogV2 = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isCustomCarModel, setIsCustomCarModel] = useState(false);
   const [customerDiscountPercent, setCustomerDiscountPercent] = useState<number | null>(null);
+  const [noShowWarning, setNoShowWarning] = useState<{ customerName: string; date: string; serviceName: string } | null>(null);
 
   // Customer vehicles pills state
   const [customerVehicles, setCustomerVehicles] = useState<CustomerVehicle[]>([]);
@@ -858,6 +859,38 @@ const AddReservationDialogV2 = ({
     }
   }, [instanceId]);
 
+  // Fetch last no-show details for a customer
+  const fetchNoShowWarning = useCallback(async (customerPhone: string, customerName: string) => {
+    try {
+      const { data } = await supabase
+        .from('reservations')
+        .select('reservation_date, service_items, service_ids')
+        .eq('instance_id', instanceId)
+        .eq('customer_phone', customerPhone)
+        .not('no_show_at', 'is', null)
+        .order('no_show_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        let serviceName = 'Nieznana usługa';
+        const items = data.service_items as Array<{ service_id: string; name?: string }> | null;
+        if (items && Array.isArray(items) && items.length > 0 && items[0].name) {
+          serviceName = items[0].name;
+        }
+        setNoShowWarning({
+          customerName,
+          date: data.reservation_date,
+          serviceName,
+        });
+      } else {
+        setNoShowWarning(null);
+      }
+    } catch {
+      setNoShowWarning(null);
+    }
+  }, [instanceId]);
+
   // Debounced phone search
   useEffect(() => {
     if (selectedCustomerId) return;
@@ -944,7 +977,7 @@ const AddReservationDialogV2 = ({
     if (vehicle.customer_id) {
       const { data } = await supabase.
       from('customers').
-      select('name, discount_percent').
+      select('name, discount_percent, has_no_show').
       eq('id', vehicle.customer_id).
       maybeSingle();
 
@@ -954,8 +987,16 @@ const AddReservationDialogV2 = ({
       }
       // Set customer discount
       setCustomerDiscountPercent(data?.discount_percent || null);
+
+      // Check no-show flag
+      if (data?.has_no_show) {
+        fetchNoShowWarning(vehicle.phone, data.name || vehicle.customer_name || '');
+      } else {
+        setNoShowWarning(null);
+      }
     } else {
       setCustomerDiscountPercent(null);
+      setNoShowWarning(null);
     }
 
     // Also load all vehicles for this phone
@@ -1402,6 +1443,7 @@ const AddReservationDialogV2 = ({
                   setPhone(val);
                   setSelectedCustomerId(null);
                   setCustomerDiscountPercent(null);
+                  setNoShowWarning(null);
                   if (validationErrors.phone) {
                     setValidationErrors((prev) => ({ ...prev, phone: undefined }));
                   }
@@ -1425,15 +1467,24 @@ const AddReservationDialogV2 = ({
                   eq('id', customer.id).
                   maybeSingle();
                   setCustomerDiscountPercent(customerData?.discount_percent || null);
+
+                  // Check no-show warning
+                  if (customer.has_no_show) {
+                    fetchNoShowWarning(customer.phone, customer.name);
+                  } else {
+                    setNoShowWarning(null);
+                  }
                 }}
                 onClearCustomer={() => {
                   setSelectedCustomerId(null);
                   setCustomerDiscountPercent(null);
+                  setNoShowWarning(null);
                 }}
                 suppressAutoSearch={isEditMode}
                 phoneInputRef={phoneInputRef}
                 setCarModel={setCarModel}
-                setCarSize={setCarSize} />
+                setCarSize={setCarSize}
+                noShowWarning={noShowWarning} />
 
 
               {/* Vehicle Section */}

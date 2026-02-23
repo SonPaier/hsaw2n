@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { PhoneMaskedInput } from '@/components/ui/phone-masked-input';
 import ClientSearchAutocomplete from '@/components/ui/client-search-autocomplete';
@@ -19,12 +19,13 @@ interface CustomerSectionProps {
   foundVehicles: CustomerVehicle[];
   showPhoneDropdown: boolean;
   onSelectVehicle: (vehicle: CustomerVehicle) => void;
-  onCustomerSelect: (customer: { id: string; name: string; phone: string }) => void;
+  onCustomerSelect: (customer: { id: string; name: string; phone: string; has_no_show?: boolean }) => void;
   onClearCustomer: () => void;
   suppressAutoSearch?: boolean;
   phoneInputRef: RefObject<HTMLDivElement>;
   setCarModel: (model: string) => void;
   setCarSize: (size: CarSize) => void;
+  noShowWarning?: { customerName: string; date: string; serviceName: string } | null;
 }
 
 export const CustomerSection = ({
@@ -44,6 +45,7 @@ export const CustomerSection = ({
   phoneInputRef,
   setCarModel,
   setCarSize,
+  noShowWarning,
 }: CustomerSectionProps) => {
   const { t } = useTranslation();
 
@@ -54,7 +56,7 @@ export const CustomerSection = ({
     return normalized;
   };
 
-  const handleCustomerSelect = async (customer: { id: string; name: string; phone: string }) => {
+  const handleCustomerSelect = async (customer: { id: string; name: string; phone: string; has_no_show?: boolean }) => {
     onCustomerSelect(customer);
 
     // Fetch customer's most recent vehicle
@@ -133,6 +135,16 @@ export const CustomerSection = ({
           data-testid="phone-input"
         />
         {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
+
+        {/* No-show warning banner */}
+        {noShowWarning && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <span className="text-sm">
+              Klient <strong>{noShowWarning.customerName}</strong> był nieobecny na wizycie {noShowWarning.date}, usługa: {noShowWarning.serviceName}
+            </span>
+          </div>
+        )}
 
         {/* Phone search results dropdown */}
         {showPhoneDropdown && foundVehicles.length > 0 && (

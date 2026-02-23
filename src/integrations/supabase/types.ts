@@ -285,6 +285,7 @@ export type Database = {
           default_currency: string | null
           discount_percent: number | null
           email: string | null
+          has_no_show: boolean
           id: string
           instance_id: string
           name: string
@@ -323,6 +324,7 @@ export type Database = {
           default_currency?: string | null
           discount_percent?: number | null
           email?: string | null
+          has_no_show?: boolean
           id?: string
           instance_id: string
           name: string
@@ -361,6 +363,7 @@ export type Database = {
           default_currency?: string | null
           discount_percent?: number | null
           email?: string | null
+          has_no_show?: boolean
           id?: string
           instance_id?: string
           name?: string

@@ -11,12 +11,14 @@ interface Customer {
   phone: string;
   name: string;
   email: string | null;
+  has_no_show: boolean;
 }
 
 export interface ClientSearchValue {
   id: string;
   name: string;
   phone: string;
+  has_no_show?: boolean;
 }
 
 interface ClientSearchAutocompleteProps {
@@ -94,7 +96,7 @@ const ClientSearchAutocomplete = ({
       
       const { data, error } = await supabase
         .from('customers')
-        .select('id, phone, name, email')
+        .select('id, phone, name, email, has_no_show')
         .eq('instance_id', instanceId)
         .or(`name.ilike.%${searchValue}%,phone.ilike.%${normalizedSearch}%`)
         .order('updated_at', { ascending: false })
@@ -164,6 +166,7 @@ const ClientSearchAutocomplete = ({
       id: customer.id,
       name: customer.name,
       phone: customer.phone,
+      has_no_show: customer.has_no_show,
     });
 
     // Prevent re-opening dropdown/search for a short period after selection
