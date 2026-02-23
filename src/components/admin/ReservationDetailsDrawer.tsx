@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink, MoreVertical, Camera, Plus, Users } from 'lucide-react';
+import { User, Phone, Car, Clock, Loader2, Trash2, Pencil, MessageSquare, PhoneCall, Check, CheckCircle2, ChevronDown, ChevronUp, RotateCcw, X, Receipt, History, FileText, ExternalLink, MoreVertical, Camera, Plus, Users, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -190,6 +190,7 @@ const ReservationDetailsDrawer = ({
   const [endingWork, setEndingWork] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
   const [reverting, setReverting] = useState(false);
   const [approvingChange, setApprovingChange] = useState(false);
   const [rejectingChange, setRejectingChange] = useState(false);
@@ -559,6 +560,7 @@ const ReservationDetailsDrawer = ({
     setMarkingNoShow(true);
     try {
       await onNoShow(reservation.id);
+      setNoShowDialogOpen(false);
       setDeleteDialogOpen(false);
       onClose();
     } finally {
@@ -1249,20 +1251,32 @@ const ReservationDetailsDrawer = ({
                         Zobacz historię
                       </DropdownMenuItem>
                       
-                      {showDelete && reservation.status === 'confirmed' && onDelete && (
+                      {onNoShow && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
+                            className="text-warning-foreground focus:text-warning-foreground"
                             onClick={() => {
                               setActionsMenuOpen(false);
-                              setDeleteDialogOpen(true);
+                              setNoShowDialogOpen(true);
                             }}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Usuń
+                            <UserX className="w-4 h-4 mr-2" />
+                            Oznacz jako nieobecny
                           </DropdownMenuItem>
                         </>
+                      )}
+                      {showDelete && onDelete && (
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            setActionsMenuOpen(false);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Usuń
+                        </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1270,7 +1284,7 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Delete dialog for confirmed - moved outside actions menu */}
+            {/* Delete confirmation dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -1279,30 +1293,42 @@ const ReservationDetailsDrawer = ({
                     {t('reservations.confirmDeleteDescription', { name: customerName, phone: customerPhone })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                  <AlertDialogCancel className="sm:order-1">{t('common.cancel')}</AlertDialogCancel>
-                  {onNoShow && (
-                    <Button
-                      variant="outline"
-                      className="sm:order-2 border-warning text-warning-foreground hover:bg-warning/10"
-                      onClick={handleNoShow}
-                      disabled={markingNoShow || deleting}
-                    >
-                      {markingNoShow ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      {t('reservations.markAsNoShow')}
-                    </Button>
-                  )}
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleDelete} 
-                    className="sm:order-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={deleting || markingNoShow}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleting}
                   >
                     {deleting ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     ) : null}
                     {t('reservations.yesDelete')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* No-show confirmation dialog */}
+            <AlertDialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Oznacz jako nieobecny</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Czy na pewno chcesz oznaczyć klienta {customerName} ({customerPhone}) jako nieobecnego?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleNoShow}
+                    className="bg-warning text-warning-foreground hover:bg-warning/90"
+                    disabled={markingNoShow}
+                  >
+                    {markingNoShow ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    {t('reservations.markAsNoShow')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -1402,6 +1428,27 @@ const ReservationDetailsDrawer = ({
                         <History className="w-4 h-4 mr-2" />
                         Zobacz historię
                       </DropdownMenuItem>
+                      {onNoShow && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-warning-foreground focus:text-warning-foreground"
+                            onClick={() => setNoShowDialogOpen(true)}
+                          >
+                            <UserX className="w-4 h-4 mr-2" />
+                            Oznacz jako nieobecny
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {showDelete && onDelete && (
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteDialogOpen(true)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Usuń
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
