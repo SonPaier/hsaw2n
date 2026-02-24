@@ -42,7 +42,7 @@ export const NotesAndPriceSection = ({
     <>
       {/* Notes - always visible */}
       <div className="space-y-2">
-        <Label htmlFor="adminNotes" className="text-sm text-muted-foreground">
+        <Label htmlFor="adminNotes" className="text-sm text-foreground">
           {t('addReservation.notes')}
         </Label>
         <Textarea
@@ -53,14 +53,14 @@ export const NotesAndPriceSection = ({
             setAdminNotes(e.target.value);
           }}
           rows={2}
-          placeholder={t('addReservation.notesPlaceholder')}
+          placeholder=""
         />
       </div>
 
       {/* Final Price - visible in reservation mode */}
       {showPrice && (
         <div className="space-y-2">
-          <Label htmlFor="finalPrice" className="text-sm text-muted-foreground">
+          <Label htmlFor="finalPrice" className="text-sm text-foreground">
             {t('addReservation.amount')}
           </Label>
           <div className="flex items-center gap-2 flex-wrap">
