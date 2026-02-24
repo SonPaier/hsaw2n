@@ -646,9 +646,14 @@ const ReservationDetailsDrawer = ({
                       : format(new Date(reservation.reservation_date), 'd MMMM yyyy', { locale: pl })}
                   </span>
                 </SheetTitle>
-                <SheetDescription className="flex items-center gap-2 mt-2">
+                <SheetDescription className="flex items-center gap-2 mt-2 flex-wrap">
                   {getStatusBadge(reservation.status)}
                   {getSourceLabel(reservation.source, reservation.created_by_username)}
+                  {!isHallMode && reservation.confirmation_code && (
+                    <Badge variant="outline" className="text-xs font-normal font-mono">
+                      #{reservation.confirmation_code}
+                    </Badge>
+                  )}
                 </SheetDescription>
               </div>
               <button 
@@ -714,15 +719,6 @@ const ReservationDetailsDrawer = ({
               </div>
             )}
 
-            {/* Reservation code - hide in hall mode */}
-            {!isHallMode && reservation.confirmation_code && (
-              <div>
-                <div>
-                  <div className="text-xs text-foreground">{t('reservations.reservationCode')}</div>
-                  <div className="font-mono font-bold text-primary">{reservation.confirmation_code}</div>
-                </div>
-              </div>
-            )}
 
             {/* Car model - vehicle_plate is always visible */}
             {carModel && (
