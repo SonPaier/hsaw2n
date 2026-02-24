@@ -666,8 +666,7 @@ const ReservationDetailsDrawer = ({
             {/* Customer info row - hide in hall mode if not configured */}
             {(!isHallMode || visibleFields?.customer_name) && (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-muted-foreground" />
+                <div>
                   <div>
                     <div className="text-xs text-foreground">{t('reservations.customer')}</div>
                     <button
@@ -707,8 +706,7 @@ const ReservationDetailsDrawer = ({
 
             {/* Phone - hide in hall mode if not configured */}
             {(!isHallMode || visibleFields?.customer_phone) && (
-              <div className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-muted-foreground" />
+              <div>
                 <div>
                   <div className="text-xs text-foreground">{t('common.phone')}</div>
                   <div className="font-medium">{formatPhoneDisplay(customerPhone)}</div>
@@ -718,8 +716,7 @@ const ReservationDetailsDrawer = ({
 
             {/* Reservation code - hide in hall mode */}
             {!isHallMode && reservation.confirmation_code && (
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 flex items-center justify-center text-muted-foreground font-bold text-xs">#</div>
+              <div>
                 <div>
                   <div className="text-xs text-foreground">{t('reservations.reservationCode')}</div>
                   <div className="font-mono font-bold text-primary">{reservation.confirmation_code}</div>
@@ -729,8 +726,7 @@ const ReservationDetailsDrawer = ({
 
             {/* Car model - vehicle_plate is always visible */}
             {carModel && (
-              <div className="flex items-center gap-3">
-                <Car className="w-5 h-5 text-muted-foreground" />
+              <div>
                 <div>
                   <div className="text-xs text-foreground">{t('reservations.car')}</div>
                   <div className="font-medium">{carModel}</div>
@@ -748,9 +744,8 @@ const ReservationDetailsDrawer = ({
 
             {/* Services - quick edit with pills */}
             {!isHallMode || visibleFields?.services ? (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm mt-1">U</div>
-                <div className="flex-1">
+              <div className="flex-1">
+                <div>
                   <div className="text-xs text-foreground">{t('reservations.services')}</div>
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     {/* Existing services with X button */}
@@ -801,9 +796,8 @@ const ReservationDetailsDrawer = ({
 
             {/* Assigned Employees section - shown when feature is enabled */}
             {showEmployeeAssignment && !isHallMode && (
-              <div className="flex items-start gap-3">
-                <Users className="w-5 h-5 text-muted-foreground mt-1" />
-                <div className="flex-1">
+              <div className="flex-1">
+                <div>
                   <div className="text-xs text-foreground">Przypisani pracownicy</div>
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     {/* Employee chips - same style as services */}
@@ -883,9 +877,8 @@ const ReservationDetailsDrawer = ({
               const hasMultipleServices = servicesWithPrices.length > 1;
 
               return (
-                <div className="flex items-start gap-3">
-                  <Receipt className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="flex-1">
+                <div className="flex-1">
+                  <div>
                     <div className="text-xs text-foreground">{t('addReservation.amount')}</div>
                     <div className="font-semibold text-lg">{displayTotal} zł</div>
                     
@@ -920,9 +913,8 @@ const ReservationDetailsDrawer = ({
 
             {/* Offer link - show only if offer_number and public_token exist */}
             {!isHallMode && reservation.offer_number && offerPublicToken && (
-              <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
+              <div className="flex-1">
+                <div>
                   <div className="text-xs text-foreground">Oferta</div>
                   <a 
                     href={`/offers/${offerPublicToken}?admin=true`}
