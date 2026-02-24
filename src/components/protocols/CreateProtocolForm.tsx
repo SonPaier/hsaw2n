@@ -699,7 +699,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             <div className="space-y-2">
               <Label>Typ protokołu</Label>
               <Select value={protocolType} onValueChange={(v) => setProtocolType(v as ProtocolType)}>
-                <SelectTrigger className="bg-white">
+                <SelectTrigger className="bg-white border-foreground/60">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -732,8 +732,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 }}
                 onSelect={handleCustomerSelect}
                 onClear={handleCustomerClear}
-                placeholder="Wyszukaj klienta lub wpisz nowe dane"
-                className={cn("bg-white", validationErrors.customerName && "border-destructive")}
+                placeholder=""
+                className={cn("bg-white border-foreground/60", validationErrors.customerName && "border-destructive")}
                 suppressAutoSearch={isEditMode || hasPrefilledData}
               />
               {validationErrors.customerName && (
@@ -749,8 +749,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 onChange={setPhone}
                 onSelect={handleCustomerSelect}
                 onClear={handleCustomerClear}
-                placeholder="Wyszukaj po numerze telefonu"
-                className="bg-white"
+                placeholder=""
+                className="bg-white border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -760,7 +760,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="klient@email.com"
+                className="border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -775,7 +775,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                   }
                 }}
                 onClear={() => setVehicleModel('')}
-                className="bg-white"
+                className="bg-white border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -783,6 +783,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               <Input
                 value={nip}
                 onChange={(e) => setNip(e.target.value)}
+                className="border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -790,6 +791,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               <Input
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value)}
+                className="border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -800,6 +802,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 max="100"
                 value={fuelLevel}
                 onChange={(e) => setFuelLevel(e.target.value)}
+                className="border-foreground/60"
               />
             </div>
             <div className="space-y-2">
@@ -809,6 +812,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 min="0"
                 value={odometerReading}
                 onChange={(e) => setOdometerReading(e.target.value)}
+                className="border-foreground/60"
               />
             </div>
           </div>
@@ -853,7 +857,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               <div className="space-y-2">
                 <Label>Typ nadwozia</Label>
                 <Select value={bodyType} onValueChange={(v) => setBodyType(v as BodyType)}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white border-foreground/60">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -910,8 +914,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               ref={notesRef}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Uwagi dotyczące stanu pojazdu..."
-              className="resize-none overflow-hidden"
+              placeholder=""
+              className="resize-none overflow-hidden border-foreground/60"
               style={{ minHeight: '150px' }}
             />
           </div>
@@ -925,7 +929,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal bg-white",
+                      'w-full justify-start text-left font-normal bg-white border-foreground/60',
                       !protocolDate && "text-muted-foreground"
                     )}
                   >
@@ -954,7 +958,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
               <Input
                 value={receivedBy}
                 onChange={(e) => setReceivedBy(e.target.value)}
-                placeholder="Imię i nazwisko"
+                className="border-foreground/60"
               />
             </div>
           </div>
