@@ -682,15 +682,6 @@ export const PublicOfferCustomerView = ({
       </header>
 
       <main className="max-w-4xl w-full mx-auto px-4 py-8 space-y-6">
-        {/* Validity warning - only in public mode */}
-        {mode === 'public' && isExpired && (
-          <Card className="border-destructive bg-destructive/10">
-            <CardContent className="py-4 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-destructive" />
-              <p className="text-destructive font-medium">{t('publicOffer.offerExpired')}</p>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Customer Data Card */}
         <Card 
