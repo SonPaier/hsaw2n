@@ -147,19 +147,19 @@ export const CustomerSection = ({
 
         {/* Phone search results dropdown */}
         {showPhoneDropdown && foundVehicles.length > 0 && (
-          <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
             {foundVehicles.map((vehicle) => (
               <button
                 key={vehicle.id}
                 type="button"
-                className="w-full p-3 text-left hover:bg-muted/30 transition-colors flex flex-col border-b border-border last:border-0"
+                className="w-full p-4 text-left hover:bg-muted/30 transition-colors flex flex-col border-b border-border last:border-0"
                 onClick={() => onSelectVehicle(vehicle)}
               >
-                <div className="font-medium text-base">
+                <div className="font-semibold text-base text-foreground">
                   {vehicle.customer_name || formatPhoneDisplay(vehicle.phone)}
                 </div>
                 <div className="text-sm">
-                  <span className="text-primary">{formatPhoneDisplay(vehicle.phone)}</span>
+                  <span className="text-primary font-medium">{formatPhoneDisplay(vehicle.phone)}</span>
                   {vehicle.model && <span className="text-foreground"> • {vehicle.model}</span>}
                 </div>
               </button>

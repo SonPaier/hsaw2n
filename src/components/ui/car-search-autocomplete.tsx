@@ -304,7 +304,7 @@ export const CarSearchAutocomplete = ({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute z-[9999] mt-1 w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
+          className="absolute z-[9999] mt-1 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden"
           style={{ maxHeight: '250px' }}
           role="listbox"
         >
@@ -326,14 +326,14 @@ export const CarSearchAutocomplete = ({
                         data-index={itemIndex}
                         data-testid="car-option"
                         className={cn(
-                          'w-full px-3 py-2 text-left text-[0.9375rem] transition-colors flex items-center justify-between',
-                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
+                          'w-full p-4 text-left text-base transition-colors flex items-center justify-between border-b border-border last:border-0',
+                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/30'
                         )}
                         onClick={() => selectModel(model)}
                         onMouseEnter={() => setActiveIndex(itemIndex)}
                       >
-                        <span>{highlightMatch(model.label, inputValue)}</span>
-                        <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                        <span className="text-foreground font-semibold">{highlightMatch(model.label, inputValue)}</span>
+                        <span className="text-sm text-muted-foreground ml-2 shrink-0">
                           {model.size}
                         </span>
                       </button>
@@ -348,7 +348,7 @@ export const CarSearchAutocomplete = ({
                 aria-selected={activeIndex === 0}
                 data-index={0}
                 className={cn(
-                  'w-full px-3 py-3 text-left text-sm transition-colors',
+                  'w-full p-4 text-left text-base transition-colors border-b border-border last:border-0',
                   activeIndex === 0 ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
                 )}
                 onClick={selectCustom}
