@@ -885,7 +885,7 @@
       "reminder_1hour": {
         "label": "Przypomnienie w dniu wizyty",
         "description": "Automatyczne przypomnienie wysyłane rano w dniu wizyty.",
-        "exampleTemplate": "{{instanceName}}: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :) Tel: {{reservationPhone}}"
+        "exampleTemplate": "{{instanceName}}: Dzisiaj masz wizyte o 10:00, czekamy na Ciebie i Twoje auto. Tel: {{reservationPhone}}"
       },
       "vehicle_ready": {
         "label": "Samochód do odbioru",

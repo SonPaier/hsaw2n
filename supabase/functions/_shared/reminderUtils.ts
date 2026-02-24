@@ -130,8 +130,8 @@ export function buildReminder1DaySms(params: {
 }
 
 /**
- * Build reminder SMS message for "today" reminder (replaces 1-hour logic)
- * New format: "Dzisiaj masz wizyte o HH:MM - czekamy na Ciebie i Twoje autko! :) Tel: XXX"
+ * Build reminder SMS message for "today" reminder
+ * Format: "Dzisiaj masz wizyte o HH:MM, czekamy na Ciebie i Twoje auto. Tel: XXX"
  */
 export function buildReminderTodaySms(params: {
   instanceName: string;
@@ -139,7 +139,7 @@ export function buildReminderTodaySms(params: {
   phone?: string | null;
 }): string {
   const phonePart = params.phone ? ` Tel: ${params.phone}` : "";
-  return `${params.instanceName}: Dzisiaj masz wizyte o ${params.time} - czekamy na Ciebie i Twoje autko! :)${phonePart}`;
+  return `${params.instanceName}: Dzisiaj masz wizyte o ${params.time}, czekamy na Ciebie i Twoje auto.${phonePart}`;
 }
 
 // ========================

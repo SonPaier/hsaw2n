@@ -286,7 +286,7 @@ Deno.test("SRE-TODAY-1: buildReminderTodaySms - with phone", () => {
     phone: "123456789",
   });
   
-  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :) Tel: 123456789");
+  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00, czekamy na Ciebie i Twoje auto. Tel: 123456789");
   assertEquals(sms.length <= 160, true); // Verify GSM-7 limit
 });
 
@@ -296,7 +296,7 @@ Deno.test("SRE-TODAY-2: buildReminderTodaySms - without phone", () => {
     time: "10:00",
   });
   
-  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00 - czekamy na Ciebie i Twoje autko! :)");
+  assertEquals(sms, "Armcar: Dzisiaj masz wizyte o 10:00, czekamy na Ciebie i Twoje auto.");
 });
 
 Deno.test("SRE-TODAY-3: buildReminderTodaySms - with null phone", () => {
@@ -307,7 +307,7 @@ Deno.test("SRE-TODAY-3: buildReminderTodaySms - with null phone", () => {
   });
   
   assertEquals(sms.includes("Tel:"), false);
-  assertEquals(sms, "AutoSpa: Dzisiaj masz wizyte o 14:30 - czekamy na Ciebie i Twoje autko! :)");
+  assertEquals(sms, "AutoSpa: Dzisiaj masz wizyte o 14:30, czekamy na Ciebie i Twoje auto.");
 });
 
 Deno.test("SRE-TODAY-4: buildReminderTodaySms - max length check with long name", () => {
