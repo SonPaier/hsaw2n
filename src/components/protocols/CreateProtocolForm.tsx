@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useEmployees } from '@/hooks/useEmployees';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,7 +76,7 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
 
 export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSettings }: CreateProtocolFormProps) => {
   const [searchParams] = useSearchParams();
-  const { data: employees = [] } = useEmployees(instanceId);
+  
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -951,18 +951,11 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             </div>
             <div className="space-y-2">
               <Label>Sporządził</Label>
-              <Select value={receivedBy} onValueChange={setReceivedBy}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz pracownika" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.filter(e => e.active).map((emp) => (
-                    <SelectItem key={emp.id} value={emp.name}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={receivedBy}
+                onChange={(e) => setReceivedBy(e.target.value)}
+                placeholder="Imię i nazwisko"
+              />
             </div>
           </div>
 
