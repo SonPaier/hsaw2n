@@ -1381,7 +1381,7 @@ const AddReservationDialogV2 = ({
         <SheetContent
           side="right"
           className={cn(
-            "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]",
+            "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60",
             isMobile && isDrawerHidden && "!hidden"
           )}
           hideOverlay
