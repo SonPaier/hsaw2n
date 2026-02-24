@@ -21,6 +21,7 @@ interface OfferSearchAutocompleteProps {
   onChange: (value: string) => void;
   onOfferSelect: (offer: OfferData) => void;
   placeholder?: string;
+  inputClassName?: string;
 }
 
 export const OfferSearchAutocomplete = ({
@@ -29,6 +30,7 @@ export const OfferSearchAutocomplete = ({
   onChange,
   onOfferSelect,
   placeholder = 'Wyszukaj ofertę po numerze lub nazwisku...',
+  inputClassName,
 }: OfferSearchAutocompleteProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +113,7 @@ export const OfferSearchAutocomplete = ({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
-          className="pl-10"
+          className={cn("pl-10", inputClassName)}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />

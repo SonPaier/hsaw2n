@@ -30,6 +30,7 @@ interface CarSearchAutocompleteProps {
   onClear?: () => void;
   /** When true, prevents dropdown from opening automatically on focus (used in edit mode) */
   suppressAutoOpen?: boolean;
+  inputClassName?: string;
 }
 
 // Normalize text for searching
@@ -61,6 +62,7 @@ export const CarSearchAutocomplete = ({
   onSelect,
   onClear,
   suppressAutoOpen = false,
+  inputClassName,
 }: CarSearchAutocompleteProps) => {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState(value);
@@ -278,7 +280,8 @@ export const CarSearchAutocomplete = ({
           data-testid="car-input"
           className={cn(
             'pr-16 bg-white',
-            error && 'border-destructive focus-visible:ring-destructive'
+            error && 'border-destructive focus-visible:ring-destructive',
+            inputClassName
           )}
           role="combobox"
           aria-expanded={isOpen}

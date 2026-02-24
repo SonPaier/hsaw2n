@@ -715,6 +715,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                 value={offerNumber}
                 onChange={setOfferNumber}
                 onOfferSelect={handleOfferSelect}
+                inputClassName="border-foreground/60"
               />
             </div>
           </div>
@@ -775,7 +776,8 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
                   }
                 }}
                 onClear={() => setVehicleModel('')}
-                className="bg-white border-foreground/60"
+                className="bg-white"
+                inputClassName="border-foreground/60"
               />
             </div>
             <div className="space-y-2">
