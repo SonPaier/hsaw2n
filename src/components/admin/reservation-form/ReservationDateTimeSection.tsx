@@ -160,7 +160,7 @@ export const ReservationDateTimeSection = ({
             <Button
               variant="outline"
               className={cn(
-                'w-full justify-start text-left font-normal bg-white dark:bg-card',
+                'w-full justify-start text-left font-normal bg-white dark:bg-card border-foreground/60',
                 !dateRange?.from && 'text-muted-foreground',
                 dateRangeError && 'border-destructive'
               )}

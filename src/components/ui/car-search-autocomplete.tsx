@@ -277,7 +277,7 @@ export const CarSearchAutocomplete = ({
           disabled={disabled}
           data-testid="car-input"
           className={cn(
-            'pr-16',
+            'pr-16 bg-white',
             error && 'border-destructive focus-visible:ring-destructive'
           )}
           role="combobox"
@@ -326,7 +326,7 @@ export const CarSearchAutocomplete = ({
                         data-index={itemIndex}
                         data-testid="car-option"
                         className={cn(
-                          'w-full px-3 py-2 text-left text-sm transition-colors flex items-center justify-between',
+                          'w-full px-3 py-2 text-left text-[0.9375rem] transition-colors flex items-center justify-between',
                           isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
                         )}
                         onClick={() => selectModel(model)}

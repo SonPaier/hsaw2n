@@ -147,7 +147,7 @@ export const CustomerSection = ({
 
         {/* Phone search results dropdown */}
         {showPhoneDropdown && foundVehicles.length > 0 && (
-          <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-white border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
             {foundVehicles.map((vehicle) => (
               <button
                 key={vehicle.id}
@@ -160,7 +160,7 @@ export const CustomerSection = ({
                 </div>
                 <div className="text-sm">
                   <span className="text-primary">{formatPhoneDisplay(vehicle.phone)}</span>
-                  {vehicle.model && <span className="text-muted-foreground"> • {vehicle.model}</span>}
+                  {vehicle.model && <span className="text-foreground"> • {vehicle.model}</span>}
                 </div>
               </button>
             ))}
