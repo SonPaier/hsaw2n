@@ -626,7 +626,7 @@ const ReservationDetailsDrawer = ({
       <Sheet open={open} onOpenChange={onClose} modal={false}>
         <SheetContent 
           side="right" 
-          className="w-full sm:max-w-[27rem] flex flex-col shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.2)]"
+          className="w-full sm:max-w-[27rem] flex flex-col shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.2)] bg-white"
           hideCloseButton
           hideOverlay
           // Keep drawer open; allow clicking calendar behind
@@ -669,7 +669,7 @@ const ReservationDetailsDrawer = ({
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <div className="text-xs text-muted-foreground">{t('reservations.customer')}</div>
+                    <div className="text-xs text-foreground">{t('reservations.customer')}</div>
                     <button
                       type="button"
                       onClick={handleOpenCustomerDrawer}
@@ -710,7 +710,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <div className="text-xs text-muted-foreground">{t('common.phone')}</div>
+                  <div className="text-xs text-foreground">{t('common.phone')}</div>
                   <div className="font-medium">{formatPhoneDisplay(customerPhone)}</div>
                 </div>
               </div>
@@ -721,7 +721,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 flex items-center justify-center text-muted-foreground font-bold text-xs">#</div>
                 <div>
-                  <div className="text-xs text-muted-foreground">{t('reservations.reservationCode')}</div>
+                  <div className="text-xs text-foreground">{t('reservations.reservationCode')}</div>
                   <div className="font-mono font-bold text-primary">{reservation.confirmation_code}</div>
                 </div>
               </div>
@@ -732,7 +732,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-center gap-3">
                 <Car className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <div className="text-xs text-muted-foreground">{t('reservations.car')}</div>
+                  <div className="text-xs text-foreground">{t('reservations.car')}</div>
                   <div className="font-medium">{carModel}</div>
                 </div>
               </div>
@@ -751,7 +751,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 flex items-center justify-center text-primary font-bold text-sm mt-1">U</div>
                 <div className="flex-1">
-                  <div className="text-xs text-muted-foreground">{t('reservations.services')}</div>
+                  <div className="text-xs text-foreground">{t('reservations.services')}</div>
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     {/* Existing services with X button */}
                     {reservation.services_data && reservation.services_data.length > 0 ? (
@@ -804,7 +804,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-start gap-3">
                 <Users className="w-5 h-5 text-muted-foreground mt-1" />
                 <div className="flex-1">
-                  <div className="text-xs text-muted-foreground">Przypisani pracownicy</div>
+                  <div className="text-xs text-foreground">Przypisani pracownicy</div>
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     {/* Employee chips - same style as services */}
                     {localAssignedEmployeeIds.map(empId => {
@@ -886,7 +886,7 @@ const ReservationDetailsDrawer = ({
                 <div className="flex items-start gap-3">
                   <Receipt className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">{t('addReservation.amount')}</div>
+                    <div className="text-xs text-foreground">{t('addReservation.amount')}</div>
                     <div className="font-semibold text-lg">{displayTotal} zł</div>
                     
                     {hasMultipleServices && (
@@ -923,7 +923,7 @@ const ReservationDetailsDrawer = ({
               <div className="flex items-start gap-3">
                 <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <div className="text-xs text-muted-foreground">Oferta</div>
+                  <div className="text-xs text-foreground">Oferta</div>
                   <a 
                     href={`/offers/${offerPublicToken}?admin=true`}
                     target="_blank"
@@ -940,7 +940,7 @@ const ReservationDetailsDrawer = ({
             {/* Customer Notes - hide in hall mode if notes not configured */}
             {(!isHallMode || visibleFields?.admin_notes) && customerNotes && (
               <div className="border-t border-border/30 pt-3">
-                <div className="text-xs text-muted-foreground mb-1">{t('reservations.customerNotes')}</div>
+                <div className="text-xs text-foreground mb-1">{t('reservations.customerNotes')}</div>
                 <div className="text-sm whitespace-pre-wrap bg-blue-50 dark:bg-blue-950/30 p-2 rounded">{customerNotes}</div>
               </div>
             )}
@@ -948,7 +948,7 @@ const ReservationDetailsDrawer = ({
             {/* Admin Notes - inline editable */}
             {(!isHallMode || visibleFields?.admin_notes) && (
               <div className="border-t border-border/30 pt-3">
-                <div className="text-xs text-muted-foreground mb-1">{t('reservations.adminNotes')}</div>
+                <div className="text-xs text-foreground mb-1">{t('reservations.adminNotes')}</div>
                 {editingNotes ? (
                   <div className="relative">
                     <textarea
