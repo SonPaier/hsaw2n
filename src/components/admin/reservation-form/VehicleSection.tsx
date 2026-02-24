@@ -59,11 +59,11 @@ export const VehicleSection = ({
             {(['small', 'medium', 'large'] as CarSize[]).map((size) => (
               <Tooltip key={size}>
                 <TooltipTrigger asChild>
-                  <Button
+                   <Button
                     type="button"
                     size="sm"
                     variant={carSize === size ? 'secondary' : 'outline'}
-                    className="w-9 h-9 font-bold p-0"
+                    className="w-9 h-9 font-bold p-0 border-foreground/60"
                     onClick={() => onCarSizeChange(size)}
                   >
                     {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
