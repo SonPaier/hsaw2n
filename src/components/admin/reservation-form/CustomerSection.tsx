@@ -104,8 +104,7 @@ export const CustomerSection = ({
       {/* Customer Name */}
       <div className="space-y-2">
         <Label htmlFor="name">
-          {t('addReservation.customerNameAlias')}{' '}
-          <span className="text-muted-foreground text-xs">({t('common.optional')})</span>
+          {t('addReservation.customerNameAlias')}
         </Label>
         <ClientSearchAutocomplete
           instanceId={instanceId}

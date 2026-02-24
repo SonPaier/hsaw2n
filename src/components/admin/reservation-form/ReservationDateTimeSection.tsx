@@ -251,7 +251,7 @@ export const ReservationDateTimeSection = ({
                 setManualStartTime(val);
               }}
             >
-              <SelectTrigger id="manualStartTime" className="bg-white">
+              <SelectTrigger id="manualStartTime" className="bg-white border-foreground/60">
                 <SelectValue placeholder="--:--" />
               </SelectTrigger>
               <SelectContent className="bg-white max-h-60">
@@ -273,7 +273,7 @@ export const ReservationDateTimeSection = ({
                 setManualEndTime(val);
               }}
             >
-              <SelectTrigger id="manualEndTime" className="bg-white">
+              <SelectTrigger id="manualEndTime" className="bg-white border-foreground/60">
                 <SelectValue placeholder="--:--" />
               </SelectTrigger>
               <SelectContent className="bg-white max-h-60">
