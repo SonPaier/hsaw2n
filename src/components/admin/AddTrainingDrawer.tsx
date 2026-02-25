@@ -289,13 +289,13 @@ export function AddTrainingDrawer({
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white dark:bg-card"
           hideOverlay
           hideCloseButton
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0 bg-white dark:bg-card">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5" />
@@ -312,13 +312,13 @@ export function AddTrainingDrawer({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 bg-white dark:bg-card">
             <div className="space-y-4">
               {/* Training Type */}
               <div className="space-y-2">
                 <Label>{t('trainings.type')}</Label>
                 <Select value={selectedTypeId} onValueChange={handleTypeChange}>
-                  <SelectTrigger className="bg-white dark:bg-card">
+                  <SelectTrigger className="bg-white dark:bg-card border-foreground/60">
                     <SelectValue placeholder="Wybierz typ szkolenia" />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-card z-50">
@@ -393,6 +393,7 @@ export function AddTrainingDrawer({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
+                  className="bg-white dark:bg-card border-foreground/60"
                 />
               </div>
 
@@ -412,7 +413,7 @@ export function AddTrainingDrawer({
             </div>
           </div>
 
-          <SheetFooter className="px-6 py-4 border-t shrink-0">
+          <SheetFooter className="px-6 py-4 border-t shrink-0 bg-white dark:bg-card">
             <Button
               onClick={handleSave}
               disabled={saving || !dateRange?.from || !manualStartTime || !manualEndTime}
