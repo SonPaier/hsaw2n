@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { GraduationCap, Pencil, Trash2, MapPin, Clock, Calendar, Users, X, CircleDot, FileText, Plus } from 'lucide-react';
+import { Pencil, Trash2, X, Plus } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -160,16 +160,15 @@ export function TrainingDetailsDrawer({
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+          className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white dark:bg-card"
           hideOverlay
           hideCloseButton
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0 bg-white dark:bg-card">
             <div className="flex items-center justify-between">
-              <SheetTitle className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5" />
+              <SheetTitle className="text-foreground">
                 {training.title}
               </SheetTitle>
               <button
@@ -182,126 +181,108 @@ export function TrainingDetailsDrawer({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 bg-white dark:bg-card">
             <div className="space-y-4">
               {/* Status */}
-              <div className="flex items-start gap-3">
-                <CircleDot className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-xs text-muted-foreground">{t('trainings.status')}</div>
-                  <div className="flex items-center justify-between mt-1">
-                    <Badge
-                      variant="secondary"
-                      className={isSoldOut
-                        ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
-                        : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
-                      }
-                    >
-                      {isSoldOut ? 'Zamknięte' : 'Otwarte'}
-                    </Badge>
-                    {!readOnly && (
-                      <Switch
-                        checked={isSoldOut}
-                        onCheckedChange={handleToggleStatus}
-                        disabled={togglingStatus}
-                      />
-                    )}
-                  </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t('trainings.status')}</div>
+                <div className="flex items-center justify-between mt-1">
+                  <Badge
+                    variant="secondary"
+                    className={isSoldOut
+                      ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                      : 'bg-pink-200 text-pink-900 hover:bg-pink-300'
+                    }
+                  >
+                    {isSoldOut ? 'Zamknięte' : 'Otwarte'}
+                  </Badge>
+                  {!readOnly && (
+                    <Switch
+                      checked={isSoldOut}
+                      onCheckedChange={handleToggleStatus}
+                      disabled={togglingStatus}
+                    />
+                  )}
                 </div>
               </div>
 
               {/* Dates */}
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs text-muted-foreground">{t('trainings.dates')}</div>
-                  <div className="font-medium">
-                    {formatDate(training.start_date)}
-                    {isMultiDay && ` — ${formatDate(training.end_date!)}`}
-                  </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t('trainings.dates')}</div>
+                <div className="font-medium text-foreground">
+                  {formatDate(training.start_date)}
+                  {isMultiDay && ` — ${formatDate(training.end_date!)}`}
                 </div>
               </div>
 
               {/* Time */}
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs text-muted-foreground">{t('common.time')}</div>
-                  <div className="font-medium">
-                    {formatTime(training.start_time)} - {formatTime(training.end_time)}
-                  </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t('common.time')}</div>
+                <div className="font-medium text-foreground">
+                  {formatTime(training.start_time)} - {formatTime(training.end_time)}
                 </div>
               </div>
 
               {/* Station */}
               {training.station && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Stanowisko</div>
-                    <div className="font-medium">{training.station.name}</div>
-                  </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Stanowisko</div>
+                  <div className="font-medium text-foreground">{training.station.name}</div>
                 </div>
               )}
 
               {/* Employees */}
-              <div className="flex items-start gap-3">
-                <Users className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-xs text-muted-foreground mb-1">Przypisani pracownicy</div>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {training.assigned_employee_ids?.length > 0 && training.assigned_employee_ids.map(empId => {
-                      const emp = employees.find(e => e.id === empId);
-                      const name = emp?.name || 'Usunięty';
-                      return (
-                        <span
-                          key={empId}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none"
-                        >
-                          {name}
-                        </span>
-                      );
-                    })}
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none hover:bg-primary/90 transition-colors"
-                        onClick={() => setEmployeeDrawerOpen(true)}
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Przypisani pracownicy</div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {training.assigned_employee_ids?.length > 0 && training.assigned_employee_ids.map(empId => {
+                    const emp = employees.find(e => e.id === empId);
+                    const name = emp?.name || 'Usunięty';
+                    return (
+                      <span
+                        key={empId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        Dodaj
-                      </button>
-                    )}
-                  </div>
+                        {name}
+                      </span>
+                    );
+                  })}
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium leading-none hover:bg-primary/90 transition-colors"
+                      onClick={() => setEmployeeDrawerOpen(true)}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Dodaj
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Internal Notes */}
-              <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-xs text-muted-foreground mb-1">Notatki wewnętrzne</div>
-                  {editingNotes ? (
-                    <Textarea
-                      ref={notesRef}
-                      value={localDescription}
-                      onChange={(e) => setLocalDescription(e.target.value)}
-                      onBlur={() => setTimeout(handleSaveNotes, 100)}
-                      rows={3}
-                      disabled={savingNotes}
-                      className="text-sm"
-                    />
-                  ) : (
-                    <p
-                      className={`text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 ${
-                        !localDescription ? 'text-muted-foreground italic' : 'whitespace-pre-wrap'
-                      }`}
-                      onClick={() => !readOnly && setEditingNotes(true)}
-                    >
-                      {localDescription || 'Brak notatek wewnętrznych'}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Notatki wewnętrzne</div>
+                {editingNotes ? (
+                  <Textarea
+                    ref={notesRef}
+                    value={localDescription}
+                    onChange={(e) => setLocalDescription(e.target.value)}
+                    onBlur={() => setTimeout(handleSaveNotes, 100)}
+                    rows={3}
+                    disabled={savingNotes}
+                    className="text-sm bg-white dark:bg-card border-foreground/60"
+                  />
+                ) : (
+                  <p
+                    className={`text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 ${
+                      !localDescription ? 'text-muted-foreground italic' : 'whitespace-pre-wrap text-foreground'
+                    }`}
+                    onClick={() => !readOnly && setEditingNotes(true)}
+                  >
+                    {localDescription || 'Brak notatek wewnętrznych'}
+                  </p>
+                )}
               </div>
 
               {/* Photos */}
@@ -327,7 +308,7 @@ export function TrainingDetailsDrawer({
           </div>
 
           {!readOnly && (
-            <SheetFooter className="px-6 py-4 border-t shrink-0">
+            <SheetFooter className="px-6 py-4 border-t shrink-0 bg-white dark:bg-card">
               <div className="flex gap-2 w-full">
                 <Button
                   variant="outline"

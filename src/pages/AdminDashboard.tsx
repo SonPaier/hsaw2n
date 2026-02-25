@@ -1230,15 +1230,19 @@ const AdminDashboard = () => {
               station: data.stations ? { name: data.stations.name, type: data.stations.type } : null,
               training_type_record: data.training_type_record || null
             };
-            if (payload.eventType === 'INSERT') {
-              setTrainings((prev) => prev.some((t) => t.id === mapped.id) ? prev.map((t) => t.id === mapped.id ? mapped : t) : [...prev, mapped]);
-            } else {
-              setTrainings((prev) => prev.map((t) => t.id === mapped.id ? mapped : t));
-              setSelectedTraining((prev) => prev?.id === mapped.id ? mapped : prev);
-            }
+            // Always upsert — handles both INSERT and UPDATE, prevents duplicates
+            setTrainings((prev) => {
+              const exists = prev.some((t) => t.id === mapped.id);
+              if (exists) {
+                return prev.map((t) => t.id === mapped.id ? mapped : t);
+              }
+              return [...prev, mapped];
+            });
+            setSelectedTraining((prev) => prev?.id === mapped.id ? mapped : prev);
           }
         } else if (payload.eventType === 'DELETE') {
           setTrainings((prev) => prev.filter((t) => t.id !== payload.old.id));
+          setSelectedTraining((prev) => prev?.id === payload.old.id ? null : prev);
         }
       }).
       subscribe((status) => {
