@@ -732,7 +732,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
     const fetchTrainings = async () => {
       const { data } = await supabase
         .from('trainings')
-        .select('*')
+        .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
         .eq('instance_id', instanceId) as any;
       if (data) {
         setTrainings(data.map((t: any) => ({
@@ -955,6 +955,24 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           // Increase poll interval gradually when no changes and realtime not working
           pollInterval = Math.min(pollInterval * 1.3, 15000); // Cap at 15s
         }
+
+        // Also poll trainings
+        if (trainingsEnabled) {
+          try {
+            const { data: trainingsData } = await supabase
+              .from('trainings')
+              .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
+              .eq('instance_id', instanceId) as any;
+            if (trainingsData) {
+              setTrainings(trainingsData.map((t: any) => ({
+                ...t,
+                assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
+              })));
+            }
+          } catch (err) {
+            console.error('Polling trainings error:', err);
+          }
+        }
       } catch (error) {
         console.error('Polling error:', error);
       }
@@ -1089,7 +1107,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const { data } = await supabase
               .from('trainings')
-              .select('*')
+              .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
               .eq('id', payload.new.id)
               .single() as any;
             if (data) {
@@ -1098,7 +1116,10 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
               };
               if (payload.eventType === 'INSERT') {
-                setTrainings(prev => prev.some(t => t.id === mapped.id) ? prev : [...prev, mapped]);
+                setTrainings(prev => {
+                  const exists = prev.some(t => t.id === mapped.id);
+                  return exists ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped];
+                });
               } else {
                 setTrainings(prev => prev.map(t => t.id === mapped.id ? mapped : t));
                 setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
@@ -1106,6 +1127,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             }
           } else if (payload.eventType === 'DELETE') {
             setTrainings(prev => prev.filter(t => t.id !== payload.old.id));
+            setSelectedTraining(prev => prev?.id === payload.old.id ? null : prev);
           }
         })
         .subscribe((status, err) => {
@@ -1145,7 +1167,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         supabase.removeChannel(currentChannel);
       }
     };
-  }, [instanceId, t]);
+  }, [instanceId, t, trainingsEnabled]);
 
   const handleReservationClick = (reservation: Reservation) => {
     setSelectedTraining(null);
