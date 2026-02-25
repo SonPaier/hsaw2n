@@ -1251,6 +1251,8 @@ const AdminDashboard = () => {
         if (status === 'SUBSCRIBED') {
           setRealtimeConnected(true);
           retryCount = 0;
+          // Sync trainings after reconnect to recover any missed events
+          fetchTrainings();
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setRealtimeConnected(false);
 
