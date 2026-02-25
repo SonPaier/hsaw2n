@@ -2100,7 +2100,7 @@
     "description": "Opis",
     "title": "Tytuł",
     "statusOpen": "Otwarte",
-    "statusSoldOut": "Wyprzedane",
+    "statusSoldOut": "Zamknięte",
     "trainingDeleted": "Szkolenie usunięte",
     "trainingSaved": "Szkolenie zapisane",
     "trainingUpdated": "Szkolenie zaktualizowane",
