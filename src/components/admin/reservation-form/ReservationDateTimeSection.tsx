@@ -294,7 +294,7 @@ export const ReservationDateTimeSection = ({
               {t('addReservation.selectStation')} <span className="text-destructive">*</span>
             </Label>
             <Select value={manualStationId || ''} onValueChange={(val) => { markUserEditing(); setManualStationId(val); }}>
-              <SelectTrigger className={cn("bg-white dark:bg-card", !manualStationId && timeError && 'border-destructive')}>
+              <SelectTrigger className={cn("bg-white dark:bg-card border-foreground/60", !manualStationId && timeError && 'border-destructive')}>
                 <SelectValue placeholder={t('addReservation.selectStation')} />
               </SelectTrigger>
               <SelectContent className="bg-white">
