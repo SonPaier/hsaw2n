@@ -888,6 +888,30 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
       };
     };
 
+    const syncTrainings = async () => {
+      if (!trainingsEnabled) return;
+      try {
+        const { data: trainingsData, error } = await supabase
+          .from('trainings')
+          .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
+          .eq('instance_id', instanceId) as any;
+
+        if (error) {
+          console.error('Sync trainings error:', error);
+          return;
+        }
+
+        if (trainingsData) {
+          setTrainings(trainingsData.map((t: any) => ({
+            ...t,
+            assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
+          })));
+        }
+      } catch (err) {
+        console.error('Sync trainings exception:', err);
+      }
+    };
+
     // Polling fallback function
     const pollForUpdates = async () => {
       if (isCleanedUp) return;
@@ -955,27 +979,12 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           // Increase poll interval gradually when no changes and realtime not working
           pollInterval = Math.min(pollInterval * 1.3, 15000); // Cap at 15s
         }
-
-        // Also poll trainings
-        if (trainingsEnabled) {
-          try {
-            const { data: trainingsData } = await supabase
-              .from('trainings')
-              .select('*, stations:station_id (name, type), training_type_record:training_type_id (id, name, duration_days, sort_order, active, instance_id)')
-              .eq('instance_id', instanceId) as any;
-            if (trainingsData) {
-              setTrainings(trainingsData.map((t: any) => ({
-                ...t,
-                assigned_employee_ids: Array.isArray(t.assigned_employee_ids) ? t.assigned_employee_ids : [],
-              })));
-            }
-          } catch (err) {
-            console.error('Polling trainings error:', err);
-          }
-        }
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error('Polling reservations error:', error);
       }
+
+      // Trainings sync is independent from reservations polling so one failure does not hide trainings
+      await syncTrainings();
 
       // Schedule next poll
       if (!isCleanedUp) {
@@ -1115,15 +1124,14 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
                 ...data,
                 assigned_employee_ids: Array.isArray(data.assigned_employee_ids) ? data.assigned_employee_ids : [],
               };
-              if (payload.eventType === 'INSERT') {
-                setTrainings(prev => {
-                  const exists = prev.some(t => t.id === mapped.id);
-                  return exists ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped];
-                });
-              } else {
-                setTrainings(prev => prev.map(t => t.id === mapped.id ? mapped : t));
-                setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
-              }
+
+              // Upsert to prevent disappearing trainings after reconnect or missed INSERT
+              setTrainings(prev => {
+                const exists = prev.some(t => t.id === mapped.id);
+                return exists ? prev.map(t => t.id === mapped.id ? mapped : t) : [...prev, mapped];
+              });
+
+              setSelectedTraining(prev => prev?.id === mapped.id ? mapped : prev);
             }
           } else if (payload.eventType === 'DELETE') {
             setTrainings(prev => prev.filter(t => t.id !== payload.old.id));
@@ -1135,9 +1143,11 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           if (status === 'SUBSCRIBED') {
             realtimeWorking = true;
             retryCount = 0;
+            void syncTrainings(); // recover possible gaps after reconnect
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             realtimeWorking = false;
             pollInterval = 3000; // Reset to fast polling when realtime fails
+            void syncTrainings();
             
             // Auto-retry with exponential backoff
             if (retryCount < maxRetries && !isCleanedUp) {
@@ -1148,6 +1158,8 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
             }
           } else if (status === 'CLOSED') {
             realtimeWorking = false;
+            pollInterval = 3000;
+            void syncTrainings();
           }
         });
     };
