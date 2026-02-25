@@ -383,7 +383,7 @@ export function AddTrainingDrawer({
                 markUserEditing={markUserEditing}
                 dateRangeRef={dateRangeRef}
                 timeRef={timeRef}
-                showStationSelector
+                showStationSelector={isEditMode}
               />
 
               {/* Internal Notes */}
