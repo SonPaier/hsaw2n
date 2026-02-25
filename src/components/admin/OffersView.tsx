@@ -467,11 +467,22 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
 
   const getReservationDataFromOffer = (offer: OfferWithOptions) => {
     // Extract unique product_ids from offer_option_items
+    const allItems = offer.offer_options?.flatMap(opt => 
+      opt.offer_option_items || []
+    ) || [];
+
     const serviceIds = [...new Set(
-      offer.offer_options?.flatMap(opt => 
-        opt.offer_option_items?.map(item => item.product_id).filter(Boolean) || []
-      ) || []
+      allItems.map(item => item.product_id).filter(Boolean)
     )] as string[];
+
+    // Build service_items with custom prices from offer
+    const serviceItems = serviceIds.map(id => {
+      const item = allItems.find(i => i.product_id === id);
+      return {
+        service_id: id,
+        custom_price: item?.unit_price ?? null,
+      };
+    });
 
     return {
       customer_name: offer.customer_data?.name || '',
@@ -482,6 +493,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
       price: offer.admin_approved_gross ?? offer.total_gross ?? undefined,
       has_unified_services: true,
       service_ids: serviceIds.length > 0 ? serviceIds : undefined,
+      service_items: serviceItems.length > 0 ? serviceItems : undefined,
     };
   };
 
