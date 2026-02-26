@@ -65,6 +65,28 @@ serve(async (req) => {
       );
     }
 
+    // Demo instance - never send real SMS
+    const DEMO_INSTANCE_IDS = ['b3c29bfe-f393-4e1a-a837-68dd721df420'];
+    if (instanceId && DEMO_INSTANCE_IDS.includes(instanceId)) {
+      console.log(`[DEMO] Simulating SMS to ${normalizedPhone}: ${message}`);
+      const supabaseUrl2 = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const { createClient: cc } = await import("https://esm.sh/@supabase/supabase-js@2.49.2");
+      const sb = cc(supabaseUrl2, supabaseKey2);
+      await sb.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: message,
+        message_type: 'manual',
+        status: 'simulated',
+        error_message: 'Demo instance - SMS not sent',
+      });
+      return new Response(
+        JSON.stringify({ success: true, message: "SMS simulated (demo instance)" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const SMSAPI_TOKEN = Deno.env.get("SMSAPI_TOKEN");
 
     if (!SMSAPI_TOKEN) {
