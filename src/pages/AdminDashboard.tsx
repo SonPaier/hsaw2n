@@ -869,6 +869,17 @@ const AdminDashboard = () => {
     }
   }, [instanceId, trainingsEnabled]);
 
+  const fetchTrainingsRef = useRef(fetchTrainings);
+  const fetchReservationsRef = useRef(fetchReservations);
+
+  useEffect(() => {
+    fetchTrainingsRef.current = fetchTrainings;
+  }, [fetchTrainings]);
+
+  useEffect(() => {
+    fetchReservationsRef.current = fetchReservations;
+  }, [fetchReservations]);
+
   useEffect(() => {
     fetchTrainings();
   }, [fetchTrainings]);
@@ -1252,7 +1263,7 @@ const AdminDashboard = () => {
           setRealtimeConnected(true);
           retryCount = 0;
           // Sync trainings after reconnect to recover any missed events
-          fetchTrainings();
+          fetchTrainingsRef.current();
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setRealtimeConnected(false);
 
@@ -1265,16 +1276,16 @@ const AdminDashboard = () => {
 
             retryTimeoutId = setTimeout(() => {
               if (isCleanedUp) return;
-              fetchReservations();
-              fetchTrainings();
+              fetchReservationsRef.current();
+              fetchTrainingsRef.current();
               setupRealtimeChannel();
             }, delay);
           } else {
             console.error('Max realtime retries reached, falling back to periodic fetch');
             retryTimeoutId = setTimeout(() => {
               if (isCleanedUp) return;
-              fetchReservations();
-              fetchTrainings();
+              fetchReservationsRef.current();
+              fetchTrainingsRef.current();
               retryCount = 0;
               setupRealtimeChannel();
             }, 30000);
