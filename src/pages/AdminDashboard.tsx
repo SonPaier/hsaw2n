@@ -2643,7 +2643,17 @@ const AdminDashboard = () => {
             allServices={allServices}
             onReservationClick={handleReservationClick}
             onConfirmReservation={handleConfirmReservation}
-            onRejectReservation={handleRejectReservation} />
+            onRejectReservation={handleRejectReservation}
+            trainings={trainings}
+            trainingsEnabled={trainingsEnabled}
+            onTrainingClick={handleTrainingClick}
+            onDeleteTraining={async (id) => {
+              const { error } = await supabase.from('trainings').delete().eq('id', id);
+              if (!error) {
+                fetchTrainingsRef.current();
+              }
+            }}
+            employees={cachedEmployees} />
 
           }
 

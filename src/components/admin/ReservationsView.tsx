@@ -3,7 +3,7 @@ import { useSessionStorageState } from '@/hooks/useSessionStorageState';
 import { useTranslation } from 'react-i18next';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Search, Phone, MessageSquare, Check, Trash2, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
+import { Search, Phone, MessageSquare, Check, Trash2, AlertCircle, CheckCircle2, Calendar, Clock, GraduationCap } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceTag from './ServiceTag';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import { supabase } from '@/integrations/supabase/client';
+import type { Training } from './AddTrainingDrawer';
 
 interface Service {
   id: string;
@@ -65,15 +66,34 @@ interface Customer {
   source?: string;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+// Unified item for sorting/grouping
+interface ListItem {
+  type: 'reservation' | 'training';
+  date: string;
+  start_time: string;
+  data: Reservation | Training;
+}
+
 interface ReservationsViewProps {
   reservations: Reservation[];
   allServices: Service[];
   onReservationClick: (reservation: Reservation) => void;
   onConfirmReservation: (reservationId: string) => void;
   onRejectReservation: (reservationId: string) => void;
+  trainings?: Training[];
+  trainingsEnabled?: boolean;
+  onTrainingClick?: (training: Training) => void;
+  onDeleteTraining?: (trainingId: string) => void;
+  employees?: Employee[];
 }
 
-type TabValue = 'all' | 'confirmed' | 'pending';
+type TabValue = 'all' | 'reservations' | 'trainings';
 
 const DEBOUNCE_MS = 300;
 
@@ -82,7 +102,12 @@ const ReservationsView = ({
   allServices,
   onReservationClick,
   onConfirmReservation,
-  onRejectReservation
+  onRejectReservation,
+  trainings = [],
+  trainingsEnabled = false,
+  onTrainingClick,
+  onDeleteTraining,
+  employees = [],
 }: ReservationsViewProps) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -91,11 +116,28 @@ const ReservationsView = ({
   const [activeTab, setActiveTab] = useSessionStorageState<TabValue>('reservations-active-tab', 'all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [reservationToReject, setReservationToReject] = useState<Reservation | null>(null);
+  const [deleteTrainingDialogOpen, setDeleteTrainingDialogOpen] = useState(false);
+  const [trainingToDelete, setTrainingToDelete] = useState<Training | null>(null);
   
   // Customer drawer state
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+
+  // If trainings got disabled, reset tab
+  useEffect(() => {
+    if (!trainingsEnabled && activeTab === 'trainings') {
+      setActiveTab('all');
+    }
+  }, [trainingsEnabled, activeTab, setActiveTab]);
+
+  const employeeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const emp of employees) {
+      map.set(emp.id, emp.name);
+    }
+    return map;
+  }, [employees]);
 
   const formatDateHeader = (dateStr: string): string => {
     const date = parseISO(dateStr);
@@ -116,81 +158,105 @@ const ReservationsView = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Filter by tab
-  const getTabFilteredReservations = useCallback((tab: TabValue, items: Reservation[]) => {
+  // Build unified list items
+  const allItems = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Only show upcoming reservations (today and future)
-    const upcomingItems = items.filter(r => {
-      const resDate = parseISO(r.reservation_date);
-      resDate.setHours(0, 0, 0, 0);
-      return resDate >= today;
-    });
+    const reservationItems: ListItem[] = reservations
+      .filter(r => {
+        const resDate = parseISO(r.reservation_date);
+        resDate.setHours(0, 0, 0, 0);
+        return resDate >= today;
+      })
+      .map(r => ({ type: 'reservation' as const, date: r.reservation_date, start_time: r.start_time, data: r }));
 
-    switch (tab) {
-      case 'confirmed':
-        return upcomingItems.filter(r => r.status === 'confirmed');
-      case 'pending':
-        return upcomingItems.filter(r => r.status === 'pending' || !r.status);
+    const trainingItems: ListItem[] = trainings
+      .filter(tr => {
+        const trDate = parseISO(tr.start_date);
+        trDate.setHours(0, 0, 0, 0);
+        return trDate >= today;
+      })
+      .map(tr => ({ type: 'training' as const, date: tr.start_date, start_time: tr.start_time, data: tr }));
+
+    return [...reservationItems, ...trainingItems];
+  }, [reservations, trainings]);
+
+  // Filter by tab
+  const tabFiltered = useMemo(() => {
+    switch (activeTab) {
+      case 'reservations':
+        return allItems.filter(i => i.type === 'reservation');
+      case 'trainings':
+        return allItems.filter(i => i.type === 'training');
       default:
-        return upcomingItems;
+        return allItems;
     }
-  }, []);
+  }, [allItems, activeTab]);
 
   // Search filter
-  const searchFilteredReservations = useMemo(() => {
-    const tabFiltered = getTabFilteredReservations(activeTab, reservations);
-    if (!debouncedQuery.trim()) {
-      return tabFiltered;
-    }
+  const searchFiltered = useMemo(() => {
+    if (!debouncedQuery.trim()) return tabFiltered;
     const query = debouncedQuery.toLowerCase().trim();
     const normalizedQuery = normalizeSearchQuery(query);
-    return tabFiltered.filter(r => {
-      const matchesCode = r.confirmation_code && normalizeSearchQuery(r.confirmation_code).toLowerCase().includes(normalizedQuery);
-      const matchesName = r.customer_name?.toLowerCase().includes(query);
-      const matchesPhone = r.customer_phone && normalizeSearchQuery(r.customer_phone).includes(normalizedQuery);
-      const matchesVehicle = r.vehicle_plate?.toLowerCase().includes(query);
-      return matchesCode || matchesName || matchesPhone || matchesVehicle;
+
+    return tabFiltered.filter(item => {
+      if (item.type === 'reservation') {
+        const r = item.data as Reservation;
+        return (
+          (r.confirmation_code && normalizeSearchQuery(r.confirmation_code).toLowerCase().includes(normalizedQuery)) ||
+          r.customer_name?.toLowerCase().includes(query) ||
+          (r.customer_phone && normalizeSearchQuery(r.customer_phone).includes(normalizedQuery)) ||
+          r.vehicle_plate?.toLowerCase().includes(query)
+        );
+      } else {
+        const tr = item.data as Training;
+        return (
+          tr.title?.toLowerCase().includes(query) ||
+          tr.training_type?.toLowerCase().includes(query)
+        );
+      }
     });
-  }, [reservations, debouncedQuery, activeTab, getTabFilteredReservations]);
+  }, [tabFiltered, debouncedQuery]);
 
   // Sort and group by date
-  const groupedReservations = useMemo(() => {
-    const sorted = [...searchFilteredReservations].sort((a, b) => {
-      const dateCompare = a.reservation_date.localeCompare(b.reservation_date);
+  const groupedItems = useMemo(() => {
+    const sorted = [...searchFiltered].sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
       return (a.start_time || '').localeCompare(b.start_time || '');
     });
 
-    const groups: Record<string, Reservation[]> = {};
-    for (const reservation of sorted) {
-      const date = reservation.reservation_date;
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(reservation);
+    const groups: Record<string, ListItem[]> = {};
+    for (const item of sorted) {
+      if (!groups[item.date]) groups[item.date] = [];
+      groups[item.date].push(item);
     }
     return groups;
-  }, [searchFilteredReservations]);
+  }, [searchFiltered]);
 
-  const groupDates = Object.keys(groupedReservations).sort();
+  const groupDates = Object.keys(groupedItems).sort();
 
   // Counts for tabs
   const counts = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const upcomingItems = reservations.filter(r => {
-      const resDate = parseISO(r.reservation_date);
-      resDate.setHours(0, 0, 0, 0);
-      return resDate >= today;
+    const upcomingRes = reservations.filter(r => {
+      const d = parseISO(r.reservation_date);
+      d.setHours(0, 0, 0, 0);
+      return d >= today;
+    });
+    const upcomingTr = trainings.filter(tr => {
+      const d = parseISO(tr.start_date);
+      d.setHours(0, 0, 0, 0);
+      return d >= today;
     });
     return {
-      all: upcomingItems.length,
-      confirmed: upcomingItems.filter(r => r.status === 'confirmed').length,
-      pending: upcomingItems.filter(r => r.status === 'pending' || !r.status).length
+      all: upcomingRes.length + upcomingTr.length,
+      reservations: upcomingRes.length,
+      trainings: upcomingTr.length,
     };
-  }, [reservations]);
+  }, [reservations, trainings]);
 
   const handleRejectClick = (e: React.MouseEvent, reservation: Reservation) => {
     e.stopPropagation();
@@ -211,10 +277,23 @@ const ReservationsView = ({
     setReservationToReject(null);
   };
 
+  const handleDeleteTrainingClick = (e: React.MouseEvent, training: Training) => {
+    e.stopPropagation();
+    setTrainingToDelete(training);
+    setDeleteTrainingDialogOpen(true);
+  };
+
+  const handleConfirmDeleteTraining = () => {
+    if (trainingToDelete && onDeleteTraining) {
+      onDeleteTraining(trainingToDelete.id);
+      setDeleteTrainingDialogOpen(false);
+      setTrainingToDelete(null);
+    }
+  };
+
   const handleCustomerClick = async (e: React.MouseEvent, reservation: Reservation) => {
     e.stopPropagation();
     
-    // Fetch customer data from database
     const { data: customer } = await supabase
       .from('customers')
       .select('*')
@@ -225,7 +304,6 @@ const ReservationsView = ({
     if (customer) {
       setSelectedCustomer(customer);
     } else {
-      // Create a temporary customer object from reservation data
       setSelectedCustomer({
         id: '',
         name: reservation.customer_name,
@@ -250,6 +328,10 @@ const ReservationsView = ({
     );
   };
 
+  const getEmployeeNames = (ids: string[]) => {
+    return ids.map(id => employeeMap.get(id)).filter(Boolean).join(', ');
+  };
+
   const renderReservationCard = (reservation: Reservation) => {
     const timeRange = `${reservation.start_time?.slice(0, 5)} - ${reservation.end_time?.slice(0, 5)}`;
     const isPending = reservation.status === 'pending' || !reservation.status;
@@ -265,7 +347,6 @@ const ReservationsView = ({
       >
         {/* Desktop layout */}
         <div className="hidden sm:flex items-start justify-between gap-4">
-          {/* Left side - info */}
           <div className="flex items-start gap-3 min-w-0 flex-1">
             <div className={cn(
               "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
@@ -275,7 +356,6 @@ const ReservationsView = ({
             </div>
             
             <div className="min-w-0 flex-1 space-y-1.5">
-              {/* Row 1: Time, Station */}
               <div className="flex items-center gap-3 text-sm">
                 <span className="font-medium text-foreground tabular-nums flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" />
@@ -289,7 +369,6 @@ const ReservationsView = ({
                 )}
               </div>
               
-              {/* Row 2: Car, Customer name (clickable) */}
               <div className="flex items-center gap-2">
                 <span className="font-medium text-foreground">{reservation.vehicle_plate}</span>
                 <span className="text-muted-foreground">•</span>
@@ -301,12 +380,10 @@ const ReservationsView = ({
                 </button>
               </div>
               
-              {/* Row 3: Services */}
               {renderServicePills(reservation)}
             </div>
           </div>
 
-          {/* Right side - actions */}
           <div className="flex items-center gap-1.5 shrink-0">
             {isPending && (
               <Button
@@ -372,7 +449,6 @@ const ReservationsView = ({
               {isPending ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0 space-y-1">
-              {/* Row 1: Time, Station */}
               <div className="text-sm font-medium text-foreground tabular-nums flex items-center gap-2">
                 {timeRange}
                 {reservation.station && (
@@ -380,7 +456,6 @@ const ReservationsView = ({
                 )}
               </div>
               
-              {/* Row 2: Car, Customer name */}
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-foreground">{reservation.vehicle_plate}</span>
                 <span className="text-muted-foreground">•</span>
@@ -392,12 +467,10 @@ const ReservationsView = ({
                 </button>
               </div>
               
-              {/* Row 3: Services */}
               {renderServicePills(reservation)}
             </div>
           </div>
           
-          {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-1">
             {isPending && (
               <Button
@@ -446,6 +519,112 @@ const ReservationsView = ({
     );
   };
 
+  const renderTrainingCard = (training: Training) => {
+    const timeRange = `${training.start_time?.slice(0, 5)} - ${training.end_time?.slice(0, 5)}`;
+    const assignedNames = getEmployeeNames(training.assigned_employee_ids || []);
+
+    return (
+      <div
+        key={training.id}
+        onClick={() => onTrainingClick?.(training)}
+        className="p-4 transition-colors cursor-pointer hover:bg-background"
+      >
+        {/* Desktop layout */}
+        <div className="hidden sm:flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-violet-500/20 text-violet-600">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="font-medium text-foreground tabular-nums flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  {timeRange}
+                </span>
+                {training.station && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">{training.station.name}</span>
+                  </>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">{training.title}</span>
+                {assignedNames && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground truncate">{assignedNames}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+              onClick={(e) => handleDeleteTrainingClick(e, training)}
+              title={t('trainings.deleteTraining')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile layout */}
+        <div className="sm:hidden space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-violet-500/20 text-violet-600">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="text-sm font-medium text-foreground tabular-nums flex items-center gap-2">
+                {timeRange}
+                {training.station && (
+                  <span className="text-muted-foreground font-normal">• {training.station.name}</span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground">{training.title}</span>
+                {assignedNames && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground truncate">{assignedNames}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-muted"
+              onClick={(e) => handleDeleteTrainingClick(e, training)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderItem = (item: ListItem) => {
+    if (item.type === 'reservation') {
+      return renderReservationCard(item.data as Reservation);
+    }
+    return renderTrainingCard(item.data as Training);
+  };
+
+  const showTabs = trainingsEnabled;
+
   return (
     <div className="space-y-4 max-w-3xl mx-auto pb-28">
       {/* Title */}
@@ -464,85 +643,75 @@ const ReservationsView = ({
           />
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <AdminTabsList columns={3}>
-            <AdminTabsTrigger value="pending">
-              {t('reservations.pending')}
-              {counts.pending > 0 && (
-                <Badge className="h-5 min-w-[20px] px-1.5 text-xs bg-amber-500 text-white border-amber-500">
-                  {counts.pending}
-                </Badge>
-              )}
-            </AdminTabsTrigger>
-            <AdminTabsTrigger value="confirmed">
-              {t('reservations.confirmed')}
-              {counts.confirmed > 0 && (
-                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                  {counts.confirmed}
-                </Badge>
-              )}
-            </AdminTabsTrigger>
-            <AdminTabsTrigger value="all">
-              {t('common.all')}
-              {counts.all > 0 && (
-                <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                  {counts.all}
-                </Badge>
-              )}
-            </AdminTabsTrigger>
-          </AdminTabsList>
-        </Tabs>
+        {/* Tabs - only when trainings enabled */}
+        {showTabs && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+            <AdminTabsList columns={3}>
+              <AdminTabsTrigger value="all">
+                {t('common.all')}
+                {counts.all > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                    {counts.all}
+                  </Badge>
+                )}
+              </AdminTabsTrigger>
+              <AdminTabsTrigger value="reservations">
+                {t('reservations.washingAndDetailing')}
+                {counts.reservations > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                    {counts.reservations}
+                  </Badge>
+                )}
+              </AdminTabsTrigger>
+              <AdminTabsTrigger value="trainings">
+                {t('trainings.title')}
+                {counts.trainings > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
+                    {counts.trainings}
+                  </Badge>
+                )}
+              </AdminTabsTrigger>
+            </AdminTabsList>
+          </Tabs>
+        )}
       </div>
 
       {/* Content */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <TabsContent value={activeTab} className="mt-0">
-          {groupDates.length === 0 ? (
-            <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center mb-6">
-                <Calendar className="w-10 h-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                {t('reservations.noReservations')}
-              </h3>
-              <p className="text-muted-foreground max-w-sm">
-                {debouncedQuery
-                  ? t('reservations.noSearchResults')
-                  : activeTab === 'pending'
-                    ? t('reservations.noPending')
-                    : activeTab === 'confirmed'
-                      ? t('reservations.noConfirmed')
-                      : t('reservations.noUpcoming')}
-              </p>
-            </div>
-          ) : (
-            <div>
-              {groupDates.map((date) => (
-                <div key={date}>
-                  {/* Sticky date header - sticks below the header on mobile */}
-                  <div className="sticky top-[120px] sm:top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
-                    <div className="px-4 py-1 rounded-full bg-transparent">
-                      <span className="font-medium capitalize text-foreground text-lg">
-                        {formatDateHeader(date)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Reservations for this date */}
-                  <div className="glass-card overflow-hidden divide-y divide-border/50 mb-4">
-                    {groupedReservations[date].map((reservation) =>
-                      renderReservationCard(reservation)
-                    )}
-                  </div>
+      {groupDates.length === 0 ? (
+        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center mb-6">
+            <Calendar className="w-10 h-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">
+            {t('reservations.noReservations')}
+          </h3>
+          <p className="text-muted-foreground max-w-sm">
+            {debouncedQuery
+              ? t('reservations.noSearchResults')
+              : t('reservations.noUpcoming')}
+          </p>
+        </div>
+      ) : (
+        <div>
+          {groupDates.map((date) => (
+            <div key={date}>
+              <div className="sticky top-[120px] sm:top-0 z-10 flex items-center justify-center py-3 bg-background/95 backdrop-blur-sm">
+                <div className="px-4 py-1 rounded-full bg-transparent">
+                  <span className="font-medium capitalize text-foreground text-lg">
+                    {formatDateHeader(date)}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+              </div>
 
-      {/* Reject confirmation dialog - same flow as calendar */}
+              <div className="glass-card overflow-hidden divide-y divide-border/50 mb-4">
+                {groupedItems[date].map((item) => renderItem(item))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reject reservation dialog */}
       <AlertDialog open={rejectDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReject(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -561,6 +730,27 @@ const ReservationsView = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {t('reservations.yesReject')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete training dialog */}
+      <AlertDialog open={deleteTrainingDialogOpen} onOpenChange={(open) => { if (!open) { setDeleteTrainingDialogOpen(false); setTrainingToDelete(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('trainings.deleteTraining')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('trainings.deleteConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteTraining}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
