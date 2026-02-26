@@ -341,7 +341,7 @@ const ReservationsView = ({
         key={reservation.id}
         onClick={() => onReservationClick(reservation)}
         className={cn(
-          "p-4 transition-colors cursor-pointer hover:bg-background",
+          "p-4 transition-colors cursor-pointer hover:bg-muted/40",
           isPending && "bg-amber-500/5"
         )}
       >
@@ -527,7 +527,7 @@ const ReservationsView = ({
       <div
         key={training.id}
         onClick={() => onTrainingClick?.(training)}
-        className="p-4 transition-colors cursor-pointer hover:bg-background"
+        className="p-4 transition-colors cursor-pointer hover:bg-muted/40"
       >
         {/* Desktop layout */}
         <div className="hidden sm:flex items-start justify-between gap-4">
@@ -558,6 +558,13 @@ const ReservationsView = ({
                     <span className="text-sm text-muted-foreground truncate">{assignedNames}</span>
                   </>
                 )}
+              </div>
+
+              <div className="flex flex-wrap gap-1">
+                <ServiceTag
+                  name={training.status === 'sold_out' ? t('trainings.statusSoldOut') : t('trainings.statusOpen')}
+                  shortcut={null}
+                />
               </div>
             </div>
           </div>
@@ -597,6 +604,13 @@ const ReservationsView = ({
                     <span className="text-sm text-muted-foreground truncate">{assignedNames}</span>
                   </>
                 )}
+              </div>
+
+              <div className="flex flex-wrap gap-1">
+                <ServiceTag
+                  name={training.status === 'sold_out' ? t('trainings.statusSoldOut') : t('trainings.statusOpen')}
+                  shortcut={null}
+                />
               </div>
             </div>
           </div>
@@ -664,7 +678,7 @@ const ReservationsView = ({
                 )}
               </AdminTabsTrigger>
               <AdminTabsTrigger value="trainings">
-                {t('trainings.title')}
+                {t('trainings.tabTitle')}
                 {counts.trainings > 0 && (
                   <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
                     {counts.trainings}

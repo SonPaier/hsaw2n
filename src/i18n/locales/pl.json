@@ -2091,6 +2091,7 @@
     "completeError": "Błąd podczas realizacji oferty"
   },
   "trainings": {
+    "tabTitle": "Szkolenia",
     "newTraining": "Nowe szkolenie",
     "addTraining": "Dodaj szkolenie",
     "saveTraining": "Zapisz szkolenie",
