@@ -84,8 +84,12 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Send SMS if token available
-        if (smsApiToken) {
+        // Demo instance - simulate SMS
+        const DEMO_INSTANCE_IDS = ['b3c29bfe-f393-4e1a-a837-68dd721df420'];
+        if (DEMO_INSTANCE_IDS.includes(reminder.instance_id)) {
+          console.log(`[DEMO] Simulating SMS to ${normalizedPhone}: ${message}`);
+        } else if (smsApiToken) {
+          // Send SMS if token available
           const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
             method: "POST",
             headers: {

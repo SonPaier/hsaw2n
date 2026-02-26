@@ -532,6 +532,9 @@ interface SmsResult {
   errorReason?: string;
 }
 
+// Demo instance - never send real SMS
+const DEMO_INSTANCE_IDS = ['b3c29bfe-f393-4e1a-a837-68dd721df420'];
+
 async function sendSms(
   phone: string, 
   message: string, 
@@ -544,6 +547,21 @@ async function sendSms(
   try {
     const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
     console.log(`Normalized phone: ${phone} -> ${normalizedPhone}`);
+
+    // Skip real SMS for demo instances - log as simulated
+    if (DEMO_INSTANCE_IDS.includes(instanceId)) {
+      console.log(`[DEMO] Simulating SMS to ${normalizedPhone}: ${message}`);
+      await supabase.from('sms_logs').insert({
+        instance_id: instanceId,
+        phone: normalizedPhone,
+        message: message,
+        message_type: messageType,
+        reservation_id: reservationId,
+        status: 'simulated',
+        error_message: 'Demo instance - SMS not sent',
+      });
+      return { success: true };
+    }
 
     const digitsOnly = normalizedPhone.replace(/\D/g, "");
     if (digitsOnly.length < 9 || digitsOnly.length > 15) {
