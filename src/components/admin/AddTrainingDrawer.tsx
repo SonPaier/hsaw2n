@@ -184,11 +184,17 @@ export function AddTrainingDrawer({
 
       if (initialTime) {
         setManualStartTime(initialTime);
-      } else if (workingHours) {
-        const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()];
+      }
+
+      // Always set end time from working hours if available
+      if (workingHours) {
+        const refDate = initialDate ? new Date(initialDate + 'T00:00:00') : new Date();
+        const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][refDate.getDay()];
         const dayHours = workingHours[dayName];
         if (dayHours) {
-          setManualStartTime(dayHours.open.substring(0, 5));
+          if (!initialTime) {
+            setManualStartTime(dayHours.open.substring(0, 5));
+          }
           setManualEndTime(dayHours.close.substring(0, 5));
         }
       }
