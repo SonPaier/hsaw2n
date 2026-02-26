@@ -147,6 +147,7 @@
   },
   "reservations": {
     "title": "Rezerwacje",
+    "washingAndDetailing": "Myjnia i detailing",
     "newReservation": "Nowa rezerwacja",
     "editReservation": "Edytuj rezerwację",
     "confirmReservation": "Potwierdź rezerwację",
