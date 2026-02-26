@@ -341,7 +341,7 @@ const ReservationsView = ({
         key={reservation.id}
         onClick={() => onReservationClick(reservation)}
         className={cn(
-          "p-4 transition-colors cursor-pointer hover:bg-muted/40",
+          "p-4 transition-colors cursor-pointer hover:bg-muted/20",
           isPending && "bg-amber-500/5"
         )}
       >
@@ -430,7 +430,7 @@ const ReservationsView = ({
             <Button
               size="icon"
               variant="ghost"
-              className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+              className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={(e) => handleRejectClick(e, reservation)}
               title={t('reservations.rejectReservation')}
             >
@@ -508,7 +508,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-muted"
+              className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={(e) => handleRejectClick(e, reservation)}
             >
               <Trash2 className="w-4 h-4" />
@@ -527,7 +527,7 @@ const ReservationsView = ({
       <div
         key={training.id}
         onClick={() => onTrainingClick?.(training)}
-        className="p-4 transition-colors cursor-pointer hover:bg-muted/40"
+        className="p-4 transition-colors cursor-pointer hover:bg-muted/20"
       >
         {/* Desktop layout */}
         <div className="hidden sm:flex items-start justify-between gap-4">
@@ -573,7 +573,7 @@ const ReservationsView = ({
             <Button
               size="icon"
               variant="ghost"
-              className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+              className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={(e) => handleDeleteTrainingClick(e, training)}
               title={t('trainings.deleteTraining')}
             >
@@ -619,7 +619,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-muted"
+              className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={(e) => handleDeleteTrainingClick(e, training)}
             >
               <Trash2 className="w-4 h-4" />
