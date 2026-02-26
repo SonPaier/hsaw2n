@@ -203,21 +203,29 @@ const ReservationsView = ({
     return tabFiltered.filter(item => {
       if (item.type === 'reservation') {
         const r = item.data as Reservation;
+        const employeeNames = r.assigned_employee_ids && Array.isArray(r.assigned_employee_ids)
+          ? (r.assigned_employee_ids as string[]).map(id => employeeMap.get(id)?.toLowerCase() || '').join(' ')
+          : '';
         return (
           (r.confirmation_code && normalizeSearchQuery(r.confirmation_code).toLowerCase().includes(normalizedQuery)) ||
           r.customer_name?.toLowerCase().includes(query) ||
           (r.customer_phone && normalizeSearchQuery(r.customer_phone).includes(normalizedQuery)) ||
-          r.vehicle_plate?.toLowerCase().includes(query)
+          r.vehicle_plate?.toLowerCase().includes(query) ||
+          employeeNames.includes(query)
         );
       } else {
         const tr = item.data as Training;
+        const trEmployeeNames = tr.assigned_employee_ids && Array.isArray(tr.assigned_employee_ids)
+          ? (tr.assigned_employee_ids as string[]).map(id => employeeMap.get(id)?.toLowerCase() || '').join(' ')
+          : '';
         return (
           tr.title?.toLowerCase().includes(query) ||
-          tr.training_type?.toLowerCase().includes(query)
+          tr.training_type?.toLowerCase().includes(query) ||
+          trEmployeeNames.includes(query)
         );
       }
     });
-  }, [tabFiltered, debouncedQuery]);
+  }, [tabFiltered, debouncedQuery, employeeMap]);
 
   // Sort and group by date
   const groupedItems = useMemo(() => {

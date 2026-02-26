@@ -160,7 +160,7 @@
     "noPending": "Nie masz żadnych rezerwacji oczekujących na potwierdzenie.",
     "noConfirmed": "Nie masz żadnych potwierdzonych rezerwacji.",
     "noSearchResults": "Nie znaleziono rezerwacji pasujących do wyszukiwania.",
-    "searchPlaceholder": "Szukaj po kodzie, imieniu, telefonie lub aucie...",
+    "searchPlaceholder": "Szukaj po imieniu, telefonie, aucie, pracowniku, szkoleniu...",
     "confirmationCode": "Kod potwierdzenia",
     "reservationCode": "Kod rezerwacji",
     "station": "Stanowisko",
