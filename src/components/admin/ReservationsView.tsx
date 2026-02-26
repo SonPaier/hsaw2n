@@ -725,7 +725,7 @@ const ReservationsView = ({
                 </div>
               </div>
 
-              <div className="glass-card overflow-hidden divide-y divide-border/50 mb-4">
+              <div className="bg-white border border-border/50 rounded-xl overflow-hidden divide-y divide-border/50 mb-4">
                 {groupedItems[date].map((item) => renderItem(item))}
               </div>
             </div>
