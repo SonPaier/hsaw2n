@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PasswordInput from '@/components/password/PasswordInput';
+import PasswordConfirmInput from '@/components/password/PasswordConfirmInput';
 import { usePasswordValidation } from '@/components/password/usePasswordValidation';
 import { supabase } from '@/integrations/supabase/client';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,37 +20,65 @@ const ResetPassword = () => {
   const {
     password,
     setPassword,
+    confirmPassword,
+    setConfirmPassword,
     validation,
     strength,
+    confirmMatch,
     isFormValid: passwordValid,
   } = usePasswordValidation();
 
   useEffect(() => {
+    let mounted = true;
+
     // Listen for PASSWORD_RECOVERY event from Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' && mounted) {
         setIsRecoveryMode(true);
         setCheckingSession(false);
       }
     });
 
-    // Also check URL hash for recovery token (type=recovery)
+    // Check URL hash for recovery token (legacy flow)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
-    if (type === 'recovery') {
+    const hashType = hashParams.get('type');
+    if (hashType === 'recovery') {
       setIsRecoveryMode(true);
     }
 
-    // Give it a moment to process the token
-    const timeout = setTimeout(() => {
-      setCheckingSession(false);
-    }, 2000);
+    // Check query params for human-readable token (new flow)
+    const token = searchParams.get('token');
+    const qType = searchParams.get('type');
+
+    if (token && qType === 'recovery') {
+      supabase.auth.verifyOtp({ token_hash: token, type: 'recovery' })
+        .then(({ error: verifyError }) => {
+          if (!mounted) return;
+          if (verifyError) {
+            console.error('Token verification failed:', verifyError.message);
+            setCheckingSession(false);
+          } else {
+            setIsRecoveryMode(true);
+            setCheckingSession(false);
+          }
+        });
+    } else {
+      // Give legacy flow a moment to process
+      const timeout = setTimeout(() => {
+        if (mounted) setCheckingSession(false);
+      }, 2000);
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+        clearTimeout(timeout);
+      };
+    }
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +93,6 @@ const ResetPassword = () => {
         setError(error.message);
       } else {
         setSuccess(true);
-        // Redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/login', { replace: true });
         }, 3000);
@@ -152,6 +181,13 @@ const ResetPassword = () => {
               strength={strength}
               showStrength
               showRequirements
+            />
+
+            <PasswordConfirmInput
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              match={confirmMatch}
+              label="Powtórz hasło"
             />
 
             <Button

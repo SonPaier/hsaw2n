@@ -100,7 +100,7 @@ const PasswordInput = ({
       )}
 
       {/* Requirements checklist */}
-      {showRequirements && value.length > 0 && (
+      {showRequirements && (
         <ul className="space-y-0.5 text-xs">
           {validation.requirements.map((req) => (
             <li
