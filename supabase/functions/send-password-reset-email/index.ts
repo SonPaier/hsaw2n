@@ -119,18 +119,75 @@ serve(async (req) => {
       if (inst) instance = inst;
     }
 
+    // SECURITY: Verify the email belongs to a user of THIS instance before generating a reset link
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // Find the instance by slug first
+    let instanceId: string | null = null;
+    if (slug) {
+      const { data: instData } = await supabaseAdmin
+        .from("instances")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+      instanceId = instData?.id || null;
+    }
+
+    if (!instanceId) {
+      console.log("Instance not found for slug:", slug);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if a profile with this email exists AND belongs to this instance
+    const { data: profileMatch } = await supabaseAdmin
+      .from("profiles")
+      .select("id, instance_id")
+      .eq("instance_id", instanceId)
+      .ilike("email", trimmedEmail)
+      .maybeSingle();
+
+    // Also check user_roles for super_admins (they may not have instance_id on profile)
+    const { data: superAdminMatch } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, profiles!inner(email)")
+      .eq("role", "super_admin")
+      .maybeSingle();
+
+    let allowedUserId: string | null = null;
+
+    if (profileMatch) {
+      allowedUserId = profileMatch.id;
+    } else if (superAdminMatch) {
+      // Check if the super_admin email matches
+      const saProfile = superAdminMatch.profiles as any;
+      if (saProfile?.email?.toLowerCase() === trimmedEmail) {
+        allowedUserId = superAdminMatch.user_id;
+      }
+    }
+
+    if (!allowedUserId) {
+      console.log("No matching user found for email in instance:", slug);
+      // Return success to prevent enumeration
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate recovery link via admin API (does NOT send email)
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
-      email: email.trim(),
+      email: trimmedEmail,
       options: {
         redirectTo: redirectTo || undefined,
       },
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.log("Could not generate link (user may not exist):", linkError?.message);
-      // Return success anyway to prevent enumeration
+      console.log("Could not generate link:", linkError?.message);
       return new Response(
         JSON.stringify({ success: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
