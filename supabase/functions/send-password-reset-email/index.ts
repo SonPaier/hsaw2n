@@ -215,8 +215,13 @@ serve(async (req) => {
       );
     }
 
-    const resetUrl = linkData.properties.action_link;
-    console.log("Generated reset link for verified auth email");
+    // Build human-readable URL instead of raw Supabase verification URL
+    const actionLink = linkData.properties.action_link;
+    const actionUrl = new URL(actionLink);
+    const token = actionUrl.searchParams.get("token");
+    const type = actionUrl.searchParams.get("type");
+    const resetUrl = `${redirectTo}?token=${token}&type=${type}`;
+    console.log("Generated human-readable reset link for verified auth email");
 
     // Build branded email HTML
     const emailBody = buildResetEmailHtml(resetUrl, instance);
