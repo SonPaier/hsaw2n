@@ -177,10 +177,31 @@ serve(async (req) => {
       );
     }
 
-    // Generate recovery link via admin API (does NOT send email)
+    // SECURITY: Cross-check with auth.users email — only send if they match
+    const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.getUserById(allowedUserId);
+
+    if (authUserError || !authUserData?.user?.email) {
+      console.log("Could not fetch auth user for id:", allowedUserId);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authEmail = authUserData.user.email.toLowerCase();
+
+    if (authEmail !== trimmedEmail) {
+      console.log("Email mismatch: provided email does not match auth.users email for user:", allowedUserId);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate recovery link via admin API using verified auth email
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
-      email: trimmedEmail,
+      email: authEmail,
       options: {
         redirectTo: redirectTo || undefined,
       },
@@ -195,7 +216,7 @@ serve(async (req) => {
     }
 
     const resetUrl = linkData.properties.action_link;
-    console.log("Generated reset link for:", email);
+    console.log("Generated reset link for verified auth email");
 
     // Build branded email HTML
     const emailBody = buildResetEmailHtml(resetUrl, instance);
