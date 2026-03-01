@@ -35,8 +35,13 @@ const ForgotPassword = ({ subdomainSlug }: ForgotPasswordProps) => {
       const resetPath = slug ? `/${slug}/reset-password` : '/reset-password';
       const redirectTo = `${origin}${resetPath}`;
 
-      await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo,
+      // Send branded reset email via SMTP (same as offers)
+      await supabase.functions.invoke('send-password-reset-email', {
+        body: {
+          email: email.trim(),
+          slug,
+          redirectTo,
+        },
       });
 
       // Always show success to prevent account enumeration

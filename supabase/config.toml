@@ -70,3 +70,6 @@ verify_jwt = false
 
 [functions.submit-lead]
 verify_jwt = false
+
+[functions.send-password-reset-email]
+verify_jwt = false
