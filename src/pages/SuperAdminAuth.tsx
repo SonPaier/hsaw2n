@@ -224,12 +224,12 @@ const SuperAdminAuth = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-xs text-slate-400">
               <span>© {new Date().getFullYear()} N2Works</span>
               <a
-                href="https://n2works.com"
+                href="https://n2wash.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
-                n2works.com
+                n2wash.com
               </a>
               <a
                 href="tel:+48666610222"
@@ -239,11 +239,11 @@ const SuperAdminAuth = () => {
                 +48 666 610 222
               </a>
               <a
-                href="mailto:hey@n2works.com"
+                href="mailto:hello@n2wash.com"
                 className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
                 <Mail className="w-3 h-3" />
-                hey@n2works.com
+                hello@n2wash.com
               </a>
             </div>
           </div>
