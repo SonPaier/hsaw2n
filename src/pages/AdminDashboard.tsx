@@ -1733,13 +1733,21 @@ const AdminDashboard = () => {
     if (!reservation) return;
 
     const now = new Date();
+    const nowTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+    const updateData: Record<string, any> = {
+      status: 'completed',
+      completed_at: now.toISOString()
+    };
+
+    // Shorten end_time if finishing early
+    if (nowTime < reservation.end_time) {
+      updateData.end_time = nowTime;
+    }
 
     const {
       error: updateError
-    } = await supabase.from('reservations').update({
-      status: 'completed',
-      completed_at: now.toISOString()
-    }).eq('id', reservationId);
+    } = await supabase.from('reservations').update(updateData).eq('id', reservationId);
 
     if (updateError) {
       toast.error(t('errors.generic'));
@@ -1750,7 +1758,8 @@ const AdminDashboard = () => {
     // Update local state
     setReservations((prev) => prev.map((r) => r.id === reservationId ? {
       ...r,
-      status: 'completed'
+      status: 'completed',
+      ...(updateData.end_time ? { end_time: updateData.end_time } : {})
     } : r));
 
     toast.success(t('reservations.workEnded'), {
@@ -2008,6 +2017,13 @@ const AdminDashboard = () => {
       updateData.released_at = null;
     } else if (newStatus === 'completed') {
       updateData.released_at = null;
+      updateData.completed_at = new Date().toISOString();
+      // Shorten end_time if finishing early
+      const now = new Date();
+      const nowTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      if (nowTime < reservation.end_time) {
+        updateData.end_time = nowTime;
+      }
     }
 
     const { error: updateError } = await supabase.
@@ -2021,7 +2037,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    setReservations((prev) => prev.map((r) => r.id === reservationId ? { ...r, status: newStatus } : r));
+    setReservations((prev) => prev.map((r) => r.id === reservationId ? { ...r, status: newStatus, ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : r));
     toast.success(t('reservations.statusChanged'));
   };
 

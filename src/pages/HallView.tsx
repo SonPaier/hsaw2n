@@ -1649,10 +1649,16 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
           }}
           onEndWork={async (id) => {
             const now = new Date();
-            const { error } = await supabase.from('reservations').update({ status: 'completed', completed_at: now.toISOString() }).eq('id', id);
+            const nowTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            const res = reservations.find(r => r.id === id);
+            const updateData: Record<string, any> = { status: 'completed', completed_at: now.toISOString() };
+            if (res && nowTime < res.end_time) {
+              updateData.end_time = nowTime;
+            }
+            const { error } = await supabase.from('reservations').update(updateData).eq('id', id);
             if (!error) {
-              setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' } : r));
-              setSelectedReservation(prev => prev?.id === id ? { ...prev, status: 'completed' } : prev);
+              setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'completed', ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : r));
+              setSelectedReservation(prev => prev?.id === id ? { ...prev, status: 'completed', ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : prev);
             } else {
               toast.error(t('common.error'));
             }
