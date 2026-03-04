@@ -133,7 +133,7 @@ const SalesDashboard = () => {
                 />
               )}
               {!sidebarCollapsed && <div className="text-left min-w-0 flex-1 pr-2">
-                <h1 className="font-bold text-foreground truncate">{instanceData?.name || 'Panel Sprzedaży'}</h1>
+                <h1 className="font-bold text-foreground leading-tight">{instanceData?.name || 'Panel Sprzedaży'}</h1>
               </div>}
             </button>
             {/* Mobile close */}
