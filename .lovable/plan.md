@@ -1,40 +1,43 @@
 
 
-## Plan: Pole `sms_sender_name` w tabeli `instances`
+## Problem: nakładające się rezerwacje są nieczytelne
 
-### Co robimy
-Dodajemy kolumnę `sms_sender_name` (text, nullable) do tabeli `instances`. Gdy ma wartość (np. "Arm Car" dla armcar), SMSAPI wysyła SMS z tym nadawcą (`from` param). Gdy null — zachowanie jak dotychczas (domyślny nadawca SMSAPI).
+Obecna logika (`getOverlapInfo` + diagonal stagger) daje każdej nakładającej się rezerwacji przesunięcie `left` i `right` po 15% na indeks. Przy 5 rezerwacjach w grupie ostatnia karta ma `left: 60%` — jest bardzo wąska i nieczytelna (widoczne na screenie: wąskie paski na Myjnia 1).
 
-### Zmiany
+## Rozwiązanie: układ "na zakładkę"
 
-**1. Migracja bazy danych**
-- Dodanie kolumny `sms_sender_name TEXT DEFAULT NULL` do `instances`
-- UPDATE dla instancji armcar: `SET sms_sender_name = 'Arm Car'` (po slug)
+Każda karta zachowuje **pełną szerokość** kolumny, ale jest przesunięta w lewo o mały offset (np. 8-10px na indeks). Karty nakładają się jak zakładki — wcześniejsze są pod późniejszymi (z-index rośnie z indeksem). Treść każdej karty pozostaje czytelna.
 
-**2. Edge functions — dodanie `from` do URLSearchParams**
-We wszystkich 6 miejscach gdzie jest `fetch("https://api.smsapi.pl/sms.do", ...)`, trzeba:
-- Pobrać `sms_sender_name` z instancji (tam gdzie jeszcze nie mamy tego w kontekście)
-- Jeśli wartość nie jest null, dodać `from: senderName` do URLSearchParams
+### Zmiany w `AdminCalendar.tsx`
 
-Pliki do zmiany:
-- `supabase/functions/send-sms-message/index.ts` — już ma instanceId, dociągnąć sender name
-- `supabase/functions/send-sms-code/index.ts` — już pobiera instancję, dodać pole
-- `supabase/functions/send-reminders/index.ts` — już ma dane instancji, dodać pole
-- `supabase/functions/send-offer-reminders/index.ts` — dociągnąć z instancji
-- `supabase/functions/create-reservation-direct/index.ts` — już pobiera instancję
-- `supabase/functions/verify-sms-code/index.ts` — już pobiera instancję
+**Linie ~1696-1705** — zmiana obliczania pozycji:
 
-W każdym: warunkowo dodać `from` do params:
+Obecny kod:
 ```typescript
-const params: Record<string, string> = {
-  to: normalizedPhone,
-  message: message,
-  format: "json",
-  encoding: "utf-8",
-};
-if (senderName) params.from = senderName;
+const OVERLAP_OFFSET_PERCENT = 15;
+const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
+const rightOffset = overlapInfo.hasOverlap ? (overlapInfo.total - 1 - overlapInfo.index) * OVERLAP_OFFSET_PERCENT : 0;
+// ...
+left: `calc(${leftOffset}% + 2px)`,
+right: `calc(${rightOffset}% + 2px)`,
 ```
 
-**3. Brak zmian w UI**
-Pole nie jest edytowalne przez admina instancji — ustawiane tylko z poziomu bazy / super admina. Na razie nie dodajemy UI.
+Nowy kod:
+```typescript
+const OVERLAP_OFFSET_PX = 10; // stały offset w pikselach na każdą kartę
+const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PX : 0;
+// ...
+left: `calc(${leftOffset}px + 2px)`,
+right: `2px`,
+zIndex: isSelected ? 30 : (overlapInfo.hasOverlap ? 10 + overlapInfo.index : getTimeBasedZIndex(displayStart))
+```
+
+Efekt:
+- Karta 0: `left: 2px`, karta 1: `left: 12px`, karta 2: `left: 22px` — każda pełnej szerokości
+- Z-index rośnie z indeksem → późniejsze karty "przykrywają" wcześniejsze
+- Widoczna jest "zakładka" (lewy brzeg) każdej przykrytej karty
+- Selected card nadal ma najwyższy z-index (30)
+
+### Jeden plik do zmiany
+- `src/components/admin/AdminCalendar.tsx` — linie ~1696-1705
 
