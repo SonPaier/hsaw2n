@@ -1181,6 +1181,49 @@ const AdminCalendar = ({
   const currentHour = now.getHours() + now.getMinutes() / 60;
   const showCurrentTime = isToday && currentHour >= DISPLAY_START_TIME && currentHour <= parseTime(DAY_CLOSE_TIME);
   const currentTimeTop = (currentHour - DISPLAY_START_TIME) * HOUR_HEIGHT;
+
+  // Render station headers for day view (shared between mobile and desktop layouts)
+  const renderDayStationHeaders = () => (
+    <>
+      {/* Time column header - sticky left */}
+      <div className={cn("w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50 bg-card", "sticky left-0 z-50")}>
+        <Clock className="w-5 h-5" />
+      </div>
+      {/* Station headers container */}
+      <div className={cn("flex", !isMobile && "flex-1")} style={getMobileStationsContainerStyle(visibleStations.length)}>
+        {visibleStations.map((station, idx) => {
+          const stationEmployeeIds = stationEmployeesMap?.get(station.id) || [];
+          const stationEmployees = stationEmployeeIds
+            .map((id) => employees.find((e) => e.id === id))
+            .filter((e): e is Employee => !!e);
+
+          return (
+            <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !isCompact && "min-w-[220px]", !isMobile && isCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
+              ...(isMobile ? getMobileColumnStyle(visibleStations.length) : {}),
+              ...(station.color ? { backgroundColor: station.color } : {}),
+            }}>
+              <div className={cn("text-foreground", isMobile ? "truncate" : "whitespace-normal break-words")}>{station.name}</div>
+              {showEmployeesOnStations && stationEmployees.length > 0 && (
+                <div className="hidden md:flex items-center justify-center gap-1 mt-1 flex-wrap overflow-hidden">
+                  {stationEmployees.slice(0, 2).map((emp) =>
+                    <span key={emp.id} className="inline-flex items-center py-1.5 text-sm font-semibold rounded-md leading-none text-secondary bg-[#0f1729]/0 px-[6px]">
+                      {emp.name.split(' ')[0]}
+                    </span>
+                  )}
+                  {stationEmployees.length > 2 &&
+                    <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none">
+                      +{stationEmployees.length - 2}
+                    </span>
+                  }
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+
   return <div data-testid="admin-calendar" className="flex flex-col h-full bg-card rounded-xl relative">
       {/* Calendar Header - sticky */}
       <div className="flex flex-col py-2 lg:py-3 bg-background sticky top-0 z-50 gap-2 mx-0 px-[16px]">
@@ -1452,56 +1495,27 @@ const AdminCalendar = ({
 
       {/* DAY VIEW */}
       {viewMode === 'day' && <>
-          {/* Station Headers - fixed below toolbar */}
-          <div ref={headerScrollRef} onScroll={handleHeaderScroll} className="flex border-b border-border/50 bg-card sticky top-0 z-40 overflow-x-auto" style={{
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none'
-      }}>
-            {/* Time column header - sticky left */}
-            <div className={cn("w-12 md:w-16 shrink-0 p-1 md:p-2 flex items-center justify-center text-muted-foreground border-r border-border/50 bg-card", "sticky left-0 z-50")}>
-              <Clock className="w-5 h-5" />
+          {/* Station Headers - outside grid on desktop (JS-synced horizontal scroll) */}
+          {!isMobile && (
+            <div ref={headerScrollRef} onScroll={handleHeaderScroll} className="flex border-b border-border/50 bg-card sticky top-0 z-40 overflow-x-auto" style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              {renderDayStationHeaders()}
             </div>
-            
-            {/* Station headers container */}
-            <div className={cn("flex", !isMobile && "flex-1")} style={getMobileStationsContainerStyle(visibleStations.length)}>
-              {visibleStations.map((station, idx) => {
-            const stationEmployeeIds = stationEmployeesMap?.get(station.id) || [];
-            const stationEmployees = stationEmployeeIds.
-            map((id) => employees.find((e) => e.id === id)).
-            filter((e): e is Employee => !!e);
-
-            return <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !isCompact && "min-w-[220px]", !isMobile && isCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
-                      ...(isMobile ? getMobileColumnStyle(visibleStations.length) : {}),
-                      ...(station.color ? { backgroundColor: station.color } : {}),
-                    }}>
-                    <div className={cn("text-foreground", isMobile ? "truncate" : "whitespace-normal break-words")}>{station.name}</div>
-                    {/* Employee chips when feature enabled and employees assigned */}
-                    {showEmployeesOnStations && stationEmployees.length > 0 && (
-                      <div className="hidden md:flex items-center justify-center gap-1 mt-1 flex-wrap overflow-hidden">
-                        {stationEmployees.slice(0, 2).map((emp) =>
-                          <span
-                            key={emp.id}
-                            className="inline-flex items-center py-1.5 text-sm font-semibold rounded-md leading-none text-secondary bg-[#0f1729]/0 px-[6px]">
-                            {emp.name.split(' ')[0]}
-                          </span>
-                        )}
-                        {stationEmployees.length > 2 &&
-                          <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold bg-foreground text-background rounded-md leading-none">
-                            +{stationEmployees.length - 2}
-                          </span>
-                        }
-                      </div>
-                    )}
-                  </div>;
-          })}
-            </div>
-          </div>
+          )}
           
-          {/* Main scrollable container - synced horizontal scroll with headers */}
-          <div ref={gridScrollRef} onScroll={handleGridScroll} onTouchStart={handleScrollTouchStart} onTouchMove={handleScrollTouchMove} onTouchEnd={handleScrollTouchEnd} className="flex-1 overflow-auto" style={{
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none'
-      }}>
+          {/* Main scrollable container */}
+          <div ref={gridScrollRef} onScroll={!isMobile ? handleGridScroll : undefined} className="flex-1 overflow-auto" style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            {/* Station Headers - inside grid on mobile (native sticky, no JS sync needed) */}
+            {isMobile && (
+              <div className="flex border-b border-border/50 bg-card sticky top-0 z-40">
+                {renderDayStationHeaders()}
+              </div>
+            )}
 
             {/* Calendar Grid - Day View */}
             <div className={cn("flex relative", currentDateClosed && "opacity-50")} style={{
