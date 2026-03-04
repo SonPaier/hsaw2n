@@ -1,32 +1,40 @@
 
 
-## Plan: Skracanie end_time przy zakończeniu rezerwacji
+## Plan: Pole `sms_sender_name` w tabeli `instances`
 
-### Logika
-Gdy ktoś klika "Zakończ" (STOP) i aktualny czas jest **wcześniejszy** niż planowany `end_time` — nadpisz `end_time` na aktualny czas. Gdy praca trwała dłużej niż plan — zachowaj oryginalny `end_time`.
+### Co robimy
+Dodajemy kolumnę `sms_sender_name` (text, nullable) do tabeli `instances`. Gdy ma wartość (np. "Arm Car" dla armcar), SMSAPI wysyła SMS z tym nadawcą (`from` param). Gdy null — zachowanie jak dotychczas (domyślny nadawca SMSAPI).
 
-### Zmiany w 3 miejscach
+### Zmiany
 
-**1. `src/pages/AdminDashboard.tsx` — `handleEndWork` (linia ~1731)**
-- Pobrać aktualny czas jako `HH:MM`
-- Porównać z `reservation.endTime` (lub `end_time`)
-- Jeśli teraz < end_time → dodać `end_time: currentTimeFormatted` do update
-- Zaktualizować lokalny state z nowym end_time
+**1. Migracja bazy danych**
+- Dodanie kolumny `sms_sender_name TEXT DEFAULT NULL` do `instances`
+- UPDATE dla instancji armcar: `SET sms_sender_name = 'Arm Car'` (po slug)
 
-**2. `src/pages/HallView.tsx` — `onEndWork` (linia ~1650)**
-- Ta sama logika: pobrać rezerwację z listy, porównać czas, warunkowo nadpisać end_time
+**2. Edge functions — dodanie `from` do URLSearchParams**
+We wszystkich 6 miejscach gdzie jest `fetch("https://api.smsapi.pl/sms.do", ...)`, trzeba:
+- Pobrać `sms_sender_name` z instancji (tam gdzie jeszcze nie mamy tego w kontekście)
+- Jeśli wartość nie jest null, dodać `from: senderName` do URLSearchParams
 
-**3. `src/pages/AdminDashboard.tsx` — `handleStatusChange` (linia ~2009)**
-- Gdy `newStatus === 'completed'`: zastosować tę samą logikę skracania end_time
-- To obsługuje dropdown zmiany statusu
+Pliki do zmiany:
+- `supabase/functions/send-sms-message/index.ts` — już ma instanceId, dociągnąć sender name
+- `supabase/functions/send-sms-code/index.ts` — już pobiera instancję, dodać pole
+- `supabase/functions/send-reminders/index.ts` — już ma dane instancji, dodać pole
+- `supabase/functions/send-offer-reminders/index.ts` — dociągnąć z instancji
+- `supabase/functions/create-reservation-direct/index.ts` — już pobiera instancję
+- `supabase/functions/verify-sms-code/index.ts` — już pobiera instancję
 
-### Szczegół implementacji
+W każdym: warunkowo dodać `from` do params:
 ```typescript
-const nowTime = format(new Date(), 'HH:mm:ss');
-const updateData = { status: 'completed', completed_at: now.toISOString() };
-if (nowTime < reservation.endTime) {
-  updateData.end_time = nowTime;
-}
+const params: Record<string, string> = {
+  to: normalizedPhone,
+  message: message,
+  format: "json",
+  encoding: "utf-8",
+};
+if (senderName) params.from = senderName;
 ```
-Lokalny state również musi odzwierciedlać zmieniony `endTime`, żeby kafelek na kalendarzu od razu się skrócił.
+
+**3. Brak zmian w UI**
+Pole nie jest edytowalne przez admina instancji — ustawiane tylko z poziomu bazy / super admina. Na razie nie dodajemy UI.
 
