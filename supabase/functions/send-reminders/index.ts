@@ -47,6 +47,7 @@ interface InstanceData {
   phone: string | null;
   reservation_phone: string | null;
   timezone: string | null;
+  sms_sender_name: string | null;
 }
 
 interface SmsMessageSetting {
@@ -282,7 +283,7 @@ serve(async (req: Request): Promise<Response> => {
       
       const { data: instanceData } = await supabase
         .from("instances")
-        .select("id, name, short_name, slug, phone, reservation_phone, timezone")
+        .select("id, name, short_name, slug, phone, reservation_phone, timezone, sms_sender_name")
         .eq("id", instanceId)
         .single();
       
@@ -293,7 +294,8 @@ serve(async (req: Request): Promise<Response> => {
         slug: instanceData?.slug || "",
         phone: instanceData?.phone || null,
         reservation_phone: instanceData?.reservation_phone || instanceData?.phone || null,
-        timezone: instanceData?.timezone || 'Europe/Warsaw'
+        timezone: instanceData?.timezone || 'Europe/Warsaw',
+        sms_sender_name: instanceData?.sms_sender_name || null,
       };
       instanceCache[instanceId] = info;
       return info;
@@ -371,7 +373,7 @@ serve(async (req: Request): Promise<Response> => {
 
         const message = `${instanceInfo.name}: Przypomnienie - jutro o ${formattedTime} masz wizyte.${editLinkPart}`;
 
-        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day');
+        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1day', instanceInfo.sms_sender_name);
         
         if (success) {
           await supabase
@@ -474,7 +476,7 @@ serve(async (req: Request): Promise<Response> => {
           phone: instanceInfo.reservation_phone,
         });
 
-        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour');
+        const { success, errorReason } = await sendSms(reservation.customer_phone, message, smsapiToken, supabase, reservation.instance_id, reservation.id, 'reminder_1hour', instanceInfo.sms_sender_name);
         
         if (success) {
           await supabase
@@ -542,7 +544,8 @@ async function sendSms(
   supabase: any,
   instanceId: string,
   reservationId: string,
-  messageType: 'reminder_1day' | 'reminder_1hour'
+  messageType: 'reminder_1day' | 'reminder_1hour',
+  senderName?: string | null,
 ): Promise<SmsResult> {
   try {
     const normalizedPhone = normalizePhoneOrFallback(phone, "PL");
@@ -580,17 +583,20 @@ async function sendSms(
       return { success: false, errorReason: 'invalid_phone_length' };
     }
 
+    const reminderSmsParams: Record<string, string> = {
+      to: normalizedPhone.replace("+", ""),
+      message: message,
+      format: "json",
+    };
+    if (senderName) reminderSmsParams.from = senderName;
+
     const response = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        to: normalizedPhone.replace("+", ""),
-        message: message,
-        format: "json",
-      }),
+      body: new URLSearchParams(reminderSmsParams),
     });
 
     const result = await response.json();

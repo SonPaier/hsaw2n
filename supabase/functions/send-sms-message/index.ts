@@ -30,21 +30,29 @@ serve(async (req) => {
     }
 
     // Check SMS limit if instanceId is provided
+    let smsSenderName: string | null = null;
+
     if (instanceId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.2");
       const supabase = createClient(supabaseUrl, supabaseKey);
 
+      // Get sender name for instance
+      const { data: instanceData } = await supabase
+        .from("instances")
+        .select("sms_sender_name")
+        .eq("id", instanceId)
+        .single();
+      smsSenderName = instanceData?.sms_sender_name || null;
+
       const { data: canSend, error: limitCheckError } = await supabase
         .rpc('check_sms_available', { _instance_id: instanceId });
 
       if (limitCheckError) {
         console.error("SMS limit check error:", limitCheckError);
-        // Don't block sending, just log the error
       }
 
-      // Log warning if limit exceeded, but don't block
       if (canSend === false) {
         console.warn(`SMS limit exceeded for instance ${instanceId} - sending anyway`);
       }
@@ -98,18 +106,21 @@ serve(async (req) => {
     }
 
     // Send SMS via SMSAPI
+    const smsParams: Record<string, string> = {
+      to: normalizedPhone,
+      message: message,
+      format: "json",
+      encoding: "utf-8",
+    };
+    if (smsSenderName) smsParams.from = smsSenderName;
+
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${SMSAPI_TOKEN}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        to: normalizedPhone,
-        message: message,
-        format: "json",
-        encoding: "utf-8",
-      }),
+      body: new URLSearchParams(smsParams),
     });
 
     const smsResult = await smsResponse.json();

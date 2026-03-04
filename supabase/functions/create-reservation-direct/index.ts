@@ -274,7 +274,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch instance info including slug (prefer short_name for SMS)
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("social_facebook, social_instagram, name, short_name, slug, google_maps_url")
+      .select("social_facebook, social_instagram, name, short_name, slug, google_maps_url, sms_sender_name")
       .eq("id", instanceId)
       .single();
 
@@ -309,18 +309,21 @@ serve(async (req: Request): Promise<Response> => {
     
     if (SMSAPI_TOKEN) {
       try {
+        const directSmsParams: Record<string, string> = {
+          to: normalizedPhone,
+          message: smsMessage,
+          format: "json",
+          encoding: "utf-8",
+        };
+        if (instanceData?.sms_sender_name) directSmsParams.from = instanceData.sms_sender_name;
+
         const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${SMSAPI_TOKEN}`,
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: new URLSearchParams({
-            to: normalizedPhone,
-            message: smsMessage,
-            format: "json",
-            encoding: "utf-8",
-          }),
+          body: new URLSearchParams(directSmsParams),
         });
         
         const smsResult = await smsResponse.json();

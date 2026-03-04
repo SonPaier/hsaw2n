@@ -57,7 +57,7 @@ serve(async (req: Request): Promise<Response> => {
     // Get instance short_name for SMS (prefer short_name, fallback to name)
     const { data: instanceData } = await supabase
       .from("instances")
-      .select("name, short_name")
+      .select("name, short_name, sms_sender_name")
       .eq("id", instanceId)
       .single();
 
@@ -111,17 +111,20 @@ serve(async (req: Request): Promise<Response> => {
     // Use dynamic instance name in SMS
     const smsMessage = `Kod potwierdzajacy ${instanceName}: ${code}`;
     
+    const smsCodeParams: Record<string, string> = {
+      to: normalizedPhone.replace("+", ""),
+      message: smsMessage,
+      format: "json",
+    };
+    if (instanceData?.sms_sender_name) smsCodeParams.from = instanceData.sms_sender_name;
+
     const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${smsapiToken}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        to: normalizedPhone.replace("+", ""),
-        message: smsMessage,
-        format: "json",
-      }),
+      body: new URLSearchParams(smsCodeParams),
     });
 
     const smsResult = await smsResponse.json();

@@ -153,7 +153,7 @@ serve(async (req: Request): Promise<Response> => {
     // Check instance auto_confirm setting and get google maps URL and name (prefer short_name)
     const { data: instanceSettings } = await supabase
       .from("instances")
-      .select("auto_confirm_reservations, google_maps_url, name, short_name, social_facebook, social_instagram, slug")
+      .select("auto_confirm_reservations, google_maps_url, name, short_name, social_facebook, social_instagram, slug, sms_sender_name")
       .eq("id", instanceId)
       .single();
 
@@ -326,18 +326,21 @@ serve(async (req: Request): Promise<Response> => {
     
     if (SMSAPI_TOKEN) {
       try {
+        const verifySmsParams: Record<string, string> = {
+          to: normalizedPhone,
+          message: smsMessage,
+          format: "json",
+          encoding: "utf-8",
+        };
+        if (instanceSettings?.sms_sender_name) verifySmsParams.from = instanceSettings.sms_sender_name;
+
         const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${SMSAPI_TOKEN}`,
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: new URLSearchParams({
-            to: normalizedPhone,
-            message: smsMessage,
-            format: "json",
-            encoding: "utf-8",
-          }),
+          body: new URLSearchParams(verifySmsParams),
         });
         
         const smsResult = await smsResponse.json();

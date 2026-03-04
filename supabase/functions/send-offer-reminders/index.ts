@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     // Fetch due reminders from customer_reminders table
     const { data: reminders, error: fetchError } = await supabase
       .from("customer_reminders")
-      .select("*, instances(short_name, reservation_phone, timezone)")
+      .select("*, instances(short_name, reservation_phone, timezone, sms_sender_name)")
       .lte("scheduled_date", today)
       .eq("status", "scheduled");
 
@@ -90,18 +90,22 @@ Deno.serve(async (req) => {
           console.log(`[DEMO] Simulating SMS to ${normalizedPhone}: ${message}`);
         } else if (smsApiToken) {
           // Send SMS if token available
+          const offerReminderParams: Record<string, string> = {
+            to: normalizedPhone.replace("+", ""),
+            message: message,
+            format: "json",
+          };
+          if (instance.sms_sender_name) {
+            offerReminderParams.from = instance.sms_sender_name;
+          }
+
           const smsResponse = await fetch("https://api.smsapi.pl/sms.do", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${smsApiToken}`,
               "Content-Type": "application/x-www-form-urlencoded",
             },
-            body: new URLSearchParams({
-              to: normalizedPhone.replace("+", ""),
-              message: message,
-              from: "N2Wash.com",
-              format: "json",
-            }),
+            body: new URLSearchParams(offerReminderParams),
           });
 
           if (!smsResponse.ok) {

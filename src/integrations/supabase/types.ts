@@ -980,6 +980,7 @@ export type Database = {
           show_unit_prices_in_offer: boolean
           slug: string
           sms_limit: number
+          sms_sender_name: string | null
           sms_used: number
           social_facebook: string | null
           social_instagram: string | null
@@ -1041,6 +1042,7 @@ export type Database = {
           show_unit_prices_in_offer?: boolean
           slug: string
           sms_limit?: number
+          sms_sender_name?: string | null
           sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
@@ -1102,6 +1104,7 @@ export type Database = {
           show_unit_prices_in_offer?: boolean
           slug?: string
           sms_limit?: number
+          sms_sender_name?: string | null
           sms_used?: number
           social_facebook?: string | null
           social_instagram?: string | null
