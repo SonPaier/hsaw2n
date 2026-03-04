@@ -1,51 +1,25 @@
 
 
-## Plan: Oczyszczenie mock danych i logika zamówień Sales CRM
+## Fixed vs Sticky na mobile — analiza
 
-### 1. Usunięcie mock danych
+**`fixed` nie zadziała** dla nagłówków stacji, bo one muszą **scrollować się horyzontalnie** razem z siatką, ale **pozostawać na miejscu wertykalnie**.
 
-**`src/data/salesMockData.ts`** — wyczyścić `mockSalesOrders` do pustej tablicy `[]`, zachować interfejsy.
+- `position: fixed` — element jest wyjęty z flow i przytwierdzony do viewportu. Nagłówki stacji nie będą się przesuwać przy horyzontalnym scrollu → złamany layout.
+- `position: sticky` — element scrolluje się z rodzicem, ale "przykleja" gdy osiągnie próg. Scrolluje horyzontalnie z kontenerem, ale stoi wertykalnie → dokładnie to czego potrzebujemy.
 
-**`src/components/sales/SalesOrdersView.tsx`** — zamiast `useState(mockSalesOrders)` → `useState<SalesOrder[]>([])`. Usunąć import `mockSalesOrders`.
+### Gdzie sticky jest OK, gdzie fixed jest OK
 
-**`src/components/sales/AddSalesOrderDrawer.tsx`** — usunąć `mockCustomers` i `mockProducts` (linie 32-58). Zastąpić pustymi tablicami `[]` na razie (docelowo będą z bazy).
+| Element | Scroll H? | Scroll V? | Pozycjonowanie |
+|---------|-----------|-----------|----------------|
+| Header (nawigacja, data) | nie | nie | `sticky top-0` **lub** `fixed` — oba OK, bo nie scrolluje się horyzontalnie |
+| Nagłówki stacji | **tak** | nie | **musi być `sticky`** — fixed złamałby horizontal scroll |
+| Kolumna czasu | nie | **tak** | `sticky left-0` — musi scrollować wertykalnie |
 
-**`src/components/sales/SalesCustomersView.tsx`** — usunąć `mockCustomers` i `caretakers`, użyć pustej tablicy.
+### Wniosek
 
-**`src/components/sales/SalesProductsView.tsx`** — usunąć `generateMockProducts`, użyć pustej tablicy.
+Problem nie leży w `sticky` vs `fixed`. Problem leży w **zagnieżdżonych kontenerach scrolla** — `sticky` działa poprawnie, ale tylko relatywnie do swojego najbliższego scrollowalnego rodzica. Gdy mamy dwa nakładające się (`content-wrapper` + `gridScrollRef`), sticky nie wie do którego się "przykleić".
 
-### 2. Nr zamówienia: format `[nr_w_miesiacu]/[MM]/[YY]`
+Rozwiązanie to nadal **jeden kontener scrollowalny + sticky**, jak w poprzednim planie. Ewentualnie sam header nawigacyjny (data, strzałki) może być `fixed` bo nie scrolluje się horyzontalnie — ale nagłówki stacji i kolumna czasu muszą pozostać `sticky`.
 
-W `SalesOrdersView` i `AddSalesOrderDrawer` — dodać helper `getNextOrderNumber()` który na razie zwraca `1/MM/YYYY` (bo nie ma danych z bazy). Docelowo będzie liczony z bazy.
-
-W `AddSalesOrderDrawer` — tytuł drawera: `Dodaj zamówienie: {nextOrderNumber}`.
-
-### 3. Sortowanie kolumn w tabeli zamówień
-
-Dodać stan `sortColumn` i `sortDirection` do `SalesOrdersView`. Kolumny sortowalne: Nr, Klient, Data utw., Status, Kwota netto. Nr listu przewozowego — niesortowalna.
-
-Ikona strzałki (ArrowUpDown / ArrowUp / ArrowDown) wyświetlana **tylko** na aktywnie sortowanej kolumnie. Pozostałe kolumny klikalne ale bez ikony. Domyślne sortowanie: po numerze zamówienia malejąco.
-
-Nagłówki kolumn jako `<button>` z `onClick` do zmiany sortowania.
-
-### 4. Rozszerzenie wyszukiwania
-
-Placeholder: `"Szukaj po firmie, mieście, osobie, produkcie..."`.
-
-Filtrowanie po: `customerName`, `orderNumber`, `city` (nowe pole w `SalesOrder`), `contactPerson` (nowe pole), oraz `products[].name`. Na razie pola `city`/`contactPerson` dodamy do interfejsu `SalesOrder` jako opcjonalne — będą wypełniane z bazy.
-
-### 5. Rabat na poziomie klienta (nie zamówienia)
-
-W `AddSalesOrderDrawer`:
-- Usunąć obecny blok rabatu (percent/amount toggle + input, linie 331-366)
-- Zamiast tego: jeśli `selectedCustomer` ma `discountPercent > 0`, wyświetlić info `Rabat: X%` z toggle `Switch` "Zastosuj rabat" (domyślnie włączony)
-- Dodać pole `discountPercent` do interfejsu klienta
-- Obliczenia: jeśli toggle włączony i klient ma rabat → rabat procentowy od subtotal
-
-### Pliki do zmiany
-- `src/data/salesMockData.ts` — wyczyścić mock, zachować typy
-- `src/components/sales/SalesOrdersView.tsx` — puste dane, sortowanie, rozszerzony search
-- `src/components/sales/AddSalesOrderDrawer.tsx` — puste dane, nr zamówienia w tytule, rabat z klienta + toggle
-- `src/components/sales/SalesCustomersView.tsx` — puste dane
-- `src/components/sales/SalesProductsView.tsx` — puste dane
+Czy zatwierdzasz plan z poprzedniej wiadomości (jeden kontener + sticky)?
 
