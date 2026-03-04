@@ -1697,9 +1697,9 @@ const AdminCalendar = ({
                      const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PX : 0;
                     return <div key={reservation.id} draggable={!hallMode && !isMobile} onDragStart={(e) => handleDragStart(e, reservation)} onDragEnd={handleDragEnd} className={cn("absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5", !hallMode && !isMobile && "cursor-grab active:cursor-grabbing", (hallMode || isMobile) && "cursor-pointer", "transition-all duration-150 hover:shadow-lg hover:z-20", "overflow-hidden select-none", getStatusColor(reservation.status, reservation.station?.type || station.type), isDragging && "opacity-30 scale-95", !isDragging && draggedReservation && "pointer-events-none", isSelected && "border-4 shadow-lg z-30")} style={{
                       ...style,
-                      left: `calc(${leftOffset}% + 2px)`,
-                      right: `calc(${rightOffset}% + 2px)`,
-                      zIndex: isSelected ? 30 : getTimeBasedZIndex(displayStart)
+                       left: `calc(${leftOffset}px + 2px)`,
+                       right: `2px`,
+                       zIndex: isSelected ? 30 : (overlapInfo.hasOverlap ? 10 + overlapInfo.index : getTimeBasedZIndex(displayStart))
                     }} onClick={(e) => {
                       e.stopPropagation();
                       onReservationClick?.(reservation);
