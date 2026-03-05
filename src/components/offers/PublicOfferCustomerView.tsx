@@ -569,7 +569,7 @@ export const PublicOfferCustomerView = ({
       },
       {} as Record<
         string,
-        { key: string; scopeName: string; scopeDescription: string | null; sortKey: number; isExtrasScope: boolean; options: OfferOption[] }
+        { key: string; scopeName: string; scopeDescription: string | null; scopePhotoUrls: string[]; sortKey: number; isExtrasScope: boolean; options: OfferOption[] }
       >
     )
   ).sort((a, b) => a.sortKey - b.sortKey);
