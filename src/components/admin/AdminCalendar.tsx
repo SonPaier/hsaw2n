@@ -2123,7 +2123,7 @@ const AdminCalendar = ({
                 if (isPastDay) {
                   pastHatchHeight = totalVisibleHeight;
                 }
-                return <div key={`${dayStr}-${station.id}`} className={cn("flex-1 relative transition-colors duration-150", !isMobile && !isCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border", isDayToday && "bg-primary/5", dragOverStation === station.id && dragOverDate === dayStr && !dragOverSlot && "bg-primary/10")} style={station.color && !(dragOverStation === station.id && dragOverDate === dayStr) ? { backgroundColor: getStationCellBg(station.color) } : undefined} onDragOver={(e) => handleDragOver(e, station.id, dayStr)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, station.id, dayStr)}>
+                return <div key={`${dayStr}-${station.id}`} className={cn("flex-1 relative transition-colors duration-150", !isMobile && !effectiveCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border", isDayToday && "bg-primary/5", dragOverStation === station.id && dragOverDate === dayStr && !dragOverSlot && "bg-primary/10")} style={station.color && !(dragOverStation === station.id && dragOverDate === dayStr) ? { backgroundColor: getStationCellBg(station.color) } : undefined} onDragOver={(e) => handleDragOver(e, station.id, dayStr)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, station.id, dayStr)}>
                         {/* Hatched area for CLOSED DAY (covers entire column) */}
                         {dayHours.isClosed && <div className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10" style={{
                     height: totalVisibleHeight
