@@ -90,6 +90,7 @@ export interface ServiceData {
   reminder_template_id?: string | null;
   is_popular?: boolean | null;
   metadata?: ServiceMetadata | null;
+  photo_urls?: string[] | null;
 }
 
 interface ExistingService {
