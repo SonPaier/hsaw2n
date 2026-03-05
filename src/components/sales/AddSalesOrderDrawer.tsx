@@ -50,9 +50,10 @@ interface AddSalesOrderDrawerProps {
   onOpenChange: (open: boolean) => void;
   orders: SalesOrder[];
   initialCustomer?: { id: string; name: string; discountPercent?: number } | null;
+  onOrderCreated?: () => void;
 }
 
-const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: AddSalesOrderDrawerProps) => {
+const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOrderCreated }: AddSalesOrderDrawerProps) => {
   const { roles } = useAuth();
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
 
@@ -219,9 +220,59 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
     onOpenChange(false);
   };
 
-  const handleSubmit = () => {
-    toast.info('Moduł dodawania zamówień w przygotowaniu');
-    handleClose();
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!instanceId) { toast.error('Brak instancji'); return; }
+    if (!selectedCustomer) { toast.error('Wybierz klienta'); return; }
+    if (products.length === 0) { toast.error('Dodaj przynajmniej jeden produkt'); return; }
+
+    setSaving(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data: order, error } = await (supabase
+        .from('sales_orders')
+        .insert({
+          instance_id: instanceId,
+          customer_id: selectedCustomer.id,
+          order_number: nextOrderNumber,
+          customer_name: selectedCustomer.name,
+          total_net: totalNet,
+          total_gross: totalGross,
+          currency: 'PLN',
+          comment: comment || null,
+          status: 'nowy',
+          created_by: user?.id || null,
+        })
+        .select('id')
+        .single() as any);
+
+      if (error) throw error;
+
+      // Insert order items
+      if (order?.id && products.length > 0) {
+        const items = products.map((p, idx) => ({
+          order_id: order.id,
+          product_id: p.productId || null,
+          name: p.name,
+          quantity: p.quantity,
+          price_net: p.priceNet,
+          sort_order: idx,
+        }));
+        await (supabase.from('sales_order_items').insert(items) as any);
+      }
+
+      toast.success('Zamówienie zostało dodane');
+      resetForm();
+      onOpenChange(false);
+      onOrderCreated?.();
+    } catch (err: any) {
+      toast.error('Błąd przy zapisie zamówienia: ' + (err.message || ''));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const resetForm = () => {
@@ -479,8 +530,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
             <Button variant="outline" className="flex-1" onClick={handleClose}>
               Anuluj
             </Button>
-            <Button className="flex-1" onClick={handleSubmit}>
-              Dodaj zamówienie
+            <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : 'Dodaj zamówienie'}
             </Button>
           </div>
         </SheetFooter>

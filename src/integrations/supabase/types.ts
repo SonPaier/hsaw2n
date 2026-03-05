@@ -2793,6 +2793,122 @@ export type Database = {
           },
         ]
       }
+      sales_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          order_id: string
+          price_net: number
+          product_id: string | null
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          order_id: string
+          price_net?: number
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          order_id?: string
+          price_net?: number
+          product_id?: string | null
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_orders: {
+        Row: {
+          city: string | null
+          comment: string | null
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          instance_id: string
+          order_number: string
+          shipped_at: string | null
+          status: string
+          total_gross: number
+          total_net: number
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          comment?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          instance_id: string
+          order_number: string
+          shipped_at?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          comment?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          instance_id?: string
+          order_number?: string
+          shipped_at?: string | null
+          status?: string
+          total_gross?: number
+          total_net?: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_orders_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_categories: {
         Row: {
           active: boolean | null

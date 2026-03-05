@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import AddSalesOrderDrawer from './AddSalesOrderDrawer';
 import { Search, Plus, ChevronDown, ChevronRight, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
@@ -20,6 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { type SalesOrder } from '@/data/salesMockData';
 
 const formatCurrency = (value: number, currency: 'PLN' | 'EUR') => {
@@ -38,7 +40,7 @@ export const getNextOrderNumber = (orders: SalesOrder[], date: Date = new Date()
   return `${countInMonth + 1}/${monthStr}/${year}`;
 };
 
-type SortColumn = 'orderNumber' | 'customerName' | 'createdAt' | 'status' | 'totalNet';
+type SortColumn = 'orderNumber' | 'customerName' | 'createdAt' | 'shippedAt' | 'status' | 'totalNet';
 type SortDirection = 'asc' | 'desc';
 
 const parseOrderNumber = (orderNumber: string): number => {
@@ -53,6 +55,9 @@ const parseOrderNumber = (orderNumber: string): number => {
 const ITEMS_PER_PAGE = 10;
 
 const SalesOrdersView = () => {
+  const { roles } = useAuth();
+  const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -60,6 +65,46 @@ const SalesOrdersView = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('orderNumber');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const fetchOrders = useCallback(async () => {
+    if (!instanceId) return;
+    const { data, error } = await (supabase
+      .from('sales_orders')
+      .select('*, sales_order_items(*)')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: false }) as any);
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return;
+    }
+
+    const mapped: SalesOrder[] = (data || []).map((o: any) => ({
+      id: o.id,
+      orderNumber: o.order_number,
+      createdAt: o.created_at,
+      shippedAt: o.shipped_at || undefined,
+      customerName: o.customer_name,
+      city: o.city || undefined,
+      contactPerson: o.contact_person || undefined,
+      totalNet: Number(o.total_net),
+      totalGross: Number(o.total_gross),
+      currency: (o.currency || 'PLN') as 'PLN' | 'EUR',
+      products: (o.sales_order_items || []).map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        priceNet: Number(item.price_net),
+        priceGross: Number(item.price_net) * 1.23,
+      })),
+      comment: o.comment || undefined,
+      status: o.status as 'nowy' | 'wysłany',
+      trackingNumber: o.tracking_number || undefined,
+    }));
+
+    setOrders(mapped);
+  }, [instanceId]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -94,6 +139,8 @@ const SalesOrdersView = () => {
           return a.customerName.localeCompare(b.customerName) * dir;
         case 'createdAt':
           return (a.createdAt.localeCompare(b.createdAt)) * dir;
+        case 'shippedAt':
+          return ((a.shippedAt || '').localeCompare(b.shippedAt || '')) * dir;
         case 'status':
           return a.status.localeCompare(b.status) * dir;
         case 'totalNet':
@@ -125,9 +172,16 @@ const SalesOrdersView = () => {
     });
   };
 
-  const changeStatus = (id: string, newStatus: SalesOrder['status']) => {
+  const changeStatus = async (id: string, newStatus: SalesOrder['status']) => {
+    const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
+    if (newStatus === 'wysłany') {
+      updates.shipped_at = new Date().toISOString();
+    } else {
+      updates.shipped_at = null;
+    }
+    await (supabase.from('sales_orders').update(updates).eq('id', id) as any);
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
+      prev.map((o) => (o.id === id ? { ...o, status: newStatus, shippedAt: newStatus === 'wysłany' ? new Date().toISOString() : undefined } : o))
     );
   };
 
@@ -177,14 +231,10 @@ const SalesOrdersView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <SortableHead column="orderNumber" className="w-[100px]">Nr</SortableHead>
+              <SortableHead column="orderNumber" className="w-[120px]">Nr zamówienia</SortableHead>
               <SortableHead column="customerName" className="w-[200px]">Klient</SortableHead>
-              <SortableHead column="createdAt" className="w-[130px]">
-                <div className="leading-tight">
-                  <div>Data utw.</div>
-                  <div>Data wys.</div>
-                </div>
-              </SortableHead>
+              <SortableHead column="createdAt" className="w-[100px]">Utworzono</SortableHead>
+              <SortableHead column="shippedAt" className="w-[100px]">Wysłano</SortableHead>
               <SortableHead column="status" className="w-[100px]">Status</SortableHead>
               <TableHead className="w-[180px]">Nr listu przewozowego</TableHead>
               <SortableHead column="totalNet" className="text-right w-[120px]">Kwota netto</SortableHead>
@@ -194,7 +244,7 @@ const SalesOrdersView = () => {
           <TableBody>
             {sortedOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Brak zamówień spełniających kryteria
                 </TableCell>
               </TableRow>
@@ -206,7 +256,7 @@ const SalesOrdersView = () => {
                   <>
                     <TableRow
                       key={order.id}
-                      className="group hover:bg-[#F1F5F9] cursor-pointer"
+                      className="group hover:bg-muted/50 cursor-pointer"
                       onClick={() => toggleExpand(order.id)}
                     >
                       <TableCell className="text-sm">
@@ -221,12 +271,10 @@ const SalesOrdersView = () => {
                       </TableCell>
                       <TableCell className="font-medium">{order.customerName}</TableCell>
                       <TableCell className="text-sm">
-                        <div className="leading-tight">
-                          <div>{format(parseISO(order.createdAt), 'dd.MM.yyyy')}</div>
-                          {order.shippedAt && (
-                            <div>{format(parseISO(order.shippedAt), 'dd.MM.yyyy')}</div>
-                          )}
-                        </div>
+                        {format(parseISO(order.createdAt), 'dd.MM.yyyy')}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {order.shippedAt ? format(parseISO(order.shippedAt), 'dd.MM.yyyy') : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -307,8 +355,8 @@ const SalesOrdersView = () => {
 
                     {isExpanded && (
                       <TableRow key={`${order.id}-expanded`} className="hover:bg-transparent">
-                        <TableCell colSpan={7} className="p-0">
-                          <div className="bg-white px-6 py-4 border-t border-border/50">
+                        <TableCell colSpan={8} className="p-0">
+                          <div className="bg-card px-6 py-4 border-t border-border/50">
                             {order.comment && (
                               <p className="text-sm text-muted-foreground mb-3">{order.comment}</p>
                             )}
@@ -379,7 +427,7 @@ const SalesOrdersView = () => {
           </div>
         </div>
       )}
-      <AddSalesOrderDrawer open={drawerOpen} onOpenChange={setDrawerOpen} orders={orders} />
+      <AddSalesOrderDrawer open={drawerOpen} onOpenChange={setDrawerOpen} orders={orders} onOrderCreated={fetchOrders} />
     </div>
   );
 };
