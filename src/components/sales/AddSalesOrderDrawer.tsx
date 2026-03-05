@@ -74,6 +74,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
   const [products, setProducts] = useState<OrderProduct[]>([]);
 
   const [applyDiscount, setApplyDiscount] = useState(true);
+  const [vehicle, setVehicle] = useState('');
 
   const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState('');
@@ -243,6 +244,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
           total_gross: totalGross,
           currency: 'PLN',
           comment: comment || null,
+          vehicle: vehicle || null,
           status: 'nowy',
           created_by: user?.id || null,
         })
@@ -280,6 +282,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
     setCustomerSearch('');
     setProducts([]);
     setApplyDiscount(true);
+    setVehicle('');
     setSendEmail(false);
     setComment('');
   };
@@ -375,6 +378,17 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Vehicle */}
+            <div className="space-y-2">
+              <Label htmlFor="order-vehicle">Pojazd</Label>
+              <Input
+                id="order-vehicle"
+                placeholder="np. BMW X5 2020"
+                value={vehicle}
+                onChange={(e) => setVehicle(e.target.value)}
+              />
             </div>
 
             {/* Products */}

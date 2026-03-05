@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, Plus, MoreHorizontal } from 'lucide-react';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableHeader,
@@ -19,15 +18,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import AddSalesProductDrawer from './AddSalesProductDrawer';
 
 export interface SalesProduct {
   id: string;
-  code: string;
   shortName: string;
   fullName: string;
   priceNet: number;
-  status: 'dostępny' | 'niedostępny';
+  priceUnit: string;
 }
 
 const formatCurrency = (value: number) =>
@@ -36,17 +36,41 @@ const formatCurrency = (value: number) =>
 const ITEMS_PER_PAGE = 10;
 
 const SalesProductsView = () => {
+  const { roles } = useAuth();
+  const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [products] = useState<SalesProduct[]>([]);
+  const [products, setProducts] = useState<SalesProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const fetchProducts = useCallback(async () => {
+    if (!instanceId) return;
+    setLoading(true);
+    const { data } = await (supabase
+      .from('sales_products')
+      .select('id, short_name, full_name, price_net, price_unit')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: false }) as any);
+
+    setProducts((data || []).map((p: any) => ({
+      id: p.id,
+      shortName: p.short_name,
+      fullName: p.full_name,
+      priceNet: Number(p.price_net),
+      priceUnit: p.price_unit,
+    })));
+    setLoading(false);
+  }, [instanceId]);
+
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
     const q = searchQuery.toLowerCase();
     return products.filter(
       (p) =>
-        p.code.toLowerCase().includes(q) ||
         p.shortName.toLowerCase().includes(q) ||
         p.fullName.toLowerCase().includes(q)
     );
@@ -63,6 +87,13 @@ const SalesProductsView = () => {
     setCurrentPage(1);
   };
 
+  const handleDelete = async (id: string) => {
+    const { error } = await (supabase.from('sales_products').delete().eq('id', id) as any);
+    if (error) { toast.error('Błąd usuwania'); return; }
+    toast.success('Produkt usunięty');
+    fetchProducts();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -73,7 +104,7 @@ const SalesProductsView = () => {
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Szukaj po kodzie lub nazwie..."
+            placeholder="Szukaj po nazwie..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
@@ -89,41 +120,26 @@ const SalesProductsView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[110px]">Kod</TableHead>
               <TableHead>Nazwa skrócona</TableHead>
               <TableHead>Nazwa pełna</TableHead>
               <TableHead className="text-right w-[120px]">Cena netto</TableHead>
-              <TableHead className="w-[110px]">Status</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  Brak produktów spełniających kryteria
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  {loading ? 'Ładowanie...' : 'Brak produktów spełniających kryteria'}
                 </TableCell>
               </TableRow>
             ) : (
               paginatedProducts.map((product) => (
-                <TableRow key={product.id} className="hover:bg-[#F1F5F9]">
-                  <TableCell className="font-mono text-sm">{product.code}</TableCell>
+                <TableRow key={product.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{product.shortName}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{product.fullName}</TableCell>
                   <TableCell className="text-right text-sm tabular-nums">
                     {formatCurrency(product.priceNet)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={product.status === 'dostępny' ? 'default' : 'outline'}
-                      className={
-                        product.status === 'dostępny'
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'border-red-400 text-red-500'
-                      }
-                    >
-                      {product.status}
-                    </Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -138,7 +154,7 @@ const SalesProductsView = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => toast.info('Usuwanie produktu w przygotowaniu')}
+                          onClick={() => handleDelete(product.id)}
                         >
                           Usuń
                         </DropdownMenuItem>
@@ -174,7 +190,14 @@ const SalesProductsView = () => {
           </div>
         </div>
       )}
-      <AddSalesProductDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      {instanceId && (
+        <AddSalesProductDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          instanceId={instanceId}
+          onSaved={fetchProducts}
+        />
+      )}
     </div>
   );
 };

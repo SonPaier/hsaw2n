@@ -2853,6 +2853,7 @@ export type Database = {
           total_net: number
           tracking_number: string | null
           updated_at: string
+          vehicle: string | null
         }
         Insert: {
           city?: string | null
@@ -2872,6 +2873,7 @@ export type Database = {
           total_net?: number
           tracking_number?: string | null
           updated_at?: string
+          vehicle?: string | null
         }
         Update: {
           city?: string | null
@@ -2891,6 +2893,7 @@ export type Database = {
           total_net?: number
           tracking_number?: string | null
           updated_at?: string
+          vehicle?: string | null
         }
         Relationships: [
           {
@@ -2902,6 +2905,50 @@ export type Database = {
           },
           {
             foreignKeyName: "sales_orders_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          full_name: string
+          id: string
+          instance_id: string
+          price_net: number
+          price_unit: string
+          short_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          full_name: string
+          id?: string
+          instance_id: string
+          price_net?: number
+          price_unit?: string
+          short_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          full_name?: string
+          id?: string
+          instance_id?: string
+          price_net?: number
+          price_unit?: string
+          short_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_products_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"

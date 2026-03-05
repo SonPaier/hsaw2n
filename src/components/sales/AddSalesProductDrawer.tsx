@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -12,44 +12,63 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddSalesProductDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  instanceId: string;
+  onSaved?: () => void;
 }
 
-const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProps) => {
-  const [code, setCode] = useState('');
+const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddSalesProductDrawerProps) => {
   const [fullName, setFullName] = useState('');
   const [shortName, setShortName] = useState('');
   const [description, setDescription] = useState('');
   const [priceNet, setPriceNet] = useState('');
   const [priceUnit, setPriceUnit] = useState<'piece' | 'meter'>('piece');
-  const [available, setAvailable] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
-    setCode('');
     setFullName('');
     setShortName('');
     setDescription('');
     setPriceNet('');
     setPriceUnit('piece');
-    setAvailable(true);
   };
 
   const handleClose = () => {
     onOpenChange(false);
   };
 
-  const handleSubmit = () => {
-    if (!code.trim() || !fullName.trim() || !shortName.trim()) {
+  const handleSubmit = async () => {
+    if (!fullName.trim() || !shortName.trim()) {
       toast.error('Uzupełnij wymagane pola');
       return;
     }
-    toast.info('Moduł dodawania produktów w przygotowaniu');
-    handleClose();
+    setSaving(true);
+    try {
+      const { error } = await (supabase
+        .from('sales_products')
+        .insert({
+          instance_id: instanceId,
+          full_name: fullName.trim(),
+          short_name: shortName.trim(),
+          description: description.trim() || null,
+          price_net: parseFloat(priceNet) || 0,
+          price_unit: priceUnit,
+        }) as any);
+      if (error) throw error;
+      toast.success('Produkt został dodany');
+      resetForm();
+      handleClose();
+      onSaved?.();
+    } catch (err: any) {
+      toast.error('Błąd: ' + (err.message || ''));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,7 +90,6 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {/* Fixed Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle>Dodaj produkt</SheetTitle>
@@ -85,18 +103,8 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
           </div>
         </SheetHeader>
 
-        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="product-code">Kod produktu</Label>
-              <Input
-                id="product-code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="product-full-name">Pełna nazwa produktu</Label>
               <Input
@@ -159,31 +167,16 @@ const AddSalesProductDrawer = ({ open, onOpenChange }: AddSalesProductDrawerProp
                 </div>
               </RadioGroup>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="product-status">Status</Label>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="product-status"
-                  checked={available}
-                  onCheckedChange={setAvailable}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {available ? 'Dostępny' : 'Niedostępny'}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Fixed Footer */}
         <SheetFooter className="px-6 py-4 border-t shrink-0">
           <div className="flex gap-3 w-full">
             <Button variant="outline" className="flex-1" onClick={handleClose}>
               Anuluj
             </Button>
-            <Button className="flex-1" onClick={handleSubmit}>
-              Dodaj produkt
+            <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : 'Dodaj produkt'}
             </Button>
           </div>
         </SheetFooter>
