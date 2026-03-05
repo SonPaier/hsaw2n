@@ -7,6 +7,7 @@ import { Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { shouldSkipCompression, getFileExtension, getContentType } from '@/lib/imageUtils';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 
 import { VoiceNoteInput } from './VoiceNoteInput';
