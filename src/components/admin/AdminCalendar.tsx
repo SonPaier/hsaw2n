@@ -1234,7 +1234,7 @@ const AdminCalendar = ({
             .filter((e): e is Employee => !!e);
 
           return (
-            <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !isCompact && "min-w-[220px]", !isMobile && isCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
+            <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !effectiveCompact && "min-w-[220px]", !isMobile && effectiveCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
               ...(isMobile ? getMobileColumnStyle(visibleStations.length) : {}),
               ...(station.color ? { backgroundColor: station.color } : {}),
             }}>
