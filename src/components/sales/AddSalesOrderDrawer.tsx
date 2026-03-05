@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Search, X, Plus, Minus } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Search, X, Plus, Minus, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -14,22 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { type SalesOrder } from '@/data/salesMockData';
 import { getNextOrderNumber } from './SalesOrdersView';
+import AddEditSalesCustomerDrawer from './AddEditSalesCustomerDrawer';
 
 interface SalesCustomerRef {
   id: string;
@@ -63,9 +53,21 @@ interface AddSalesOrderDrawerProps {
 }
 
 const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: AddSalesOrderDrawerProps) => {
+  const { roles } = useAuth();
+  const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomerRef | null>(null);
-  const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<SalesCustomerRef[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Add customer drawer state
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [addCustomerInitialQuery, setAddCustomerInitialQuery] = useState('');
 
   const [productPopoverOpen, setProductPopoverOpen] = useState(false);
   const [products, setProducts] = useState<OrderProduct[]>([]);
@@ -89,9 +91,94 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
     }
   }, [open, initialCustomer]);
 
-  // Will be replaced with DB data
-  const customers: SalesCustomerRef[] = [];
-  const availableProducts: SalesProductRef[] = [];
+  // Search customers from DB
+  const searchCustomers = useCallback(async (q: string) => {
+    if (!instanceId || q.length < 2) {
+      setSearchResults([]);
+      setDropdownOpen(false);
+      return;
+    }
+    setSearching(true);
+    const { data } = await (supabase
+      .from('customers')
+      .select('id, name, discount_percent')
+      .eq('instance_id', instanceId)
+      .eq('source', 'sales')
+      .ilike('name', `%${q}%`)
+      .order('name')
+      .limit(10) as any);
+    
+    const results: SalesCustomerRef[] = (data || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      discountPercent: c.discount_percent ?? undefined,
+    }));
+    setSearchResults(results);
+    setDropdownOpen(true);
+    setActiveIndex(-1);
+    setSearching(false);
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => searchCustomers(customerSearch), 300);
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
+  }, [customerSearch, searchCustomers]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleCustomerKeyDown = (e: React.KeyboardEvent) => {
+    if (!dropdownOpen) return;
+    const totalItems = searchResults.length + (searchResults.length === 0 && customerSearch.length >= 2 ? 1 : 0);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex(prev => Math.min(prev + 1, totalItems - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex(prev => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < searchResults.length) {
+          handleSelectCustomer(searchResults[activeIndex]);
+        }
+        break;
+      case 'Escape':
+        setDropdownOpen(false);
+        break;
+    }
+  };
+
+  const handleSelectCustomer = (c: SalesCustomerRef) => {
+    setSelectedCustomer(c);
+    setCustomerSearch('');
+    setDropdownOpen(false);
+    setSearchResults([]);
+  };
+
+  const handleAddNewCustomer = () => {
+    setAddCustomerInitialQuery(customerSearch);
+    setDropdownOpen(false);
+    setAddCustomerOpen(true);
+  };
+
+  const handleCustomerSaved = () => {
+    // Re-search to find the newly created customer
+    if (customerSearch.length >= 2) {
+      searchCustomers(customerSearch);
+    }
+  };
 
   const nextOrderNumber = useMemo(() => getNextOrderNumber(orders), [orders]);
 
@@ -147,6 +234,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={(isOpen) => {
       if (!isOpen) {
         resetForm();
@@ -192,50 +280,49 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
                   </button>
                 </div>
               ) : (
-                <Popover open={customerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Wyszukaj klienta..."
-                        value={customerSearch}
-                        onChange={(e) => {
-                          setCustomerSearch(e.target.value);
-                          if (!customerPopoverOpen && e.target.value.length >= 2) setCustomerPopoverOpen(true);
-                        }}
-                        onFocus={() => {
-                          if (customerSearch.length >= 2) setCustomerPopoverOpen(true);
-                        }}
-                        className="pl-9"
-                      />
+                <div ref={containerRef} className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Wyszukaj klienta..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      onFocus={() => { if (customerSearch.length >= 2 && searchResults.length > 0) setDropdownOpen(true); }}
+                      onKeyDown={handleCustomerKeyDown}
+                      className="pl-9 pr-9"
+                    />
+                    {searching && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  {dropdownOpen && customerSearch.length >= 2 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
+                      {searchResults.length > 0 ? (
+                        searchResults.map((c, i) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`w-full px-4 py-3 text-left transition-colors border-b border-border last:border-0 ${
+                              i === activeIndex ? 'bg-accent' : 'hover:bg-muted/30'
+                            }`}
+                            onClick={() => handleSelectCustomer(c)}
+                            onMouseEnter={() => setActiveIndex(i)}
+                          >
+                            <span className="text-sm font-medium">{c.name}</span>
+                          </button>
+                        ))
+                      ) : !searching ? (
+                        <div className="p-4 text-center space-y-3">
+                          <p className="text-sm text-muted-foreground">Nie znaleziono klientów</p>
+                          <Button type="button" className="w-full" onClick={handleAddNewCustomer}>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Dodaj klienta
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                    <Command>
-                      <CommandList>
-                        <CommandEmpty>Nie znaleziono klientów</CommandEmpty>
-                        <CommandGroup>
-                          {customers
-                            .filter((c) =>
-                              c.name.toLowerCase().includes(customerSearch.toLowerCase())
-                            )
-                            .map((c) => (
-                              <CommandItem
-                                key={c.id}
-                                onSelect={() => {
-                                  setSelectedCustomer(c);
-                                  setCustomerSearch('');
-                                  setCustomerPopoverOpen(false);
-                                }}
-                              >
-                                {c.name}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                  )}
+                </div>
               )}
             </div>
 
@@ -294,36 +381,10 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
                 </div>
               )}
 
-              <Popover open={productPopoverOpen} onOpenChange={setProductPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full gap-2">
-                    <Plus className="w-4 h-4" />
-                    Dodaj produkt
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                  <Command>
-                    <CommandInput placeholder="Szukaj produktu..." />
-                    <CommandList>
-                      <CommandEmpty>Nie znaleziono produktu</CommandEmpty>
-                      <CommandGroup>
-                        {availableProducts
-                          .filter((p) => !products.find((op) => op.productId === p.id))
-                          .map((p) => (
-                            <CommandItem key={p.id} onSelect={() => addProduct(p)}>
-                              <div className="flex justify-between w-full">
-                                <span className="truncate mr-2">{p.name}</span>
-                                <span className="text-muted-foreground shrink-0 text-xs">
-                                  {formatCurrency(p.priceNet)}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => toast.info('Produkty w przygotowaniu')}>
+                <Plus className="w-4 h-4" />
+                Dodaj produkt
+              </Button>
             </div>
 
             {/* Summary */}
@@ -425,6 +486,17 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: Ad
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    {instanceId && (
+      <AddEditSalesCustomerDrawer
+        open={addCustomerOpen}
+        onOpenChange={setAddCustomerOpen}
+        customer={null}
+        instanceId={instanceId}
+        onSaved={handleCustomerSaved}
+      />
+    )}
+    </>
   );
 };
 

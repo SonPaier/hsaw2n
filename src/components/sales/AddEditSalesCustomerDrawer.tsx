@@ -330,12 +330,15 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
   );
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
       <SheetContent
         side="right"
-        className="flex flex-col p-0 gap-0"
+        className="flex flex-col p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
         style={{ width: isMobile ? '100vw' : '440px', maxWidth: '100vw' }}
         hideCloseButton
+        hideOverlay
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* Sticky header */}
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">

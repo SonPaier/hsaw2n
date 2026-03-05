@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronDown, ChevronRight, ArrowUpDown, ShoppingCart } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronDown, ChevronRight, ArrowUp, ArrowDown, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -150,14 +150,18 @@ const SalesCustomersView = () => {
     }
   };
 
-  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <button
-      className="flex items-center gap-1 hover:text-foreground transition-colors"
-      onClick={() => toggleSort(field)}
-    >
-      {children}
-      <ArrowUpDown className={`w-3 h-3 ${sortField === field ? 'text-foreground' : 'text-muted-foreground/50'}`} />
-    </button>
+  const SortableHead = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead className={className}>
+      <button
+        className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+        onClick={() => toggleSort(field)}
+      >
+        {children}
+        {sortField === field && (
+          sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+        )}
+      </button>
+    </TableHead>
   );
 
   return (
@@ -187,8 +191,8 @@ const SalesCustomersView = () => {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[30px]" />
-              <TableHead><SortButton field="name">Nazwa</SortButton></TableHead>
-              <TableHead><SortButton field="last_order">Ostatnie zamówienie</SortButton></TableHead>
+              <SortableHead field="name">Nazwa</SortableHead>
+              <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
               <TableHead>Telefon</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Płatnik</TableHead>
