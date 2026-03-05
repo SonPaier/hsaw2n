@@ -119,7 +119,7 @@ export const ProtocolPhotosUploader = ({
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('protocol-photos')
+          .from(bucketName)
           .getPublicUrl(fileName);
 
         uploadedUrls.push(urlData.publicUrl);
