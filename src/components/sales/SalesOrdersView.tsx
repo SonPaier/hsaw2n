@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { type SalesOrder } from '@/data/salesMockData';
@@ -63,6 +64,8 @@ const SalesOrdersView = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; orderId: string; orderNumber: string }>({ open: false, orderId: '', orderNumber: '' });
   const [sortColumn, setSortColumn] = useState<SortColumn>('orderNumber');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -183,6 +186,63 @@ const SalesOrdersView = () => {
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: newStatus, shippedAt: newStatus === 'wysłany' ? new Date().toISOString() : undefined } : o))
     );
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      await (supabase.from('sales_order_items').delete().eq('order_id', orderId) as any);
+      await (supabase.from('sales_orders').delete().eq('id', orderId) as any);
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      toast.success('Zamówienie usunięte');
+    } catch (err: any) {
+      toast.error('Błąd usuwania: ' + (err.message || ''));
+    }
+  };
+
+  const handleEditOrder = async (order: SalesOrder) => {
+    // Fetch order items with vehicle info from DB
+    const { data: items } = await (supabase
+      .from('sales_order_items')
+      .select('product_id, name, price_net, quantity, vehicle, sort_order')
+      .eq('order_id', order.id)
+      .order('sort_order') as any);
+    
+    // Fetch delivery_type from the order
+    const { data: orderData } = await (supabase
+      .from('sales_orders')
+      .select('delivery_type, comment, customer_id, customer_name')
+      .eq('id', order.id)
+      .single() as any);
+
+    // Fetch customer discount
+    let customerDiscount: number | undefined;
+    if (orderData?.customer_id) {
+      const { data: cust } = await (supabase
+        .from('customers')
+        .select('discount_percent')
+        .eq('id', orderData.customer_id)
+        .single() as any);
+      customerDiscount = cust?.discount_percent ?? undefined;
+    }
+
+    setEditOrder({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerId: orderData?.customer_id || '',
+      customerName: orderData?.customer_name || order.customerName,
+      customerDiscount,
+      products: (items || []).map((item: any) => ({
+        productId: item.product_id || item.name,
+        name: item.name,
+        priceNet: Number(item.price_net),
+        quantity: item.quantity,
+        vehicle: item.vehicle || '',
+      })),
+      deliveryType: (orderData?.delivery_type || 'shipping') as 'shipping' | 'pickup' | 'uber',
+      comment: orderData?.comment || '',
+      sendEmail: false,
+    });
+    setDrawerOpen(true);
   };
 
   const SortableHead = ({ column, children, className }: { column: SortColumn; children: React.ReactNode; className?: string }) => (
@@ -339,12 +399,12 @@ const SalesOrdersView = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => toast.info('Edycja zamówienia w przygotowaniu')}>
+                            <DropdownMenuItem onClick={() => handleEditOrder(order)}>
                               Edytuj
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={() => toast.info('Usuwanie zamówienia w przygotowaniu')}
+                              onClick={() => setDeleteConfirm({ open: true, orderId: order.id, orderNumber: order.orderNumber })}
                             >
                               Usuń
                             </DropdownMenuItem>
@@ -427,7 +487,25 @@ const SalesOrdersView = () => {
           </div>
         </div>
       )}
-      <AddSalesOrderDrawer open={drawerOpen} onOpenChange={setDrawerOpen} orders={orders} onOrderCreated={fetchOrders} />
+      <AddSalesOrderDrawer
+        open={drawerOpen}
+        onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open) setEditOrder(null);
+        }}
+        orders={orders}
+        editOrder={editOrder}
+        onOrderCreated={fetchOrders}
+      />
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, open }))}
+        title="Usuń zamówienie"
+        description={`Czy na pewno chcesz usunąć zamówienie ${deleteConfirm.orderNumber}? Tej operacji nie można cofnąć.`}
+        confirmLabel="Usuń"
+        variant="destructive"
+        onConfirm={() => handleDeleteOrder(deleteConfirm.orderId)}
+      />
     </div>
   );
 };

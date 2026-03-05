@@ -45,15 +45,28 @@ const VAT_RATE = 0.23;
 const formatCurrency = (value: number) =>
   value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 
+interface EditOrderData {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  customerDiscount?: number;
+  products: OrderProduct[];
+  deliveryType: DeliveryType;
+  comment: string;
+  sendEmail: boolean;
+}
+
 interface AddSalesOrderDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orders: SalesOrder[];
   initialCustomer?: { id: string; name: string; discountPercent?: number } | null;
+  editOrder?: EditOrderData | null;
   onOrderCreated?: () => void;
 }
 
-const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOrderCreated }: AddSalesOrderDrawerProps) => {
+const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, editOrder, onOrderCreated }: AddSalesOrderDrawerProps) => {
   const { roles } = useAuth();
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
 
@@ -79,9 +92,21 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
   const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState('');
 
-  // Set initial customer when provided
+  const isEdit = !!editOrder;
+
+  // Set initial data when opening
   useEffect(() => {
-    if (open && initialCustomer) {
+    if (open && editOrder) {
+      setSelectedCustomer({
+        id: editOrder.customerId,
+        name: editOrder.customerName,
+        discountPercent: editOrder.customerDiscount,
+      });
+      setProducts(editOrder.products);
+      setDeliveryType(editOrder.deliveryType);
+      setComment(editOrder.comment);
+      setSendEmail(editOrder.sendEmail);
+    } else if (open && initialCustomer) {
       setSelectedCustomer({
         id: initialCustomer.id,
         name: initialCustomer.name,
@@ -91,7 +116,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
     if (!open) {
       setSelectedCustomer(null);
     }
-  }, [open, initialCustomer]);
+  }, [open, initialCustomer, editOrder]);
 
   // Search customers from DB
   const searchCustomers = useCallback(async (q: string) => {
@@ -246,41 +271,77 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { data: order, error } = await (supabase
-        .from('sales_orders')
-        .insert({
-          instance_id: instanceId,
-          customer_id: selectedCustomer.id,
-          order_number: nextOrderNumber,
-          customer_name: selectedCustomer.name,
-          total_net: totalNet,
-          total_gross: totalGross,
-          currency: 'PLN',
-          comment: comment || null,
-          delivery_type: deliveryType,
-          status: 'nowy',
-          created_by: user?.id || null,
-        })
-        .select('id')
-        .single() as any);
+      if (isEdit && editOrder) {
+        // Update existing order
+        const { error } = await (supabase
+          .from('sales_orders')
+          .update({
+            customer_id: selectedCustomer.id,
+            customer_name: selectedCustomer.name,
+            total_net: totalNet,
+            total_gross: totalGross,
+            comment: comment || null,
+            delivery_type: deliveryType,
+          })
+          .eq('id', editOrder.id) as any);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Insert order items
-      if (order?.id && products.length > 0) {
-        const items = products.map((p, idx) => ({
-          order_id: order.id,
-          product_id: p.productId || null,
-          name: p.name,
-          quantity: p.quantity,
-          price_net: p.priceNet,
-          vehicle: p.vehicle || null,
-          sort_order: idx,
-        }));
-        await (supabase.from('sales_order_items').insert(items) as any);
+        // Delete old items and re-insert
+        await (supabase.from('sales_order_items').delete().eq('order_id', editOrder.id) as any);
+        if (products.length > 0) {
+          const items = products.map((p, idx) => ({
+            order_id: editOrder.id,
+            product_id: p.productId || null,
+            name: p.name,
+            quantity: p.quantity,
+            price_net: p.priceNet,
+            vehicle: p.vehicle || null,
+            sort_order: idx,
+          }));
+          await (supabase.from('sales_order_items').insert(items) as any);
+        }
+
+        toast.success('Zamówienie zaktualizowane');
+      } else {
+        // Create new order
+        const { data: order, error } = await (supabase
+          .from('sales_orders')
+          .insert({
+            instance_id: instanceId,
+            customer_id: selectedCustomer.id,
+            order_number: nextOrderNumber,
+            customer_name: selectedCustomer.name,
+            total_net: totalNet,
+            total_gross: totalGross,
+            currency: 'PLN',
+            comment: comment || null,
+            delivery_type: deliveryType,
+            status: 'nowy',
+            created_by: user?.id || null,
+          })
+          .select('id')
+          .single() as any);
+
+        if (error) throw error;
+
+        // Insert order items
+        if (order?.id && products.length > 0) {
+          const items = products.map((p, idx) => ({
+            order_id: order.id,
+            product_id: p.productId || null,
+            name: p.name,
+            quantity: p.quantity,
+            price_net: p.priceNet,
+            vehicle: p.vehicle || null,
+            sort_order: idx,
+          }));
+          await (supabase.from('sales_order_items').insert(items) as any);
+        }
+
+        toast.success('Zamówienie zostało dodane');
       }
 
-      toast.success('Zamówienie zostało dodane');
       resetForm();
       onOpenChange(false);
       onOrderCreated?.();
@@ -320,7 +381,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
         {/* Fixed Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <SheetTitle>Dodaj zamówienie: {nextOrderNumber}</SheetTitle>
+            <SheetTitle>{isEdit ? `Edytuj zamówienie: ${editOrder?.orderNumber}` : `Dodaj zamówienie: ${nextOrderNumber}`}</SheetTitle>
             <button
               type="button"
               onClick={handleClose}
@@ -577,7 +638,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
               Anuluj
             </Button>
             <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : 'Dodaj zamówienie'}
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : isEdit ? 'Zapisz zmiany' : 'Dodaj zamówienie'}
             </Button>
           </div>
         </SheetFooter>
