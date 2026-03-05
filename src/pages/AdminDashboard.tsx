@@ -2688,7 +2688,11 @@ const AdminDashboard = () => {
 
           }
 
-            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} />}
+            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} onReserveFromOffer={(offerData) => {
+              setCurrentView('calendar');
+              setEditingReservation(offerData);
+              setAddReservationV2Open(true);
+            }} />}
 
             {currentView === 'products' && <ProductsView instanceId={instanceId} />}
 
