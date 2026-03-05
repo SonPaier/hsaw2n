@@ -166,9 +166,9 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
 
   const renderViewMode = () => (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-      <TabsList className="w-full">
-        <TabsTrigger value="data" className="flex-1">Dane</TabsTrigger>
-        <TabsTrigger value="orders" className="flex-1">Zamówienia</TabsTrigger>
+      <TabsList className="bg-background border border-border/50 grid grid-cols-2 w-full">
+        <TabsTrigger value="data" className="data-[state=active]:bg-primary/5 data-[state=active]:text-foreground hover:bg-primary/5 hover:text-foreground">Dane</TabsTrigger>
+        <TabsTrigger value="orders" className="data-[state=active]:bg-primary/5 data-[state=active]:text-foreground hover:bg-primary/5 hover:text-foreground">Zamówienia</TabsTrigger>
       </TabsList>
 
       <TabsContent value="data" className="flex-1 overflow-y-auto space-y-4 pr-1">
