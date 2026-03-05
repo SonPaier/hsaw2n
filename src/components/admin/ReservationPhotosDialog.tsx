@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Camera, X, Loader2, ImagePlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { compressImage } from '@/lib/imageUtils';
+import { compressImage, shouldSkipCompression, getFileExtension, getContentType } from '@/lib/imageUtils';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -64,13 +64,16 @@ const ReservationPhotosDialog = ({
       const uploadedUrls: string[] = [];
 
       for (const file of filesToUpload) {
-        const compressed = await compressImage(file, 1200, 0.8);
-        const fileName = `reservation-${reservationId}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+        const skipCompress = shouldSkipCompression(file);
+        const blob = skipCompress ? file : await compressImage(file, 1200, 0.8);
+        const ext = getFileExtension(file);
+        const contentType = getContentType(file);
+        const fileName = `reservation-${reservationId}-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
 
         const { error: uploadError } = await supabase.storage
           .from('reservation-photos')
-          .upload(fileName, compressed, {
-            contentType: 'image/jpeg',
+          .upload(fileName, blob, {
+            contentType,
             cacheControl: '3600',
           });
 

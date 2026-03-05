@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { shouldSkipCompression, getFileExtension, getContentType } from '@/lib/imageUtils';
 import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
 import {
   AlertDialog,
@@ -25,6 +26,8 @@ interface ProtocolPhotosUploaderProps {
   label?: string;
   disabled?: boolean;
   protocolId?: string | null;
+  bucketName?: string;
+  filePrefix?: string;
 }
 
 const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
@@ -75,6 +78,8 @@ export const ProtocolPhotosUploader = ({
   label = 'Zrób zdjęcie lub wybierz z galerii',
   disabled = false,
   protocolId,
+  bucketName = 'protocol-photos',
+  filePrefix = 'protokol-szkoda',
 }: ProtocolPhotosUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
@@ -98,20 +103,23 @@ export const ProtocolPhotosUploader = ({
       const uploadedUrls: string[] = [];
 
       for (const file of filesToUpload) {
-        const compressed = await compressImage(file);
-        const fileName = `protokol-szkoda-${format(new Date(), 'yyyyMMdd-HHmmss')}.jpg`;
+        const skipCompress = shouldSkipCompression(file);
+        const blob = skipCompress ? file : await compressImage(file);
+        const ext = getFileExtension(file);
+        const contentType = getContentType(file);
+        const fileName = `${filePrefix}-${format(new Date(), 'yyyyMMdd-HHmmss')}${ext}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('protocol-photos')
-          .upload(fileName, compressed, {
-            contentType: 'image/jpeg',
+          .from(bucketName)
+          .upload(fileName, blob, {
+            contentType,
             cacheControl: '3600',
           });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('protocol-photos')
+          .from(bucketName)
           .getPublicUrl(fileName);
 
         uploadedUrls.push(urlData.publicUrl);
@@ -142,7 +150,7 @@ export const ProtocolPhotosUploader = ({
       const urlParts = photoUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
       if (fileName) {
-        await supabase.storage.from('protocol-photos').remove([fileName]);
+        await supabase.storage.from(bucketName).remove([fileName]);
       }
     } catch (error) {
       console.error('Error deleting photo from storage:', error);

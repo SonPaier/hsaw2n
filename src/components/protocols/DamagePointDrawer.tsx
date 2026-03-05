@@ -7,6 +7,7 @@ import { Camera, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { shouldSkipCompression, getFileExtension, getContentType } from '@/lib/imageUtils';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 
 import { VoiceNoteInput } from './VoiceNoteInput';
@@ -128,15 +129,16 @@ export const DamagePointDrawer = ({
       const uploadedUrls: string[] = [];
       
       for (const file of Array.from(files)) {
-        // Compress image before upload
-        const compressedBlob = await compressImage(file);
-        
-        const fileName = `protokol-szkoda-${format(new Date(), 'yyyyMMdd-HHmmss')}.jpg`;
+        const skipCompress = shouldSkipCompression(file);
+        const blob = skipCompress ? file : await compressImage(file);
+        const ext = getFileExtension(file);
+        const contentType = getContentType(file);
+        const fileName = `protokol-szkoda-${format(new Date(), 'yyyyMMdd-HHmmss')}${ext}`;
 
         const { data, error } = await supabase.storage
           .from('protocol-photos')
-          .upload(fileName, compressedBlob, {
-            contentType: 'image/jpeg'
+          .upload(fileName, blob, {
+            contentType,
           });
 
         if (error) throw error;

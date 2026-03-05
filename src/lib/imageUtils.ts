@@ -1,4 +1,28 @@
 /**
+ * Check if a file should skip compression (GIF animations, SVG vectors)
+ */
+export const shouldSkipCompression = (file: File): boolean => {
+  return file.type === 'image/gif' || file.type === 'image/svg+xml';
+};
+
+/**
+ * Get the appropriate file extension for upload
+ */
+export const getFileExtension = (file: File): string => {
+  if (file.type === 'image/gif') return '.gif';
+  if (file.type === 'image/svg+xml') return '.svg';
+  return '.jpg';
+};
+
+/**
+ * Get the appropriate content type for upload
+ */
+export const getContentType = (file: File): string => {
+  if (shouldSkipCompression(file)) return file.type;
+  return 'image/jpeg';
+};
+
+/**
  * Image compression utility for uploading photos
  * @param file - The file to compress
  * @param maxWidth - Maximum width (default 1200)
