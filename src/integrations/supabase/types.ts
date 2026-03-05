@@ -288,6 +288,7 @@ export type Database = {
           has_no_show: boolean
           id: string
           instance_id: string
+          is_net_payer: boolean
           name: string
           nip: string | null
           notes: string | null
@@ -328,6 +329,7 @@ export type Database = {
           has_no_show?: boolean
           id?: string
           instance_id: string
+          is_net_payer?: boolean
           name: string
           nip?: string | null
           notes?: string | null
@@ -368,6 +370,7 @@ export type Database = {
           has_no_show?: boolean
           id?: string
           instance_id?: string
+          is_net_payer?: boolean
           name?: string
           nip?: string | null
           notes?: string | null

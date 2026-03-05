@@ -1,50 +1,76 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import AddEditSalesCustomerDrawer from './AddEditSalesCustomerDrawer';
 
 interface SalesCustomer {
   id: string;
   name: string;
-  nip: string;
-  city: string;
-  caretaker: { name: string };
+  contact_person: string | null;
   phone: string;
-  email: string;
-  billingStreet?: string;
-  billingCity?: string;
-  billingPostalCode?: string;
-  shippingStreet?: string;
-  shippingCity?: string;
-  shippingPostalCode?: string;
-  contactPerson?: string;
-  vatEu?: string;
-  notes?: string;
+  email: string | null;
+  nip: string | null;
+  company: string | null;
+  is_net_payer: boolean;
+  discount_percent: number | null;
+  sales_notes: string | null;
+  shipping_street: string | null;
+  shipping_street_line2: string | null;
+  shipping_postal_code: string | null;
+  shipping_city: string | null;
+  billing_street: string | null;
+  billing_postal_code: string | null;
+  billing_city: string | null;
 }
 
 const ITEMS_PER_PAGE = 10;
 
 const SalesCustomersView = () => {
+  const { roles } = useAuth();
+  const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [customers, setCustomers] = useState<SalesCustomer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const customers: SalesCustomer[] = [];
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomer | null>(null);
+
+  const fetchCustomers = useCallback(async () => {
+    if (!instanceId) return;
+    setLoading(true);
+    const { data, error } = await (supabase
+      .from('customers')
+      .select('id, name, contact_person, phone, email, nip, company, is_net_payer, discount_percent, sales_notes, shipping_street, shipping_street_line2, shipping_postal_code, shipping_city, billing_street, billing_postal_code, billing_city')
+      .eq('instance_id', instanceId)
+      .eq('source', 'sales')
+      .order('name') as any);
+    if (error) {
+      console.error(error);
+      toast.error('Błąd ładowania klientów');
+    } else {
+      setCustomers((data as SalesCustomer[]) || []);
+    }
+    setLoading(false);
+  }, [instanceId]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return customers;
@@ -52,9 +78,9 @@ const SalesCustomersView = () => {
     return customers.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.nip.includes(q) ||
-        c.city.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
+        (c.nip && c.nip.includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        c.phone.includes(q)
     );
   }, [search, customers]);
 
@@ -68,6 +94,21 @@ const SalesCustomersView = () => {
       else next.add(id);
       return next;
     });
+  };
+
+  const openDrawer = (customer: SalesCustomer | null) => {
+    setSelectedCustomer(customer);
+    setDrawerOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('customers').delete().eq('id', id);
+    if (error) {
+      toast.error('Błąd usuwania klienta');
+    } else {
+      toast.success('Klient usunięty');
+      fetchCustomers();
+    }
   };
 
   return (
@@ -86,7 +127,7 @@ const SalesCustomersView = () => {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <Button size="sm" className="gap-2" onClick={() => toast.info('Formularz dodawania klienta')}>
+        <Button size="sm" className="gap-2" onClick={() => openDrawer(null)}>
           <Plus className="w-4 h-4" />
           Dodaj klienta
         </Button>
@@ -98,15 +139,21 @@ const SalesCustomersView = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[30px]" />
               <TableHead>Nazwa</TableHead>
-              <TableHead>Miasto</TableHead>
-              <TableHead>Opiekun</TableHead>
               <TableHead>Telefon</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Płatnik</TableHead>
+              <TableHead>Ostatnie zamówienie</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  Ładowanie...
+                </TableCell>
+              </TableRow>
+            ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Brak wyników
@@ -117,25 +164,31 @@ const SalesCustomersView = () => {
                 const isExpanded = expandedRows.has(c.id);
                 return (
                   <React.Fragment key={c.id}>
-                    <TableRow className="hover:bg-[#F1F5F9] cursor-pointer" onClick={() => toggleExpand(c.id)}>
-                      <TableCell className="pr-0">
+                    <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => openDrawer(c)}>
+                      <TableCell className="pr-0" onClick={(e) => { e.stopPropagation(); toggleExpand(c.id); }}>
                         {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                       </TableCell>
                       <TableCell className="font-medium max-w-[220px] truncate">{c.name}</TableCell>
-                      <TableCell>{c.city}</TableCell>
-                      <TableCell>
-                        <span className="text-sm truncate">{c.caretaker.name}</span>
-                      </TableCell>
                       <TableCell>
                         <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="text-primary hover:underline text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {c.phone}
                         </a>
                       </TableCell>
                       <TableCell>
-                        <a href={`mailto:${c.email}`} className="text-primary hover:underline text-sm truncate block max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                          {c.email}
-                        </a>
+                        {c.email ? (
+                          <a href={`mailto:${c.email}`} className="text-primary hover:underline text-sm truncate block max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                            {c.email}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
+                      <TableCell>
+                        <Badge variant={c.is_net_payer ? 'default' : 'secondary'} className="text-xs">
+                          {c.is_net_payer ? 'netto' : 'brutto'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">—</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -144,39 +197,38 @@ const SalesCustomersView = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => toast.info('Utwórz zamówienie')}>Utwórz zamówienie</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => toast.info('Edytuj')}>Edytuj</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => toast.info('Usuń')}>Usuń</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDrawer(c)}>Edytuj</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>Usuń</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
-                      <TableRow className="hover:bg-transparent">
+                      <TableRow className="hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
                         <TableCell colSpan={7} className="p-0">
-                          <div className="bg-white dark:bg-card px-8 py-4 grid grid-cols-3 gap-6 text-sm border-t">
+                          <div className="bg-muted/30 px-8 py-4 grid grid-cols-3 gap-6 text-sm border-t">
                             <div>
                               <p className="text-muted-foreground text-xs font-medium mb-1">NIP</p>
-                              <p>{c.nip}</p>
-                              {c.vatEu && (
-                                <>
-                                  <p className="text-muted-foreground text-xs font-medium mb-1 mt-3">VAT EU</p>
-                                  <p>{c.vatEu}</p>
-                                </>
-                              )}
-                              {c.contactPerson && (
+                              <p>{c.nip || '—'}</p>
+                              {c.contact_person && (
                                 <>
                                   <p className="text-muted-foreground text-xs font-medium mb-1 mt-3">Osoba kontaktowa</p>
-                                  <p>{c.contactPerson}</p>
+                                  <p>{c.contact_person}</p>
+                                </>
+                              )}
+                              {(c.discount_percent ?? 0) > 0 && (
+                                <>
+                                  <p className="text-muted-foreground text-xs font-medium mb-1 mt-3">Rabat</p>
+                                  <p>{c.discount_percent}%</p>
                                 </>
                               )}
                             </div>
                             <div>
                               <p className="text-muted-foreground text-xs font-medium mb-1">Adres faktury</p>
-                              {c.billingStreet ? (
+                              {c.billing_street ? (
                                 <>
-                                  <p>{c.billingStreet}</p>
-                                  <p>{c.billingPostalCode} {c.billingCity}</p>
+                                  <p>{c.billing_street}</p>
+                                  <p>{c.billing_postal_code} {c.billing_city}</p>
                                 </>
                               ) : (
                                 <p className="text-muted-foreground">—</p>
@@ -184,10 +236,10 @@ const SalesCustomersView = () => {
                             </div>
                             <div>
                               <p className="text-muted-foreground text-xs font-medium mb-1">Adres wysyłki</p>
-                              {c.shippingStreet ? (
+                              {c.shipping_street ? (
                                 <>
-                                  <p>{c.shippingStreet}</p>
-                                  <p>{c.shippingPostalCode} {c.shippingCity}</p>
+                                  <p>{c.shipping_street}</p>
+                                  <p>{c.shipping_postal_code} {c.shipping_city}</p>
                                 </>
                               ) : (
                                 <p className="text-muted-foreground">—</p>
@@ -226,6 +278,16 @@ const SalesCustomersView = () => {
             </Button>
           </div>
         </div>
+      )}
+
+      {instanceId && (
+        <AddEditSalesCustomerDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          customer={selectedCustomer}
+          instanceId={instanceId}
+          onSaved={fetchCustomers}
+        />
       )}
     </div>
   );
