@@ -229,6 +229,7 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
   const [defaultNotes, setDefaultNotes] = useState('');
   const [defaultServiceInfo, setDefaultServiceInfo] = useState('');
   const [scopeProducts, setScopeProducts] = useState<ScopeProduct[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // id -> name
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
