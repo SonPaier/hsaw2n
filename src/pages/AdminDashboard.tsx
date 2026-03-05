@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Building2, Calendar, LogOut, Menu, CheckCircle, Settings, Users, UserCircle, PanelLeftClose, PanelLeft, FileText, CalendarClock, ChevronUp, Package, Bell, ClipboardCheck, Loader2, UsersRound, BadgeDollarSign, GraduationCap, ArrowLeftRight } from 'lucide-react';
@@ -139,6 +140,7 @@ type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'setti
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols', 'reminders', 'employees'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { view } = useParams<{view?: string;}>();
@@ -2645,8 +2647,58 @@ const AdminDashboard = () => {
             {/* Free Time Ranges Per Station - Hidden on desktop, shown via bottom sheet on mobile */}
 
             {/* View Content */}
-            {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative">
-                <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} employees={cachedEmployees} stationEmployeesMap={stationEmployeesMap} showEmployeesOnStations={instanceSettings?.assign_employees_to_stations ?? false} showEmployeesOnReservations={instanceSettings?.assign_employees_to_reservations ?? false} trainings={trainings} onTrainingClick={handleTrainingClick} trainingsEnabled={trainingsEnabled} />
+            {currentView === 'calendar' && <div className="flex-1 min-h-[600px] h-full relative flex">
+                <div className="flex-1 min-w-0">
+                  <AdminCalendar stations={stations} reservations={reservations} breaks={breaks} closedDays={closedDays} workingHours={workingHours} onReservationClick={handleReservationClick} onAddReservation={handleAddReservation} onAddBreak={handleAddBreak} onDeleteBreak={handleDeleteBreak} onToggleClosedDay={handleToggleClosedDay} onReservationMove={handleReservationMove} onConfirmReservation={handleConfirmReservation} onYardVehicleDrop={handleYardVehicleDrop} onDateChange={handleCalendarDateChange} instanceId={instanceId || undefined} yardVehicleCount={yardVehicleCount} selectedReservationId={selectedReservation?.id || editingReservation?.id} slotPreview={slotPreview} isLoadingMore={isLoadingMoreReservations} employees={cachedEmployees} stationEmployeesMap={stationEmployeesMap} showEmployeesOnStations={instanceSettings?.assign_employees_to_stations ?? false} showEmployeesOnReservations={instanceSettings?.assign_employees_to_reservations ?? false} trainings={trainings} onTrainingClick={handleTrainingClick} trainingsEnabled={trainingsEnabled} />
+                </div>
+                {/* Inline reservation drawer on desktop */}
+                {!isMobile && (addReservationOpen || addReservationV2Open) && instanceId && (
+                  <div className="w-[27rem] shrink-0 border-l border-border h-full overflow-hidden">
+                    <AddReservationDialogV2
+                      inline
+                      open={addReservationOpen || addReservationV2Open}
+                      onClose={() => {
+                        setAddReservationOpen(false);
+                        setAddReservationV2Open(false);
+                        setEditingReservation(null);
+                        setSlotPreview(null);
+                        setSelectedReservation(null);
+                      }}
+                      onSlotPreviewChange={handleSlotPreviewChange}
+                      instanceId={instanceId}
+                      onSuccess={handleReservationAdded}
+                      workingHours={workingHours}
+                      mode="reservation"
+                      stationId={newReservationData.stationId}
+                      initialDate={newReservationData.date}
+                      initialTime={newReservationData.time}
+                      initialStationId={newReservationData.stationId}
+                      editingReservation={editingReservation ? {
+                        id: editingReservation.id,
+                        customer_name: editingReservation.customer_name,
+                        customer_phone: editingReservation.customer_phone,
+                        vehicle_plate: editingReservation.vehicle_plate,
+                        car_size: (editingReservation as any).car_size || null,
+                        reservation_date: editingReservation.reservation_date,
+                        end_date: editingReservation.end_date,
+                        start_time: editingReservation.start_time,
+                        end_time: editingReservation.end_time,
+                        station_id: editingReservation.station_id,
+                        service_ids: editingReservation.service_ids,
+                        service_id: (editingReservation as any).service_id,
+                        service_items: editingReservation.service_items,
+                        admin_notes: (editingReservation as any).admin_notes,
+                        price: editingReservation.price,
+                        offer_number: editingReservation.offer_number,
+                        has_unified_services: editingReservation.has_unified_services,
+                        assigned_employee_ids: editingReservation.assigned_employee_ids
+                      } : null}
+                      currentUsername={username}
+                      trainingsEnabled={trainingsEnabled}
+                      onSwitchToTraining={handleSwitchToTraining}
+                    />
+                  </div>
+                )}
                 
                 {/* FAB removed - plus button is now in MobileBottomNav */}
               </div>}
@@ -2688,7 +2740,11 @@ const AdminDashboard = () => {
 
           }
 
-            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} />}
+            {currentView === 'offers' && <OffersView instanceId={instanceId} instanceData={instanceData} onReserveFromOffer={(offerData) => {
+              setCurrentView('calendar');
+              setEditingReservation(offerData);
+              setAddReservationV2Open(true);
+            }} />}
 
             {currentView === 'products' && <ProductsView instanceId={instanceId} />}
 
@@ -2762,8 +2818,8 @@ const AdminDashboard = () => {
       onSendConfirmationSms={handleSendConfirmationSms} />
 
 
-      {/* Add/Edit Reservation Dialog V2 */}
-      {instanceId &&
+      {/* Add/Edit Reservation Dialog V2 — Sheet mode for mobile or non-calendar views */}
+      {instanceId && (isMobile || currentView !== 'calendar') &&
     <AddReservationDialogV2
       open={addReservationOpen || addReservationV2Open}
       onClose={() => {
@@ -2771,7 +2827,6 @@ const AdminDashboard = () => {
         setAddReservationV2Open(false);
         setEditingReservation(null);
         setSlotPreview(null);
-        // Close details drawer too when edit drawer closes (after save or cancel)
         setSelectedReservation(null);
       }}
       onSlotPreviewChange={handleSlotPreviewChange}
@@ -2806,7 +2861,6 @@ const AdminDashboard = () => {
       currentUsername={username}
       trainingsEnabled={trainingsEnabled}
       onSwitchToTraining={handleSwitchToTraining} />
-
     }
 
       {/* Add Training Drawer */}

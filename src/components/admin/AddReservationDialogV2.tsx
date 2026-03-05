@@ -128,32 +128,24 @@ interface AddReservationDialogV2Props {
   instanceId: string;
   onSuccess: (reservationId?: string) => void;
   workingHours?: Record<string, WorkingHours | null> | null;
-  /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
-  /** Mode: reservation or yard */
   mode?: DialogMode;
-  /** Station ID for reservation mode */
   stationId?: string;
-  /** Yard vehicle to edit when mode='yard' */
   editingYardVehicle?: YardVehicle | null;
-  /** Initial date from slot click */
   initialDate?: string;
-  /** Initial time from slot click */
   initialTime?: string;
-  /** Initial station from slot click */
   initialStationId?: string;
-  /** Callback for live slot preview on calendar */
   onSlotPreviewChange?: (preview: {
     date: string;
     startTime: string;
     endTime: string;
     stationId: string;
   } | null) => void;
-  /** Current user's username to save with new reservations */
   currentUsername?: string | null;
-  /** Trainings feature props */
   trainingsEnabled?: boolean;
   onSwitchToTraining?: () => void;
+  /** When true, renders as inline div instead of Sheet (for desktop calendar sidebar) */
+  inline?: boolean;
 }
 
 const AddReservationDialogV2 = ({
@@ -172,7 +164,8 @@ const AddReservationDialogV2 = ({
   onSlotPreviewChange,
   currentUsername = null,
   trainingsEnabled = false,
-  onSwitchToTraining
+  onSwitchToTraining,
+  inline = false
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isReservationMode = mode === 'reservation';
@@ -1395,22 +1388,11 @@ const AddReservationDialogV2 = ({
   // Show dropdown for switching to training when conditions met
   const showTrainingDropdown = trainingsEnabled && !editingReservation && mode === 'reservation';
 
-  return (
+  // Shared form content — used in both Sheet and inline modes
+  const formContent = (
     <>
-      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
-        <SheetContent
-          side="right"
-          className={cn(
-            "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60",
-            isMobile && isDrawerHidden && "!hidden"
-          )}
-          hideOverlay
-          hideCloseButton
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}>
-
           {/* Fixed Header with Close button */}
-          <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <div className="px-6 pt-6 pb-4 border-b shrink-0">
             <div className="flex items-center justify-between">
               {showTrainingDropdown ? (
                 <DropdownMenu>
@@ -1432,19 +1414,18 @@ const AddReservationDialogV2 = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <SheetTitle>
+                <h2 className="text-lg font-semibold text-foreground">
                   {getDialogTitle()}
-                </SheetTitle>
+                </h2>
               )}
               <button
                 type="button"
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-muted transition-colors">
-
                 <X className="w-6 h-6" />
               </button>
             </div>
-          </SheetHeader>
+          </div>
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -1786,33 +1767,71 @@ const AddReservationDialogV2 = ({
           </div>
 
           {/* Fixed Footer */}
-          <SheetFooter className="px-6 py-4 border-t shrink-0">
+          {/* Fixed Footer */}
+          <div className="px-6 py-4 border-t shrink-0">
             <Button
               type="button"
               onClick={handleSubmit}
               disabled={loading}
               className="w-full">
-
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isYardMode ?
               isEditMode ? t('addReservation.saveYardChanges') : t('addReservation.addYardVehicle') :
               isEditMode ? t('addReservation.saveChanges') : t('addReservation.addReservation')
               }
             </Button>
-          </SheetFooter>
+          </div>
+    </>
+  );
+
+  // Inline mode: render as a plain div (no Sheet portal)
+  if (inline) {
+    if (!open) return null;
+    return (
+      <>
+        <div className="flex flex-col h-full bg-background [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60">
+          {formContent}
+        </div>
+        <EmployeeSelectionDrawer
+          open={employeeDrawerOpen}
+          onOpenChange={setEmployeeDrawerOpen}
+          instanceId={instanceId}
+          selectedEmployeeIds={assignedEmployeeIds}
+          onSelect={(employeeIds) => {
+            employeesDirtyRef.current = true;
+            markUserEditing();
+            setAssignedEmployeeIds(employeeIds);
+          }} />
+      </>
+    );
+  }
+
+  // Sheet mode (default)
+  return (
+    <>
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()} modal={false}>
+        <SheetContent
+          side="right"
+          className={cn(
+            "w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60",
+            isMobile && isDrawerHidden && "!hidden"
+          )}
+          hideOverlay
+          hideCloseButton
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}>
+          {formContent}
         </SheetContent>
       </Sheet>
 
-      {/* Mobile FAB to toggle drawer visibility - always on the right */}
+      {/* Mobile FAB to toggle drawer visibility */}
       {isMobile && open &&
       <button
         type="button"
         onClick={() => setIsDrawerHidden(!isDrawerHidden)}
         className="fixed z-[60] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center bottom-20 right-4">
-
           {isDrawerHidden ?
         <ClipboardPaste className="w-6 h-6" /> :
-
         <CalendarIcon className="w-6 h-6" />
         }
         </button>
@@ -1829,7 +1848,6 @@ const AddReservationDialogV2 = ({
           markUserEditing();
           setAssignedEmployeeIds(employeeIds);
         }} />
-
     </>);
 
 };

@@ -149,9 +149,10 @@ interface InstanceData {
 interface OffersViewProps {
   instanceId: string | null;
   instanceData?: InstanceData | null;
+  onReserveFromOffer?: (offerData: any) => void;
 }
 
-export default function OffersView({ instanceId, instanceData }: OffersViewProps) {
+export default function OffersView({ instanceId, instanceData, onReserveFromOffer }: OffersViewProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -208,7 +209,7 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   // View history dialog state
   const [viewsDialog, setViewsDialog] = useState<{ open: boolean; offerId: string; viewedAt: string | null }>({ open: false, offerId: '', viewedAt: null });
 
-  // Reservation from offer state
+  // Reservation from offer state (only used when no external handler)
   const [reservationFromOffer, setReservationFromOffer] = useState<{
     open: boolean;
     offer: OfferWithOptions | null;
@@ -462,7 +463,19 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
   };
 
   const handleReserveFromOffer = (offer: OfferWithOptions) => {
-    setReservationFromOffer({ open: true, offer });
+    if (onReserveFromOffer) {
+      // Lift to parent (AdminDashboard) — navigates to calendar first
+      onReserveFromOffer({
+        id: '',
+        ...getReservationDataFromOffer(offer),
+        reservation_date: '',
+        start_time: '',
+        end_time: '',
+        station_id: null,
+      });
+    } else {
+      setReservationFromOffer({ open: true, offer });
+    }
   };
 
   const getReservationDataFromOffer = (offer: OfferWithOptions) => {
@@ -1292,8 +1305,8 @@ export default function OffersView({ instanceId, instanceData }: OffersViewProps
         </SheetContent>
       </Sheet>
 
-      {/* Reservation from Offer */}
-      {reservationFromOffer.offer && instanceId && (
+      {/* Reservation from Offer — only when no external handler */}
+      {!onReserveFromOffer && reservationFromOffer.offer && instanceId && (
         <AddReservationDialogV2
           open={reservationFromOffer.open}
           onClose={() => setReservationFromOffer({ open: false, offer: null })}

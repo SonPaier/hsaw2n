@@ -1,58 +1,41 @@
 
 
-## Plan: Calendar-first reservation from offers + inline drawer on desktop
+## Plan: Rozbudowa widoku Klienci w Sales CRM
 
-### Problem
-1. "Rezerwuj" from offers list opens the reservation drawer over the offers view — user can't see the calendar to find free slots.
-2. On desktop, the reservation drawer (Sheet) overlays the calendar with no overlay but still floats on top, hiding calendar columns underneath.
+### Zakres zmian
 
-### Solution
+**1. Migracja bazy danych** — dodanie kolumny `is_net_payer` (boolean, default false) do tabeli `customers`.
 
-#### 1. Navigate to calendar before opening reservation drawer from offers
+**2. SalesCustomersView.tsx** — zmiany w tabeli:
+- Usunąć kolumnę "Opiekun"
+- Dodać kolumnę "Ostatnie zamówienie" (na razie placeholder "—", bo zamówienia nie są jeszcze w DB)
+- Dodać kolumnę "Płatnik" — wyświetla "netto" lub "brutto" na podstawie `is_net_payer` z danych klienta
+- Podłączyć dane klientów z Supabase (zamiast pustej tablicy `[]`)
+- Otwieranie drawera po kliknięciu wiersza + "Dodaj klienta"
 
-**OffersView.tsx**: Instead of opening `AddReservationDialogV2` internally, emit the offer data upward so `AdminDashboard` can navigate to calendar first, then open the drawer.
+**3. Nowy komponent: `NipLookupForm.tsx`** — skopiowany z N2Service, lookup NIP z GUS API (`wl-api.mf.gov.pl`), pola: NIP + przycisk "Pobierz z GUS", nazwa firmy, ulica, kod pocztowy, miasto. Tryb readOnly do widoku.
 
-- Add `onReserveFromOffer?: (offerData: EditingReservation) => void` prop to `OffersViewProps`
-- In `handleReserveFromOffer`, call `onReserveFromOffer(getReservationDataFromOffer(offer))` instead of setting local state
-- Remove the local `AddReservationDialogV2` render and `reservationFromOffer` state
+**4. Nowy komponent: `AddEditSalesCustomerDrawer.tsx`** — Sheet z formularzem:
+- **Sekcja główna:** Nazwa, Osoba kontaktowa, Telefon, Email
+- **Toggle Rabat** + pole liczbowe % (zapisuje do `discount_percent`)
+- **Toggle Płatnik netto** (zapisuje do `is_net_payer`)
+- Notatki (textarea)
+- **Separator + Adres wysyłki:** Adresat, Ulica, Kod pocztowy, Miasto (zapisuje do `shipping_*` kolumn)
+- **Separator + Dane firmy** (Collapsible): NipLookupForm — NIP z GUS lookup, nazwa firmy, adres fakturowy (zapisuje do `nip`, `company`, `billing_*`)
+- **Tryb widoku** z tabami "Dane" / "Zamówienia" (wzór z N2Service CustomerEditDrawer)
+- Sticky header + footer z przyciskami Zapisz/Anuluj/Edytuj
 
-**AdminDashboard.tsx**: 
-- Pass `onReserveFromOffer` callback to `<OffersView>`
-- In the callback: `setCurrentView('calendar')`, set `editingReservation` with the offer data, open the reservation drawer
-- The existing `AddReservationDialogV2` in AdminDashboard handles it from there
+**5. Zapis do Supabase:** INSERT/UPDATE na tabeli `customers` z `source: 'sales'`, używając istniejących kolumn (`contact_person`, `discount_percent`, `is_net_payer`, `shipping_*`, `billing_*`, `nip`, `company`, `sales_notes`).
 
-#### 2. Inline (push) drawer on desktop instead of overlay
+### Pliki do utworzenia
+- `src/components/sales/NipLookupForm.tsx` — kopia z N2Service
+- `src/components/sales/AddEditSalesCustomerDrawer.tsx` — nowy drawer
 
-Currently `AddReservationDialogV2` uses `<Sheet>` (radix dialog) which renders in a portal, floating over content. To make it push/squeeze the calendar:
+### Pliki do edycji
+- `src/components/sales/SalesCustomersView.tsx` — przebudowa tabeli + integracja z DB i drawerem
 
-**AdminDashboard.tsx layout change**:
-- Wrap the calendar content area and the reservation form in a flex row on desktop
-- When drawer is open on desktop (`!isMobile && addReservationOpen`), render the form as a side panel (not a Sheet/portal) that takes ~27rem, and the calendar takes the remaining space
-- On mobile, keep the current Sheet behavior (full-screen slide-in)
-
-**AddReservationDialogV2.tsx**:
-- Add an `inline?: boolean` prop
-- When `inline=true`, render the form content directly (no `<Sheet>` wrapper) inside a `<div>` with the same styling
-- When `inline=false` (mobile), keep the existing `<Sheet>` behavior
-- Extract the form content into a shared inner component to avoid duplication
-
-**AdminDashboard.tsx rendering**:
-- On desktop + calendar view + drawer open: render `AddReservationDialogV2` with `inline={true}` as a sibling to the calendar `<div>`, both inside a `flex` row
-- Otherwise: render with `inline={false}` (Sheet mode, for mobile or non-calendar views)
-
-```text
-Desktop layout when drawer open:
-┌──────────┬─────────────────────────┬──────────────┐
-│ Sidebar  │   Calendar (flex-1)     │  Reservation │
-│          │   columns compress      │  Form ~27rem │
-│          │   to fit               │  (inline)    │
-└──────────┴─────────────────────────┴──────────────┘
-
-Mobile: unchanged (Sheet full-screen)
+### Migracja
+```sql
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_net_payer boolean NOT NULL DEFAULT false;
 ```
-
-### Files to modify
-1. **`src/components/admin/OffersView.tsx`** — lift reservation-from-offer up via callback prop, remove local dialog
-2. **`src/pages/AdminDashboard.tsx`** — handle `onReserveFromOffer` (navigate to calendar + open drawer), change calendar area layout to flex row with inline drawer
-3. **`src/components/admin/AddReservationDialogV2.tsx`** — add `inline` prop, conditionally render as `<Sheet>` or plain `<div>`
 
