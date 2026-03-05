@@ -503,14 +503,6 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, onOr
                     </div>
                   </div>
 
-                  {/* Shipping address */}
-                  <div className="bg-card border border-border rounded-md p-3 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-muted-foreground">Adres wysyłki</span>
-                      <button className="text-xs text-primary hover:underline">Edytuj adres wysyłki</button>
-                    </div>
-                    <p className="text-muted-foreground">—</p>
-                  </div>
                 </div>
               </>
             )}

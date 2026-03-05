@@ -235,9 +235,9 @@ const SalesOrdersView = () => {
               <SortableHead column="customerName" className="w-[200px]">Klient</SortableHead>
               <SortableHead column="createdAt" className="w-[100px]">Utworzono</SortableHead>
               <SortableHead column="shippedAt" className="w-[100px]">Wysłano</SortableHead>
-              <SortableHead column="status" className="w-[100px]">Status</SortableHead>
               <TableHead className="w-[180px]">Nr listu przewozowego</TableHead>
               <SortableHead column="totalNet" className="text-right w-[120px]">Kwota netto</SortableHead>
+              <SortableHead column="status" className="w-[100px]">Status</SortableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -277,6 +277,26 @@ const SalesOrdersView = () => {
                         {order.shippedAt ? format(parseISO(order.shippedAt), 'dd.MM.yyyy') : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
+                        {order.trackingNumber ? (
+                          <a
+                            href="#"
+                            className="text-sm text-primary hover:underline truncate block max-w-[160px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              toast.info('Śledzenie przesyłki w przygotowaniu');
+                            }}
+                          >
+                            {order.trackingNumber}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {formatCurrency(order.totalNet, order.currency)}
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
@@ -305,26 +325,6 @@ const SalesOrdersView = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                      <TableCell>
-                        {order.trackingNumber ? (
-                          <a
-                            href="#"
-                            className="text-sm text-primary hover:underline truncate block max-w-[160px]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              toast.info('Śledzenie przesyłki w przygotowaniu');
-                            }}
-                          >
-                            {order.trackingNumber}
-                          </a>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right text-sm tabular-nums">
-                        {formatCurrency(order.totalNet, order.currency)}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
