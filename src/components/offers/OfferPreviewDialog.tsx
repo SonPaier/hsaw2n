@@ -63,6 +63,7 @@ interface ScopeData {
   name: string;
   description: string | null;
   is_extras_scope: boolean;
+  photo_urls?: string[] | null;
 }
 
 export const OfferPreviewDialog = ({
