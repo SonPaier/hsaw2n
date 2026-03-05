@@ -614,6 +614,18 @@ export function OfferServiceEditView({ instanceId, scopeId, onBack }: OfferServi
             />
           </div>
 
+          {/* Zdjęcia szablonu */}
+          <div className="space-y-2">
+            <Label>Zdjęcia szablonu</Label>
+            <ProtocolPhotosUploader
+              photos={photoUrls}
+              onPhotosChange={setPhotoUrls}
+              maxPhotos={10}
+              bucketName="service-photos"
+              filePrefix="scope"
+            />
+          </div>
+
           {/* Wybierz usługi dla szablonu */}
           <div className="space-y-3">
             <Button
