@@ -1789,7 +1789,7 @@ const AddReservationDialogV2 = ({
     if (!open) return null;
     return (
       <>
-        <div className="flex flex-col h-full bg-background [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60">
+        <div className="flex flex-col h-full bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60">
           {formContent}
         </div>
         <EmployeeSelectionDrawer
