@@ -140,6 +140,7 @@ type ViewType = 'calendar' | 'reservations' | 'customers' | 'pricelist' | 'setti
 const validViews: ViewType[] = ['calendar', 'reservations', 'customers', 'pricelist', 'settings', 'offers', 'products', 'followup', 'notifications', 'halls', 'protocols', 'reminders', 'employees'];
 const AdminDashboard = () => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { view } = useParams<{view?: string;}>();

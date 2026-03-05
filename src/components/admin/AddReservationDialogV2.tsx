@@ -128,32 +128,24 @@ interface AddReservationDialogV2Props {
   instanceId: string;
   onSuccess: (reservationId?: string) => void;
   workingHours?: Record<string, WorkingHours | null> | null;
-  /** Optional reservation to edit - when provided, dialog works in edit mode */
   editingReservation?: EditingReservation | null;
-  /** Mode: reservation or yard */
   mode?: DialogMode;
-  /** Station ID for reservation mode */
   stationId?: string;
-  /** Yard vehicle to edit when mode='yard' */
   editingYardVehicle?: YardVehicle | null;
-  /** Initial date from slot click */
   initialDate?: string;
-  /** Initial time from slot click */
   initialTime?: string;
-  /** Initial station from slot click */
   initialStationId?: string;
-  /** Callback for live slot preview on calendar */
   onSlotPreviewChange?: (preview: {
     date: string;
     startTime: string;
     endTime: string;
     stationId: string;
   } | null) => void;
-  /** Current user's username to save with new reservations */
   currentUsername?: string | null;
-  /** Trainings feature props */
   trainingsEnabled?: boolean;
   onSwitchToTraining?: () => void;
+  /** When true, renders as inline div instead of Sheet (for desktop calendar sidebar) */
+  inline?: boolean;
 }
 
 const AddReservationDialogV2 = ({
@@ -172,7 +164,8 @@ const AddReservationDialogV2 = ({
   onSlotPreviewChange,
   currentUsername = null,
   trainingsEnabled = false,
-  onSwitchToTraining
+  onSwitchToTraining,
+  inline = false
 }: AddReservationDialogV2Props) => {
   const isYardMode = mode === 'yard';
   const isReservationMode = mode === 'reservation';
