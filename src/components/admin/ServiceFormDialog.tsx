@@ -374,6 +374,7 @@ const ServiceFormContent = ({
         is_popular: formData.is_popular,
         active: true,
         metadata: updatedMetadata,
+        photo_urls: (formData.photo_urls as string[]).length > 0 ? formData.photo_urls : null,
       };
 
       if (service?.id) {
