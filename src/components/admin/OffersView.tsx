@@ -152,7 +152,7 @@ interface OffersViewProps {
   onReserveFromOffer?: (offerData: any) => void;
 }
 
-export default function OffersView({ instanceId, instanceData }: OffersViewProps) {
+export default function OffersView({ instanceId, instanceData, onReserveFromOffer }: OffersViewProps) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const location = useLocation();
