@@ -142,6 +142,8 @@ interface AdminCalendarProps {
   trainings?: Training[];
   onTrainingClick?: (training: Training) => void;
   trainingsEnabled?: boolean;
+  /** Force compact column mode (no min-width) — used when inline drawer is open */
+  forceCompact?: boolean;
 }
 
 // Default hours from 9:00 to 19:00
@@ -249,7 +251,8 @@ const AdminCalendar = ({
   showEmployeesOnReservations = false,
   trainings = [],
   onTrainingClick,
-  trainingsEnabled = false
+  trainingsEnabled = false,
+  forceCompact = false
 }: AdminCalendarProps) => {
   const {
     t
@@ -291,6 +294,7 @@ const AdminCalendar = ({
     return localStorage.getItem('calendar-compact-mode') === 'true';
   });
   const isMobile = useIsMobile();
+  const effectiveCompact = isCompact || forceCompact;
 
   // Helper: mix station color 5% with 95% white for cell background
   const getStationCellBg = (color: string): string => {
@@ -1230,7 +1234,7 @@ const AdminCalendar = ({
             .filter((e): e is Employee => !!e);
 
           return (
-            <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !isCompact && "min-w-[220px]", !isMobile && isCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
+            <div key={station.id} className={cn("p-1 md:p-2 text-center font-semibold text-sm md:text-base shrink-0", !isMobile && "flex-1", !isMobile && !effectiveCompact && "min-w-[220px]", !isMobile && effectiveCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border/50")} style={{
               ...(isMobile ? getMobileColumnStyle(visibleStations.length) : {}),
               ...(station.color ? { backgroundColor: station.color } : {}),
             }}>
@@ -1624,7 +1628,7 @@ const AdminCalendar = ({
               if (isPastDay) {
                 pastHatchHeight = totalVisibleHeight;
               }
-              return <div key={station.id} className={cn("relative transition-colors duration-150 shrink-0", !isMobile && "flex-1", !isMobile && !isCompact && "min-w-[220px]", !isMobile && isCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border", dragOverStation === station.id && !dragOverSlot && "bg-primary/10")} style={{
+              return <div key={station.id} className={cn("relative transition-colors duration-150 shrink-0", !isMobile && "flex-1", !isMobile && !effectiveCompact && "min-w-[220px]", !isMobile && effectiveCompact && "min-w-0", idx < visibleStations.length - 1 && "border-r border-border", dragOverStation === station.id && !dragOverSlot && "bg-primary/10")} style={{
                       ...(isMobile ? getMobileColumnStyle(visibleStations.length) : {}),
                       ...(station.color && !dragOverStation ? { backgroundColor: getStationCellBg(station.color) } : {}),
                     }} onDragOver={(e) => handleDragOver(e, station.id, currentDateStr)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, station.id, currentDateStr)}>
@@ -2053,7 +2057,7 @@ const AdminCalendar = ({
                   </div>
                   {/* Station headers for this day */}
                   <div className="flex">
-                    {visibleStations.map((station, stationIdx) => <div key={`${dayStr}-${station.id}`} className={cn("flex-1 p-1 md:p-2 text-center font-medium text-[10px] md:text-xs", !isMobile && !isCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border")} style={station.color ? { backgroundColor: station.color } : undefined}>
+                    {visibleStations.map((station, stationIdx) => <div key={`${dayStr}-${station.id}`} className={cn("flex-1 p-1 md:p-2 text-center font-medium text-[10px] md:text-xs", !isMobile && !effectiveCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border")} style={station.color ? { backgroundColor: station.color } : undefined}>
                         <div className={cn("text-foreground", isMobile ? "truncate" : "whitespace-normal break-words")}>{station.name}</div>
                       </div>)}
                   </div>
@@ -2119,7 +2123,7 @@ const AdminCalendar = ({
                 if (isPastDay) {
                   pastHatchHeight = totalVisibleHeight;
                 }
-                return <div key={`${dayStr}-${station.id}`} className={cn("flex-1 relative transition-colors duration-150", !isMobile && !isCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border", isDayToday && "bg-primary/5", dragOverStation === station.id && dragOverDate === dayStr && !dragOverSlot && "bg-primary/10")} style={station.color && !(dragOverStation === station.id && dragOverDate === dayStr) ? { backgroundColor: getStationCellBg(station.color) } : undefined} onDragOver={(e) => handleDragOver(e, station.id, dayStr)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, station.id, dayStr)}>
+                return <div key={`${dayStr}-${station.id}`} className={cn("flex-1 relative transition-colors duration-150", !isMobile && !effectiveCompact && "min-w-[220px]", stationIdx < visibleStations.length - 1 && "border-r border-border", isDayToday && "bg-primary/5", dragOverStation === station.id && dragOverDate === dayStr && !dragOverSlot && "bg-primary/10")} style={station.color && !(dragOverStation === station.id && dragOverDate === dayStr) ? { backgroundColor: getStationCellBg(station.color) } : undefined} onDragOver={(e) => handleDragOver(e, station.id, dayStr)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, station.id, dayStr)}>
                         {/* Hatched area for CLOSED DAY (covers entire column) */}
                         {dayHours.isClosed && <div className="absolute left-0 right-0 top-0 hatched-pattern pointer-events-none z-10" style={{
                     height: totalVisibleHeight
