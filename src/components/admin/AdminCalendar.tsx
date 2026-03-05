@@ -251,7 +251,8 @@ const AdminCalendar = ({
   showEmployeesOnReservations = false,
   trainings = [],
   onTrainingClick,
-  trainingsEnabled = false
+  trainingsEnabled = false,
+  forceCompact = false
 }: AdminCalendarProps) => {
   const {
     t
