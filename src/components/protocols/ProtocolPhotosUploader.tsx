@@ -26,6 +26,8 @@ interface ProtocolPhotosUploaderProps {
   label?: string;
   disabled?: boolean;
   protocolId?: string | null;
+  bucketName?: string;
+  filePrefix?: string;
 }
 
 const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
