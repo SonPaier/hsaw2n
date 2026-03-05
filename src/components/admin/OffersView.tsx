@@ -1305,8 +1305,8 @@ export default function OffersView({ instanceId, instanceData, onReserveFromOffe
         </SheetContent>
       </Sheet>
 
-      {/* Reservation from Offer */}
-      {reservationFromOffer.offer && instanceId && (
+      {/* Reservation from Offer — only when no external handler */}
+      {!onReserveFromOffer && reservationFromOffer.offer && instanceId && (
         <AddReservationDialogV2
           open={reservationFromOffer.open}
           onClose={() => setReservationFromOffer({ open: false, offer: null })}
