@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, ChevronDown, ChevronRight, ArrowUpDown, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,11 +8,11 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import AddEditSalesCustomerDrawer from './AddEditSalesCustomerDrawer';
+import AddSalesOrderDrawer from './AddSalesOrderDrawer';
 
 interface SalesCustomer {
   id: string;
@@ -34,6 +34,9 @@ interface SalesCustomer {
   billing_city: string | null;
 }
 
+type SortField = 'name' | 'last_order';
+type SortDir = 'asc' | 'desc';
+
 const ITEMS_PER_PAGE = 10;
 
 const SalesCustomersView = () => {
@@ -45,10 +48,16 @@ const SalesCustomersView = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [customers, setCustomers] = useState<SalesCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // Drawer state
+  // Customer drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomer | null>(null);
+
+  // Order drawer state
+  const [orderDrawerOpen, setOrderDrawerOpen] = useState(false);
+  const [orderCustomer, setOrderCustomer] = useState<{ id: string; name: string; discountPercent?: number } | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     if (!instanceId) return;
@@ -72,17 +81,38 @@ const SalesCustomersView = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return customers;
-    const q = search.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.nip && c.nip.includes(q)) ||
-        (c.email && c.email.toLowerCase().includes(q)) ||
-        c.phone.includes(q)
-    );
-  }, [search, customers]);
+    let list = customers;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.nip && c.nip.includes(q)) ||
+          (c.email && c.email.toLowerCase().includes(q)) ||
+          c.phone.includes(q)
+      );
+    }
+    // Sort
+    const sorted = [...list].sort((a, b) => {
+      if (sortField === 'name') {
+        const cmp = a.name.localeCompare(b.name, 'pl');
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
+      // last_order — placeholder, no data yet so keep original order
+      return 0;
+    });
+    return sorted;
+  }, [search, customers, sortField, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -101,6 +131,15 @@ const SalesCustomersView = () => {
     setDrawerOpen(true);
   };
 
+  const openNewOrder = (customer: SalesCustomer) => {
+    setOrderCustomer({
+      id: customer.id,
+      name: customer.name,
+      discountPercent: customer.discount_percent ?? undefined,
+    });
+    setOrderDrawerOpen(true);
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('customers').delete().eq('id', id);
     if (error) {
@@ -110,6 +149,16 @@ const SalesCustomersView = () => {
       fetchCustomers();
     }
   };
+
+  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <button
+      className="flex items-center gap-1 hover:text-foreground transition-colors"
+      onClick={() => toggleSort(field)}
+    >
+      {children}
+      <ArrowUpDown className={`w-3 h-3 ${sortField === field ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+    </button>
+  );
 
   return (
     <div className="space-y-4">
@@ -138,11 +187,11 @@ const SalesCustomersView = () => {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[30px]" />
-              <TableHead>Nazwa</TableHead>
+              <TableHead><SortButton field="name">Nazwa</SortButton></TableHead>
+              <TableHead><SortButton field="last_order">Ostatnie zamówienie</SortButton></TableHead>
               <TableHead>Telefon</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Płatnik</TableHead>
-              <TableHead>Ostatnie zamówienie</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
           </TableHeader>
@@ -169,6 +218,7 @@ const SalesCustomersView = () => {
                         {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                       </TableCell>
                       <TableCell className="font-medium max-w-[220px] truncate">{c.name}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">—</TableCell>
                       <TableCell>
                         <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="text-primary hover:underline text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {c.phone}
@@ -183,12 +233,9 @@ const SalesCustomersView = () => {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={c.is_net_payer ? 'default' : 'secondary'} className="text-xs">
-                          {c.is_net_payer ? 'netto' : 'brutto'}
-                        </Badge>
+                      <TableCell className="text-sm">
+                        {c.is_net_payer ? 'netto' : 'brutto'}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">—</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -197,6 +244,10 @@ const SalesCustomersView = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openNewOrder(c)}>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Nowe zamówienie
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openDrawer(c)}>Edytuj</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>Usuń</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -289,6 +340,13 @@ const SalesCustomersView = () => {
           onSaved={fetchCustomers}
         />
       )}
+
+      <AddSalesOrderDrawer
+        open={orderDrawerOpen}
+        onOpenChange={setOrderDrawerOpen}
+        orders={[]}
+        initialCustomer={orderCustomer}
+      />
     </div>
   );
 };

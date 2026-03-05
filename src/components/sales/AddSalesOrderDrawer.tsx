@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, X, Plus, Minus } from 'lucide-react';
 import {
   Sheet,
@@ -59,9 +59,10 @@ interface AddSalesOrderDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orders: SalesOrder[];
+  initialCustomer?: { id: string; name: string; discountPercent?: number } | null;
 }
 
-const AddSalesOrderDrawer = ({ open, onOpenChange, orders }: AddSalesOrderDrawerProps) => {
+const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer }: AddSalesOrderDrawerProps) => {
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomerRef | null>(null);
   const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
@@ -73,6 +74,20 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders }: AddSalesOrderDrawer
 
   const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState('');
+
+  // Set initial customer when provided
+  useEffect(() => {
+    if (open && initialCustomer) {
+      setSelectedCustomer({
+        id: initialCustomer.id,
+        name: initialCustomer.name,
+        discountPercent: initialCustomer.discountPercent,
+      });
+    }
+    if (!open) {
+      setSelectedCustomer(null);
+    }
+  }, [open, initialCustomer]);
 
   // Will be replaced with DB data
   const customers: SalesCustomerRef[] = [];
