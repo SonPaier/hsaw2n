@@ -558,6 +558,7 @@ export const PublicOfferCustomerView = ({
             key,
             scopeName: inferredScopeName,
             scopeDescription,
+            scopePhotoUrls: scopePhotoUrls as string[],
             sortKey: opt.sort_order ?? 0,
             isExtrasScope,
             options: [] as OfferOption[],
