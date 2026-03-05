@@ -1719,7 +1719,7 @@ const HallView = ({ isKioskMode = false }: HallViewProps) => {
         type="file"
         accept="image/*"
         multiple
-        capture="environment"
+        
         onChange={handlePhotoFileSelect}
         className="hidden"
       />

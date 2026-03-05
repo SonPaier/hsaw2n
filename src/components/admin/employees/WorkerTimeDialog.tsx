@@ -261,7 +261,7 @@ const WorkerTimeDialog = ({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
+              
               className="hidden"
               onChange={handlePhotoUpload}
               disabled={isUploading}
