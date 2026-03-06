@@ -137,7 +137,7 @@ const CustomerSearchInput = ({
               type="button"
               className={cn(
                 "w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0",
-                index === selectedIndex ? "bg-accent" : "hover:bg-muted/30"
+                index === selectedIndex ? "bg-accent" : "hover:bg-hover"
               )}
               onClick={() => handleSelectCustomer(customer)}
             >

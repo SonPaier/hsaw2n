@@ -198,7 +198,7 @@ export default function TrainingTypesSettings({ instanceId }: TrainingTypesSetti
           {trainingTypes.map((type) => (
             <div
               key={type.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:bg-muted/30 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:bg-hover transition-colors"
             >
               <div className="flex items-center gap-3">
                 <GripVertical className="w-4 h-4 text-muted-foreground" />

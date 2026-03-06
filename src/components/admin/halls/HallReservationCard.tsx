@@ -216,7 +216,7 @@ const HallReservationCard = ({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-muted rounded-lg transition-colors"
+            className="absolute top-4 right-4 p-2 hover:bg-hover rounded-lg transition-colors"
           >
             <X className="w-6 h-6 text-muted-foreground" />
           </button>
@@ -253,7 +253,7 @@ const HallReservationCard = ({
                       <div 
                         className={cn(
                           "text-2xl font-bold flex items-center gap-2 flex-1",
-                          canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
+                          canToggle && "cursor-pointer hover:bg-hover-strong rounded px-2 -mx-2 py-1",
                           isChecked && "text-muted-foreground"
                         )}
                         onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}

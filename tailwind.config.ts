@@ -90,7 +90,11 @@ export default {
   				DEFAULT: 'hsl(var(--warning))',
   				foreground: 'hsl(var(--warning-foreground))'
   			},
-  			sidebar: {
+			hover: {
+				DEFAULT: 'hsl(var(--hover) / 0.10)',
+				strong: 'hsl(var(--hover) / 0.15)'
+			},
+			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
   				primary: 'hsl(var(--sidebar-primary))',

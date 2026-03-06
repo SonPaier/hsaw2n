@@ -1290,7 +1290,7 @@ export default function CustomerBookingWizard({
 
           {/* Month header with navigation */}
           <div className="flex items-center justify-between px-2 mb-4">
-            <button onClick={goToPreviousMonth} disabled={!canGoPreviousMonth} className={cn("p-2 rounded-full transition-colors", canGoPreviousMonth ? "hover:bg-muted text-muted-foreground" : "opacity-30 cursor-not-allowed")}>
+            <button onClick={goToPreviousMonth} disabled={!canGoPreviousMonth} className={cn("p-2 rounded-full transition-colors", canGoPreviousMonth ? "hover:bg-hover text-muted-foreground" : "opacity-30 cursor-not-allowed")}>
               <ChevronLeft className="w-5 h-5" />
             </button>
             <span className="text-base font-semibold capitalize">
@@ -1298,7 +1298,7 @@ export default function CustomerBookingWizard({
               locale: pl
             })}
             </span>
-            <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
+            <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-hover text-muted-foreground transition-colors">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>

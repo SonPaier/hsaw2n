@@ -970,7 +970,7 @@ export const CreateProtocolForm = ({ instanceId, protocolId, onBack, onOpenSetti
             <Label>Podpis klienta</Label>
             {customerSignature ? (
               <div 
-                className="h-24 border rounded-lg bg-white flex items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors"
+                className="h-24 border rounded-lg bg-white flex items-center justify-center cursor-pointer hover:bg-hover transition-colors"
                 onClick={() => setSignatureDialogOpen(true)}
               >
                 <img 

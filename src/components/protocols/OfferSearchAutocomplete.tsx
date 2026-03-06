@@ -126,7 +126,7 @@ export const OfferSearchAutocomplete = ({
             <button
               key={offer.id}
               className={cn(
-                "w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors",
+                "w-full px-4 py-3 text-left hover:bg-hover-strong transition-colors",
                 "flex items-start gap-3 border-b last:border-b-0"
               )}
               onClick={() => handleSelect(offer)}

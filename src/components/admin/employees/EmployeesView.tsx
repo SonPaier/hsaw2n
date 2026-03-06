@@ -499,7 +499,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                   return (
                     <TableRow 
                       key={employee.id} 
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-hover-strong"
                       onClick={() => handleTileClick(employee)}
                     >
                       <TableCell className="py-3" style={{ width: '47%' }}>

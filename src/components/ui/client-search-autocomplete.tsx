@@ -276,7 +276,7 @@ const ClientSearchAutocomplete = ({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 rounded-full hover:bg-muted transition-colors"
+              className="p-1 rounded-full hover:bg-hover transition-colors"
             >
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -292,7 +292,7 @@ const ClientSearchAutocomplete = ({
               type="button"
               className={cn(
                 "w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0",
-                index === activeIndex ? "bg-accent" : "hover:bg-muted/30"
+                index === activeIndex ? "bg-accent" : "hover:bg-hover"
               )}
               onClick={() => handleSelectCustomer(customer)}
               onMouseEnter={() => setActiveIndex(index)}

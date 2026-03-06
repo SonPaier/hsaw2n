@@ -95,7 +95,7 @@ export function EmployeeSelectionDrawer({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="p-1 -ml-1 hover:bg-muted rounded-md transition-colors"
+              className="p-1 -ml-1 hover:bg-hover rounded-md transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -148,7 +148,7 @@ export function EmployeeSelectionDrawer({
                     onClick={() => toggleEmployee(employee.id)}
                     className={cn(
                       "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                      isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                      isSelected ? "bg-primary/5" : "hover:bg-hover"
                     )}
                   >
                     <Avatar className="w-9 h-9 mr-3">

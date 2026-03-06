@@ -349,7 +349,7 @@ const ReservationsView = ({
         key={reservation.id}
         onClick={() => onReservationClick(reservation)}
         className={cn(
-          "p-4 transition-colors cursor-pointer hover:bg-muted/20",
+          "p-4 transition-colors cursor-pointer hover:bg-hover",
           isPending && "bg-amber-500/5"
         )}
       >
@@ -410,7 +410,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+               className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
               asChild
             >
               <a
@@ -424,7 +424,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
               asChild
             >
               <a
@@ -496,7 +496,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+               className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-hover"
               asChild
             >
               <a href={`sms:${reservation.customer_phone}`} onClick={(e) => e.stopPropagation()}>
@@ -506,7 +506,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-hover"
               asChild
             >
               <a href={`tel:${reservation.customer_phone}`} onClick={(e) => e.stopPropagation()}>
@@ -535,7 +535,7 @@ const ReservationsView = ({
       <div
         key={training.id}
         onClick={() => onTrainingClick?.(training)}
-        className="p-4 transition-colors cursor-pointer hover:bg-muted/20"
+        className="p-4 transition-colors cursor-pointer hover:bg-hover"
       >
         {/* Desktop layout */}
         <div className="hidden sm:flex items-start justify-between gap-4">

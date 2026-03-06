@@ -81,7 +81,7 @@ export function ReservationHistoryDrawer({ reservationId, instanceId, open, onCl
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-full transition-colors"
+            className="p-2 hover:bg-hover rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

@@ -138,7 +138,7 @@ const SalesProductsView = () => {
               </TableRow>
             ) : (
               paginatedProducts.map((product) => (
-                <TableRow key={product.id} className="hover:bg-muted/50">
+                <TableRow key={product.id} className="hover:bg-hover-strong">
                   <TableCell className="font-medium">{product.shortName}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{product.fullName}</TableCell>
                   <TableCell className="text-right text-sm tabular-nums">

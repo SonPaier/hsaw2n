@@ -7,9 +7,9 @@ const buttonVariants = cva("inline-flex items-center justify-center gap-2 whites
     variant: {
       default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",
       destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      outline: "border border-border bg-transparent hover:bg-muted/30 hover:text-foreground active:bg-muted/30",
-      secondary: "bg-muted/30 text-foreground hover:bg-muted/50",
-      ghost: "hover:bg-muted/30 hover:text-foreground",
+      outline: "border border-border bg-transparent hover:bg-hover hover:text-foreground active:bg-hover",
+      secondary: "bg-muted/30 text-foreground hover:bg-hover-strong",
+      ghost: "hover:bg-hover hover:text-foreground",
       link: "text-primary underline-offset-4 hover:underline",
       hero: "bg-gradient-to-r from-primary to-blue-500 text-primary-foreground font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02]",
       glass: "bg-secondary/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-secondary/80",

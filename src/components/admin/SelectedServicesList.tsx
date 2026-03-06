@@ -239,7 +239,7 @@ const SelectedServicesList = ({
                         setEditingValue(displayedPrice.toString());
                       }}
                       className={cn(
-                        "px-2 py-1 rounded text-sm font-semibold text-right min-w-[60px] hover:bg-muted transition-colors",
+                        "px-2 py-1 rounded text-sm font-semibold text-right min-w-[60px] hover:bg-hover transition-colors",
                         hasCustomPrice && "text-primary"
                       )}
                     >

@@ -174,7 +174,7 @@ export function TrainingDetailsDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+                className="p-2 rounded-full hover:bg-hover transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -275,7 +275,7 @@ export function TrainingDetailsDrawer({
                   />
                 ) : (
                   <p
-                    className={`text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 ${
+                    className={`text-sm cursor-pointer hover:bg-hover-strong rounded px-1 py-0.5 -mx-1 ${
                       !localDescription ? 'text-muted-foreground italic' : 'whitespace-pre-wrap text-foreground'
                     }`}
                     onClick={() => !readOnly && setEditingNotes(true)}

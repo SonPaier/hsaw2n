@@ -266,7 +266,7 @@ export function AddCustomerReminderDialog({
                       'px-3 py-1.5 text-sm rounded-full transition-colors font-medium',
                       selectedVehicleId === vehicle.id
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-white hover:bg-muted/50 text-foreground border border-border'
+                        : 'bg-white hover:bg-hover-strong text-foreground border border-border'
                     )}
                   >
                     {vehicle.plate ? `${vehicle.model} (${vehicle.plate})` : vehicle.model}

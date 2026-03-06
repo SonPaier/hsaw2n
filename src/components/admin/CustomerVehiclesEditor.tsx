@@ -91,7 +91,7 @@ export const CustomerVehiclesEditor = ({
                 <button
                   type="button"
                   onClick={() => handleRemoveVehicle(index)}
-                  className="p-0.5 hover:bg-muted rounded-full transition-colors"
+                  className="p-0.5 hover:bg-hover rounded-full transition-colors"
                 >
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>

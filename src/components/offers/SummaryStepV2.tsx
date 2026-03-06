@@ -949,7 +949,7 @@ export const SummaryStepV2 = ({
                         value: String(product.price),
                         isSuggested: false
                       })}
-                      className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
+                       className="font-semibold hover:bg-hover rounded px-2 py-1 transition-colors"
                       title="Kliknij aby edytować"
                     >
                       {formatPrice(product.price)}
@@ -1107,7 +1107,7 @@ export const SummaryStepV2 = ({
                           value: String(product.price),
                           isSuggested: false
                         })}
-                        className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
+                         className="font-semibold hover:bg-hover rounded px-2 py-1 transition-colors"
                         title="Kliknij aby edytować"
                       >
                         {formatPrice(product.price)}
@@ -1253,7 +1253,7 @@ export const SummaryStepV2 = ({
                           value: String(product.price),
                           isSuggested: true
                         })}
-                        className="font-semibold hover:bg-muted rounded px-2 py-1 transition-colors"
+                        className="font-semibold hover:bg-hover rounded px-2 py-1 transition-colors"
                         title="Kliknij aby edytować"
                       >
                         {formatPrice(product.price)}

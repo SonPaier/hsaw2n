@@ -496,7 +496,7 @@ export const SummaryStep = ({
                           <button
                             type="button"
                             onClick={() => handleStartEditPrice(option.id, currentTotal)}
-                            className="text-right hover:bg-muted/50 rounded px-2 py-1 transition-colors cursor-pointer"
+                            className="text-right hover:bg-hover-strong rounded px-2 py-1 transition-colors cursor-pointer"
                             title="Kliknij aby edytować wartość"
                           >
                             {optionHasDiscount ? (
@@ -537,7 +537,7 @@ export const SummaryStep = ({
                         return (
                           <div
                             key={item.id}
-                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 group hover:bg-muted/30"
+                            className="grid grid-cols-12 gap-2 px-2 py-2 border-b last:border-0 group hover:bg-hover"
                           >
                             <div className="col-span-5 flex items-center gap-1">
                               {/* Default selection for optional items / upsells */}
@@ -603,7 +603,7 @@ export const SummaryStep = ({
                                 <button
                                   type="button"
                                   onClick={() => handleStartEditItemPrice(option.id, item.id, item.unitPrice)}
-                                  className="hover:bg-muted rounded px-1 transition-colors cursor-pointer"
+                                  className="hover:bg-hover rounded px-1 transition-colors cursor-pointer"
                                   title="Kliknij aby edytować"
                                 >
                                   {formatPrice(item.unitPrice)}
@@ -631,7 +631,7 @@ export const SummaryStep = ({
                         return (
                           <div
                             key={item.id}
-                            className="flex justify-between py-1 group hover:bg-muted/30 px-1 rounded"
+                            className="flex justify-between py-1 group hover:bg-hover px-1 rounded"
                           >
                             <div className="flex items-center gap-1">
                               {/* Default selection for optional items / upsells */}
@@ -696,7 +696,7 @@ export const SummaryStep = ({
                               <button
                                 type="button"
                                 onClick={() => handleStartEditItemPrice(option.id, item.id, item.unitPrice)}
-                                className="font-medium hover:bg-muted rounded px-1 transition-colors cursor-pointer"
+                                className="font-medium hover:bg-hover rounded px-1 transition-colors cursor-pointer"
                                 title="Kliknij aby edytować"
                               >
                                 {formatPrice(itemValue)}

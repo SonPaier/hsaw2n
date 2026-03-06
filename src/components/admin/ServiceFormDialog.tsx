@@ -961,7 +961,7 @@ export const ServiceFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-muted [&>button]:absolute [&>button]:right-4 [&>button]:top-4"
+        className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-hover [&>button]:absolute [&>button]:right-4 [&>button]:top-4"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >

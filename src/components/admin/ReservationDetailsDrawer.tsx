@@ -659,7 +659,7 @@ const ReservationDetailsDrawer = ({
               <button 
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+                className="p-2 rounded-full hover:bg-hover transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -958,7 +958,7 @@ const ReservationDetailsDrawer = ({
                 ) : (
                   <div 
                     onClick={startEditingNotes}
-                    className="text-sm whitespace-pre-wrap cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded transition-colors min-h-[2.5rem]"
+                    className="text-sm whitespace-pre-wrap cursor-pointer hover:bg-hover-strong p-2 -mx-2 rounded transition-colors min-h-[2.5rem]"
                   >
                     {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
                   </div>

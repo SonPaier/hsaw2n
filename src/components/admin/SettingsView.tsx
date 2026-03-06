@@ -530,8 +530,8 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors border-b border-border/30 last:border-0",
                     activeTab === tab.key 
-                      ? "bg-muted/30 text-foreground font-medium" 
-                      : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                       ? "bg-hover text-foreground font-medium" 
+                       : "text-muted-foreground hover:bg-hover hover:text-foreground"
                   )}
                 >
                   {tab.icon}
@@ -551,8 +551,8 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors border-b border-border/30 last:border-0",
                   activeTab === tab.key 
-                    ? "bg-muted/30 text-foreground font-medium" 
-                    : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                     ? "bg-hover text-foreground font-medium" 
+                     : "text-muted-foreground hover:bg-hover hover:text-foreground"
                 )}
               >
                 {tab.icon}

@@ -154,7 +154,7 @@ const EmployeesList = ({ instanceId, centered = false }: EmployeesListProps) => 
                     {isAdmin && (
                       <button
                         onClick={(e) => handleEdit(e, employee)}
-                        className="p-1 rounded hover:bg-muted"
+                        className="p-1 rounded hover:bg-hover"
                       >
                         <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>

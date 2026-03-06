@@ -220,7 +220,7 @@ const SortableServiceRow = ({
       {...listeners}
       onClick={onEdit}
       className={cn(
-        "flex items-center gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-muted/50 transition-colors cursor-pointer",
+        "flex items-center gap-2 px-4 py-3 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-hover-strong transition-colors cursor-pointer",
         !service.active && "opacity-50",
         isDragging && "opacity-50 bg-muted z-50",
         !disabled && "cursor-grab active:cursor-grabbing"
@@ -255,7 +255,7 @@ const ServiceRow = ({
       type="button"
       onClick={onEdit}
       className={cn(
-        "flex items-center gap-2 px-4 py-2.5 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-muted/50 transition-colors",
+        "flex items-center gap-2 px-4 py-2.5 border-b border-border/30 last:border-b-0 w-full text-left hover:bg-hover-strong transition-colors",
         !service.active && "opacity-50"
       )}
     >

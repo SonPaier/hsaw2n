@@ -152,7 +152,7 @@ export const CustomerSection = ({
               <button
                 key={vehicle.id}
                 type="button"
-                className="w-full p-4 text-left hover:bg-muted/30 transition-colors flex flex-col border-b border-border last:border-0"
+                className="w-full p-4 text-left hover:bg-hover transition-colors flex flex-col border-b border-border last:border-0"
                 onClick={() => onSelectVehicle(vehicle)}
               >
                 <div className="font-semibold text-base text-foreground">

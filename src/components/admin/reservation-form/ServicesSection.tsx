@@ -68,7 +68,7 @@ export const ServicesSection = ({
                   markUserEditing();
                   setSelectedServices((prev) => [...prev, service.id]);
                 }}
-                className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-muted/70 text-foreground border border-border"
+                className="px-3 py-1.5 text-sm rounded-full transition-colors font-medium bg-muted hover:bg-hover-strong text-foreground border border-border"
               >
                 {service.short_name || service.name}
               </button>

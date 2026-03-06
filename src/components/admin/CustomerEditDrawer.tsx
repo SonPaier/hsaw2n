@@ -444,7 +444,7 @@ const CustomerEditDrawer = ({
                       variant="ghost"
                       size="icon"
                       onClick={handleSmsButton}
-                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                       className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
                     >
                       <MessageSquare className="w-4 h-4" />
                     </Button>
@@ -452,7 +452,7 @@ const CustomerEditDrawer = ({
                       variant="ghost"
                       size="icon"
                       onClick={handleCall}
-                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
                     >
                       <Phone className="w-4 h-4" />
                     </Button>
@@ -462,7 +462,7 @@ const CustomerEditDrawer = ({
               <button 
                 type="button"
                 onClick={handleClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
+                className="p-2 rounded-full hover:bg-hover transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>

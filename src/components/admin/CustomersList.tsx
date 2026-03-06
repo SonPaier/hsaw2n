@@ -131,7 +131,7 @@ export const CustomersList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                     className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
                     onClick={e => handleSms(customer, e)}
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -139,7 +139,7 @@ export const CustomersList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-hover"
                     onClick={e => handleCall(customer.phone, e)}
                   >
                     <Phone className="w-4 h-4" />
@@ -148,7 +148,7 @@ export const CustomersList = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+                      className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-hover"
                       onClick={e => handleDelete(customer, e)}
                     >
                       <Trash2 className="w-4 h-4" />

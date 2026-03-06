@@ -294,7 +294,7 @@ export const CarSearchAutocomplete = ({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:bg-muted rounded-sm transition-colors"
+              className="p-1 hover:bg-hover rounded-sm transition-colors"
               aria-label={t('common.clear', 'Wyczyść')}
             >
               <X className="w-4 h-4 text-muted-foreground" />
@@ -330,7 +330,7 @@ export const CarSearchAutocomplete = ({
                         data-testid="car-option"
                         className={cn(
                           'w-full p-4 text-left text-base transition-colors flex items-center justify-between border-b border-border last:border-0',
-                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/30'
+                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-hover'
                         )}
                         onClick={() => selectModel(model)}
                         onMouseEnter={() => setActiveIndex(itemIndex)}
@@ -352,7 +352,7 @@ export const CarSearchAutocomplete = ({
                 data-index={0}
                 className={cn(
                   'w-full p-4 text-left text-base transition-colors border-b border-border last:border-0',
-                  activeIndex === 0 ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'
+                  activeIndex === 0 ? 'bg-accent text-accent-foreground' : 'hover:bg-hover-strong'
                 )}
                 onClick={selectCustom}
                 onMouseEnter={() => setActiveIndex(0)}

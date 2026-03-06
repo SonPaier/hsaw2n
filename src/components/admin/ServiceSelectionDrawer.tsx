@@ -427,7 +427,7 @@ const ServiceSelectionDrawer = ({
       >
         {/* Header - clicking closes drawer */}
         <SheetHeader 
-          className="border-b px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors shrink-0"
+          className="border-b px-4 py-3 cursor-pointer hover:bg-hover-strong transition-colors shrink-0"
           onClick={onClose}
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
@@ -551,7 +551,7 @@ const ServiceSelectionDrawer = ({
                           onClick={() => toggleService(service.id)}
                           className={cn(
                             "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
-                            isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                            isSelected ? "bg-primary/5" : "hover:bg-hover"
                           )}
                         >
                           {/* Service info */}

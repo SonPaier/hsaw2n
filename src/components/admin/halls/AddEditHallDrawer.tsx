@@ -247,7 +247,7 @@ const AddEditHallDrawer = ({
             <button 
               type="button"
               onClick={() => onOpenChange(false)}
-              className="p-2 rounded-full hover:bg-muted transition-colors"
+              className="p-2 rounded-full hover:bg-hover transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -281,7 +281,7 @@ const AddEditHallDrawer = ({
                 {stations.map((station) => (
                   <label
                     key={station.id}
-                    className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                     className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-hover-strong transition-colors"
                   >
                     <Checkbox
                       checked={selectedStationIds.includes(station.id)}
@@ -307,7 +307,7 @@ const AddEditHallDrawer = ({
               {Object.entries(visibleFields).map(([key, value]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                   className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-hover-strong transition-colors"
                 >
                   <Checkbox
                     checked={value}
@@ -333,7 +333,7 @@ const AddEditHallDrawer = ({
               {Object.entries(allowedActions).map(([key, value]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-hover-strong transition-colors"
                 >
                   <Checkbox
                     checked={value}
