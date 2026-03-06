@@ -154,24 +154,9 @@ export const OfferGenerator = ({
       // Pass isDuplicate flag to regenerate all UUIDs and prevent primary key conflicts
       loadOffer(loadId, !!duplicateFromId);
     } else if (instanceData) {
-      // For new offers, load default values from instance settings
-      const loadDefaults = async () => {
-        const { data } = await supabase
-          .from('instances')
-          .select('offer_default_payment_terms, offer_default_notes, offer_default_warranty, offer_default_service_info')
-          .eq('id', instanceId)
-          .single();
-        
-        if (data) {
-          updateOffer({
-            paymentTerms: data.offer_default_payment_terms || '',
-            notes: data.offer_default_notes || '',
-            warranty: data.offer_default_warranty || '',
-            serviceInfo: data.offer_default_service_info || '',
-          });
-        }
-      };
-      loadDefaults();
+      // For new offers, no need to load instance-level defaults here
+      // Conditions (warranty, notes, paymentTerms, serviceInfo) are loaded
+      // from scope templates in SummaryStepV2 when the user reaches step 3
     }
   }, [offerId, duplicateFromId, instanceData]);
 
