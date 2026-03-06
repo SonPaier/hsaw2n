@@ -134,6 +134,13 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
     }
   }, [open, initialCustomer, editOrder]);
 
+  // Set default bank account when instance data loads
+  useEffect(() => {
+    if (bankAccounts.length > 0 && !bankAccountNumber) {
+      setBankAccountNumber(bankAccounts[0]);
+    }
+  }, [bankAccounts]);
+
   // Search customers from DB
   const searchCustomers = useCallback(async (q: string) => {
     if (!instanceId || q.length < 2) {
