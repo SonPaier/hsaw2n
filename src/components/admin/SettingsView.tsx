@@ -84,6 +84,12 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         website: instanceData.website || '',
         contact_person: instanceData.contact_person || '',
       });
+      const accounts = instanceData.bank_accounts;
+      if (Array.isArray(accounts) && accounts.length > 0) {
+        setBankAccounts(accounts);
+      } else {
+        setBankAccounts(['']);
+      }
     }
   }, [instanceData]);
 
