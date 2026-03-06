@@ -61,6 +61,8 @@ interface EditOrderData {
   customerDiscount?: number;
   products: OrderProduct[];
   deliveryType: DeliveryType;
+  paymentMethod: PaymentMethod;
+  bankAccountNumber: string;
   comment: string;
   sendEmail: boolean;
 }
