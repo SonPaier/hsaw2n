@@ -212,6 +212,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
           google_maps_url: companyForm.google_maps_url || null,
           website: companyForm.website || null,
           contact_person: companyForm.contact_person || null,
+          bank_accounts: bankAccounts.filter(a => a.trim() !== ''),
         })
         .eq('id', instanceId);
 
