@@ -124,6 +124,7 @@ export const SummaryStepV2 = ({
   instanceId,
   offer,
   showUnitPrices,
+  isEditing,
   onUpdateOffer,
   calculateTotalNet,
   calculateTotalGross,
