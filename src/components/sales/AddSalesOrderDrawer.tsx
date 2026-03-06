@@ -14,10 +14,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useInstanceData } from '@/hooks/useInstanceData';
 import { type SalesOrder } from '@/data/salesMockData';
 import { getNextOrderNumber } from './SalesOrdersView';
 import AddEditSalesCustomerDrawer from './AddEditSalesCustomerDrawer';
@@ -39,6 +46,7 @@ interface OrderProduct {
 }
 
 type DeliveryType = 'shipping' | 'pickup' | 'uber';
+type PaymentMethod = 'cod' | 'transfer';
 
 const VAT_RATE = 0.23;
 
@@ -53,6 +61,8 @@ interface EditOrderData {
   customerDiscount?: number;
   products: OrderProduct[];
   deliveryType: DeliveryType;
+  paymentMethod: PaymentMethod;
+  bankAccountNumber: string;
   comment: string;
   sendEmail: boolean;
 }
@@ -69,6 +79,8 @@ interface AddSalesOrderDrawerProps {
 const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, editOrder, onOrderCreated }: AddSalesOrderDrawerProps) => {
   const { roles } = useAuth();
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+  const { data: instanceData } = useInstanceData(instanceId);
+  const bankAccounts: string[] = (instanceData?.bank_accounts as string[] | null) || [];
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomerRef | null>(null);
@@ -88,6 +100,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
 
   const [applyDiscount, setApplyDiscount] = useState(true);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('shipping');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
 
   const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState('');
@@ -104,6 +118,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
       });
       setProducts(editOrder.products);
       setDeliveryType(editOrder.deliveryType);
+      setPaymentMethod(editOrder.paymentMethod || 'cod');
+      setBankAccountNumber(editOrder.bankAccountNumber || '');
       setComment(editOrder.comment);
       setSendEmail(editOrder.sendEmail);
     } else if (open && initialCustomer) {
@@ -117,6 +133,13 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
       setSelectedCustomer(null);
     }
   }, [open, initialCustomer, editOrder]);
+
+  // Set default bank account when instance data loads
+  useEffect(() => {
+    if (bankAccounts.length > 0 && !bankAccountNumber) {
+      setBankAccountNumber(bankAccounts[0]);
+    }
+  }, [bankAccounts]);
 
   // Search customers from DB
   const searchCustomers = useCallback(async (q: string) => {
@@ -282,6 +305,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             total_gross: totalGross,
             comment: comment || null,
             delivery_type: deliveryType,
+            payment_method: paymentMethod,
+            bank_account_number: paymentMethod === 'transfer' ? (bankAccountNumber || null) : null,
           })
           .eq('id', editOrder.id) as any);
 
@@ -317,6 +342,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             currency: 'PLN',
             comment: comment || null,
             delivery_type: deliveryType,
+            payment_method: paymentMethod,
+            bank_account_number: paymentMethod === 'transfer' ? (bankAccountNumber || null) : null,
             status: 'nowy',
             created_by: user?.id || null,
           })
@@ -358,6 +385,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
     setProducts([]);
     setApplyDiscount(true);
     setDeliveryType('shipping');
+    setPaymentMethod('cod');
+    setBankAccountNumber(bankAccounts.length > 0 ? bankAccounts[0] : '');
     setSendEmail(false);
     setComment('');
   };
@@ -529,27 +558,50 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             </div>
 
             {/* Delivery type */}
-            {products.length > 0 && (
+            <div className="space-y-2">
+              <Label>Rodzaj dostawy</Label>
+              <Select value={deliveryType} onValueChange={(v) => setDeliveryType(v as DeliveryType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shipping">Wysyłka</SelectItem>
+                  <SelectItem value="pickup">Odbiór osobisty</SelectItem>
+                  <SelectItem value="uber">Uber</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment method */}
+            <div className="space-y-2">
+              <Label>Sposób płatności</Label>
+              <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cod">Za pobraniem</SelectItem>
+                  <SelectItem value="transfer">Przelew</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Bank account selection */}
+            {paymentMethod === 'transfer' && bankAccounts.length > 0 && (
               <div className="space-y-2">
-                <Label>Rodzaj dostawy</Label>
-                <RadioGroup
-                  value={deliveryType}
-                  onValueChange={(v) => setDeliveryType(v as DeliveryType)}
-                  className="flex gap-4"
-                >
-                  {([
-                    ['shipping', 'Wysyłka'],
-                    ['pickup', 'Odbiór osobisty'],
-                    ['uber', 'Uber'],
-                  ] as const).map(([value, label]) => (
-                    <div key={value} className="flex items-center gap-1.5">
-                      <RadioGroupItem value={value} id={`delivery-${value}`} />
-                      <Label htmlFor={`delivery-${value}`} className="text-sm font-normal cursor-pointer">
-                        {label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                <Label>Numer konta</Label>
+                <Select value={bankAccountNumber} onValueChange={setBankAccountNumber}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz konto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account, idx) => (
+                      <SelectItem key={idx} value={account}>
+                        {account}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

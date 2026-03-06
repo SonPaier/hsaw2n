@@ -81,7 +81,7 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
     setOrdersLoading(true);
     const { data } = await (supabase
       .from('sales_orders')
-      .select('id, order_number, created_at, total_net, currency, status, delivery_type')
+      .select('id, order_number, created_at, total_net, currency, status, delivery_type, payment_method')
       .eq('customer_id', customer.id)
       .order('created_at', { ascending: false }) as any);
     setOrders((data as any[]) || []);
@@ -255,6 +255,11 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
                     {o.delivery_type && (
                       <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
                         {o.delivery_type === 'shipping' ? 'Wysyłka' : o.delivery_type === 'pickup' ? 'Odbiór osobisty' : o.delivery_type === 'uber' ? 'Uber' : o.delivery_type}
+                      </span>
+                    )}
+                    {o.payment_method && (
+                      <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                        {o.payment_method === 'cod' ? 'Za pobraniem' : o.payment_method === 'transfer' ? 'Przelew' : o.payment_method}
                       </span>
                     )}
                   </div>

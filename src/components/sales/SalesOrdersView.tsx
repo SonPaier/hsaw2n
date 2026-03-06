@@ -229,7 +229,7 @@ const SalesOrdersView = () => {
     // Fetch delivery_type from the order
     const { data: orderData } = await (supabase
       .from('sales_orders')
-      .select('delivery_type, comment, customer_id, customer_name')
+      .select('delivery_type, payment_method, bank_account_number, comment, customer_id, customer_name')
       .eq('id', order.id)
       .single() as any);
 
@@ -258,6 +258,8 @@ const SalesOrdersView = () => {
         vehicle: item.vehicle || '',
       })),
       deliveryType: (orderData?.delivery_type || 'shipping') as 'shipping' | 'pickup' | 'uber',
+      paymentMethod: (orderData?.payment_method || 'cod') as 'cod' | 'transfer',
+      bankAccountNumber: orderData?.bank_account_number || '',
       comment: orderData?.comment || '',
       sendEmail: false,
     });

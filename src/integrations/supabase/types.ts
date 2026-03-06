@@ -2845,6 +2845,7 @@ export type Database = {
       }
       sales_orders: {
         Row: {
+          bank_account_number: string | null
           city: string | null
           comment: string | null
           contact_person: string | null
@@ -2857,6 +2858,7 @@ export type Database = {
           id: string
           instance_id: string
           order_number: string
+          payment_method: string
           shipped_at: string | null
           status: string
           total_gross: number
@@ -2866,6 +2868,7 @@ export type Database = {
           vehicle: string | null
         }
         Insert: {
+          bank_account_number?: string | null
           city?: string | null
           comment?: string | null
           contact_person?: string | null
@@ -2878,6 +2881,7 @@ export type Database = {
           id?: string
           instance_id: string
           order_number: string
+          payment_method?: string
           shipped_at?: string | null
           status?: string
           total_gross?: number
@@ -2887,6 +2891,7 @@ export type Database = {
           vehicle?: string | null
         }
         Update: {
+          bank_account_number?: string | null
           city?: string | null
           comment?: string | null
           contact_person?: string | null
@@ -2899,6 +2904,7 @@ export type Database = {
           id?: string
           instance_id?: string
           order_number?: string
+          payment_method?: string
           shipped_at?: string | null
           status?: string
           total_gross?: number
