@@ -26,6 +26,7 @@ export interface SalesProduct {
   id: string;
   shortName: string;
   fullName: string;
+  description?: string;
   priceNet: number;
   priceUnit: string;
 }

@@ -124,7 +124,8 @@ const SalesCustomersView = () => {
           (c.nip && c.nip.includes(q)) ||
           (c.email && c.email.toLowerCase().includes(q)) ||
           c.phone.includes(q) ||
-          (c.shipping_city && c.shipping_city.toLowerCase().includes(q))
+          (c.shipping_city && c.shipping_city.toLowerCase().includes(q)) ||
+          (c.company && c.company.toLowerCase().includes(q))
       );
     }
     // Sort

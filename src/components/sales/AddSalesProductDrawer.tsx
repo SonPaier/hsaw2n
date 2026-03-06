@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import {
   Sheet,
@@ -15,14 +15,25 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SalesProductData {
+  id: string;
+  fullName: string;
+  shortName: string;
+  description?: string;
+  priceNet: number;
+  priceUnit: string;
+}
+
 interface AddSalesProductDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instanceId: string;
   onSaved?: () => void;
+  product?: SalesProductData | null;
 }
 
-const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddSalesProductDrawerProps) => {
+const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, product }: AddSalesProductDrawerProps) => {
+  const isEdit = !!product;
   const [fullName, setFullName] = useState('');
   const [shortName, setShortName] = useState('');
   const [description, setDescription] = useState('');
@@ -38,6 +49,19 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddS
     setPriceUnit('piece');
   };
 
+  useEffect(() => {
+    if (!open) return;
+    if (product) {
+      setFullName(product.fullName);
+      setShortName(product.shortName);
+      setDescription(product.description || '');
+      setPriceNet(product.priceNet ? String(product.priceNet) : '');
+      setPriceUnit((product.priceUnit as 'piece' | 'meter') || 'piece');
+    } else {
+      resetForm();
+    }
+  }, [open, product]);
+
   const handleClose = () => {
     onOpenChange(false);
   };
@@ -49,18 +73,28 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddS
     }
     setSaving(true);
     try {
-      const { error } = await (supabase
-        .from('sales_products')
-        .insert({
-          instance_id: instanceId,
-          full_name: fullName.trim(),
-          short_name: shortName.trim(),
-          description: description.trim() || null,
-          price_net: parseFloat(priceNet) || 0,
-          price_unit: priceUnit,
-        }) as any);
-      if (error) throw error;
-      toast.success('Produkt został dodany');
+      const payload = {
+        full_name: fullName.trim(),
+        short_name: shortName.trim(),
+        description: description.trim() || null,
+        price_net: parseFloat(priceNet) || 0,
+        price_unit: priceUnit,
+      };
+
+      if (isEdit && product) {
+        const { error } = await (supabase
+          .from('sales_products')
+          .update(payload)
+          .eq('id', product.id) as any);
+        if (error) throw error;
+        toast.success('Produkt zaktualizowany');
+      } else {
+        const { error } = await (supabase
+          .from('sales_products')
+          .insert({ instance_id: instanceId, ...payload }) as any);
+        if (error) throw error;
+        toast.success('Produkt został dodany');
+      }
       resetForm();
       handleClose();
       onSaved?.();
@@ -92,7 +126,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddS
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <SheetTitle>Dodaj produkt</SheetTitle>
+            <SheetTitle>{isEdit ? 'Edytuj produkt' : 'Dodaj produkt'}</SheetTitle>
             <button
               type="button"
               onClick={handleClose}
@@ -176,7 +210,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved }: AddS
               Anuluj
             </Button>
             <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : 'Dodaj produkt'}
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Zapisuję...</> : isEdit ? 'Zapisz zmiany' : 'Dodaj produkt'}
             </Button>
           </div>
         </SheetFooter>
