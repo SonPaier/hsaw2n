@@ -3,15 +3,11 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Loader2, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { shouldSkipCompression, getFileExtension, getContentType } from '@/lib/imageUtils';
+import { X } from 'lucide-react';
 import type { VehicleView, DamagePoint } from './VehicleDiagram';
 
 import { VoiceNoteInput } from './VoiceNoteInput';
-import { PhotoFullscreenDialog } from './PhotoFullscreenDialog';
+import { PhotoUploader } from '@/components/ui/photo-uploader';
 
 interface DamagePointDrawerProps {
   open: boolean;
