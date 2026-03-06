@@ -229,7 +229,7 @@ const SalesOrdersView = () => {
     // Fetch delivery_type from the order
     const { data: orderData } = await (supabase
       .from('sales_orders')
-      .select('delivery_type, comment, customer_id, customer_name')
+      .select('delivery_type, payment_method, bank_account_number, comment, customer_id, customer_name')
       .eq('id', order.id)
       .single() as any);
 
