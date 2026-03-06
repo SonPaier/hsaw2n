@@ -741,26 +741,7 @@ const ServiceFormContent = ({
               )}
             </div>
 
-            {/* Visibility - controls where service appears in UI drawers */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm">{t('priceList.form.visibilityService', 'Widoczność usługi')}</Label>
-                <FieldInfo tooltip="Gdzie usługa będzie widoczna w drawerach wyboru" />
-              </div>
-              <Select
-                value={formData.visibility}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, visibility: v as 'everywhere' | 'only_reservations' | 'only_offers' }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="everywhere">{t('priceList.form.visibilityAll', 'Wszędzie')}</SelectItem>
-                  <SelectItem value="only_reservations">{t('priceList.form.visibilityReservations', 'Tylko rezerwacje')}</SelectItem>
-                  <SelectItem value="only_offers">{t('priceList.form.visibilityOffers', 'Tylko oferty')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Visibility is always 'everywhere' - removed UI dropdown to avoid confusion */}
 
             {/* Is Popular - shortcut in reservation form */}
             <div className="flex items-center gap-3">
