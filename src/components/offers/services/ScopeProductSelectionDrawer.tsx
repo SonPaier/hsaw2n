@@ -145,7 +145,7 @@ export function ScopeProductSelectionDrawer({
       >
         {/* Header */}
         <SheetHeader 
-          className="border-b px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors shrink-0"
+          className="border-b px-4 py-3 cursor-pointer hover:bg-hover-strong transition-colors shrink-0"
           onClick={onClose}
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
