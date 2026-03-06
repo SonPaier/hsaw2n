@@ -940,6 +940,7 @@ export type Database = {
           assign_employees_to_stations: boolean | null
           auto_confirm_reservations: boolean | null
           background_color: string | null
+          bank_accounts: Json | null
           booking_days_ahead: number
           contact_person: string | null
           created_at: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
           assign_employees_to_stations?: boolean | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
+          bank_accounts?: Json | null
           booking_days_ahead?: number
           contact_person?: string | null
           created_at?: string | null
@@ -1064,6 +1066,7 @@ export type Database = {
           assign_employees_to_stations?: boolean | null
           auto_confirm_reservations?: boolean | null
           background_color?: string | null
+          bank_accounts?: Json | null
           booking_days_ahead?: number
           contact_person?: string | null
           created_at?: string | null

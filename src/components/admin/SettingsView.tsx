@@ -63,6 +63,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
     website: '',
     contact_person: '',
   });
+  const [bankAccounts, setBankAccounts] = useState<string[]>(['']);
 
   // Populate form when instanceData changes
   useEffect(() => {
@@ -83,6 +84,12 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
         website: instanceData.website || '',
         contact_person: instanceData.contact_person || '',
       });
+      const accounts = instanceData.bank_accounts;
+      if (Array.isArray(accounts) && accounts.length > 0) {
+        setBankAccounts(accounts);
+      } else {
+        setBankAccounts(['']);
+      }
     }
   }, [instanceData]);
 
@@ -205,6 +212,7 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
           google_maps_url: companyForm.google_maps_url || null,
           website: companyForm.website || null,
           contact_person: companyForm.contact_person || null,
+          bank_accounts: bankAccounts.filter(a => a.trim() !== ''),
         })
         .eq('id', instanceId);
 
@@ -380,6 +388,41 @@ const SettingsView = ({ instanceId, instanceData, onInstanceUpdate, onWorkingHou
                 value={companyForm.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
               />
+            </div>
+
+            {/* Bank Accounts */}
+            <div className="space-y-2">
+              <Label>Nr konta bankowego</Label>
+              {bankAccounts.map((account, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    value={account}
+                    onChange={(e) => {
+                      const updated = [...bankAccounts];
+                      updated[index] = e.target.value;
+                      setBankAccounts(updated);
+                    }}
+                    placeholder="00 0000 0000 0000 0000 0000 0000"
+                    className="font-mono"
+                  />
+                  {bankAccounts.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setBankAccounts(bankAccounts.filter((_, i) => i !== index))}
+                      className="text-sm text-destructive hover:underline shrink-0"
+                    >
+                      Usuń
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setBankAccounts([...bankAccounts, ''])}
+                className="text-sm text-primary hover:underline"
+              >
+                + Dodaj numer konta bankowego
+              </button>
             </div>
 
             {/* Website */}
