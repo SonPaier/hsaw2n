@@ -414,7 +414,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             <button
               type="button"
               onClick={handleClose}
-              className="p-2 rounded-full hover:bg-muted transition-colors"
+              className="p-2 rounded-full hover:bg-hover transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
