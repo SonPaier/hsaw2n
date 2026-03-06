@@ -386,6 +386,7 @@ const SalesCustomersView = () => {
           customer={selectedCustomer}
           instanceId={instanceId}
           onSaved={fetchCustomers}
+          initialEditMode={initialEditMode}
         />
       )}
 
