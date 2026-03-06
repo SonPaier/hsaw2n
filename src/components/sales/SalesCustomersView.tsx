@@ -55,6 +55,7 @@ const SalesCustomersView = () => {
   // Customer drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomer | null>(null);
+  const [initialEditMode, setInitialEditMode] = useState(false);
 
   // Order drawer state
   const [orderDrawerOpen, setOrderDrawerOpen] = useState(false);
@@ -158,8 +159,9 @@ const SalesCustomersView = () => {
     });
   };
 
-  const openDrawer = (customer: SalesCustomer | null) => {
+  const openDrawer = (customer: SalesCustomer | null, editMode = false) => {
     setSelectedCustomer(customer);
+    setInitialEditMode(editMode);
     setDrawerOpen(true);
   };
 
@@ -224,8 +226,8 @@ const SalesCustomersView = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[30px]" />
               <SortableHead field="name">Nazwa</SortableHead>
-              <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
               <SortableHead field="city">Miasto</SortableHead>
+              <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
               <TableHead>Telefon</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Płatnik</TableHead>
@@ -256,14 +258,14 @@ const SalesCustomersView = () => {
                       </TableCell>
                       <TableCell className="font-medium max-w-[220px] truncate">{c.name}</TableCell>
                       <TableCell className="text-sm">
+                        {c.shipping_city || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">
                         {lastOrderDates[c.id] ? (
                           <span>{format(parseISO(lastOrderDates[c.id]), 'dd.MM.yyyy')}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {c.shipping_city || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="text-primary hover:underline text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -294,7 +296,7 @@ const SalesCustomersView = () => {
                               <ShoppingCart className="w-4 h-4 mr-2" />
                               Nowe zamówienie
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openDrawer(c)}>Edytuj</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDrawer(c, true)}>Edytuj</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>Usuń</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -384,6 +386,7 @@ const SalesCustomersView = () => {
           customer={selectedCustomer}
           instanceId={instanceId}
           onSaved={fetchCustomers}
+          initialEditMode={initialEditMode}
         />
       )}
 

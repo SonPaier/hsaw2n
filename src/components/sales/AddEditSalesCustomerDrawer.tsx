@@ -43,6 +43,7 @@ interface Props {
   customer: SalesCustomer | null;
   instanceId: string;
   onSaved: () => void;
+  initialEditMode?: boolean;
 }
 
 const emptyForm = {
@@ -65,7 +66,7 @@ const emptyForm = {
   billingCity: '',
 };
 
-const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, onSaved }: Props) => {
+const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, onSaved, initialEditMode = false }: Props) => {
   const isMobile = useIsMobile();
   const isEdit = !!customer;
   const [editMode, setEditMode] = useState(false);
@@ -100,6 +101,9 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
       setEditMode(false);
       setActiveTab('data');
       return;
+    }
+    if (initialEditMode && isEdit) {
+      setEditMode(true);
     }
     if (customer) {
       setForm({

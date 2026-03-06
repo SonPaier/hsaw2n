@@ -61,6 +61,7 @@ const SalesOrdersView = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [customerCompanyMap, setCustomerCompanyMap] = useState<Record<string, string>>({});
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -88,6 +89,7 @@ const SalesOrdersView = () => {
       createdAt: o.created_at,
       shippedAt: o.shipped_at || undefined,
       customerName: o.customer_name,
+      customerId: o.customer_id || undefined,
       city: o.city || undefined,
       contactPerson: o.contact_person || undefined,
       totalNet: Number(o.total_net),
@@ -105,6 +107,22 @@ const SalesOrdersView = () => {
     }));
 
     setOrders(mapped);
+
+    // Fetch customer company names for search
+    const customerIds: string[] = Array.from(new Set((data || []).map((o: any) => o.customer_id).filter((id: any): id is string => typeof id === 'string' && id.length > 0)));
+    if (customerIds.length > 0) {
+      const { data: customers } = await (supabase
+        .from('customers')
+        .select('id, company')
+        .in('id', customerIds) as any);
+      if (customers) {
+        const map: Record<string, string> = {};
+        for (const c of customers as { id: string; company: string | null }[]) {
+          if (c.company) map[c.id] = c.company;
+        }
+        setCustomerCompanyMap(map);
+      }
+    }
   }, [instanceId]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
@@ -127,9 +145,10 @@ const SalesOrdersView = () => {
         o.orderNumber.toLowerCase().includes(q) ||
         (o.city && o.city.toLowerCase().includes(q)) ||
         (o.contactPerson && o.contactPerson.toLowerCase().includes(q)) ||
-        o.products.some((p) => p.name.toLowerCase().includes(q))
+        o.products.some((p) => p.name.toLowerCase().includes(q)) ||
+        ((o as any).customerId && customerCompanyMap[(o as any).customerId]?.toLowerCase().includes(q))
     );
-  }, [orders, searchQuery]);
+  }, [orders, searchQuery, customerCompanyMap]);
 
   const sortedOrders = useMemo(() => {
     const sorted = [...filteredOrders];
