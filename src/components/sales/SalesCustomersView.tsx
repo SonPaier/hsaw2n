@@ -55,6 +55,7 @@ const SalesCustomersView = () => {
   // Customer drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomer | null>(null);
+  const [initialEditMode, setInitialEditMode] = useState(false);
 
   // Order drawer state
   const [orderDrawerOpen, setOrderDrawerOpen] = useState(false);
