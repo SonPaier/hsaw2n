@@ -196,7 +196,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="meter" id="unit-meter" />
                   <Label htmlFor="unit-meter" className="font-normal cursor-pointer">
-                    Metr bieżący
+                    m²
                   </Label>
                 </div>
               </RadioGroup>
