@@ -330,7 +330,7 @@ export const CarSearchAutocomplete = ({
                         data-testid="car-option"
                         className={cn(
                           'w-full p-4 text-left text-base transition-colors flex items-center justify-between border-b border-border last:border-0',
-                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/30'
+                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-hover'
                         )}
                         onClick={() => selectModel(model)}
                         onMouseEnter={() => setActiveIndex(itemIndex)}
