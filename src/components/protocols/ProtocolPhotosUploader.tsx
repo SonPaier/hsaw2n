@@ -17,7 +17,7 @@ export const ProtocolPhotosUploader = ({
   photos,
   onPhotosChange,
   onPhotoUploaded,
-  maxPhotos = 20,
+  maxPhotos = 50,
   disabled = false,
   protocolId,
   bucketName = 'protocol-photos',
