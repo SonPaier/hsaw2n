@@ -118,7 +118,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
     >
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)]"
+        className="w-full sm:max-w-[27rem] flex flex-col h-full p-0 gap-0 shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60"
         hideOverlay
         hideCloseButton
         onInteractOutside={(e) => e.preventDefault()}

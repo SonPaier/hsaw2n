@@ -110,7 +110,7 @@ const SalesProductSelectionDrawer = ({
         side="right"
         hideOverlay
         hideCloseButton
-        className="w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] z-[1000]"
+        className="w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] z-[1000] bg-white [&_input]:border-foreground/60 [&_textarea]:border-foreground/60 [&_select]:border-foreground/60"
         onFocusOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}

@@ -426,7 +426,7 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
 
         {/* Sticky footer */}
         {isFormMode && (
-          <div className="flex items-center gap-2 px-5 py-3 border-t shrink-0 bg-background">
+          <div className="flex items-center gap-2 px-5 py-3 border-t shrink-0 bg-white">
             <Button
               variant="outline"
               className="flex-1"
