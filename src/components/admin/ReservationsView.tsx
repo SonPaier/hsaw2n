@@ -496,7 +496,7 @@ const ReservationsView = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+               className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-hover"
               asChild
             >
               <a href={`sms:${reservation.customer_phone}`} onClick={(e) => e.stopPropagation()}>
