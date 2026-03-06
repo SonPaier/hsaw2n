@@ -396,13 +396,13 @@ const SalesOrdersView = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => changeStatus(order.id, 'nowy')}>
                               <Badge variant="outline" className="border-amber-500 text-amber-600 mr-2">
-                                nowy
+                                Nowy
                               </Badge>
-                              Oznacz jako nowy
+                              Oznacz jako Nowy
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => changeStatus(order.id, 'wysłany')}>
-                              <Badge className="bg-emerald-600 text-white mr-2">wysłany</Badge>
-                              Oznacz jako wysłany
+                              <Badge className="bg-emerald-600 text-white mr-2">Wysłany</Badge>
+                              Oznacz jako Wysłany
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
