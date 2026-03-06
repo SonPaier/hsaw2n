@@ -38,7 +38,7 @@ export const PhotoUploader = ({
   photos,
   onPhotosChange,
   onPhotoUploaded,
-  maxPhotos = 20,
+  maxPhotos = 50,
   disabled = false,
   bucketName = 'protocol-photos',
   filePrefix = 'protokol-szkoda',
