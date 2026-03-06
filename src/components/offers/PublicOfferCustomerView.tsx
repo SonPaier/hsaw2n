@@ -1594,7 +1594,7 @@ export const PublicOfferCustomerView = ({
                             navigator.clipboard.writeText(transferTitle);
                             toast.success('Skopiowano');
                           }}
-                          className="p-1 hover:bg-muted rounded transition-colors"
+                          className="p-1 hover:bg-hover rounded transition-colors"
                         >
                           <Copy className="w-4 h-4 text-muted-foreground" />
                         </button>

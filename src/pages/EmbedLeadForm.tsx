@@ -616,7 +616,7 @@ function EmbedLeadFormContent() {
                               "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors",
                               formData.durationSelections[template.id] === null && template.id in formData.durationSelections
                                 ? "bg-primary/10"
-                                : "hover:bg-muted/50"
+                                : "hover:bg-hover-strong"
                             )}
                             style={formData.durationSelections[template.id] === null && template.id in formData.durationSelections ? { backgroundColor: `${primaryColor}15` } : {}}
                           >

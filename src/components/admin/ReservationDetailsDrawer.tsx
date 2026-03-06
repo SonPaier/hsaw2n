@@ -958,7 +958,7 @@ const ReservationDetailsDrawer = ({
                 ) : (
                   <div 
                     onClick={startEditingNotes}
-                    className="text-sm whitespace-pre-wrap cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded transition-colors min-h-[2.5rem]"
+                    className="text-sm whitespace-pre-wrap cursor-pointer hover:bg-hover-strong p-2 -mx-2 rounded transition-colors min-h-[2.5rem]"
                   >
                     {adminNotes || <span className="text-muted-foreground italic">Brak notatek wewnętrznych</span>}
                   </div>

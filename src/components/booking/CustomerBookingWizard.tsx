@@ -1298,7 +1298,7 @@ export default function CustomerBookingWizard({
               locale: pl
             })}
             </span>
-            <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
+            <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-hover text-muted-foreground transition-colors">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>

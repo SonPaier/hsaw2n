@@ -253,7 +253,7 @@ const SalesCustomersView = () => {
                 const isExpanded = expandedRows.has(c.id);
                 return (
                   <React.Fragment key={c.id}>
-                    <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={() => openDrawer(c)}>
+                    <TableRow className="hover:bg-hover-strong cursor-pointer" onClick={() => openDrawer(c)}>
                       <TableCell className="pr-0" onClick={(e) => { e.stopPropagation(); toggleExpand(c.id); }}>
                         {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                       </TableCell>

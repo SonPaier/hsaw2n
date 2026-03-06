@@ -1421,7 +1421,7 @@ const AddReservationDialogV2 = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors">
+                className="p-2 rounded-full hover:bg-hover transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>

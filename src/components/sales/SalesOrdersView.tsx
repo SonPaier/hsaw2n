@@ -337,7 +337,7 @@ const SalesOrdersView = () => {
                   <>
                     <TableRow
                       key={order.id}
-                      className="group hover:bg-muted/50 cursor-pointer"
+                      className="group hover:bg-hover-strong cursor-pointer"
                       onClick={() => toggleExpand(order.id)}
                     >
                       <TableCell className="text-sm">
