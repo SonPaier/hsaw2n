@@ -226,8 +226,8 @@ const SalesCustomersView = () => {
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[30px]" />
               <SortableHead field="name">Nazwa</SortableHead>
-              <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
               <SortableHead field="city">Miasto</SortableHead>
+              <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
               <TableHead>Telefon</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Płatnik</TableHead>
