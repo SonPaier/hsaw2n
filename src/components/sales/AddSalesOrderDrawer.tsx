@@ -306,7 +306,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             comment: comment || null,
             delivery_type: deliveryType,
             payment_method: paymentMethod,
-            bank_account_number: paymentMethod === 'transfer' ? (bankAccountNumber || null) : null,
+            bank_account_number: bankAccountNumber || null,
           })
           .eq('id', editOrder.id) as any);
 
