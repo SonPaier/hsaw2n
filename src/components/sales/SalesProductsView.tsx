@@ -123,7 +123,7 @@ const SalesProductsView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Nazwa skrócona</TableHead>
+              <TableHead>Nazwa</TableHead>
               <TableHead>Nazwa pełna</TableHead>
               <TableHead className="text-right w-[120px]">Cena netto</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -140,7 +140,7 @@ const SalesProductsView = () => {
               paginatedProducts.map((product) => (
                 <TableRow key={product.id} className="hover:bg-hover-strong">
                   <TableCell className="font-medium">{product.shortName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{product.fullName}</TableCell>
+                  <TableCell className="text-sm">{product.fullName}</TableCell>
                   <TableCell className="text-right text-sm tabular-nums">
                     {formatCurrency(product.priceNet)}
                   </TableCell>

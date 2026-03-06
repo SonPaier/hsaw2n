@@ -225,7 +225,6 @@ const SalesCustomersView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[30px]" />
               <SortableHead field="name">Nazwa</SortableHead>
               <SortableHead field="city">Miasto</SortableHead>
               <SortableHead field="last_order">Ostatnie zamówienie</SortableHead>
@@ -238,13 +237,13 @@ const SalesCustomersView = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Ładowanie...
                 </TableCell>
               </TableRow>
             ) : paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Brak wyników
                 </TableCell>
               </TableRow>
@@ -254,10 +253,16 @@ const SalesCustomersView = () => {
                 return (
                   <React.Fragment key={c.id}>
                     <TableRow className="hover:bg-hover-strong cursor-pointer" onClick={() => openDrawer(c)}>
-                      <TableCell className="pr-0" onClick={(e) => { e.stopPropagation(); toggleExpand(c.id); }}>
-                        {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                      <TableCell className="font-medium max-w-[220px]">
+                        <div className="flex items-center gap-1.5" onClick={(e) => { e.stopPropagation(); toggleExpand(c.id); }}>
+                          {isExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          )}
+                          <span className="truncate">{c.name}</span>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-medium max-w-[220px] truncate">{c.name}</TableCell>
                       <TableCell className="text-sm">
                         {c.shipping_city || <span className="text-muted-foreground">—</span>}
                       </TableCell>
@@ -305,7 +310,7 @@ const SalesCustomersView = () => {
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
-                        <TableCell colSpan={8} className="p-0">
+                        <TableCell colSpan={7} className="p-0">
                           <div className="bg-muted/30 px-8 py-4 grid grid-cols-3 gap-6 text-sm border-t">
                             <div>
                               <p className="text-muted-foreground text-xs font-medium mb-1">NIP</p>
