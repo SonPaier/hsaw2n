@@ -293,7 +293,7 @@ const ServiceFormContent = ({
         duration_large: service.duration_large ?? null,
         category_id: service.category_id || defaultCategoryId || '',
         service_type: service.service_type || 'both',
-        visibility: (service.service_type || 'both') === 'both' ? (service.visibility || 'everywhere') : 'everywhere',
+        visibility: 'everywhere',
         reminder_template_id: service.reminder_template_id || '__none__',
         is_popular: service.is_popular ?? false,
         trwalosc_produktu_w_mesiacach: service.metadata?.trwalosc_produktu_w_mesiacach ?? null,
