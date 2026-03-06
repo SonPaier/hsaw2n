@@ -296,7 +296,7 @@ const SalesCustomersView = () => {
                               <ShoppingCart className="w-4 h-4 mr-2" />
                               Nowe zamówienie
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openDrawer(c)}>Edytuj</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDrawer(c, true)}>Edytuj</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>Usuń</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
