@@ -112,7 +112,7 @@ const SalesProductsView = () => {
             className="pl-9"
           />
         </div>
-        <Button size="sm" onClick={() => setDrawerOpen(true)}>
+        <Button size="sm" onClick={() => { setEditProduct(null); setDrawerOpen(true); }}>
           <Plus className="w-4 h-4" />
           Dodaj produkt
         </Button>
