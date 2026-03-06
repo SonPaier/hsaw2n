@@ -302,7 +302,7 @@ const SalesCustomersView = () => {
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="hover:bg-transparent" onClick={(e) => e.stopPropagation()}>
-                        <TableCell colSpan={7} className="p-0">
+                        <TableCell colSpan={8} className="p-0">
                           <div className="bg-muted/30 px-8 py-4 grid grid-cols-3 gap-6 text-sm border-t">
                             <div>
                               <p className="text-muted-foreground text-xs font-medium mb-1">NIP</p>
