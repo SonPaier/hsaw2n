@@ -294,7 +294,7 @@ export const CarSearchAutocomplete = ({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:bg-muted rounded-sm transition-colors"
+              className="p-1 hover:bg-hover rounded-sm transition-colors"
               aria-label={t('common.clear', 'Wyczyść')}
             >
               <X className="w-4 h-4 text-muted-foreground" />
