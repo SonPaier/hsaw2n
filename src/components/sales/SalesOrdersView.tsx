@@ -109,7 +109,7 @@ const SalesOrdersView = () => {
     setOrders(mapped);
 
     // Fetch customer company names for search
-    const customerIds: string[] = [...new Set((data || []).map((o: any) => o.customer_id).filter((id: any): id is string => !!id))];
+    const customerIds: string[] = Array.from(new Set((data || []).map((o: any) => o.customer_id).filter((id: any): id is string => typeof id === 'string' && id.length > 0)));
     if (customerIds.length > 0) {
       const { data: customers } = await (supabase
         .from('customers')
