@@ -151,7 +151,7 @@ const SalesProductsView = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => toast.info('Edycja produktu w przygotowaniu')}>
+                        <DropdownMenuItem onClick={() => { setEditProduct(product); setDrawerOpen(true); }}>
                           Edytuj
                         </DropdownMenuItem>
                         <DropdownMenuItem
