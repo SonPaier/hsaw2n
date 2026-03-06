@@ -159,8 +159,9 @@ const SalesCustomersView = () => {
     });
   };
 
-  const openDrawer = (customer: SalesCustomer | null) => {
+  const openDrawer = (customer: SalesCustomer | null, editMode = false) => {
     setSelectedCustomer(customer);
+    setInitialEditMode(editMode);
     setDrawerOpen(true);
   };
 
