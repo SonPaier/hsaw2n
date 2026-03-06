@@ -118,6 +118,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
       });
       setProducts(editOrder.products);
       setDeliveryType(editOrder.deliveryType);
+      setPaymentMethod(editOrder.paymentMethod || 'cod');
+      setBankAccountNumber(editOrder.bankAccountNumber || '');
       setComment(editOrder.comment);
       setSendEmail(editOrder.sendEmail);
     } else if (open && initialCustomer) {
