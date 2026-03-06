@@ -198,6 +198,7 @@ const SalesProductsView = () => {
           onOpenChange={setDrawerOpen}
           instanceId={instanceId}
           onSaved={fetchProducts}
+          product={editProduct}
         />
       )}
     </div>
