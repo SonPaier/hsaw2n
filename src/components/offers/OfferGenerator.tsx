@@ -541,6 +541,7 @@ export const OfferGenerator = ({
           instanceId={instanceId}
           offer={offer}
           showUnitPrices={instanceShowUnitPrices}
+          isEditing={!!offerId}
           onUpdateOffer={updateOffer}
           calculateTotalNet={calculateTotalNet}
           calculateTotalGross={calculateTotalGross}
