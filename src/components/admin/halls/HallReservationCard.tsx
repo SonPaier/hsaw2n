@@ -216,7 +216,7 @@ const HallReservationCard = ({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-muted rounded-lg transition-colors"
+            className="absolute top-4 right-4 p-2 hover:bg-hover rounded-lg transition-colors"
           >
             <X className="w-6 h-6 text-muted-foreground" />
           </button>
