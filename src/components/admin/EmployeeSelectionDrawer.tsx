@@ -95,7 +95,7 @@ export function EmployeeSelectionDrawer({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="p-1 -ml-1 hover:bg-muted rounded-md transition-colors"
+              className="p-1 -ml-1 hover:bg-hover rounded-md transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>

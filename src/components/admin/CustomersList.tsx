@@ -148,7 +148,7 @@ export const CustomersList = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+                      className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-hover"
                       onClick={e => handleDelete(customer, e)}
                     >
                       <Trash2 className="w-4 h-4" />

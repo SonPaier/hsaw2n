@@ -272,7 +272,7 @@ const WorkerTimeDialog = ({
               {showEditButton && onEditEmployee && (
                 <button
                   onClick={onEditEmployee}
-                  className="p-1 rounded hover:bg-muted"
+                  className="p-1 rounded hover:bg-hover"
                 >
                   <Pencil className="w-4 h-4 text-muted-foreground" />
                 </button>

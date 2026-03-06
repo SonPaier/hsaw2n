@@ -366,7 +366,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
                       ? 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
                       : totalMinutes > 0 
                         ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' 
-                        : 'bg-background hover:bg-muted/50'
+                        : 'bg-background hover:bg-hover-strong'
                 }`}
               >
                 <span className={`text-sm font-medium ${

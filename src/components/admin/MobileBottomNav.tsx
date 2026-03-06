@@ -172,7 +172,7 @@ const MobileBottomNav = ({
                     key={item.id}
                     onClick={() => handleMoreMenuItemClick(item.id)}
                     className={cn(
-                      "w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-muted transition-colors",
+                      "w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-hover transition-colors",
                       currentView === item.id && "bg-muted text-primary"
                     )}
                   >

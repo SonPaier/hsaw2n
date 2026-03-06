@@ -333,7 +333,7 @@ const AddEditHallDrawer = ({
               {Object.entries(allowedActions).map(([key, value]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-hover-strong transition-colors"
                 >
                   <Checkbox
                     checked={value}
