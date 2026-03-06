@@ -385,6 +385,8 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
     setProducts([]);
     setApplyDiscount(true);
     setDeliveryType('shipping');
+    setPaymentMethod('cod');
+    setBankAccountNumber(bankAccounts.length > 0 ? bankAccounts[0] : '');
     setSendEmail(false);
     setComment('');
   };
