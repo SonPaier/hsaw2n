@@ -251,7 +251,9 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <span className="capitalize">{o.status}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${o.status === 'wysłany' ? 'bg-emerald-600 text-white' : 'border border-amber-500 text-amber-600'}`}>
+                      {o.status === 'nowy' ? 'Nowy' : o.status === 'wysłany' ? 'Wysłany' : o.status}
+                    </span>
                     {o.delivery_type && (
                       <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
                         {o.delivery_type === 'shipping' ? 'Wysyłka' : o.delivery_type === 'pickup' ? 'Odbiór osobisty' : o.delivery_type === 'uber' ? 'Uber' : o.delivery_type}

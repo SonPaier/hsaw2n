@@ -306,7 +306,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             comment: comment || null,
             delivery_type: deliveryType,
             payment_method: paymentMethod,
-            bank_account_number: paymentMethod === 'transfer' ? (bankAccountNumber || null) : null,
+            bank_account_number: bankAccountNumber || null,
           })
           .eq('id', editOrder.id) as any);
 
@@ -343,7 +343,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             comment: comment || null,
             delivery_type: deliveryType,
             payment_method: paymentMethod,
-            bank_account_number: paymentMethod === 'transfer' ? (bankAccountNumber || null) : null,
+            bank_account_number: bankAccountNumber || null,
             status: 'nowy',
             created_by: user?.id || null,
           })
@@ -587,22 +587,19 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
             </div>
 
             {/* Bank account selection */}
-            {paymentMethod === 'transfer' && bankAccounts.length > 0 && (
-              <div className="space-y-2">
-                <Label>Numer konta</Label>
-                <Select value={bankAccountNumber} onValueChange={setBankAccountNumber}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz konto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map((account, idx) => (
-                      <SelectItem key={idx} value={account}>
-                        {account}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {bankAccounts.length > 0 && (
+              <Select value={bankAccountNumber} onValueChange={setBankAccountNumber}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz konto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((account, idx) => (
+                    <SelectItem key={idx} value={account}>
+                      {account}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
 
             {/* Summary */}

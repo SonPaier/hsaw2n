@@ -389,20 +389,20 @@ const SalesOrdersView = () => {
                                     : 'border-amber-500 text-amber-600 cursor-pointer'
                                 }
                               >
-                                {order.status}
+                              {order.status === 'nowy' ? 'Nowy' : order.status === 'wysłany' ? 'Wysłany' : order.status}
                               </Badge>
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => changeStatus(order.id, 'nowy')}>
                               <Badge variant="outline" className="border-amber-500 text-amber-600 mr-2">
-                                nowy
+                                Nowy
                               </Badge>
-                              Oznacz jako nowy
+                              Oznacz jako Nowy
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => changeStatus(order.id, 'wysłany')}>
-                              <Badge className="bg-emerald-600 text-white mr-2">wysłany</Badge>
-                              Oznacz jako wysłany
+                              <Badge className="bg-emerald-600 text-white mr-2">Wysłany</Badge>
+                              Oznacz jako Wysłany
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
