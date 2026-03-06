@@ -46,6 +46,7 @@ interface OrderProduct {
 }
 
 type DeliveryType = 'shipping' | 'pickup' | 'uber';
+type PaymentMethod = 'cod' | 'transfer';
 
 const VAT_RATE = 0.23;
 
