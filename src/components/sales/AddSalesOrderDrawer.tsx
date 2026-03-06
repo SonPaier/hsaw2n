@@ -79,6 +79,8 @@ interface AddSalesOrderDrawerProps {
 const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, editOrder, onOrderCreated }: AddSalesOrderDrawerProps) => {
   const { roles } = useAuth();
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
+  const { data: instanceData } = useInstanceData(instanceId);
+  const bankAccounts: string[] = (instanceData?.bank_accounts as string[] | null) || [];
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<SalesCustomerRef | null>(null);
