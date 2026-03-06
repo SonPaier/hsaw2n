@@ -496,7 +496,7 @@ export const SummaryStep = ({
                           <button
                             type="button"
                             onClick={() => handleStartEditPrice(option.id, currentTotal)}
-                            className="text-right hover:bg-muted/50 rounded px-2 py-1 transition-colors cursor-pointer"
+                            className="text-right hover:bg-hover-strong rounded px-2 py-1 transition-colors cursor-pointer"
                             title="Kliknij aby edytować wartość"
                           >
                             {optionHasDiscount ? (
