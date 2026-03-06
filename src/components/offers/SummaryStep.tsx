@@ -696,7 +696,7 @@ export const SummaryStep = ({
                               <button
                                 type="button"
                                 onClick={() => handleStartEditItemPrice(option.id, item.id, item.unitPrice)}
-                                className="font-medium hover:bg-muted rounded px-1 transition-colors cursor-pointer"
+                                className="font-medium hover:bg-hover rounded px-1 transition-colors cursor-pointer"
                                 title="Kliknij aby edytować"
                               >
                                 {formatPrice(itemValue)}

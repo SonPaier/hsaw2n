@@ -195,7 +195,7 @@ export default function RemindersView({ instanceId, onNavigateBack }: RemindersV
             <div
               key={template.id}
               onClick={() => handleTemplateClick(template)}
-              className="flex items-center justify-between gap-3 p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+              className="flex items-center justify-between gap-3 p-4 border rounded-lg bg-card hover:bg-hover-strong transition-colors cursor-pointer"
             >
               <div className="flex-1 min-w-0">
                 <div className="font-medium">{template.name}</div>
