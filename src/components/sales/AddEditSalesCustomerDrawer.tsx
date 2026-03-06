@@ -102,6 +102,9 @@ const AddEditSalesCustomerDrawer = ({ open, onOpenChange, customer, instanceId, 
       setActiveTab('data');
       return;
     }
+    if (initialEditMode && isEdit) {
+      setEditMode(true);
+    }
     if (customer) {
       setForm({
         name: customer.name || '',
