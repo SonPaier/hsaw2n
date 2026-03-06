@@ -478,7 +478,8 @@ export const SummaryStepV2 = ({
 
       // Update conditions based on selected scopes
       // BUT: skip overwriting on first load of an existing offer (preserves user edits)
-      if (offer.id && !conditionsInitializedRef.current) {
+      // Only protect conditions when truly editing a pre-existing offer, not auto-saved new ones
+      if (isEditing && offer.id && !conditionsInitializedRef.current) {
         // First load of existing offer - don't overwrite saved values
         conditionsInitializedRef.current = true;
       } else {
