@@ -253,7 +253,7 @@ const HallReservationCard = ({
                       <div 
                         className={cn(
                           "text-2xl font-bold flex items-center gap-2 flex-1",
-                          canToggle && "cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 py-1",
+                          canToggle && "cursor-pointer hover:bg-hover-strong rounded px-2 -mx-2 py-1",
                           isChecked && "text-muted-foreground"
                         )}
                         onClick={canToggle ? () => onServiceToggle(service.id!, !isChecked) : undefined}

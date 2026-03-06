@@ -461,7 +461,7 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
                             key={c.id}
                             type="button"
                             className={`w-full px-4 py-3 text-left transition-colors border-b border-border last:border-0 ${
-                              i === activeIndex ? 'bg-accent' : 'hover:bg-muted/30'
+                              i === activeIndex ? 'bg-accent' : 'hover:bg-hover'
                             }`}
                             onClick={() => handleSelectCustomer(c)}
                             onMouseEnter={() => setActiveIndex(i)}

@@ -211,7 +211,7 @@ export function ScopeProductSelectionDrawer({
                           "w-full flex items-center px-4 py-3 border-b border-border/50 transition-colors",
                           isSelected 
                             ? "bg-primary/5" 
-                            : "hover:bg-muted/30"
+                            : "hover:bg-hover"
                         )}
                       >
                         {/* Product name only */}

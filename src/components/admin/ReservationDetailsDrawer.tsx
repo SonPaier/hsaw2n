@@ -659,7 +659,7 @@ const ReservationDetailsDrawer = ({
               <button 
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+                className="p-2 rounded-full hover:bg-hover transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>

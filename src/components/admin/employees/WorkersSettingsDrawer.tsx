@@ -72,7 +72,7 @@ const WorkersSettingsDrawer = ({
             <h2 className="text-lg font-semibold">Ustawienia czasu pracy</h2>
             <button 
               onClick={handleClose}
-              className="p-2 rounded-full hover:bg-muted"
+              className="p-2 rounded-full hover:bg-hover"
             >
               <X className="w-5 h-5" />
             </button>
