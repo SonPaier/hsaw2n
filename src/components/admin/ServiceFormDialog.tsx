@@ -368,7 +368,7 @@ const ServiceFormContent = ({
         category_id: formData.category_id || null,
         service_type: formData.service_type,
         // visibility is meaningful only for unified services (service_type='both')
-        visibility: formData.service_type === 'both' ? formData.visibility : 'everywhere',
+        visibility: 'everywhere',
         requires_size: showSizePrices || showSizeDurations,
         reminder_template_id: formData.reminder_template_id === '__none__' ? null : formData.reminder_template_id,
         is_popular: formData.is_popular,
