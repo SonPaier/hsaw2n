@@ -51,7 +51,7 @@ const SalesProductsView = () => {
     setLoading(true);
     const { data } = await (supabase
       .from('sales_products')
-      .select('id, short_name, full_name, price_net, price_unit')
+      .select('id, short_name, full_name, description, price_net, price_unit')
       .eq('instance_id', instanceId)
       .order('created_at', { ascending: false }) as any);
 
