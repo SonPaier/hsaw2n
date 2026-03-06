@@ -89,6 +89,7 @@ const SalesOrdersView = () => {
       createdAt: o.created_at,
       shippedAt: o.shipped_at || undefined,
       customerName: o.customer_name,
+      customerId: o.customer_id || undefined,
       city: o.city || undefined,
       contactPerson: o.contact_person || undefined,
       totalNet: Number(o.total_net),
@@ -106,6 +107,22 @@ const SalesOrdersView = () => {
     }));
 
     setOrders(mapped);
+
+    // Fetch customer company names for search
+    const customerIds = [...new Set((data || []).map((o: any) => o.customer_id).filter(Boolean))];
+    if (customerIds.length > 0) {
+      const { data: customers } = await (supabase
+        .from('customers')
+        .select('id, company')
+        .in('id', customerIds) as any);
+      if (customers) {
+        const map: Record<string, string> = {};
+        for (const c of customers as { id: string; company: string | null }[]) {
+          if (c.company) map[c.id] = c.company;
+        }
+        setCustomerCompanyMap(map);
+      }
+    }
   }, [instanceId]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
