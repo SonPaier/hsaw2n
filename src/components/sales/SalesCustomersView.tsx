@@ -262,6 +262,9 @@ const SalesCustomersView = () => {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-sm">
+                        {c.shipping_city || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell>
                         <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="text-primary hover:underline text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {c.phone}
