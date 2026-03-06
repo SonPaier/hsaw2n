@@ -43,6 +43,7 @@ interface Props {
   customer: SalesCustomer | null;
   instanceId: string;
   onSaved: () => void;
+  initialEditMode?: boolean;
 }
 
 const emptyForm = {
