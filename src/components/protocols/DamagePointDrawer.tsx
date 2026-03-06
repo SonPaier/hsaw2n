@@ -29,67 +29,6 @@ interface DamagePointDrawerProps {
   onPhotoUploaded?: (url: string) => void;
 }
 
-// Compress image before upload - max 1200px, 75% quality (~100-200KB)
-const compressImage = (file: File, maxSize = 1200, quality = 0.75): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      reject(new Error('Could not get canvas context'));
-      return;
-    }
-    
-    const img = new Image();
-    
-    img.onload = () => {
-      let { width, height } = img;
-      
-      // Scale to max 1200px on longest edge
-      if (width > height && width > maxSize) {
-        height = (height / width) * maxSize;
-        width = maxSize;
-      } else if (height > maxSize) {
-        width = (width / height) * maxSize;
-        height = maxSize;
-      }
-      
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to compress image'));
-          }
-        },
-        'image/jpeg',
-        quality
-      );
-      
-      URL.revokeObjectURL(img.src);
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src);
-      reject(new Error('Failed to load image'));
-    };
-    
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-export const DamagePointDrawer = ({
-  open,
-  onOpenChange,
-  point,
-  onSave,
-  onDelete,
-  isEditing = false,
-  offerNumber,
-  onPhotoUploaded,
 }: DamagePointDrawerProps) => {
   const existingPoint = point && 'id' in point ? point : null;
   
