@@ -109,7 +109,11 @@ Deno.serve(async (req) => {
       
       let inserted = 0;
       for (let i = 0; i < rows.length; i += batchSize) {
-        const batch = rows.slice(i, i + batchSize);
+        let batch = rows.slice(i, i + batchSize);
+        // Strip "id" column for tables that don't have it on target
+        if (stripIdTables.has(tableName)) {
+          batch = batch.map((row: any) => { const { id, ...rest } = row; return rest; });
+        }
         const { error } = await target.from(tableName).upsert(batch, { onConflict: conflictKey, ignoreDuplicates: true });
         if (error) errors.push(`${tableName}: insert error (batch ${Math.floor(i/batchSize)}) - ${error.message}`);
         else inserted += batch.length;
