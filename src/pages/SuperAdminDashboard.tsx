@@ -269,6 +269,14 @@ const SuperAdminDashboard = () => {
                 <Settings className="w-4 h-4" />
                 Ustawienia
               </Button>
+              <Button 
+                variant={activeSection === 'migration' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('migration')}
+              >
+                <Database className="w-4 h-4" />
+                Migracja
+              </Button>
             </nav>
 
             {/* User Info & Logout */}
