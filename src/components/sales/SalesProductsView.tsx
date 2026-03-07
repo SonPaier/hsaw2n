@@ -126,14 +126,16 @@ const SalesProductsView = () => {
             className="pl-9"
           />
         </div>
-        <Button size="sm" variant="outline" onClick={() => setCategoryDialogOpen(true)}>
-          <FolderOpen className="w-4 h-4" />
-          Kategorie
-        </Button>
-        <Button size="sm" onClick={() => { setEditProduct(null); setDrawerOpen(true); }}>
-          <Plus className="w-4 h-4" />
-          Dodaj produkt
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setCategoryDialogOpen(true)}>
+            <Settings2 className="w-4 h-4" />
+            Kategorie
+          </Button>
+          <Button size="sm" onClick={() => { setEditProduct(null); setDrawerOpen(true); }}>
+            <Plus className="w-4 h-4" />
+            Dodaj produkt
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card">
