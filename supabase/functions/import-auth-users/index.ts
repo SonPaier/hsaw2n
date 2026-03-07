@@ -47,21 +47,13 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get target DB URL
-    const targetUrl = Deno.env.get("TARGET_SUPABASE_URL");
-    const targetServiceKey = Deno.env.get("TARGET_SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!targetUrl || !targetServiceKey) {
-      return new Response(JSON.stringify({ error: "TARGET_SUPABASE_URL or TARGET_SUPABASE_SERVICE_ROLE_KEY not configured" }), {
+    const targetDbUrl = Deno.env.get("TARGET_SUPABASE_DB_URL");
+    if (!targetDbUrl) {
+      return new Response(JSON.stringify({ error: "TARGET_SUPABASE_DB_URL not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const targetClient = createClient(targetUrl, targetServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Parse request body - expects { users: [...] } from dump-auth-users output
     const body = await req.json();
     const { users, dry_run = false } = body;
 
@@ -76,15 +68,20 @@ serve(async (req: Request): Promise<Response> => {
     let created = 0;
     let skipped = 0;
 
-    log.push(`Rozpoczynam import ${users.length} użytkowników...`);
+    log.push(`Rozpoczynam import ${users.length} użytkowników via SQL...`);
     log.push(`Tryb: ${dry_run ? 'DRY RUN' : 'LIVE'}`);
+
+    const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
+    const sql = postgres(targetDbUrl, { max: 1 });
 
     for (const u of users) {
       try {
-        // Check if user already exists in target
-        const { data: existingUser } = await targetClient.auth.admin.getUserById(u.id);
-        
-        if (existingUser?.user) {
+        // Check if user already exists
+        const existing = await sql`
+          SELECT id FROM auth.users WHERE id = ${u.id}::uuid
+        `;
+
+        if (existing.length > 0) {
           log.push(`⏭️ SKIP ${u.email} (${u.id}) - już istnieje`);
           skipped++;
           continue;
@@ -96,25 +93,82 @@ serve(async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Create user in target with original UUID
-        const { data: newUser, error: createError } = await targetClient.auth.admin.createUser({
-          id: u.id,
-          email: u.email,
-          phone: u.phone || undefined,
-          email_confirm: !!u.email_confirmed_at,
-          phone_confirm: !!u.phone_confirmed_at,
-          user_metadata: u.raw_user_meta_data || {},
-          app_metadata: u.raw_app_meta_data || {},
-          // Set a temporary password - we'll update encrypted_password via SQL
-          password: `temp_${crypto.randomUUID()}`,
-        });
+        // Direct SQL insert into auth.users with all original fields
+        await sql`
+          INSERT INTO auth.users (
+            id,
+            instance_id,
+            aud,
+            role,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            invited_at,
+            confirmation_token,
+            confirmation_sent_at,
+            recovery_token,
+            recovery_sent_at,
+            email_change_token_new,
+            email_change,
+            email_change_sent_at,
+            last_sign_in_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            is_super_admin,
+            created_at,
+            updated_at,
+            phone,
+            phone_confirmed_at,
+            phone_change,
+            phone_change_token,
+            phone_change_sent_at,
+            email_change_token_current,
+            email_change_confirm_status,
+            banned_until,
+            reauthentication_token,
+            reauthentication_sent_at,
+            is_sso_user,
+            deleted_at,
+            is_anonymous
+          ) VALUES (
+            ${u.id}::uuid,
+            ${u.instance_id || '00000000-0000-0000-0000-000000000000'}::uuid,
+            ${u.aud || 'authenticated'},
+            ${u.role || 'authenticated'},
+            ${u.email},
+            ${u.encrypted_password || ''},
+            ${u.email_confirmed_at || null},
+            ${u.invited_at || null},
+            ${u.confirmation_token || ''},
+            ${u.confirmation_sent_at || null},
+            ${u.recovery_token || ''},
+            ${u.recovery_sent_at || null},
+            ${u.email_change_token_new || ''},
+            ${u.email_change || ''},
+            ${u.email_change_sent_at || null},
+            ${u.last_sign_in_at || null},
+            ${JSON.stringify(u.raw_app_meta_data || {})}::jsonb,
+            ${JSON.stringify(u.raw_user_meta_data || {})}::jsonb,
+            ${u.is_super_admin || false},
+            ${u.created_at || new Date().toISOString()},
+            ${u.updated_at || new Date().toISOString()},
+            ${u.phone || null},
+            ${u.phone_confirmed_at || null},
+            ${u.phone_change || ''},
+            ${u.phone_change_token || ''},
+            ${u.phone_change_sent_at || null},
+            ${u.email_change_token_current || ''},
+            ${u.email_change_confirm_status || 0},
+            ${u.banned_until || null},
+            ${u.reauthentication_token || ''},
+            ${u.reauthentication_sent_at || null},
+            ${u.is_sso_user || false},
+            ${u.deleted_at || null},
+            ${u.is_anonymous || false}
+          )
+        `;
 
-        if (createError) {
-          errors.push(`❌ ${u.email} (${u.id}): ${createError.message}`);
-          continue;
-        }
-
-        log.push(`✅ ${u.email} (${u.id}) - utworzony`);
+        log.push(`✅ ${u.email} (${u.id}) - utworzony z oryginalnym hasłem`);
         created++;
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -122,55 +176,12 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // Now update encrypted_password for all users via direct DB connection if available
-    // We need to use the target DB URL for this
-    const targetDbUrl = Deno.env.get("TARGET_SUPABASE_DB_URL");
-    
-    if (targetDbUrl && !dry_run) {
-      log.push(`\n🔑 Aktualizacja encrypted_password via SQL...`);
-      
-      try {
-        const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
-        const sql = postgres(targetDbUrl, { max: 1 });
-        
-        let passwordsUpdated = 0;
-        for (const u of users) {
-          if (u.encrypted_password) {
-            try {
-              await sql`
-                UPDATE auth.users 
-                SET encrypted_password = ${u.encrypted_password}
-                WHERE id = ${u.id}::uuid
-              `;
-              passwordsUpdated++;
-            } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : String(e);
-              errors.push(`🔑 Hasło ${u.email}: ${msg}`);
-            }
-          }
-        }
-        
-        log.push(`🔑 Zaktualizowano ${passwordsUpdated}/${users.length} haseł`);
-        await sql.end();
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        errors.push(`🔑 Połączenie DB: ${msg}`);
-        log.push(`⚠️ Nie udało się zaktualizować haseł - brak TARGET_SUPABASE_DB_URL lub błąd połączenia`);
-        log.push(`ℹ️ Hasła można zaktualizować ręcznie SQL-em na podstawie dumpa`);
-      }
-    } else if (!dry_run) {
-      log.push(`\n⚠️ TARGET_SUPABASE_DB_URL nie skonfigurowany - hasła nie zostały zaktualizowane`);
-      log.push(`ℹ️ Użytkownicy utworzeni z tymczasowymi hasłami. Uruchom SQL na docelowej bazie aby przywrócić oryginalne hasła.`);
-    }
+    await sql.end();
 
     log.push(`\n📊 Podsumowanie: utworzono=${created}, pominięto=${skipped}, błędów=${errors.length}`);
 
     return new Response(JSON.stringify({ 
-      log, 
-      errors,
-      created,
-      skipped,
-      total: users.length,
+      log, errors, created, skipped, total: users.length,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
