@@ -54,6 +54,14 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    // Debug: log sanitized URL (hide password)
+    try {
+      const urlObj = new URL(targetDbUrl);
+      console.log(`DB host: ${urlObj.hostname}, port: ${urlObj.port}, db: ${urlObj.pathname}`);
+    } catch {
+      console.log(`DB URL parse failed, raw length: ${targetDbUrl.length}, starts with: ${targetDbUrl.substring(0, 30)}`);
+    }
+
     const body = await req.json();
     const { users, dry_run = false } = body;
 
