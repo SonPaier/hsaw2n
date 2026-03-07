@@ -633,6 +633,65 @@ const SuperAdminDashboard = () => {
                     {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                     🚀 Import LIVE ({authUsersDump?.length ?? 0} userów)
                   </Button>
+
+                  {/* Storage Migration */}
+                  <div className="w-full border-t border-border my-2" />
+
+                  <Button
+                    disabled={migrationRunning}
+                    variant="outline"
+                    className="gap-2 border-blue-500/50 text-blue-600 hover:bg-blue-500/10"
+                    onClick={async () => {
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('migrate-storage', {
+                          body: { dry_run: true },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Storage dry run: ${data.total_files} plików znalezionych`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                    📦 Storage Dry Run
+                  </Button>
+
+                  <Button
+                    disabled={migrationRunning}
+                    className="gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                    onClick={async () => {
+                      if (!confirm('Migracja plików Storage do docelowego projektu. Pliki już istniejące zostaną pominięte. Kontynuować?')) return;
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('migrate-storage', {
+                          body: { dry_run: false, batch_limit: 100 },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Storage: ${data.total_migrated} przesłanych, ${data.total_skipped} pominiętych`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                    📦 Migruj Storage
+                  </Button>
                 </div>
 
                 {migrationLog.length > 0 && (
