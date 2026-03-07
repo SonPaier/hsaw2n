@@ -209,15 +209,21 @@ Deno.serve(async (req) => {
       ];
       for (const t of l2Tables) await migrateByInstance(t, instanceId);
 
-      // 6. Reservations (depends on stations, services, unified_services)
-      // First get all reservation IDs that will be inserted successfully
-      await migrateByInstance("reservations", instanceId);
+      // 6. Reservations - nullify orphan service_id references
+      const allReservations = await readAll("reservations", { col: "instance_id", val: instanceId });
+      const migratedServices = await readAll("services", { col: "instance_id", val: instanceId });
+      const serviceIdSet = new Set(migratedServices.map((s: any) => s.id));
+      const fixedReservations = allReservations.map((r: any) => ({
+        ...r,
+        service_id: r.service_id && serviceIdSet.has(r.service_id) ? r.service_id : null,
+      }));
+      await writeToTarget("reservations", fixedReservations);
 
-      // 7. Tables depending on reservations
-      // reservation_changes: filter out rows with null/undefined new_value AND ensure reservation exists
+      // Build set of actually migrated reservation IDs for dependent tables
+      const reservationIdSet = new Set(fixedReservations.map((r: any) => r.id));
+
+      // 7. Tables depending on reservations - filter by existing reservation IDs
       const resChanges = await readAll("reservation_changes", { col: "instance_id", val: instanceId });
-      const reservationRows = await readAll("reservations", { col: "instance_id", val: instanceId });
-      const reservationIdSet = new Set(reservationRows.map((r: any) => r.id));
       const validChanges = resChanges.filter((r: any) => 
         r.new_value !== null && r.new_value !== undefined && 
         (r.change_type === 'created' || r.reservation_id == null || reservationIdSet.has(r.reservation_id))
@@ -228,8 +234,22 @@ Deno.serve(async (req) => {
       await writeToTarget("reservation_changes", validChanges);
 
       await migrateByInstance("reservation_events", instanceId);
-      await migrateByInstance("sms_logs", instanceId);
-      await migrateByInstance("customer_reminders", instanceId);
+      
+      // sms_logs - filter by existing reservation IDs
+      const smsLogs = await readAll("sms_logs", { col: "instance_id", val: instanceId });
+      const validSmsLogs = smsLogs.filter((r: any) => !r.reservation_id || reservationIdSet.has(r.reservation_id));
+      if (validSmsLogs.length < smsLogs.length) {
+        log.push(`sms_logs: filtered out ${smsLogs.length - validSmsLogs.length} orphan rows`);
+      }
+      await writeToTarget("sms_logs", validSmsLogs);
+      
+      // customer_reminders - filter by existing reservation IDs
+      const custReminders = await readAll("customer_reminders", { col: "instance_id", val: instanceId });
+      const validReminders = custReminders.filter((r: any) => !r.reservation_id || reservationIdSet.has(r.reservation_id));
+      if (validReminders.length < custReminders.length) {
+        log.push(`customer_reminders: filtered out ${custReminders.length - validReminders.length} orphan rows`);
+      }
+      await writeToTarget("customer_reminders", validReminders);
 
       // 8. Offers system
       await migrateByInstance("offer_scopes", instanceId);
