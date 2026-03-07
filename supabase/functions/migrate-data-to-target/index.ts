@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
 
       // 16. Restore correct station_limit in instance_subscriptions
       if (subs.length > 0) {
-        await writeToTarget("instance_subscriptions", subs);
+        await writeToTarget("instance_subscriptions", subs, 500, true);
         log.push(`instance_subscriptions: restored original station_limit`);
       }
     }
