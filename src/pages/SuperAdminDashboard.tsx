@@ -533,6 +533,38 @@ const SuperAdminDashboard = () => {
                   >
                     {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                     Uruchom migrację
+                   </Button>
+
+                  <Button
+                    disabled={migrationRunning}
+                    variant="outline"
+                    className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                    onClick={async () => {
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('dump-auth-users');
+                        if (error) throw error;
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `auth-users-dump-${new Date().toISOString().slice(0,10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success(`Pobrano ${data.count} użytkowników z encrypted_password`);
+                        setMigrationLog([`Pobrano ${data.count} użytkowników auth.users`]);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                    Dump auth.users (z hasłami)
                   </Button>
                 </div>
 
