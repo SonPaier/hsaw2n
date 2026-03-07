@@ -58,12 +58,14 @@ Deno.serve(async (req) => {
     const log: string[] = [];
     const errors: string[] = [];
 
-    // ---- Tables with composite PK (no "id" column) ----
+    // ---- Tables with composite PK (no "id" column on target) ----
     const compositeKeyTables: Record<string, string> = {
       instance_features: "instance_id,feature_key",
       workers_settings: "instance_id",
       station_employees: "station_id,employee_id",
     };
+    // Tables where target has no "id" column — strip it before insert
+    const stripIdTables = new Set(["instance_features", "workers_settings"]);
 
     // ---- Helper: read all rows from a table (paginated) ----
     const readAll = async (tableName: string, filter?: { col: string; val: string }, batchSize = 500): Promise<any[]> => {
