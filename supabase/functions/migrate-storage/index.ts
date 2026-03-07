@@ -132,29 +132,26 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Limit per run to avoid timeout
-      const filesToMigrate = files.slice(0, batchLimit);
-      if (files.length > batchLimit) {
-        log.push(`${bucket}: przetwarzam ${batchLimit}/${files.length} (limit batcha)`);
-      }
-
       let migrated = 0;
       let skipped = 0;
 
-      for (const filePath of filesToMigrate) {
+      for (const filePath of files) {
+        // Stop when we've uploaded enough in this run
+        if (migrated >= batchLimit) {
+          log.push(`${bucket}: osiągnięto limit batcha (${batchLimit}), uruchom ponownie`);
+          break;
+        }
+
         try {
           // Check if file already exists on target
+          const dir = filePath.includes("/") ? filePath.substring(0, filePath.lastIndexOf("/")) : "";
+          const fileName = filePath.includes("/") ? filePath.substring(filePath.lastIndexOf("/") + 1) : filePath;
+
           const { data: existingList } = await target.storage
             .from(bucket)
-            .list(filePath.includes("/") ? filePath.substring(0, filePath.lastIndexOf("/")) : "", {
-              limit: 1,
-              search: filePath.includes("/") ? filePath.substring(filePath.lastIndexOf("/") + 1) : filePath,
-            });
+            .list(dir, { limit: 1, search: fileName });
 
-          if (existingList && existingList.some((f) => {
-            const name = filePath.includes("/") ? filePath.substring(filePath.lastIndexOf("/") + 1) : filePath;
-            return f.name === name && f.id !== null;
-          })) {
+          if (existingList && existingList.some((f) => f.name === fileName && f.id !== null)) {
             skipped++;
             continue;
           }
