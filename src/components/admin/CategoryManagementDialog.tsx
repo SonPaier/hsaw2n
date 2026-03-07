@@ -139,6 +139,7 @@ interface CategoryManagementDialogProps {
   instanceId: string;
   serviceCounts: Record<string, number>;
   onCategoriesChanged: () => void;
+  categoryType?: string;
 }
 
 export function CategoryManagementDialog({
@@ -147,6 +148,7 @@ export function CategoryManagementDialog({
   instanceId,
   serviceCounts,
   onCategoriesChanged,
+  categoryType = 'both',
 }: CategoryManagementDialogProps) {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
