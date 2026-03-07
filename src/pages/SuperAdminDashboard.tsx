@@ -68,6 +68,7 @@ const SuperAdminDashboard = () => {
   const [migrationLog, setMigrationLog] = useState<string[]>([]);
   const [migrationErrors, setMigrationErrors] = useState<string[]>([]);
   const [migrationRunning, setMigrationRunning] = useState(false);
+  const [authUsersDump, setAuthUsersDump] = useState<any[] | null>(null);
 
   useEffect(() => {
     fetchInstances();
