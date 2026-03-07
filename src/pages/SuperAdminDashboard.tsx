@@ -68,6 +68,7 @@ const SuperAdminDashboard = () => {
   const [migrationLog, setMigrationLog] = useState<string[]>([]);
   const [migrationErrors, setMigrationErrors] = useState<string[]>([]);
   const [migrationRunning, setMigrationRunning] = useState(false);
+  const [authUsersDump, setAuthUsersDump] = useState<any[] | null>(null);
 
   useEffect(() => {
     fetchInstances();
@@ -546,6 +547,7 @@ const SuperAdminDashboard = () => {
                       try {
                         const { data, error } = await supabase.functions.invoke('dump-auth-users');
                         if (error) throw error;
+                        setAuthUsersDump(data.users);
                         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
@@ -554,7 +556,7 @@ const SuperAdminDashboard = () => {
                         a.click();
                         URL.revokeObjectURL(url);
                         toast.success(`Pobrano ${data.count} użytkowników z encrypted_password`);
-                        setMigrationLog([`Pobrano ${data.count} użytkowników auth.users`]);
+                        setMigrationLog([`Pobrano ${data.count} użytkowników auth.users (gotowe do importu)`]);
                       } catch (e: any) {
                         toast.error('Błąd: ' + (e.message || String(e)));
                         setMigrationErrors([String(e)]);
@@ -565,6 +567,71 @@ const SuperAdminDashboard = () => {
                   >
                     {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                     Dump auth.users (z hasłami)
+                  </Button>
+
+                  <Button
+                    disabled={migrationRunning || !authUsersDump}
+                    variant="outline"
+                    className="gap-2 border-green-500/50 text-green-600 hover:bg-green-500/10"
+                    onClick={async () => {
+                      if (!authUsersDump) {
+                        toast.error('Najpierw kliknij "Dump auth.users" aby pobrać dane');
+                        return;
+                      }
+                      if (!confirm(`Zaimportować ${authUsersDump.length} użytkowników do NOWEGO projektu? (Dry Run)`)) return;
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('import-auth-users', {
+                          body: { users: authUsersDump, dry_run: true },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Dry run: ${data.created} do utworzenia, ${data.skipped} pominiętych`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                    Import Dry Run ({authUsersDump?.length ?? 0} userów)
+                  </Button>
+
+                  <Button
+                    disabled={migrationRunning || !authUsersDump}
+                    className="gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    onClick={async () => {
+                      if (!authUsersDump) {
+                        toast.error('Najpierw kliknij "Dump auth.users" aby pobrać dane');
+                        return;
+                      }
+                      if (!confirm(`⚠️ LIVE IMPORT: Utworzyć ${authUsersDump.length} użytkowników w NOWYM projekcie? Tej operacji nie można cofnąć!`)) return;
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('import-auth-users', {
+                          body: { users: authUsersDump, dry_run: false },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Import zakończony: ${data.created} utworzonych, ${data.skipped} pominiętych`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                    🚀 Import LIVE ({authUsersDump?.length ?? 0} userów)
                   </Button>
                 </div>
 
