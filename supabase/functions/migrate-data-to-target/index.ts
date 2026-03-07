@@ -206,15 +206,21 @@ Deno.serve(async (req) => {
       ];
       for (const t of l2Tables) await migrateByInstance(t, instanceId);
 
-      // 6. Reservations (depends on stations, services)
+      // 6. Reservations (depends on stations, services, unified_services)
+      // First get all reservation IDs that will be inserted successfully
       await migrateByInstance("reservations", instanceId);
 
       // 7. Tables depending on reservations
-      // reservation_changes: filter out rows with null new_value
+      // reservation_changes: filter out rows with null/undefined new_value AND ensure reservation exists
       const resChanges = await readAll("reservation_changes", { col: "instance_id", val: instanceId });
-      const validChanges = resChanges.filter((r: any) => r.new_value !== null);
+      const reservationRows = await readAll("reservations", { col: "instance_id", val: instanceId });
+      const reservationIdSet = new Set(reservationRows.map((r: any) => r.id));
+      const validChanges = resChanges.filter((r: any) => 
+        r.new_value !== null && r.new_value !== undefined && 
+        (r.change_type === 'created' || r.reservation_id == null || reservationIdSet.has(r.reservation_id))
+      );
       if (validChanges.length < resChanges.length) {
-        log.push(`reservation_changes: filtered out ${resChanges.length - validChanges.length} rows with null new_value`);
+        log.push(`reservation_changes: filtered out ${resChanges.length - validChanges.length} invalid rows`);
       }
       await writeToTarget("reservation_changes", validChanges);
 
