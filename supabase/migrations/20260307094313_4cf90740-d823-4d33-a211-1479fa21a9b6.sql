@@ -1,0 +1,2 @@
+ALTER TABLE public.unified_categories DROP CONSTRAINT unified_categories_category_type_check;
+ALTER TABLE public.unified_categories ADD CONSTRAINT unified_categories_category_type_check CHECK (category_type = ANY (ARRAY['reservation'::text, 'offer'::text, 'both'::text, 'sales'::text]));
