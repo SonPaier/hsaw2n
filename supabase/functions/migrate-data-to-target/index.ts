@@ -275,10 +275,14 @@ Deno.serve(async (req) => {
       await migrateByInstance("followup_events", instanceId);
       await migrateByInstance("followup_tasks", instanceId);
 
-      // 10. Protocols (depends on reservations)
-      await migrateByInstance("vehicle_protocols", instanceId);
-      const protocols = await readAll("vehicle_protocols", { col: "instance_id", val: instanceId });
-      const protocolIds = protocols.map((p: any) => p.id);
+      // 10. Protocols (depends on reservations) - filter by existing reservation IDs
+      const allProtocols = await readAll("vehicle_protocols", { col: "instance_id", val: instanceId });
+      const validProtocols = allProtocols.filter((p: any) => !p.reservation_id || reservationIdSet.has(p.reservation_id));
+      if (validProtocols.length < allProtocols.length) {
+        log.push(`vehicle_protocols: filtered out ${allProtocols.length - validProtocols.length} orphan rows`);
+      }
+      await writeToTarget("vehicle_protocols", validProtocols);
+      const protocolIds = validProtocols.map((p: any) => p.id);
       await migrateByIds("protocol_damage_points", "protocol_id", protocolIds);
 
       // 11. Trainings (depends on stations)
