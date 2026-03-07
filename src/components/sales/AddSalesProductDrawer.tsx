@@ -181,6 +181,22 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
             </div>
 
             <div className="space-y-2">
+              <Label>Kategoria</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz kategorię" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="product-description">Opis</Label>
               <Textarea
                 id="product-description"
