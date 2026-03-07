@@ -64,7 +64,10 @@ const SuperAdminDashboard = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
-  const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings'>('instances');
+  const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings' | 'migration'>('instances');
+  const [migrationLog, setMigrationLog] = useState<string[]>([]);
+  const [migrationErrors, setMigrationErrors] = useState<string[]>([]);
+  const [migrationRunning, setMigrationRunning] = useState(false);
 
   useEffect(() => {
     fetchInstances();
