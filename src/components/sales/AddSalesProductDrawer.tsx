@@ -29,6 +29,7 @@ interface SalesProductData {
   description?: string;
   priceNet: number;
   priceUnit: string;
+  categoryId?: string | null;
 }
 
 interface AddSalesProductDrawerProps {
