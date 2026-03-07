@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Shield, Building2, Users, Settings, LogOut, 
-  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car, CreditCard, Trash2
+  Menu, Eye, Power, MoreVertical, Plus, ExternalLink, Loader2, FileText, Car, CreditCard, Trash2, Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -64,7 +64,10 @@ const SuperAdminDashboard = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
-  const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings'>('instances');
+  const [activeSection, setActiveSection] = useState<'instances' | 'cars' | 'admins' | 'settings' | 'migration'>('instances');
+  const [migrationLog, setMigrationLog] = useState<string[]>([]);
+  const [migrationErrors, setMigrationErrors] = useState<string[]>([]);
+  const [migrationRunning, setMigrationRunning] = useState(false);
 
   useEffect(() => {
     fetchInstances();
@@ -266,6 +269,14 @@ const SuperAdminDashboard = () => {
                 <Settings className="w-4 h-4" />
                 Ustawienia
               </Button>
+              <Button 
+                variant={activeSection === 'migration' ? 'secondary' : 'ghost'} 
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveSection('migration')}
+              >
+                <Database className="w-4 h-4" />
+                Migracja
+              </Button>
             </nav>
 
             {/* User Info & Logout */}
@@ -458,6 +469,91 @@ const SuperAdminDashboard = () => {
                   </div>
                 </div>
               </>
+            ) : activeSection === 'migration' ? (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Migracja danych</h1>
+                  <p className="text-muted-foreground">
+                    Przeniesienie wszystkich danych do zewnętrznego projektu
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    disabled={migrationRunning}
+                    variant="outline"
+                    className="gap-2"
+                    onClick={async () => {
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('migrate-data-to-target', {
+                          body: { all: true, dry_run: true },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Dry run zakończony: ${data.instances_count} instancji`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                    Dry Run (wszystkie instancje)
+                  </Button>
+
+                  <Button
+                    disabled={migrationRunning}
+                    className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    onClick={async () => {
+                      if (!confirm('Czy na pewno chcesz uruchomić migrację WSZYSTKICH danych? To zapisze dane do docelowego projektu.')) return;
+                      setMigrationRunning(true);
+                      setMigrationLog([]);
+                      setMigrationErrors([]);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('migrate-data-to-target', {
+                          body: { all: true, dry_run: false },
+                        });
+                        if (error) throw error;
+                        setMigrationLog(data.log || []);
+                        setMigrationErrors(data.errors || []);
+                        toast.success(`Migracja zakończona: ${data.instances_count} instancji`);
+                      } catch (e: any) {
+                        toast.error('Błąd: ' + (e.message || String(e)));
+                        setMigrationErrors([String(e)]);
+                      } finally {
+                        setMigrationRunning(false);
+                      }
+                    }}
+                  >
+                    {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                    Uruchom migrację
+                  </Button>
+                </div>
+
+                {migrationLog.length > 0 && (
+                  <div className="glass-card p-4 border-purple-500/20 space-y-2">
+                    <h3 className="font-semibold text-foreground">Log ({migrationLog.length})</h3>
+                    <pre className="text-xs text-muted-foreground max-h-96 overflow-auto whitespace-pre-wrap bg-background/50 rounded p-3">
+                      {migrationLog.join('\n')}
+                    </pre>
+                  </div>
+                )}
+
+                {migrationErrors.length > 0 && (
+                  <div className="glass-card p-4 border-destructive/30 space-y-2">
+                    <h3 className="font-semibold text-destructive">Błędy ({migrationErrors.length})</h3>
+                    <pre className="text-xs text-destructive max-h-64 overflow-auto whitespace-pre-wrap bg-destructive/5 rounded p-3">
+                      {migrationErrors.join('\n')}
+                    </pre>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-center text-muted-foreground py-12">
                 Sekcja w przygotowaniu
