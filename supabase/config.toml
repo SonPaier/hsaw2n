@@ -79,3 +79,6 @@ verify_jwt = false
 
 [functions.export-instance-data]
 verify_jwt = false
+
+[functions.migrate-data-to-target]
+verify_jwt = false
