@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Plus, MoreHorizontal, Settings2 } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Settings2, ArrowUp, ArrowDown } from 'lucide-react';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,9 @@ const formatCurrency = (value: number) =>
 
 const ITEMS_PER_PAGE = 10;
 
+type SortColumn = 'shortName' | 'fullName' | 'categoryName' | 'priceNet';
+type SortDirection = 'asc' | 'desc';
+
 const SalesProductsView = () => {
   const { roles } = useAuth();
   const instanceId = roles.find(r => r.instance_id)?.instance_id || null;
@@ -50,6 +53,8 @@ const SalesProductsView = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<SalesProduct | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('shortName');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const fetchProducts = useCallback(async () => {
     if (!instanceId) return;
@@ -83,6 +88,15 @@ const SalesProductsView = () => {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
     const q = searchQuery.toLowerCase();
@@ -93,11 +107,31 @@ const SalesProductsView = () => {
     );
   }, [products, searchQuery]);
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const sortedProducts = useMemo(() => {
+    const sorted = [...filteredProducts];
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    sorted.sort((a, b) => {
+      switch (sortColumn) {
+        case 'shortName':
+          return a.shortName.localeCompare(b.shortName) * dir;
+        case 'fullName':
+          return a.fullName.localeCompare(b.fullName) * dir;
+        case 'categoryName':
+          return (a.categoryName || '').localeCompare(b.categoryName || '') * dir;
+        case 'priceNet':
+          return (a.priceNet - b.priceNet) * dir;
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  }, [filteredProducts, sortColumn, sortDirection]);
+
+  const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredProducts, currentPage]);
+    return sortedProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedProducts, currentPage]);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -110,6 +144,20 @@ const SalesProductsView = () => {
     toast.success('Produkt usunięty');
     fetchProducts();
   };
+
+  const SortableHead = ({ column, children, className }: { column: SortColumn; children: React.ReactNode; className?: string }) => (
+    <TableHead className={className}>
+      <button
+        className="flex items-center gap-1 hover:text-foreground transition-colors text-left"
+        onClick={() => handleSort(column)}
+      >
+        {children}
+        {sortColumn === column && (
+          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+        )}
+      </button>
+    </TableHead>
+  );
 
   return (
     <div className="space-y-4">
@@ -143,15 +191,15 @@ const SalesProductsView = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Nazwa</TableHead>
-              <TableHead>Nazwa pełna</TableHead>
-              <TableHead>Kategoria</TableHead>
-              <TableHead className="text-right w-[120px]">Cena netto</TableHead>
+              <SortableHead column="shortName">Nazwa</SortableHead>
+              <SortableHead column="fullName">Nazwa pełna</SortableHead>
+              <SortableHead column="categoryName">Kategoria</SortableHead>
+              <SortableHead column="priceNet" className="text-right w-[120px]">Cena netto</SortableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.length === 0 ? (
+            {sortedProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   {loading ? 'Ładowanie...' : 'Brak produktów spełniających kryteria'}
@@ -196,7 +244,7 @@ const SalesProductsView = () => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-muted-foreground">
-            Strona {currentPage} z {totalPages} ({filteredProducts.length} produktów)
+            Strona {currentPage} z {totalPages} ({sortedProducts.length} produktów)
           </p>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>

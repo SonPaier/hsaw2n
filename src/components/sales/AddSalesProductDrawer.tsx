@@ -52,7 +52,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    if (!instanceId) return;
+    if (!instanceId || !open) return;
     supabase
       .from('unified_categories')
       .select('id, name')
@@ -60,7 +60,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
       .eq('category_type', 'sales')
       .order('sort_order')
       .then(({ data }) => setCategories(data || []));
-  }, [instanceId]);
+  }, [instanceId, open]);
 
   const resetForm = () => {
     setFullName('');
