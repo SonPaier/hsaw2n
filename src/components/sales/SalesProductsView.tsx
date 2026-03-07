@@ -227,6 +227,7 @@ const SalesProductsView = () => {
             open={categoryDialogOpen}
             onOpenChange={setCategoryDialogOpen}
             instanceId={instanceId}
+            categoryType="sales"
             serviceCounts={products.reduce((acc, p) => {
               if (p.categoryId) acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
               return acc;
