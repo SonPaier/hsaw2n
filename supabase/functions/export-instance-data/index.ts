@@ -12,43 +12,44 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Support two auth methods: service_role secret OR user JWT
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "") || "";
+    
+    // If token matches service role key, allow (admin-only CLI usage)
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    let isAuthorized = false;
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
+    if (token === serviceRoleKey) {
+      isAuthorized = true;
+    } else if (authHeader?.startsWith("Bearer ")) {
+      // Try user auth
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+      if (user && !userError) {
+        const { data: roles } = await supabaseAdmin
+          .from("user_roles")
+          .select("role, instance_id")
+          .eq("user_id", user.id);
+        isAuthorized = roles?.some((r) => r.role === "super_admin" || r.role === "admin") || false;
+      }
+    }
+
+    if (!isAuthorized) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: corsHeaders,
       });
     }
-
-    const userId = user.id;
-
-    // Check if user is super_admin or admin of the instance
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles")
-      .select("role, instance_id")
-      .eq("user_id", userId);
-
-    const isSuperAdmin = roles?.some((r) => r.role === "super_admin");
 
     const { slug } = await req.json();
     if (!slug) {
