@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     };
 
     // ---- Helper: write rows to target ----
-    const writeToTarget = async (tableName: string, rows: any[], batchSize = 500): Promise<number> => {
+    const writeToTarget = async (tableName: string, rows: any[], batchSize = 500, forceUpsert = false): Promise<number> => {
       if (!rows.length) { log.push(`${tableName}: 0 rows (skipped)`); return 0; }
       if (dryRun) { log.push(`${tableName}: ${rows.length} rows (dry run)`); return rows.length; }
       
@@ -114,7 +114,10 @@ Deno.serve(async (req) => {
         if (stripIdTables.has(tableName)) {
           batch = batch.map((row: any) => { const { id, ...rest } = row; return rest; });
         }
-        const { error } = await target.from(tableName).upsert(batch, { onConflict: conflictKey, ignoreDuplicates: true });
+        const { error } = await target.from(tableName).upsert(batch, { 
+          onConflict: conflictKey, 
+          ignoreDuplicates: !forceUpsert 
+        });
         if (error) errors.push(`${tableName}: insert error (batch ${Math.floor(i/batchSize)}) - ${error.message}`);
         else inserted += batch.length;
       }
