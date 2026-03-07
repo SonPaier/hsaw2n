@@ -175,7 +175,7 @@ export function CategoryManagementDialog({
         .from('unified_categories')
         .select('id, name, sort_order')
         .eq('instance_id', instanceId)
-        .eq('category_type', 'both')
+        .eq('category_type', categoryType)
         .eq('active', true)
         .order('sort_order');
 
