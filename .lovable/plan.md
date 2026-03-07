@@ -1,33 +1,41 @@
 
 
-## Plan: Email z potwierdzeniem zamówienia
+## Plan: Rozbudowa widoku Klienci w Sales CRM
 
-### 1. Nowa Edge Function: `send-order-confirmation`
-Nowa funkcja Deno (`supabase/functions/send-order-confirmation/index.ts`) wzorowana na istniejącym `send-offer-email`:
-- Przyjmuje `orderId` w body
-- Pobiera zamówienie z `sales_orders` + pozycje z `sales_order_items` + dane instancji z `instances` + email klienta z `customers`
-- Pobiera `is_net_payer` z tabeli `customers` dla danego klienta
-- Buduje HTML email wg szablonu (ten sam branding: szare tło #f0f0f0, biały boks, Inter font, stopka z danymi firmy)
-- Jeśli klient jest płatnikiem brutto (`is_net_payer = false`), dodaje linijkę "Suma całkowita brutto: [kwota]"
-- Jeśli klient jest płatnikiem netto (`is_net_payer = true`), nie dodaje linijki brutto
-- Wysyła przez SMTP (te same sekrety co offer email)
-- Mapuje `delivery_type` i `payment_method` na polskie nazwy
+### Zakres zmian
 
-Treść emaila dokładnie jak w specyfikacji użytkownika.
+**1. Migracja bazy danych** — dodanie kolumny `is_net_payer` (boolean, default false) do tabeli `customers`.
 
-### 2. Edycja `AddSalesOrderDrawer.tsx`
-- Po pomyślnym zapisie zamówienia (INSERT), jeśli `sendEmail === true`:
-  - Wywołaj `supabase.functions.invoke('send-order-confirmation', { body: { orderId } })`
-  - Pokaż toast sukcesu/błędu
-- Pobieraj email klienta, aby wyświetlić info jeśli brak emaila (opcjonalne)
+**2. SalesCustomersView.tsx** — zmiany w tabeli:
+- Usunąć kolumnę "Opiekun"
+- Dodać kolumnę "Ostatnie zamówienie" (na razie placeholder "—", bo zamówienia nie są jeszcze w DB)
+- Dodać kolumnę "Płatnik" — wyświetla "netto" lub "brutto" na podstawie `is_net_payer` z danych klienta
+- Podłączyć dane klientów z Supabase (zamiast pustej tablicy `[]`)
+- Otwieranie drawera po kliknięciu wiersza + "Dodaj klienta"
 
-### 3. config.toml
-Dodać sekcję `[functions.send-order-confirmation]` z `verify_jwt = false`.
+**3. Nowy komponent: `NipLookupForm.tsx`** — skopiowany z N2Service, lookup NIP z GUS API (`wl-api.mf.gov.pl`), pola: NIP + przycisk "Pobierz z GUS", nazwa firmy, ulica, kod pocztowy, miasto. Tryb readOnly do widoku.
+
+**4. Nowy komponent: `AddEditSalesCustomerDrawer.tsx`** — Sheet z formularzem:
+- **Sekcja główna:** Nazwa, Osoba kontaktowa, Telefon, Email
+- **Toggle Rabat** + pole liczbowe % (zapisuje do `discount_percent`)
+- **Toggle Płatnik netto** (zapisuje do `is_net_payer`)
+- Notatki (textarea)
+- **Separator + Adres wysyłki:** Adresat, Ulica, Kod pocztowy, Miasto (zapisuje do `shipping_*` kolumn)
+- **Separator + Dane firmy** (Collapsible): NipLookupForm — NIP z GUS lookup, nazwa firmy, adres fakturowy (zapisuje do `nip`, `company`, `billing_*`)
+- **Tryb widoku** z tabami "Dane" / "Zamówienia" (wzór z N2Service CustomerEditDrawer)
+- Sticky header + footer z przyciskami Zapisz/Anuluj/Edytuj
+
+**5. Zapis do Supabase:** INSERT/UPDATE na tabeli `customers` z `source: 'sales'`, używając istniejących kolumn (`contact_person`, `discount_percent`, `is_net_payer`, `shipping_*`, `billing_*`, `nip`, `company`, `sales_notes`).
 
 ### Pliki do utworzenia
-- `supabase/functions/send-order-confirmation/index.ts`
+- `src/components/sales/NipLookupForm.tsx` — kopia z N2Service
+- `src/components/sales/AddEditSalesCustomerDrawer.tsx` — nowy drawer
 
 ### Pliki do edycji
-- `src/components/sales/AddSalesOrderDrawer.tsx` — wywołanie edge function po zapisie
-- `supabase/config.toml` — rejestracja nowej funkcji
+- `src/components/sales/SalesCustomersView.tsx` — przebudowa tabeli + integracja z DB i drawerem
+
+### Migracja
+```sql
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_net_payer boolean NOT NULL DEFAULT false;
+```
 

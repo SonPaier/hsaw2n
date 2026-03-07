@@ -367,6 +367,24 @@ const AddSalesOrderDrawer = ({ open, onOpenChange, orders, initialCustomer, edit
         }
 
         toast.success('Zamówienie zostało dodane');
+
+        // Send confirmation email if checkbox is checked
+        if (sendEmail && order?.id) {
+          try {
+            const { data: emailRes, error: emailErr } = await supabase.functions.invoke('send-order-confirmation', {
+              body: { orderId: order.id },
+            });
+            if (emailRes?.error) {
+              toast.error('Zamówienie zapisane, ale nie udało się wysłać emaila: ' + emailRes.error);
+            } else if (emailErr) {
+              toast.error('Zamówienie zapisane, ale nie udało się wysłać emaila');
+            } else {
+              toast.success('Email z potwierdzeniem wysłany');
+            }
+          } catch {
+            toast.error('Zamówienie zapisane, ale nie udało się wysłać emaila');
+          }
+        }
       }
 
       resetForm();
