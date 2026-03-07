@@ -46,354 +46,214 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
+    const migrateAll = body.all === true;
     const slug = body.slug || "armcar";
     const dryRun = body.dry_run || false;
 
-    // Source client (this project)
-    const source = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      serviceRoleKey
-    );
-
-    // Target client (external Supabase)
+    const source = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
     const targetUrl = Deno.env.get("TARGET_SUPABASE_URL")!;
     const targetKey = Deno.env.get("TARGET_SUPABASE_SERVICE_ROLE_KEY")!;
     const target = createClient(targetUrl, targetKey);
 
-    // Get instance
-    const { data: instance, error: instErr } = await source
-      .from("instances")
-      .select("*")
-      .eq("slug", slug)
-      .single();
-
-    if (instErr || !instance) {
-      return new Response(
-        JSON.stringify({ error: "Instance not found", details: instErr }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const instanceId = instance.id;
     const log: string[] = [];
     const errors: string[] = [];
 
-    const migrateTable = async (
-      tableName: string,
-      filterCol: string,
-      filterVal: string,
-      batchSize = 500
-    ) => {
-      try {
-        // Read all data from source
-        let allData: any[] = [];
-        let offset = 0;
-        let hasMore = true;
-
-        while (hasMore) {
-          const { data, error } = await source
-            .from(tableName)
-            .select("*")
-            .eq(filterCol, filterVal)
-            .range(offset, offset + batchSize - 1);
-
-          if (error) {
-            errors.push(`${tableName}: read error - ${error.message}`);
-            return 0;
-          }
-
-          if (!data || data.length === 0) {
-            hasMore = false;
-          } else {
-            allData = allData.concat(data);
-            offset += batchSize;
-            if (data.length < batchSize) hasMore = false;
-          }
+    // ---- Helper: read all rows from a table (paginated) ----
+    const readAll = async (tableName: string, filter?: { col: string; val: string }, batchSize = 500): Promise<any[]> => {
+      let allData: any[] = [];
+      let offset = 0;
+      let hasMore = true;
+      while (hasMore) {
+        let q = source.from(tableName).select("*");
+        if (filter) q = q.eq(filter.col, filter.val);
+        q = q.range(offset, offset + batchSize - 1);
+        const { data, error } = await q;
+        if (error) { errors.push(`${tableName}: read error - ${error.message}`); return allData; }
+        if (!data || data.length === 0) { hasMore = false; } else {
+          allData = allData.concat(data);
+          offset += batchSize;
+          if (data.length < batchSize) hasMore = false;
         }
-
-        if (allData.length === 0) {
-          log.push(`${tableName}: 0 rows (skipped)`);
-          return 0;
-        }
-
-        if (dryRun) {
-          log.push(`${tableName}: ${allData.length} rows (dry run)`);
-          return allData.length;
-        }
-
-        // Insert into target in batches
-        let inserted = 0;
-        for (let i = 0; i < allData.length; i += batchSize) {
-          const batch = allData.slice(i, i + batchSize);
-          const { error: insertErr } = await target
-            .from(tableName)
-            .upsert(batch, { onConflict: "id", ignoreDuplicates: true });
-
-          if (insertErr) {
-            errors.push(
-              `${tableName}: insert error (batch ${i / batchSize}) - ${insertErr.message}`
-            );
-          } else {
-            inserted += batch.length;
-          }
-        }
-
-        log.push(`${tableName}: ${inserted}/${allData.length} rows migrated`);
-        return inserted;
-      } catch (e) {
-        errors.push(`${tableName}: exception - ${String(e)}`);
-        return 0;
       }
+      return allData;
     };
 
-    const migrateRelated = async (
-      tableName: string,
-      filterCol: string,
-      filterIds: string[],
-      batchSize = 500
-    ) => {
-      if (!filterIds.length) {
-        log.push(`${tableName}: 0 parent IDs (skipped)`);
-        return 0;
+    // ---- Helper: read rows filtered by IN ----
+    const readByIds = async (tableName: string, col: string, ids: string[]): Promise<any[]> => {
+      if (!ids.length) return [];
+      let allData: any[] = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const chunk = ids.slice(i, i + 100);
+        const { data, error } = await source.from(tableName).select("*").in(col, chunk).limit(10000);
+        if (error) errors.push(`${tableName}: read error - ${error.message}`);
+        else if (data) allData = allData.concat(data);
       }
-
-      try {
-        let allData: any[] = [];
-        // Fetch in chunks of IDs (max 100 per query)
-        for (let i = 0; i < filterIds.length; i += 100) {
-          const idChunk = filterIds.slice(i, i + 100);
-          const { data, error } = await source
-            .from(tableName)
-            .select("*")
-            .in(filterCol, idChunk)
-            .limit(10000);
-
-          if (error) {
-            errors.push(`${tableName}: read error - ${error.message}`);
-          } else if (data) {
-            allData = allData.concat(data);
-          }
-        }
-
-        if (allData.length === 0) {
-          log.push(`${tableName}: 0 rows (skipped)`);
-          return 0;
-        }
-
-        if (dryRun) {
-          log.push(`${tableName}: ${allData.length} rows (dry run)`);
-          return allData.length;
-        }
-
-        let inserted = 0;
-        for (let i = 0; i < allData.length; i += batchSize) {
-          const batch = allData.slice(i, i + batchSize);
-          const { error: insertErr } = await target
-            .from(tableName)
-            .upsert(batch, { onConflict: "id", ignoreDuplicates: true });
-
-          if (insertErr) {
-            errors.push(
-              `${tableName}: insert error - ${insertErr.message}`
-            );
-          } else {
-            inserted += batch.length;
-          }
-        }
-
-        log.push(`${tableName}: ${inserted}/${allData.length} rows migrated`);
-        return inserted;
-      } catch (e) {
-        errors.push(`${tableName}: exception - ${String(e)}`);
-        return 0;
-      }
+      return allData;
     };
 
-    // ========== MIGRATION ORDER ==========
-    // 1. Instance itself
-    if (!dryRun) {
-      const { error: instInsertErr } = await target
-        .from("instances")
-        .upsert([instance], { onConflict: "id" });
-      if (instInsertErr) {
-        errors.push(`instances: ${instInsertErr.message}`);
-      } else {
-        log.push("instances: 1 row migrated");
+    // ---- Helper: write rows to target ----
+    const writeToTarget = async (tableName: string, rows: any[], batchSize = 500): Promise<number> => {
+      if (!rows.length) { log.push(`${tableName}: 0 rows (skipped)`); return 0; }
+      if (dryRun) { log.push(`${tableName}: ${rows.length} rows (dry run)`); return rows.length; }
+      let inserted = 0;
+      for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const { error } = await target.from(tableName).upsert(batch, { onConflict: "id", ignoreDuplicates: true });
+        if (error) errors.push(`${tableName}: insert error (batch ${Math.floor(i/batchSize)}) - ${error.message}`);
+        else inserted += batch.length;
       }
+      log.push(`${tableName}: ${inserted}/${rows.length} rows migrated`);
+      return inserted;
+    };
+
+    // ---- Helper: migrate a full table (no filter) ----
+    const migrateFullTable = async (tableName: string) => {
+      const rows = await readAll(tableName);
+      await writeToTarget(tableName, rows);
+    };
+
+    // ---- Helper: migrate table filtered by instance_id ----
+    const migrateByInstance = async (tableName: string, instanceId: string) => {
+      const rows = await readAll(tableName, { col: "instance_id", val: instanceId });
+      await writeToTarget(tableName, rows);
+    };
+
+    // ---- Helper: migrate related by IDs ----
+    const migrateByIds = async (tableName: string, col: string, ids: string[]) => {
+      const rows = await readByIds(tableName, col, ids);
+      await writeToTarget(tableName, rows);
+    };
+
+    // ========== STEP 0: Global tables (shared across all instances) ==========
+    const globalTables = [
+      "car_models",
+      "subscription_plans",
+    ];
+    for (const t of globalTables) {
+      await migrateFullTable(t);
+    }
+
+    // Global offer_scopes (source = 'global', instance_id IS NULL)
+    const globalScopes = await readAll("offer_scopes");
+    const globalScopeRows = globalScopes.filter((s: any) => s.source === "global" && !s.instance_id);
+    await writeToTarget("offer_scopes", globalScopeRows);
+
+    // ========== Get instances to migrate ==========
+    let instances: any[] = [];
+    if (migrateAll) {
+      instances = await readAll("instances");
+      log.push(`=== Migrating ALL ${instances.length} instances ===`);
     } else {
-      log.push("instances: 1 row (dry run)");
+      const { data: inst, error: instErr } = await source
+        .from("instances").select("*").eq("slug", slug).single();
+      if (instErr || !inst) {
+        return new Response(
+          JSON.stringify({ error: "Instance not found", details: instErr }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      instances = [inst];
     }
 
-    // 2. Independent tables (instance_id filter)
-    const instanceTables = [
-      "stations",
-      "service_categories",
-      "employees",
-      "customers",
-      "unified_categories",
-      "reminder_templates",
-      "offer_variants",
-      "offer_product_categories",
-      "followup_services",
-      "training_types",
-      "halls",
-      "workers_settings",
-      "sales_products",
-    ];
+    // ========== Migrate each instance ==========
+    for (const instance of instances) {
+      const instanceId = instance.id;
+      log.push(`--- Instance: ${instance.slug} (${instanceId}) ---`);
 
-    for (const table of instanceTables) {
-      await migrateTable(table, "instance_id", instanceId);
+      // 1. Instance itself
+      await writeToTarget("instances", [instance]);
+
+      // 2. Level-1 tables (instance_id filter)
+      const l1Tables = [
+        "stations", "service_categories", "employees", "customers",
+        "unified_categories", "reminder_templates", "offer_variants",
+        "offer_product_categories", "followup_services", "training_types",
+        "halls", "workers_settings", "sales_products",
+      ];
+      for (const t of l1Tables) await migrateByInstance(t, instanceId);
+
+      // 3. Level-2 tables
+      const l2Tables = [
+        "services", "customer_vehicles", "closed_days", "breaks",
+        "notifications", "employee_breaks", "employee_days_off",
+        "employee_edit_logs", "employee_permissions", "instance_features",
+        "unified_services", "sms_message_settings", "login_attempts",
+        "push_subscriptions", "price_lists", "products_library", "text_blocks_library",
+      ];
+      for (const t of l2Tables) await migrateByInstance(t, instanceId);
+
+      // 4. Reservations & related
+      for (const t of ["reservations", "reservation_changes", "reservation_events", "sms_logs", "customer_reminders"]) {
+        await migrateByInstance(t, instanceId);
+      }
+
+      // 5. Offers system
+      await migrateByInstance("offer_scopes", instanceId);
+      await migrateByInstance("offers", instanceId);
+
+      const offers = await readAll("offers", { col: "instance_id", val: instanceId });
+      const offerIds = offers.map((o: any) => o.id);
+      await migrateByIds("offer_options", "offer_id", offerIds);
+
+      const options = await readByIds("offer_options", "offer_id", offerIds);
+      const optionIds = options.map((o: any) => o.id);
+      await migrateByIds("offer_option_items", "option_id", optionIds);
+      await migrateByIds("offer_text_blocks", "offer_id", offerIds);
+      await migrateByIds("offer_history", "offer_id", offerIds);
+      await migrateByIds("offer_views", "offer_id", offerIds);
+
+      for (const t of [
+        "offer_scope_products", "offer_scope_extras", "offer_scope_extra_products",
+        "offer_scope_variants", "offer_scope_variant_products", "offer_reminders",
+      ]) await migrateByInstance(t, instanceId);
+
+      // 6. Followup
+      await migrateByInstance("followup_events", instanceId);
+      await migrateByInstance("followup_tasks", instanceId);
+
+      // 7. Protocols
+      await migrateByInstance("vehicle_protocols", instanceId);
+      const protocols = await readAll("vehicle_protocols", { col: "instance_id", val: instanceId });
+      const protocolIds = protocols.map((p: any) => p.id);
+      await migrateByIds("protocol_damage_points", "protocol_id", protocolIds);
+
+      // 8. Trainings
+      await migrateByInstance("trainings", instanceId);
+
+      // 9. Sales
+      await migrateByInstance("sales_orders", instanceId);
+      const salesOrders = await readAll("sales_orders", { col: "instance_id", val: instanceId });
+      const orderIds = salesOrders.map((o: any) => o.id);
+      await migrateByIds("sales_order_items", "order_id", orderIds);
+
+      // 10. Station employees
+      const stations = await readAll("stations", { col: "instance_id", val: instanceId });
+      const stationIds = stations.map((s: any) => s.id);
+      if (stationIds.length > 0) await migrateByIds("station_employees", "station_id", stationIds);
+
+      // 11-14. Remaining tables
+      for (const t of ["time_entries", "yard_vehicles", "profiles", "user_roles", "instance_subscriptions"]) {
+        await migrateByInstance(t, instanceId);
+      }
     }
-
-    // 3. Tables dependent on level-1 tables
-    const level2Tables = [
-      "services",
-      "customer_vehicles",
-      "closed_days",
-      "breaks",
-      "notifications",
-      "employee_breaks",
-      "employee_days_off",
-      "employee_edit_logs",
-      "employee_permissions",
-      "instance_features",
-      "unified_services",
-      "sms_message_settings",
-      "login_attempts",
-      "push_subscriptions",
-      "price_lists",
-      "products_library",
-      "text_blocks_library",
-    ];
-
-    for (const table of level2Tables) {
-      await migrateTable(table, "instance_id", instanceId);
-    }
-
-    // 4. Reservations & related
-    await migrateTable("reservations", "instance_id", instanceId);
-    await migrateTable("reservation_changes", "instance_id", instanceId);
-    await migrateTable("reservation_events", "instance_id", instanceId);
-    await migrateTable("sms_logs", "instance_id", instanceId);
-    await migrateTable("customer_reminders", "instance_id", instanceId);
-
-    // 5. Offers system
-    await migrateTable("offer_scopes", "instance_id", instanceId);
-    await migrateTable("offers", "instance_id", instanceId);
-
-    // Get offer IDs for related tables
-    const { data: offers } = await source
-      .from("offers")
-      .select("id")
-      .eq("instance_id", instanceId);
-    const offerIds = offers?.map((o) => o.id) || [];
-
-    await migrateRelated("offer_options", "offer_id", offerIds);
-
-    // Get option IDs
-    const { data: options } = await source
-      .from("offer_options")
-      .select("id")
-      .in("offer_id", offerIds.slice(0, 100));
-    const optionIds = options?.map((o) => o.id) || [];
-
-    await migrateRelated("offer_option_items", "option_id", optionIds);
-    await migrateRelated("offer_text_blocks", "offer_id", offerIds);
-    await migrateRelated("offer_history", "offer_id", offerIds);
-    await migrateRelated("offer_views", "offer_id", offerIds);
-
-    // Offer scope related
-    const { data: scopes } = await source
-      .from("offer_scopes")
-      .select("id")
-      .eq("instance_id", instanceId);
-    const scopeIds = scopes?.map((s) => s.id) || [];
-
-    await migrateTable("offer_scope_products", "instance_id", instanceId);
-    await migrateTable("offer_scope_extras", "instance_id", instanceId);
-    await migrateTable("offer_scope_extra_products", "instance_id", instanceId);
-    await migrateTable("offer_scope_variants", "instance_id", instanceId);
-    await migrateTable("offer_scope_variant_products", "instance_id", instanceId);
-    await migrateTable("offer_reminders", "instance_id", instanceId);
-
-    // 6. Followup
-    await migrateTable("followup_events", "instance_id", instanceId);
-    await migrateTable("followup_tasks", "instance_id", instanceId);
-
-    // 7. Protocols
-    await migrateTable("vehicle_protocols", "instance_id", instanceId);
-    // Get protocol IDs
-    const { data: protocols } = await source
-      .from("vehicle_protocols")
-      .select("id")
-      .eq("instance_id", instanceId);
-    const protocolIds = protocols?.map((p) => p.id) || [];
-    await migrateRelated("protocol_damage_points", "protocol_id", protocolIds);
-
-    // 8. Trainings
-    await migrateTable("trainings", "instance_id", instanceId);
-
-    // 9. Sales
-    await migrateTable("sales_orders", "instance_id", instanceId);
-    const { data: salesOrders } = await source
-      .from("sales_orders")
-      .select("id")
-      .eq("instance_id", instanceId);
-    const orderIds = salesOrders?.map((o) => o.id) || [];
-    await migrateRelated("sales_order_items", "order_id", orderIds);
-
-    // 10. Station employees
-    await migrateTable("station_employees", "station_id", instanceId);
-    // station_employees needs special handling - filter by station_ids
-    const { data: stationData } = await source
-      .from("stations")
-      .select("id")
-      .eq("instance_id", instanceId);
-    const stationIds = stationData?.map((s) => s.id) || [];
-    if (stationIds.length > 0) {
-      await migrateRelated("station_employees", "station_id", stationIds);
-    }
-
-    // 11. Time entries
-    await migrateTable("time_entries", "instance_id", instanceId);
-
-    // 12. Yard vehicles
-    await migrateTable("yard_vehicles", "instance_id", instanceId);
-
-    // 13. Profiles & user_roles (special - filter by instance_id)
-    await migrateTable("profiles", "instance_id", instanceId);
-    await migrateTable("user_roles", "instance_id", instanceId);
-
-    // 14. Subscription
-    await migrateTable("instance_subscriptions", "instance_id", instanceId);
 
     return new Response(
       JSON.stringify({
         success: true,
-        slug,
-        instance_id: instanceId,
+        mode: migrateAll ? "all" : "single",
+        slug: migrateAll ? "ALL" : slug,
+        instances_count: instances.length,
         dry_run: dryRun,
         log,
         errors,
-        summary: {
-          total_tables: log.length,
-          tables_with_errors: errors.length,
-        },
+        summary: { total_log_entries: log.length, errors_count: errors.length },
       }, null, 2),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: String(err), stack: (err as Error)?.stack }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
