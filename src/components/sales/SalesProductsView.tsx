@@ -49,15 +49,23 @@ const SalesProductsView = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<SalesProduct | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!instanceId) return;
     setLoading(true);
     const { data } = await (supabase
       .from('sales_products')
-      .select('id, short_name, full_name, description, price_net, price_unit')
+      .select('id, short_name, full_name, description, price_net, price_unit, category_id')
       .eq('instance_id', instanceId)
       .order('created_at', { ascending: false }) as any);
+
+    // Fetch categories to map names
+    const { data: cats } = await supabase
+      .from('unified_categories')
+      .select('id, name')
+      .eq('instance_id', instanceId);
+    const catMap = new Map((cats || []).map((c: any) => [c.id, c.name]));
 
     setProducts((data || []).map((p: any) => ({
       id: p.id,
@@ -66,6 +74,8 @@ const SalesProductsView = () => {
       description: p.description || undefined,
       priceNet: Number(p.price_net),
       priceUnit: p.price_unit,
+      categoryId: p.category_id || null,
+      categoryName: p.category_id ? catMap.get(p.category_id) || null : null,
     })));
     setLoading(false);
   }, [instanceId]);
