@@ -57,6 +57,7 @@ const AddSalesProductDrawer = ({ open, onOpenChange, instanceId, onSaved, produc
       .from('unified_categories')
       .select('id, name')
       .eq('instance_id', instanceId)
+      .eq('category_type', 'sales')
       .order('sort_order')
       .then(({ data }) => setCategories(data || []));
   }, [instanceId]);

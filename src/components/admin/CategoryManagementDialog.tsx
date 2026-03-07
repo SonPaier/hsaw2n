@@ -139,6 +139,7 @@ interface CategoryManagementDialogProps {
   instanceId: string;
   serviceCounts: Record<string, number>;
   onCategoriesChanged: () => void;
+  categoryType?: string;
 }
 
 export function CategoryManagementDialog({
@@ -147,6 +148,7 @@ export function CategoryManagementDialog({
   instanceId,
   serviceCounts,
   onCategoriesChanged,
+  categoryType = 'both',
 }: CategoryManagementDialogProps) {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -173,7 +175,7 @@ export function CategoryManagementDialog({
         .from('unified_categories')
         .select('id, name, sort_order')
         .eq('instance_id', instanceId)
-        .eq('category_type', 'both')
+        .eq('category_type', categoryType)
         .eq('active', true)
         .order('sort_order');
 
@@ -303,7 +305,7 @@ export function CategoryManagementDialog({
           name: newCategoryName.trim(),
           slug,
           sort_order: maxOrder,
-          category_type: 'both',
+          category_type: categoryType,
           active: true,
         })
         .select()

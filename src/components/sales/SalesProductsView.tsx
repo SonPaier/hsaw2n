@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Plus, MoreHorizontal, FolderOpen } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Settings2 } from 'lucide-react';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,8 @@ const SalesProductsView = () => {
     const { data: cats } = await supabase
       .from('unified_categories')
       .select('id, name')
-      .eq('instance_id', instanceId);
+      .eq('instance_id', instanceId)
+      .eq('category_type', 'sales');
     const catMap = new Map((cats || []).map((c: any) => [c.id, c.name]));
 
     setProducts((data || []).map((p: any) => ({
@@ -126,14 +127,16 @@ const SalesProductsView = () => {
             className="pl-9"
           />
         </div>
-        <Button size="sm" variant="outline" onClick={() => setCategoryDialogOpen(true)}>
-          <FolderOpen className="w-4 h-4" />
-          Kategorie
-        </Button>
-        <Button size="sm" onClick={() => { setEditProduct(null); setDrawerOpen(true); }}>
-          <Plus className="w-4 h-4" />
-          Dodaj produkt
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setCategoryDialogOpen(true)}>
+            <Settings2 className="w-4 h-4" />
+            Kategorie
+          </Button>
+          <Button size="sm" onClick={() => { setEditProduct(null); setDrawerOpen(true); }}>
+            <Plus className="w-4 h-4" />
+            Dodaj produkt
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card">
@@ -225,6 +228,7 @@ const SalesProductsView = () => {
             open={categoryDialogOpen}
             onOpenChange={setCategoryDialogOpen}
             instanceId={instanceId}
+            categoryType="sales"
             serviceCounts={products.reduce((acc, p) => {
               if (p.categoryId) acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
               return acc;
