@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.send-order-confirmation]
 verify_jwt = false
+
+[functions.export-instance-data]
+verify_jwt = false
