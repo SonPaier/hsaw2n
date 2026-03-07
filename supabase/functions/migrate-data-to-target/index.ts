@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     };
 
     // ---- Helper: write rows to target ----
-    const writeToTarget = async (tableName: string, rows: any[], batchSize = 500): Promise<number> => {
+    const writeToTarget = async (tableName: string, rows: any[], batchSize = 500, forceUpsert = false): Promise<number> => {
       if (!rows.length) { log.push(`${tableName}: 0 rows (skipped)`); return 0; }
       if (dryRun) { log.push(`${tableName}: ${rows.length} rows (dry run)`); return rows.length; }
       
@@ -114,7 +114,10 @@ Deno.serve(async (req) => {
         if (stripIdTables.has(tableName)) {
           batch = batch.map((row: any) => { const { id, ...rest } = row; return rest; });
         }
-        const { error } = await target.from(tableName).upsert(batch, { onConflict: conflictKey, ignoreDuplicates: true });
+        const { error } = await target.from(tableName).upsert(batch, { 
+          onConflict: conflictKey, 
+          ignoreDuplicates: !forceUpsert 
+        });
         if (error) errors.push(`${tableName}: insert error (batch ${Math.floor(i/batchSize)}) - ${error.message}`);
         else inserted += batch.length;
       }
@@ -178,9 +181,9 @@ Deno.serve(async (req) => {
       // 2. Instance subscription (MUST be before stations to set station_limit)
       const subs = await readAll("instance_subscriptions", { col: "instance_id", val: instanceId });
       if (subs.length > 0) {
-        // Temporarily set high station_limit so stations can be inserted
+        // Force upsert with high station_limit so stations can be inserted
         const subsWithHighLimit = subs.map((s: any) => ({ ...s, station_limit: 999 }));
-        await writeToTarget("instance_subscriptions", subsWithHighLimit);
+        await writeToTarget("instance_subscriptions", subsWithHighLimit, 500, true);
       }
 
       // 3. Profiles & user_roles (MUST be before login_attempts)
@@ -206,15 +209,21 @@ Deno.serve(async (req) => {
       ];
       for (const t of l2Tables) await migrateByInstance(t, instanceId);
 
-      // 6. Reservations (depends on stations, services, unified_services)
-      // First get all reservation IDs that will be inserted successfully
-      await migrateByInstance("reservations", instanceId);
+      // 6. Reservations - nullify orphan service_id references
+      const allReservations = await readAll("reservations", { col: "instance_id", val: instanceId });
+      const migratedServices = await readAll("services", { col: "instance_id", val: instanceId });
+      const serviceIdSet = new Set(migratedServices.map((s: any) => s.id));
+      const fixedReservations = allReservations.map((r: any) => ({
+        ...r,
+        service_id: r.service_id && serviceIdSet.has(r.service_id) ? r.service_id : null,
+      }));
+      await writeToTarget("reservations", fixedReservations);
 
-      // 7. Tables depending on reservations
-      // reservation_changes: filter out rows with null/undefined new_value AND ensure reservation exists
+      // Build set of actually migrated reservation IDs for dependent tables
+      const reservationIdSet = new Set(fixedReservations.map((r: any) => r.id));
+
+      // 7. Tables depending on reservations - filter by existing reservation IDs
       const resChanges = await readAll("reservation_changes", { col: "instance_id", val: instanceId });
-      const reservationRows = await readAll("reservations", { col: "instance_id", val: instanceId });
-      const reservationIdSet = new Set(reservationRows.map((r: any) => r.id));
       const validChanges = resChanges.filter((r: any) => 
         r.new_value !== null && r.new_value !== undefined && 
         (r.change_type === 'created' || r.reservation_id == null || reservationIdSet.has(r.reservation_id))
@@ -225,8 +234,22 @@ Deno.serve(async (req) => {
       await writeToTarget("reservation_changes", validChanges);
 
       await migrateByInstance("reservation_events", instanceId);
-      await migrateByInstance("sms_logs", instanceId);
-      await migrateByInstance("customer_reminders", instanceId);
+      
+      // sms_logs - filter by existing reservation IDs
+      const smsLogs = await readAll("sms_logs", { col: "instance_id", val: instanceId });
+      const validSmsLogs = smsLogs.filter((r: any) => !r.reservation_id || reservationIdSet.has(r.reservation_id));
+      if (validSmsLogs.length < smsLogs.length) {
+        log.push(`sms_logs: filtered out ${smsLogs.length - validSmsLogs.length} orphan rows`);
+      }
+      await writeToTarget("sms_logs", validSmsLogs);
+      
+      // customer_reminders - filter by existing reservation IDs
+      const custReminders = await readAll("customer_reminders", { col: "instance_id", val: instanceId });
+      const validReminders = custReminders.filter((r: any) => !r.reservation_id || reservationIdSet.has(r.reservation_id));
+      if (validReminders.length < custReminders.length) {
+        log.push(`customer_reminders: filtered out ${custReminders.length - validReminders.length} orphan rows`);
+      }
+      await writeToTarget("customer_reminders", validReminders);
 
       // 8. Offers system
       await migrateByInstance("offer_scopes", instanceId);
@@ -252,10 +275,14 @@ Deno.serve(async (req) => {
       await migrateByInstance("followup_events", instanceId);
       await migrateByInstance("followup_tasks", instanceId);
 
-      // 10. Protocols (depends on reservations)
-      await migrateByInstance("vehicle_protocols", instanceId);
-      const protocols = await readAll("vehicle_protocols", { col: "instance_id", val: instanceId });
-      const protocolIds = protocols.map((p: any) => p.id);
+      // 10. Protocols (depends on reservations) - filter by existing reservation IDs
+      const allProtocols = await readAll("vehicle_protocols", { col: "instance_id", val: instanceId });
+      const validProtocols = allProtocols.filter((p: any) => !p.reservation_id || reservationIdSet.has(p.reservation_id));
+      if (validProtocols.length < allProtocols.length) {
+        log.push(`vehicle_protocols: filtered out ${allProtocols.length - validProtocols.length} orphan rows`);
+      }
+      await writeToTarget("vehicle_protocols", validProtocols);
+      const protocolIds = validProtocols.map((p: any) => p.id);
       await migrateByIds("protocol_damage_points", "protocol_id", protocolIds);
 
       // 11. Trainings (depends on stations)
@@ -280,7 +307,7 @@ Deno.serve(async (req) => {
 
       // 16. Restore correct station_limit in instance_subscriptions
       if (subs.length > 0) {
-        await writeToTarget("instance_subscriptions", subs);
+        await writeToTarget("instance_subscriptions", subs, 500, true);
         log.push(`instance_subscriptions: restored original station_limit`);
       }
     }
