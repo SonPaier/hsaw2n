@@ -181,9 +181,9 @@ Deno.serve(async (req) => {
       // 2. Instance subscription (MUST be before stations to set station_limit)
       const subs = await readAll("instance_subscriptions", { col: "instance_id", val: instanceId });
       if (subs.length > 0) {
-        // Temporarily set high station_limit so stations can be inserted
+        // Force upsert with high station_limit so stations can be inserted
         const subsWithHighLimit = subs.map((s: any) => ({ ...s, station_limit: 999 }));
-        await writeToTarget("instance_subscriptions", subsWithHighLimit);
+        await writeToTarget("instance_subscriptions", subsWithHighLimit, 500, true);
       }
 
       // 3. Profiles & user_roles (MUST be before login_attempts)
